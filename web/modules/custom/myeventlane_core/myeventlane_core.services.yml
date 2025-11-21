@@ -1,0 +1,7 @@
+services:
+  myeventlane_core.route_helper:
+    class: Drupal\myeventlane_core\Service\RouteHelper
+    arguments: ['@router']
+  myeventlane_core.date_formatter:
+    class: Drupal\myeventlane_core\Service\DateFormatter
+    arguments: ['@datetime.time', '@language_manager']

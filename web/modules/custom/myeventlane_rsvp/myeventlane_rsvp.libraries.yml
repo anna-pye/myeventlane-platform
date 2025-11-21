@@ -1,0 +1,10 @@
+checkin:
+  css:
+    theme:
+      css/checkin.css: {}
+qrscan:
+  js:
+    js/qrscan.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

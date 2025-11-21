@@ -1,0 +1,6 @@
+twbstools.styleguide.render:
+  path: '/styleguide'
+  defaults:
+    _controller: '\Drupal\twbstools\Controller\StyleguideController::render'
+  requirements:
+    _permission: 'access content'

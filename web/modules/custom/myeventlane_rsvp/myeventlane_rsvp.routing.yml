@@ -1,0 +1,130 @@
+myeventlane_rsvp.form:
+  path: '/event/{node}/rsvp'
+  defaults:
+    _form: '\Drupal\myeventlane_rsvp\Form\RsvpPublicForm'
+    _title: 'RSVP'
+  requirements:
+    _permission: 'access content'
+    node: '\d+'
+
+myeventlane_rsvp.cancel:
+  path: '/rsvp/{myeventlane_rsvp_submission}/cancel'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpCancelController::cancel'
+    _title: 'Cancel RSVP'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_rsvp.cancel_confirm:
+  path: '/rsvp/{rsvp_id}/cancel/confirm'
+  defaults:
+    _form: '\Drupal\myeventlane_rsvp\Form\RsvpCancelConfirmForm'
+    _title: 'Confirm cancellation'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_rsvp.public_rsvp_form:
+  path: '/event/{event}/rsvp'
+  defaults:
+    _title: 'RSVP'
+    _form: '\Drupal\myeventlane_rsvp\Form\RsvpPublicForm'
+  requirements:
+    _permission: 'access content'
+    event: '\d+'
+
+myeventlane_rsvp.thankyou:
+  path: '/event/{event}/rsvp/thank-you'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpThankYouController::page'
+    _title: 'RSVP Confirmed'
+  requirements:
+    _permission: 'access content'
+    event: '\d+'
+
+myeventlane_rsvp.ics_download:
+  path: '/event/{node}/ics'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\IcsController::download'
+    _title: 'Download ICS'
+  requirements:
+    _entity_access: 'node.view'
+    node: '\d+'
+
+myeventlane_rsvp.settings:
+  path: '/admin/config/myeventlane/rsvp'
+  defaults:
+    _form: '\Drupal\myeventlane_rsvp\Form\RsvpSettingsForm'
+    _title: 'RSVP settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+myeventlane_rsvp.vendor_event_rsvps:
+  path: '/vendor/event/{event}/rsvps'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\VendorEventRsvpController::view'
+    _title: 'Manage RSVPs'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    event: '\d+'
+
+myeventlane_rsvp.export_csv:
+  path: '/vendor/event/{event}/rsvps/export'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\VendorRsvpExportController::export'
+    _title: 'Export CSV'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    event: '\d+'
+
+myeventlane_rsvp.checkin_list:
+  path: '/vendor/event/{event}/rsvps/checkin'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpCheckinController::checkinPage'
+    _title: 'RSVP Check-In'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    event: '\d+'
+
+myeventlane_rsvp.checkin_list_pdf:
+  path: '/vendor/event/{event}/rsvps/checkin/pdf'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpCheckinController::pdf'
+    _title: 'RSVP Check-In PDF'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    event: '\d+'
+
+myeventlane_rsvp.checkin_scan:
+  path: '/vendor/event/{event}/scan'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\QrCheckinController::scanPage'
+    _title: 'QR Scan Check-In'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_rsvp\Access\VendorEventAccess::checkAccess'
+    event: '\d+'
+
+myeventlane_rsvp.checkin_validate:
+  path: '/vendor/qr/validate'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\QrCheckinController::validate'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+  options:
+    _auth: ['csrf_token']
+
+myeventlane_rsvp.sms_settings:
+  path: '/admin/config/myeventlane/sms'
+  defaults:
+    _form: '\Drupal\myeventlane_rsvp\Form\SmsSettingsForm'
+    _title: 'SMS Settings'
+  requirements:
+    _permission: 'administer sms settings'
+
+myeventlane_rsvp.ics_bundle:
+  path: '/my-profile/download-rsvps.ics'
+  defaults:
+    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpIcsBundleController::download'
+    _title: 'Download all my RSVPs'
+  requirements:
+    _permission: 'access content'

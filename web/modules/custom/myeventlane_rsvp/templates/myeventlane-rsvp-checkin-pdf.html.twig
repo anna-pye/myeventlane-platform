@@ -1,0 +1,38 @@
+<h1>Check-In List — {{ event.label }}</h1>
+
+<p>Date: {{ event.field_event_start.value|date('Y-m-d H:i') }}</p>
+<p>Venue: {{ event.field_venue_name.value }}</p>
+
+<h2>Confirmed Attendees ({{ confirmed|length }})</h2>
+
+<table width="100%" cellspacing="0" cellpadding="4" style="border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th align="left">Name</th>
+      <th align="left">Email</th>
+      <th>Checked</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in confirmed %}
+      <tr>
+        <td>{{ r.first_name }} {{ r.last_name }}</td>
+        <td>{{ r.email }}</td>
+        <td>[ ]</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Waitlist ({{ waitlist|length }})</h2>
+
+<table width="100%" cellspacing="0" cellpadding="4">
+  <tbody>
+    {% for r in waitlist %}
+      <tr>
+        <td>{{ r.first_name }} {{ r.last_name }}</td>
+        <td>{{ r.email }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

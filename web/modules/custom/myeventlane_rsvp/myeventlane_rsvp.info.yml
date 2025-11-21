@@ -1,0 +1,13 @@
+name: 'MyEventLane RSVP'
+type: module
+description: 'Custom RSVP submissions, waitlist, cancellations, ICS export, and vendor management.'
+core_version_requirement: ^11
+package: 'MyEventLane'
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:views
+  - drupal:system
+  - drupal:datetime
+  - drupal:options
+  - drupal:link

@@ -1,0 +1,17 @@
+<style>
+  body { font-family: Nunito, sans-serif; background: #fef5ec; padding: 16px; }
+  .box { background: white; padding: 24px; border-radius: 12px; }
+</style>
+
+<div class="box">
+  <h2>Thanks {{ name }} — your RSVP is confirmed</h2>
+
+  <p>You have successfully registered for:</p>
+
+  <p><strong>{{ event_title }}</strong></p>
+
+  <p>
+    View the event:
+    <a href="{{ event_url }}">Click here</a>
+  </p>
+</div>

@@ -1,0 +1,20 @@
+name: Commerce Order
+type: module
+description: 'Defines the Order entity and associated features.'
+package: Commerce
+core_version_requirement: ^10.3 || ^11
+configure: commerce_order.configuration
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_price
+  - commerce:commerce_store
+  - commerce:commerce_number_pattern
+  - entity_reference_revisions:entity_reference_revisions
+  - profile:profile
+  - state_machine:state_machine
+  - drupal:options
+
+# Information added by Drupal.org packaging script on 2025-09-10
+version: '3.2.0'
+project: 'commerce'
+datestamp: 1757518221

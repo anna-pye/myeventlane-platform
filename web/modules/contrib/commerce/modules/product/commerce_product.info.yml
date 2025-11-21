@@ -1,0 +1,17 @@
+name: Commerce Product
+type: module
+description: 'Defines the Product entity and associated features.'
+package: Commerce
+core_version_requirement: ^10.3 || ^11
+configure: commerce_product.configuration
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_price
+  - commerce:commerce_store
+  - drupal:path
+  - drupal:text
+
+# Information added by Drupal.org packaging script on 2025-09-10
+version: '3.2.0'
+project: 'commerce'
+datestamp: 1757518221

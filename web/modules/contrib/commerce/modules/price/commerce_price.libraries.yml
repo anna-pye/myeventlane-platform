@@ -1,0 +1,4 @@
+admin:
+  css:
+    theme:
+      css/commerce_price.admin.css: {}

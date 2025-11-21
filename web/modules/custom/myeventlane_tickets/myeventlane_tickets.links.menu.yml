@@ -1,0 +1,6 @@
+myeventlane_tickets.admin:
+  title: 'Ticket settings'
+  description: 'Configure ticket generation and download settings.'
+  parent: system.admin_config_services
+  route_name: myeventlane_tickets.settings
+  weight: 10

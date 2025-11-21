@@ -1,0 +1,10 @@
+rendered-attributes:
+  css:
+    theme:
+      css/commerce_product.rendered-attributes.css: {}
+
+update_product_url:
+  js:
+    js/commerce_product.update_product_url.js: {}
+  dependencies:
+    - core/drupal.ajax

@@ -1,0 +1,5 @@
+myeventlane_rsvp.rsvp_action:
+  route_name: myeventlane_rsvp.form
+  title: 'RSVP Now'
+  appears_on:
+    - entity.node.canonical

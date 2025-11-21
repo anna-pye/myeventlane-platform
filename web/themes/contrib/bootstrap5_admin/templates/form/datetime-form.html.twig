@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a datetime form element.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the datetime form element.
+ * - content: The datelist form element to be output.
+ *
+ * @see template_preprocess_datetime_form()
+ *
+ * @ingroup themeable
+ */
+#}
+{% set classes = [
+  content['#date_time_format'] ? 'input-group' : 'container-inline',
+] %}
+<div{{ attributes.addClass(classes) }}>
+  {{ content }}
+</div>

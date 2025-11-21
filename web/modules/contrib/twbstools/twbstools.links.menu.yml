@@ -1,0 +1,5 @@
+twbstools.styleguide.render:
+  title: 'Styleguide'
+  description: 'Bootstrap.'
+  parent: system.admin_config_development
+  route_name: twbstools.styleguide.render

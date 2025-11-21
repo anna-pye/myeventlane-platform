@@ -1,0 +1,10 @@
+{{ system_compact_link }}
+<div class="layout-row clearfix row">
+  {% for container in containers %}
+    <div class="layout-column col-6 g-2">
+      {% for block in container.blocks %}
+        {{ block }}
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>

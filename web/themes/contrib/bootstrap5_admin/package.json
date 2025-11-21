@@ -1,0 +1,20 @@
+{
+  "name": "Bootstrap5_admin",
+  "description": "Drupal theme admin.",
+  "license": "GPL-2.0-or-later",
+  "private": true,
+  "scripts": {
+    "prettier:check": "prettier \"**/*.(scss|css)\" --check",
+    "prettier:write": "prettier \"**/*.(scss|css)\" --write",
+    "stylelint": "stylelint \"**/*.(scss|css)\"",
+    "stylelint:fix": "stylelint \"**/*.(scss|css)\" --fix",
+    "lint": "concurrently -n stylelint,prettier \"npm:stylelint\" \"npm:prettier:check\" --max-processes=1",
+    "fmt": "concurrently -n stylelint,prettier \"npm:stylelint:fix\" \"npm:prettier:write\" --max-processes=1"
+  },
+  "devDependencies": {
+    "@reloaddk/stylelint-recommended-scss": "^0.1.0",
+    "concurrently": "^6.2.0",
+    "prettier": "^2.3.0",
+    "stylelint": "^13.13.1"
+  }
+}

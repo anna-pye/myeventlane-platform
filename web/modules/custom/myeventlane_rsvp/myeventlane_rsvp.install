@@ -1,0 +1,90 @@
+
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall hooks.
+ */
+
+use Drupal\Core\Database\SchemaObjectExistsException;
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_rsvp_schema() {
+  $schema['myeventlane_rsvp'] = [
+    'description' => 'RSVP submissions for MyEventLane.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_nid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'active',
+      ],
+      'email' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_idx' => ['event_nid'],
+      'uid_idx' => ['uid'],
+      'created_idx' => ['created'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Add field_checked_in.
+ */
+function myeventlane_rsvp_update_9001() {
+  \Drupal::entityTypeManager()
+    ->getStorage('field_storage_config')
+    ->create([
+      'entity_type' => 'rsvp_submission',
+      'field_name' => 'field_checked_in',
+      'type' => 'boolean',
+    ])
+    ->save();
+
+  \Drupal::entityTypeManager()
+    ->getStorage('field_config')
+    ->create([
+      'entity_type' => 'rsvp_submission',
+      'bundle' => 'rsvp_submission',
+      'field_name' => 'field_checked_in',
+      'label' => 'Checked In',
+    ])
+    ->save();
+}

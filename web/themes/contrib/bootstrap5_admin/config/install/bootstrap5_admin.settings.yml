@@ -1,0 +1,20 @@
+# Default settings of the bootstrap5 theme.
+# cSpell:ignore bootswatch
+b5_body_schema: 'none'
+b5_body_bg_schema: 'none'
+
+b5_navbar_schema: 'light'
+b5_navbar_bg_schema: 'light'
+
+b5_footer_schema: 'light'
+b5_footer_bg_schema: 'secondary'
+
+b5_top_container: 'container-fluid m-0'
+b5_top_container_config: ''
+custom_css_site: ''
+custom_javascript_site: ''
+b5_bootstrap_select: false
+b5_bootswatch_theme: ''
+third_party_settings:
+  shortcut:
+    module_link: true

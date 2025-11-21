@@ -1,0 +1,9 @@
+name: Bootstrap tools
+type: module
+description: 'Companion module for [Bootstrap 5 theme] to provide better content editor and developer experience.'
+core_version_requirement: ^10.2 || ^11.0
+
+# Information added by Drupal.org packaging script on 2025-01-05
+version: '2.1.0'
+project: 'twbstools'
+datestamp: 1736070450

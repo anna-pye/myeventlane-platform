@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Nunito, sans-serif;
+      padding: 24px;
+    }
+    .ticket {
+      border: 2px solid #f26d5b;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .code {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f26d5b;
+    }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <h1>{{ event.label }}</h1>
+    <p>{{ event.field_start_date.value|date("d M Y, g:ia") }}</p>
+    <p>{{ event.field_location.value }}</p>
+
+    <div class="code">
+      Ticket Code: {{ code }}
+    </div>
+
+    <p>Ticket Holder: {{ holder.title.value }}</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{#
+/**
+ * @file
+ * Theme override to display a single Drupal page while offline.
+ *
+ * All available variables are mirrored in page.html.twig.
+ * Some may be blank but they are provided for consistency.
+ *
+ * @see template_preprocess_maintenance_page()
+ */
+#}
+<div class="layout-container d-flex flex-column justify-content-center align-items-center">
+
+  <header role="banner" class="row">
+    {% if logo %}
+      <a class="text-center col-auto" href="{{ front_page }}" title="{{ 'Home'|t }}" rel="home">
+        <img src="{{ logo }}" alt="{{ 'Home'|t }}" class="d-block mx-auto mb-4" height="57"/>
+      </a>
+    {% endif %}
+
+    {% if site_name or site_slogan %}
+      <div class="name-and-slogan col-auto">
+      {% if site_name %}
+        <h1 class="site-name">
+          <a href="{{ front_page }}" title="{{ 'Home'|t }}" rel="home">{{ site_name }}</a>
+        </h1>
+      {% endif %}
+
+      {% if site_slogan %}
+        <div class="site-slogan">{{ site_slogan }}</div>
+      {% endif %}
+      </div>{# /.name-and-slogan #}
+    {% endif %}
+
+  </header>
+
+  <main role="main" class="container">
+    {% if title|render|striptags|trim %}
+      <div class="mx-auto py-5">
+        <h1 class="text-center display-5 fw-normal">{{ title }}</h1>
+      </div>
+    {% endif %}
+    <div class="row g-5 bg-light rounded">
+      <div class="col-md-5 col-lg-4 order-md-start">
+        {% if page.sidebar_first %}
+          <aside class="layout-sidebar-first" role="complementary">
+          {{ page.sidebar_first }}
+          </aside>{# /.layout-sidebar-first #}
+        {% endif %}
+
+        {% if page.sidebar_second %}
+          <aside class="layout-sidebar-second" role="complementary">
+          {{ page.sidebar_second }}
+          </aside>{# /.layout-sidebar-second #}
+        {% endif %}
+      </div>
+      <div class="col-md-7 col-lg-8">
+        {{ page.highlighted }}
+
+        {{ page.content }}
+      </div>
+    </div>
+  </main>
+
+  {% if page.footer %}
+    <footer role="contentinfo">
+      {{ page.footer }}
+    </footer>
+  {% endif %}
+
+</div>{# /.layout-container #}

@@ -1,0 +1,5 @@
+name: MyEventLane Core
+type: module
+core_version_requirement: ^11
+package: MyEventLane
+description: Core services, helper utilities, and shared architecture for MyEventLane.

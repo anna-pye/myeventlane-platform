@@ -1,0 +1,27 @@
+<table width="100%" style="font-family: Arial; max-width: 600px; margin: 0 auto;">
+  <tr>
+    <td>
+      <h2>Your RSVP is confirmed</h2>
+      <p>Hello {{ params.name }},</p>
+      <p>
+        Your RSVP for <strong>{{ params.event_title }}</strong> is now confirmed.
+      </p>
+
+      {% if params.event_date %}
+        <p>Date: {{ params.event_date }}</p>
+      {% endif %}
+
+      {% if params.event_location %}
+        <p>Location: {{ params.event_location }}</p>
+      {% endif %}
+
+      <p>
+        View event: <a href="{{ url('entity.node.canonical', {'node': params.event_nid}, {'absolute': true}) }}">
+          {{ params.event_title }}
+        </a>
+      </p>
+
+      <p>Thank you.</p>
+    </td>
+  </tr>
+</table>

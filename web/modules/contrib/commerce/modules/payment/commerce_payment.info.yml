@@ -1,0 +1,16 @@
+name: Commerce Payment
+type: module
+description: 'Provides payment functionality.'
+package: Commerce
+core_version_requirement: ^10.3 || ^11
+configure: commerce_payment.configuration
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_order
+  - entity_reference_revisions:entity_reference_revisions
+  - drupal:filter
+
+# Information added by Drupal.org packaging script on 2025-09-10
+version: '3.2.0'
+project: 'commerce'
+datestamp: 1757518221

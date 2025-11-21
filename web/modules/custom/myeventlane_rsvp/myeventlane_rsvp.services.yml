@@ -1,0 +1,59 @@
+services:
+
+  myeventlane_rsvp.user_rsvp_repository:
+    class: Drupal\myeventlane_rsvp\Service\UserRsvpRepository
+    arguments: ['@database', '@current_user']
+
+  myeventlane_rsvp.mailer:
+    class: Drupal\myeventlane_rsvp\Service\RsvpMailer
+    arguments: ['@plugin.manager.mail', '@renderer', '@config.factory']
+
+  myeventlane_rsvp.ics_generator:
+    class: Drupal\myeventlane_rsvp\Service\IcsGenerator
+    arguments: ['@file_system']
+
+  myeventlane_rsvp.capacity:
+    class: Drupal\myeventlane_rsvp\Service\RsvpCapacityService
+    arguments: ['@database']
+
+  myeventlane_rsvp.calendar_buttons:
+    class: Drupal\myeventlane_rsvp\Service\CalendarButtonBuilder
+    arguments: ['@renderer', '@url_generator']
+
+  myeventlane_rsvp.storage:
+    class: Drupal\myeventlane_rsvp\Service\RsvpStorage
+    arguments: ['@database']
+
+  myeventlane_rsvp.digest_generator:
+    class: Drupal\myeventlane_rsvp\Service\VendorDigestGenerator
+    arguments: ['@entity_type.manager', '@plugin.manager.mail', '@renderer']
+
+  myeventlane_rsvp.digest_queue:
+    class: Drupal\myeventlane_rsvp\Queue\VendorDigestQueue
+    arguments: ['@myeventlane_rsvp.digest_generator']
+    tags:
+      - { name: queue_worker, queue_name: mel_rsvp_vendor_digest, cron: 60 }
+
+  myeventlane_rsvp.submission_saver:
+    class: Drupal\myeventlane_rsvp\Service\RsvpSubmissionSaver
+    arguments: ['@entity_type.manager', '@plugin.manager.mail', '@renderer']
+
+  myeventlane_rsvp.promotion_manager:
+    class: Drupal\myeventlane_rsvp\Service\RsvpPromotionManager
+    arguments: ['@entity_type.manager']
+
+  myeventlane_rsvp.vendor_event_access:
+    class: Drupal\myeventlane_rsvp\Access\VendorEventAccess
+    arguments: ['@current_user', '@entity_type.manager']
+
+  myeventlane_rsvp.pdf_generator:
+    class: Drupal\myeventlane_rsvp\Service\RsvpPdfGenerator
+    arguments: ['@file_system']
+
+  myeventlane_rsvp.sms_manager:
+    class: Drupal\myeventlane_rsvp\Service\SmsManager
+    arguments: ['@config.factory']
+
+  myeventlane_rsvp.ics_bundle:
+    class: Drupal\myeventlane_rsvp\Service\IcsBundleGenerator
+    arguments: ['@entity_type.manager']

@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies: {  }
+id: commerce_order_item.field_wallet_serial
+field_name: field_wallet_serial
+entity_type: commerce_order_item
+type: string
+settings:
+  max_length: 64
+module: core
+locked: false
+cardinality: 1

@@ -1,0 +1,12 @@
+services:
+  myeventlane_wallet.pkpass_builder:
+    class: Drupal\myeventlane_wallet\Service\PkPassBuilder
+    arguments: ['@file_system', '@config.factory', '@myeventlane_wallet.wallet_signer']
+
+  myeventlane_wallet.wallet_signer:
+    class: Drupal\myeventlane_wallet\Service\WalletSigner
+    arguments: ['@config.factory']
+
+  myeventlane_wallet.google_wallet_builder:
+    class: Drupal\myeventlane_wallet\Service\GoogleWalletBuilder
+    arguments: ['@config.factory', '@renderer']

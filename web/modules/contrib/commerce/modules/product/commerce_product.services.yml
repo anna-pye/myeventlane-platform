@@ -1,0 +1,41 @@
+services:
+  _defaults:
+    autowire: true
+  access_check.product_variation_collection:
+    class: Drupal\commerce_product\Access\ProductVariationCollectionAccessCheck
+    tags:
+      - { name: access_check, applies_to: _product_variation_collection_access }
+
+  access_check.product_variation_create:
+    class: Drupal\commerce_product\Access\ProductVariationCreateAccessCheck
+    tags:
+      - { name: access_check, applies_to: _product_variation_create_access }
+
+  commerce_product.attribute_field_manager:
+    class: Drupal\commerce_product\ProductAttributeFieldManager
+    autowire: false
+    arguments: ['@entity_field.manager', '@entity_type.bundle.info', '@entity_type.manager', '@cache.data']
+  Drupal\commerce_product\ProductAttributeFieldManagerInterface: '@commerce_product.attribute_field_manager'
+
+  commerce_product.lazy_builders:
+    class: Drupal\commerce_product\ProductLazyBuilders
+
+  commerce_product.variation_field_renderer:
+    class: Drupal\commerce_product\ProductVariationFieldRenderer
+  Drupal\commerce_product\ProductVariationFieldRendererInterface: '@commerce_product.variation_field_renderer'
+
+  commerce_product.product_route_context:
+    class: Drupal\commerce_product\ContextProvider\ProductRouteContext
+    tags:
+      - { name: 'context_provider' }
+
+  commerce_product.product_variation_route_context:
+    class: Drupal\commerce_product\ContextProvider\ProductVariationContext
+    calls:
+      - [ setSampleEntityGenerator, [ '@?layout_builder.sample_entity_generator' ] ]
+    tags:
+      - { name: 'context_provider' }
+
+  commerce_product.variation_attribute_mapper:
+    class: Drupal\commerce_product\ProductVariationAttributeMapper
+  Drupal\commerce_product\ProductVariationAttributeMapperInterface: '@commerce_product.variation_attribute_mapper'

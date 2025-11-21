@@ -1,0 +1,9 @@
+name: 'MyEventLane Tickets'
+type: module
+description: 'Generates unique ticket codes, PDFs, and downloader routes.'
+package: 'MyEventLane'
+core_version_requirement: ^11
+dependencies:
+  - drupal:commerce
+  - drupal:commerce_order
+  - drupal:commerce_product

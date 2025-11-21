@@ -1,0 +1,15 @@
+myeventlane_tickets.settings:
+  path: '/admin/config/myeventlane/tickets'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\TicketSettingsForm'
+    _title: 'Ticket settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+myeventlane_tickets.download_pdf:
+  path: '/ticket/pdf/{order_item_id}'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketDownloadController::download'
+    _title: 'Download Ticket PDF'
+  requirements:
+    _permission: 'access content'

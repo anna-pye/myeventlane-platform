@@ -1,0 +1,10 @@
+myeventlane_rsvp.settings:
+  type: config_object
+  label: 'RSVP mail settings'
+  mapping:
+    send_vendor_copy:
+      type: boolean
+      label: 'Send a copy to vendor'
+    langcode:
+      type: string
+      label: 'Email language'

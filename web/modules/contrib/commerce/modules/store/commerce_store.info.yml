@@ -1,0 +1,16 @@
+name: Commerce Store
+type: module
+description: 'Defines the Store entity and associated features.'
+package: Commerce
+core_version_requirement: ^10.3 || ^11
+configure: entity.commerce_store.collection
+dependencies:
+  - commerce:commerce
+  - commerce:commerce_price
+  - drupal:options
+  - drupal:path
+
+# Information added by Drupal.org packaging script on 2025-09-10
+version: '3.2.0'
+project: 'commerce'
+datestamp: 1757518221

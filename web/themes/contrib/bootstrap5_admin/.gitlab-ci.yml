@@ -1,0 +1,14 @@
+include:
+  - project: $_GITLAB_TEMPLATES_REPO
+    ref: $_GITLAB_TEMPLATES_REF
+    file:
+      - '/includes/include.drupalci.main.yml'
+      - '/includes/include.drupalci.variables.yml'
+      - '/includes/include.drupalci.workflows.yml'
+
+variables:
+  SKIP_ESLINT: '1'
+  _CSPELL_IGNORE_PATHS: '"**/*.css","**/*.json","*.theme","**/templates/*.twig",".*ignore","composer.json","composer.lock","**/LICENSE.txt","package.json","yarn.lock"'
+
+phpcs:
+  allow_failure: false

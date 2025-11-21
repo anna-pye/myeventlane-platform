@@ -1,0 +1,14 @@
+manage own event rsvps:
+  title: 'Manage RSVPs for own events'
+  description: 'Allows vendors to view and update RSVP submissions for events they authored.'
+  restrict: true
+
+administer rsvps:
+  title: 'Administer all RSVP submissions'
+  description: 'Full access to manage all RSVPs.'
+  restrict: true
+
+administer sms settings:
+  title: 'Administer SMS settings'
+  description: 'Configure SMS providers and sending rules.'
+  restrict: true

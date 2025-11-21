@@ -1,0 +1,19 @@
+<table width="100%" style="font-family: Arial; max-width: 600px; margin: 0 auto;">
+  <tr>
+    <td>
+      <h2>New RSVP</h2>
+
+      <p><strong>{{ params.name }}</strong> has RSVP’d for your event:</p>
+
+      <p>
+        <a href="{{ url('entity.node.canonical', {'node': params.event_nid}, {'absolute': true}) }}">
+          {{ params.event_title }}
+        </a>
+      </p>
+
+      <p>Email: {{ params.email }}</p>
+
+      <p>Regards,<br/>MyEventLane</p>
+    </td>
+  </tr>
+</table>

@@ -1,0 +1,4 @@
+twbstools.styleguide.render:
+  route_name: twbstools.styleguide.render
+  base_route: twbstools.styleguide.render
+  title: 'Settings'

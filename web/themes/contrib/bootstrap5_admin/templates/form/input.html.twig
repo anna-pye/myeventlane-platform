@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Theme override for an 'input' #type form element.
+ *
+ * Available variables:
+ * - attributes: A list of HTML attributes for the input element.
+ * - children: Optional additional rendered elements.
+ *
+ * @see template_preprocess_input()
+ */
+#}
+{% if attributes.hasClass('button')  and not attributes.hasClass('btn') %}
+  {%
+    set classes = [
+      'btn',
+      icon ? 'icon-link icon-link-hover' : '',
+      attributes.hasClass('button--danger') ? 'btn-danger' : '',
+      attributes.hasClass('button--primary') ? 'btn-primary' : '',
+      (not attributes.hasClass('media-library-item__remove') and not attributes.hasClass('button--danger') and not attributes.hasClass('button--primary')) ? 'btn-secondary' : ''
+    ]
+  %}
+  {% if( attributes['type'] == 'submit' and icon is not empty) %}
+    <button{{ attributes.addClass(classes) }}>{{ icon }} {{ attributes.value }}</button>
+  {% else %}
+    <input{{ attributes.addClass(classes) }} />
+  {% endif %}
+  {% elseif attributes.hasAttribute('list') and attributes.hasClass('form-range') %}
+    <input{{ attributes.removeClass('form-range') }} oninput="this.nextElementSibling.value = this.value"/><output>{{ attributes.value }}</output>
+  {% elseif attributes.hasClass('form-datetime-local')%}
+    <input{{ attributes.addClass('form-control w-auto') }} />
+  {% elseif attributes.hasClass('form-date') or attributes.hasClass('form-time')%}
+    <input{{ attributes.addClass('w-auto') }} />
+  {% elseif attributes.hasClass('form-file')%}
+    <input{{ attributes.addClass('form-control') }} />
+  {% else %}
+    <input{{ attributes }} />
+  {% endif %}
+{{ children }}

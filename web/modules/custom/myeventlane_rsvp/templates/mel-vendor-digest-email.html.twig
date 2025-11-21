@@ -1,0 +1,31 @@
+<style>
+  body { font-family: Nunito, sans-serif; background: #fef5ec; padding: 24px; }
+  .wrap { background: white; border-radius: 16px; padding: 24px; }
+  .event { border-bottom: 1px solid #eee; padding: 16px 0; }
+  .event:last-child { border-bottom: none; }
+  .title { font-size: 20px; font-weight: 700; color: #293241; }
+  .meta { color: #555; margin: 4px 0 8px; }
+  .badge { background: #f26d5b; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <h2>Good morning — here’s your event digest ☀️</h2>
+
+  {% for e in events %}
+    <div class="event">
+      <div class="title"><a href="{{ e.url }}">{{ e.title }}</a></div>
+
+      <div class="meta">
+        {{ e.start }} → {{ e.end }} — {{ e.venue }}
+      </div>
+
+      <div>{{ e.address }}</div>
+
+      <p>
+        <span class="badge">{{ e.rsvps }} RSVPs</span>
+        <span class="badge">{{ e.waitlist }} Waitlist</span>
+        <span class="badge">{{ e.sales }} Tickets Sold</span>
+      </p>
+    </div>
+  {% endfor %}
+</div>

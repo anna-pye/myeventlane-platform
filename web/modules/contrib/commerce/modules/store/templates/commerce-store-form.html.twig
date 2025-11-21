@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Template for the store add/edit form.
+ *
+ * Available variables:
+ * - form: The form.
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('commerce/admin-layout') }}
+<div class="layout-store-form layout-commerce-form">
+  <div class="layout-region layout-region--commerce-main">
+    <div class="layout-region__content">
+      {{ form|without('advanced', 'actions') }}
+    </div>
+  </div>
+  <div class="layout-region layout-region--commerce-secondary">
+    {{ form.advanced }}
+  </div>
+  <div class="layout-region layout-region--commerce-footer">
+    {{ form.actions }}
+  </div>
+</div>

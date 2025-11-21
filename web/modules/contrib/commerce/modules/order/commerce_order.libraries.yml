@@ -1,0 +1,9 @@
+address_book:
+  css:
+    layout:
+      css/commerce_order.address_book.css: {}
+
+total_summary:
+  css:
+    layout:
+      css/commerce_order.total_summary.css: {}

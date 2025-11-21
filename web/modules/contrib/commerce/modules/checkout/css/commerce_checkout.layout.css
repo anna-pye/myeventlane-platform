@@ -1,0 +1,41 @@
+/**
+ * @file
+ * Reusable layout styling for Commerce Checkout components
+ */
+
+.form-wrapper__login-option {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px;
+}
+
+.form-wrapper__login-option input:not([type="submit"], [type="password"]),
+.form-wrapper__returning-customer input[type="password"] {
+  width: 100%;
+}
+
+.form-wrapper__login-option input.button {
+  margin: 0;
+}
+
+.form-wrapper__returning-customer .form-item:first-of-type {
+  margin-top: 0;
+}
+
+@media (min-width: 780px) {
+  #edit-login {
+    overflow: auto;
+  }
+
+  .form-wrapper__returning-customer {
+    float: left;
+    width: 48%;
+  }
+
+  .form-wrapper__guest-checkout {
+    float: right;
+    width: 48%;
+  }
+}

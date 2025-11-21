@@ -1,0 +1,26 @@
+payment_method_form:
+  css:
+    theme:
+      css/commerce_payment.payment_method_form.css: {}
+
+payment_method_icons:
+  css:
+    theme:
+      css/commerce_payment.payment_method_icons.css: {}
+
+payment_summary:
+  css:
+    theme:
+      css/commerce_payment.payment_summary.css: {}
+
+offsite_redirect:
+  js:
+    js/offsite-redirect.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+payment_messages:
+  css:
+    theme:
+      css/commerce_payment.payment_messages.css: {}

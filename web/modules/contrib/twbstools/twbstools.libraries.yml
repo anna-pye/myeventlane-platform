@@ -1,0 +1,9 @@
+twbstools.cheatsheet:
+  version: VERSION
+  css:
+    component:
+      resources/cheatsheet/index_files/cheatsheet.css: {}
+  js:
+    resources/cheatsheet/index_files/cheatsheet.js: {}
+  dependencies:
+    - bootstrap5/bootstrap5-js-latest

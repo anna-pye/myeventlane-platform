@@ -1,0 +1,15 @@
+myeventlane_wallet.apple:
+  path: '/wallet/apple/{order_item_id}'
+  defaults:
+    _controller: '\Drupal\myeventlane_wallet\Controller\WalletAppleController::download'
+    _title: 'Apple Wallet Pass'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_wallet.google:
+  path: '/wallet/google/{order_item_id}'
+  defaults:
+    _controller: '\Drupal\myeventlane_wallet\Controller\WalletGoogleController::link'
+    _title: 'Google Wallet'
+  requirements:
+    _permission: 'access content'

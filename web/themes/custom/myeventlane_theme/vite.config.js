@@ -1,0 +1,1 @@
+// placeholder vite config

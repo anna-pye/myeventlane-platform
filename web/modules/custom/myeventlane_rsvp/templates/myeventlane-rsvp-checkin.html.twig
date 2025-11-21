@@ -1,0 +1,52 @@
+<div class="mel-checkin">
+  <div class="mel-checkin-header">
+    <h1>Check-In List — {{ event.label }}</h1>
+
+    <a href="{{ path('myeventlane_rsvp.checkin_list_pdf', {'event': event.id}) }}"
+       class="mel-btn mel-btn-primary">
+       Download PDF
+    </a>
+  </div>
+
+  <h2>Confirmed Attendees ({{ confirmed|length }})</h2>
+
+  <table class="mel-checkin-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Checked</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in confirmed %}
+        <tr>
+          <td>{{ r.first_name }} {{ r.last_name }}</td>
+          <td>{{ r.email }}</td>
+          <td>[ ]</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Waitlist ({{ waitlist|length }})</h2>
+
+  <table class="mel-checkin-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in waitlist %}
+        <tr>
+          <td>{{ r.first_name }} {{ r.last_name }}</td>
+          <td>{{ r.email }}</td>
+          <td>Waitlist</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,72 @@
+{#
+/**
+ * @file
+ * Theme override to display status report.
+ *
+ * - grouped_requirements: Contains grouped requirements.
+ *   Each group contains:
+ *   - title: The title of the group.
+ *   - type: The severity of the group.
+ *   - items: The requirement instances.
+ *     Each requirement item contains:
+ *     - title: The title of the requirement.
+ *     - value: (optional) The requirement's status.
+ *     - description: (optional) The requirement's description.
+ *     - severity_title: The title of the severity.
+ *     - severity_status: Indicates the severity status.
+ */
+#}
+{{ attach_library('core/drupal.collapse') }}
+
+<div class="system-status-report">
+  <h2 class="system-status-general-info__header">{{ 'Status Details'|t }}</h2>
+  <div class="accordion" id="accordion-system-status-report">
+    {% for group in grouped_requirements %}
+      <div class="accordion-item details">
+        {%
+          set status = group.type == 'checked' ? 'success' : (group.type == 'error' ? 'danger' : 'warning')
+        %}
+        <div id="{{ group.type }}" class="accordion-header">
+          <button class="accordion-button fw-bold text-uppercase text-{{ status }}" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#nav-{{ group.type }}" aria-expanded="true" aria-controls="nav-{{ group.type }}">
+            {{ group.title }}
+          </button>
+        </div>
+        <div id="nav-{{ group.type }}" class="accordion-collapse collapse show" data-bs-parent="#accordion-system-status-report">
+          <div class="accordion-body">
+            <dl class="row">
+              {% if group.type == 'checked' %}
+                {% set type = 'success' %}
+              {% else %}
+                {% set type = group.type %}
+              {% endif %}
+              {% for requirement in group.items %}
+                {% set summary_classes = [
+                  'col-sm-2',
+                  'alert alert-' ~ type
+                ] %}
+                <dt{{ create_attribute({'class': summary_classes}) }}>
+                  {% if requirement.severity_title %}
+                    <span class="visually-hidden">{{ requirement.severity_title }}</span>
+                  {% endif %}
+                  <span class="system-status-counter__status-icon system-status-counter__status-icon--{{ group.type }}"></span>
+                  {{ requirement.title }}
+                </dt>
+                {% set summary_classes = [
+                  'col-sm-10',
+                  'alert alert-' ~ type
+                ] %}
+                <dd {{ create_attribute({'class': summary_classes}) }}>
+                  {{ requirement.value }}
+                  {% if requirement.description %}
+                    <p class="description">{{ requirement.description }}</p>
+                  {% endif %}
+                </dd>
+              {% endfor %}
+            </dl>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>

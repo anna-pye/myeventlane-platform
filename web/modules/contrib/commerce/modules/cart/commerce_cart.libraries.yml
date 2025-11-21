@@ -1,0 +1,27 @@
+admin:
+  css:
+    theme:
+      css/commerce_cart.admin.css: {}
+
+cart_block:
+  css:
+    layout:
+      css/commerce_cart.layout.css: {}
+    theme:
+      css/commerce_cart.theme.css: {}
+  js:
+    js/commerce_cart.js: {}
+  dependencies:
+    - core/jquery
+    - core/once
+    - core/drupal
+    - core/drupal.form
+
+cart_form:
+  js:
+    js/commerce_cart.form.js: {}
+  dependencies:
+    - core/jquery
+    - core/once
+    - core/drupal
+    - core/drupal.form

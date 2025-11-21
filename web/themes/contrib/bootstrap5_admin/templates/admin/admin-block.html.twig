@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an administrative block.
+ *
+ * Available variables:
+ * - block: An array of information about the block, including:
+ *   - show: A flag indicating if the block should be displayed.
+ *   - title: The block title.
+ *   - content: (optional) The content of the block.
+ *   - description: (optional) A description of the block.
+ *     (Description should only be output if content is not available).
+ * - attributes: HTML attributes for the containing div element.
+ *
+ * @ingroup themeable
+ */
+#}
+{%
+  set classes = [
+    'card',
+    'mb-2'
+  ]
+%}
+<details{{ attributes.addClass(classes) }} open="open">
+  {% if block.title %}
+    <summary role="button" aria-expanded="true" aria-pressed="true" class="panel__title card-header text-uppercase fs-5">{{ block.title }}</summary>
+  {% endif %}
+  {% if block.content %}
+  <div class="card-body">
+    <div class="panel__content card-text">{{ block.content }}</div>
+  </div>
+  {% elseif block.description %}
+    <footer role="footer" class="panel__description blockquote-footer">{{ block.description }}</footer>
+  {% endif %}
+</details>
