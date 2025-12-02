@@ -12,17 +12,75 @@
  */
 #}
 <div class="mel-event-book-page">
-  {% if hero_url %}
-    <div class="mel-event-book-hero">
-      <img src="{{ hero_url }}" alt="{{ title }}" loading="eager">
-    </div>
-  {% endif %}
-
   <div class="mel-container" style="max-width: 1200px; margin: 2rem auto; padding: 0 1rem;">
     <div class="mel-event-book-layout" style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; align-items: start;">
       
-      {# Event Info Card (Right Side) - Similar to front page cards #}
-      <aside class="mel-event-book-card mel-event-card" style="
+      {# Event Details Card (Left Side) #}
+      <div class="mel-event-book-details-card mel-event-card" style="
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      ">
+        {# Event Image #}
+        {% if hero_url %}
+          <div class="mel-event-book-image" style="
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            background: #f0f0f0;
+          ">
+            <img src="{{ hero_url }}" alt="{{ title }}" style="
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            ">
+          </div>
+        {% endif %}
+
+        {# Event Info #}
+        <div class="mel-event-book-details-body" style="padding: 1.5rem;">
+          <h1 class="mel-event-book-title" style="
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin: 0 0 1rem 0;
+          ">{{ title }}</h1>
+          
+          {% if event_date_text %}
+            <div class="mel-event-book-meta" style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 0.75rem;
+              color: #666;
+              font-size: 0.95rem;
+            ">
+              <span style="font-size: 1.2rem;">📅</span>
+              <span>{{ event_date_text }}</span>
+            </div>
+          {% endif %}
+          
+          {% if venue_text %}
+            <div class="mel-event-book-meta" style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              margin-bottom: 0;
+              color: #666;
+              font-size: 0.95rem;
+            ">
+              <span style="font-size: 1.2rem;">📍</span>
+              <span>{{ venue_text }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Booking Form Card (Right Side) #}
+      <aside class="mel-event-book-form-card mel-event-card" style="
         background: #fff;
         border-radius: 16px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -32,45 +90,23 @@
         display: flex;
         flex-direction: column;
       ">
-        <h2 class="mel-event-book-card-title" style="
-          font-size: 1.5rem;
+        <h2 class="mel-event-book-form-title" style="
+          font-size: 1.25rem;
           font-weight: 700;
           color: #1a1a2e;
-          margin: 0 0 1rem 0;
-        ">{{ title }}</h2>
-        
-        {% if event_date_text %}
-          <div class="mel-event-book-card-meta" style="
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-            color: #666;
-            font-size: 0.9rem;
-          ">
-            <span>📅</span>
-            <span>{{ event_date_text }}</span>
-          </div>
-        {% endif %}
-        
-        {% if venue_text %}
-          <div class="mel-event-book-card-meta" style="
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            color: #666;
-            font-size: 0.9rem;
-          ">
-            <span>📍</span>
-            <span>{{ venue_text }}</span>
-          </div>
-        {% endif %}
+          margin: 0 0 1.5rem 0;
+        ">
+          {% if is_rsvp %}
+            RSVP for Event
+          {% else %}
+            Book Tickets
+          {% endif %}
+        </h2>
 
-        {# Add to Cart Form #}
-        <div class="mel-event-book-form" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+        {# Add to Cart Form or RSVP Form #}
+        <div class="mel-event-book-form">
           {% if matrix_form %}
-            {# Render the entire form - Commerce will handle the structure #}
+            {# Render the entire form - Commerce handles the structure #}
             {{ matrix_form }}
           {% else %}
             <div class="mel-alert mel-alert--warning" style="
@@ -86,11 +122,6 @@
         </div>
       </aside>
 
-      {# Main Content Area (Left Side) - Reserved for future content #}
-      <div class="mel-event-book-main" style="min-height: 400px;">
-        {# Can add event description, details, etc. here in the future #}
-      </div>
-
     </div>
   </div>
 </div>
@@ -102,7 +133,7 @@
     grid-template-columns: 1fr !important;
   }
   
-  .mel-event-book-card {
+  .mel-event-book-form-card {
     position: static !important;
   }
 }
@@ -126,7 +157,8 @@
 
 .mel-event-book-form .button--add-to-cart,
 .mel-event-book-form input[type='submit'],
-.mel-event-book-form button[type='submit'] {
+.mel-event-book-form button[type='submit'],
+.mel-event-book-form .form-actions .button {
   width: 100%;
   padding: 0.75rem 1.5rem;
   background: #ff6b35;
@@ -137,12 +169,25 @@
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.2s;
+  text-align: center;
 }
 
 .mel-event-book-form .button--add-to-cart:hover,
 .mel-event-book-form input[type='submit']:hover,
-.mel-event-book-form button[type='submit']:hover {
+.mel-event-book-form button[type='submit']:hover,
+.mel-event-book-form .form-actions .button:hover {
   background: #e55a2b;
+}
+
+/* Ensure form fields are visible */
+.mel-event-book-form input[type='text'],
+.mel-event-book-form input[type='number'],
+.mel-event-book-form select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
 }
 
 /* Hide form elements that shouldn't be visible */
@@ -155,4 +200,3 @@
   word-wrap: normal;
 }
 </style>
-
