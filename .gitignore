@@ -20,6 +20,14 @@ web/core/
 /web/sites/*/files/
 /web/sites/*/private/
 
+# Drupal sensitive configuration files
+/web/sites/*/*settings*.php
+/web/sites/*/*services*.yml
+
+# Database dumps (contain sensitive data)
+*.sql
+*.sql.gz
+
 # DDEV
 /.ddev/.tmp
 /.ddev/.downloads

@@ -117,6 +117,9 @@
               color: #856404;
             ">
               <p style="margin: 0;">{{ 'No tickets available for this event.'|t }}</p>
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #666;">
+                Debug: matrix_form is empty. Event type: {{ is_rsvp ? 'RSVP' : 'Paid' }}
+              </p>
             </div>
           {% endif %}
         </div>

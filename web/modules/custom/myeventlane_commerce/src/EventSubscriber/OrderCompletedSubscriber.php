@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\EventSubscriber;
 
-use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -42,11 +42,12 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
   /**
    * Responds to order placement.
    *
-   * @param \Drupal\commerce_order\Event\OrderEvent $event
-   *   The order event.
+   * @param \Drupal\state_machine\Event\WorkflowTransitionEvent $event
+   *   The workflow transition event.
    */
-  public function onOrderPlace(OrderEvent $event): void {
-    $order = $event->getOrder();
+  public function onOrderPlace(WorkflowTransitionEvent $event): void {
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $event->getEntity();
     $logger = $this->loggerFactory->get('myeventlane_commerce');
 
     $logger->notice('Processing order @order_id after placement.', [
@@ -104,7 +105,7 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     $purchasedEntity = $orderItem->getPurchasedEntity();
     $variationTitle = $purchasedEntity ? $purchasedEntity->label() : 'Unknown';
     $price = $orderItem->getTotalPrice();
-    $isRsvp = $price && $price->getNumber() === '0';
+    $isRsvp = $price && ((float) $price->getNumber() === 0.0);
 
     foreach ($ticketHolders as $holder) {
       $this->createAttendeeRecord($holder, $eventId, $order, $orderItem, $isRsvp, $variationTitle);
