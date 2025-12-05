@@ -27,13 +27,16 @@
     {# Checkout Panes #}
     {% for key, pane in form if key matches '/^(?!#|actions|sidebar)/' %}
       {% if pane['#type'] is defined or pane['#markup'] is defined or pane|render|trim %}
-        <section class="mel-checkout-pane">
+        <section class="mel-checkout-pane {{ key == 'payment_information' ? 'mel-checkout-pane--payment' : '' }}">
           {% if pane['#title'] is defined %}
             <h2 class="mel-checkout-pane-title">
               {{ pane['#title'] }}
             </h2>
           {% endif %}
-          {{ pane }}
+          {# Render pane - ensure payment elements are not hidden #}
+          <div class="mel-checkout-pane-content">
+            {{ pane }}
+          </div>
         </section>
       {% endif %}
     {% endfor %}

@@ -19,17 +19,27 @@ import './event-form.js';
  * Initialize theme functionality.
  * Wrapped in Drupal behavior to ensure it doesn't interfere with Commerce payment JS.
  */
-(function (Drupal, once) {
+(function (Drupal) {
   'use strict';
 
   /**
    * Theme initialization behavior.
    * Ensures theme JS doesn't interfere with Commerce payment gateway initialization.
+   * Only runs on full page load to avoid conflicts with Commerce payment JS.
+   * 
+   * This behavior is automatically attached by Drupal's behavior system.
+   * Do not manually call attach() - it will cause double initialization.
    */
   Drupal.behaviors.myeventlaneTheme = {
     attach: function (context, settings) {
       // Only run on full page load, not on AJAX updates
+      // This prevents interference with Commerce payment gateway initialization
       if (context !== document) {
+        return;
+      }
+
+      // Prevent double initialization by checking if already initialized
+      if (document.documentElement.classList.contains('js-loaded')) {
         return;
       }
 
@@ -40,7 +50,7 @@ import './event-form.js';
       initAccountDropdown();
       
       // Retry account dropdown after a short delay in case elements aren't ready
-      setTimeout(() => {
+      setTimeout(function() {
         initAccountDropdown();
       }, 200);
 
@@ -48,17 +58,4 @@ import './event-form.js';
       document.documentElement.classList.add('js-loaded');
     }
   };
-
-  // Also run on DOM ready for immediate initialization (non-AJAX)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof Drupal !== 'undefined' && Drupal.behaviors && Drupal.behaviors.myeventlaneTheme) {
-        Drupal.behaviors.myeventlaneTheme.attach(document, drupalSettings || {});
-      }
-    });
-  } else {
-    if (typeof Drupal !== 'undefined' && Drupal.behaviors && Drupal.behaviors.myeventlaneTheme) {
-      Drupal.behaviors.myeventlaneTheme.attach(document, drupalSettings || {});
-    }
-  }
-})(Drupal, once);
+})(typeof Drupal !== 'undefined' ? Drupal : {});

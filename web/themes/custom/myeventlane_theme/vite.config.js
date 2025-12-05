@@ -62,16 +62,7 @@ export default defineConfig({
       // Preserve global variables that Commerce payment JS needs
       preserveEntrySignatures: 'strict',
     },
-    // Don't minify in a way that breaks Commerce payment JS
-    minify: 'terser',
-    terserOptions: {
-      keep_classnames: true,
-      keep_fnames: true,
-      // Preserve Drupal and Commerce globals
-      compress: {
-        keep_infinity: true,
-        passes: 2,
-      },
-    },
+    // Use esbuild minification (default) - preserves Commerce payment JS
+    minify: 'esbuild',
   },
 });

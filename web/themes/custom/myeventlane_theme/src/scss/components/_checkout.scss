@@ -144,6 +144,22 @@
   border-radius: radii.$mel-radius-xl;
   padding: spacing.mel-space(5);
   box-shadow: shadows.$mel-shadow-sm;
+
+  // Ensure payment pane doesn't hide payment elements
+  &.mel-checkout-pane--payment {
+    .commerce-payment-form__payment-method,
+    .commerce-payment-form__payment-details {
+      display: block !important;
+      visibility: visible !important;
+    }
+  }
+}
+
+.mel-checkout-pane-content {
+  // Ensure all content is visible, especially payment iframes
+  > * {
+    display: block;
+  }
 }
 
 .mel-checkout-pane-title {
