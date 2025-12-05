@@ -49,12 +49,28 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'src/js/main.js'),
+        'account-dropdown': path.resolve(__dirname, 'src/js/account-dropdown.js'),
       },
       output: {
         // Stable filenames for Drupal libraries.yml compatibility
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
         assetFileNames: '[name][extname]',
+      },
+      // Ensure we don't tree-shake or bundle external Commerce/Stripe JS
+      external: [],
+      // Preserve global variables that Commerce payment JS needs
+      preserveEntrySignatures: 'strict',
+    },
+    // Don't minify in a way that breaks Commerce payment JS
+    minify: 'terser',
+    terserOptions: {
+      keep_classnames: true,
+      keep_fnames: true,
+      // Preserve Drupal and Commerce globals
+      compress: {
+        keep_infinity: true,
+        passes: 2,
       },
     },
   },

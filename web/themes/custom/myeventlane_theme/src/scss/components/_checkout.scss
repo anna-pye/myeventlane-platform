@@ -275,6 +275,96 @@
 }
 
 // ---------------------------------------------------------------------------
+// Payment Gateway Elements (Stripe/Braintree)
+// ---------------------------------------------------------------------------
+// Ensure payment iframes and inputs are visible and properly styled
+
+// Stripe Elements
+.StripeElement,
+.StripeElement--focus,
+.StripeElement--invalid,
+.StripeElement--complete {
+  display: block !important;
+  width: 100% !important;
+  padding: spacing.mel-space(3) spacing.mel-space(4) !important;
+  font-family: typography.$mel-font-family !important;
+  font-size: typography.mel-font-size(base) !important;
+  color: colors.$mel-color-text !important;
+  background: colors.$mel-color-surface !important;
+  border: 2px solid colors.$mel-color-border !important;
+  border-radius: radii.$mel-radius-md !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  min-height: 44px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.StripeElement--focus {
+  border-color: colors.$mel-color-secondary !important;
+  box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.15) !important;
+}
+
+.StripeElement--invalid {
+  border-color: colors.$mel-color-error !important;
+}
+
+// Stripe iframe containers
+[id*="stripe"],
+[class*="stripe"],
+[data-stripe],
+.commerce-payment-form__payment-method,
+.commerce-payment-form__payment-details {
+  iframe {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 44px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    border: none !important;
+  }
+}
+
+// Payment method form items
+.commerce-payment-form__payment-method,
+.commerce-payment-form__payment-details {
+  display: block !important;
+  width: 100% !important;
+  margin-top: spacing.mel-space(4) !important;
+
+  .form-item {
+    margin-bottom: spacing.mel-space(4) !important;
+  }
+
+  input,
+  iframe {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 44px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+// Ensure payment gateway mount points are visible
+[id*="card-element"],
+[id*="card-number"],
+[id*="card-expiry"],
+[id*="card-cvc"],
+[id*="card-cvv"],
+.commerce-payment-form__payment-details > div,
+.commerce-payment-form__payment-details > fieldset {
+  display: block !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+// ---------------------------------------------------------------------------
 // Order Summary Sidebar
 // ---------------------------------------------------------------------------
 
