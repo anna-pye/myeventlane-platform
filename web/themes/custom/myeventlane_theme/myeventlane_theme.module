@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Theme - Module file for hook implementations.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Ensures Stripe.js loads on checkout pages even if library attachment fails.
+ */
+function myeventlane_theme_page_attachments(array &$page) {
+  // Only on checkout pages.
+  $route = \Drupal::routeMatch()->getRouteName();
+  if (strpos($route, 'commerce_checkout') === 0) {
+    // Ensure Stripe.js library is attached.
+    if (\Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
+      // Check if stripe library is already attached.
+      $libraries = $page['#attached']['library'] ?? [];
+      if (!in_array('commerce_stripe/stripe', $libraries)) {
+        $page['#attached']['library'][] = 'commerce_stripe/stripe';
+      }
+    }
+  }
+}

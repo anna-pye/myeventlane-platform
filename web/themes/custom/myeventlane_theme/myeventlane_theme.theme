@@ -439,25 +439,108 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
   // Commerce checkout form - ensure Commerce Stripe Payment Element libraries are attached.
   // Commerce Stripe should attach its library automatically, but we ensure it's there
   // as a safeguard in case the payment form structure changes.
-  if (isset($form['payment_information']) && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
-    // Check if Stripe Payment Element is being used (new preferred method).
-    $has_payment_element = isset($form['payment_information']['stripe_payment_element']);
+  if (\Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
+    // Ensure #attached array exists before accessing it.
+    if (!isset($form['#attached'])) {
+      $form['#attached'] = [];
+    }
+    if (!isset($form['#attached']['library'])) {
+      $form['#attached']['library'] = [];
+    }
     
-    // Check if old Card Element is being used (legacy method).
-    $has_card_element = isset($form['payment_information']['add_payment_method']['payment_details']) ||
-        (isset($form['payment_information']['#attributes']['class']) && 
-         in_array('stripe-form', $form['payment_information']['#attributes']['class']));
+    // Stripe Payment Element is rendered in the stripe_review pane (on review step),
+    // not in payment_information pane. Check both locations for compatibility.
+    $has_payment_element = FALSE;
+    $has_card_element = FALSE;
+    
+    // Check stripe_review pane for Payment Element (new preferred method).
+    if (isset($form['stripe_review']['stripe_payment_element'])) {
+      $has_payment_element = TRUE;
+    }
+    // Also check payment_information for legacy Card Element support.
+    elseif (isset($form['payment_information'])) {
+      // Check if Stripe Payment Element is being used in payment_information (legacy).
+      if (isset($form['payment_information']['stripe_payment_element'])) {
+        $has_payment_element = TRUE;
+      }
+      // Check if old Card Element is being used (legacy method).
+      // The stripe-form class can be on payment_information or nested in payment_details.
+      elseif (isset($form['payment_information']['add_payment_method']['payment_details'])) {
+        $payment_details = &$form['payment_information']['add_payment_method']['payment_details'];
+        // Check if stripe-form class exists on payment_details or any nested element.
+        $has_stripe_form_class = FALSE;
+        if (isset($payment_details['#attributes']['class']) && 
+            in_array('stripe-form', $payment_details['#attributes']['class'])) {
+          $has_stripe_form_class = TRUE;
+        }
+        // Also check for Card Element mount point IDs (card-number-element, etc.)
+        $has_card_element_ids = isset($payment_details['card_number']) || 
+                                isset($payment_details['expiration']) ||
+                                isset($payment_details['security_code']);
+        
+        if ($has_stripe_form_class || $has_card_element_ids) {
+          $has_card_element = TRUE;
+        }
+      }
+      // Fallback: check payment_information directly for stripe-form class.
+      elseif (isset($form['payment_information']['#attributes']['class']) && 
+              in_array('stripe-form', $form['payment_information']['#attributes']['class'])) {
+        $has_card_element = TRUE;
+      }
+    }
     
     // Attach appropriate library based on which Stripe integration is used.
     if ($has_payment_element) {
       // Payment Element uses commerce_stripe/payment_element library.
-      if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'] ?? [])) {
+      // This library depends on commerce_stripe/stripe, which will be auto-attached.
+      if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'])) {
         $form['#attached']['library'][] = 'commerce_stripe/payment_element';
       }
     } elseif ($has_card_element) {
       // Card Element uses commerce_stripe/form library.
-      if (!in_array('commerce_stripe/form', $form['#attached']['library'] ?? [])) {
+      // This library depends on commerce_stripe/stripe, which will be auto-attached.
+      if (!in_array('commerce_stripe/form', $form['#attached']['library'])) {
         $form['#attached']['library'][] = 'commerce_stripe/form';
+      }
+      // Explicitly ensure stripe library is attached (it should be via dependency, but be explicit).
+      if (!in_array('commerce_stripe/stripe', $form['#attached']['library'])) {
+        $form['#attached']['library'][] = 'commerce_stripe/stripe';
+      }
+    }
+    // Fallback: If we're on checkout and payment_information exists but no library detected,
+    // check the order's payment gateway to determine which library to attach.
+    if (!$has_payment_element && !$has_card_element && 
+        isset($form['payment_information']) && 
+        (strpos($form_id, 'commerce_checkout') === 0 || $form_id === 'commerce_checkout_flow')) {
+      try {
+        // Try to get the order from the form.
+        $order = NULL;
+        if (isset($form['#order']) && $form['#order'] instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+          $order = $form['#order'];
+        } elseif (isset($form_state) && method_exists($form_state, 'getFormObject')) {
+          $form_object = $form_state->getFormObject();
+          if (method_exists($form_object, 'getOrder')) {
+            $order = $form_object->getOrder();
+          }
+        }
+        
+        if ($order && !$order->get('payment_gateway')->isEmpty()) {
+          $gateway = $order->get('payment_gateway')->entity;
+          if ($gateway && $gateway->getPluginId() === 'stripe_payment_element') {
+            // Payment Element gateway - attach payment_element library.
+            if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'])) {
+              $form['#attached']['library'][] = 'commerce_stripe/payment_element';
+            }
+          } elseif ($gateway && $gateway->getPluginId() === 'stripe') {
+            // Legacy Card Element gateway - attach form library.
+            if (!in_array('commerce_stripe/form', $form['#attached']['library'])) {
+              $form['#attached']['library'][] = 'commerce_stripe/form';
+            }
+          }
+        }
+      }
+      catch (\Exception $e) {
+        // Silently fail - library attachment is not critical if detection fails.
       }
     }
   }

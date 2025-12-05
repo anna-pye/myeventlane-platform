@@ -1,0 +1,92 @@
+--- a/web/sites/default/config/sync/commerce_checkout.commerce_checkout_flow.default.yml
++++ b/web/sites/default/config/sync/commerce_checkout.commerce_checkout_flow.default.yml
+@@ -5,6 +5,7 @@ dependencies:
+   module:
+     - commerce_payment
+     - commerce_promotion
++    - commerce_stripe
+     - myeventlane_checkout_paragraph
+     - myeventlane_commerce
+ _core:
+@@ -48,6 +49,13 @@ configuration:
+       step: review
+       weight: 6
+       wrapper_element: null
++    stripe_review:
++      display_label: null
++      step: review
++      weight: 7
++      wrapper_element: container
++      button_id: edit-actions-next
++      auto_submit_review_form: false
++      setup_future_usage: ''
+     payment_process:
+       display_label: null
+       step: payment
+--- a/web/themes/custom/myeventlane_theme/myeventlane_theme.theme
++++ b/web/themes/custom/myeventlane_theme/myeventlane_theme.theme
+@@ -439,24 +439,47 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
+   // Commerce checkout form - ensure Commerce Stripe Payment Element libraries are attached.
+   // Commerce Stripe should attach its library automatically, but we ensure it's there
+   // as a safeguard in case the payment form structure changes.
+-  if (isset($form['payment_information']) && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
+-    // Ensure #attached array exists before accessing it.
+-    if (!isset($form['#attached'])) {
+-      $form['#attached'] = [];
+-    }
+-    if (!isset($form['#attached']['library'])) {
+-      $form['#attached']['library'] = [];
+-    }
++  if (\Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
++    // Ensure #attached array exists before accessing it.
++    if (!isset($form['#attached'])) {
++      $form['#attached'] = [];
++    }
++    if (!isset($form['#attached']['library'])) {
++      $form['#attached']['library'] = [];
++    }
+     
+-    // Check if Stripe Payment Element is being used (new preferred method).
+-    $has_payment_element = isset($form['payment_information']['stripe_payment_element']);
++    // Stripe Payment Element is rendered in the stripe_review pane (on review step),
++    // not in payment_information pane. Check both locations for compatibility.
++    $has_payment_element = FALSE;
++    $has_card_element = FALSE;
+     
+-    // Check if old Card Element is being used (legacy method).
+-    $has_card_element = isset($form['payment_information']['add_payment_method']['payment_details']) ||
+-        (isset($form['payment_information']['#attributes']['class']) && 
+-         in_array('stripe-form', $form['payment_information']['#attributes']['class']));
++    // Check stripe_review pane for Payment Element (new preferred method).
++    if (isset($form['stripe_review']['stripe_payment_element'])) {
++      $has_payment_element = TRUE;
++    }
++    // Also check payment_information for legacy Card Element support.
++    elseif (isset($form['payment_information'])) {
++      // Check if Stripe Payment Element is being used in payment_information (legacy).
++      if (isset($form['payment_information']['stripe_payment_element'])) {
++        $has_payment_element = TRUE;
++      }
++      // Check if old Card Element is being used (legacy method).
++      elseif (isset($form['payment_information']['add_payment_method']['payment_details']) ||
++          (isset($form['payment_information']['#attributes']['class']) && 
++           in_array('stripe-form', $form['payment_information']['#attributes']['class']))) {
++        $has_card_element = TRUE;
++      }
++    }
+     
+     // Attach appropriate library based on which Stripe integration is used.
+     if ($has_payment_element) {
+       // Payment Element uses commerce_stripe/payment_element library.
+-      if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'] ?? [])) {
++      if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'])) {
+         $form['#attached']['library'][] = 'commerce_stripe/payment_element';
+       }
+     } elseif ($has_card_element) {
+       // Card Element uses commerce_stripe/form library.
+-      if (!in_array('commerce_stripe/form', $form['#attached']['library'] ?? [])) {
++      if (!in_array('commerce_stripe/form', $form['#attached']['library'])) {
+         $form['#attached']['library'][] = 'commerce_stripe/form';
+       }
+     }
+   }
