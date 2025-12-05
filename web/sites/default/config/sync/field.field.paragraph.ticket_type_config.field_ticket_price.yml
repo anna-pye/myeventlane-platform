@@ -1,3 +1,4 @@
+uuid: null
 langcode: en
 status: true
 dependencies:
@@ -16,11 +17,11 @@ required: true
 translatable: false
 default_value:
   -
-    value: '0.00'
+    value: 0.0
 default_value_callback: ''
 settings:
+  min: 0.0
+  max: 999999.99
   prefix: ''
   suffix: ''
-  min: 0
-  max: 999999.99
 field_type: decimal

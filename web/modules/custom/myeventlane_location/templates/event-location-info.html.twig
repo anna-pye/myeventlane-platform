@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Template for rendering location information without a map (when coordinates are missing).
+ *
+ * Available variables:
+ * - event: The event node entity.
+ * - address: The formatted address string.
+ * - venue_name: The venue name.
+ */
+#}
+
+<div class="myeventlane-event-location-info">
+  <h3 class="mel-event-section-title">Location</h3>
+
+  {% if venue_name %}
+    <div class="myeventlane-event-venue-name">
+      <strong>{{ venue_name }}</strong>
+    </div>
+  {% endif %}
+
+  {% if address %}
+    <address class="mel-event-address">
+      {{ address }}
+    </address>
+  {% endif %}
+</div>
+
+

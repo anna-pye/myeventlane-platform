@@ -11,3 +11,19 @@ global-styling:
     dist/main.js: { attributes: { type: module } }
   dependencies:
     - core/drupal
+
+# Event form enhancements
+event-form:
+  js:
+    dist/main.js: { attributes: { type: module } }
+  dependencies:
+    - core/drupal
+    - core/drupal.form
+    - core/drupal.states
+
+# Account dropdown - direct script (non-module for compatibility)
+account-dropdown:
+  js:
+    dist/account-dropdown.js: {}
+  dependencies:
+    - core/drupal

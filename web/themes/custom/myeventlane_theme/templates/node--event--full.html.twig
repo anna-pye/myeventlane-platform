@@ -90,16 +90,29 @@
             </div>
           {% endif %}
 
-          {# Location #}
-          {% if node.field_location.value is not empty %}
-            {% set loc = node.field_location.value %}
+          {# Location (show from field_location or legacy field_event_address) #}
+          {% set loc_item = node.field_location[0] is defined and node.field_location[0] is not empty
+            ? node.field_location[0]
+            : (node.field_event_address[0] is defined and node.field_event_address[0] is not empty
+              ? node.field_event_address[0]
+              : null) %}
+          {% if loc_item or node.field_venue_name.value is not empty %}
             <div class="mel-event-meta-item">
               <span class="mel-event-meta-icon">📍</span>
               <div class="mel-event-meta-content">
-                <strong>{{ loc.address_line1 }}</strong>
-                <span class="mel-event-meta-secondary">
-                  {{ loc.locality }}{% if loc.administrative_area %}, {{ loc.administrative_area }}{% endif %} {{ loc.postal_code }}
-                </span>
+                {% if node.field_venue_name.value is not empty %}
+                  <strong>{{ node.field_venue_name.value }}</strong>
+                  {% if loc_item %}
+                    <span class="mel-event-meta-secondary">
+                      {{ loc_item.address_line1 }}, {{ loc_item.locality }}{% if loc_item.administrative_area %}, {{ loc_item.administrative_area }}{% endif %}
+                    </span>
+                  {% endif %}
+                {% elseif loc_item %}
+                  <strong>{{ loc_item.address_line1 }}</strong>
+                  <span class="mel-event-meta-secondary">
+                    {{ loc_item.locality }}{% if loc_item.administrative_area %}, {{ loc_item.administrative_area }}{% endif %} {{ loc_item.postal_code }}
+                  </span>
+                {% endif %}
               </div>
             </div>
           {% endif %}
@@ -193,19 +206,34 @@
 
         </div>
 
-        {# Map - rendered by myeventlane_location module if coordinates exist #}
+        {# Map / Location - rendered by myeventlane_location module if available #}
         {% if content.event_location_map %}
           {{ content.event_location_map }}
-        {% elseif node.field_location.value is not empty %}
-          {# Fallback: show address without map if no coordinates #}
-          <div class="mel-event-map-card">
-            <h3 class="mel-event-section-title">Location</h3>
-            <address class="mel-event-address">
-              {% set loc = node.field_location.value %}
-              {{ loc.address_line1 }}<br>
-              {{ loc.locality }}{% if loc.administrative_area %}, {{ loc.administrative_area }}{% endif %} {{ loc.postal_code }}
-            </address>
-          </div>
+        {% elseif content.event_location_info %}
+          {{ content.event_location_info }}
+        {% else %}
+          {# Legacy fallback: show address/venue without map if no coordinates #}
+          {% set loc_item = node.field_location[0] is defined and node.field_location[0] is not empty
+            ? node.field_location[0]
+            : (node.field_event_address[0] is defined and node.field_event_address[0] is not empty
+              ? node.field_event_address[0]
+              : null) %}
+          {% if loc_item or node.field_venue_name.value is not empty %}
+            <div class="mel-event-map-card">
+              <h3 class="mel-event-section-title">Location</h3>
+              {% if node.field_venue_name.value is not empty %}
+                <div class="mel-event-venue-name">
+                  <strong>{{ node.field_venue_name.value }}</strong>
+                </div>
+              {% endif %}
+              {% if loc_item %}
+                <address class="mel-event-address">
+                  {{ loc_item.address_line1 }}<br>
+                  {{ loc_item.locality }}{% if loc_item.administrative_area %}, {{ loc_item.administrative_area }}{% endif %} {{ loc_item.postal_code }}
+                </address>
+              {% endif %}
+            </div>
+          {% endif %}
         {% endif %}
 
       </aside>

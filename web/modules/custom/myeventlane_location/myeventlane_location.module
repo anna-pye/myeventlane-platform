@@ -25,9 +25,18 @@ function myeventlane_location_theme(): array {
         'latitude' => NULL,
         'longitude' => NULL,
         'address' => NULL,
+        'venue_name' => NULL,
         'provider' => NULL,
       ],
       'template' => 'event-location-map',
+    ],
+    'event_location_info' => [
+      'variables' => [
+        'event' => NULL,
+        'address' => NULL,
+        'venue_name' => NULL,
+      ],
+      'template' => 'event-location-info',
     ],
   ];
 }
@@ -112,31 +121,40 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
     $form['field_venue_name']['#weight'] = $location_weight + 0.2;
   }
 
-  // Add hidden fields for coordinates (these will be populated by JavaScript).
-  // We'll add them to the form but outside the field_location structure
-  // so they can be saved to dedicated fields.
-  // Check if dedicated coordinate fields exist on the entity.
+  // Hide the coordinate fields from the form display if they're showing up.
+  // We'll use hidden form elements instead that are populated by JavaScript.
   $node = $form_state->getFormObject()->getEntity();
-  if ($node->hasField('field_location_latitude') && !isset($form['field_location_latitude'])) {
-    $form['field_location_latitude'] = [
+  
+  // Hide the actual coordinate fields if they exist in the form.
+  if (isset($form['field_location_latitude'])) {
+    $form['field_location_latitude']['#access'] = FALSE;
+  }
+  if (isset($form['field_location_longitude'])) {
+    $form['field_location_longitude']['#access'] = FALSE;
+  }
+  
+  // Add our own hidden fields for coordinates (these will be populated by JavaScript).
+  // These are separate from the actual entity fields to avoid validation issues.
+  if ($node->hasField('field_location_latitude')) {
+    $form['myeventlane_location_latitude'] = [
       '#type' => 'hidden',
       '#attributes' => [
         'class' => ['myeventlane-location-latitude-field'],
       ],
-      '#default_value' => $node->hasField('field_location_latitude') && !$node->get('field_location_latitude')->isEmpty() 
-        ? $node->get('field_location_latitude')->value 
+      '#default_value' => !$node->get('field_location_latitude')->isEmpty() 
+        ? (string) $node->get('field_location_latitude')->value 
         : '',
     ];
   }
 
-  if ($node->hasField('field_location_longitude') && !isset($form['field_location_longitude'])) {
-    $form['field_location_longitude'] = [
+  if ($node->hasField('field_location_longitude')) {
+    $form['myeventlane_location_longitude'] = [
       '#type' => 'hidden',
       '#attributes' => [
         'class' => ['myeventlane-location-longitude-field'],
       ],
-      '#default_value' => $node->hasField('field_location_longitude') && !$node->get('field_location_longitude')->isEmpty() 
-        ? $node->get('field_location_longitude')->value 
+      '#default_value' => !$node->get('field_location_longitude')->isEmpty() 
+        ? (string) $node->get('field_location_longitude')->value 
         : '',
     ];
   }
@@ -181,19 +199,40 @@ function _myeventlane_location_save_coordinates(array &$form, FormStateInterface
   $lat = NULL;
   $lng = NULL;
 
-  // Get coordinates from hidden fields added by form_alter.
-  // These are simple hidden fields, so the value is directly in form_state.
-  $lat_value = $form_state->getValue('field_location_latitude');
-  if (!empty($lat_value) && is_numeric($lat_value)) {
-    $lat = (float) $lat_value;
+  // Get coordinates from our hidden fields added by form_alter.
+  // We use custom field names to avoid validation issues with the actual entity fields.
+  $user_input = $form_state->getUserInput();
+  
+  // Check our custom hidden fields first (from form submission).
+  if (isset($user_input['myeventlane_location_latitude']) && !empty($user_input['myeventlane_location_latitude']) && is_numeric($user_input['myeventlane_location_latitude'])) {
+    $lat = (float) $user_input['myeventlane_location_latitude'];
+  }
+  elseif ($form_state->hasValue('myeventlane_location_latitude')) {
+    $lat_value = $form_state->getValue('myeventlane_location_latitude');
+    if (!empty($lat_value) && is_numeric($lat_value)) {
+      $lat = (float) $lat_value;
+    }
   }
 
-  $lng_value = $form_state->getValue('field_location_longitude');
-  if (!empty($lng_value) && is_numeric($lng_value)) {
-    $lng = (float) $lng_value;
+  if (isset($user_input['myeventlane_location_longitude']) && !empty($user_input['myeventlane_location_longitude']) && is_numeric($user_input['myeventlane_location_longitude'])) {
+    $lng = (float) $user_input['myeventlane_location_longitude'];
+  }
+  elseif ($form_state->hasValue('myeventlane_location_longitude')) {
+    $lng_value = $form_state->getValue('myeventlane_location_longitude');
+    if (!empty($lng_value) && is_numeric($lng_value)) {
+      $lng = (float) $lng_value;
+    }
+  }
+  
+  // Also check the actual entity fields in case they were set directly.
+  if ($lat === NULL && isset($user_input['field_location_latitude']) && !empty($user_input['field_location_latitude']) && is_numeric($user_input['field_location_latitude'])) {
+    $lat = (float) $user_input['field_location_latitude'];
+  }
+  if ($lng === NULL && isset($user_input['field_location_longitude']) && !empty($user_input['field_location_longitude']) && is_numeric($user_input['field_location_longitude'])) {
+    $lng = (float) $user_input['field_location_longitude'];
   }
 
-  // Also check for dedicated coordinate fields (field_location_latitude/longitude or field_event_lat/lng).
+  // Check for dedicated coordinate fields (field_location_latitude/longitude or field_event_lat/lng).
   if ($lat === NULL && $form_state->hasValue(['field_location_latitude', 0, 'value'])) {
     $lat_value = $form_state->getValue(['field_location_latitude', 0, 'value']);
     if (!empty($lat_value) && is_numeric($lat_value)) {
@@ -226,16 +265,32 @@ function _myeventlane_location_save_coordinates(array &$form, FormStateInterface
   // Save coordinates to dedicated fields if they exist and we have values.
   if ($lat !== NULL && $node->hasField('field_location_latitude')) {
     $node->set('field_location_latitude', $lat);
+    \Drupal::logger('myeventlane_location')->notice('Saved latitude: @lat', ['@lat' => $lat]);
   }
   elseif ($lat !== NULL && $node->hasField('field_event_lat')) {
     $node->set('field_event_lat', (string) $lat);
+    \Drupal::logger('myeventlane_location')->notice('Saved latitude (legacy): @lat', ['@lat' => $lat]);
+  }
+  else {
+    \Drupal::logger('myeventlane_location')->warning('Latitude not saved. Lat: @lat, Has field: @has', [
+      '@lat' => $lat !== NULL ? $lat : 'NULL',
+      '@has' => $node->hasField('field_location_latitude') ? 'YES' : 'NO',
+    ]);
   }
 
   if ($lng !== NULL && $node->hasField('field_location_longitude')) {
     $node->set('field_location_longitude', $lng);
+    \Drupal::logger('myeventlane_location')->notice('Saved longitude: @lng', ['@lng' => $lng]);
   }
   elseif ($lng !== NULL && $node->hasField('field_event_lng')) {
     $node->set('field_event_lng', (string) $lng);
+    \Drupal::logger('myeventlane_location')->notice('Saved longitude (legacy): @lng', ['@lng' => $lng]);
+  }
+  else {
+    \Drupal::logger('myeventlane_location')->warning('Longitude not saved. Lng: @lng, Has field: @has', [
+      '@lng' => $lng !== NULL ? $lng : 'NULL',
+      '@has' => $node->hasField('field_location_longitude') ? 'YES' : 'NO',
+    ]);
   }
 }
 
@@ -335,12 +390,22 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
     $lng = (float) $entity->get('field_event_lng')->value;
   }
 
-  // Only add map if coordinates exist.
-  if ($lat !== NULL && $lng !== NULL) {
-    // Get address string from field_location.
-    $address = '';
-    if ($entity->hasField('field_location') && !$entity->get('field_location')->isEmpty()) {
-      $location = $entity->get('field_location')->value;
+  // Get address string from either field_location (new) or field_event_address (legacy).
+  $address = '';
+  $venue_name = '';
+
+  $address_field = NULL;
+  if ($entity->hasField('field_location') && !$entity->get('field_location')->isEmpty()) {
+    $address_field = $entity->get('field_location');
+  }
+  elseif ($entity->hasField('field_event_address') && !$entity->get('field_event_address')->isEmpty()) {
+    $address_field = $entity->get('field_event_address');
+  }
+
+  if ($address_field && !$address_field->isEmpty()) {
+    $location_item = $address_field->first();
+    if ($location_item) {
+      $location = $location_item->getValue();
       if (is_array($location)) {
         $parts = [];
         if (!empty($location['address_line1'])) {
@@ -358,6 +423,18 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
         $address = implode(', ', $parts);
       }
     }
+  }
+
+  // Get venue name from either field_venue_name (new) or field_event_venue (legacy).
+  if ($entity->hasField('field_venue_name') && !$entity->get('field_venue_name')->isEmpty()) {
+    $venue_name = $entity->get('field_venue_name')->value;
+  }
+  elseif ($entity->hasField('field_event_venue') && !$entity->get('field_event_venue')->isEmpty()) {
+    $venue_name = $entity->get('field_event_venue')->value;
+  }
+
+  // Only add map if coordinates exist.
+  if ($lat !== NULL && $lng !== NULL) {
 
     /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
     $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
@@ -370,7 +447,22 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
       '#latitude' => $lat,
       '#longitude' => $lng,
       '#address' => $address,
+      '#venue_name' => $venue_name,
       '#provider' => $provider,
+      '#weight' => 100,
+      '#cache' => [
+        'tags' => $entity->getCacheTags(),
+        'contexts' => ['url.path'],
+      ],
+    ];
+  }
+  // Even if no coordinates, add venue name and address info if available.
+  elseif (!empty($venue_name) || !empty($address)) {
+    $build['event_location_info'] = [
+      '#theme' => 'event_location_info',
+      '#event' => $entity,
+      '#address' => $address,
+      '#venue_name' => $venue_name,
       '#weight' => 100,
       '#cache' => [
         'tags' => $entity->getCacheTags(),

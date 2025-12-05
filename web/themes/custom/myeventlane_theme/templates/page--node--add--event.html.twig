@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Theme override for Event node add page.
+ */
+#}
+{% extends "page.html.twig" %}
+
+{% block content %}
+  <div class="mel-page-wrapper mel-page-wrapper--form">
+    <div class="mel-container mel-container--form">
+      <div class="mel-form-page-header">
+        <h1 class="mel-page-title">{{ 'Create New Event'|t }}</h1>
+        <p class="mel-page-intro">{{ 'Share your event with the MyEventLane community. Fill out each section below to get started. You can save as a draft and come back to finish later.'|t }}</p>
+      </div>
+      {{ content }}
+    </div>
+  </div>
+{% endblock %}
+

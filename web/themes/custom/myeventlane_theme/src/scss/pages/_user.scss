@@ -515,11 +515,14 @@
 // ---------------------------------------------------------------------------
 // Drupal User Form Overrides
 // ---------------------------------------------------------------------------
+// Note: These forms are now styled via dedicated templates (user--login.html.twig, etc.)
+// and the _auth.scss styles. This section kept for backward compatibility.
 
 .user-login-form,
 .user-register-form,
 .user-pass {
-  @extend .mel-auth-form;
+  // Styles are applied via .mel-auth-form class in templates
+  // No @extend needed since we're using @use modules
 }
 
 // Style the Drupal login/register pages

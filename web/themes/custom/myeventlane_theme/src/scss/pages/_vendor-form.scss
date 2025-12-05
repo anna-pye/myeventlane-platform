@@ -1,0 +1,132 @@
+// ==========================================================================
+// Vendor Form Page
+// ==========================================================================
+// Styles for Vendor entity add/edit forms.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Vendor Form Card
+// ---------------------------------------------------------------------------
+// Reuses styles from event form, with vendor-specific adjustments
+
+.mel-page-wrapper--form {
+  // Shared with event form - defined in _event-form.scss
+}
+
+.mel-form-card {
+  // Shared base styles from _event-form.scss
+
+  // Vendor-specific field groupings
+  .field--name-field-description,
+  .field--name-field-about {
+    margin-bottom: spacing.mel-space(6);
+
+    label {
+      font-size: typography.mel-font-size(lg);
+      font-weight: typography.$mel-font-bold;
+      margin-bottom: spacing.mel-space(3);
+    }
+
+    textarea {
+      min-height: 150px;
+    }
+  }
+
+  // Public vs internal field distinction
+  .field--name-field-public-profile,
+  .field--name-field-about,
+  .field--name-field-description {
+    // Public-facing fields - emphasize
+    padding: spacing.mel-space(4);
+    background: colors.$mel-color-bg;
+    border-radius: radii.$mel-radius-lg;
+    border: 1px solid colors.$mel-color-border;
+  }
+
+  // Admin/internal fields - visually de-emphasized
+  .field--name-field-fees,
+  .field--name-field-internal-notes {
+    opacity: 0.85;
+    font-size: typography.mel-font-size(sm);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Vendor Form Sections
+// ---------------------------------------------------------------------------
+
+.mel-vendor-section {
+  margin-bottom: spacing.mel-space(6);
+  padding-bottom: spacing.mel-space(5);
+  border-bottom: 1px solid colors.$mel-color-border;
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  &-title {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin-bottom: spacing.mel-space(4);
+    padding-bottom: spacing.mel-space(2);
+    border-bottom: 2px solid colors.$mel-color-border;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Payout/Stripe Fields
+// ---------------------------------------------------------------------------
+
+.mel-vendor-payout-section {
+  background: colors.$mel-color-bg;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(5);
+  margin-bottom: spacing.mel-space(6);
+
+  .description {
+    margin-top: spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    line-height: typography.$mel-leading-relaxed;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Logo Upload Field
+// ---------------------------------------------------------------------------
+
+.mel-vendor-logo-upload {
+  .form-managed-file {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+
+    @include breakpoints.mel-break(sm) {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .form-file {
+      flex: 1;
+    }
+
+    .file {
+      flex-shrink: 0;
+      padding: spacing.mel-space(3);
+      background: colors.$mel-color-bg;
+      border-radius: radii.$mel-radius-md;
+      border: 1px solid colors.$mel-color-border;
+    }
+  }
+}
+

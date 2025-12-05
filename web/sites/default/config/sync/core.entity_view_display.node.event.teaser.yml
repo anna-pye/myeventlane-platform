@@ -18,6 +18,8 @@ dependencies:
     - field.field.node.event.field_external_url
     - field.field.node.event.field_featured
     - field.field.node.event.field_location
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
     - field.field.node.event.field_organizer
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
@@ -97,6 +99,8 @@ hidden:
   field_event_type: true
   field_external_url: true
   field_featured: true
+  field_location_latitude: true
+  field_location_longitude: true
   field_organizer: true
   field_product_target: true
   field_promo_expires: true

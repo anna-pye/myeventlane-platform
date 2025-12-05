@@ -5,12 +5,31 @@
  * Theme hooks for MyEventLane.
  */
 
+use Drupal\Core\Render\Element;
+
 /**
- * Implements hook_preprocess_page() for front page.
+ * Implements hook_preprocess_page().
  *
- * Loads category terms for the hero section.
+ * Adds cart block to header if not already placed.
  */
 function myeventlane_theme_preprocess_page(array &$variables): void {
+  // Add cart block to header if not already present
+  if (empty($variables['page']['header']['cart_block'])) {
+    try {
+      $block_manager = \Drupal::service('plugin.manager.block');
+      $cart_block = $block_manager->createInstance('commerce_cart', []);
+      if ($cart_block && $cart_block->access(\Drupal::currentUser())) {
+        $build = $cart_block->build();
+        if (!empty($build)) {
+          $variables['page']['header']['cart_block'] = $build;
+        }
+      }
+    } catch (\Exception $e) {
+      // Cart block not available, continue without it
+    }
+  }
+  
+  // Front page specific processing
   // Check if this is the front page.
   if (\Drupal::service('path.matcher')->isFrontPage()) {
     // Load category terms.
@@ -252,4 +271,168 @@ function _myeventlane_theme_manifest_css(): ?string {
   $css = ltrim($css, '/');
 
   return $cached = "dist/{$css}";
+}
+
+/**
+ * Implements hook_preprocess_node().
+ *
+ * Adds classes and context for event form pages.
+ */
+function myeventlane_theme_preprocess_node(array &$variables): void {
+  $node = $variables['node'];
+  $view_mode = $variables['view_mode'] ?? 'full';
+
+  // Check if this is an event node form.
+  if ($node && $node->bundle() === 'event') {
+    // For form view mode, suggest the form template
+    if ($view_mode === 'form' || (isset($variables['form']) && $variables['form'])) {
+      $variables['attributes']['class'][] = 'mel-node-form';
+      $variables['attributes']['class'][] = 'mel-node-form--event';
+      // Suggest the form template
+      $variables['theme_hook_suggestions'][] = 'node__event__form';
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_user().
+ *
+ * Adds classes and context for user forms (login, register, password, edit).
+ */
+function myeventlane_theme_preprocess_user(array &$variables): void {
+  $user = $variables['user'];
+  $view_mode = $variables['view_mode'] ?? 'full';
+
+  // Only process form view modes.
+  if ($view_mode !== 'form' && $view_mode !== 'default') {
+    return;
+  }
+
+  $variables['attributes']['class'][] = 'mel-user-form';
+}
+
+/**
+ * Implements hook_preprocess_entity().
+ *
+ * Adds classes and context for vendor entity forms.
+ */
+function myeventlane_theme_preprocess_entity(array &$variables): void {
+  $entity = $variables['entity'];
+  $view_mode = $variables['view_mode'] ?? 'full';
+
+  // Only process form view modes.
+  if ($view_mode !== 'form' && $view_mode !== 'default') {
+    return;
+  }
+
+  // Check if this is a vendor entity form.
+  if ($entity && $entity->getEntityTypeId() === 'myeventlane_vendor') {
+    $variables['attributes']['class'][] = 'mel-entity-form';
+    $variables['attributes']['class'][] = 'mel-entity-form--vendor';
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Adds classes and ensures proper styling for public-facing forms.
+ */
+function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+  // Only apply to front-end theme, not admin theme.
+  $theme = \Drupal::theme()->getActiveTheme()->getName();
+  if ($theme !== 'myeventlane_theme') {
+    return;
+  }
+
+
+  // Event node forms.
+  if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--event';
+    
+    // Ensure Drupal's form behaviors are attached for #states API
+    $form['#attached']['library'][] = 'core/drupal.form';
+    $form['#attached']['library'][] = 'core/drupal.states';
+    
+    // Attach Conditional Fields library if module is enabled
+    // This ensures conditional fields work for both admin and vendor forms
+    if (\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
+      $form['#attached']['library'][] = 'conditional_fields/conditional_fields';
+    }
+    
+    // Attach custom event form enhancements
+    $form['#attached']['library'][] = 'myeventlane_theme/event-form';
+    
+    // Disable Honeypot flood control for event forms (vendors need to save drafts)
+    if (isset($form['#attributes']['data-honeypot-time'])) {
+      unset($form['#attributes']['data-honeypot-time']);
+    }
+    
+    // Add form token to prevent duplicate submissions without flood control
+    if (!isset($form['form_token'])) {
+      $form['form_token'] = [
+        '#type' => 'token',
+        '#default_value' => \Drupal::csrfToken()->get('node_event_form'),
+      ];
+    }
+    
+    // Wrap the entire form in our styled container
+    // IMPORTANT: Only wrap the form, don't modify field structure to preserve #states API
+    $is_edit = ($form_id === 'node_event_edit_form');
+    $title = $is_edit ? t('Edit Event') : t('Create New Event');
+    $intro = $is_edit 
+      ? t('Update your event details below. Changes will be saved when you submit the form.')
+      : t('Share your event with the MyEventLane community. Fill out each section below to get started.');
+    
+    // Get node if editing
+    $node = NULL;
+    if (isset($form['#entity']) && $form['#entity']) {
+      $node = $form['#entity'];
+    } elseif ($form_state->getFormObject() && method_exists($form_state->getFormObject(), 'getEntity')) {
+      $node = $form_state->getFormObject()->getEntity();
+    }
+    
+    $breadcrumb = '';
+    if ($is_edit && $node && !$node->isNew()) {
+      $url = $node->toUrl()->toString();
+      $breadcrumb = '<nav class="mel-breadcrumb" aria-label="Breadcrumb"><a href="' . $url . '">' . $node->label() . '</a><span class="mel-breadcrumb-separator">/</span><span>Edit</span></nav>';
+    }
+    
+    // Wrap form with styling - this doesn't break #states API as it's outside the form structure
+    $form['#prefix'] = '<div class="mel-page-wrapper mel-page-wrapper--form"><div class="mel-container mel-container--form"><div class="mel-form-page-header">' . $breadcrumb . '<h1 class="mel-page-title">' . $title . '</h1><p class="mel-page-intro">' . $intro . '</p></div>';
+    $form['#suffix'] = '</div></div>';
+    
+    // Add wrapper class to form itself
+    $form['#attributes']['class'][] = 'mel-event-form-wrapper';
+  }
+
+  // User login form.
+  if ($form_id === 'user_login_form') {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--login';
+  }
+
+  // User register form.
+  if ($form_id === 'user_register_form') {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--register';
+  }
+
+  // User password reset form.
+  if ($form_id === 'user_pass') {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--password';
+  }
+
+  // User edit form.
+  if ($form_id === 'user_form') {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--user-edit';
+  }
+
+  // Vendor entity forms.
+  if (strpos($form_id, 'myeventlane_vendor') === 0) {
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-form--vendor';
+  }
 }

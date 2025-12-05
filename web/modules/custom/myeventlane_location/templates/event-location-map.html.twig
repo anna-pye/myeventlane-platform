@@ -14,9 +14,15 @@
 
 {% if latitude and longitude %}
   <div class="myeventlane-event-location-map">
-    <h3 class="myeventlane-event-section-title">Location</h3>
+    <h3 class="mel-event-section-title">Location</h3>
+
+    {% if venue_name %}
+      <div class="myeventlane-event-venue-name">
+        <strong>{{ venue_name }}</strong>
+      </div>
+    {% endif %}
     
-    <div class="myeventlane-event-map-container myeventlane-event-map-container" 
+    <div class="myeventlane-event-map-container" 
          data-latitude="{{ latitude }}" 
          data-longitude="{{ longitude }}"
          data-title="{{ event.label }}">

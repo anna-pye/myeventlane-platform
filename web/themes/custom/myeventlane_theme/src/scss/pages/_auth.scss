@@ -1,0 +1,294 @@
+// ==========================================================================
+// Authentication Pages
+// ==========================================================================
+// Styles for login, register, and password reset forms.
+// Extends the base auth styles from _user.scss with additional form-specific styling.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Auth Page Container
+// ---------------------------------------------------------------------------
+// Already defined in _user.scss, but ensuring consistency
+
+.mel-auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: spacing.mel-space(6) spacing.mel-space(4);
+  background: linear-gradient(
+    135deg,
+    colors.$mel-color-bg 0%,
+    colors.$mel-color-surface-alt 100%
+  );
+}
+
+.mel-auth-container {
+  width: 100%;
+  max-width: 440px;
+}
+
+.mel-auth-card {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  padding: spacing.mel-space(6);
+  box-shadow: shadows.$mel-shadow-lg;
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(8);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auth Header
+// ---------------------------------------------------------------------------
+
+.mel-auth-header {
+  text-align: center;
+  margin-bottom: spacing.mel-space(6);
+}
+
+.mel-auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(4);
+  text-decoration: none;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  svg {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.mel-auth-title {
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(2) 0;
+  line-height: typography.$mel-leading-tight;
+}
+
+.mel-auth-subtitle {
+  font-size: typography.mel-font-size(base);
+  color: colors.$mel-color-text-muted;
+  margin: 0;
+  line-height: typography.$mel-leading-relaxed;
+}
+
+// ---------------------------------------------------------------------------
+// Auth Form
+// ---------------------------------------------------------------------------
+
+.mel-auth-form {
+  .form-item {
+    margin-bottom: spacing.mel-space(4);
+
+    label {
+      display: block;
+      margin-bottom: spacing.mel-space(2);
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-semibold;
+      color: colors.$mel-color-text;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: spacing.mel-space(3) spacing.mel-space(4);
+      border: 2px solid colors.$mel-color-border;
+      border-radius: radii.$mel-radius-md;
+      font-size: typography.mel-font-size(base);
+      font-family: typography.$mel-font-family;
+      color: colors.$mel-color-text;
+      background: colors.$mel-color-surface;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      min-height: 44px; // Touch-friendly
+
+      &::placeholder {
+        color: colors.$mel-color-text-light;
+      }
+
+      &:hover {
+        border-color: colors.$mel-color-border-strong;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: colors.$mel-color-secondary;
+        box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.15);
+      }
+
+      &.error {
+        border-color: colors.$mel-color-error;
+
+        &:focus {
+          box-shadow: 0 0 0 3px rgba(colors.$mel-color-error, 0.15);
+        }
+      }
+    }
+
+    .description {
+      margin-top: spacing.mel-space(2);
+      font-size: typography.mel-font-size(xs);
+      color: colors.$mel-color-text-muted;
+      line-height: typography.$mel-leading-relaxed;
+
+      a {
+        color: colors.$mel-color-primary;
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+.mel-auth-actions {
+  margin-top: spacing.mel-space(6);
+
+  .button,
+  .form-submit,
+  input[type="submit"] {
+    // Apply button styles directly (can't use @extend with @use modules)
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: spacing.mel-space(2);
+    width: 100%;
+    padding: spacing.mel-space(3) spacing.mel-space(6);
+    min-height: 52px;
+    font-family: typography.$mel-font-family;
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-semibold;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 2px solid transparent;
+    border-radius: radii.$mel-radius-lg;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background-color: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+
+    &:hover {
+      background-color: colors.$mel-color-primary-hover;
+    }
+
+    &:active {
+      background-color: colors.$mel-color-primary-active;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+}
+
+.mel-auth-remember {
+  display: flex;
+  align-items: center;
+  gap: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(4);
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: colors.$mel-color-primary;
+    cursor: pointer;
+  }
+
+  label {
+    margin: 0;
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    font-weight: typography.$mel-font-regular;
+    cursor: pointer;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Auth Footer
+// ---------------------------------------------------------------------------
+
+.mel-auth-footer {
+  text-align: center;
+  margin-top: spacing.mel-space(6);
+  padding-top: spacing.mel-space(6);
+  border-top: 1px solid colors.$mel-color-border;
+}
+
+.mel-auth-link {
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin: 0;
+
+  a {
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+    font-weight: typography.$mel-font-semibold;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Link Text Utility
+// ---------------------------------------------------------------------------
+
+.mel-link-text {
+  color: colors.$mel-color-primary;
+  text-decoration: none;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Error Messages
+// ---------------------------------------------------------------------------
+
+.mel-auth-form {
+  .form-item--error-message,
+  .messages--error {
+    margin-top: spacing.mel-space(2);
+    padding: spacing.mel-space(3);
+    background: colors.$mel-color-error-bg;
+    border: 1px solid colors.$mel-color-error;
+    border-radius: radii.$mel-radius-md;
+    color: colors.$mel-color-error;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-medium;
+  }
+}
+

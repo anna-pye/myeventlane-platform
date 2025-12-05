@@ -1,0 +1,50 @@
+{#
+/**
+ * @file
+ * Theme override for Vendor entity add/edit form.
+ *
+ * Provides a branded, card-based layout for vendor creation and editing.
+ */
+#}
+
+<div class="mel-page-wrapper mel-page-wrapper--form">
+  <div class="mel-container">
+    <div class="mel-form-page-header">
+      {% if entity %}
+        <nav class="mel-breadcrumb" aria-label="Breadcrumb">
+          <a href="{{ path('entity.myeventlane_vendor.canonical', {'myeventlane_vendor': entity.id}) }}">{{ entity.label }}</a>
+          <span class="mel-breadcrumb-separator">/</span>
+          <span>Edit</span>
+        </nav>
+        <h1 class="mel-page-title">{{ 'Edit Organiser Profile'|t }}</h1>
+        <p class="mel-page-intro">{{ 'Update your organiser information below.'|t }}</p>
+      {% else %}
+        <h1 class="mel-page-title">{{ 'Become an Organiser'|t }}</h1>
+        <p class="mel-page-intro">{{ 'Create your organiser profile to start hosting events on MyEventLane. This profile will be visible to event attendees.'|t }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mel-form-card">
+      {{ form|without('advanced', 'actions', 'path') }}
+
+      {# Advanced section (if present) - collapsible for admin/internal fields #}
+      {% if form.advanced %}
+        <details class="mel-form-advanced">
+          <summary class="mel-form-advanced-summary">{{ 'Advanced options'|t }}</summary>
+          <div class="mel-form-advanced-content">
+            {{ form.advanced }}
+          </div>
+        </details>
+      {% endif %}
+
+      {# Form actions #}
+      <div class="mel-form-actions">
+        {{ form.actions }}
+        {% if form.path %}
+          {{ form.path }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+

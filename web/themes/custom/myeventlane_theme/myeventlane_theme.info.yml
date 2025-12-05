@@ -5,6 +5,7 @@ core_version_requirement: ^11
 
 libraries:
   - myeventlane_theme/global-styling
+  - myeventlane_theme/account-dropdown
 
 regions:
   utility_bar: Utility Bar

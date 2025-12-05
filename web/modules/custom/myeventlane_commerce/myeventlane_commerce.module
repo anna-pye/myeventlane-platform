@@ -279,15 +279,127 @@ function myeventlane_commerce_commerce_checkout_pane_info_alter(array &$definiti
 /**
  * Implements hook_form_alter().
  *
- * Remove the duplicated billing address widget that Commerce Payment injects
- * into the `payment_information` pane so that billing is only collected once
- * in the dedicated `billing_information` pane.
+ * Remove duplicate billing information from payment_information pane.
  */
 function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Apply only on Commerce checkout forms.
-  // The checkout form IDs vary per flow (e.g. commerce_checkout_flow_default),
-  // so we rely on the presence of the payment pane instead.
-  if (isset($form['payment_information']['billing_information'])) {
-    unset($form['payment_information']['billing_information']);
+  if (!isset($form['#id']) || !str_contains($form['#id'], 'commerce-checkout')) {
+    return;
+  }
+  
+  // If billing_information exists as a top-level pane, remove it from payment_information.
+  // Only do this if payment_information has been built (has #payment_options or other pane structure).
+  // We need to be careful not to interfere with the pane's internal structure.
+  if (isset($form['billing_information']) && is_array($form['billing_information'])) {
+    // Only remove billing_information from payment_information if:
+    // 1. payment_information exists and is an array
+    // 2. payment_information has been built (has #payment_options or payment_method element)
+    // 3. billing_information exists within payment_information
+    if (isset($form['payment_information']) 
+        && is_array($form['payment_information'])
+        && (isset($form['payment_information']['#payment_options']) || isset($form['payment_information']['payment_method']))
+        && isset($form['payment_information']['billing_information'])) {
+      // Safely remove only the billing_information element, not affecting other pane structure.
+      unset($form['payment_information']['billing_information']);
+    }
+  }
+
+  // Add safety checks for payment_information pane to prevent errors during submission.
+  // The core Commerce code doesn't check if #payment_options exists before accessing it.
+  if (isset($form['payment_information']) && is_array($form['payment_information'])) {
+    // Add an after_build callback to ensure structure is preserved.
+    if (!isset($form['payment_information']['#after_build'])) {
+      $form['payment_information']['#after_build'] = [];
+    }
+    $form['payment_information']['#after_build'][] = 'myeventlane_commerce_payment_information_after_build';
+    
+    // Add validation to prevent submission if payment_options is empty.
+    if (!isset($form['payment_information']['#validate'])) {
+      $form['payment_information']['#validate'] = [];
+    }
+    $form['payment_information']['#validate'][] = 'myeventlane_commerce_validate_payment_information';
+    
+    // Add a submit handler that runs before the pane's submit to add safety checks.
+    // We'll prepend it so it runs first.
+    if (!isset($form['#submit'])) {
+      $form['#submit'] = [];
+    }
+    array_unshift($form['#submit'], 'myeventlane_commerce_checkout_form_submit_safety_check');
+  }
+}
+
+/**
+ * After build callback for payment_information pane.
+ *
+ * Ensures the pane structure is correct and sets #payment_options to empty array if missing.
+ * This prevents the "Call to a member function getPaymentGatewayId() on null" error.
+ */
+function myeventlane_commerce_payment_information_after_build(array $element, FormStateInterface $form_state): array {
+  // If #payment_options is missing, set it to an empty array.
+  // This prevents errors in submitPaneForm when it tries to access #payment_options.
+  // The core Commerce code should check for this, but it doesn't, so we work around it.
+  if (!isset($element['#payment_options'])) {
+    $element['#payment_options'] = [];
+    \Drupal::logger('myeventlane_commerce')->warning('Payment information pane is missing #payment_options. Setting to empty array to prevent submission errors. This may indicate the pane was not properly built (e.g., no payment gateways available).');
+  }
+  
+  return $element;
+}
+
+/**
+ * Validation callback for payment_information pane.
+ *
+ * Prevents submission if #payment_options is empty or if selected payment_method is invalid.
+ */
+function myeventlane_commerce_validate_payment_information(array &$element, FormStateInterface $form_state): void {
+  // Get the values for this pane.
+  $values = $form_state->getValue($element['#parents'] ?? []);
+  
+  // If #payment_options is empty, we can't proceed.
+  if (empty($element['#payment_options'])) {
+    \Drupal::logger('myeventlane_commerce')->error('Payment information pane has empty #payment_options. Cannot proceed with payment.');
+    $form_state->setError($element, t('No payment methods are available. Please contact support.'));
+    return;
+  }
+  
+  // If payment_method is set, validate it exists in #payment_options.
+  if (isset($values['payment_method'])) {
+    if (!isset($element['#payment_options'][$values['payment_method']])) {
+      \Drupal::logger('myeventlane_commerce')->error('Selected payment method @method does not exist in payment options.', ['@method' => $values['payment_method']]);
+      if (isset($element['payment_method'])) {
+        $form_state->setError($element['payment_method'], t('Invalid payment method selected. Please choose a payment method.'));
+      } else {
+        $form_state->setError($element, t('Invalid payment method selected.'));
+      }
+    }
+  }
+}
+
+/**
+ * Submit handler for checkout form - safety check before payment pane submission.
+ *
+ * This runs before the pane's submitPaneForm to ensure #payment_options exists.
+ * Note: This may not prevent the error if submitPaneForm is called directly by the checkout flow,
+ * but it helps ensure the structure is correct.
+ */
+function myeventlane_commerce_checkout_form_submit_safety_check(array &$form, FormStateInterface $form_state): void {
+  // Check if payment_information pane is being submitted and has required structure.
+  if (isset($form['payment_information']) && is_array($form['payment_information'])) {
+    // Ensure #payment_options exists (should have been set by after_build, but double-check).
+    if (!isset($form['payment_information']['#payment_options'])) {
+      $form['payment_information']['#payment_options'] = [];
+      \Drupal::logger('myeventlane_commerce')->warning('Payment information pane #payment_options missing in submit handler. Setting to empty array.');
+    }
+    
+    $values = $form_state->getValue($form['payment_information']['#parents'] ?? []);
+    
+    // If payment_method is set but doesn't exist in #payment_options, that's a problem.
+    if (isset($values['payment_method']) && !empty($form['payment_information']['#payment_options'])) {
+      if (!isset($form['payment_information']['#payment_options'][$values['payment_method']])) {
+        \Drupal::logger('myeventlane_commerce')->error('Selected payment method @method does not exist in payment options.', ['@method' => $values['payment_method']]);
+        // Clear the invalid payment_method value.
+        $form_state->setValue(array_merge($form['payment_information']['#parents'] ?? [], ['payment_method']), NULL);
+      }
+    }
   }
 }

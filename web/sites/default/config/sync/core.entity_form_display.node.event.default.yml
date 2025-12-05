@@ -17,6 +17,8 @@ dependencies:
     - field.field.node.event.field_external_url
     - field.field.node.event.field_featured
     - field.field.node.event.field_location
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
     - field.field.node.event.field_organizer
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
@@ -256,6 +258,8 @@ content:
     third_party_settings: {  }
 hidden:
   field_event_location: true
+  field_location_latitude: true
+  field_location_longitude: true
   field_promo_expires: true
   field_promoted: true
   field_rsvp_target: true

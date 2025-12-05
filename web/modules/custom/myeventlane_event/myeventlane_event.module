@@ -173,11 +173,9 @@ function _myeventlane_event_alter_event_form(array &$form, FormStateInterface $f
   if (isset($form['field_capacity'])) {
     $form['field_capacity']['#states'] = [
       'visible' => [
-        [
-          ':input[name="field_event_type"]' => ['value' => 'rsvp'],
-        ],
-        [
-          ':input[name="field_event_type"]' => ['value' => 'both'],
+        'or' => [
+          [':input[name*="field_event_type"]' => ['value' => 'rsvp']],
+          [':input[name*="field_event_type"]' => ['value' => 'both']],
         ],
       ],
     ];
@@ -198,8 +196,10 @@ function _myeventlane_event_alter_event_form(array &$form, FormStateInterface $f
     
     $form['field_product_target']['#states'] = [
       'visible' => [
-        [':input[name="field_event_type"]' => ['value' => 'paid']],
-        [':input[name="field_event_type"]' => ['value' => 'both']],
+        'or' => [
+          [':input[name*="field_event_type"]' => ['value' => 'paid']],
+          [':input[name*="field_event_type"]' => ['value' => 'both']],
+        ],
       ],
     ];
     
@@ -210,7 +210,7 @@ function _myeventlane_event_alter_event_form(array &$form, FormStateInterface $f
   if (isset($form['field_external_url'])) {
     $form['field_external_url']['#states'] = [
       'visible' => [
-        ':input[name="field_event_type"]' => ['value' => 'external'],
+        ':input[name*="field_event_type"]' => ['value' => 'external'],
       ],
     ];
   }
@@ -219,11 +219,9 @@ function _myeventlane_event_alter_event_form(array &$form, FormStateInterface $f
   if (isset($form['field_ticket_types'])) {
     $form['field_ticket_types']['#states'] = [
       'visible' => [
-        [
-          ':input[name="field_event_type"]' => ['value' => 'paid'],
-        ],
-        [
-          ':input[name="field_event_type"]' => ['value' => 'both'],
+        'or' => [
+          [':input[name*="field_event_type"]' => ['value' => 'paid']],
+          [':input[name*="field_event_type"]' => ['value' => 'both']],
         ],
       ],
     ];

@@ -16,11 +16,11 @@ configuration:
   collect_billing_information: false
   publishable_key: pk_test_51RWx3wH7Gs98djGZxJeNhv3YzHlsoec1lSqS13088V264bPyTa4TlnjouVWjjPp36w1ZDlNdUJLGmhSaH9j8b8Q8001aI8hZqB
   secret_key: sk_test_51RWx3wH7Gs98djGZbCvif0GC3IzqRfNd0KuFiZEGjaEuLqZEpuIXEWUUF1JRBQCJSY8WtKTUUss8xb6qyEys6tvS00OgkHpmAr
-  enable_credit_card_icons: false
+  enable_credit_card_icons: true
 conditions:
   -
     plugin: current_currency
     configuration:
       currencies:
         - AUD
-conditionOperator: OR
+conditionOperator: AND

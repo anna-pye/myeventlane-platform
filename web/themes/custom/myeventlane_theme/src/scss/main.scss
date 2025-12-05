@@ -74,8 +74,11 @@
 
 @use 'pages/front';
 @use 'pages/event';
+@use 'pages/event-form';
 @use 'pages/dashboard';
 @use 'pages/user';
+@use 'pages/auth';
+@use 'pages/vendor-form';
 @use 'pages/search';
 
 // ---------------------------------------------------------------------------

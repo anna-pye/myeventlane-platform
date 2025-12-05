@@ -24,6 +24,7 @@ module:
   commerce_store: 0
   commerce_stripe: 0
   commerce_tax: 0
+  conditional_fields: 0
   config: 0
   contact: 0
   contextual: 0
@@ -39,6 +40,7 @@ module:
   entity: 0
   entity_reference_revisions: 0
   field: 0
+  field_group: 0
   field_layout: 0
   field_ui: 0
   file: 0
@@ -70,6 +72,7 @@ module:
   myeventlane_demo: 0
   myeventlane_event: 0
   myeventlane_event_attendees: 0
+  myeventlane_location: 0
   myeventlane_messaging: 0
   myeventlane_rsvp: 0
   myeventlane_schema: 0

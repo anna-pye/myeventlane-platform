@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Theme override for Event node edit page.
+ */
+#}
+{% extends "page.html.twig" %}
+
+{% block content %}
+  <div class="mel-page-wrapper mel-page-wrapper--form">
+    <div class="mel-container mel-container--form">
+      <div class="mel-form-page-header">
+        {% set node = elements['#node'] %}
+        {% if node %}
+          <nav class="mel-breadcrumb" aria-label="Breadcrumb">
+            <a href="{{ path('entity.node.canonical', {'node': node.id}) }}">{{ node.label }}</a>
+            <span class="mel-breadcrumb-separator">/</span>
+            <span>Edit</span>
+          </nav>
+        {% endif %}
+        <h1 class="mel-page-title">{{ 'Edit Event'|t }}</h1>
+        <p class="mel-page-intro">{{ 'Update your event details below. Changes will be saved when you submit the form.'|t }}</p>
+      </div>
+      {{ content }}
+    </div>
+  </div>
+{% endblock %}
+

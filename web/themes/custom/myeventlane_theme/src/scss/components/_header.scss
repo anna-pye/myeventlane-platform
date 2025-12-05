@@ -333,6 +333,80 @@
 }
 
 // ---------------------------------------------------------------------------
+// Header Cart
+// ---------------------------------------------------------------------------
+
+.mel-header-cart {
+  position: relative;
+  margin-right: spacing.mel-space(2);
+
+  .mel-cart-block {
+    display: flex;
+    align-items: center;
+  }
+
+  .mel-cart-block-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    position: relative;
+    text-decoration: none;
+    color: colors.$mel-color-text;
+    border-radius: radii.$mel-radius-md;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: colors.$mel-color-bg;
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+  }
+
+  .mel-cart-block-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-cart-badge-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 spacing.mel-space(1);
+    background: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-bold;
+    border-radius: radii.$mel-radius-full;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+}
+
+.mel-mobile-cart {
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  border-bottom: 1px solid colors.$mel-color-border;
+
+  .mel-cart-block-link {
+    display: flex;
+    align-items: center;
+    gap: spacing.mel-space(3);
+    text-decoration: none;
+    color: colors.$mel-color-text;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Account Dropdown
 // ---------------------------------------------------------------------------
 

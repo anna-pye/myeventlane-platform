@@ -320,220 +320,133 @@
 
   /**
    * Populates address fields in the widget.
+   *
+   * NOTE: We now target the *specific* Drupal address widget for field_location
+   * by using its known data-drupal-selector attributes. This is far more
+   * reliable than trying to guess patterns.
    */
   function populateAddressFields(widget, components, searchInput) {
-    // Find the parent form.
-    const form = searchInput ? searchInput.closest('form') : (widget.closest('form') || document.querySelector('form.node-event-form, form.node-event-edit-form'));
+    const form =
+      (searchInput && searchInput.closest('form')) ||
+      widget.closest('form') ||
+      document.querySelector('form.node-event-form, form.node-event-edit-form');
+
     if (!form) {
       console.warn('MyEventLane Location: Form not found for populating address fields.');
       return;
     }
 
-    // Find the location fieldset/container first - this helps narrow our search.
-    const locationFieldset = form.querySelector('fieldset[data-drupal-selector*="field-location"], .field--name-field-location, .field--widget-address-default');
-    
-    // Helper to find fields - try multiple strategies.
-    function findFieldByLabel(labelText, fieldType = 'input') {
-      // First, try to find by label text, then get the associated input.
-      const labels = Array.from(form.querySelectorAll('label'));
-      for (let label of labels) {
-        const labelTextContent = label.textContent.trim().toLowerCase();
-        if (labelTextContent.includes(labelText.toLowerCase())) {
-          // Get the input/select associated with this label.
-          const fieldId = label.getAttribute('for');
-          if (fieldId) {
-            const field = form.querySelector(`#${fieldId}`);
-            if (field && (fieldType === 'input' ? field.tagName === 'INPUT' : field.tagName === 'SELECT')) {
-              return field;
-            }
-          }
-          // If no 'for' attribute, try to find input/select within the label's parent.
-          const parent = label.closest('.js-form-item, .form-item, fieldset');
-          if (parent) {
-            const field = parent.querySelector(fieldType === 'input' ? 'input[type="text"], input:not([type])' : 'select');
-            if (field) {
-              return field;
-            }
-          }
-        }
-      }
-      return null;
-    }
+    // Direct selectors for the address widget of field_location.
+    const addressLine1 =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-address-line1"]') ||
+      form.querySelector('input[name="field_location[0][address][address_line1]"]');
 
-    // Find fields by name attribute patterns (most reliable).
-    function findAddressInput(fieldName) {
-      // Try exact patterns first.
-      const exactPatterns = [
-        `input[name="field_location[0][${fieldName}]"]`,
-        `input[name*="field_location"][name*="[${fieldName}]"]`,
-        `input[name*="${fieldName}"]`,
-      ];
-      
-      for (let pattern of exactPatterns) {
-        const field = form.querySelector(pattern);
-        if (field) return field;
-      }
-      
-      // If we have a location fieldset, search within it.
-      if (locationFieldset) {
-        const field = locationFieldset.querySelector(`input[name*="${fieldName}"]`);
-        if (field) return field;
-      }
-      
-      return null;
-    }
+    const addressLine2 =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-address-line2"]') ||
+      form.querySelector('input[name="field_location[0][address][address_line2]"]');
 
-    function findAddressSelect(fieldName) {
-      const exactPatterns = [
-        `select[name="field_location[0][${fieldName}]"]`,
-        `select[name*="field_location"][name*="[${fieldName}]"]`,
-        `select[name*="${fieldName}"]`,
-      ];
-      
-      for (let pattern of exactPatterns) {
-        const field = form.querySelector(pattern);
-        if (field) return field;
-      }
-      
-      if (locationFieldset) {
-        const field = locationFieldset.querySelector(`select[name*="${fieldName}"]`);
-        if (field) return field;
-      }
-      
-      return null;
-    }
+    const locality =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-locality"]') ||
+      form.querySelector('input[name="field_location[0][address][locality]"]');
 
-    // Find all address fields using multiple strategies.
-    let addressLine1 = findAddressInput('address_line1');
-    if (!addressLine1) {
-      addressLine1 = findFieldByLabel('street address', 'input');
-    }
-    
-    let addressLine2 = findAddressInput('address_line2');
-    
-    let locality = findAddressInput('locality');
-    if (!locality) {
-      locality = findFieldByLabel('suburb', 'input');
-    }
-    
-    let administrativeArea = findAddressSelect('administrative_area') || findAddressInput('administrative_area');
-    if (!administrativeArea) {
-      administrativeArea = findFieldByLabel('state', 'select') || findFieldByLabel('state', 'input');
-    }
-    
-    let postalCode = findAddressInput('postal_code');
-    if (!postalCode) {
-      postalCode = findFieldByLabel('postal code', 'input');
-    }
-    
-    let countryCode = findAddressSelect('country_code') || findAddressSelect('country');
-    if (!countryCode) {
-      countryCode = findFieldByLabel('country', 'select');
-    }
+    const administrativeArea =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-administrative-area"]') ||
+      form.querySelector('select[name="field_location[0][address][administrative_area]"]');
 
-    // Venue name field.
+    const postalCode =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-postal-code"]') ||
+      form.querySelector('input[name="field_location[0][address][postal_code]"]');
+
+    const countryCode =
+      form.querySelector('[data-drupal-selector="edit-field-location-0-address-country-code"]') ||
+      form.querySelector('select[name="field_location[0][address][country_code]"]');
+
+    // Venue name field (simple text field).
     const venueNameField =
-      form.querySelector('input[name*="field_venue_name"][name*="[0][value]"]') ||
-      form.querySelector('input[name*="field_venue_name"]') ||
-      findFieldByLabel('venue name', 'input');
+      form.querySelector('[data-drupal-selector="edit-field-venue-name-0-value"]') ||
+      form.querySelector('input[name="field_venue_name[0][value]"]');
 
-    // Debug: log all found fields and their actual names.
-    console.log('MyEventLane Location: Field detection results', {
-      addressLine1: addressLine1 ? addressLine1.name : 'NOT FOUND',
-      addressLine2: addressLine2 ? addressLine2.name : 'NOT FOUND',
-      locality: locality ? locality.name : 'NOT FOUND',
-      administrativeArea: administrativeArea ? administrativeArea.name : 'NOT FOUND',
-      postalCode: postalCode ? postalCode.name : 'NOT FOUND',
-      countryCode: countryCode ? countryCode.name : 'NOT FOUND',
-      venueName: venueNameField ? venueNameField.name : 'NOT FOUND',
-      components: components
+    // Log ALL inputs and selects in the form to debug.
+    const allFields = Array.from(form.querySelectorAll('input, select'));
+    console.log('MyEventLane Location: ALL form fields:', allFields.map(f => ({
+      name: f.name,
+      id: f.id,
+      type: f.type || f.tagName,
+      dataSelector: f.getAttribute('data-drupal-selector'),
+      label: f.labels && f.labels.length > 0 ? f.labels[0].textContent.trim() : 'no label',
+      value: f.value
+    })));
+
+    console.log('MyEventLane Location: Field detection (direct selectors)', {
+      addressLine1: addressLine1 ? (addressLine1.name || addressLine1.id) : 'NOT FOUND',
+      addressLine2: addressLine2 ? (addressLine2.name || addressLine2.id) : 'NOT FOUND',
+      locality: locality ? (locality.name || locality.id) : 'NOT FOUND',
+      administrativeArea: administrativeArea ? (administrativeArea.name || administrativeArea.id) : 'NOT FOUND',
+      postalCode: postalCode ? (postalCode.name || postalCode.id) : 'NOT FOUND',
+      countryCode: countryCode ? (countryCode.name || countryCode.id) : 'NOT FOUND',
+      venueName: venueNameField ? (venueNameField.name || venueNameField.id) : 'NOT FOUND',
+      components
     });
 
-    // If we still can't find fields, log all inputs in the location area for debugging.
-    if (!addressLine1 || !locality) {
-      console.log('MyEventLane Location: All inputs in location area:', 
-        locationFieldset ? 
-          Array.from(locationFieldset.querySelectorAll('input, select')).map(f => ({ name: f.name, type: f.type || f.tagName, id: f.id })) :
-          'Location fieldset not found'
-      );
-    }
-
-    // Populate venue name.
+    // Populate venue name from the place name if available.
     if (venueNameField && components.name) {
       venueNameField.value = components.name;
-      venueNameField.dispatchEvent(new Event('change', { bubbles: true }));
       venueNameField.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('MyEventLane Location: ✓ Set venue name to', components.name);
+      venueNameField.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Populate address fields.
+    // Populate street address.
     if (addressLine1) {
       addressLine1.value = components.address_line1 || '';
-      addressLine1.dispatchEvent(new Event('change', { bubbles: true }));
       addressLine1.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('MyEventLane Location: ✓ Set address_line1 to', components.address_line1);
+      addressLine1.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
-      console.error('MyEventLane Location: ✗ address_line1 field not found');
+      console.warn('MyEventLane Location: address_line1 field not found with direct selector');
     }
-    
+
     if (addressLine2 && components.address_line2) {
       addressLine2.value = components.address_line2;
-      addressLine2.dispatchEvent(new Event('change', { bubbles: true }));
       addressLine2.dispatchEvent(new Event('input', { bubbles: true }));
+      addressLine2.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     if (locality) {
       locality.value = components.locality || '';
-      locality.dispatchEvent(new Event('change', { bubbles: true }));
       locality.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('MyEventLane Location: ✓ Set locality to', components.locality);
-    } else {
-      console.error('MyEventLane Location: ✗ locality field not found');
+      locality.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     if (administrativeArea) {
       if (administrativeArea.tagName === 'SELECT') {
         const options = administrativeArea.options;
-        let found = false;
         for (let i = 0; i < options.length; i++) {
-          const optValue = options[i].value.toLowerCase();
-          const optText = options[i].text.toLowerCase();
-          const searchValue = components.administrative_area.toLowerCase();
-          if (optValue === searchValue || optText === searchValue || optText.includes(searchValue)) {
-            administrativeArea.value = options[i].value;
-            found = true;
+          const opt = options[i];
+          if (
+            opt.value === components.administrative_area ||
+            opt.text === components.administrative_area ||
+            opt.text.indexOf(components.administrative_area) !== -1
+          ) {
+            administrativeArea.value = opt.value;
             break;
           }
         }
-        if (found) {
-          console.log('MyEventLane Location: ✓ Set administrative_area to', components.administrative_area);
-        } else {
-          console.warn('MyEventLane Location: Could not find state option for', components.administrative_area, 'Available options:', Array.from(options).map(o => o.text));
-        }
       } else {
         administrativeArea.value = components.administrative_area || '';
-        console.log('MyEventLane Location: ✓ Set administrative_area to', components.administrative_area);
       }
-      administrativeArea.dispatchEvent(new Event('change', { bubbles: true }));
       administrativeArea.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      console.error('MyEventLane Location: ✗ administrative_area field not found');
+      administrativeArea.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     if (postalCode) {
       postalCode.value = components.postal_code || '';
-      postalCode.dispatchEvent(new Event('change', { bubbles: true }));
       postalCode.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('MyEventLane Location: ✓ Set postal_code to', components.postal_code);
-    } else {
-      console.error('MyEventLane Location: ✗ postal_code field not found');
+      postalCode.dispatchEvent(new Event('change', { bubbles: true }));
     }
-    
+
     if (countryCode) {
       countryCode.value = components.country_code || 'AU';
-      countryCode.dispatchEvent(new Event('change', { bubbles: true }));
       countryCode.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('MyEventLane Location: ✓ Set country_code to', components.country_code);
+      countryCode.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -555,7 +468,7 @@
     // These will be saved via the form submit handler.
     const form = searchInput ? searchInput.closest('form') : (widget.closest('form') || document.querySelector('form'));
     if (form) {
-      // Try dedicated fields first.
+      // Try our custom hidden fields first (these avoid validation issues).
       let eventLatField = form.querySelector('input.myeventlane-location-latitude-field');
       let eventLngField = form.querySelector('input.myeventlane-location-longitude-field');
 
@@ -566,6 +479,11 @@
       if (!eventLngField) {
         eventLngField = form.querySelector('input[name*="field_location_longitude"], input[name*="field_event_lng"]');
       }
+      
+      console.log('MyEventLane Location: Setting coordinates:', lat, lng, 'to fields:', {
+        latField: eventLatField ? eventLatField.name : 'NOT FOUND',
+        lngField: eventLngField ? eventLngField.name : 'NOT FOUND'
+      });
 
       if (eventLatField) {
         eventLatField.value = lat.toString();
@@ -621,8 +539,17 @@
     }
   }
 
-  // Initialize on DOM ready, and also after AJAX loads.
+  // Initialize on DOM ready, but ONLY on event forms.
   function initialize() {
+    // Only initialize if we're on an event form (check for the search input or form ID).
+    const isEventForm = document.querySelector('.myeventlane-location-address-search') ||
+                        document.querySelector('form.node-event-form, form.node-event-edit-form, form[id*="node-event"]');
+    
+    if (!isEventForm) {
+      // Not on an event form, don't initialize or interfere.
+      return;
+    }
+    
     // Small delay to ensure form is fully rendered.
     setTimeout(initAddressAutocomplete, 100);
   }
@@ -633,19 +560,19 @@
     initialize();
   }
 
-  // Re-initialize after AJAX form updates (common in Drupal).
+  // Re-initialize after AJAX form updates, but ONLY if we're on an event form.
   if (typeof Drupal !== 'undefined' && Drupal.ajax && Drupal.ajax.prototype) {
-    const originalBeforeSend = Drupal.ajax.prototype.beforeSend;
-    Drupal.ajax.prototype.beforeSend = function (xmlhttprequest, options) {
-      if (originalBeforeSend) {
-        originalBeforeSend.call(this, xmlhttprequest, options);
-      }
-    };
-
-    // Re-initialize after AJAX completes.
+    // Re-initialize after AJAX completes, but check if we're on event form first.
     if (typeof jQuery !== 'undefined') {
-      jQuery(document).ajaxComplete(function () {
-        setTimeout(initAddressAutocomplete, 200);
+      jQuery(document).ajaxComplete(function (event, xhr, settings) {
+        // Only re-initialize if this is likely an event form AJAX update.
+        // Check if the search input exists or if the form is an event form.
+        const isEventForm = document.querySelector('.myeventlane-location-address-search') ||
+                            document.querySelector('form.node-event-form, form.node-event-edit-form, form[id*="node-event"]');
+        
+        if (isEventForm) {
+          setTimeout(initAddressAutocomplete, 200);
+        }
       });
     }
   }

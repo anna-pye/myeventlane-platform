@@ -40,6 +40,13 @@
 
     {# Header Actions #}
     <div class="mel-header-actions">
+      {# Shopping Cart #}
+      {% if page.header.cart_block %}
+        <div class="mel-header-cart">
+          {{ page.header.cart_block }}
+        </div>
+      {% endif %}
+
       {% if logged_in %}
         {# Account Dropdown #}
         <div class="mel-account-dropdown">
@@ -115,6 +122,12 @@
         <li><a href="/calendar">Calendar</a></li>
         <li><a href="/vendors">Organisers</a></li>
         <li class="mel-mobile-divider"></li>
+        {% if page.header.cart_block %}
+          <li class="mel-mobile-cart">
+            {{ page.header.cart_block }}
+          </li>
+          <li class="mel-mobile-divider"></li>
+        {% endif %}
         {% if logged_in %}
           <li><a href="{{ path('myeventlane_dashboard.customer') }}">My Events</a></li>
           <li><a href="{{ path('myeventlane_dashboard.vendor') }}">Vendor Dashboard</a></li>
@@ -134,45 +147,43 @@
 {# Mobile overlay #}
 <div class="mel-nav-overlay"></div>
 
-{# Inline test script for account dropdown - remove after confirming it works #}
+{# Inline JavaScript for menus - non-module, works immediately #}
 <script>
 (function() {
   'use strict';
   
-  function initAccountDropdownTest() {
-    const dropdowns = document.querySelectorAll('.mel-account-dropdown');
-    console.log('Inline test: Found', dropdowns.length, 'dropdown(s)');
+  // ============================================================================
+  // Account Dropdown
+  // ============================================================================
+  function initAccountDropdown() {
+    var dropdowns = document.querySelectorAll('.mel-account-dropdown:not([data-initialized])');
     
     dropdowns.forEach(function(dropdown) {
-      const toggle = dropdown.querySelector('.mel-account-toggle');
-      const menu = dropdown.querySelector('.mel-account-menu');
+      dropdown.setAttribute('data-initialized', 'true');
+      var toggle = dropdown.querySelector('.mel-account-toggle');
+      var menu = dropdown.querySelector('.mel-account-menu');
       
       if (!toggle || !menu) {
-        console.log('Inline test: Missing toggle or menu');
         return;
       }
-      
-      console.log('Inline test: Setting up dropdown');
       
       toggle.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Inline test: Toggle clicked!');
         
-        const isOpen = dropdown.classList.contains('is-open');
-        console.log('Inline test: isOpen =', isOpen);
+        var isOpen = dropdown.classList.contains('is-open');
         
         if (isOpen) {
           dropdown.classList.remove('is-open');
           toggle.setAttribute('aria-expanded', 'false');
           menu.setAttribute('aria-hidden', 'true');
         } else {
-          // Close others
+          // Close all others
           document.querySelectorAll('.mel-account-dropdown.is-open').forEach(function(other) {
             if (other !== dropdown) {
               other.classList.remove('is-open');
-              const otherToggle = other.querySelector('.mel-account-toggle');
-              const otherMenu = other.querySelector('.mel-account-menu');
+              var otherToggle = other.querySelector('.mel-account-toggle');
+              var otherMenu = other.querySelector('.mel-account-menu');
               if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
               if (otherMenu) otherMenu.setAttribute('aria-hidden', 'true');
             }
@@ -181,7 +192,6 @@
           dropdown.classList.add('is-open');
           toggle.setAttribute('aria-expanded', 'true');
           menu.setAttribute('aria-hidden', 'false');
-          console.log('Inline test: Dropdown opened, classes:', dropdown.className);
         }
       });
       
@@ -206,10 +216,111 @@
     });
   }
   
+  // ============================================================================
+  // Mobile Navigation
+  // ============================================================================
+  function initMobileNav() {
+    var toggle = document.querySelector('.mel-nav-toggle');
+    var mobileNav = document.querySelector('.mel-nav-mobile-wrapper');
+    var closeBtn = document.querySelector('.mel-nav-mobile-close');
+    
+    if (!toggle || !mobileNav) {
+      return;
+    }
+    
+    // Skip if already initialized
+    if (toggle.hasAttribute('data-nav-initialized')) {
+      return;
+    }
+    toggle.setAttribute('data-nav-initialized', 'true');
+    
+    // Create overlay if it doesn't exist
+    var overlay = document.querySelector('.mel-nav-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'mel-nav-overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(overlay);
+    }
+    
+    function openNav() {
+      mobileNav.classList.add('is-open');
+      toggle.classList.add('is-active');
+      overlay.classList.add('is-visible');
+      toggle.setAttribute('aria-expanded', 'true');
+      mobileNav.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      
+      var firstLink = mobileNav.querySelector('a');
+      if (firstLink) {
+        firstLink.focus();
+      }
+    }
+    
+    function closeNav() {
+      mobileNav.classList.remove('is-open');
+      toggle.classList.remove('is-active');
+      overlay.classList.remove('is-visible');
+      toggle.setAttribute('aria-expanded', 'false');
+      mobileNav.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      toggle.focus();
+    }
+    
+    toggle.addEventListener('click', function() {
+      if (mobileNav.classList.contains('is-open')) {
+        closeNav();
+      } else {
+        openNav();
+      }
+    });
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeNav);
+    }
+    
+    overlay.addEventListener('click', closeNav);
+    
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && mobileNav.classList.contains('is-open')) {
+        closeNav();
+      }
+    });
+    
+    // Close on resize to desktop
+    var mediaQuery = window.matchMedia('(min-width: 768px)');
+    mediaQuery.addEventListener('change', function(e) {
+      if (e.matches && mobileNav.classList.contains('is-open')) {
+        closeNav();
+      }
+    });
+  }
+  
+  // Initialize immediately and on DOM ready
+  function init() {
+    initAccountDropdown();
+    initMobileNav();
+  }
+  
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAccountDropdownTest);
+    document.addEventListener('DOMContentLoaded', function() {
+      init();
+      // Retry after short delay
+      setTimeout(init, 100);
+    });
   } else {
-    setTimeout(initAccountDropdownTest, 100);
+    init();
+    setTimeout(init, 100);
+  }
+  
+  // Also register as Drupal behavior if available
+  if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
+    Drupal.behaviors.myeventlaneMenusInline = {
+      attach: function(context) {
+        initAccountDropdown();
+        initMobileNav();
+      }
+    };
   }
 })();
 </script>

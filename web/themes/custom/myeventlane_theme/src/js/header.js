@@ -91,17 +91,13 @@ export function initMobileNav() {
 
 /**
  * Initialize account dropdown.
+ * Also registers as Drupal behavior for compatibility.
  */
 export function initAccountDropdown() {
-  console.log('initAccountDropdown called');
-  
-  function setupDropdowns() {
-    console.log('Setting up account dropdowns...');
-    const dropdowns = document.querySelectorAll('.mel-account-dropdown');
-    console.log(`Found ${dropdowns.length} dropdown(s)`);
+  function setupDropdowns(context = document) {
+    const dropdowns = context.querySelectorAll('.mel-account-dropdown:not([data-dropdown-initialized])');
     
     if (dropdowns.length === 0) {
-      console.warn('No account dropdowns found on page');
       return;
     }
 
@@ -113,7 +109,10 @@ export function initAccountDropdown() {
         return;
       }
 
-      // Direct click handler on toggle
+      // Mark as initialized
+      dropdown.setAttribute('data-dropdown-initialized', 'true');
+
+      // Click handler on toggle
       toggle.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -144,33 +143,44 @@ export function initAccountDropdown() {
         }
       });
 
-      // Close on outside click - use capture phase to catch it early
-      document.addEventListener('click', function closeOnOutside(e) {
+      // Close on outside click
+      const closeOnOutside = function(e) {
         if (!dropdown.contains(e.target) && dropdown.classList.contains('is-open')) {
           dropdown.classList.remove('is-open');
           toggle.setAttribute('aria-expanded', 'false');
           menu.setAttribute('aria-hidden', 'true');
         }
-      }, true);
+      };
+      document.addEventListener('click', closeOnOutside, true);
 
       // Escape key
-      document.addEventListener('keydown', function escapeHandler(e) {
+      const escapeHandler = function(e) {
         if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
           dropdown.classList.remove('is-open');
           toggle.setAttribute('aria-expanded', 'false');
           menu.setAttribute('aria-hidden', 'true');
           toggle.focus();
         }
-      });
+      };
+      document.addEventListener('keydown', escapeHandler);
     });
   }
 
-  // Run when DOM is ready
+  // Run immediately
+  setupDropdowns();
+  
+  // Also run on DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupDropdowns);
-  } else {
-    // Small delay to ensure elements are rendered
-    setTimeout(setupDropdowns, 50);
+    document.addEventListener('DOMContentLoaded', () => setupDropdowns());
+  }
+  
+  // Register as Drupal behavior if Drupal is available
+  if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
+    Drupal.behaviors.myeventlaneAccountDropdown = {
+      attach: function(context, settings) {
+        setupDropdowns(context);
+      }
+    };
   }
 }
 

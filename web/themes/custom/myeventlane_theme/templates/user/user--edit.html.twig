@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * Theme override for user profile edit form.
+ *
+ * Provides a branded, card-based layout for editing user profile.
+ */
+#}
+
+<div class="mel-page-wrapper mel-page-wrapper--form">
+  <div class="mel-container">
+    <div class="mel-form-page-header">
+      <h1 class="mel-page-title">{{ 'Edit Account'|t }}</h1>
+      <p class="mel-page-intro">{{ 'Update your account information and preferences.'|t }}</p>
+    </div>
+
+    <div class="mel-form-card">
+      {{ form|without('account', 'contact', 'timezone', 'language', 'actions', 'form_build_id', 'form_token', 'form_id') }}
+
+      {# Account section #}
+      {% if form.account %}
+        <div class="mel-form-section">
+          <h2 class="mel-form-section-title">{{ 'Account Information'|t }}</h2>
+          {{ form.account }}
+        </div>
+      {% endif %}
+
+      {# Contact settings #}
+      {% if form.contact %}
+        <div class="mel-form-section">
+          <h2 class="mel-form-section-title">{{ 'Contact Preferences'|t }}</h2>
+          {{ form.contact }}
+        </div>
+      {% endif %}
+
+      {# Timezone #}
+      {% if form.timezone %}
+        <div class="mel-form-section">
+          <h2 class="mel-form-section-title">{{ 'Regional Settings'|t }}</h2>
+          {{ form.timezone }}
+        </div>
+      {% endif %}
+
+      {# Language #}
+      {% if form.language %}
+        <div class="mel-form-section">
+          {{ form.language }}
+        </div>
+      {% endif %}
+
+      {# Form actions #}
+      <div class="mel-form-actions">
+        {{ form.actions }}
+      </div>
+
+      {{ form.form_build_id }}
+      {{ form.form_token }}
+      {{ form.form_id }}
+    </div>
+  </div>
+</div>
+

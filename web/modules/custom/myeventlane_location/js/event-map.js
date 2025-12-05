@@ -10,12 +10,16 @@
    * Initializes map rendering on Event view pages.
    */
   function initEventMap() {
+    console.log('MyEventLane Location: Initializing event map...');
     const settings = drupalSettings.myeventlaneLocation || {};
     const eventData = drupalSettings.myeventlaneLocationEvent || {};
     const provider = settings.provider || 'google_maps';
 
+    console.log('MyEventLane Location: Settings:', settings);
+    console.log('MyEventLane Location: Event data:', eventData);
+
     if (!eventData.latitude || !eventData.longitude) {
-      console.warn('MyEventLane Location: Event coordinates not found.');
+      console.warn('MyEventLane Location: Event coordinates not found. Event data:', eventData);
       return;
     }
 

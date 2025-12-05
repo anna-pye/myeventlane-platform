@@ -1,7 +1,13 @@
 uuid: 5df7d0a6-546f-4e7f-9259-74f085478bd3
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  module:
+    - commerce_payment
+    - commerce_promotion
+    - commerce_stripe
+    - myeventlane_checkout_paragraph
+    - myeventlane_commerce
 _core:
   default_config_hash: 50QUbDL5hfMj6JF3n2JcOsPZtzq8PyU9UR0iXIpVThA
 label: Default
@@ -9,45 +15,102 @@ id: default
 plugin: multistep_default
 configuration:
   display_checkout_progress: true
-  display_checkout_progress_breadcrumb_links: false
+  display_checkout_progress_breadcrumb_links: true
   display_sidebar_checkout_complete: true
   guest_order_assign: false
-  guest_new_account: false
-  guest_new_account_notify: false
+  guest_new_account: true
+  guest_new_account_notify: true
   panes:
     login:
+      display_label: null
       step: login
       weight: 0
+      wrapper_element: container
       allow_guest_checkout: true
       allow_registration: false
+      registration_form_mode: register
     contact_information:
+      display_label: null
       step: order_information
       weight: 1
+      wrapper_element: fieldset
       double_entry: true
+      always_display: false
     billing_information:
       display_label: 'Billing information'
       step: order_information
       weight: 2
       wrapper_element: fieldset
       always_display: true
-    ticket_holder_paragraph:
+    payment_information:
+      display_label: null
       step: order_information
       weight: 3
-    payment_information:
-      step: payment
-      weight: 4
+      wrapper_element: fieldset
       always_display: true
+      require_payment_method: false
     review:
+      display_label: null
       step: review
-      weight: 5
-    completion_message:
-      step: complete
       weight: 6
+      wrapper_element: null
+    stripe_review:
+      display_label: null
+      step: review
+      weight: 7
+      wrapper_element: container
+      button_id: edit-actions-next
+      auto_submit_review_form: false
+      setup_future_usage: ''
+    payment_process:
+      display_label: null
+      step: payment
+      weight: 8
+      wrapper_element: container
+      capture: true
+    myeventlane_attendee_info_per_ticket:
+      display_label: null
+      step: order_information
+      weight: 5
+      wrapper_element: container
+    ticket_holder_paragraph:
+      display_label: null
+      step: order_information
+      weight: 4
+      wrapper_element: container
+    completion_message:
+      display_label: null
+      step: complete
+      weight: 9
+      wrapper_element: null
       message:
         value: "Your order number is [commerce_order:order_number].\r\nYou can view your order on your account page when logged in."
         format: plain_text
       display_pane_summaries: true
+    completion_register:
+      display_label: null
+      step: complete
+      weight: 10
+      wrapper_element: null
     order_summary:
+      display_label: null
       step: _sidebar
-      weight: 7
+      weight: 11
+      wrapper_element: container
       view: commerce_checkout_order_summary
+    coupon_redemption:
+      display_label: null
+      step: _sidebar
+      weight: 12
+      wrapper_element: container
+      allow_multiple: false
+    grouped_order_summary:
+      display_label: null
+      step: _sidebar
+      weight: 13
+      wrapper_element: fieldset
+    customer_comments:
+      display_label: null
+      step: _disabled
+      weight: 14
+      wrapper_element: fieldset

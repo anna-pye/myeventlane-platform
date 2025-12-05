@@ -1,3 +1,4 @@
+uuid: null
 langcode: en
 status: true
 dependencies:
@@ -17,8 +18,8 @@ translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:
-  prefix: ''
-  suffix: ''
   min: 0
   max: 999999
+  prefix: ''
+  suffix: ''
 field_type: integer

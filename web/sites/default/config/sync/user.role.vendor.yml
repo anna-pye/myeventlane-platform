@@ -1,0 +1,35 @@
+uuid: 4f2fa5e9-5938-4a2b-8aba-49e2777ce79a
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.event
+  module:
+    - contextual
+    - file
+    - myeventlane_boost
+    - myeventlane_dashboard
+    - myeventlane_event_attendees
+    - myeventlane_messaging
+    - myeventlane_rsvp
+    - node
+    - paragraphs
+id: vendor
+label: Vendor
+weight: -7
+is_admin: false
+permissions:
+  - 'access contextual links'
+  - 'access files overview'
+  - 'access user profiles'
+  - 'access vendor dashboard'
+  - 'administer myeventlane messaging'
+  - 'create event content'
+  - 'delete own event content'
+  - 'edit own event content'
+  - 'manage own event attendees'
+  - 'manage own event rsvps'
+  - 'purchase boost for events'
+  - 'view own event attendees'
+  - 'view own unpublished content'
+  - 'view unpublished paragraphs'

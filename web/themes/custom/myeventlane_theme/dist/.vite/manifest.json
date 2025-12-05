@@ -1,4 +1,10 @@
 {
+  "js/account-dropdown.js": {
+    "file": "account-dropdown.js",
+    "name": "account-dropdown",
+    "src": "js/account-dropdown.js",
+    "isEntry": true
+  },
   "js/main.js": {
     "file": "main.js",
     "name": "main",
