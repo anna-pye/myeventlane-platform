@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_dashboard\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\TimeInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_dashboard\Service\DashboardAccess;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -22,6 +24,7 @@ final class VendorDashboardController extends ControllerBase {
   public function __construct(
     private readonly DashboardAccess $dashboardAccess,
     private readonly DashboardEventLoader $eventLoader,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -31,6 +34,7 @@ final class VendorDashboardController extends ControllerBase {
     return new static(
       $container->get('myeventlane_dashboard.access'),
       $container->get('myeventlane_dashboard.event_loader'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -82,9 +86,14 @@ final class VendorDashboardController extends ControllerBase {
     // Get event mode.
     $eventNode = $this->entityTypeManager()->getStorage('node')->load($eventId);
     $mode = 'unknown';
-    if ($eventNode && \Drupal::hasService('myeventlane_event.mode_manager')) {
-      $modeManager = \Drupal::service('myeventlane_event.mode_manager');
-      $mode = $modeManager->getEffectiveMode($eventNode);
+    if ($eventNode) {
+      try {
+        $modeManager = \Drupal::service('myeventlane_event.mode_manager');
+        $mode = $modeManager->getEffectiveMode($eventNode);
+      }
+      catch (ServiceNotFoundException) {
+        // Service not available, use default mode.
+      }
     }
 
     return [
@@ -108,7 +117,7 @@ final class VendorDashboardController extends ControllerBase {
     // Build event summary data.
     $upcomingEvents = [];
     $pastEvents = [];
-    $now = \Drupal::time()->getRequestTime();
+    $now = $this->time->getRequestTime();
 
     foreach ($events as $event) {
       $startTime = NULL;
