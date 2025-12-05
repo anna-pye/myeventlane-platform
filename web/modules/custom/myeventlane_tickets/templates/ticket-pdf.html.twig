@@ -20,15 +20,17 @@
 </head>
 <body>
   <div class="ticket">
-    <h1>{{ event.label }}</h1>
-    <p>{% if event.field_event_start.value %}{{ event.field_event_start.value|date("d M Y, g:ia") }}{% endif %}</p>
-    <p>{{ event.field_location.value }}</p>
+    <h1>{{ event_title }}</h1>
+    <p>{% if event_start %}{{ event_start|date("d M Y, g:ia") }}{% endif %}</p>
+    {% if location %}
+      <p>{{ location }}</p>
+    {% endif %}
 
     <div class="code">
       Ticket Code: {{ code }}
     </div>
 
-    <p>Ticket Holder: {{ holder.title.value }}</p>
+    <p>Ticket Holder: {{ holder }}</p>
   </div>
 </body>
 </html>

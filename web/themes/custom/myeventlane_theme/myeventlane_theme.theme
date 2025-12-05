@@ -435,4 +435,30 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--vendor';
   }
+
+  // Commerce checkout form - ensure Commerce Stripe Payment Element libraries are attached.
+  // Commerce Stripe should attach its library automatically, but we ensure it's there
+  // as a safeguard in case the payment form structure changes.
+  if (isset($form['payment_information']) && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
+    // Check if Stripe Payment Element is being used (new preferred method).
+    $has_payment_element = isset($form['payment_information']['stripe_payment_element']);
+    
+    // Check if old Card Element is being used (legacy method).
+    $has_card_element = isset($form['payment_information']['add_payment_method']['payment_details']) ||
+        (isset($form['payment_information']['#attributes']['class']) && 
+         in_array('stripe-form', $form['payment_information']['#attributes']['class']));
+    
+    // Attach appropriate library based on which Stripe integration is used.
+    if ($has_payment_element) {
+      // Payment Element uses commerce_stripe/payment_element library.
+      if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'] ?? [])) {
+        $form['#attached']['library'][] = 'commerce_stripe/payment_element';
+      }
+    } elseif ($has_card_element) {
+      // Card Element uses commerce_stripe/form library.
+      if (!in_array('commerce_stripe/form', $form['#attached']['library'] ?? [])) {
+        $form['#attached']['library'][] = 'commerce_stripe/form';
+      }
+    }
+  }
 }

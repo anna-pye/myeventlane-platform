@@ -371,6 +371,9 @@
 [id*="card-expiry"],
 [id*="card-cvc"],
 [id*="card-cvv"],
+[id*="card-number-element"],
+[id*="expiration-element"],
+[id*="security-code-element"],
 .commerce-payment-form__payment-details > div,
 .commerce-payment-form__payment-details > fieldset {
   display: block !important;
@@ -378,6 +381,33 @@
   min-height: 44px !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+// Specific mount points for Stripe Elements
+#card-number-element,
+#expiration-element,
+#security-code-element {
+  display: block !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: spacing.mel-space(3) spacing.mel-space(4) !important;
+  background: colors.$mel-color-surface !important;
+  border: 2px solid colors.$mel-color-border !important;
+  border-radius: radii.$mel-radius-md !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  
+  // Ensure Stripe iframes inside are visible
+  iframe {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 20px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    border: none !important;
+  }
 }
 
 // ---------------------------------------------------------------------------
