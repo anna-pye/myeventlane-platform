@@ -6,11 +6,13 @@
  */
 
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_preprocess_page().
  *
- * Adds cart block to header if not already placed.
+ * Adds cart block and main menu to header if not already placed.
  */
 function myeventlane_theme_preprocess_page(array &$variables): void {
   // Add cart block to header if not already present
@@ -26,6 +28,22 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       }
     } catch (\Exception $e) {
       // Cart block not available, continue without it
+    }
+  }
+  
+  // Add main menu to header if not already present
+  if (empty($variables['page']['header']['main_menu'])) {
+    try {
+      $block_manager = \Drupal::service('plugin.manager.block');
+      $menu_block = $block_manager->createInstance('system_menu_block:main', []);
+      if ($menu_block && $menu_block->access(\Drupal::currentUser())) {
+        $build = $menu_block->build();
+        if (!empty($build)) {
+          $variables['page']['header']['main_menu'] = $build;
+        }
+      }
+    } catch (\Exception $e) {
+      // Menu block not available, continue without it
     }
   }
   
@@ -333,6 +351,75 @@ function myeventlane_theme_preprocess_entity(array &$variables): void {
 }
 
 /**
+ * Implements hook_theme_suggestions_HOOK_alter() for page.
+ *
+ * Forces event node add/edit forms to use front-end theme.
+ */
+function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, array $variables, $hook): void {
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match->getRouteName();
+  
+  // Force front-end theme for event node add/edit forms
+  if (in_array($route_name, ['node.add', 'entity.node.edit_form'])) {
+    $node_type = $route_match->getParameter('node_type');
+    $node = $route_match->getParameter('node');
+    
+    // Check if this is an event node
+    if (($node_type && $node_type->id() === 'event') || 
+        ($node instanceof NodeInterface && $node->bundle() === 'event')) {
+      // Remove admin theme suggestions
+      $suggestions = array_filter($suggestions, function($suggestion) {
+        return strpos($suggestion, 'admin') === FALSE;
+      });
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_form().
+ *
+ * Adds template suggestions and variables for event node forms.
+ */
+function myeventlane_theme_preprocess_form(array &$variables): void {
+  $form = &$variables['element'];
+  $form_id = $form['#form_id'] ?? '';
+  
+  // For event node forms, add template suggestions and pass node to template
+  if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
+    // Get the node entity if available
+    $node = NULL;
+    if (isset($form['#entity']) && $form['#entity'] instanceof NodeInterface) {
+      $node = $form['#entity'];
+    } elseif (isset($form['#node']) && $form['#node'] instanceof NodeInterface) {
+      $node = $form['#node'];
+    }
+    
+    // Add template suggestions - Drupal will look for these templates
+    // Template naming: form--node--event--form.html.twig
+    if (!isset($variables['theme_hook_suggestions'])) {
+      $variables['theme_hook_suggestions'] = [];
+    }
+    // Add suggestions in priority order (most specific first)
+    array_unshift($variables['theme_hook_suggestions'], 'form__node__event__form');
+    array_unshift($variables['theme_hook_suggestions'], 'form__node_event_form');
+    
+    // Pass node to template (available as 'node' variable)
+    $variables['node'] = $node;
+    
+    // Also make form available as 'form' for consistency with other templates
+    $variables['form'] = $form;
+    
+    // Add debug flag
+    $variables['debug'] = TRUE;
+    
+    \Drupal::logger('myeventlane_theme')->notice('Event form template suggestion added. Form ID: @form_id, Node: @node', [
+      '@form_id' => $form_id,
+      '@node' => $node ? $node->id() : 'new',
+    ]);
+  }
+}
+
+/**
  * Implements hook_form_alter().
  *
  * Adds classes and ensures proper styling for public-facing forms.
@@ -398,10 +485,8 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
       $breadcrumb = '<nav class="mel-breadcrumb" aria-label="Breadcrumb"><a href="' . $url . '">' . $node->label() . '</a><span class="mel-breadcrumb-separator">/</span><span>Edit</span></nav>';
     }
     
-    // Wrap form with styling - this doesn't break #states API as it's outside the form structure
-    $form['#prefix'] = '<div class="mel-page-wrapper mel-page-wrapper--form"><div class="mel-container mel-container--form"><div class="mel-form-page-header">' . $breadcrumb . '<h1 class="mel-page-title">' . $title . '</h1><p class="mel-page-intro">' . $intro . '</p></div>';
-    $form['#suffix'] = '</div></div>';
-    
+    // Don't add prefix/suffix here - let the page template handle layout
+    // The node--event--form.html.twig template will handle the form structure
     // Add wrapper class to form itself
     $form['#attributes']['class'][] = 'mel-event-form-wrapper';
   }

@@ -1,0 +1,289 @@
+{#
+/**
+ * @file
+ * Theme override for Event node add/edit form (form theme hook).
+ *
+ * Provides a branded, card-based layout for event creation and editing
+ * with distinct sections matching MyEventLane V2 UX.
+ * 
+ * Note: This template is used for the form element itself.
+ * The page wrapper is in page--node--add--event.html.twig
+ */
+#}
+
+{# Visible debug message (remove after testing) #}
+<div style="background: #ffeb3b; padding: 10px; margin: 10px 0; border: 2px solid #f57f17; font-weight: bold;">
+  🔍 DEBUG: Event Form Template Loaded (form--node--event--form.html.twig)
+  {% if node %}
+    (Edit Mode - Node ID: {{ node.id }})
+  {% else %}
+    (Create Mode)
+  {% endif %}
+  - Form ID: {{ element['#form_id']|default('unknown') }}
+  - Element keys: {{ element|keys|join(', ') }}
+</div>
+
+<div class="mel-form-page-header">
+  {% if node %}
+    <nav class="mel-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ path('entity.node.canonical', {'node': node.id}) }}">{{ node.label }}</a>
+      <span class="mel-breadcrumb-separator">/</span>
+      <span>Edit</span>
+    </nav>
+    <h1 class="mel-page-title">{{ 'Edit Event'|t }}</h1>
+    <p class="mel-page-intro">{{ 'Update your event details below. Changes will be saved when you submit the form.'|t }}</p>
+  {% else %}
+    <h1 class="mel-page-title">{{ 'Create New Event'|t }}</h1>
+    <p class="mel-page-intro">{{ 'Share your event with the MyEventLane community. Fill out each section below to get started. You can save as a draft and come back to finish later.'|t }}</p>
+  {% endif %}
+</div>
+
+{# Booking Status (for existing events) #}
+{% if form.booking_status %}
+  <div class="mel-form-status">
+    {{ form.booking_status }}
+  </div>
+{% endif %}
+
+{# Main Form #}
+{# Note: mel-event-form-vendor class is added by EventFormAlter service #}
+<form{{ attributes }}>
+  {{ element.form_build_id }}
+  {{ element.form_token }}
+  {{ element.form_id }}
+  
+  {# Use 'form' variable if available, otherwise fall back to 'element' #}
+  {% set form = form|default(element) %}
+
+  {# A. Event Basics Card #}
+  {% if form.event_basics %}
+    <div class="mel-form-group mel-form-card">
+      {{ form.event_basics }}
+    </div>
+  {% else %}
+    {# Fallback if form alter hasn't run #}
+    <div class="mel-form-group mel-form-card">
+      <div class="mel-form-section-header">
+        <h2 class="mel-form-section-title">
+          <span class="mel-form-section-icon">📝</span>
+          {{ 'Event Basics'|t }}
+        </h2>
+        <p class="mel-form-section-description">{{ 'Start with the essential information about your event that will be displayed to attendees.'|t }}</p>
+      </div>
+      <div class="mel-form-section-content">
+        {% if form.field_event_vendor %}
+          {{ form.field_event_vendor }}
+        {% endif %}
+        {% if form.field_event_store %}
+          {{ form.field_event_store }}
+        {% endif %}
+        {{ form.title }}
+        {% if form.body %}
+          {{ form.body }}
+        {% endif %}
+        {% if form.field_event_image %}
+          {{ form.field_event_image }}
+        {% elseif form.field_event_hero %}
+          {{ form.field_event_hero }}
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# B. Date + Time Card #}
+  {% if form.date_time %}
+    <div class="mel-form-group mel-form-card">
+      {{ form.date_time }}
+    </div>
+  {% else %}
+    {% if form.field_event_start or form.field_event_end or form.field_event_date %}
+      <div class="mel-form-group mel-form-card">
+        <div class="mel-form-section-header">
+          <h2 class="mel-form-section-title">
+            <span class="mel-form-section-icon">📅</span>
+            {{ 'Date & Time'|t }}
+          </h2>
+          <p class="mel-form-section-description">{{ 'Set when your event starts and ends. For single-day events, the end time helps attendees plan their schedule.'|t }}</p>
+        </div>
+        <div class="mel-form-section-content">
+          {% if form.field_event_start %}
+            {{ form.field_event_start }}
+          {% endif %}
+          {% if form.field_event_end %}
+            {{ form.field_event_end }}
+          {% endif %}
+          {% if form.field_event_date %}
+            {{ form.field_event_date }}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# C. Location Card #}
+  {% if form.location %}
+    <div class="mel-form-group mel-form-card">
+      {{ form.location }}
+    </div>
+  {% else %}
+    {% if form.field_location or form.field_event_address or form.field_venue_name %}
+      <div class="mel-form-group mel-form-card">
+        <div class="mel-form-section-header">
+          <h2 class="mel-form-section-title">
+            <span class="mel-form-section-icon">📍</span>
+            {{ 'Location'|t }}
+          </h2>
+          <p class="mel-form-section-description">{{ 'Tell attendees where your event will take place. You can search for an address or enter venue details manually.'|t }}</p>
+        </div>
+        <div class="mel-form-section-content">
+          {% if form.field_location %}
+            {{ form.field_location }}
+          {% endif %}
+          {% if form.field_event_address %}
+            {{ form.field_event_address }}
+          {% endif %}
+          {% if form.field_venue_name %}
+            {{ form.field_venue_name }}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# D. Booking Configuration Card #}
+  {% if form.booking_config %}
+    <div class="mel-form-group mel-form-card mel-form-card--highlight">
+      {{ form.booking_config }}
+    </div>
+  {% else %}
+    {# Fallback rendering #}
+    {% if form.field_event_type or form.field_capacity or form.field_product_target or form.field_ticket_types or form.field_external_url %}
+      <div class="mel-form-group mel-form-card mel-form-card--highlight">
+        <div class="mel-form-section-header">
+          <h2 class="mel-form-section-title">
+            <span class="mel-form-section-icon">🎫</span>
+            {{ 'Booking Configuration'|t }}
+          </h2>
+          <p class="mel-form-section-description">{{ 'Choose how people will register for your event. This determines which fields appear below.'|t }}</p>
+        </div>
+        <div class="mel-form-section-content">
+          {% if form.field_event_type %}
+            {{ form.field_event_type }}
+          {% endif %}
+          {% if form.field_capacity %}
+            {{ form.field_capacity }}
+          {% endif %}
+          {% if form.field_product_target %}
+            {{ form.field_product_target }}
+          {% endif %}
+          {% if form.field_ticket_types %}
+            {{ form.field_ticket_types }}
+          {% endif %}
+          {% if form.field_external_url %}
+            {{ form.field_external_url }}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# E. Visibility + Promotion Card #}
+  {% if form.visibility %}
+    <div class="mel-form-group mel-form-card">
+      {{ form.visibility }}
+    </div>
+  {% else %}
+    {% if form.field_category or form.field_event_categories or form.field_tags or form.field_accessibility or form.field_event_status %}
+      <div class="mel-form-group mel-form-card">
+        <div class="mel-form-section-header">
+          <h2 class="mel-form-section-title">
+            <span class="mel-form-section-icon">🏷️</span>
+            {{ 'Visibility & Promotion'|t }}
+          </h2>
+          <p class="mel-form-section-description">{{ 'Help people find your event by selecting relevant categories and promotion options.'|t }}</p>
+        </div>
+        <div class="mel-form-section-content">
+          {% if form.field_category %}
+            {{ form.field_category }}
+          {% endif %}
+          {% if form.field_event_categories %}
+            {{ form.field_event_categories }}
+          {% endif %}
+          {% if form.field_tags %}
+            {{ form.field_tags }}
+          {% endif %}
+          {% if form.field_accessibility %}
+            {{ form.field_accessibility }}
+          {% endif %}
+          {% if form.field_event_status %}
+            {{ form.field_event_status }}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# F. Attendee Questions Card #}
+  {% if form.attendee_questions %}
+    <div class="mel-form-group mel-form-card">
+      {{ form.attendee_questions }}
+    </div>
+  {% else %}
+    {% if form.field_attendee_questions %}
+      <div class="mel-form-group mel-form-card">
+        <div class="mel-form-section-header">
+          <h2 class="mel-form-section-title">
+            <span class="mel-form-section-icon">❓</span>
+            {{ 'Additional Questions'|t }}
+          </h2>
+          <p class="mel-form-section-description">{{ 'Optionally collect additional information from attendees during registration. These questions are not required.'|t }}</p>
+        </div>
+        <div class="mel-form-section-content">
+          {{ form.field_attendee_questions }}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {# Render any remaining fields not explicitly handled above #}
+  {% set remaining_fields = form|without(
+    'form_build_id', 'form_token', 'form_id',
+    'event_basics', 'date_time', 'location', 'booking_config', 'visibility', 'attendee_questions',
+    'title', 'body', 'field_event_vendor', 'field_event_store',
+    'field_event_image', 'field_event_hero',
+    'field_event_start', 'field_event_end', 'field_event_date',
+    'field_location', 'field_event_address', 'field_venue_name',
+    'field_event_type', 'field_capacity', 'field_product_target',
+    'field_ticket_types', 'field_external_url',
+    'field_category', 'field_event_categories', 'field_tags',
+    'field_accessibility', 'field_event_status', 'field_attendee_questions',
+    'advanced', 'actions', 'path', 'booking_status'
+  ) %}
+  {% if remaining_fields|length > 0 %}
+    <div class="mel-form-group mel-form-card">
+      <div class="mel-form-section-content">
+        {{ remaining_fields }}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Advanced section (if present) - collapsible #}
+  {% if form.advanced %}
+    <details class="mel-form-advanced">
+      <summary class="mel-form-advanced-summary">{{ 'Advanced options'|t }}</summary>
+      <div class="mel-form-advanced-content">
+        {{ form.advanced }}
+      </div>
+    </details>
+  {% endif %}
+
+  {# Form actions (sticky footer) #}
+  {% if form.actions %}
+    <div class="mel-form-sticky-footer">
+      {{ form.actions }}
+      {% if form.path %}
+        {{ form.path }}
+      {% endif %}
+    </div>
+  {% endif %}
+</form>

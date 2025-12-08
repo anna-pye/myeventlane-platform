@@ -44,7 +44,15 @@
     console.log('MyEventLane Location: Found form:', form);
     
     // Find the field_location widget container.
+    // After form restructuring, the widget might be inside .mel-form-content or .location container
     let widget = form.querySelector('.myeventlane-location-address-widget, .field--name-field-location, fieldset[data-drupal-selector*="field-location"]');
+    if (!widget) {
+      // Try finding within the location container (after form restructuring)
+      const locationContainer = form.querySelector('.location, .mel-form-card:has(.field--name-field-location)');
+      if (locationContainer) {
+        widget = locationContainer.querySelector('.myeventlane-location-address-widget, .field--name-field-location, fieldset[data-drupal-selector*="field-location"]');
+      }
+    }
     if (!widget) {
       // Fallback: find any fieldset containing address fields.
       widget = form.querySelector('fieldset:has(input[name*="address_line1"])');
@@ -337,34 +345,51 @@
     }
 
     // Direct selectors for the address widget of field_location.
+    // After form restructuring, fields are inside .location .mel-form-content
+    // Try multiple selectors to find fields regardless of container structure
     const addressLine1 =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-address-line1"]') ||
-      form.querySelector('input[name="field_location[0][address][address_line1]"]');
+      form.querySelector('input[name="field_location[0][address][address_line1]"]') ||
+      form.querySelector('.location input[name*="address_line1"]') ||
+      form.querySelector('.mel-form-content input[name*="address_line1"]');
 
     const addressLine2 =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-address-line2"]') ||
-      form.querySelector('input[name="field_location[0][address][address_line2]"]');
+      form.querySelector('input[name="field_location[0][address][address_line2]"]') ||
+      form.querySelector('.location input[name*="address_line2"]') ||
+      form.querySelector('.mel-form-content input[name*="address_line2"]');
 
     const locality =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-locality"]') ||
-      form.querySelector('input[name="field_location[0][address][locality]"]');
+      form.querySelector('input[name="field_location[0][address][locality]"]') ||
+      form.querySelector('.location input[name*="locality"]') ||
+      form.querySelector('.mel-form-content input[name*="locality"]');
 
     const administrativeArea =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-administrative-area"]') ||
-      form.querySelector('select[name="field_location[0][address][administrative_area]"]');
+      form.querySelector('select[name="field_location[0][address][administrative_area]"]') ||
+      form.querySelector('.location select[name*="administrative_area"]') ||
+      form.querySelector('.mel-form-content select[name*="administrative_area"]');
 
     const postalCode =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-postal-code"]') ||
-      form.querySelector('input[name="field_location[0][address][postal_code]"]');
+      form.querySelector('input[name="field_location[0][address][postal_code]"]') ||
+      form.querySelector('.location input[name*="postal_code"]') ||
+      form.querySelector('.mel-form-content input[name*="postal_code"]');
 
     const countryCode =
       form.querySelector('[data-drupal-selector="edit-field-location-0-address-country-code"]') ||
-      form.querySelector('select[name="field_location[0][address][country_code]"]');
+      form.querySelector('select[name="field_location[0][address][country_code]"]') ||
+      form.querySelector('.location select[name*="country_code"]') ||
+      form.querySelector('.mel-form-content select[name*="country_code"]');
 
     // Venue name field (simple text field).
+    // After restructuring, it's in .location .mel-form-content
     const venueNameField =
       form.querySelector('[data-drupal-selector="edit-field-venue-name-0-value"]') ||
-      form.querySelector('input[name="field_venue_name[0][value]"]');
+      form.querySelector('input[name="field_venue_name[0][value]"]') ||
+      form.querySelector('.location input[name*="field_venue_name"]') ||
+      form.querySelector('.mel-form-content input[name*="field_venue_name"]');
 
     // Log ALL inputs and selects in the form to debug.
     const allFields = Array.from(form.querySelectorAll('input, select'));

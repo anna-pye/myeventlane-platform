@@ -46,6 +46,12 @@
   @include breakpoints.mel-break(xl) {
     max-width: 70%;
   }
+  
+  // Ensure form inside container uses full width
+  form.mel-event-form-vendor {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 // ---------------------------------------------------------------------------
