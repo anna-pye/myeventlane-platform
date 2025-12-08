@@ -21,6 +21,7 @@
   gap: spacing.mel-space(2);
   max-width: 100%;
   width: 100%;
+  margin: 0 auto;
 
   @include breakpoints.mel-break(md) {
     gap: spacing.mel-space(2);
@@ -85,6 +86,7 @@
     // Ensure entity reference autocomplete fields (taxonomy) are accessible
     &.form-type-entity-reference {
       z-index: 10;
+      position: relative;
       
       input.form-autocomplete {
         position: relative;
@@ -92,7 +94,13 @@
       }
       
       .ui-autocomplete {
-        z-index: 1000 !important;
+        z-index: 10000 !important;
+        position: absolute !important;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #808080;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       }
     }
 
@@ -167,23 +175,28 @@
 // ---------------------------------------------------------------------------
 
 .mel-event-form-vendor {
-  // Let Drupal #states and conditional_fields handle visibility
-  // Only hide if explicitly marked as force-hidden
+  // Let Drupal #states and conditional_fields handle visibility completely
+  // Don't interfere with their display logic - they use inline styles
   .mel-booking-rsvp,
   .mel-booking-paid,
   .mel-booking-external {
-    transition: opacity 0.2s ease;
+    // Smooth transitions when conditional_fields shows/hides
+    transition: opacity 0.2s ease, max-height 0.3s ease;
     overflow: hidden;
-
-    // Force hide if data attribute says so (for JS override)
+    
+    // Only force-hide if explicitly marked (for fallback JS)
     &[data-force-hidden="true"] {
       display: none !important;
     }
-
-    // Ensure visible when Drupal states makes them visible
-    &.js-form-item {
-      // Let conditional_fields handle it
-    }
+    
+    // Let conditional_fields handle visibility via inline styles
+    // Don't override their display property
+  }
+  
+  // Ensure conditional_fields can work properly
+  // Remove any CSS that might interfere with their inline style management
+  .js-form-item {
+    // Let conditional_fields handle visibility
   }
 }
 
@@ -339,12 +352,17 @@
     z-index: 10;
     
     .ui-autocomplete {
-      z-index: 1000 !important;
+      z-index: 10000 !important;
       position: absolute !important;
+      max-height: 300px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #808080;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     
     input.form-autocomplete {
-      z-index: 10;
+      z-index: 11;
       position: relative;
     }
   }

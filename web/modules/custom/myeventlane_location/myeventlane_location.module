@@ -64,61 +64,69 @@ function myeventlane_location_form_node_event_edit_form_alter(array &$form, Form
  *   The form state.
  */
 function _myeventlane_location_alter_event_form(array &$form, FormStateInterface $form_state): void {
-  // Only alter if field_location exists.
+  // CRITICAL: Always attach drupalSettings for JavaScript, even if field_location doesn't exist yet.
+  // This must happen before any early returns.
+  // Get provider settings for JavaScript.
+  /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
+  $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
+  $settings = $provider_manager->getFrontendSettings();
+
+  // For Apple Maps, we need to generate a token server-side.
+  if ($settings['provider'] === 'apple_maps') {
+    /** @var \Drupal\myeventlane_location\Service\MapKitTokenGenerator $token_generator */
+    $token_generator = \Drupal::service('myeventlane_location.mapkit_token_generator');
+    $token = $token_generator->generateToken();
+    if (!empty($token)) {
+      $settings['apple_maps_token'] = $token;
+    }
+  }
+
+  // Attach drupalSettings - this is critical for the JavaScript to work.
+  // Merge with existing settings if any (from widget or other modules).
+  if (!isset($form['#attached']['drupalSettings'])) {
+    $form['#attached']['drupalSettings'] = [];
+  }
+  if (!isset($form['#attached']['drupalSettings']['myeventlaneLocation'])) {
+    $form['#attached']['drupalSettings']['myeventlaneLocation'] = [];
+  }
+  // Merge settings to preserve any existing values (like Apple Maps token from widget).
+  $form['#attached']['drupalSettings']['myeventlaneLocation'] = array_merge(
+    $form['#attached']['drupalSettings']['myeventlaneLocation'],
+    $settings
+  );
+
+  // Only alter field_location if it exists.
   if (!isset($form['field_location'])) {
+    // Still attach library even if field doesn't exist (might be added later).
+    $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
     return;
   }
 
-  // Store the original weight to maintain position.
-  $location_weight = $form['field_location']['#weight'] ?? 8;
+  // NOTE: The AddressAutocompleteWidget already adds:
+  // - A search field with class 'myeventlane-location-address-search'
+  // - A map preview container with class 'myeventlane-location-map-preview'
+  // - Hidden latitude/longitude fields
+  // - The widget wrapper class 'myeventlane-location-address-widget'
+  // So we don't need to add these again here.
   
-  // Add search field right before field_location in the form.
-  // This keeps it visually together with the location fields.
-  $form['field_location_search'] = [
-    '#type' => 'textfield',
-    '#title' => t('Search for address or venue'),
-    '#description' => t('Start typing to search for an address. Select from the suggestions to populate the address fields below.'),
-    '#attributes' => [
-      'class' => ['myeventlane-location-address-search'],
-      'autocomplete' => 'off',
-      'placeholder' => t('Type address or venue name...'),
-    ],
-    '#weight' => $location_weight - 0.1, // Just before location field.
-    '#group' => $form['field_location']['#group'] ?? 'content',
-  ];
-  
-  // Add map preview right after field_location.
-  $form['field_location_map_preview'] = [
-    '#type' => 'container',
-    '#attributes' => [
-      'class' => ['myeventlane-location-map-preview'],
-      'style' => 'width: 100%; height: 200px; margin-top: 1em; border: 1px solid #ccc; display: none;',
-    ],
-    '#weight' => $location_weight + 0.1, // Just after location field.
-    '#group' => $form['field_location']['#group'] ?? 'content',
-  ];
-  
-  // Add wrapper class to field_location for JavaScript targeting.
+  // However, we still need to:
+  // 1. Ensure the widget has the wrapper class (widget should add it, but double-check)
   if (!isset($form['field_location']['#attributes'])) {
     $form['field_location']['#attributes'] = [];
   }
   if (!isset($form['field_location']['#attributes']['class'])) {
     $form['field_location']['#attributes']['class'] = [];
   }
-  $form['field_location']['#attributes']['class'][] = 'myeventlane-location-address-widget';
-  
-  // Update field_location title to be more descriptive.
-  if (isset($form['field_location']['#title'])) {
-    $form['field_location']['#title'] = t('Address Details');
-    $form['field_location']['#description'] = t('Address fields will be automatically filled when you select from the search above.');
+  if (!in_array('myeventlane-location-address-widget', $form['field_location']['#attributes']['class'])) {
+    $form['field_location']['#attributes']['class'][] = 'myeventlane-location-address-widget';
   }
   
-  // Optionally hide venue name field - uncomment to hide it:
-  if (isset($form['field_venue_name'])) {
-    // Keep it visible but you can hide it if preferred:
-    // $form['field_venue_name']['#access'] = FALSE;
-    // Or move it near location:
-    $form['field_venue_name']['#weight'] = $location_weight + 0.2;
+  // 2. Update field_location title to be more descriptive (if widget hasn't already)
+  if (isset($form['field_location']['#title']) && $form['field_location']['#title'] === 'Location') {
+    $form['field_location']['#title'] = t('Address Details');
+    if (!isset($form['field_location']['#description'])) {
+      $form['field_location']['#description'] = t('Use the search field above to find and select an address. The address fields below will be automatically filled.');
+    }
   }
 
   // Hide the coordinate fields from the form display if they're showing up.
@@ -164,25 +172,13 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
   // Attach our library for autocomplete functionality.
   $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
 
-  // Get provider settings for JavaScript.
-  /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
-  $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
-  $settings = $provider_manager->getFrontendSettings();
-
-  // For Apple Maps, we need to generate a token server-side.
-  if ($settings['provider'] === 'apple_maps') {
-    /** @var \Drupal\myeventlane_location\Service\MapKitTokenGenerator $token_generator */
-    $token_generator = \Drupal::service('myeventlane_location.mapkit_token_generator');
-    $token = $token_generator->generateToken();
-    if (!empty($token)) {
-      $settings['apple_maps_token'] = $token;
-    }
-  }
-
-  $form['#attached']['drupalSettings']['myeventlaneLocation'] = $settings;
+  // Note: drupalSettings are already attached at the top of this function
+  // to ensure they're always available, even if field_location doesn't exist.
 
   // Add submit handler to save coordinates.
-  $form['actions']['submit']['#submit'][] = '_myeventlane_location_save_coordinates';
+  if (isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#submit'][] = '_myeventlane_location_save_coordinates';
+  }
 }
 
 

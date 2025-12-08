@@ -89,29 +89,108 @@ function myeventlane_event_node_view(array &$build, EntityInterface $entity, Ent
 }
 
 /**
+ * Implements hook_module_implements_alter().
+ *
+ * Ensures our form alter runs AFTER conditional_fields module.
+ */
+function myeventlane_event_module_implements_alter(&$implementations, $hook): void {
+  if ($hook === 'form_node_event_form_alter' || $hook === 'form_node_event_edit_form_alter') {
+    $group = $implementations['myeventlane_event'];
+    unset($implementations['myeventlane_event']);
+    $implementations['myeventlane_event'] = $group;
+  }
+}
+
+/**
  * Implements hook_form_FORM_ID_alter() for node_event_form.
  *
  * Enhances the Event node form with booking configuration UX for vendors.
+ * This runs AFTER conditional_fields module to override its behavior.
  */
 function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  /** @var \Drupal\myeventlane_event\Form\EventFormAlter $form_alter */
-  $form_alter = \Drupal::service('myeventlane_event.form_alter');
-  $form_alter->alterForm($form, $form_state);
-  
-  // Preserve existing submit handlers and validation
-  _myeventlane_event_preserve_existing_handlers($form, $form_state);
+  // Validate form before processing - but ensure it's always valid
+  if (empty($form) || !is_array($form)) {
+    \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_form_alter: Form is empty or not an array - restoring');
+    // Restore minimum valid form structure
+    $form = ['#type' => 'form', '#attributes' => []];
+    return;
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_event\Form\EventFormAlter $form_alter */
+    $form_alter = \Drupal::service('myeventlane_event.form_alter');
+    $form_alter->alterForm($form, $form_state);
+    
+    // Final validation: ensure form is still valid - CRITICAL for template_preprocess_form
+    if (empty($form) || !is_array($form)) {
+      \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_form_alter: Form became invalid - restoring minimum structure');
+      // Restore minimum valid form structure
+      $form = ['#type' => 'form', '#attributes' => []];
+      return;
+    }
+    
+    // Ensure #attributes exists - required by template_preprocess_form
+    if (!isset($form['#attributes']) || !is_array($form['#attributes'])) {
+      $form['#attributes'] = [];
+    }
+  } catch (\Exception $e) {
+    \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_form_alter: Exception: @message', ['@message' => $e->getMessage()]);
+    // Ensure form is still valid even after exception
+    if (empty($form) || !is_array($form)) {
+      $form = ['#type' => 'form', '#attributes' => []];
+    } elseif (!isset($form['#attributes']) || !is_array($form['#attributes'])) {
+      $form['#attributes'] = [];
+    }
+  } finally {
+    // Always preserve existing submit handlers and validation, even if alterForm() threw an exception
+    // This ensures form submission functionality is not broken by form alteration errors
+    _myeventlane_event_preserve_existing_handlers($form, $form_state);
+  }
 }
 
 /**
  * Implements hook_form_FORM_ID_alter() for node_event_edit_form.
+ * Weight 100 ensures this runs AFTER conditional_fields module.
  */
 function myeventlane_event_form_node_event_edit_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  /** @var \Drupal\myeventlane_event\Form\EventFormAlter $form_alter */
-  $form_alter = \Drupal::service('myeventlane_event.form_alter');
-  $form_alter->alterForm($form, $form_state);
-  
-  // Preserve existing submit handlers and validation
-  _myeventlane_event_preserve_existing_handlers($form, $form_state);
+  // Validate form before processing - but ensure it's always valid
+  if (empty($form) || !is_array($form)) {
+    \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_edit_form_alter: Form is empty or not an array - restoring');
+    // Restore minimum valid form structure
+    $form = ['#type' => 'form', '#attributes' => []];
+    return;
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_event\Form\EventFormAlter $form_alter */
+    $form_alter = \Drupal::service('myeventlane_event.form_alter');
+    $form_alter->alterForm($form, $form_state);
+    
+    // Final validation: ensure form is still valid - CRITICAL for template_preprocess_form
+    if (empty($form) || !is_array($form)) {
+      \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_edit_form_alter: Form became invalid - restoring minimum structure');
+      // Restore minimum valid form structure
+      $form = ['#type' => 'form', '#attributes' => []];
+      return;
+    }
+    
+    // Ensure #attributes exists - required by template_preprocess_form
+    if (!isset($form['#attributes']) || !is_array($form['#attributes'])) {
+      $form['#attributes'] = [];
+    }
+  } catch (\Exception $e) {
+    \Drupal::logger('myeventlane_event')->error('myeventlane_event_form_node_event_edit_form_alter: Exception: @message', ['@message' => $e->getMessage()]);
+    // Ensure form is still valid even after exception
+    if (empty($form) || !is_array($form)) {
+      $form = ['#type' => 'form', '#attributes' => []];
+    } elseif (!isset($form['#attributes']) || !is_array($form['#attributes'])) {
+      $form['#attributes'] = [];
+    }
+  } finally {
+    // Always preserve existing submit handlers and validation, even if alterForm() threw an exception
+    // This ensures form submission functionality is not broken by form alteration errors
+    _myeventlane_event_preserve_existing_handlers($form, $form_state);
+  }
 }
 
 /**
@@ -123,8 +202,16 @@ function myeventlane_event_form_node_event_edit_form_alter(array &$form, FormSta
  *   The form state.
  */
 function _myeventlane_event_preserve_existing_handlers(array &$form, FormStateInterface $form_state): void {
+  // Validate form is still valid
+  if (empty($form) || !is_array($form)) {
+    return;
+  }
+
   // Add custom submit handler to create RSVP product before save
-  if (isset($form['actions']['submit'])) {
+  if (isset($form['actions']['submit']) && is_array($form['actions']['submit'])) {
+    if (!isset($form['actions']['submit']['#submit']) || !is_array($form['actions']['submit']['#submit'])) {
+      $form['actions']['submit']['#submit'] = [];
+    }
     array_unshift($form['actions']['submit']['#submit'], '_myeventlane_event_form_submit');
     // Add submit handler to sync ticket types after save.
     $form['actions']['submit']['#submit'][] = '_myeventlane_event_sync_ticket_types';
@@ -154,7 +241,16 @@ function _myeventlane_event_preserve_existing_handlers(array &$form, FormStateIn
   }
 
   // Add custom validation.
+  if (!isset($form['#validate']) || !is_array($form['#validate'])) {
+    $form['#validate'] = [];
+  }
   $form['#validate'][] = '_myeventlane_event_form_validate';
+  
+  // Final check: ensure form is still valid
+  if (empty($form) || !is_array($form)) {
+    \Drupal::logger('myeventlane_event')->error('_myeventlane_event_preserve_existing_handlers: Form became invalid');
+    return;
+  }
 }
 
 /**
@@ -351,7 +447,16 @@ function _myeventlane_event_alter_event_form(array &$form, FormStateInterface $f
   }
 
   // Add custom validation.
+  if (!isset($form['#validate']) || !is_array($form['#validate'])) {
+    $form['#validate'] = [];
+  }
   $form['#validate'][] = '_myeventlane_event_form_validate';
+  
+  // Final check: ensure form is still valid
+  if (empty($form) || !is_array($form)) {
+    \Drupal::logger('myeventlane_event')->error('_myeventlane_event_alter_event_form: Form became invalid');
+    return;
+  }
 }
 
 /**
@@ -525,9 +630,15 @@ function _myeventlane_event_form_validate(array &$form, FormStateInterface $form
     if (empty($productTarget)) {
       // Count non-empty ticket types.
       $validTicketTypes = 0;
-      foreach ($ticketTypes as $delta => $ticketType) {
-        if (!empty($ticketType['subform']) || !empty($ticketType['entity'])) {
-          $validTicketTypes++;
+      if (is_array($ticketTypes)) {
+        foreach ($ticketTypes as $delta => $ticketType) {
+          // Ensure $ticketType is an array before accessing array keys.
+          if (!is_array($ticketType)) {
+            continue;
+          }
+          if (!empty($ticketType['subform']) || !empty($ticketType['entity'])) {
+            $validTicketTypes++;
+          }
         }
       }
       
@@ -540,8 +651,12 @@ function _myeventlane_event_form_validate(array &$form, FormStateInterface $form
     }
     
     // Validate each ticket type has required fields (if ticket types exist).
-    if (!empty($ticketTypes)) {
+    if (!empty($ticketTypes) && is_array($ticketTypes)) {
       foreach ($ticketTypes as $delta => $ticketType) {
+        // Ensure $ticketType is an array before accessing array keys.
+        if (!is_array($ticketType)) {
+          continue;
+        }
         // Handle both subform (new) and entity (existing) cases.
         $subform = $ticketType['subform'] ?? [];
         if (empty($subform) && !empty($ticketType['entity'])) {
