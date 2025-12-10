@@ -1,0 +1,107 @@
+{#
+  Event overview pane.
+  Variables: event, overview (sales/rsvps/audience/boost/tickets), charts.
+#}
+<div class="mel-grid mel-grid--2">
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Sales summary'|t }}</div>
+    </div>
+    <div class="mel-stats">
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Gross'|t }}</div>
+        <div class="mel-stat__value">{{ overview.sales.gross|default('$0') }}</div>
+      </div>
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Net'|t }}</div>
+        <div class="mel-stat__value">{{ overview.sales.net|default('$0') }}</div>
+      </div>
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Tickets sold'|t }}</div>
+        <div class="mel-stat__value">{{ overview.sales.tickets_sold|default(0) }}</div>
+      </div>
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Conversion'|t }}</div>
+        <div class="mel-stat__value">{{ ((overview.sales.conversion|default(0)) * 100)|number_format(1) }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Audience'|t }}</div>
+    </div>
+    <div class="mel-list">
+      {% for segment in overview.audience %}
+        <div class="mel-list__item">
+          <div>{{ segment.label }}</div>
+          <div class="mel-badge">{{ segment.value }}%</div>
+        </div>
+      {% else %}
+        <div class="mel-empty">{{ 'No audience data yet.'|t }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mel-grid mel-grid--2">
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Daily sales'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <canvas data-chart-id="event-sales"></canvas>
+    </div>
+  </div>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'RSVP trend'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <canvas data-chart-id="event-rsvps"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="mel-card">
+  <div class="mel-card__header">
+    <div class="mel-card__title">{{ 'Ticket types'|t }}</div>
+  </div>
+  <div class="mel-table">
+    <div class="mel-table__head">
+      <div>{{ 'Type'|t }}</div>
+      <div>{{ 'Sold'|t }}</div>
+      <div>{{ 'Available'|t }}</div>
+      <div>{{ 'Revenue'|t }}</div>
+    </div>
+    <div class="mel-table__body">
+      {% for ticket in overview.tickets %}
+        <div class="mel-table__row">
+          <div>{{ ticket.label }}</div>
+          <div>{{ ticket.sold }}</div>
+          <div>{{ ticket.available }}</div>
+          <div>{{ ticket.revenue }}</div>
+        </div>
+      {% else %}
+        <div class="mel-table__empty">{{ 'No ticket data yet.'|t }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mel-card">
+  <div class="mel-card__header">
+    <div class="mel-card__title">{{ 'Boost placements'|t }}</div>
+  </div>
+  <div class="mel-list">
+    {% for boost in overview.boost %}
+      <div class="mel-list__item">
+        <div>{{ boost.label }}</div>
+        <div class="mel-badge">{{ boost.status }}</div>
+      </div>
+    {% else %}
+      <div class="mel-empty">{{ 'No active boost placements.'|t }}</div>
+    {% endfor %}
+  </div>
+</div>

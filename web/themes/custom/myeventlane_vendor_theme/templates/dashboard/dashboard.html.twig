@@ -1,0 +1,127 @@
+{#
+  Vendor dashboard template.
+  Variables:
+  - kpis[]
+  - charts[]
+  - events[]
+  - boost[]
+  - payouts[]
+  - quick_actions[]
+#}
+<section class="mel-dashboard">
+  <div class="mel-dashboard__header">
+    <div>
+      <h1 class="mel-page-title">{{ 'Vendor dashboard'|t }}</h1>
+      <p class="mel-page-subtitle">{{ 'Insights, payouts, and actions at a glance.'|t }}</p>
+    </div>
+    {% if quick_actions %}
+      <div class="mel-dashboard__actions">
+        {% for action in quick_actions %}
+          <a class="mel-btn mel-btn--primary" href="{{ action.url }}">{{ action.label }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if kpis %}
+    <div class="mel-kpi-grid">
+      {% for card in kpis %}
+        <div class="mel-card mel-kpi">
+          <div class="mel-kpi__label">{{ card.label }}</div>
+          <div class="mel-kpi__value">{{ card.value }}</div>
+          {% if card.delta %}
+            <div class="mel-kpi__delta{% if card.delta.positive %} is-positive{% else %} is-negative{% endif %}">
+              {{ card.delta.value }} <span>{{ card.delta.label }}</span>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if charts %}
+    <div class="mel-grid mel-grid--2">
+      {% for chart in charts %}
+        <div class="mel-card">
+          <div class="mel-card__header">
+            <div>
+              <div class="mel-card__title">{{ chart.title }}</div>
+              {% if chart.meta %}<div class="mel-card__meta">{{ chart.meta }}</div>{% endif %}
+            </div>
+          </div>
+          <div class="mel-card__body">
+            <canvas data-chart-id="{{ chart.id }}"></canvas>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="mel-grid mel-grid--2">
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <div class="mel-card__title">{{ 'Active events'|t }}</div>
+        <a class="mel-link" href="/vendor/events">{{ 'View all'|t }}</a>
+      </div>
+      <div class="mel-table">
+        <div class="mel-table__head">
+          <div>{{ 'Event'|t }}</div>
+          <div>{{ 'Status'|t }}</div>
+          <div>{{ 'Sales'|t }}</div>
+          <div>{{ 'RSVPs'|t }}</div>
+          <div>{{ 'Date'|t }}</div>
+        </div>
+        <div class="mel-table__body">
+          {% for event in events %}
+            <a class="mel-table__row" href="{{ event.url }}">
+              <div>
+                <div class="mel-table__title">{{ event.label }}</div>
+                <div class="mel-table__meta">{{ event.venue }}</div>
+              </div>
+              <div>{{ event.status }}</div>
+              <div>{{ event.sales }}</div>
+              <div>{{ event.rsvps }}</div>
+              <div>{{ event.date }}</div>
+            </a>
+          {% else %}
+            <div class="mel-table__empty">{{ 'No events yet.'|t }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="mel-stack">
+      <div class="mel-card">
+        <div class="mel-card__header">
+          <div class="mel-card__title">{{ 'Boost status'|t }}</div>
+        </div>
+        <div class="mel-list">
+          {% for item in boost %}
+            <div class="mel-list__item">
+              <div>{{ item.label }}</div>
+              <div class="mel-badge">{{ item.status }}</div>
+            </div>
+          {% else %}
+            <div class="mel-empty">{{ 'No active boost campaigns.'|t }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mel-card">
+        <div class="mel-card__header">
+          <div class="mel-card__title">{{ 'Stripe payouts'|t }}</div>
+        </div>
+        <div class="mel-list">
+          {% for payout in payouts %}
+            <div class="mel-list__item">
+              <div>{{ payout.label }}</div>
+              <div class="mel-list__meta">{{ payout.status }}</div>
+            </div>
+          {% else %}
+            <div class="mel-empty">{{ 'No payouts yet.'|t }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

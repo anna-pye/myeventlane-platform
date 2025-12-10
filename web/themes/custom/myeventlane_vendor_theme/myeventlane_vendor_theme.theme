@@ -1,0 +1,231 @@
+<?php
+
+/**
+ * @file
+ * Theme hooks for MyEventLane Vendor Theme.
+ */
+
+use Drupal\Core\Render\Element;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_vendor_theme_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'myeventlane_vendor_dashboard' => [
+      'variables' => [
+        'kpis' => [],
+        'charts' => [],
+        'events' => [],
+        'quick_actions' => [],
+        'boost' => [],
+        'payouts' => [],
+      ],
+      'template' => 'dashboard/dashboard',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_console_page' => [
+      'variables' => [
+        'title' => NULL,
+        'header_actions' => [],
+        'tabs' => [],
+        'body' => [],
+        'meta' => [],
+      ],
+      'template' => 'layout/console-page',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_overview' => [
+      'variables' => [
+        'event' => NULL,
+        'overview' => [],
+        'charts' => [],
+      ],
+      'template' => 'event/overview',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_tickets' => [
+      'variables' => [
+        'event' => NULL,
+        'sales' => [],
+        'tickets' => [],
+      ],
+      'template' => 'event/tickets',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_rsvps' => [
+      'variables' => [
+        'event' => NULL,
+        'summary' => [],
+        'series' => [],
+      ],
+      'template' => 'event/rsvps',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_analytics' => [
+      'variables' => [
+        'event' => NULL,
+        'charts' => [],
+        'overview' => [],
+      ],
+      'template' => 'event/analytics',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_settings' => [
+      'variables' => [
+        'event' => NULL,
+      ],
+      'template' => 'event/settings',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_payouts' => [
+      'variables' => [
+        'summary' => [],
+        'history' => [],
+      ],
+      'template' => 'payouts',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_boost' => [
+      'variables' => [
+        'campaigns' => [],
+      ],
+      'template' => 'boost',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_audience' => [
+      'variables' => [
+        'segments' => [],
+        'geo' => [],
+      ],
+      'template' => 'audience',
+      'path' => $path . '/templates',
+    ],
+    'myeventlane_vendor_event_create_form' => [
+      'variables' => [
+        'form' => [],
+        'event' => NULL,
+      ],
+      'template' => 'event/create-form',
+      'path' => $path . '/templates',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
+  // Add main site URL for sidebar "Back to main site" link.
+  $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
+  if ($domain_detector->isVendorDomain()) {
+    $variables['page']['main_site_url'] = $domain_detector->getPublicDomainUrl();
+    
+    // Add workspace name from current user's vendor.
+    $current_user = \Drupal::currentUser();
+    if (!$current_user->isAnonymous()) {
+      $vendor_ids = _myeventlane_vendor_get_user_vendors((int) $current_user->id());
+      if (!empty($vendor_ids)) {
+        $vendor = \Drupal::entityTypeManager()
+          ->getStorage('myeventlane_vendor')
+          ->load(reset($vendor_ids));
+        if ($vendor) {
+          $variables['page']['workspace_name'] = $vendor->label();
+        }
+      }
+    }
+    
+    // Set active section based on route.
+    $route_name = \Drupal::routeMatch()->getRouteName();
+    if ($route_name) {
+      if (str_starts_with($route_name, 'myeventlane_vendor.console.dashboard')) {
+        $variables['page']['active_section'] = 'dashboard';
+      }
+      elseif (str_starts_with($route_name, 'myeventlane_vendor.console.event')) {
+        $variables['page']['active_section'] = 'events';
+      }
+      elseif (str_starts_with($route_name, 'myeventlane_vendor.console.payouts')) {
+        $variables['page']['active_section'] = 'payouts';
+      }
+      elseif (str_starts_with($route_name, 'myeventlane_vendor.console.boost')) {
+        $variables['page']['active_section'] = 'boost';
+      }
+      elseif (str_starts_with($route_name, 'myeventlane_vendor.console.audience')) {
+        $variables['page']['active_section'] = 'audience';
+      }
+      elseif (str_starts_with($route_name, 'myeventlane_vendor.console.settings')) {
+        $variables['page']['active_section'] = 'settings';
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_vendor_theme_preprocess_node(array &$variables): void {
+  // Ensure event.id() is available in templates.
+  $node = $variables['node'] ?? NULL;
+  if ($node && method_exists($node, 'id')) {
+    $variables['event_id'] = $node->id();
+  }
+}
+
+/**
+ * Implements hook_preprocess_form().
+ */
+function myeventlane_vendor_theme_preprocess_form(array &$variables): void {
+  // Ensure forms use vendor theme styling.
+  $form_id = $variables['element']['#form_id'] ?? '';
+  
+  // Add form wrapper classes for event forms.
+  if (str_contains($form_id, 'event') || str_contains($form_id, 'node_event')) {
+    $variables['attributes']['class'][] = 'vendor-event-form';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_alter().
+ */
+function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestions, array $variables): void {
+  $form_id = $variables['element']['#form_id'] ?? '';
+  
+  // Suggest form template for event forms.
+  if ($form_id === 'node_event_form' || $form_id === 'node_event_edit_form' || $form_id === 'vendor_event_create_form') {
+    $suggestions[] = 'form__node__event__form';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for vendor event templates.
+ */
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_overview(array &$variables): void {
+  if (isset($variables['event']) && is_object($variables['event']) && method_exists($variables['event'], 'id')) {
+    $variables['event_id'] = $variables['event']->id();
+  }
+}
+
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_tickets(array &$variables): void {
+  if (isset($variables['event']) && is_object($variables['event']) && method_exists($variables['event'], 'id')) {
+    $variables['event_id'] = $variables['event']->id();
+  }
+}
+
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_rsvps(array &$variables): void {
+  if (isset($variables['event']) && is_object($variables['event']) && method_exists($variables['event'], 'id')) {
+    $variables['event_id'] = $variables['event']->id();
+  }
+}
+
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_analytics(array &$variables): void {
+  if (isset($variables['event']) && is_object($variables['event']) && method_exists($variables['event'], 'id')) {
+    $variables['event_id'] = $variables['event']->id();
+  }
+}
+
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings(array &$variables): void {
+  if (isset($variables['event']) && is_object($variables['event']) && method_exists($variables['event'], 'id')) {
+    $variables['event_id'] = $variables['event']->id();
+  }
+}
+
