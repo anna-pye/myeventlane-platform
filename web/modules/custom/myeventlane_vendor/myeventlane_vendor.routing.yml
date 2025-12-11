@@ -95,7 +95,8 @@ myeventlane_vendor.stripe_connect:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::connect'
     _title: 'Connect Stripe'
   requirements:
-    _permission: 'access vendor dashboard'
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
 
@@ -106,7 +107,8 @@ myeventlane_vendor.stripe_callback:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::callback'
     _title: 'Stripe Connect Callback'
   requirements:
-    _permission: 'access vendor dashboard'
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
 
@@ -132,13 +134,349 @@ myeventlane_vendor.create_event_gateway:
   options:
     _maintenance_access: FALSE
 
-# Vendor onboarding route.
+# Vendor onboarding routes (step-by-step flow).
 myeventlane_vendor.onboard:
   path: '/vendor/onboard'
   defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardController::onboard'
-    _title: 'Create your organiser profile'
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardAccountController::account'
+    _title: 'Create your organiser account'
   requirements:
     _permission: 'access content'
   options:
     _maintenance_access: FALSE
+
+myeventlane_vendor.onboard.account:
+  path: '/vendor/onboard/account'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardAccountController::account'
+    _title: 'Create your organiser account'
+  requirements:
+    _permission: 'access content'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_vendor.onboard.profile:
+  path: '/vendor/onboard/profile'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardProfileController::profile'
+    _title: 'Set up your organiser profile'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_vendor.onboard.stripe:
+  path: '/vendor/onboard/stripe'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardStripeController::stripe'
+    _title: 'Set up payments'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_vendor.onboard.first_event:
+  path: '/vendor/onboard/first-event'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardFirstEventController::firstEvent'
+    _title: 'Create your first event'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_vendor.onboard.complete:
+  path: '/vendor/onboard/complete'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardCompleteController::complete'
+    _title: "You're all set!"
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+# Vendor event management routes.
+myeventlane_vendor.manage_event.edit:
+  path: '/vendor/event/{event}/edit'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventEditController::edit'
+    _title: 'Event information'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventEditController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Vendor console shell routes (vendor domain only via DomainDetector).
+myeventlane_vendor.console.dashboard:
+  path: '/vendor/dashboard'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_dashboard:dashboard'
+    _title: 'Vendor dashboard'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.events:
+  path: '/vendor/events'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_events:list'
+    _title: 'Events'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.events_add:
+  path: '/vendor/events/add'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_create:buildForm'
+    _title: 'Create event'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.event_overview:
+  path: '/vendor/events/{event}/overview'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_overview:overview'
+    _title: 'Event overview'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_tickets:
+  path: '/vendor/events/{event}/tickets'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_tickets:tickets'
+    _title: 'Event tickets'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_rsvps:
+  path: '/vendor/events/{event}/rsvps'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_rsvps:rsvps'
+    _title: 'Event RSVPs'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_analytics:
+  path: '/vendor/events/{event}/analytics'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_analytics:analytics'
+    _title: 'Event analytics'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_settings:
+  path: '/vendor/events/{event}/settings'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_settings:settings'
+    _title: 'Event settings'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_attendees:
+  path: '/vendor/events/{event}/attendees'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_attendees:attendees'
+    _title: 'Event attendees'
+  requirements:
+    _permission: 'access vendor console'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.payouts:
+  path: '/vendor/payouts'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_payouts:payouts'
+    _title: 'Payouts'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.boost:
+  path: '/vendor/boost'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_boost:boost'
+    _title: 'Boost'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.audience:
+  path: '/vendor/audience'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_audience:audience'
+    _title: 'Audience'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.console.settings:
+  path: '/vendor/settings'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_settings:settings'
+    _title: 'Vendor settings'
+  requirements:
+    _permission: 'access vendor console'
+
+myeventlane_vendor.manage_event.design:
+  path: '/vendor/event/{event}/design'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventDesignController::design'
+    _title: 'Page design'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventDesignController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.content:
+  path: '/vendor/event/{event}/content'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventContentController::content'
+    _title: 'Page content'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventContentController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.tickets:
+  path: '/vendor/event/{event}/tickets'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventTicketsController::tickets'
+    _title: 'Ticket types'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventTicketsController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.checkout_questions:
+  path: '/vendor/event/{event}/checkout-questions'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventCheckoutQuestionsController::checkoutQuestions'
+    _title: 'Checkout questions'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventCheckoutQuestionsController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.promote:
+  path: '/vendor/event/{event}/promote'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
+    _title: 'Promote'
+    step: 'myeventlane_vendor.manage_event.promote'
+    title: 'Promote'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.payments:
+  path: '/vendor/event/{event}/payments'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
+    _title: 'Payments & fees'
+    step: 'myeventlane_vendor.manage_event.payments'
+    title: 'Payments & fees'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.comms:
+  path: '/vendor/event/{event}/comms'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
+    _title: 'Comms'
+    step: 'myeventlane_vendor.manage_event.comms'
+    title: 'Comms'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.advanced:
+  path: '/vendor/event/{event}/advanced'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
+    _title: 'Advanced'
+    step: 'myeventlane_vendor.manage_event.advanced'
+    title: 'Advanced'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event

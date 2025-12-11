@@ -1,127 +1,341 @@
 {#
-  Vendor dashboard template.
-  Variables:
-  - kpis[]
-  - charts[]
-  - events[]
-  - boost[]
-  - payouts[]
-  - quick_actions[]
+/**
+ * @file
+ * Vendor dashboard template - Full functional control centre.
+ *
+ * Variables:
+ * - kpis: Array of KPI card data
+ * - events: Array of events with full data
+ * - best_event: Best performing event data
+ * - stripe: Stripe Connect status
+ * - notifications: Array of notifications
+ * - account: Account summary data
+ * - quick_actions: Array of quick action buttons
+ * - charts: Array of chart configurations
+ * - show_welcome: Boolean for welcome banner
+ */
 #}
-<section class="mel-dashboard">
+<div class="mel-dashboard">
+
+  {# Dashboard Header #}
   <div class="mel-dashboard__header">
-    <div>
-      <h1 class="mel-page-title">{{ 'Vendor dashboard'|t }}</h1>
-      <p class="mel-page-subtitle">{{ 'Insights, payouts, and actions at a glance.'|t }}</p>
+    <div class="mel-dashboard__header-content">
+      <div class="mel-dashboard__header-user">
+        {% if account.display_name %}
+          <div class="mel-dashboard__avatar">{{ account.display_name|first|upper }}</div>
+        {% endif %}
+        <div class="mel-dashboard__header-text">
+          <h1 class="mel-dashboard__title">{{ 'Welcome back'|t }}{% if account.display_name %}, {{ account.display_name }}{% endif %}</h1>
+          <p class="mel-dashboard__subtitle">{{ 'Your event control centre'|t }}</p>
+        </div>
+      </div>
+      
+      {# Stripe Status Badge #}
+      {% if stripe.status_label is defined %}
+        <div class="mel-dashboard__stripe-badge mel-dashboard__stripe-badge--{{ stripe.status|default('not_connected') }}">
+          <span class="mel-dashboard__stripe-dot"></span>
+          {{ stripe.status_label }}
+        </div>
+      {% endif %}
     </div>
-    {% if quick_actions %}
-      <div class="mel-dashboard__actions">
-        {% for action in quick_actions %}
-          <a class="mel-btn mel-btn--primary" href="{{ action.url }}">{{ action.label }}</a>
-        {% endfor %}
+    
+    <div class="mel-dashboard__actions">
+      <a class="mel-btn mel-btn--primary mel-btn--lg" href="/vendor/events/add">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        {{ 'Create New Event'|t }}
+      </a>
+    </div>
+  </div>
+
+  {# Welcome Banner (for new vendors with no events) #}
+  {% if show_welcome %}
+    <div class="mel-welcome-banner">
+      <div class="mel-welcome-banner__content">
+        <div class="mel-welcome-banner__icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="mel-welcome-banner__title">{{ 'Welcome to MyEventLane!'|t }}</h2>
+          <p class="mel-welcome-banner__text">{{ 'Create your first event and start selling tickets in minutes.'|t }}</p>
+        </div>
+      </div>
+      <div class="mel-welcome-banner__actions">
+        <a href="/vendor/events/add" class="mel-btn mel-btn--primary mel-btn--lg">{{ 'Create Your First Event'|t }}</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {# KPI Cards Row - Always show #}
+  <div class="mel-kpi-grid">
+    {% if kpis %}
+      {% for kpi in kpis %}
+        {% include '@myeventlane_vendor_theme/components/kpi-card.html.twig' with kpi %}
+      {% endfor %}
+    {% else %}
+      {# Default KPI cards when no data #}
+      <div class="mel-kpi-card">
+        <div class="mel-kpi-card__header">
+          <div class="mel-kpi-card__icon mel-kpi-card__icon--coral">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+        </div>
+        <div class="mel-kpi-card__label">{{ 'Total Revenue'|t }}</div>
+        <div class="mel-kpi-card__value"><span class="mel-kpi-card__currency">$</span>0</div>
+      </div>
+      <div class="mel-kpi-card">
+        <div class="mel-kpi-card__header">
+          <div class="mel-kpi-card__icon mel-kpi-card__icon--blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+        </div>
+        <div class="mel-kpi-card__label">{{ 'Upcoming Events'|t }}</div>
+        <div class="mel-kpi-card__value">0</div>
+      </div>
+      <div class="mel-kpi-card">
+        <div class="mel-kpi-card__header">
+          <div class="mel-kpi-card__icon mel-kpi-card__icon--green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="mel-kpi-card__label">{{ 'Tickets Sold'|t }}</div>
+        <div class="mel-kpi-card__value">0</div>
+      </div>
+      <div class="mel-kpi-card">
+        <div class="mel-kpi-card__header">
+          <div class="mel-kpi-card__icon mel-kpi-card__icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="mel-kpi-card__label">{{ 'RSVPs'|t }}</div>
+        <div class="mel-kpi-card__value">0</div>
       </div>
     {% endif %}
   </div>
 
-  {% if kpis %}
-    <div class="mel-kpi-grid">
-      {% for card in kpis %}
-        <div class="mel-card mel-kpi">
-          <div class="mel-kpi__label">{{ card.label }}</div>
-          <div class="mel-kpi__value">{{ card.value }}</div>
-          {% if card.delta %}
-            <div class="mel-kpi__delta{% if card.delta.positive %} is-positive{% else %} is-negative{% endif %}">
-              {{ card.delta.value }} <span>{{ card.delta.label }}</span>
+  {# Quick Actions Row - Always show #}
+  <div class="mel-dashboard__section">
+    <div class="mel-dashboard__section-header">
+      <h2 class="mel-dashboard__section-title">{{ 'Quick Actions'|t }}</h2>
+    </div>
+    <div class="mel-quick-actions-table">
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <a href="/vendor/events/add" class="mel-action-btn mel-action-btn--primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                {{ 'Create Event'|t }}
+              </a>
+            </td>
+            <td>
+              <a href="/vendor/payouts" class="mel-action-btn mel-action-btn--success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                {{ 'Manage Payouts'|t }}
+              </a>
+            </td>
+            <td>
+              <a href="/vendor/audience" class="mel-action-btn mel-action-btn--info">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                {{ 'View Attendees'|t }}
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <a href="/vendor/boost" class="mel-action-btn mel-action-btn--warning">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                {{ 'Boost Event'|t }}
+              </a>
+            </td>
+            <td>
+              <a href="/vendor/audience" class="mel-action-btn mel-action-btn--secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                </svg>
+                {{ 'Contact Audience'|t }}
+              </a>
+            </td>
+            <td>
+              <a href="/vendor/settings" class="mel-action-btn mel-action-btn--neutral">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                {{ 'Edit Profile'|t }}
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# Main Content Area - Two Column Layout #}
+  <div class="mel-dashboard__main">
+    {# Left Column: Events Table #}
+    <div class="mel-dashboard__primary">
+      {# Events Table #}
+      <div class="mel-card">
+        <div class="mel-card__header">
+          <div>
+            <h3 class="mel-card__title">{{ 'Your Events'|t }}</h3>
+            <p class="mel-card__subtitle">{{ 'Manage and track all your events'|t }}</p>
+          </div>
+          <a class="mel-link" href="/vendor/events">{{ 'View All'|t }} →</a>
+        </div>
+        <div class="mel-card__body mel-card__body--flush">
+          {% if events %}
+            <table class="mel-events-table">
+              <thead>
+                <tr>
+                  <th>{{ 'Event'|t }}</th>
+                  <th>{{ 'Date'|t }}</th>
+                  <th>{{ 'Tickets'|t }}</th>
+                  <th>{{ 'Revenue'|t }}</th>
+                  <th>{{ 'Status'|t }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {# Best performing event first #}
+                {% if best_event %}
+                  <tr class="mel-events-table__row mel-events-table__row--featured">
+                    <td class="mel-events-table__cell--event">
+                      <div class="mel-events-table__event-info">
+                        <span class="mel-events-table__best-badge">★ Best Performer</span>
+                        <a href="{{ best_event.manage_url }}" class="mel-events-table__title">{{ best_event.title }}</a>
+                        {% if best_event.venue %}<span class="mel-events-table__venue">{{ best_event.venue }}</span>{% endif %}
+                      </div>
+                    </td>
+                    <td>{{ best_event.date }}</td>
+                    <td><strong>{{ best_event.tickets_sold }}</strong></td>
+                    <td><strong>{{ best_event.revenue_formatted }}</strong></td>
+                    <td><span class="mel-badge mel-badge--{{ best_event.status }}">{{ best_event.status_label }}</span></td>
+                    <td>
+                      <a href="{{ best_event.manage_url }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Manage'|t }}</a>
+                    </td>
+                  </tr>
+                {% endif %}
+                {# Other events #}
+                {% for event in events|slice(0, 5) %}
+                  {% if not best_event or event.id != best_event.id %}
+                    <tr class="mel-events-table__row">
+                      <td class="mel-events-table__cell--event">
+                        <div class="mel-events-table__event-info">
+                          <a href="{{ event.manage_url }}" class="mel-events-table__title">{{ event.title }}</a>
+                          {% if event.venue %}<span class="mel-events-table__venue">{{ event.venue }}</span>{% endif %}
+                        </div>
+                      </td>
+                      <td>{{ event.date }}</td>
+                      <td>{{ event.tickets_sold }}</td>
+                      <td>{{ event.revenue_formatted }}</td>
+                      <td><span class="mel-badge mel-badge--{{ event.status }}">{{ event.status_label }}</span></td>
+                      <td>
+                        <a href="{{ event.manage_url }}" class="mel-btn mel-btn--sm">{{ 'Manage'|t }}</a>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="mel-empty-state mel-empty-state--compact">
+              <svg class="mel-empty-state__icon mel-empty-state__icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
+              <a href="/vendor/events/add" class="mel-btn mel-btn--primary">{{ 'Create Event'|t }}</a>
             </div>
           {% endif %}
         </div>
-      {% endfor %}
+      </div>
     </div>
-  {% endif %}
 
-  {% if charts %}
-    <div class="mel-grid mel-grid--2">
-      {% for chart in charts %}
+    {# Right Column: Stripe + Account + Help #}
+    <div class="mel-dashboard__secondary">
+      {# Stripe Panel #}
+      <div class="mel-card">
+        <div class="mel-card__body mel-card__body--flush">
+          {% include '@myeventlane_vendor_theme/components/stripe-panel.html.twig' with { 
+            stripe: stripe|default({
+              connected: false,
+              status: 'not_connected',
+              status_label: 'Not Connected',
+              connect_url: '/vendor/stripe/connect'
+            }) 
+          } %}
+        </div>
+      </div>
+
+      {# Notifications Panel #}
+      {% if notifications %}
         <div class="mel-card">
-          <div class="mel-card__header">
-            <div>
-              <div class="mel-card__title">{{ chart.title }}</div>
-              {% if chart.meta %}<div class="mel-card__meta">{{ chart.meta }}</div>{% endif %}
-            </div>
-          </div>
-          <div class="mel-card__body">
-            <canvas data-chart-id="{{ chart.id }}"></canvas>
+          <div class="mel-card__body mel-card__body--flush">
+            {% include '@myeventlane_vendor_theme/components/notifications.html.twig' with { notifications: notifications } %}
           </div>
         </div>
-      {% endfor %}
-    </div>
-  {% endif %}
+      {% endif %}
 
-  <div class="mel-grid mel-grid--2">
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'Active events'|t }}</div>
-        <a class="mel-link" href="/vendor/events">{{ 'View all'|t }}</a>
-      </div>
-      <div class="mel-table">
-        <div class="mel-table__head">
-          <div>{{ 'Event'|t }}</div>
-          <div>{{ 'Status'|t }}</div>
-          <div>{{ 'Sales'|t }}</div>
-          <div>{{ 'RSVPs'|t }}</div>
-          <div>{{ 'Date'|t }}</div>
-        </div>
-        <div class="mel-table__body">
-          {% for event in events %}
-            <a class="mel-table__row" href="{{ event.url }}">
-              <div>
-                <div class="mel-table__title">{{ event.label }}</div>
-                <div class="mel-table__meta">{{ event.venue }}</div>
-              </div>
-              <div>{{ event.status }}</div>
-              <div>{{ event.sales }}</div>
-              <div>{{ event.rsvps }}</div>
-              <div>{{ event.date }}</div>
-            </a>
-          {% else %}
-            <div class="mel-table__empty">{{ 'No events yet.'|t }}</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
-    <div class="mel-stack">
+      {# Account Summary #}
       <div class="mel-card">
-        <div class="mel-card__header">
-          <div class="mel-card__title">{{ 'Boost status'|t }}</div>
+        <div class="mel-card__header mel-card__header--no-border">
+          <h3 class="mel-card__title">{{ 'Account'|t }}</h3>
         </div>
-        <div class="mel-list">
-          {% for item in boost %}
-            <div class="mel-list__item">
-              <div>{{ item.label }}</div>
-              <div class="mel-badge">{{ item.status }}</div>
-            </div>
-          {% else %}
-            <div class="mel-empty">{{ 'No active boost campaigns.'|t }}</div>
-          {% endfor %}
+        <div class="mel-card__body">
+          {% include '@myeventlane_vendor_theme/components/account-summary.html.twig' with { 
+            account: account|default({
+              display_name: 'Vendor',
+              email: '',
+              store_name: ''
+            }) 
+          } %}
         </div>
       </div>
 
-      <div class="mel-card">
-        <div class="mel-card__header">
-          <div class="mel-card__title">{{ 'Stripe payouts'|t }}</div>
+      {# Quick Tips #}
+      <div class="mel-card mel-card--help">
+        <div class="mel-card__header mel-card__header--no-border">
+          <h3 class="mel-card__title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            {{ 'Quick Tips'|t }}
+          </h3>
         </div>
-        <div class="mel-list">
-          {% for payout in payouts %}
-            <div class="mel-list__item">
-              <div>{{ payout.label }}</div>
-              <div class="mel-list__meta">{{ payout.status }}</div>
+        <div class="mel-card__body">
+          <div class="mel-help-links">
+            <div class="mel-help-link">
+              <span>💡 {{ 'Add eye-catching images to boost engagement'|t }}</span>
             </div>
-          {% else %}
-            <div class="mel-empty">{{ 'No payouts yet.'|t }}</div>
-          {% endfor %}
+            <div class="mel-help-link">
+              <span>🎯 {{ 'Connect Stripe to receive payouts'|t }}</span>
+            </div>
+            <div class="mel-help-link">
+              <span>⚡ {{ 'Use Boost to get featured on the homepage'|t }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</section>
+
+</div>

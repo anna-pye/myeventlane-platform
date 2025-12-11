@@ -93,15 +93,31 @@
 <div class="mel-card">
   <div class="mel-card__header">
     <div class="mel-card__title">{{ 'Boost placements'|t }}</div>
+    {% if event %}
+      <a href="/event/{{ event.id }}/boost" class="mel-btn mel-btn--sm mel-btn--primary">
+        <span class="mel-btn__icon">⚡</span>
+        {{ 'Boost this event'|t }}
+      </a>
+    {% endif %}
   </div>
   <div class="mel-list">
     {% for boost in overview.boost %}
       <div class="mel-list__item">
         <div>{{ boost.label }}</div>
-        <div class="mel-badge">{{ boost.status }}</div>
+        <div class="mel-badge mel-badge--{{ boost.status|lower }}">{{ boost.status }}</div>
+        {% if boost.ends %}
+          <div class="mel-text--muted">{{ 'Ends'|t }}: {{ boost.ends }}</div>
+        {% endif %}
       </div>
     {% else %}
-      <div class="mel-empty">{{ 'No active boost placements.'|t }}</div>
+      <div class="mel-empty">
+        <p>{{ 'No active boost placements.'|t }}</p>
+        {% if event %}
+          <a href="/event/{{ event.id }}/boost" class="mel-btn mel-btn--primary">
+            {{ 'Boost this event now'|t }}
+          </a>
+        {% endif %}
+      </div>
     {% endfor %}
   </div>
 </div>
