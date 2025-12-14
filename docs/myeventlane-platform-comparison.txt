@@ -23,6 +23,8 @@ MYEVENTLANE CURRENT CAPABILITIES:
   - Waitlist count tracking per event
   - Waitlist position calculation for attendees
   - Integration with both RSVP and ticket-based attendance
+  - Queue worker (WaitlistPromotionWorker) for background processing
+  - WaitlistNotificationService for sending promotion emails
 
 ✓ Ticket sales via Drupal Commerce
   - Multiple ticket types/variations per event
@@ -30,51 +32,77 @@ MYEVENTLANE CURRENT CAPABILITIES:
   - Unique ticket code generation
   - PDF ticket generation
   - Mobile wallet pass support
+  - TicketTypeManager service for syncing ticket types to Commerce variations
 
 ✓ RSVP system with waitlist
   - Automatic waitlist assignment when capacity reached
   - Separate RSVP submission entity
   - Email notifications for RSVP status
+  - RsvpPromotionManager for handling promotions
+  - Integration with EventAttendee entity for unified attendance tracking
+
+✓ EventAttendee entity
+  - Unified model for both RSVP and ticket-based attendance
+  - Status field (confirmed, waitlist, cancelled)
+  - Promotion timestamp tracking (promoted_at field)
+  - Ticket code generation for check-in
 
 GAPS IDENTIFIED:
 ----------------
-✗ No automatic email notifications when waitlisted attendees are promoted
-  - Current: Promotion happens but no notification sent
+✗ Waitlist promotion notifications may not be fully automated
+  - Current: WaitlistNotificationService exists but may not be triggered automatically on all promotion paths
   - Impact: Attendees may miss their promotion and not claim tickets
+  - Status: Service exists, needs verification of integration points
 
 ✗ No waitlist position display for attendees
-  - Current: Position can be calculated but not shown to users
+  - Current: Position can be calculated via getWaitlistPosition() but not shown to users
   - Impact: Attendees don't know their place in queue
+  - Status: Backend ready, frontend missing
 
-✗ No waitlist analytics for vendors
-  - Current: Only basic waitlist count
-  - Missing: Conversion rates, average time on waitlist, promotion patterns
+✗ Limited waitlist analytics for vendors
+  - Current: Only basic waitlist count in dashboard
+  - Missing: Conversion rates, average time on waitlist, promotion patterns, waitlist view/export
   - Impact: Vendors can't optimise waitlist management
+  - Status: Basic count exists, detailed analytics missing
 
-✗ No waitlist-specific ticket purchase flow
-  - Current: When promoted, attendees must manually purchase
+✗ No waitlist-specific ticket purchase flow with time limits
+  - Current: When promoted, attendees must manually purchase via normal flow
   - Missing: Automatic ticket reservation with time limit for promoted waitlist members
+  - Missing: One-time token system for claiming promoted spots
   - Impact: Lost conversions when promoted attendees don't act quickly
+  - Status: Promotion works, but no reserved purchase window
 
 ✗ Limited waitlist visibility in vendor dashboard
-  - Current: Only shows count
-  - Missing: List view, export, bulk actions
+  - Current: Only shows count in event stats
+  - Missing: List view, export, bulk actions, detailed waitlist management interface
+  - Impact: Vendors can't easily manage waitlisted attendees
+  - Status: Count only, no management interface
+
+✗ Waitlist capacity configuration may be missing
+  - Current: field_waitlist_enabled exists but waitlist capacity limit may not be configurable
+  - Missing: Optional waitlist capacity field to limit waitlist size
+  - Impact: Unlimited waitlists may not be desired for all events
+  - Status: Needs verification
 
 EXTERNAL PLATFORM CAPABILITIES (Humanitix reference):
 -----------------------------------------------------
 ✓ Automatic email/SMS notifications on waitlist promotion
 ✓ Real-time waitlist position display for attendees
 ✓ Waitlist analytics dashboard (conversion rates, time metrics)
-✓ Reserved ticket purchase window for promoted waitlist members
+✓ Reserved ticket purchase window for promoted waitlist members (e.g., 48-hour window)
 ✓ Comprehensive waitlist management interface for organisers
 ✓ Waitlist export and reporting
+✓ Waitlist capacity limits
+✓ One-time token system for claiming promoted spots
 
 STRENGTHS WHERE MYEVENTLANE IS EQUAL OR AHEAD:
 ----------------------------------------------
-✓ Unified attendance model (EventAttendee entity) handles both RSVP and tickets
-✓ Queue worker system for background promotion processing
+✓ Unified attendance model (EventAttendee entity) handles both RSVP and tickets elegantly
+✓ Queue worker system for background promotion processing (scalable)
 ✓ Integration with Drupal Commerce provides flexible payment options
 ✓ Multi-vendor architecture supports independent waitlist management per vendor
+✓ Promotion timestamp tracking for analytics
+✓ WaitlistNotificationService architecture in place
 
 ================================================================================
 2. VENDOR ANALYTICS AND REPORTING
@@ -82,11 +110,21 @@ STRENGTHS WHERE MYEVENTLANE IS EQUAL OR AHEAD:
 
 MYEVENTLANE CURRENT CAPABILITIES:
 ---------------------------------
+✓ Analytics module exists (myeventlane_analytics)
+  - AnalyticsDashboardController with event-level analytics
+  - AnalyticsDataService for data aggregation
+  - SalesAnalyticsService for sales metrics
+  - ConversionAnalyticsService for conversion tracking
+  - ReportGeneratorService for report generation
+  - Time-series sales data support (getSalesTimeSeries method)
+  - Event-level analytics routes
+
 ✓ Basic event statistics in vendor dashboard
   - Attendee counts (tickets and RSVPs)
   - Waitlist counts
   - Revenue totals (from completed Commerce orders)
   - Event mode (RSVP/paid/both)
+  - Per-event stats via getEventStats()
 
 ✓ CSV export for RSVPs and attendees
   - Separate export routes for RSVPs and ticket attendees
@@ -94,56 +132,74 @@ MYEVENTLANE CURRENT CAPABILITIES:
 
 ✓ Daily vendor digest emails
   - Summary of RSVPs, waitlist, and ticket sales per event
-  - Sent via queue system
+  - Sent via queue system (CategoryDigestQueue)
 
 GAPS IDENTIFIED:
 ----------------
-✗ No time-series sales analytics
-  - Current: Only total counts and revenue
-  - Missing: Sales over time (daily/weekly trends), velocity metrics
-  - Impact: Can't identify peak sales periods or marketing effectiveness
+✗ Analytics dashboard may not be fully integrated into vendor workflow
+  - Current: Analytics module exists but may not be prominently linked from vendor dashboard
+  - Missing: Clear navigation to analytics from vendor dashboard
+  - Impact: Vendors may not discover analytics features
+  - Status: Module exists, integration needs verification
 
-✗ No conversion funnel analytics
-  - Current: No tracking of view → add to cart → checkout → completion
-  - Missing: Drop-off points, abandonment rates
+✗ Limited visualisation in analytics
+  - Current: Analytics services exist but may lack chart rendering
+  - Missing: Chart.js or similar library integration for time-series charts
+  - Missing: Visual conversion funnel displays
+  - Impact: Data exists but not easily digestible
+  - Status: Data services ready, visualisation may be missing
+
+✗ No conversion funnel analytics in practice
+  - Current: ConversionAnalyticsService exists but may not track full funnel
+  - Missing: View → add to cart → checkout → completion tracking
+  - Missing: Drop-off point identification
   - Impact: Can't optimise checkout flow
+  - Status: Service exists, tracking implementation needs verification
 
 ✗ No demographic or attendee insights
-  - Current: Basic name/email only
+  - Current: Basic name/email only in exports
   - Missing: Geographic distribution, repeat attendee tracking, ticket type preferences
+  - Missing: Attendee segmentation analytics
   - Impact: Limited ability to understand audience
+  - Status: Basic data exists, analytics missing
 
 ✗ No comparative analytics across events
   - Current: Per-event stats only
   - Missing: Performance comparison, best-performing event types, seasonal trends
+  - Missing: Vendor-level aggregated analytics
   - Impact: Can't learn from past events to improve future ones
+  - Status: Per-event exists, comparative missing
 
-✗ No detailed revenue breakdowns
-  - Current: Only total revenue
-  - Missing: Revenue by ticket type, refund tracking, fee breakdowns
+✗ Limited detailed revenue breakdowns
+  - Current: Only total revenue per event
+  - Missing: Revenue by ticket type, refund tracking, fee breakdowns, revenue over time
   - Impact: Limited financial insights
+  - Status: Totals exist, breakdowns missing
 
-✗ No exportable comprehensive reports
+✗ No exportable comprehensive reports (PDF/Excel)
   - Current: Basic CSV exports
-  - Missing: PDF reports, scheduled reports, custom date ranges
+  - Missing: PDF reports, scheduled reports, custom date ranges, formatted reports
   - Impact: Manual reporting for stakeholders
+  - Status: CSV only
 
 ✗ No real-time dashboard updates
-  - Current: Cached dashboard (5-minute max-age)
+  - Current: Cached dashboard (5-minute max-age mentioned in code)
   - Missing: Live updates, webhooks, real-time notifications
   - Impact: Stale data during active sales periods
+  - Status: Cached, not real-time
 
 EXTERNAL PLATFORM CAPABILITIES (Humanitix reference):
 -----------------------------------------------------
-✓ Time-series sales charts and graphs
-✓ Conversion funnel visualisation
+✓ Time-series sales charts and graphs with visualisations
+✓ Conversion funnel visualisation with drop-off points
 ✓ Attendee demographic insights and geographic mapping
-✓ Comparative event analytics
-✓ Detailed revenue reports with breakdowns
-✓ Exportable PDF and Excel reports
+✓ Comparative event analytics and benchmarking
+✓ Detailed revenue reports with breakdowns by ticket type
+✓ Exportable PDF and Excel reports with custom formatting
 ✓ Real-time dashboard updates
 ✓ Custom date range filtering
-✓ Scheduled report delivery
+✓ Scheduled report delivery via email
+✓ Visual analytics dashboard with charts
 
 STRENGTHS WHERE MYEVENTLANE IS EQUAL OR AHEAD:
 ----------------------------------------------
@@ -151,6 +207,8 @@ STRENGTHS WHERE MYEVENTLANE IS EQUAL OR AHEAD:
 ✓ Integration with Drupal Views provides flexible data querying foundation
 ✓ Queue-based digest system for scalable email reporting
 ✓ Custom module architecture allows deep customisation
+✓ Analytics module structure in place with service-based architecture
+✓ Time-series data support exists in AnalyticsDataService
 
 ================================================================================
 3. ACCESSIBILITY (UX AND DATA CAPTURE)
@@ -161,7 +219,14 @@ MYEVENTLANE CURRENT CAPABILITIES:
 ✓ Event-level accessibility taxonomy field
   - Taxonomy vocabulary "accessibility" for event features
   - Examples: Wheelchair Access, Sign Language Interpreter, Quiet Room
-  - Entity reference field on event content type
+  - Entity reference field on event content type (field_accessibility)
+  - Multiple values allowed
+
+✓ Accessibility needs capture during ticket purchase
+  - Accessibility needs field in checkout pane (AttendeeInfoPerTicket)
+  - Checkboxes for accessibility options during ticket purchase
+  - Stored with attendee data (EventAttendee entity)
+  - Accessibility needs extracted from attendee data in OrderCompletedSubscriber
 
 ✓ Basic accessibility field in event form
   - Autocomplete widget for selecting accessibility options
@@ -169,51 +234,72 @@ MYEVENTLANE CURRENT CAPABILITIES:
 
 GAPS IDENTIFIED:
 ----------------
-✗ No attendee accessibility requirement capture
-  - Current: Only event-level accessibility features
-  - Missing: Ability for attendees to indicate their accessibility needs during registration
-  - Impact: Organisers can't proactively plan for attendee needs
+✗ No attendee accessibility requirement capture in RSVP flow
+  - Current: Accessibility captured during ticket purchase but not in RSVP forms
+  - Missing: Accessibility field in RsvpPublicForm and RsvpBookingForm
+  - Impact: RSVP attendees can't indicate accessibility needs
+  - Status: Ticket flow has it, RSVP missing
 
 ✗ No accessibility filtering on event listings
-  - Current: Accessibility data exists but not filterable
+  - Current: Accessibility data exists but not filterable in Views
   - Missing: "Show only accessible events" filter, search by accessibility feature
+  - Missing: Exposed filter for accessibility taxonomy in event Views
   - Impact: Attendees with accessibility needs can't easily find suitable events
+  - Status: Data exists, filtering missing
 
-✗ No visual accessibility indicators
-  - Current: Text-only accessibility information
-  - Missing: Icons, badges, or visual cues on event cards/listings
+✗ No visual accessibility indicators on event cards/listings
+  - Current: Text-only accessibility information in full event view
+  - Missing: Icons, badges, or visual cues on event cards/listings (teaser view)
+  - Missing: Accessibility icons component for reuse
   - Impact: Accessibility information not immediately visible
+  - Status: Full view may show text, teaser missing visual indicators
 
 ✗ No accessibility data in attendee exports
   - Current: Exports don't include attendee accessibility requirements
   - Missing: Accessibility needs column in CSV exports
   - Impact: Organisers can't easily plan accommodations
+  - Status: Data stored but not exported
 
-✗ No accessibility requirement matching
+✗ No accessibility requirement matching or alerts
   - Current: No system to match attendee needs with event features
   - Missing: Alerts when attendee needs don't match event capabilities
+  - Missing: Validation or warnings during registration
   - Impact: Attendees may register for events that don't meet their needs
+  - Status: No matching logic
 
 ✗ Limited accessibility taxonomy terms
-  - Current: Basic terms (may need expansion)
-  - Missing: Comprehensive set covering diverse needs (mobility, sensory, cognitive, etc.)
+  - Current: Basic terms exist but may need expansion
+  - Missing: Comprehensive set covering diverse needs (mobility, sensory, cognitive, dietary, etc.)
+  - Missing: Icons/images for each term (via taxonomy term image field)
   - Impact: Incomplete accessibility information
+  - Status: Basic vocabulary exists, may need expansion
+
+✗ No structured accessibility information fields on events
+  - Current: Only taxonomy for features
+  - Missing: Free-text fields for contact details, travel directions, entry details, parking information
+  - Missing: Detailed accessibility information section
+  - Impact: Organisers can't provide detailed accessibility information
+  - Status: Taxonomy only, no structured text fields
 
 EXTERNAL PLATFORM CAPABILITIES (Humanitix reference):
 -----------------------------------------------------
-✓ Attendee accessibility requirement capture during registration
+✓ Attendee accessibility requirement capture during both ticket purchase and RSVP
 ✓ Accessibility filtering and search on event listings
 ✓ Visual accessibility icons/badges on event cards
 ✓ Accessibility data included in all attendee exports
 ✓ Accessibility requirement matching and alerts
-✓ Comprehensive accessibility taxonomy
+✓ Comprehensive accessibility taxonomy with icons
+✓ Structured accessibility information fields (contact, directions, parking, etc.)
 ✓ Accessibility information prominently displayed
+✓ Accessibility section in event details
 
 STRENGTHS WHERE MYEVENTLANE IS EQUAL OR AHEAD:
 ----------------------------------------------
 ✓ Drupal taxonomy system provides flexible, extensible accessibility categorisation
 ✓ Custom field architecture allows easy addition of accessibility fields
 ✓ Multi-vendor model supports vendor-specific accessibility approaches
+✓ Accessibility needs already captured during ticket purchase flow
+✓ Integration with EventAttendee entity for storing accessibility data
 
 ================================================================================
 PRIORITY GAP ANALYSIS
@@ -223,38 +309,54 @@ Based on impact for organisers and attendees, achievability within codebase, and
 
 1. WAITLIST ENHANCEMENTS (High Priority)
    - Impact: High - directly affects attendee experience and conversion
-   - Achievability: High - existing infrastructure supports this
+   - Achievability: High - existing infrastructure supports this well
    - Alignment: Strong - improves community engagement
    - Focus areas:
-     * Automatic email notifications on promotion
-     * Waitlist position display for attendees
-     * Waitlist analytics for vendors
+     * Verify and complete automatic email notifications on promotion
+     * Waitlist position display for attendees (frontend)
+     * Waitlist analytics for vendors (conversion rates, time metrics)
+     * Waitlist management interface (list view, export)
+     * Reserved purchase window with tokens for promoted waitlist members
 
 2. VENDOR ANALYTICS DASHBOARD (High Priority)
    - Impact: High - enables data-driven event management
-   - Achievability: Medium-High - requires new views and services but foundation exists
+   - Achievability: Medium-High - services exist, needs visualisation and integration
    - Alignment: Strong - empowers vendors to improve their events
    - Focus areas:
-     * Time-series sales charts
-     * Conversion funnel tracking
-     * Enhanced exportable reports
+     * Chart visualisation integration (Chart.js)
+     * Enhanced vendor dashboard integration and navigation
+     * Conversion funnel tracking implementation
+     * Revenue breakdowns by ticket type
+     * Exportable PDF reports
+     * Comparative analytics across events
 
 3. ACCESSIBILITY DATA CAPTURE AND FILTERING (High Priority)
    - Impact: High - improves inclusivity and attendee experience
    - Achievability: High - taxonomy and field system already in place
    - Alignment: Strong - aligns with community-first values
    - Focus areas:
-     * Attendee accessibility requirement capture
+     * Add accessibility capture to RSVP forms
      * Event listing filters by accessibility
-     * Visual accessibility indicators
+     * Visual accessibility indicators on event cards
+     * Structured accessibility information fields (contact, directions, parking)
+     * Accessibility data in exports
+     * Expand accessibility taxonomy with icons
 
 ================================================================================
 CONCLUSION
 ================================================================================
 
-MyEventLane has a solid foundation with unified attendance management, flexible Commerce integration, and multi-vendor architecture. The primary gaps are in user-facing features (waitlist visibility, analytics dashboards, accessibility filtering) rather than core functionality.
+MyEventLane has a solid foundation with:
+- Unified attendance management (EventAttendee entity)
+- Flexible Commerce integration
+- Multi-vendor architecture
+- Analytics module structure in place
+- Waitlist infrastructure with queue workers
+- Accessibility taxonomy and data capture during ticket purchase
 
-Addressing these three priority areas will significantly improve the platform's competitiveness while maintaining its community-focused, vendor-empowered model.
+The primary gaps are in:
+- User-facing features (waitlist visibility, analytics visualisation, accessibility filtering)
+- Integration and completeness (ensuring all promotion paths send notifications, RSVP accessibility capture)
+- Visual presentation (charts, icons, badges)
 
-
-
+Addressing these three priority areas will significantly improve the platform's competitiveness while maintaining its community-focused, vendor-empowered model. The good news is that much of the backend infrastructure exists; the work is primarily in frontend integration, visualisation, and ensuring completeness across all user flows.
