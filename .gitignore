@@ -36,3 +36,47 @@ web/core/
 .idea/
 /.vscode/
 *.swp
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+id_rsa
+id_ed25519
+id_dsa
+*.pub
+secrets.yml
+secrets.yaml
+*.secret
+.secret
+
+# Credentials and API keys
+credentials.json
+credentials.yml
+api-keys.*
+*.credentials
+config.local.*
+settings.local.*
+*.local.php
+*.local.yml
+
+# Backup files that might contain secrets
+*.bak
+*.backup
+*.old
+*~
+
+# Log files (may contain sensitive info)
+*.log
+logs/
+
+# Drupal private files and config overrides
+web/sites/*/files/
+web/sites/*/private/
