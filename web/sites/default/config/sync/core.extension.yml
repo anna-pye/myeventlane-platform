@@ -69,8 +69,10 @@ module:
   myeventlane_core: 0
   myeventlane_dashboard: 0
   myeventlane_demo: 0
+  myeventlane_donations: 0
   myeventlane_event: 0
   myeventlane_event_attendees: 0
+  myeventlane_finance: 0
   myeventlane_location: 0
   myeventlane_messaging: 0
   myeventlane_rsvp: 0
@@ -115,4 +117,6 @@ theme:
   gin: 0
   stable9: 0
   myeventlane_theme: 0
+  myeventlane_vendor_theme: 0
+  myeventlane_admin: 0
 profile: standard

@@ -1,4 +1,4 @@
-uuid: ca28a5ce-f16f-478a-aef1-4369c97ea538
+uuid: 5f9c611f-8064-43ff-bf4a-b2d286f472f6
 langcode: en
 status: true
 dependencies:
@@ -8,9 +8,9 @@ dependencies:
     - system
     - views
   theme:
-    - myeventlane_theme
-id: myeventlane_theme_upcoming_events
-theme: myeventlane_theme
+    - myeventlane_vendor_theme
+id: myeventlane_vendor_theme_upcoming_events
+theme: myeventlane_vendor_theme
 region: content
 weight: 0
 provider: null

@@ -33,8 +33,8 @@ entity_keys:
   owner: uid
 links:
   canonical: '/vendor/{myeventlane_vendor}'
-  add-form: '/admin/structure/myeventlane/vendor/add'
+  add-form: /admin/structure/myeventlane/vendor/add
   edit-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/edit'
   delete-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/delete'
-  collection: '/admin/structure/myeventlane/vendor'
+  collection: /admin/structure/myeventlane/vendor
 field_ui_base_route: myeventlane_vendor.settings

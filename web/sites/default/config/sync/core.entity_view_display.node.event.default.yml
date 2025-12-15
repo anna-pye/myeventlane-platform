@@ -1,3 +1,4 @@
+uuid: 8d568fbd-3bed-47e0-8b93-38f06c721cef
 langcode: en
 status: true
 dependencies:
@@ -40,113 +41,102 @@ content:
   body:
     type: text_default
     label: hidden
-    weight: 5
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 5
+    region: content
   field_accessibility:
     type: entity_reference_label
     label: inline
-    weight: 14
-    region: content
     settings:
       link: true
     third_party_settings: {  }
+    weight: 14
+    region: content
   field_accessibility_contact:
     type: text_default
     label: above
-    weight: 15
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 15
+    region: content
   field_accessibility_directions:
     type: text_default
     label: above
-    weight: 16
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 16
+    region: content
   field_accessibility_entry:
     type: text_default
     label: above
-    weight: 17
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 17
+    region: content
   field_accessibility_parking:
     type: text_default
     label: above
-    weight: 18
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 18
+    region: content
   field_capacity:
     type: number_integer
     label: inline
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: {  }
     weight: 9
     region: content
-    settings:
-      thousand_separator: ','
-      prefix_suffix: true
-    third_party_settings: {  }
-  field_waitlist_capacity:
-    type: number_integer
-    label: inline
-    weight: 10
-    region: content
-    settings:
-      thousand_separator: ','
-      prefix_suffix: true
-    third_party_settings: {  }
   field_category:
     type: entity_reference_label
     label: inline
-    weight: 13
-    region: content
     settings:
       link: true
     third_party_settings: {  }
+    weight: 13
+    region: content
   field_event_end:
     type: datetime_default
     label: inline
-    weight: 4
-    region: content
     settings:
       timezone_override: ''
       format_type: medium
     third_party_settings: {  }
+    weight: 4
+    region: content
   field_event_image:
     type: image
     label: hidden
-    weight: 0
-    region: content
     settings:
-      image_style: large
       image_link: ''
+      image_style: large
       image_loading:
         attribute: lazy
     third_party_settings: {  }
+    weight: 0
+    region: content
   field_event_start:
     type: datetime_default
     label: inline
-    weight: 3
-    region: content
     settings:
       timezone_override: ''
       format_type: medium
     third_party_settings: {  }
+    weight: 3
+    region: content
   field_event_type:
     type: list_default
     label: inline
-    weight: 2
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 2
+    region: content
   field_external_url:
     type: link
     label: above
-    weight: 12
-    region: content
     settings:
       trim_length: 80
       url_only: false
@@ -154,54 +144,73 @@ content:
       rel: ''
       target: _blank
     third_party_settings: {  }
+    weight: 12
+    region: content
   field_featured:
     type: boolean
     label: inline
-    weight: 16
-    region: content
     settings:
       format: default
       format_custom_false: ''
       format_custom_true: ''
     third_party_settings: {  }
+    weight: 16
+    region: content
   field_location:
     type: address_default
     label: above
-    weight: 8
-    region: content
     settings: {  }
     third_party_settings: {  }
+    weight: 8
+    region: content
   field_organizer:
     type: entity_reference_label
     label: inline
-    weight: 10
-    region: content
     settings:
       link: true
     third_party_settings: {  }
+    weight: 10
+    region: content
   field_product_target:
     type: entity_reference_label
     label: inline
-    weight: 11
-    region: content
     settings:
       link: true
     third_party_settings: {  }
+    weight: 11
+    region: content
   field_venue_name:
     type: string
     label: inline
-    weight: 7
-    region: content
     settings:
       link_to_entity: false
     third_party_settings: {  }
-  links:
-    weight: 50
+    weight: 7
     region: content
+  field_waitlist_capacity:
+    type: number_integer
+    label: inline
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  links:
     settings: {  }
     third_party_settings: {  }
+    weight: 50
+    region: content
 hidden:
   field_attendee_questions: true
   field_collect_per_ticket: true
+  field_event_location: true
+  field_event_store: true
+  field_event_vendor: true
+  field_location_latitude: true
+  field_location_longitude: true
   field_promo_expires: true
   field_promoted: true
+  field_rsvp_target: true
+  field_tags: true
+  field_ticket_types: true
