@@ -70,7 +70,7 @@
       {# Date Badge (floating) #}
       {% if node.field_event_start[0] is defined and node.field_event_start[0].value is not empty %}
         {% set ts = node.field_event_start[0].value|date('U') %}
-        <div class="mel-event-card-date-badge">
+        <div class="mel-event-card-date-badge" style="pointer-events: none;">
           <span class="mel-event-card-date-month">{{ ts|date('M') }}</span>
           <span class="mel-event-card-date-day">{{ ts|date('d') }}</span>
         </div>
@@ -86,6 +86,7 @@
         gap: 0.5rem;
         align-items: flex-end;
         z-index: 10;
+        pointer-events: none;
       ">
         {% if is_featured %}
           {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
@@ -114,7 +115,7 @@
       {# Date Badge (floating) #}
       {% if node.field_event_start[0] is defined and node.field_event_start[0].value is not empty %}
         {% set ts = node.field_event_start[0].value|date('U') %}
-        <div class="mel-event-card-date-badge">
+        <div class="mel-event-card-date-badge" style="pointer-events: none;">
           <span class="mel-event-card-date-month">{{ ts|date('M') }}</span>
           <span class="mel-event-card-date-day">{{ ts|date('d') }}</span>
         </div>
@@ -130,6 +131,7 @@
         gap: 0.5rem;
         align-items: flex-end;
         z-index: 10;
+        pointer-events: none;
       ">
         {% if is_featured %}
           {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {

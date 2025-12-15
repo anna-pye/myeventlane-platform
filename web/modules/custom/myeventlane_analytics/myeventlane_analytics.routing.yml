@@ -21,5 +21,40 @@ myeventlane_analytics.event:
       node:
         type: entity:node
 
+# Export PDF report.
+myeventlane_analytics.export_pdf:
+  path: '/vendor/analytics/event/{node}/export/pdf'
+  defaults:
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::exportPdf'
+    _title: 'Export Analytics PDF'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::accessEvent'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+# Export Excel report.
+myeventlane_analytics.export_excel:
+  path: '/vendor/analytics/event/{node}/export/excel'
+  defaults:
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::exportExcel'
+    _title: 'Export Analytics Excel'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::accessEvent'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+
+
+
 
 

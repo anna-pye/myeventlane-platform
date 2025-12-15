@@ -105,7 +105,7 @@ abstract class VendorConsoleBaseController {
 
     $base_attached = [
       'library' => [
-        'myeventlane_vendor_theme/global-styling',
+        'myeventlane_theme/global',
       ],
     ];
 

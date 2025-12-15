@@ -6,7 +6,8 @@ namespace Drupal\myeventlane_analytics\Controller;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
-use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_analytics\Service\AnalyticsDataService;
@@ -14,30 +15,42 @@ use Drupal\myeventlane_analytics\Service\SalesAnalyticsService;
 use Drupal\myeventlane_analytics\Service\ConversionAnalyticsService;
 use Drupal\myeventlane_analytics\Service\ReportGeneratorService;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
+use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
+use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller for analytics dashboard.
  */
-final class AnalyticsDashboardController extends ControllerBase {
+final class AnalyticsDashboardController extends VendorConsoleBaseController implements ContainerInjectionInterface {
+
+  use StringTranslationTrait;
 
   /**
    * Constructs AnalyticsDashboardController.
    */
   public function __construct(
+    DomainDetector $domainDetector,
+    AccountProxyInterface $currentUser,
     private readonly AnalyticsDataService $dataService,
     private readonly SalesAnalyticsService $salesService,
     private readonly ConversionAnalyticsService $conversionService,
     private readonly ReportGeneratorService $reportService,
     private readonly DashboardEventLoader $eventLoader,
-  ) {}
+  ) {
+    parent::__construct($domainDetector, $currentUser);
+  }
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     return new static(
+      $container->get('myeventlane_core.domain_detector'),
+      $container->get('current_user'),
       $container->get('myeventlane_analytics.data'),
       $container->get('myeventlane_analytics.sales'),
       $container->get('myeventlane_analytics.conversion'),
@@ -53,7 +66,6 @@ final class AnalyticsDashboardController extends ControllerBase {
    *   Render array for the dashboard.
    */
   public function dashboard(): array {
-    $currentUser = $this->currentUser();
     $events = $this->eventLoader->loadEvents(FALSE, 50);
 
     // Get summary stats for all events.
@@ -92,19 +104,25 @@ final class AnalyticsDashboardController extends ControllerBase {
       return $b['revenue'] <=> $a['revenue'];
     });
 
-    return [
-      '#theme' => 'myeventlane_analytics_dashboard',
-      '#summary_stats' => $summaryStats,
-      '#event_analytics' => $eventAnalytics,
+    return $this->buildVendorPage('myeventlane_vendor_console_page', [
+      'title' => 'Analytics Dashboard',
+      'body' => [
+        '#theme' => 'myeventlane_analytics_dashboard',
+        '#summary_stats' => $summaryStats,
+        '#event_analytics' => $eventAnalytics,
+      ],
       '#attached' => [
-        'library' => ['myeventlane_analytics/analytics'],
+        'library' => [
+          'myeventlane_vendor_theme/global-styling',
+          'myeventlane_analytics/analytics',
+        ],
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['node_list', 'user:' . $currentUser->id()],
+        'tags' => ['node_list', 'user:' . $this->currentUser->id()],
         'max-age' => 300,
       ],
-    ];
+    ]);
   }
 
   /**
@@ -118,7 +136,7 @@ final class AnalyticsDashboardController extends ControllerBase {
    */
   public function eventAnalytics(NodeInterface $node): array {
     if ($node->bundle() !== 'event') {
-      return ['#markup' => $this->t('Invalid event.')];
+      return ['#markup' => 'Invalid event.'];
     }
 
     $eventId = (int) $node->id();
@@ -138,18 +156,24 @@ final class AnalyticsDashboardController extends ControllerBase {
       $totalTickets += $point['ticket_count'];
     }
 
-    return [
-      '#theme' => 'myeventlane_analytics_event',
-      '#event' => $node,
-      '#time_series' => $timeSeries,
-      '#ticket_breakdown' => $ticketBreakdown,
-      '#sales_velocity' => $salesVelocity,
-      '#conversion_funnel' => $conversionFunnel,
-      '#bottlenecks' => $bottlenecks,
-      '#total_revenue' => $totalRevenue,
-      '#total_tickets' => $totalTickets,
+    return $this->buildVendorPage('myeventlane_vendor_console_page', [
+      'title' => 'Analytics: ' . $node->label(),
+      'body' => [
+        '#theme' => 'myeventlane_analytics_event',
+        '#event' => $node,
+        '#time_series' => $timeSeries,
+        '#ticket_breakdown' => $ticketBreakdown,
+        '#sales_velocity' => $salesVelocity,
+        '#conversion_funnel' => $conversionFunnel,
+        '#bottlenecks' => $bottlenecks,
+        '#total_revenue' => $totalRevenue,
+        '#total_tickets' => $totalTickets,
+      ],
       '#attached' => [
-        'library' => ['myeventlane_analytics/analytics'],
+        'library' => [
+          'myeventlane_vendor_theme/global-styling',
+          'myeventlane_analytics/analytics',
+        ],
         'drupalSettings' => [
           'analytics' => [
             'timeSeries' => $timeSeries,
@@ -163,7 +187,7 @@ final class AnalyticsDashboardController extends ControllerBase {
         'tags' => ['node:' . $eventId],
         'max-age' => 300,
       ],
-    ];
+    ]);
   }
 
   /**
@@ -177,6 +201,40 @@ final class AnalyticsDashboardController extends ControllerBase {
    */
   public function eventTitle(NodeInterface $node): string {
     return (string) $this->t('Analytics: @event', ['@event' => $node->label()]);
+  }
+
+  /**
+   * Exports PDF report for an event.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The event node.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   PDF response.
+   */
+  public function exportPdf(NodeInterface $node): Response {
+    if ($node->bundle() !== 'event') {
+      throw $this->createNotFoundException();
+    }
+
+    return $this->reportService->generatePdfReport((int) $node->id());
+  }
+
+  /**
+   * Exports Excel report for an event.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The event node.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   Excel response.
+   */
+  public function exportExcel(NodeInterface $node): Response {
+    if ($node->bundle() !== 'event') {
+      throw $this->createNotFoundException();
+    }
+
+    return $this->reportService->generateExcelReport((int) $node->id());
   }
 
   /**
@@ -213,6 +271,9 @@ final class AnalyticsDashboardController extends ControllerBase {
   }
 
 }
+
+
+
 
 
 

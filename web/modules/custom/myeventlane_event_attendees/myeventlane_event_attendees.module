@@ -51,8 +51,92 @@ function myeventlane_event_attendees_theme(array $existing, string $type, string
       ],
       'template' => 'email-waitlist-promotion',
     ],
+    'waitlist_position_block' => [
+      'variables' => [
+        'position' => NULL,
+        'total_waitlist' => 0,
+        'event_id' => NULL,
+        'event_title' => '',
+        'on_waitlist' => FALSE,
+      ],
+      'template' => 'waitlist-position-block',
+    ],
+    'waitlist_management' => [
+      'variables' => [
+        'event' => NULL,
+        'waitlist' => [],
+        'analytics' => [],
+        'waitlist_count' => 0,
+      ],
+      'template' => 'waitlist-management',
+    ],
+    'waitlist_signup_form' => [
+      'render element' => 'form',
+      'template' => 'waitlist-signup-form',
+    ],
   ];
 }
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_event_attendees_preprocess_node(array &$variables): void {
+  $node = $variables['node'];
+  
+  // Only process event nodes in full view mode.
+  if ($node->bundle() !== 'event' || $variables['view_mode'] !== 'full') {
+    return;
+  }
+  
+  $currentUser = \Drupal::currentUser();
+  if ($currentUser->isAnonymous()) {
+    return;
+  }
+  
+  // Get waitlist position for current user.
+  try {
+    $waitlistManager = \Drupal::service('myeventlane_event_attendees.waitlist');
+    $storage = \Drupal::entityTypeManager()->getStorage('event_attendee');
+    
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $node->id())
+      ->condition('email', $currentUser->getEmail())
+      ->condition('status', 'waitlist')
+      ->range(0, 1)
+      ->execute();
+    
+    if (!empty($ids)) {
+      $attendee = $storage->load(reset($ids));
+      $position = $waitlistManager->getWaitlistPosition($attendee);
+      $totalWaitlist = $waitlistManager->getWaitlistCount((int) $node->id());
+      
+      $variables['waitlist_position'] = [
+        'on_waitlist' => TRUE,
+        'position' => $position,
+        'total_waitlist' => $totalWaitlist,
+        'event_id' => $node->id(),
+        'event_title' => $node->label(),
+      ];
+    }
+    else {
+      $variables['waitlist_position'] = [
+        'on_waitlist' => FALSE,
+        'position' => NULL,
+        'total_waitlist' => $waitlistManager->getWaitlistCount((int) $node->id()),
+        'event_id' => $node->id(),
+        'event_title' => $node->label(),
+      ];
+    }
+  }
+  catch (\Exception $e) {
+    // Silently fail if waitlist service is unavailable.
+    $variables['waitlist_position'] = NULL;
+  }
+}
+
+
+
 
 
 

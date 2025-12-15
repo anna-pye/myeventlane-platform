@@ -46,6 +46,12 @@
         </svg>
         {{ 'Create New Event'|t }}
       </a>
+      <a class="mel-btn mel-btn--secondary mel-btn--lg" href="/vendor/analytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        {{ 'View Analytics'|t }}
+      </a>
     </div>
   </div>
 
@@ -231,7 +237,10 @@
                     <td><strong>{{ best_event.revenue_formatted }}</strong></td>
                     <td><span class="mel-badge mel-badge--{{ best_event.status }}">{{ best_event.status_label }}</span></td>
                     <td>
-                      <a href="{{ best_event.manage_url }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Manage'|t }}</a>
+                      <div class="mel-events-table__actions">
+                        <a href="{{ best_event.manage_url }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Manage'|t }}</a>
+                        <a href="{{ best_event.analytics_url }}" class="mel-btn mel-btn--sm">{{ 'Analytics'|t }}</a>
+                      </div>
                     </td>
                   </tr>
                 {% endif %}
@@ -246,11 +255,24 @@
                         </div>
                       </td>
                       <td>{{ event.date }}</td>
-                      <td>{{ event.tickets_sold }}</td>
+                      <td>
+                        {{ event.tickets_sold }}
+                        {% if event.waitlist.current_waitlist > 0 %}
+                          <span class="mel-events-table__waitlist" title="{{ 'Waitlist: @count'|t({'@count': event.waitlist.current_waitlist}) }}">
+                            ({{ event.waitlist.current_waitlist }} {{ 'waitlist'|t }})
+                          </span>
+                        {% endif %}
+                      </td>
                       <td>{{ event.revenue_formatted }}</td>
                       <td><span class="mel-badge mel-badge--{{ event.status }}">{{ event.status_label }}</span></td>
                       <td>
-                        <a href="{{ event.manage_url }}" class="mel-btn mel-btn--sm">{{ 'Manage'|t }}</a>
+                        <div class="mel-events-table__actions">
+                          <a href="{{ event.manage_url }}" class="mel-btn mel-btn--sm">{{ 'Manage'|t }}</a>
+                          <a href="{{ event.analytics_url }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Analytics'|t }}</a>
+                          {% if event.waitlist.current_waitlist > 0 %}
+                            <a href="{{ event.waitlist_url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'Waitlist'|t }} ({{ event.waitlist.current_waitlist }})</a>
+                          {% endif %}
+                        </div>
                       </td>
                     </tr>
                   {% endif %}

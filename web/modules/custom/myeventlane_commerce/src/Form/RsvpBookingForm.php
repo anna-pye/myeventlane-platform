@@ -66,6 +66,18 @@ final class RsvpBookingForm extends FormBase {
       ],
     ];
 
+    // Accessibility needs field (optional).
+    $accessibility_options = $this->getAccessibilityOptions();
+    if (!empty($accessibility_options)) {
+      $form['accessibility_needs'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Accessibility needs (optional)'),
+        '#description' => $this->t('Let us know if you have any accessibility requirements. This helps us ensure the event is accessible for everyone.'),
+        '#options' => $accessibility_options,
+        '#required' => FALSE,
+      ];
+    }
+
     // Store product/variation info.
     $form['product_id'] = [
       '#type' => 'value',
@@ -307,6 +319,7 @@ final class RsvpBookingForm extends FormBase {
               'guests' => 1,
               'donation' => (float) $donationAmount,
               'status' => 'confirmed',
+              'user_id' => \Drupal::currentUser()->id() ?: 0, // Set to 0 for anonymous users
             ]);
             $submission->save();
 
@@ -332,8 +345,51 @@ final class RsvpBookingForm extends FormBase {
       }
     }
 
+    // Save accessibility needs if provided.
+    $accessibilityNeeds = $values['accessibility_needs'] ?? [];
+    if (!empty($accessibilityNeeds)) {
+      // Filter out unchecked values.
+      $accessibilityNeeds = array_filter($accessibilityNeeds, function ($value) {
+        return $value !== 0 && $value !== FALSE && $value !== '';
+      });
+
+      if (!empty($accessibilityNeeds)) {
+        // Store accessibility needs in order item for later processing.
+        if ($order_item->hasField('field_attendee_data')) {
+          $attendeeData = $order_item->get('field_attendee_data')->getValue();
+          if (empty($attendeeData)) {
+            $attendeeData = [];
+          }
+          $attendeeData['accessibility_needs'] = array_values($accessibilityNeeds);
+          $order_item->set('field_attendee_data', $attendeeData);
+          $order_item->save();
+        }
+      }
+    }
+
     // Redirect to checkout.
     $form_state->setRedirect('commerce_checkout.form', ['commerce_order' => $cart->id()]);
+  }
+
+  /**
+   * Gets accessibility taxonomy term options.
+   *
+   * @return array
+   *   Array of term ID => term name.
+   */
+  protected function getAccessibilityOptions(): array {
+    try {
+      $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+      $terms = $storage->loadByProperties(['vid' => 'accessibility']);
+      $options = [];
+      foreach ($terms as $term) {
+        $options[$term->id()] = $term->label();
+      }
+      return $options;
+    }
+    catch (\Exception) {
+      return [];
+    }
   }
 
   /**
@@ -353,19 +409,39 @@ final class RsvpBookingForm extends FormBase {
         return FALSE;
       }
 
-      // Find store for this vendor.
-      $storeStorage = \Drupal::entityTypeManager()->getStorage('commerce_store');
-      $storeIds = $storeStorage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('uid', $vendorUid)
-        ->range(0, 1)
-        ->execute();
+      $store = NULL;
 
-      if (empty($storeIds)) {
-        return FALSE;
+      // First, try to find store via vendor entity (if vendor module is available).
+      if (\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
+        $vendorStorage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+        $vendors = $vendorStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('field_owner', $vendorUid)
+          ->range(0, 1)
+          ->execute();
+
+        if (!empty($vendors)) {
+          $vendor = $vendorStorage->load(reset($vendors));
+          if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+            $store = $vendor->get('field_vendor_store')->entity;
+          }
+        }
       }
 
-      $store = $storeStorage->load(reset($storeIds));
+      // Fallback: Find store by owner UID.
+      if (!$store) {
+        $storeStorage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+        $storeIds = $storeStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('uid', $vendorUid)
+          ->range(0, 1)
+          ->execute();
+
+        if (!empty($storeIds)) {
+          $store = $storeStorage->load(reset($storeIds));
+        }
+      }
+
       if (!$store) {
         return FALSE;
       }

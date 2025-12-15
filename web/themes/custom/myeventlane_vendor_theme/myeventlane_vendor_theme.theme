@@ -417,6 +417,12 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.event_rsvps' => 'events',
     'myeventlane_vendor.console.event_analytics' => 'events',
     'myeventlane_vendor.console.event_settings' => 'events',
+    // Analytics routes.
+    'myeventlane_analytics.dashboard' => 'analytics',
+    'myeventlane_analytics.event' => 'analytics',
+    // Donations routes.
+    'myeventlane_donations.vendor_list' => 'donations',
+    'myeventlane_donations.platform' => 'donations',
     'myeventlane_vendor.console.payouts' => 'payouts',
     'myeventlane_vendor.console.boost' => 'boost',
     'myeventlane_vendor.console.audience' => 'audience',

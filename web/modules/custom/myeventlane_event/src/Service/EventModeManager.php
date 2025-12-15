@@ -465,13 +465,13 @@ final class EventModeManager {
   /**
    * Builds a waitlist CTA.
    *
-   * Uses the unified Commerce booking route.
+   * Links to the dedicated waitlist signup form.
    */
   private function buildWaitlistCta(NodeInterface $event): array {
     return [
       '#type' => 'link',
       '#title' => $this->t('Join Waitlist'),
-      '#url' => Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()]),
+      '#url' => Url::fromRoute('myeventlane_event_attendees.waitlist_signup', ['node' => $event->id()]),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn-secondary', 'mel-cta', 'mel-cta--waitlist'],
       ],

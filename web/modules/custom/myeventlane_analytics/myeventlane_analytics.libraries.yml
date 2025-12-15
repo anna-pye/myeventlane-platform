@@ -4,10 +4,14 @@ analytics:
     theme:
       css/analytics.css: {}
   js:
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js: { type: external, minified: true, attributes: { defer: true } }
     js/analytics.js: {}
   dependencies:
     - core/drupal
     - core/jquery
+
+
+
 
 
 

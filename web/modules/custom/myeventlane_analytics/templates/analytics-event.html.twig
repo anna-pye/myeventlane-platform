@@ -16,9 +16,22 @@
 #}
 <div class="mel-analytics-event">
 
-  <div style="margin-bottom: 2rem;">
-    <a href="{{ path('myeventlane_analytics.dashboard') }}" style="color: #007bff; text-decoration: none;">← {{ 'Back to Analytics Dashboard'|t }}</a>
-    <h1 class="mel-analytics-title" style="margin-top: 1rem;">{{ 'Analytics: @event'|t({'@event': event.label}) }}</h1>
+  <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+      <a href="{{ path('myeventlane_analytics.dashboard') }}" style="color: #007bff; text-decoration: none;">← {{ 'Back to Analytics Dashboard'|t }}</a>
+      <h1 class="mel-analytics-title" style="margin-top: 1rem;">{{ 'Analytics: @event'|t({'@event': event.label}) }}</h1>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="{{ path('myeventlane_analytics.export_pdf', {'node': event.id()}) }}" 
+         class="mel-btn mel-btn-secondary" 
+         target="_blank">
+        {{ 'Export PDF'|t }}
+      </a>
+      <a href="{{ path('myeventlane_analytics.export_excel', {'node': event.id()}) }}" 
+         class="mel-btn mel-btn-secondary">
+        {{ 'Export Excel'|t }}
+      </a>
+    </div>
   </div>
 
   {# Summary Cards #}
@@ -77,6 +90,22 @@
     </div>
   </div>
 
+  {# Time Series Chart #}
+  {% if time_series is not empty %}
+    <section class="mel-analytics-section" style="
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    ">
+      <h2 class="mel-section-title">{{ 'Sales Over Time'|t }}</h2>
+      <div style="position: relative; height: 400px;">
+        <canvas id="analytics-time-series-chart"></canvas>
+      </div>
+    </section>
+  {% endif %}
+
   {# Conversion Funnel #}
   {% if conversion_funnel %}
     <section class="mel-analytics-section" style="
@@ -87,6 +116,11 @@
       margin-bottom: 2rem;
     ">
       <h2 class="mel-section-title">{{ 'Conversion Funnel'|t }}</h2>
+      
+      {# Chart visualization #}
+      <div style="position: relative; height: 300px; margin-bottom: 2rem;">
+        <canvas id="analytics-conversion-funnel-chart"></canvas>
+      </div>
       
       <div class="mel-funnel" style="display: flex; flex-direction: column; gap: 1rem;">
         {% set stages = [
@@ -148,6 +182,11 @@
     ">
       <h2 class="mel-section-title">{{ 'Ticket Type Breakdown'|t }}</h2>
       
+      {# Chart visualization #}
+      <div style="position: relative; height: 300px; margin-bottom: 2rem;">
+        <canvas id="analytics-ticket-breakdown-chart"></canvas>
+      </div>
+      
       <table class="mel-table" style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f5f5f5;">
@@ -194,6 +233,9 @@
   {% endif %}
 
 </div>
+
+
+
 
 
 

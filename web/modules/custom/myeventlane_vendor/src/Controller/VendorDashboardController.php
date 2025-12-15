@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -17,6 +18,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Vendor dashboard controller - Full functional control centre.
  */
 final class VendorDashboardController extends VendorConsoleBaseController {
+
+  use StringTranslationTrait;
 
   /**
    * The entity type manager.
@@ -80,12 +83,22 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Chart data for JavaScript.
     $chartData = $this->buildChartData($userId, $userEvents);
 
+    // Format stripe status message for template.
+    $stripeStatusFormatted = $stripeStatus;
+    if (!$stripeStatus['connected']) {
+      $stripeStatusFormatted['status_message'] = $this->t('Connect your Stripe account to receive payments from ticket sales and donations.');
+    }
+    else {
+      $stripeStatusFormatted['status_message'] = $this->t('Your Stripe account is connected and ready to receive payments.');
+    }
+
+    // Use vendor theme template format (matches myeventlane_vendor_theme).
     return $this->buildVendorPage('myeventlane_vendor_dashboard', [
       'kpis' => $kpis,
       'charts' => $charts,
       'events' => $events,
       'best_event' => $bestEvent,
-      'stripe' => $stripeStatus,
+      'stripe' => $stripeStatusFormatted,
       'notifications' => $notifications,
       'account' => $accountSummary,
       'quick_actions' => $quickActions,
@@ -93,7 +106,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'show_welcome' => $showWelcome,
       '#attached' => [
         'library' => [
-          'myeventlane_vendor_theme/dashboard',
+          'myeventlane_vendor_theme/global-styling',
         ],
         'drupalSettings' => [
           'vendorCharts' => $chartData,
@@ -334,6 +347,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $ticketsSold = $this->getEventTicketsSold($eventId);
       $rsvps = $this->getEventRsvpCount($eventId);
 
+      // Get waitlist analytics.
+      $waitlistAnalytics = $this->getEventWaitlistAnalytics($eventId);
+
       $events[] = [
         'id' => $eventId,
         'title' => $node->label(),
@@ -346,12 +362,14 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'revenue_formatted' => '$' . number_format($revenue, 0),
         'tickets_sold' => $ticketsSold,
         'rsvps' => $rsvps,
+        'waitlist' => $waitlistAnalytics,
         'view_url' => $node->toUrl()->toString(),
         'edit_url' => $node->toUrl('edit-form')->toString(),
         'manage_url' => '/vendor/events/' . $eventId . '/overview',
         'tickets_url' => '/vendor/events/' . $eventId . '/tickets',
-        'analytics_url' => '/vendor/events/' . $eventId . '/analytics',
+        'analytics_url' => '/vendor/analytics/event/' . $eventId,
         'attendees_url' => '/vendor/events/' . $eventId . '/attendees',
+        'waitlist_url' => '/vendor/event/' . $eventId . '/waitlist',
       ];
     }
 
@@ -752,6 +770,32 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
     catch (\Exception $e) {
       return 0;
+    }
+  }
+
+  /**
+   * Get waitlist analytics for a specific event.
+   *
+   * @param int $eventId
+   *   The event node ID.
+   *
+   * @return array
+   *   Array with waitlist analytics data.
+   */
+  private function getEventWaitlistAnalytics(int $eventId): array {
+    try {
+      $waitlistManager = \Drupal::service('myeventlane_event_attendees.waitlist');
+      return $waitlistManager->getWaitlistAnalytics($eventId);
+    }
+    catch (\Exception $e) {
+      // Return empty analytics if service unavailable.
+      return [
+        'total_waitlist' => 0,
+        'total_promoted' => 0,
+        'conversion_rate' => 0.0,
+        'average_wait_time' => 0.0,
+        'current_waitlist' => 0,
+      ];
     }
   }
 
