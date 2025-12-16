@@ -5,12 +5,16 @@
  * Removes wrapper divs to let CSS grid work properly.
  */
 #}
-{% if title %}
-  <h3>{{ title }}</h3>
+{% if rows %}
+  {% if title %}
+    <h3>{{ title }}</h3>
+  {% endif %}
+  <div class="mel-event-grid">
+    {% for row in rows %}
+      {{ row.content }}
+    {% endfor %}
+  </div>
 {% endif %}
-{% for row in rows %}
-  {{ row.content }}
-{% endfor %}
 
 
 

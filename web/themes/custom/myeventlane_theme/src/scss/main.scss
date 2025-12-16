@@ -49,9 +49,9 @@
 @use 'layout/header-layout';
 @use 'layout/page-grid';
 @use 'layout/regions';
-@use 'layout/event-grid';
+@use 'layout/event-grid' as layout_event_grid;
 @use 'layout/homepage';
-@use 'layout/homepage-hero';
+@use 'layout/page-home';
 
 // ---------------------------------------------------------------------------
 // 5. Components
@@ -66,6 +66,7 @@
 @use 'components/header';
 @use 'components/hero';
 @use 'components/event-card';
+@use "components/event-grid";
 @use 'components/event-type-pill';
 @use 'components/rsvp';
 @use 'components/cart';
