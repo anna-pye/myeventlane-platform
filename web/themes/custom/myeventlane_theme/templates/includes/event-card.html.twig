@@ -76,7 +76,7 @@
         </div>
       {% endif %}
 
-      {# Badges Container - Top Right #}
+      {# Badges Container - Top Right (consistent order: Featured first, then type) #}
       <div class="mel-event-card-badges" style="
         position: absolute;
         top: 0.75rem;
@@ -96,7 +96,17 @@
           } only %}
         {% endif %}
 
-        {% if actual_event_type and actual_event_type != 'none' %}
+        {% if actual_event_type == 'rsvp' %}
+          {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+            type: 'rsvp',
+            size: 'sm',
+          } only %}
+        {% elseif actual_event_type == 'paid' or actual_event_type == 'tickets' %}
+          {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+            type: 'paid',
+            size: 'sm',
+          } only %}
+        {% elseif actual_event_type and actual_event_type != 'none' %}
           {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
             type: actual_event_type,
             size: 'sm',
@@ -121,7 +131,7 @@
         </div>
       {% endif %}
 
-      {# Badges Container - Top Right #}
+      {# Badges Container - Top Right (consistent order: Featured first, then type) #}
       <div class="mel-event-card-badges" style="
         position: absolute;
         top: 0.75rem;
@@ -141,7 +151,17 @@
           } only %}
         {% endif %}
 
-        {% if actual_event_type and actual_event_type != 'none' %}
+        {% if actual_event_type == 'rsvp' %}
+          {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+            type: 'rsvp',
+            size: 'sm',
+          } only %}
+        {% elseif actual_event_type == 'paid' or actual_event_type == 'tickets' %}
+          {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
+            type: 'paid',
+            size: 'sm',
+          } only %}
+        {% elseif actual_event_type and actual_event_type != 'none' %}
           {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
             type: actual_event_type,
             size: 'sm',

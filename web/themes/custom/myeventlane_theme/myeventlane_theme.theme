@@ -9,6 +9,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\node\NodeInterface;
 use Drupal\views\Views;
+use Drupal\myeventlane_shared\Service\ColorService;
 
 /**
  * Implements hook_theme().
@@ -162,6 +163,26 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       // Block not available, continue without it
       $variables['value_proposition'] = NULL;
     }
+    
+    // Render category pie chart block
+    try {
+      $block_manager = \Drupal::service('plugin.manager.block');
+      $pie_chart_block = $block_manager->createInstance('category_pie_chart_block', []);
+      if ($pie_chart_block && $pie_chart_block->access(\Drupal::currentUser())) {
+        $build = $pie_chart_block->build();
+        if (!empty($build)) {
+          $variables['category_pie_chart'] = $build;
+        }
+      }
+    } catch (\Exception $e) {
+      // Block not available, continue without it
+      $variables['category_pie_chart'] = NULL;
+    }
+    
+    // Add theme directory path for feature block icons
+    $theme_handler = \Drupal::service('extension.list.theme');
+    $theme_path = $theme_handler->getPath('myeventlane_theme');
+    $variables['theme_directory'] = '/' . $theme_path;
     
     // Add hero positioning variables (for platform messaging)
     $current_user = \Drupal::currentUser();
@@ -795,5 +816,95 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
         // Silently fail - library attachment is not critical if detection fails.
       }
     }
+  }
+}
+
+/**
+ * Implements hook_preprocess_block().
+ *
+ * Adds categories and pie chart to home-hero block.
+ */
+function myeventlane_theme_preprocess_block(array &$variables): void {
+  $plugin_id = $variables['plugin_id'] ?? '';
+  $elements = $variables['elements'] ?? [];
+  
+  // Handle home-hero block content.
+  // Check by plugin ID (block_content:home_hero) or by block content bundle.
+  $is_home_hero = FALSE;
+  if (strpos($plugin_id, 'block_content:') === 0) {
+    // Extract bundle from plugin ID (e.g., "block_content:home_hero" -> "home_hero").
+    $bundle = str_replace('block_content:', '', $plugin_id);
+    if ($bundle === 'home_hero' || $bundle === 'home-hero') {
+      $is_home_hero = TRUE;
+    }
+  }
+  
+  // Also check by block content entity if available.
+  if (!$is_home_hero && isset($elements['#block_content'])) {
+    $block_content = $elements['#block_content'];
+    if ($block_content instanceof \Drupal\block_content\Entity\BlockContent) {
+      $bundle = $block_content->bundle();
+      if ($bundle === 'home_hero' || $bundle === 'home-hero') {
+        $is_home_hero = TRUE;
+      }
+    }
+  }
+  
+  if ($is_home_hero) {
+    // Load category terms from categories vocabulary.
+    try {
+      $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+      $terms = $term_storage->loadTree('categories', 0, NULL, TRUE);
+      
+      $categories = [];
+      foreach ($terms as $term) {
+        $categories[] = [
+          'tid' => $term->id(),
+          'name' => $term->getName(),
+          'url' => '/events?category=' . $term->id(),
+        ];
+      }
+      
+      $variables['categories'] = $categories;
+    }
+    catch (\Exception $e) {
+      // If categories vocabulary doesn't exist, provide empty array.
+      $variables['categories'] = [];
+    }
+    
+    // Load and render category pie chart block.
+    try {
+      $block_manager = \Drupal::service('plugin.manager.block');
+      $pie_chart_block = $block_manager->createInstance('category_pie_chart_block', []);
+      if ($pie_chart_block && $pie_chart_block->access(\Drupal::currentUser())) {
+        $build = $pie_chart_block->build();
+        if (!empty($build)) {
+          $variables['category_pie_chart'] = $build;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Pie chart block not available, continue without it.
+      $variables['category_pie_chart'] = NULL;
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_form_alter().
+ *
+ * Ensures event form template is suggested for vendor console event creation route.
+ * This is a safeguard to ensure form--node--event--form.html.twig is used
+ * even when the form is nested inside the vendor console page template.
+ */
+function myeventlane_theme_theme_suggestions_form_alter(array &$suggestions, array $variables, $hook): void {
+  $element = $variables['element'] ?? [];
+  $form_id = $element['#form_id'] ?? '';
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  
+  // Force event form template suggestion for vendor console event creation route.
+  if ($form_id === 'node_event_form' && $route_name === 'myeventlane_vendor.console.events_add') {
+    // Prepend the most specific suggestion to ensure it's used first.
+    array_unshift($suggestions, 'form__node__event__form');
   }
 }

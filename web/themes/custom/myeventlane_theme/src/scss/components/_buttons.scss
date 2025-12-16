@@ -75,6 +75,25 @@
   }
 }
 
+// Primary button variant for RSVP/Ticket buttons (WCAG compliant)
+.button--rsvp,
+.button--ticket {
+  color: white;
+  background-color: #C74848; // Meets 4.5:1 contrast ratio
+}
+
+// CTA Button Hierarchy
+.button--primary {
+  background: #FC9167;
+  color: #fff;
+}
+
+.button--secondary {
+  background: transparent;
+  border: 1px solid #FC9167;
+  color: #FC9167;
+}
+
 // Secondary (Lavender) - Secondary actions
 .mel-btn-secondary {
   background-color: colors.$mel-color-secondary;

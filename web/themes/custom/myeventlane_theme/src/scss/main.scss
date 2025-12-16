@@ -50,6 +50,8 @@
 @use 'layout/page-grid';
 @use 'layout/regions';
 @use 'layout/event-grid';
+@use 'layout/homepage';
+@use 'layout/homepage-hero';
 
 // ---------------------------------------------------------------------------
 // 5. Components
@@ -70,6 +72,8 @@
 @use 'components/checkout';
 @use 'components/footer';
 @use 'components/vendor-detail';
+@use 'components/feature-block';
+@use 'components/taxonomy-tags';
 
 // ---------------------------------------------------------------------------
 // 6. Pages

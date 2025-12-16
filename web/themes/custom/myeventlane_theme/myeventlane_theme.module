@@ -8,7 +8,7 @@
 /**
  * Implements hook_page_attachments().
  *
- * Ensures Stripe.js loads on checkout pages.
+ * Ensures Stripe.js loads on checkout pages and exports category colors to JS.
  */
 function myeventlane_theme_page_attachments(array &$page) {
   // Only on checkout pages.
@@ -45,7 +45,29 @@ function myeventlane_theme_page_attachments(array &$page) {
       -100, // Very high priority - load early
     ];
   }
+
+  // Export category color map to JavaScript via drupalSettings.
+  if (\Drupal::hasService('myeventlane_shared.color_service')) {
+    try {
+      $color_service = \Drupal::service('myeventlane_shared.color_service');
+      $color_map = $color_service->getCategoryColors();
+
+      if (!isset($page['#attached']['drupalSettings'])) {
+        $page['#attached']['drupalSettings'] = [];
+      }
+      $page['#attached']['drupalSettings']['myeventlane'] = [
+        'categoryColors' => $color_map,
+      ];
+    }
+    catch (\Exception $e) {
+      // Silently fail if service is not available.
+      \Drupal::logger('myeventlane_theme')->warning('Could not load ColorService: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
 }
+
 
 
 

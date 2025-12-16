@@ -49,14 +49,14 @@
             </div>
             <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
               {% if hero_primary_cta %}
-                <a href="{{ hero_primary_cta.url }}" class="mel-btn mel-btn-primary mel-btn-lg">{{ hero_primary_cta.text }}</a>
+                <a href="{{ hero_primary_cta.url }}" class="button button--primary mel-btn mel-btn-lg">{{ hero_primary_cta.text }}</a>
               {% else %}
-                <a href="/create-event" class="mel-btn mel-btn-primary mel-btn-lg">{{ 'Create your event'|t }}</a>
+                <a href="/create-event" class="button button--primary mel-btn mel-btn-lg">{{ 'Create your event'|t }}</a>
               {% endif %}
               {% if hero_secondary_cta %}
-                <a href="{{ hero_secondary_cta.url }}" class="mel-btn mel-btn-ghost mel-btn-lg">{{ hero_secondary_cta.text }}</a>
+                <a href="{{ hero_secondary_cta.url }}" class="button button--secondary mel-btn mel-btn-ghost mel-btn-lg">{{ hero_secondary_cta.text }}</a>
               {% else %}
-                <a href="/events" class="mel-btn mel-btn-ghost mel-btn-lg">{{ 'Explore events'|t }}</a>
+                <a href="/events" class="button button--secondary mel-btn mel-btn-ghost mel-btn-lg">{{ 'Explore events'|t }}</a>
               {% endif %}
             </div>
           </div>
@@ -88,13 +88,13 @@
   {# ==================== MAIN CONTENT ==================== #}
   <main id="main-content" class="mel-main">
     <div class="mel-container">
+      <div class="homepage-wrapper">
+        <div class="homepage-main">
 
-      {# Value Proposition Section #}
-      {% if value_proposition %}
-        <section class="mel-section mel-value-proposition-section" style="margin: 3rem 0;">
-          {{ value_proposition }}
-        </section>
-      {% endif %}
+      {# Feature Block Section (icon-less horizontal strip) #}
+      <section class="mel-section">
+        {% include '@myeventlane_theme/block/block--features.html.twig' %}
+      </section>
 
       {# Featured Events Section #}
       <section class="mel-section mel-featured-events-section">
@@ -270,10 +270,12 @@
         {% endif %}
       </section>
 
-      {# ==================== MINI CALENDAR ==================== #}
-      {% if calendar is defined %}
-      <section class="mel-section" style="margin-top: 3rem;">
-        <div class="mel-calendar-section" style="background: #fff; border-radius: 28px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        </div>
+
+        {# ==================== SIDEBAR CALENDAR ==================== #}
+        {% if calendar is defined %}
+        <aside class="sidebar-calendar">
+          <div class="mel-calendar-section" style="background: #fff; border-radius: 28px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h2 style="font-size: 1.5rem; font-weight: 700; color: #1a1a2e; margin: 0;">Events Calendar</h2>
             <div style="display: flex; align-items: center; gap: 1rem;">
@@ -334,8 +336,15 @@
               Has Events
             </div>
           </div>
-        </div>
-      </section>
+        </aside>
+        {% endif %}
+      </div>
+
+      {# Category Pie Chart Section #}
+      {% if category_pie_chart %}
+        <section class="mel-section">
+          {{ category_pie_chart }}
+        </section>
       {% endif %}
 
       {# CTA Banner #}
@@ -348,6 +357,8 @@
         </div>
       </section>
 
+        </div>
+      </div>
     </div>
   </main>
 

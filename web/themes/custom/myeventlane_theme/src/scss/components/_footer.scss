@@ -21,6 +21,13 @@
   border-top: 1px solid colors.$mel-color-border;
 }
 
+// Site footer separation
+footer.site-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: spacing.mel-space(10);
+  padding-top: spacing.mel-space(8);
+}
+
 // ---------------------------------------------------------------------------
 // Footer Grid (Full version)
 // ---------------------------------------------------------------------------

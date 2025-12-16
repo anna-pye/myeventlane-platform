@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Theme override for unformatted homepage events view.
+ * 
+ * Wraps each row with conditional validation to ensure
+ * only valid events with title and date are rendered.
+ */
+#}
+{% for row in rows %}
+  {% if row.content['#node'] is defined %}
+    {% set node = row.content['#node'] %}
+    {% if node.label and node.field_event_start.value %}
+      <div class="event-card">
+        {{ row.content }}
+      </div>
+    {% endif %}
+  {% else %}
+    {# Fallback: render if row.content exists #}
+    <div class="event-card">
+      {{ row.content }}
+    </div>
+  {% endif %}
+{% endfor %}
