@@ -81,4 +81,4 @@ services:
       - '@cache.data'
       - '@datetime.time'
       - '@myeventlane_core.category_color'
-
+      - '@config.factory'

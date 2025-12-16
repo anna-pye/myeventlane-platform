@@ -1,1 +1,17 @@
-
+myeventlane_core.settings:
+  type: config_object
+  label: 'MyEventLane Core settings'
+  mapping:
+    front_page:
+      type: mapping
+      label: 'Front page settings'
+      mapping:
+        event_type:
+          type: string
+          label: 'Event content type machine name'
+        category_vocab:
+          type: string
+          label: 'Category vocabulary machine name'
+        category_field:
+          type: string
+          label: 'Category term reference field machine name on Event'
