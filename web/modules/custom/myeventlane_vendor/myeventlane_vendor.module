@@ -308,6 +308,77 @@ function myeventlane_vendor_form_node_event_form_alter(array &$form, \Drupal\Cor
     'visibility' => ['tab' => 'design', 'active' => FALSE],
   ];
   
+  // Lightweight tab nav (rendered regardless of theme template).
+  $form['simple_tabs_nav'] = [
+    '#type' => 'container',
+    '#weight' => -10000,
+    '#attributes' => ['class' => ['mel-simple-tabs']],
+    'buttons' => [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-simple-tabs__buttons']],
+      'basics' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Basics'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab', 'is-active'],
+          'data-simple-tab' => 'basics',
+        ],
+      ],
+      'schedule' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Schedule'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab'],
+          'data-simple-tab' => 'schedule',
+        ],
+      ],
+      'location' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Location'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab'],
+          'data-simple-tab' => 'location',
+        ],
+      ],
+      'tickets' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Tickets'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab'],
+          'data-simple-tab' => 'tickets',
+        ],
+      ],
+      'design' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Design'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab'],
+          'data-simple-tab' => 'design',
+        ],
+      ],
+      'questions' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => t('Questions'),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-simple-tab'],
+          'data-simple-tab' => 'questions',
+        ],
+      ],
+    ],
+  ];
+
   // Wrap each section in a tab pane.
   foreach ($tab_mappings as $section => $config) {
     if (isset($form[$section]) && is_array($form[$section])) {
@@ -319,14 +390,15 @@ function myeventlane_vendor_form_node_event_form_alter(array &$form, \Drupal\Cor
       $form[$section] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-tab-pane'],
+          'class' => ['mel-tab-pane', 'mel-simple-tab-pane'],
           'data-tab-pane' => $config['tab'],
+          'data-simple-tab-pane' => $config['tab'],
           'role' => 'tabpanel',
         ],
         '#weight' => $weight,
       ];
       
-      // Add 'is-active' class for the active tab.
+      // Add 'is-active' class only to the default tab.
       if ($config['active']) {
         $form[$section]['#attributes']['class'][] = 'is-active';
       }
@@ -405,6 +477,25 @@ function myeventlane_vendor_form_node_event_form_alter(array &$form, \Drupal\Cor
   }
   $form['#attached']['library'][] = 'myeventlane_vendor_theme/event-form';
   $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
+
+  // Inline CSS/JS to drive simple tabs if theme tabs are missing.
+  $form['#attached']['html_head'][] = [
+    [
+      '#type' => 'html_tag',
+      '#tag' => 'style',
+      '#value' => '.mel-simple-tabs__buttons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.mel-simple-tab{border:1px solid #e2e8f0;background:#fff;color:#1a1a2e;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:14px}.mel-simple-tab.is-active{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,0.15)}.mel-simple-tab-pane{display:none !important}.mel-simple-tab-pane.is-active{display:block !important}',
+    ],
+    'myeventlane_vendor_simple_tabs_css',
+  ];
+  $form['#attached']['html_head'][] = [
+    [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#attributes' => ['type' => 'text/javascript'],
+      '#value' => "(function(){\n  var tabs=document.querySelectorAll('.mel-simple-tab');\n  var panes=document.querySelectorAll('.mel-simple-tab-pane');\n  if(!tabs.length||!panes.length){return;}\n  function activate(id){\n    for(var i=0;i<tabs.length;i++){\n      var t=tabs[i];\n      var active=t.getAttribute('data-simple-tab')===id;\n      t.classList.toggle('is-active',active);\n      t.setAttribute('aria-selected',active?'true':'false');\n    }\n    for(var j=0;j<panes.length;j++){\n      var p=panes[j];\n      var paneActive=p.getAttribute('data-simple-tab-pane')===id;\n      p.classList.toggle('is-active',paneActive);\n      p.setAttribute('aria-hidden',paneActive?'false':'true');\n    }\n  }\n  activate('basics');\n  for(var k=0;k<tabs.length;k++){\n    tabs[k].addEventListener('click',function(){\n      activate(this.getAttribute('data-simple-tab'));\n    });\n  }\n})();",
+    ],
+    'myeventlane_vendor_simple_tabs_js',
+  ];
   
   // Customize actions.
   if (isset($form['actions'])) {

@@ -29,4 +29,60 @@
       {{ children }}
     </div>
   </div>
+  {# Lightweight tab toggling without heavy Drupal styles #}
+  <style>
+    .mel-event-form-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .mel-tab-button {
+      appearance: none;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #1a1a2e;
+      padding: 0.5rem 0.9rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.15s ease;
+    }
+    .mel-tab-button.is-active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+    }
+    .mel-tab-pane {
+      display: none;
+    }
+    .mel-tab-pane.is-active {
+      display: block;
+    }
+  </style>
+  <script>
+    (function () {
+      const tabs = document.querySelectorAll('.mel-tab-button');
+      const panes = document.querySelectorAll('.mel-tab-pane');
+      if (!tabs.length || !panes.length) return;
+
+      function activateTab(tabId) {
+        tabs.forEach(btn => {
+          const isActive = btn.dataset.tab === tabId;
+          btn.classList.toggle('is-active', isActive);
+          btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        panes.forEach(pane => {
+          const isActive = pane.getAttribute('data-tab-pane') === tabId;
+          pane.classList.toggle('is-active', isActive);
+          pane.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+        });
+      }
+
+      tabs.forEach(btn => {
+        btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+      });
+    })();
+  </script>
 </form>

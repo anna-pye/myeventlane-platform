@@ -44,6 +44,20 @@ final class EventFormAlter {
       // Don't return - just skip node-specific logic.
       return;
     }
+    
+    // Ensure critical fields are accessible - they might be hidden by conditional_fields
+    $critical_fields = ['field_category', 'field_accessibility', 'field_ticket_types'];
+    foreach ($critical_fields as $field_name) {
+      if (isset($form[$field_name])) {
+        $form[$field_name]['#access'] = TRUE;
+        if (isset($form[$field_name]['widget'])) {
+          $form[$field_name]['widget']['#access'] = TRUE;
+        }
+        \Drupal::logger('myeventlane_event')->debug('Field @field found in form at alterForm start', ['@field' => $field_name]);
+      } else {
+        \Drupal::logger('myeventlane_event')->warning('Field @field NOT found in form at alterForm start', ['@field' => $field_name]);
+      }
+    }
 
     $is_new = $node->isNew();
 
@@ -544,6 +558,11 @@ final class EventFormAlter {
             unset($form['field_ticket_types']['widget']['#states']);
           }
         }
+        // Ensure field is accessible
+        $form['field_ticket_types']['#access'] = TRUE;
+        if (isset($form['field_ticket_types']['widget'])) {
+          $form['field_ticket_types']['widget']['#access'] = TRUE;
+        }
         $form['field_ticket_types']['#required'] = FALSE;
         $form['field_ticket_types']['#weight'] = 2;
         // Move ticket types into paid_fields container - visibility is controlled by container's #states.
@@ -588,8 +607,9 @@ final class EventFormAlter {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-form-group', 'mel-form-card']],
       '#weight' => -6,
-    // Explicitly allow access.
+      // Explicitly allow access and ensure it's always visible.
       '#access' => TRUE,
+      '#printed' => FALSE,
     ];
     $form['visibility']['header'] = [
       '#type' => 'container',
@@ -601,13 +621,31 @@ final class EventFormAlter {
     $form['visibility']['content'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-form-content']],
+      '#access' => TRUE,
     ];
 
     $fields = ['field_category', 'field_event_categories', 'field_tags', 'field_accessibility', 'field_event_status', 'status'];
     foreach ($fields as $field_name) {
       if (isset($form[$field_name]) && is_array($form[$field_name])) {
+        // Ensure field is accessible and visible
+        $form[$field_name]['#access'] = TRUE;
+        if (isset($form[$field_name]['#states'])) {
+          unset($form[$field_name]['#states']);
+        }
+        // Also check widget level
+        if (isset($form[$field_name]['widget']) && is_array($form[$field_name]['widget'])) {
+          if (isset($form[$field_name]['widget']['#states'])) {
+            unset($form[$field_name]['widget']['#states']);
+          }
+          $form[$field_name]['widget']['#access'] = TRUE;
+        }
+        // Log for debugging
+        \Drupal::logger('myeventlane_event')->debug('Moving field @field to visibility section', ['@field' => $field_name]);
         $form['visibility']['content'][$field_name] = $form[$field_name];
         unset($form[$field_name]);
+      } else {
+        // Log if field is missing
+        \Drupal::logger('myeventlane_event')->warning('Field @field not found in form when building visibility section', ['@field' => $field_name]);
       }
     }
   }
