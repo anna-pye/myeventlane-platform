@@ -384,6 +384,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       'url' => '/events',
     ];
   }
+
+  // Make category pills data available to listing page headers (taxonomy, search,
+  // filtered listings). This is pure data; Twig handles the presentation.
+  _myeventlane_theme_attach_mel_header_categories($variables);
 }
 
 /**
@@ -528,6 +532,44 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
   }
 
   $variables['calendar_events'] = $events;
+}
+
+/**
+ * Implements hook_preprocess_taxonomy_term().
+ *
+ * Provides the MEL header category pills data to taxonomy term templates.
+ */
+function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
+  _myeventlane_theme_attach_mel_header_categories($variables);
+}
+
+/**
+ * Attaches MEL header category pills data to a variables array.
+ *
+ * @param array $variables
+ *   Preprocess variables array (page, taxonomy term, etc).
+ */
+function _myeventlane_theme_attach_mel_header_categories(array &$variables): void {
+  // Avoid overwriting if something upstream already provided it.
+  if (isset($variables['mel_header_categories'])) {
+    return;
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_core\Service\FrontCategoryStatsService $stats */
+    $stats = \Drupal::service('myeventlane_core.front_category_stats');
+    $data = $stats->buildFrontStats();
+
+    $variables['mel_header_categories'] = $data['items'] ?? [];
+
+    $cacheable = new CacheableMetadata();
+    $cacheable->setCacheMaxAge((int) ($data['cache']['max_age'] ?? 3600));
+    $cacheable->setCacheTags((array) ($data['cache']['tags'] ?? []));
+    $cacheable->applyTo($variables);
+  }
+  catch (\Exception $e) {
+    $variables['mel_header_categories'] = [];
+  }
 }
 
 /**

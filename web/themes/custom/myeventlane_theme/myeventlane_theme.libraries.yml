@@ -35,3 +35,12 @@ front:
   dependencies:
     - core/drupal
     - core/once
+
+# Listing headers (taxonomy/search/filtered views).
+# Reuses the front "above-the-cards" CSS without loading front-only JS.
+mel-listing-header:
+  css:
+    theme:
+      dist/css/front.css: {}
+  dependencies:
+    - core/drupal

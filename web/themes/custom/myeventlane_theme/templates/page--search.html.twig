@@ -42,7 +42,8 @@
         {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
           title: 'Search results',
           show_search: true,
-          show_categories: true
+          show_categories: true,
+          categories: mel_header_categories|default([])
         } %}
 
         {{ page.content }}

@@ -8,11 +8,15 @@
  * Available variables:
  * - title: Page title string.
  * - show_search: Boolean; when TRUE renders the MEL search block.
- * - show_categories: Boolean; when TRUE renders the MEL category pills block.
+ * - show_categories: Boolean; when TRUE renders the MEL category pills UI.
+ * - categories: Optional array of items with keys: tid, label, color.
  */
 #}
 {% set show_search = show_search|default(false) %}
 {% set show_categories = show_categories|default(false) %}
+{% set categories = categories|default([]) %}
+
+{{ attach_library('myeventlane_theme/mel-listing-header') }}
 
 <section class="mel-page-header">
   <h1 class="mel-page-title">
@@ -24,10 +28,23 @@
   </p>
 
   {% if show_search %}
-    {{ drupal_block('myeventlane_search_block') }}
+    {# Reuse the exact homepage search UI markup. #}
+    {% include '@myeventlane_theme/components/front/_front-search.html.twig' with {
+      front: {}
+    } only %}
   {% endif %}
 
-  {% if show_categories %}
-    {{ drupal_block('myeventlane_category_pills') }}
+  {% if show_categories and categories %}
+    <nav class="mel-category-pills" aria-label="Event categories">
+      {% for c in categories %}
+        <a
+          href="{{ path('entity.taxonomy_term.canonical', {'taxonomy_term': c.tid}) }}"
+          class="mel-pill"
+          style="--pill-color: {{ c.color }}"
+        >
+          {{ c.label }}
+        </a>
+      {% endfor %}
+    </nav>
   {% endif %}
 </section>
