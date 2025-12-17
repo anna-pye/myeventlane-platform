@@ -110,6 +110,31 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Front page specific processing
   // Check if this is the front page.
   if (\Drupal::service('path.matcher')->isFrontPage()) {
+    /* #region agent log */
+    $mel_debug_log = static function (string $hypothesis_id, string $location, string $message, array $data = []): void {
+      try {
+        $path = dirname(DRUPAL_ROOT) . '/.cursor/debug.log';
+        $payload = [
+          'sessionId' => 'debug-session',
+          'runId' => 'run1',
+          'hypothesisId' => $hypothesis_id,
+          'location' => $location,
+          'message' => $message,
+          'data' => $data,
+          'timestamp' => (int) (microtime(TRUE) * 1000),
+        ];
+        file_put_contents($path, json_encode($payload) . PHP_EOL, FILE_APPEND);
+      }
+      catch (\Throwable $e) {
+        // Ignore logging failures.
+      }
+    };
+    $mel_debug_log('A', 'myeventlane_theme.theme:preprocess_page(front)', 'Entered front preprocess', [
+      'route' => \Drupal::routeMatch()->getRouteName(),
+      'is_front' => TRUE,
+    ]);
+    /* #endregion agent log */
+
     // Build above-the-cards front UI data (cached + tagged).
     try {
       /** @var \Drupal\myeventlane_core\Service\FrontCategoryStatsService $stats */
@@ -217,8 +242,51 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $featured_view->setDisplay('block_featured');
       $featured_view->preExecute();
       $featured_view->execute();
+      /* #region agent log */
+      $mel_debug_log('A', 'myeventlane_theme.theme:preprocess_page(front)', 'Featured events view executed', [
+        'view_id' => 'featured_events',
+        'display' => 'block_featured',
+        'result_count' => is_array($featured_view->result ?? NULL) ? count($featured_view->result) : NULL,
+      ]);
+      /* #endregion agent log */
       $variables['featured_events'] = $featured_view->render();
+      /* #region agent log */
+      try {
+        $renderer = \Drupal::service('renderer');
+        // Render a COPY to avoid consuming the render array before Twig prints it.
+        $copy = $variables['featured_events'];
+        $html = (string) $renderer->renderPlain($copy);
+        $first_tag = NULL;
+        if (preg_match('/<([a-z0-9]+)\b[^>]*\bclass="[^"]*\bmel-event-card\b[^"]*"[^>]*>/i', $html, $m)) {
+          $first_tag = [
+            'tag' => $m[1] ?? NULL,
+            'open' => $m[0] ?? NULL,
+          ];
+        }
+        $mel_debug_log('B', 'myeventlane_theme.theme:preprocess_page(front)', 'Featured events rendered snapshot', [
+          'html_len' => strlen($html),
+          'count_mel_event_card' => substr_count($html, 'mel-event-card'),
+          'count_views_row' => substr_count($html, 'views-row'),
+          'contains_node_teaser' => (strpos($html, 'node--view-mode-teaser') !== FALSE),
+          'contains_view_wrapper' => (strpos($html, 'view-featured-events') !== FALSE),
+          'first_mel_event_card_tag' => $first_tag ? $first_tag['tag'] : NULL,
+          'first_mel_event_card_open' => $first_tag ? $first_tag['open'] : NULL,
+          'count_article' => substr_count($html, '<article'),
+        ]);
+      }
+      catch (\Throwable $e) {
+        $mel_debug_log('B', 'myeventlane_theme.theme:preprocess_page(front)', 'Featured events rendered snapshot failed', [
+          'error' => $e->getMessage(),
+        ]);
+      }
+      /* #endregion agent log */
     } else {
+      /* #region agent log */
+      $mel_debug_log('A', 'myeventlane_theme.theme:preprocess_page(front)', 'Featured events view missing or access denied', [
+        'view_exists' => (bool) $featured_view,
+        'access_block_featured' => $featured_view ? (bool) $featured_view->access('block_featured') : NULL,
+      ]);
+      /* #endregion agent log */
       $variables['featured_events'] = NULL;
     }
     

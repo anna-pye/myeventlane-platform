@@ -1,26 +1,26 @@
 .mel-category-pills {
-  display: flex;
+  display: grid;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin: 1.25rem 0;
 }
 
 .mel-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.55rem 1.05rem;
   border-radius: 999px;
-  background: linear-gradient(
-    135deg,
-    var(--pill-color),
-    rgba(255, 255, 255, 0.15)
-  );
+  background: var(--pill-color);
   color: #fff;
   font-weight: 700;
   font-size: 0.9rem;
   text-decoration: none;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .mel-pill:hover {
   transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
 }

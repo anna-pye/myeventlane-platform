@@ -49,7 +49,7 @@
 @use 'layout/header-layout';
 @use 'layout/page-grid';
 @use 'layout/regions';
-@use 'layout/event-grid' as layout_event_grid;
+// @use 'layout/event-grid' as layout_event_grid; // REMOVED: Grid moved to components/_event-grid.scss
 @use 'layout/homepage';
 @use 'layout/page-home';
 

@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../tokens/colors';
 @use '../tokens/radii';
 @use '../tokens/spacing';
@@ -6,9 +7,9 @@
 @use '../tokens/breakpoints';
 
 .mel-hero {
-  background: colors.$mel-color-accent-3;
+  background: transparent;
   padding: spacing.mel-space(7) 0;
-  border-radius: radii.$mel-radius-lg;
+  border-radius: 0;
   margin-bottom: spacing.mel-space(6);
 }
 
@@ -98,7 +99,7 @@
   transition: background 0.2s;
 
   &:hover {
-    background: lighten(colors.$mel-color-surface, 4%);
+    background: color.adjust(colors.$mel-color-surface, $lightness: 4%);
   }
 }
 .mel-chip-empty {

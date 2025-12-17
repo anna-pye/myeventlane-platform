@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Canonical event card template.
+ * Single source of truth for event card markup across all event listings.
+ *
+ * Available variables:
+ * - content: Render array with field_image, field_event_date, field_location, field_cta
+ * - label: The event title.
+ */
+#}
+<article class="mel-event-card">
+  {% if content.field_image is defined %}
+    <div class="mel-event-card__media">
+      {{ content.field_image }}
+    </div>
+  {% endif %}
+
+  <div class="mel-event-card__body">
+    <h3 class="mel-event-card__title">{{ label }}</h3>
+
+    <div class="mel-event-card__meta">
+      {{ content.field_event_date }}
+      {{ content.field_location }}
+    </div>
+
+    <div class="mel-event-card__cta">
+      {{ content.field_cta }}
+    </div>
+  </div>
+</article>

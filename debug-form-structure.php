@@ -85,3 +85,13 @@ PHP;
 
 echo "Copy the code above and add it to EventFormAlter::alterForm() at the end.\n";
 echo "Or check DEBUG_INSTRUCTIONS.md for logging that's already been added.\n";
+
+
+
+
+
+
+
+
+
+

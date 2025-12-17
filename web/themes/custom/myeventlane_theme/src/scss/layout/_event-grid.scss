@@ -1,16 +1,6 @@
 @use '../tokens/spacing';
 @use '../tokens/breakpoints';
 
-.mel-event-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: spacing.mel-space(6);
-
-  @include breakpoints.mel-break(md) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include breakpoints.mel-break(lg) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
+// REMOVED: Grid definition moved to components/_event-grid.scss
+// This file is imported but no longer defines .mel-event-grid
+// All grid styles are now in components/_event-grid.scss

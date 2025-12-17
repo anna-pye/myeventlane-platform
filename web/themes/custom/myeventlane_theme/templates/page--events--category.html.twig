@@ -77,44 +77,8 @@
           <a href="/create-event" class="mel-btn mel-btn-primary" style="padding: 0.5rem 1.5rem; border-radius: 999px;">{{ 'Create your event'|t }}</a>
         </div>
         
-        {# CSS for event grid #}
-        <style>
-          .mel-events-section h2:not(.mel-section-title),
-          .mel-events-section h3,
-          .mel-events-section .view-header { display: none !important; }
-          
-          .mel-events-section .view-content {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 1.5rem !important;
-          }
-          
-          .mel-events-section .view > div:not(.view-header):not(.view-filters) {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 1.5rem !important;
-          }
-          
-          .mel-events-section .mel-event-card {
-            display: flex !important;
-            flex-direction: column !important;
-          }
-          
-          @media (max-width: 1024px) {
-            .mel-events-section .view-content,
-            .mel-events-section .view > div:not(.view-header):not(.view-filters) { 
-              grid-template-columns: repeat(2, 1fr) !important; 
-            }
-          }
-          @media (max-width: 640px) {
-            .mel-events-section .view-content,
-            .mel-events-section .view > div:not(.view-header):not(.view-filters) { 
-              grid-template-columns: 1fr !important; 
-            }
-          }
-        </style>
-        
-        <div class="mel-events-section">
+        {# Event Grid - wraps the views output #}
+        <div class="mel-event-grid">
           {{ page.content }}
         </div>
       </section>

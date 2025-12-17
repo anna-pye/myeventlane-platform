@@ -87,76 +87,12 @@
 }
 
 // ---------------------------------------------------------------------------
-// Events List (Vertical Stack)
+// Events List
 // ---------------------------------------------------------------------------
-
-.mel-events-grid {
-  // Hide view titles and headers
-  .view-header,
-  .block-title,
-  h2:not(.mel-section-title),
-  h3:not(.mel-event-card-title) {
-    display: none !important;
-  }
-
-  // Target multiple possible view structures - grid layout
-  .view,
-  .view-content,
-  .views-element-container,
-  > .view,
-  > div:first-child {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: spacing.mel-space(5) !important;
-  }
-
-  // Ensure the block wrapper doesn't interfere
-  .block {
-    display: contents !important;
-  }
-
-  // Ensure event cards are flex containers and grid items
-  .mel-event-card,
-  .views-row,
-  article[class*="node--event"],
-  .node--event {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  // Responsive grid adjustments
-  @include breakpoints.mel-break(md) {
-    .view,
-    .view-content,
-    .views-element-container,
-    > .view,
-    > div:first-child {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: spacing.mel-space(4) !important;
-    }
-  }
-
-  @include breakpoints.mel-break(sm) {
-    .view,
-    .view-content,
-    .views-element-container,
-    > .view,
-    > div:first-child {
-      grid-template-columns: 1fr !important;
-      gap: spacing.mel-space(3) !important;
-    }
-  }
-}
-
-// Featured events grid - can have different styling if needed
-.mel-events-grid--featured {
-  // Same as base grid, but can be customized
-}
-
-// New events grid - can have different styling if needed
-.mel-events-grid--new {
-  // Same as base grid, but can be customized
-}
+// REMOVED: All .mel-events-grid overrides
+// Event listings now use the canonical .mel-event-grid from components/_event-grid.scss
+// Views are wrapped with .mel-event-grid in templates, not styled here.
+// The grid is applied at the template level, not through CSS overrides.
 
 // ---------------------------------------------------------------------------
 // Trending Events Section

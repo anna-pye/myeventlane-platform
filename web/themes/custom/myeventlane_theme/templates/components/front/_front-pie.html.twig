@@ -16,7 +16,6 @@
               data-mel-count="{{ s.count }}"
               data-mel-percent="{{ s.percent }}" />
       {% endfor %}
-      <circle class="mel-front-pie__hole" cx="{{ pie.cx }}" cy="{{ pie.cy }}" r="{{ pie.r_inner }}" />
     </svg>
   {% endset %}
 {% endif %}
@@ -26,5 +25,7 @@
     <div class="mel-pie-float">
       {{ svg }}
     </div>
+  {% else %}
+    <div class="mel-pie-float mel-pie-float--empty" aria-hidden="true"></div>
   {% endif %}
 </div>

@@ -136,9 +136,14 @@ final class FrontCategoryStatsService {
     $start = -90.0;
     $slices = [];
 
+    $segments = count($items);
     foreach ($items as $index => $item) {
       $count = (int) $item['count'];
-      $angle = $total > 0 ? ($count / $total) * 360.0 : 0;
+      // If there are zero events, render a balanced pie so the chart
+      // still appears and colors map cleanly to category pills.
+      $angle = $total > 0
+        ? ($count / $total) * 360.0
+        : ($segments > 0 ? 360.0 / $segments : 0.0);
       $end = $start + $angle;
 
       $slices[] = [

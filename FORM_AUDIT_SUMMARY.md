@@ -57,3 +57,13 @@
 - [ ] Click "Design" tab and verify Category/Accessibility fields appear
 - [ ] Set Event Type to "Paid" and verify Ticket Types appear
 - [ ] Check watchdog logs for form alter execution
+
+
+
+
+
+
+
+
+
+
