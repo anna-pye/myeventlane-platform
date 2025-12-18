@@ -20,7 +20,7 @@ use Drupal\node\NodeInterface;
  * 4. Attendance Type (RSVP/Paid/External)
  * 5. Attendance Details (conditional based on type)
  * 6. Extras (category, accessibility, questions)
- * 7. Review & Publish
+ * 7. Review & Publish.
  */
 final class EventFormAlter {
 
@@ -61,7 +61,7 @@ final class EventFormAlter {
     }
 
     $is_new = $node->isNew();
-    
+
     // CRITICAL: Hide booking_status BEFORE building steps, as it's added in myeventlane_event.module
     // This must run early to prevent it from being moved into step containers.
     if (isset($form['booking_status'])) {
@@ -69,7 +69,7 @@ final class EventFormAlter {
       $form['booking_status']['#printed'] = TRUE;
       unset($form['booking_status']);
     }
-    
+
     // Also hide status fieldset if it exists.
     if (isset($form['status'])) {
       $form['status']['#access'] = FALSE;
@@ -132,12 +132,12 @@ final class EventFormAlter {
       $form['status_messages']['#access'] = FALSE;
       unset($form['status_messages']);
     }
-    
+
     // Hide any messages containers.
     if (isset($form['messages'])) {
       $form['messages']['#access'] = FALSE;
     }
-    
+
     // Hide the "Status" fieldset that shows "RSVP mode active" - this is added in myeventlane_event.module
     // We need to hide it after all form alters run, so we'll use CSS as backup.
     // But also try to hide it here if it exists.
@@ -147,6 +147,10 @@ final class EventFormAlter {
 
     // Ensure only current step is visible initially.
     $this->hideNonActiveSteps($form, $form_state);
+
+    // Wrap wizard components in a single container for Twig to render.
+    // This must be done AFTER hideNonActiveSteps so it can operate on root-level steps.
+    $this->wrapWizardComponents($form, $form_state);
 
     // Attach libraries.
     $this->attachLibraries($form);
@@ -171,20 +175,34 @@ final class EventFormAlter {
   private function hideAdminFields(array &$form): void {
     // Admin-only fields to hide from vendors.
     $admin_fields = [
-      'status',           // Published checkbox
-      'revision',         // Revision information
-      'revision_information', // Alternative revision field name
-      'revision_log',     // Revision log message
-      'menu',             // Menu settings
-      'menu_link',        // Menu link settings
-      'path',             // URL path settings (sometimes admin-only)
-      'promote',          // Promote to front page
-      'sticky',           // Sticky at top of lists
-      'uid',              // Author (user ID)
-      'created',          // Created date
-      'changed',          // Changed date
-      'advanced',         // Advanced options container
-      'booking_status',   // Booking status messages (RSVP mode active, etc.)
+    // Published checkbox.
+      'status',
+    // Revision information.
+      'revision',
+    // Alternative revision field name.
+      'revision_information',
+    // Revision log message.
+      'revision_log',
+    // Menu settings.
+      'menu',
+    // Menu link settings.
+      'menu_link',
+    // URL path settings (sometimes admin-only)
+      'path',
+    // Promote to front page.
+      'promote',
+    // Sticky at top of lists.
+      'sticky',
+    // Author (user ID)
+      'uid',
+    // Created date.
+      'created',
+    // Changed date.
+      'changed',
+    // Advanced options container.
+      'advanced',
+    // Booking status messages (RSVP mode active, etc.)
+      'booking_status',
     ];
 
     foreach ($admin_fields as $field_name) {
@@ -196,7 +214,7 @@ final class EventFormAlter {
     // Also hide any fields in the 'advanced' container if it exists.
     if (isset($form['advanced']) && is_array($form['advanced'])) {
       $form['advanced']['#access'] = FALSE;
-      
+
       // Recursively hide all children.
       foreach ($form['advanced'] as $key => &$child) {
         if (is_string($key) && !str_starts_with($key, '#')) {
@@ -228,7 +246,7 @@ final class EventFormAlter {
         if (isset($form[$section]['#attributes']['class'])) {
           $form[$section]['#attributes']['class'] = array_filter(
             $form[$section]['#attributes']['class'],
-            function($class) {
+            function ($class) {
               return !in_array($class, ['mel-tab-pane', 'mel-simple-tab-pane', 'is-active'], TRUE);
             }
           );
@@ -258,14 +276,19 @@ final class EventFormAlter {
 
     foreach ($step_keys as $step_key) {
       $section_key = $step_section_map[$step_key] ?? $step_key;
-      
+
       // Try both the step key and section key.
+      // Check root level first, then inside wrapper if it exists.
       $sections_to_process = [];
       if (isset($form[$step_key])) {
         $sections_to_process[$step_key] = &$form[$step_key];
       }
       if (isset($form[$section_key]) && $section_key !== $step_key) {
         $sections_to_process[$section_key] = &$form[$section_key];
+      }
+      // Also check inside wrapper if it exists (for form rebuilds).
+      if (isset($form['mel_event_wizard']['steps'][$section_key])) {
+        $sections_to_process['wrapped_' . $section_key] = &$form['mel_event_wizard']['steps'][$section_key];
       }
 
       foreach ($sections_to_process as $key => &$section) {
@@ -276,15 +299,16 @@ final class EventFormAlter {
         if ($step_key !== $current_step) {
           // Hide non-active steps using #access (most reliable method).
           $section['#access'] = FALSE;
-        } else {
+        }
+        else {
           // Show active step - explicitly set access.
           $section['#access'] = TRUE;
-          
+
           // Ensure content container is accessible.
           if (isset($section['content'])) {
             $section['content']['#access'] = TRUE;
           }
-          
+
           // Recursively ensure child elements are accessible.
           $this->showFormElementRecursive($section);
         }
@@ -295,7 +319,7 @@ final class EventFormAlter {
     // Also hide any fields that are not in any step container.
     // These are likely fields that weren't moved into step containers.
     $this->hideOrphanedFields($form, $form_state, $current_step);
-    
+
     // Ensure booking_status is hidden (RSVP mode active message).
     if (isset($form['booking_status'])) {
       $form['booking_status']['#access'] = FALSE;
@@ -307,7 +331,7 @@ final class EventFormAlter {
    */
   private function hideFormElementRecursive(array &$element): void {
     $element['#access'] = FALSE;
-    
+
     foreach ($element as $key => &$child) {
       if (is_array($child) && (is_string($key) && !str_starts_with($key, '#')) || is_int($key)) {
         $this->hideFormElementRecursive($child);
@@ -325,7 +349,7 @@ final class EventFormAlter {
     if (isset($element['#access']) && $element['#access'] === FALSE) {
       unset($element['#access']);
     }
-    
+
     foreach ($element as $key => &$child) {
       if (is_array($child)) {
         // Only skip if key is a string starting with '#' (form properties).
@@ -441,7 +465,7 @@ final class EventFormAlter {
    */
   private function isEventForm(): bool {
     $route_name = $this->routeMatch->getRouteName();
-    
+
     // Vendor routes.
     $vendor_routes = [
       'myeventlane_vendor.console.events_add',
@@ -450,7 +474,7 @@ final class EventFormAlter {
     if (in_array($route_name, $vendor_routes, TRUE)) {
       return TRUE;
     }
-    
+
     // Admin routes - check if it's an event node form.
     if (in_array($route_name, ['node.add', 'entity.node.edit_form'], TRUE)) {
       $node = $this->routeMatch->getParameter('node');
@@ -463,7 +487,7 @@ final class EventFormAlter {
         return TRUE;
       }
     }
-    
+
     return FALSE;
   }
 
@@ -534,7 +558,11 @@ final class EventFormAlter {
 
     // Store in form for JavaScript access.
     $form['#attached']['drupalSettings']['eventWizard'] = [
+      'activeStep' => $current_step,
+    // Keep for backward compatibility.
       'currentStep' => $current_step,
+      'completedSteps' => [],
+      'allowForward' => FALSE,
       'steps' => array_keys($steps),
       'stepConfig' => $steps,
     ];
@@ -568,7 +596,7 @@ final class EventFormAlter {
       $is_active = ($step_key === $current_step);
       $is_completed = $this->isStepCompleted($form, $form_state, $step_key, $steps);
       $is_accessible = $this->isStepAccessible($form, $form_state, $step_key, $steps, $current_step);
-      
+
       $classes = ['mel-wizard-stepper__item'];
       if ($is_active) {
         $classes[] = 'is-active';
@@ -584,7 +612,8 @@ final class EventFormAlter {
         '#type' => 'container',
         '#attributes' => [
           'class' => $classes,
-          'data-step' => $step_key,
+          'data-mel-step' => $step_key,
+          'data-mel-step-target' => $step_key,
           'role' => 'button',
           'tabindex' => $is_accessible ? '0' : '-1',
           'aria-current' => $is_active ? 'step' : 'false',
@@ -621,16 +650,16 @@ final class EventFormAlter {
     $step_keys = array_keys($steps);
     $current_index = array_search($current_step, $step_keys, TRUE);
     $target_index = array_search($step_key, $step_keys, TRUE);
-    
+
     if ($target_index === FALSE || $current_index === FALSE) {
       return FALSE;
     }
-    
+
     // Can go back freely, can only go forward if current step is completed.
     if ($target_index <= $current_index) {
       return TRUE;
     }
-    
+
     // For forward navigation, check if current step is completed.
     return $this->isStepCompleted($form, $form_state, $current_step, $steps);
   }
@@ -655,7 +684,7 @@ final class EventFormAlter {
       $step_keys = array_keys($steps);
       $current_index = array_search($current_step, $step_keys, TRUE);
       $step_index = array_search($step_key, $step_keys, TRUE);
-      
+
       // Only mark as completed if it's a previous step (user has moved past it).
       return ($step_index !== FALSE && $current_index !== FALSE && $step_index < $current_index);
     }
@@ -764,6 +793,10 @@ final class EventFormAlter {
           // Hide format selector and help text.
           if (isset($form['body']['widget'][0]['format'])) {
             $form['body']['widget'][0]['format']['#access'] = FALSE;
+            if (!isset($form['body']['widget'][0]['format']['#attributes']['class'])) {
+              $form['body']['widget'][0]['format']['#attributes']['class'] = [];
+            }
+            $form['body']['widget'][0]['format']['#attributes']['class'][] = 'mel-hidden-drupal';
           }
           // Remove description that mentions formats.
           if (isset($form['body']['widget'][0]['#description'])) {
@@ -953,7 +986,7 @@ final class EventFormAlter {
       $form['field_event_type']['#title'] = t('How will people attend?');
       // Update description.
       $form['field_event_type']['#description'] = '';
-      
+
       // Remove any existing states.
       if (isset($form['field_event_type']['#states'])) {
         unset($form['field_event_type']['#states']);
@@ -1158,7 +1191,8 @@ final class EventFormAlter {
         if ($vendor && $vendor->hasField('field_stripe_account_id')) {
           $stripeAccountId = $vendor->get('field_stripe_account_id')->value;
           $showDonation = !empty($stripeAccountId);
-        } else {
+        }
+        else {
           $showDonation = FALSE;
         }
       }
@@ -1284,50 +1318,50 @@ final class EventFormAlter {
    */
   private function buildReviewSummary(FormStateInterface $form_state, NodeInterface $node): string {
     $summary = '<div class="mel-review-summary">';
-    
+
     // Get form values.
     $title = $form_state->getValue('title') ?? $node->getTitle();
     $body = $form_state->getValue('body') ?? '';
     $start = $form_state->getValue(['field_event_start', 0, 'value']) ?? '';
     $end = $form_state->getValue(['field_event_end', 0, 'value']) ?? '';
     $event_type = $form_state->getValue(['field_event_type', 0, 'value']) ?? '';
-    
+
     $summary .= '<h3>' . t('Event Summary') . '</h3>';
     $summary .= '<div class="mel-review-summary__section">';
     $summary .= '<h4>' . t('Title') . '</h4>';
     $summary .= '<p>' . htmlspecialchars($title) . '</p>';
     $summary .= '</div>';
-    
+
     if (!empty($body)) {
       $summary .= '<div class="mel-review-summary__section">';
       $summary .= '<h4>' . t('Description') . '</h4>';
       $summary .= '<p>' . htmlspecialchars($body) . '</p>';
       $summary .= '</div>';
     }
-    
+
     if (!empty($start)) {
       $summary .= '<div class="mel-review-summary__section">';
       $summary .= '<h4>' . t('Start Date') . '</h4>';
       $summary .= '<p>' . htmlspecialchars($start) . '</p>';
       $summary .= '</div>';
     }
-    
+
     if (!empty($end)) {
       $summary .= '<div class="mel-review-summary__section">';
       $summary .= '<h4>' . t('End Date') . '</h4>';
       $summary .= '<p>' . htmlspecialchars($end) . '</p>';
       $summary .= '</div>';
     }
-    
+
     if (!empty($event_type)) {
       $summary .= '<div class="mel-review-summary__section">';
       $summary .= '<h4>' . t('Attendance Type') . '</h4>';
       $summary .= '<p>' . htmlspecialchars($event_type) . '</p>';
       $summary .= '</div>';
     }
-    
+
     $summary .= '</div>';
-    
+
     return $summary;
   }
 
@@ -1391,7 +1425,8 @@ final class EventFormAlter {
       if (isset($form['actions']['submit']) && is_array($form['actions']['submit'])) {
         if ($current_step === 'review') {
           $form['actions']['submit']['#value'] = $is_new ? t('Publish event') : t('Save changes');
-        } else {
+        }
+        else {
           $form['actions']['submit']['#value'] = t('Next');
         }
         if (!isset($form['actions']['submit']['#attributes'])) {
@@ -1483,6 +1518,49 @@ final class EventFormAlter {
 
     $store = $vendor->get('field_vendor_store')->entity;
     return $store ? (int) $store->id() : NULL;
+  }
+
+  /**
+   * Wrap wizard components (stepper + steps) in a single container.
+   */
+  private function wrapWizardComponents(array &$form, FormStateInterface $form_state): void {
+    // Skip if already wrapped (form rebuild scenario).
+    if (isset($form['mel_event_wizard'])) {
+      return;
+    }
+
+    // Create the main wizard wrapper container.
+    $form['mel_event_wizard'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-wizard'],
+      ],
+      '#weight' => 0,
+    ];
+
+    // Move stepper into wrapper.
+    if (isset($form['wizard_stepper'])) {
+      $form['mel_event_wizard']['wizard_stepper'] = $form['wizard_stepper'];
+      unset($form['wizard_stepper']);
+    }
+
+    // Create steps container inside wrapper.
+    $form['mel_event_wizard']['steps'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-wizard-steps-container'],
+      ],
+      '#weight' => 1,
+    ];
+
+    // Move all step containers into the steps container.
+    $step_keys = ['event_basics', 'schedule', 'location', 'attendance_type', 'attendance_details', 'extras', 'review'];
+    foreach ($step_keys as $step_key) {
+      if (isset($form[$step_key])) {
+        $form['mel_event_wizard']['steps'][$step_key] = $form[$step_key];
+        unset($form[$step_key]);
+      }
+    }
   }
 
   /**

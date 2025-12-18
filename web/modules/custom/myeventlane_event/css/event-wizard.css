@@ -28,15 +28,14 @@
 .mel-form-status,
 .form-item--booking-status,
 [data-drupal-selector*="booking-status"],
-.messages--status:has-text("RSVP mode active"),
 .mel-event-wizard .mel-booking-status,
 .mel-event-wizard [data-drupal-selector*="booking-status"],
 .mel-event-wizard .messages--status,
 .mel-event-wizard .form-item--name-status,
-.mel-event-wizard fieldset:has(legend:contains("Status")),
-.mel-event-wizard fieldset:has(legend:contains("RSVP")),
 .mel-event-wizard .fieldset--status,
-.mel-event-wizard .fieldset-wrapper:has-text("RSVP mode active") {
+.mel-event-wizard .mel-hidden-drupal,
+.mel-event-wizard fieldset.mel-hidden-drupal,
+.mel-event-wizard .fieldset-wrapper.mel-hidden-drupal {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
@@ -48,25 +47,10 @@
   width: 0 !important;
 }
 
-/* Hide any fieldset with "Status" in the legend */
-.mel-event-wizard fieldset legend:contains("Status"),
-.mel-event-wizard .fieldset__legend:contains("Status") {
-  display: none !important;
-}
-
-/* Hide the entire Status fieldset if it contains RSVP mode text */
-.mel-event-wizard fieldset:has-text("RSVP mode active"),
-.mel-event-wizard .form-item:has-text("RSVP mode active"),
-.mel-event-wizard .form-item:has-text("RSVP mode"),
-.mel-event-wizard fieldset:has(legend:contains("Status")) {
-  display: none !important;
-}
-
 /* Hide Status fieldset by targeting common patterns */
 .mel-event-wizard .form-item--name-status,
 .mel-event-wizard fieldset.form-item--name-status,
-.mel-event-wizard .fieldset-wrapper:has(.messages--status),
-.mel-event-wizard .fieldset-wrapper:has-text("RSVP") {
+.mel-event-wizard .fieldset-wrapper.mel-hidden-drupal {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
@@ -75,35 +59,28 @@
   margin: 0 !important;
 }
 
-/* Hide any messages that contain RSVP mode text */
-.mel-event-wizard .messages--status:has-text("RSVP"),
-.mel-event-wizard .messages:has-text("RSVP mode"),
-.mel-event-wizard .status-messages:has-text("RSVP") {
-  display: none !important;
-}
-
 /* Hide Drupal help text and technical details */
-.mel-event-wizard .description,
-.mel-event-wizard .form-item__description,
-.mel-event-wizard .fieldset__description {
-  /* Only hide technical help, keep friendly descriptions */
+.mel-event-wizard .mel-hidden-drupal,
+.mel-event-wizard .description.mel-hidden-drupal,
+.mel-event-wizard .form-item__description.mel-hidden-drupal,
+.mel-event-wizard .fieldset__description.mel-hidden-drupal {
+  display: none !important;
+  visibility: hidden !important;
 }
 
 /* Hide "About text formats" links */
 .mel-event-wizard .filter-wrapper,
 .mel-event-wizard .js-filter-wrapper,
 .mel-event-wizard a[href*="filter/tips"],
-.mel-event-wizard .form-item__description a[href*="filter"] {
+.mel-event-wizard .form-item__description a[href*="filter"],
+.mel-event-wizard .mel-hide-format-help {
   display: none !important;
   visibility: hidden !important;
 }
 
 /* Hide file upload technical details */
 .mel-event-wizard .file-upload-help,
-.mel-event-wizard .form-item__description:has-text("MB limit"),
-.mel-event-wizard .form-item__description:has-text("pixels"),
-.mel-event-wizard .form-item__description:has-text("Allowed types"),
-.mel-event-wizard .form-item__description:has-text("MIME") {
+.mel-event-wizard .form-item__description.mel-hidden-drupal {
   display: none !important;
   visibility: hidden !important;
 }
@@ -218,7 +195,7 @@
 }
 
 .mel-wizard-step__content .form-item__description,
-.mel-wizard-step__content .description {
+.mel-wizard-step__content .description:not(.mel-hidden-drupal) {
   margin-top: 0.5rem;
   font-size: 0.875rem;
   color: #637185;
@@ -301,20 +278,6 @@
 .mel-wizard-step__content .form-item:empty,
 .mel-wizard-step__content .form-item:has(> label:only-child),
 .mel-wizard-step__content .form-item:has(> .label:only-child) {
-  display: none !important;
-}
-
-/* Hide any duplicate title fields that appear as ghost boxes */
-.mel-wizard-step__content .form-item--name-title:not(:has(input)),
-.mel-wizard-step__content .form-item--name-body:not(:has(textarea)),
-.mel-wizard-step__content .form-item:has(> label[for*="title"]):not(:has(input)),
-.mel-wizard-step__content .form-item:has(> label[for*="body"]):not(:has(textarea)) {
-  display: none !important;
-}
-
-/* Ensure labels only appear once - hide any label without a corresponding input */
-.mel-wizard-step__content .form-item label:not([for]),
-.mel-wizard-step__content .form-item > .label:not([for]) {
   display: none !important;
 }
 
