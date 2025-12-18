@@ -35,7 +35,8 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
   /**
    * {@inheritdoc}
    */
-  public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], PaymentInterface $payment = NULL) {
+  public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL) {
+    /** @var array $intent_attributes */
     // Get Connect parameters for this order.
     $connectService = \Drupal::service('myeventlane_commerce.stripe_connect_payment');
     $connectParams = $connectService->getConnectPaymentIntentParams($order);

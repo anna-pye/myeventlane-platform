@@ -2,7 +2,9 @@
 /**
  * @file
  * Theme override for the /events page.
- * Includes hero section and proper event grid layout.
+ *
+ * Uses the MEL listing header (search + category pills) and renders the events
+ * view output below.
  */
 #}
 
@@ -18,57 +20,46 @@
     {% include '@myeventlane_theme/includes/header.html.twig' %}
   </div>
 
-  {# Hero Section - inline hero content #}
-  <div class="mel-region-hero">
-    <section class="mel-hero">
-      <div class="mel-container mel-hero-inner">
-        <div class="mel-hero-header">
-          <div class="mel-hero-brand">
-            <h1 style="color: #ff6f61; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 2.5rem; line-height: 1.1; margin: 0;">
-              Discover Amazing Events
-            </h1>
-            <p class="mel-hero-tagline" style="font-size: 1.1rem; margin-top: 0.5rem; color: #5c5c6f;">
-              Find events that inspire and connect
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  {# Main Content #}
+  {# ==================== MAIN CONTENT ==================== #}
   <main id="main-content" class="mel-main">
     <div class="mel-container">
+      <div class="mel-content">
+        {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
+          title: 'Events'|t,
+          show_search: true,
+          show_categories: true,
+          categories: mel_header_categories|default([])
+        } %}
 
-      {# Featured Events Section #}
-      <section class="mel-section mel-featured-events">
-        <div class="mel-section-header">
-          <h2 class="mel-section-title">{{ 'Upcoming Events'|t }}</h2>
-          <a href="/create-event" class="mel-section-link">
-            {{ 'Create your event →'|t }}
-          </a>
-        </div>
+        {# Featured / All Events are provided by the attached Views output. #}
+        <section class="mel-section mel-featured-events">
+          <div class="mel-section-header">
+            <h2 class="mel-section-title">{{ 'Upcoming Events'|t }}</h2>
+            <a href="/create-event" class="mel-section-link">
+              {{ 'Create your event →'|t }}
+            </a>
+          </div>
 
-        {# Event Grid wrapper is applied by views-view-unformatted.html.twig #}
-        {{ page.content }}
-      </section>
+          {{ page.content }}
+        </section>
 
-      {# CTA Banner #}
-      <section class="mel-cta-banner">
-        <h2 class="mel-cta-title">{{ 'Ready to host your event?'|t }}</h2>
-        <p class="mel-cta-text">
-          {{ 'Create and manage events with ease. Free for free events!'|t }}
-        </p>
-        <div class="mel-cta-actions">
-          <a href="/create-event" class="mel-btn mel-btn-accent mel-btn-lg">
-            {{ 'Get Started Free'|t }}
-          </a>
-          <a href="/vendors" class="mel-btn mel-btn-ghost mel-btn-lg" style="color: white; border-color: rgba(255,255,255,0.5);">
-            {{ 'For Vendors'|t }}
-          </a>
-        </div>
-      </section>
+        {# CTA Banner #}
+        <section class="mel-cta-banner">
+          <h2 class="mel-cta-title">{{ 'Ready to host your event?'|t }}</h2>
+          <p class="mel-cta-text">
+            {{ 'Create and manage events with ease. Free for free events!'|t }}
+          </p>
+          <div class="mel-cta-actions">
+            <a href="/create-event" class="mel-btn mel-btn-accent mel-btn-lg">
+              {{ 'Get Started Free'|t }}
+            </a>
+            <a href="/vendors" class="mel-btn mel-btn-ghost mel-btn-lg" style="color: white; border-color: rgba(255,255,255,0.5);">
+              {{ 'For Vendors'|t }}
+            </a>
+          </div>
+        </section>
 
+      </div>
     </div>
   </main>
 
@@ -78,4 +69,3 @@
   </div>
 
 </div>
-

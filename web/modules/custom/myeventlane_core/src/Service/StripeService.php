@@ -8,8 +8,13 @@ use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Stripe\Account;
+use Stripe\AccountLink;
 use Stripe\StripeClient;
 use Stripe\Exception\ApiErrorException;
+use Stripe\LoginLink;
+use Stripe\PaymentIntent;
 
 /**
  * Service for Stripe operations including Connect and platform payments.
@@ -38,7 +43,7 @@ final class StripeService {
    * @return \Psr\Log\LoggerInterface
    *   The logger.
    */
-  private function logger(): \Psr\Log\LoggerInterface {
+  private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_core');
   }
 
@@ -151,7 +156,7 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    *   If account creation fails.
    */
-  public function createConnectAccount(string $email, string $country = 'AU', string $type = 'standard'): \Stripe\Account {
+  public function createConnectAccount(string $email, string $country = 'AU', string $type = 'standard'): Account {
     $client = $this->getPlatformClient();
 
     try {
@@ -196,7 +201,7 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    *   If AccountLink creation fails.
    */
-  public function createAccountLink(string $accountId, string $returnUrl, string $refreshUrl): \Stripe\AccountLink {
+  public function createAccountLink(string $accountId, string $returnUrl, string $refreshUrl): AccountLink {
     $client = $this->getPlatformClient();
 
     try {
@@ -233,7 +238,7 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    *   If LoginLink creation fails.
    */
-  public function createLoginLink(string $accountId): \Stripe\LoginLink {
+  public function createLoginLink(string $accountId): LoginLink {
     $client = $this->getPlatformClient();
 
     try {
@@ -320,8 +325,8 @@ final class StripeService {
     string $currency,
     string $stripeAccountId,
     int $applicationFeeAmount,
-    array $metadata = []
-  ): \Stripe\PaymentIntent {
+    array $metadata = [],
+  ): PaymentIntent {
     $client = $this->getPlatformClient();
 
     try {
@@ -374,8 +379,8 @@ final class StripeService {
   public function createPaymentIntentForBoost(
     int $amount,
     string $currency,
-    array $metadata = []
-  ): \Stripe\PaymentIntent {
+    array $metadata = [],
+  ): PaymentIntent {
     $client = $this->getPlatformClient();
 
     try {

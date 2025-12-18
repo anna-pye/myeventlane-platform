@@ -71,13 +71,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
   /**
    * Constructs a VendorDomainSubscriber object.
    *
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domain_detector
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector service.
-   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   * @param \Drupal\Core\Routing\RouteMatchInterface $routeMatch
    *   The route match service.
-   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
    */
   public function __construct(
@@ -113,7 +113,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     $route_name = $this->routeMatch->getRouteName();
 
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
-    
+
     // Redirect vendor domain root to vendor dashboard (always, regardless of force_redirects).
     if ($is_vendor_domain && ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>')) {
       // If user is anonymous, redirect to login first, then to dashboard.
@@ -122,7 +122,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
         $event->setResponse(new TrustedRedirectResponse($login_url, 302));
         return;
       }
-      
+
       $dashboard_url = $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
       $event->setResponse(new TrustedRedirectResponse($dashboard_url, 302));
       return;
@@ -133,7 +133,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     if (!$config->get('force_redirects')) {
       return;
     }
-    
+
     // Use path-based matching first (works before route matching).
     $is_vendor_path = str_starts_with($path, '/vendor/');
     $is_public_path = $this->isPublicPath($path);
@@ -159,7 +159,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       if ($path === '/' || $path === '' || str_starts_with($path, '/user/')) {
         return;
       }
-      
+
       $is_vendor_route = $is_vendor_path;
       $is_public_route = $is_public_path;
     }
@@ -329,21 +329,3 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

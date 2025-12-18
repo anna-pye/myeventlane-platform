@@ -10,20 +10,66 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\taxonomy\TermInterface;
 
+/**
+ * Builds front-end category statistics for pills and charts.
+ */
 final class FrontCategoryStatsService {
 
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
   private EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * The cache backend.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
   private CacheBackendInterface $cache;
+
+  /**
+   * The time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
   private TimeInterface $time;
+
+  /**
+   * The category color service.
+   *
+   * @var \Drupal\myeventlane_core\Service\CategoryColorService
+   */
   private CategoryColorService $colors;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
   private ConfigFactoryInterface $configFactory;
 
+  /**
+   * Constructs a FrontCategoryStatsService.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
+   * @param \Drupal\myeventlane_core\Service\CategoryColorService $colors
+   *   The category color service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory.
+   */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     CacheBackendInterface $cache,
     TimeInterface $time,
     CategoryColorService $colors,
-    ConfigFactoryInterface $configFactory
+    ConfigFactoryInterface $configFactory,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->cache = $cache;
@@ -32,6 +78,12 @@ final class FrontCategoryStatsService {
     $this->configFactory = $configFactory;
   }
 
+  /**
+   * Builds cached stats data for front-end category components.
+   *
+   * @return array
+   *   Stats array including category items, totals, and pie geometry.
+   */
   public function buildFrontStats(): array {
     $settings = $this->configFactory->get('myeventlane_core.settings');
 
@@ -95,6 +147,15 @@ final class FrontCategoryStatsService {
     return $data;
   }
 
+  /**
+   * Loads taxonomy terms for a vocabulary.
+   *
+   * @param string $vocab
+   *   The vocabulary machine name.
+   *
+   * @return array<int, \Drupal\taxonomy\TermInterface>
+   *   Loaded terms keyed by entity ID.
+   */
   private function loadTerms(string $vocab): array {
     $storage = $this->entityTypeManager->getStorage('taxonomy_term');
     $ids = $storage->getQuery()
@@ -109,9 +170,22 @@ final class FrontCategoryStatsService {
     }
 
     $terms = $storage->loadMultiple($ids);
-    return array_filter($terms, static fn($t) => $t instanceof TermInterface);
+    return array_filter($terms, static fn ($t) => $t instanceof TermInterface);
   }
 
+  /**
+   * Counts published events for a taxonomy term reference.
+   *
+   * @param string $type
+   *   The node bundle.
+   * @param string $field
+   *   The term reference field machine name.
+   * @param int $tid
+   *   The term ID.
+   *
+   * @return int
+   *   The count.
+   */
   private function countEventsForTerm(string $type, string $field, int $tid): int {
     try {
       $query = $this->entityTypeManager->getStorage('node')->getQuery();
@@ -127,6 +201,17 @@ final class FrontCategoryStatsService {
     }
   }
 
+  /**
+   * Builds an SVG pie chart geometry for the category counts.
+   *
+   * @param array $items
+   *   Category items (label, count, color, tid).
+   * @param int $total
+   *   Total count across all categories.
+   *
+   * @return array
+   *   Pie geometry data suitable for rendering.
+   */
   private function buildPieGeometry(array $items, int $total): array {
     $size = 220;
     $cx = 110.0;
@@ -168,6 +253,23 @@ final class FrontCategoryStatsService {
     ];
   }
 
+  /**
+   * Builds an SVG path for a pie slice.
+   *
+   * @param float $cx
+   *   Center x.
+   * @param float $cy
+   *   Center y.
+   * @param float $r
+   *   Radius.
+   * @param float $startDeg
+   *   Start angle in degrees.
+   * @param float $endDeg
+   *   End angle in degrees.
+   *
+   * @return string
+   *   SVG path `d` value.
+   */
   private function pieSlicePath(float $cx, float $cy, float $r, float $startDeg, float $endDeg): string {
     $start = $this->polarToCartesian($cx, $cy, $r, $endDeg);
     $end = $this->polarToCartesian($cx, $cy, $r, $startDeg);
@@ -181,6 +283,25 @@ final class FrontCategoryStatsService {
     ]);
   }
 
+  /**
+   * Builds an SVG path for a donut slice (currently unused).
+   *
+   * @param float $cx
+   *   Center x.
+   * @param float $cy
+   *   Center y.
+   * @param float $rOuter
+   *   Outer radius.
+   * @param float $rInner
+   *   Inner radius.
+   * @param float $startDeg
+   *   Start angle in degrees.
+   * @param float $endDeg
+   *   End angle in degrees.
+   *
+   * @return string
+   *   SVG path `d` value.
+   */
   private function donutSlicePath(float $cx, float $cy, float $rOuter, float $rInner, float $startDeg, float $endDeg): string {
     $start = $this->polarToCartesian($cx, $cy, $rOuter, $endDeg);
     $end = $this->polarToCartesian($cx, $cy, $rOuter, $startDeg);
@@ -199,6 +320,21 @@ final class FrontCategoryStatsService {
     ]);
   }
 
+  /**
+   * Converts polar coordinates to cartesian coordinates.
+   *
+   * @param float $cx
+   *   Center x.
+   * @param float $cy
+   *   Center y.
+   * @param float $r
+   *   Radius.
+   * @param float $deg
+   *   Angle in degrees.
+   *
+   * @return array{x: float, y: float}
+   *   The cartesian coordinates.
+   */
   private function polarToCartesian(float $cx, float $cy, float $r, float $deg): array {
     $rad = deg2rad($deg);
     return [

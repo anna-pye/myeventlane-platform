@@ -69,7 +69,7 @@ final class DomainDetector {
       return FALSE;
     }
 
-    // Check if hostname starts with 'vendor.'
+    // Check if hostname starts with 'vendor.'.
     if (str_starts_with($hostname, 'vendor.')) {
       return TRUE;
     }
@@ -99,7 +99,7 @@ final class DomainDetector {
       return FALSE;
     }
 
-    // Check if hostname starts with 'admin.'
+    // Check if hostname starts with 'admin.'.
     if (str_starts_with($hostname, 'admin.')) {
       return TRUE;
     }
@@ -191,7 +191,7 @@ final class DomainDetector {
       $host = $request->getHost();
       // Ensure 'vendor.' prefix.
       if (!str_starts_with($host, 'vendor.')) {
-        // Remove 'admin.' prefix if present, then add 'vendor.'
+        // Remove 'admin.' prefix if present, then add 'vendor.'.
         $host = preg_replace('/^admin\./', '', $host);
         $host = 'vendor.' . $host;
       }

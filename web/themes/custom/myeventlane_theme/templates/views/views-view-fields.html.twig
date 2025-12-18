@@ -1,0 +1,49 @@
+{#
+/**
+ * @file
+ * Default view template to display all the fields in a row.
+ *
+ * MyEventLane override:
+ * - For Event Views, render the single canonical event card and nothing else.
+ * - Otherwise, fall back to core's default fields markup.
+ */
+#}
+
+{% if mel_is_event_view %}
+  {% include '@myeventlane_theme/event/event-card.html.twig' with {
+    title: fields.title.content,
+    url: fields.view_node.content,
+    image: fields.field_image.content,
+    date_day: fields.field_date_day.content,
+    date_month: fields.field_date_month.content,
+    date_full: fields.field_date.content,
+    location: fields.field_location.content,
+    category: fields.field_category.content,
+    category_slug: fields.field_category_slug.content,
+    ticket_type: fields.field_ticket_type.content,
+    ticket_label: fields.field_ticket_label.content,
+    accessibility: fields.field_accessibility_icons.content
+  } %}
+{% else %}
+  {% for field in fields -%}
+    {{ field.separator }}
+    {%- if field.wrapper_element -%}
+      <{{ field.wrapper_element }}{{ field.wrapper_attributes }}>
+    {%- endif %}
+    {%- if field.label -%}
+      {%- if field.label_element -%}
+        <{{ field.label_element }}{{ field.label_attributes }}>{{ field.label }}{{ field.label_suffix }}</{{ field.label_element }}>
+      {%- else -%}
+        {{ field.label }}{{ field.label_suffix }}
+      {%- endif %}
+    {%- endif %}
+    {%- if field.element_type -%}
+      <{{ field.element_type }}{{ field.element_attributes }}>{{ field.content }}</{{ field.element_type }}>
+    {%- else -%}
+      {{ field.content }}
+    {%- endif %}
+    {%- if field.wrapper_element -%}
+      </{{ field.wrapper_element }}>
+    {%- endif %}
+  {%- endfor %}
+{% endif %}

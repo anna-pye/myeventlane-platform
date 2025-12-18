@@ -1,452 +1,224 @@
-// ==========================================================================
-// Event Card Component
-// ==========================================================================
-// Card layout for event teasers in listings.
-// Includes colorful illustrated variant inspired by Humanitix.
+/* ================================
+   MyEventLane Event Card (Canonical)
+   ================================ */
 
-@use 'sass:color';
-@use 'sass:math';
-@use '../tokens/colors';
-@use '../tokens/typography';
-@use '../tokens/spacing';
-@use '../tokens/radii';
-@use '../tokens/shadows';
-@use '../tokens/breakpoints';
+.mel-event-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
 
-// ---------------------------------------------------------------------------
-// Card Container
-// ---------------------------------------------------------------------------
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
 
 .mel-event-card {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  min-height: 300px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform .25s ease, box-shadow .25s ease;
   position: relative;
-  
-  // Allow title to overflow if needed (for front page grid)
-  .mel-page--front & {
-    .mel-event-card-body,
-    .mel-event-card__body {
-      overflow: visible;
-    }
-    .mel-event-card-title,
-    .mel-event-card__title {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-      -webkit-line-clamp: unset;
-      line-clamp: unset;
-      height: auto;
-      max-height: none;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+
+      .mel-card-media img {
+        transform: scale(1.04);
+      }
+
+      .mel-card-hover-meta {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   }
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 36px rgba(16, 24, 40, 0.12);
+  // Scope all card internals under .mel-event-card to avoid collisions with the
+  // generic .mel-card-* component styles.
+  .mel-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus,
+    &:active {
+      text-decoration: none;
+    }
   }
 
-  &:focus-within {
-    @include colors.mel-focus-ring;
+  .mel-card-media {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+    background: #f3f4f6;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: transform .3s ease;
+    }
   }
-}
 
-// ---------------------------------------------------------------------------
-// Card Image
-// ---------------------------------------------------------------------------
-
-.mel-event-card-image,
-.mel-event-card__media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: #f3f4f6;
-
-  img {
+  .mel-card-placeholder {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+    background: linear-gradient(135deg, #f2f2f2, #e8e8e8);
   }
 
-  .mel-event-card:hover & img {
-    transform: scale(1.05);
-  }
-}
+  .mel-date-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 6px 8px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,.15);
 
-// Colorful placeholder backgrounds for events without images
-.mel-event-card-image--placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    .mel-date-day {
+      display: block;
+      font-weight: 700;
+      font-size: 1rem;
+    }
 
-// Pastel background colors (like the mockup)
-.mel-event-card-image--lavender {
-  background: #c7d2fe; // Soft lavender
-}
-
-.mel-event-card-image--mint {
-  background: #a7f3d0; // Soft mint
-}
-
-.mel-event-card-image--peach {
-  background: #fed7aa; // Soft peach
-}
-
-.mel-event-card-image--sky {
-  background: #bae6fd; // Soft sky blue
-}
-
-.mel-event-card-image--rose {
-  background: #fecdd3; // Soft rose
-}
-
-.mel-event-card-image--yellow {
-  background: colors.$mel-color-accent; // Yellow from palette
-}
-
-.mel-event-card-image--coral {
-  background: color.adjust(colors.$mel-color-primary, $lightness: 25%);
-}
-
-// Illustration icon in placeholder
-.mel-event-card-illustration {
-  font-size: 3rem;
-  opacity: 0.9;
-}
-
-// ---------------------------------------------------------------------------
-// Floating Date Badge
-// ---------------------------------------------------------------------------
-
-.mel-event-card-date-badge {
-  position: absolute;
-  top: spacing.mel-space(3);
-  left: spacing.mel-space(3);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: spacing.mel-space(2) spacing.mel-space(3);
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  box-shadow: shadows.$mel-shadow-sm;
-  min-width: 52px;
-  text-align: center;
-}
-
-.mel-event-card-date-month {
-  font-size: typography.mel-font-size(xs);
-  font-weight: typography.$mel-font-bold;
-  text-transform: uppercase;
-  color: colors.$mel-color-primary;
-  letter-spacing: 0.5px;
-}
-
-.mel-event-card-date-day {
-  font-size: typography.mel-font-size(xl);
-  font-weight: typography.$mel-font-extrabold;
-  line-height: 1;
-  color: colors.$mel-color-text;
-}
-
-// ---------------------------------------------------------------------------
-// Card Body
-// ---------------------------------------------------------------------------
-
-.mel-event-card-body,
-.mel-event-card__body {
-  padding: spacing.mel-space(4);
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  gap: 8px;
-}
-
-// ---------------------------------------------------------------------------
-// Inline Date (alternative to badge)
-// ---------------------------------------------------------------------------
-
-.mel-event-card-date {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  padding: spacing.mel-space(2);
-  margin-bottom: spacing.mel-space(3);
-  border-radius: radii.$mel-radius-md;
-  background: colors.$mel-color-accent;
-  color: colors.$mel-color-text;
-  font-weight: typography.$mel-font-bold;
-  text-align: center;
-}
-
-// ---------------------------------------------------------------------------
-// Card Title
-// ---------------------------------------------------------------------------
-
-.mel-event-card-title,
-.mel-event-card__title {
-  margin: 0;
-  font-size: typography.mel-font-size(md);
-  font-weight: typography.$mel-font-bold;
-  line-height: typography.$mel-leading-snug;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-
-  @include breakpoints.mel-break(md) {
-    font-size: typography.mel-font-size(lg);
+    .mel-date-month {
+      font-size: .7rem;
+      text-transform: uppercase;
+      opacity: .7;
+    }
   }
 
-  a {
+  .mel-status-pill {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #fff;
+
+    &.mel-status-rsvp {
+      background: #4f7cff;
+    }
+
+    &.mel-status-tickets {
+      background: #f26d5b;
+    }
+  }
+
+  .mel-card-body {
+    padding: 1rem 1.1rem 1.2rem;
+  }
+
+  .mel-card-title {
+    // Match heading typography: 20px, no underline.
+    font-size: 20px;
+    font-weight: 800;
+    font-family: inherit;
+    margin-bottom: .4rem;
     text-decoration: none;
-    color: colors.$mel-color-text;
-    transition: color 0.15s ease;
-
-    &:hover {
-      color: colors.$mel-color-primary;
-    }
-
-    &:focus {
-      outline: none;
-    }
-
-    &:focus-visible {
-      text-decoration: underline;
-      text-decoration-color: colors.$mel-color-primary;
-    }
   }
-}
 
-// ---------------------------------------------------------------------------
-// Card Meta (Date, Location, Time)
-// ---------------------------------------------------------------------------
-
-.mel-event-card-meta,
-.mel-event-card__meta {
-  display: flex;
-  flex-direction: column;
-  gap: spacing.mel-space(1);
-  margin-bottom: spacing.mel-space(3);
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.mel-event-card-meta-item {
-  display: flex;
-  align-items: center;
-  gap: spacing.mel-space(2);
-  color: colors.$mel-color-text-muted;
-  font-size: typography.mel-font-size(sm);
-}
-
-.mel-event-card-meta-icon {
-  flex-shrink: 0;
-  font-size: typography.mel-font-size(sm);
-}
-
-.mel-event-card-location,
-.mel-event-card-time {
-  display: flex;
-  align-items: center;
-  gap: spacing.mel-space(1);
-  color: colors.$mel-color-text-muted;
-  font-size: typography.mel-font-size(sm);
-}
-
-// ---------------------------------------------------------------------------
-// Category Tags
-// ---------------------------------------------------------------------------
-
-.mel-event-card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: spacing.mel-space(2);
-  margin-top: auto;
-  padding-top: spacing.mel-space(3);
-}
-
-.mel-event-tag {
-  display: inline-block;
-  background: colors.$mel-color-bg;
-  padding: spacing.mel-space(1) spacing.mel-space(3);
-  border-radius: radii.$mel-radius-full;
-  font-size: typography.mel-font-size(xs);
-  font-weight: typography.$mel-font-medium;
-  color: colors.$mel-color-text-muted;
-  text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
-
-  &:hover {
-    background: colors.$mel-color-secondary;
-    color: colors.$mel-color-text-inverse;
+  .mel-card-meta {
+    font-size: .8rem;
+    color: #6b7280;
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
   }
-}
 
-// WCAG-compliant tag styles for categories
-.tag--workshop {
-  background-color: #DDEEFF;
-  color: #003366;
-}
+  .mel-card-hover-meta {
+    margin-top: .7rem;
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .25s ease, transform .25s ease;
 
-.tag--arts {
-  background-color: #F0E6FF;
-  color: #3B0A66;
-}
-
-// ---------------------------------------------------------------------------
-// Card Footer / CTA
-// ---------------------------------------------------------------------------
-
-.mel-event-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding-top: spacing.mel-space(3);
-}
-
-.mel-event-card-price {
-  font-size: typography.mel-font-size(sm);
-  color: colors.$mel-color-text-muted;
-
-  strong {
-    color: colors.$mel-color-text;
-    font-weight: typography.$mel-font-bold;
-  }
-}
-
-.mel-event-card-price--free {
-  color: colors.$mel-color-success;
-  font-weight: typography.$mel-font-semibold;
-}
-
-.mel-event-card-cta,
-.mel-event-card__cta {
-  margin-top: auto;
-  display: flex;
-  justify-content: flex-end;
-
-  // Small inline CTA button
-  .mel-btn {
-    padding: spacing.mel-space(1) spacing.mel-space(3);
-    font-size: typography.mel-font-size(sm);
-    min-height: 32px;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Card Variants
-// ---------------------------------------------------------------------------
-
-// Featured/Highlighted card
-.mel-event-card--featured {
-  border: 2px solid colors.$mel-color-primary;
-
-  .mel-event-card-date-badge {
-    background: colors.$mel-color-primary;
-
-    .mel-event-card-date-month,
-    .mel-event-card-date-day {
-      color: colors.$mel-color-text-inverse;
+    @media (max-width: 768px) {
+      opacity: 1;
+      transform: none;
     }
   }
-}
 
-// Compact card (smaller padding)
-.mel-event-card--compact {
-  .mel-event-card-image {
-    height: 120px;
+  .mel-category-pill {
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .7rem;
   }
 
-  .mel-event-card-body {
-    padding: spacing.mel-space(3);
+  .mel-accessibility {
+    display: flex;
+    gap: .25rem;
+    font-size: .85rem;
   }
 
-  .mel-event-card-title {
-    font-size: typography.mel-font-size(base);
+  .mel-card-cta {
+    margin-top: .9rem;
+    display: flex;
+    justify-content: flex-end;
   }
-}
 
-// Horizontal card (for larger screens)
-.mel-event-card--horizontal {
-  @include breakpoints.mel-break(md) {
-    flex-direction: row;
-
-    .mel-event-card-image {
-      width: 200px;
-      height: auto;
-      min-height: 160px;
-    }
-
-    .mel-event-card-body {
-      flex: 1;
-    }
+  .mel-btn-primary {
+    background: #f26d5b;
+    color: #fff;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 600;
   }
 }
 
-// Mini card (for calendar popups, etc.)
-.mel-event-card--mini {
-  .mel-event-card-image {
-    height: 80px;
-  }
-
-  .mel-event-card-body {
-    padding: spacing.mel-space(2);
-  }
-
-  .mel-event-card-title {
-    font-size: typography.mel-font-size(sm);
-    margin-bottom: spacing.mel-space(1);
-  }
-
-  .mel-event-card-meta {
-    margin-bottom: 0;
-  }
-}
+// User request: keep accessibility icons on event cards (do not hide).
 
 // ---------------------------------------------------------------------------
-// Event Grid
-// ---------------------------------------------------------------------------
-// REMOVED: Grid definition moved to components/_event-grid.scss
-// This ensures a single canonical grid pattern across all event listings.
-
-// ---------------------------------------------------------------------------
-// Empty State
+// Events listing: remove exposed filters (accessibility dropdown + button)
 // ---------------------------------------------------------------------------
 
-.mel-event-grid-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: spacing.mel-space(8) spacing.mel-space(4);
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-xl;
+.mel-page--events {
+  .view-filters,
+  .views-exposed-form,
+  form.views-exposed-form {
+    display: none;
+  }
 }
 
-.mel-event-grid-empty-icon {
-  font-size: 4rem;
-  margin-bottom: spacing.mel-space(4);
-  opacity: 0.5;
+// Hide the exposed filter UI for the homepage "All Events" block.
+// The theme uses a custom body class (mel-body), so target the stable form id.
+.mel-page--front {
+  #views-exposed-form-upcoming-events-block-upcoming {
+    display: none;
+  }
 }
 
-.mel-event-grid-empty-title {
-  font-size: typography.mel-font-size(xl);
-  font-weight: typography.$mel-font-bold;
-  color: colors.$mel-color-text;
-  margin-bottom: spacing.mel-space(2);
-}
+// If an event listing renders cards without the .mel-event-grid wrapper (e.g.
+// a different Views style plugin), enforce the grid layout on listing pages.
+.mel-page--events .view-content,
+.mel-page--category .view-content {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
 
-.mel-event-grid-empty-text {
-  color: colors.$mel-color-text-muted;
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 }

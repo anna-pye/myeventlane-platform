@@ -1,14 +1,36 @@
 {#
 /**
  * @file
- * Default unformatted view template.
- * Wraps rows in canonical event grid for consistent layout across all event listings.
+ * Default theme implementation to display a view of unformatted rows.
+ *
+ * MyEventLane override:
+ * - If this is an Event View (node: event), wrap rows in the canonical
+ *   `.mel-event-grid` and output row content without wrapper divs.
+ * - Otherwise, fall back to core's default unformatted markup.
  */
 #}
-{% if rows %}
-  <div{{ attributes.addClass('mel-event-grid') }}>
-    {% for row in rows %}
-      {{ row.content }}
-    {% endfor %}
-  </div>
+
+{% if mel_is_event_view %}
+  {% if rows %}
+    <div class="mel-event-grid">
+      {% for row in rows %}
+        {{ row.content }}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% else %}
+  {% if title %}
+    <h3>{{ title }}</h3>
+  {% endif %}
+
+  {% for row in rows %}
+    {%
+      set row_classes = [
+        default_row_class ? 'views-row',
+      ]
+    %}
+    <div{{ row.attributes.addClass(row_classes) }}>
+      {{- row.content -}}
+    </div>
+  {% endfor %}
 {% endif %}

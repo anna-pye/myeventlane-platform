@@ -57,7 +57,7 @@ class CategoryPieChartBlock extends BlockBase implements ContainerFactoryPluginI
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
+    return new self(
       $configuration,
       $plugin_id,
       $plugin_definition,
@@ -71,29 +71,29 @@ class CategoryPieChartBlock extends BlockBase implements ContainerFactoryPluginI
    */
   public function build() {
     $term_storage = $this->entityTypeManager->getStorage('taxonomy_term');
-    
+
     // Load all terms from the categories vocabulary.
     $terms = $term_storage->loadTree('categories', 0, NULL, TRUE);
-    
+
     $counts = [];
     $labels = [];
     $colors = [];
 
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     foreach ($terms as $term) {
       $term_name = $term->getName();
       $label = $term_name;
-      
+
       // Query for published events with this category.
       $query = $node_storage->getQuery()
         ->condition('type', 'event')
         ->condition('status', 1)
         ->condition('field_category', $term->id())
         ->accessCheck(TRUE);
-      
+
       $count = $query->count()->execute();
-      
+
       if ($count > 0) {
         $counts[] = $count;
         $labels[] = $label;

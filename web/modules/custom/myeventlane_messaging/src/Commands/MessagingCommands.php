@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_messaging\Commands;
 
 use Drush\Commands\DrushCommands;
 
 /**
- * Messaging Drush commands.
+ * Provides Drush commands for MyEventLane Messaging.
  */
 final class MessagingCommands extends DrushCommands {
 
   /**
-   * Run all schedulers to enqueue messages.
+   * Runs all schedulers to enqueue messages.
    *
    * @command mel:msg-scan
    * @aliases mel-msg-scan
@@ -20,11 +22,12 @@ final class MessagingCommands extends DrushCommands {
     \Drupal::service('myeventlane_messaging.scheduler.boost')->scan();
     \Drupal::service('myeventlane_messaging.scheduler.cart')->scan();
     \Drupal::service('myeventlane_messaging.scheduler.event')->scan();
+
     $this->logger()->success('Schedulers complete (boost/cart/event).');
   }
 
   /**
-   * Run the messaging queue now.
+   * Runs the messaging queue now.
    *
    * @command mel:msg-run
    * @aliases mel-msg-run
@@ -36,16 +39,25 @@ final class MessagingCommands extends DrushCommands {
       try {
         \Drupal::service('myeventlane_messaging.manager')->sendNow($item->data);
         $queue->deleteItem($item);
-      } catch (\Throwable $e) {
+      }
+      catch (\Throwable $e) {
         $queue->releaseItem($item);
         throw $e;
       }
     }
+
     $this->logger()->success('Queue processed.');
   }
 
   /**
-   * Send a test message.
+   * Queues a test message.
+   *
+   * @param string $type
+   *   The message template key.
+   * @param string $email
+   *   The email address.
+   * @param int|null $id
+   *   Optional entity ID.
    *
    * @command mel:msg-test
    * @aliases mel-msg-test
@@ -55,4 +67,5 @@ final class MessagingCommands extends DrushCommands {
     \Drupal::service('myeventlane_messaging.manager')->queue($type, $email, ['entity_id' => $id]);
     $this->logger()->success("Queued test message $type to $email.");
   }
+
 }

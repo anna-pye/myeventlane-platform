@@ -7,17 +7,19 @@ namespace Drupal\myeventlane_commerce\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Book page: renders the booking form based on event type.
  *
  * This controller handles the unified booking experience for:
- * - RSVP (free) events: Shows RsvpPublicForm
- * - Paid events: Shows TicketSelectionForm or Commerce add-to-cart
- * - Both events: Shows combined options
+ * - RSVP (free) events: Shows RsvpPublicForm.
+ * - Paid events: Shows TicketSelectionForm or Commerce add-to-cart.
+ * - Both events: Shows combined options.
  */
 final class BookController extends ControllerBase {
 
@@ -37,7 +39,7 @@ final class BookController extends ControllerBase {
     return new static(
       $container->get('file_url_generator'),
       $container->get('myeventlane_event.mode_manager'),
-      $container->get('form_builder')
+      $container->get('form_builder'),
     );
   }
 
@@ -53,7 +55,7 @@ final class BookController extends ControllerBase {
   public function book(NodeInterface $node): array {
     // Only for Event nodes.
     if ($node->bundle() !== 'event') {
-      throw $this->createNotFoundException();
+      throw new NotFoundHttpException();
     }
 
     // Get event date text.
@@ -287,7 +289,7 @@ final class BookController extends ControllerBase {
       'link' => [
         '#type' => 'link',
         '#title' => $this->t('Get Tickets'),
-        '#url' => \Drupal\Core\Url::fromUri($externalUrl),
+        '#url' => Url::fromUri($externalUrl),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg', 'mel-btn-block'],
           'target' => '_blank',

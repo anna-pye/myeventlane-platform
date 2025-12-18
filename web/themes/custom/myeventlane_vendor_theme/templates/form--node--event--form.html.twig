@@ -2,130 +2,238 @@
 /**
  * Vendor console override for Event node add/edit form.
  *
- * Mirrors the public theme layout so the vendor domain sees the same
- * sectioned form (including Visibility & Promotion).
+ * Wizard-aware template that renders wizard steps properly.
  */
 #}
 
-{# Visible debug to confirm this template is used #}
-<div style="background: #ffeb3b; padding: 10px; margin: 10px 0; border: 2px solid #f57f17; font-weight: bold;">
-  🔍 DEBUG: Vendor Event Form Template (vendor theme)
-  {% if node %}
-    (Edit Mode - Node ID: {{ node.id }})
-  {% else %}
-    (Create Mode)
-  {% endif %}
-  - Form ID: {{ form['#form_id']|default('unknown') }}
-  - Form keys: {{ form|keys|join(', ') }}
-  - Has location: {{ form.location is defined ? 'YES' : 'NO' }}
-  - Has booking_config: {{ form.booking_config is defined ? 'YES' : 'NO' }}
-  - Has visibility: {{ form.visibility is defined ? 'YES' : 'NO' }}
-</div>
+{# Booking status is hidden via #access = FALSE in EventFormAlter #}
 
-<div class="mel-form-page-header">
-  {% if node %}
-    <nav class="mel-breadcrumb" aria-label="Breadcrumb">
-      <a href="{{ path('entity.node.canonical', {'node': node.id}) }}">{{ node.label }}</a>
-      <span class="mel-breadcrumb-separator">/</span>
-      <span>Edit</span>
-    </nav>
-    <h1 class="mel-page-title">{{ 'Edit Event'|t }}</h1>
-    <p class="mel-page-intro">{{ 'Update your event details below. Changes will be saved when you submit the form.'|t }}</p>
-  {% else %}
-    <h1 class="mel-page-title">{{ 'Create New Event'|t }}</h1>
-    <p class="mel-page-intro">{{ 'Share your event with the MyEventLane community. Fill out each section below to get started. You can save as a draft and come back to finish later.'|t }}</p>
-  {% endif %}
-</div>
+{# Main Form - Wizard Layout #}
+{% if form.wizard_stepper %}
+  {# Wizard mode - render with stepper #}
+  <div class="mel-event-wizard">
+    {# Left Stepper #}
+    {% if form.wizard_stepper %}
+      {{ form.wizard_stepper }}
+    {% endif %}
 
-{# Booking Status (for existing events) #}
-{% if form.booking_status %}
-  <div class="mel-form-status">
-    {{ form.booking_status }}
-  </div>
-{% endif %}
-
-{# Main Form #}
-<form{{ attributes }}>
-  {{ form.form_build_id }}
-  {{ form.form_token }}
-  {{ form.form_id }}
-
-  {# A. Event Basics #}
-  {% if form.event_basics %}
-    <div class="mel-form-group mel-form-card">
-      {{ form.event_basics }}
-    </div>
-  {% endif %}
-
-  {# B. Date + Time #}
-  {% if form.date_time %}
-    <div class="mel-form-group mel-form-card">
-      {{ form.date_time }}
-    </div>
-  {% endif %}
-
-  {# C. Location #}
-  {% if form.location is defined %}
-    <div class="mel-form-group mel-form-card">
-      {{ form.location }}
-    </div>
-  {% endif %}
-
-  {# D. Booking Configuration #}
-  {% if form.booking_config is defined %}
-    <div class="mel-form-group mel-form-card mel-form-card--highlight">
-      {{ form.booking_config }}
-    </div>
-  {% endif %}
-
-  {# E. Visibility & Promotion #}
-  {% if form.visibility is defined %}
-    <div class="mel-form-group mel-form-card">
-      {% if form.visibility.header %}
-        {{ form.visibility.header }}
+    {# Wizard Steps Content #}
+    <div class="mel-wizard-steps-container">
+      {# Step 1: Event Basics #}
+      {% if form.event_basics %}
+        <div class="mel-wizard-step mel-wizard-step--basics" data-wizard-step="basics">
+          <div class="mel-wizard-step__content">
+            {# Render content container - fields are moved here by EventFormAlter #}
+            {% if form.event_basics.content %}
+              {# Only render fields that have actual inputs, not empty labels #}
+              {% if form.event_basics.content.title %}
+                {{ form.event_basics.content.title }}
+              {% endif %}
+              {% if form.event_basics.content.body %}
+                {{ form.event_basics.content.body }}
+              {% endif %}
+              {% if form.event_basics.content.field_event_image %}
+                {{ form.event_basics.content.field_event_image }}
+              {% endif %}
+            {% else %}
+              {# Fallback: render entire event_basics container #}
+              {{ form.event_basics }}
+            {% endif %}
+          </div>
+        </div>
       {% endif %}
-      {% if form.visibility.content %}
-        <div class="mel-form-content">
-          {{ form.visibility.content }}
+
+      {# Step 2: Schedule #}
+      {% if form.schedule %}
+        <div class="mel-wizard-step mel-wizard-step--schedule" data-wizard-step="schedule">
+          {% if form.schedule.content %}
+            <div class="mel-wizard-step__content">
+              {% if form.schedule.content.field_event_start %}
+                {{ form.schedule.content.field_event_start }}
+              {% endif %}
+              {% if form.schedule.content.field_event_end %}
+                {{ form.schedule.content.field_event_end }}
+              {% endif %}
+            </div>
+          {% else %}
+            {{ form.schedule }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Step 3: Location #}
+      {% if form.location %}
+        <div class="mel-wizard-step mel-wizard-step--location" data-wizard-step="location">
+          {% if form.location.content %}
+            <div class="mel-wizard-step__content">
+              {% if form.location.content.field_venue_name %}
+                {{ form.location.content.field_venue_name }}
+              {% endif %}
+              {% if form.location.content.field_location %}
+                {{ form.location.content.field_location }}
+              {% endif %}
+            </div>
+          {% else %}
+            {{ form.location }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Step 4: Attendance Type #}
+      {% if form.attendance_type %}
+        <div class="mel-wizard-step mel-wizard-step--attendance-type" data-wizard-step="attendance_type">
+          {% if form.attendance_type.content %}
+            <div class="mel-wizard-step__content">
+              {% if form.attendance_type.content.field_event_type %}
+                {{ form.attendance_type.content.field_event_type }}
+              {% endif %}
+            </div>
+          {% else %}
+            {{ form.attendance_type }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Step 5: Attendance Details #}
+      {% if form.attendance_details %}
+        <div class="mel-wizard-step mel-wizard-step--attendance-details" data-wizard-step="attendance_details">
+          {% if form.attendance_details.content %}
+            <div class="mel-wizard-step__content">
+              {{ form.attendance_details.content }}
+            </div>
+          {% else %}
+            {{ form.attendance_details }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Step 6: Extras #}
+      {% if form.extras %}
+        <div class="mel-wizard-step mel-wizard-step--extras" data-wizard-step="extras">
+          {% if form.extras.content %}
+            <div class="mel-wizard-step__content">
+              {{ form.extras.content }}
+            </div>
+          {% else %}
+            {{ form.extras }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Step 7: Review #}
+      {% if form.review %}
+        <div class="mel-wizard-step mel-wizard-step--review" data-wizard-step="review">
+          {% if form.review.content %}
+            <div class="mel-wizard-step__content">
+              {{ form.review.content }}
+            </div>
+          {% else %}
+            {{ form.review }}
+          {% endif %}
         </div>
       {% endif %}
     </div>
-  {% endif %}
+  </div>
 
-  {# F. Attendee Questions #}
-  {% if form.attendee_questions %}
-    <div class="mel-form-group mel-form-card">
-      {{ form.attendee_questions }}
-    </div>
-  {% endif %}
+  {# Form system fields #}
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+  {{ form.wizard_current_step }}
+  {{ form.wizard_auto_save }}
 
-  {# Advanced #}
-  {% if form.advanced %}
-    <details class="mel-form-advanced">
-      <summary class="mel-form-advanced-summary">{{ 'Advanced options'|t }}</summary>
-      <div class="mel-form-advanced-content">
-        {{ form.advanced }}
-      </div>
-    </details>
-  {% endif %}
-
-  {# Actions #}
+  {# Actions (sticky footer) #}
   {% if form.actions %}
-    <div class="mel-form-sticky-footer">
-      {{ form.actions }}
-      {% if form.path %}
-        {{ form.path }}
-      {% endif %}
+    {{ form.actions }}
+  {% endif %}
+
+  {# Render any remaining fields #}
+  {% set remaining_fields = form|without(
+    'form_build_id', 'form_token', 'form_id',
+    'wizard_stepper', 'wizard_current_step', 'wizard_auto_save',
+    'event_basics', 'schedule', 'location', 'attendance_type', 'attendance_details', 'extras', 'review',
+    'actions', 'booking_status'
+  ) %}
+  {% if remaining_fields|length > 0 %}
+    <div style="display: none;">
+      {{ remaining_fields }}
     </div>
   {% endif %}
-</form>
 
+{% else %}
+  {# Legacy non-wizard mode - render as before #}
+  <form{{ attributes }}>
+    {{ form.form_build_id }}
+    {{ form.form_token }}
+    {{ form.form_id }}
 
+    {# A. Event Basics #}
+    {% if form.event_basics %}
+      <div class="mel-form-group mel-form-card">
+        {{ form.event_basics }}
+      </div>
+    {% endif %}
 
+    {# B. Date + Time #}
+    {% if form.date_time %}
+      <div class="mel-form-group mel-form-card">
+        {{ form.date_time }}
+      </div>
+    {% endif %}
 
+    {# C. Location #}
+    {% if form.location is defined %}
+      <div class="mel-form-group mel-form-card">
+        {{ form.location }}
+      </div>
+    {% endif %}
 
+    {# D. Booking Configuration #}
+    {% if form.booking_config is defined %}
+      <div class="mel-form-group mel-form-card mel-form-card--highlight">
+        {{ form.booking_config }}
+      </div>
+    {% endif %}
 
+    {# E. Visibility & Promotion #}
+    {% if form.visibility is defined %}
+      <div class="mel-form-group mel-form-card">
+        {% if form.visibility.header %}
+          {{ form.visibility.header }}
+        {% endif %}
+        {% if form.visibility.content %}
+          <div class="mel-form-content">
+            {{ form.visibility.content }}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
 
+    {# F. Attendee Questions #}
+    {% if form.attendee_questions %}
+      <div class="mel-form-group mel-form-card">
+        {{ form.attendee_questions }}
+      </div>
+    {% endif %}
 
+    {# Advanced #}
+    {% if form.advanced %}
+      <details class="mel-form-advanced">
+        <summary class="mel-form-advanced-summary">{{ 'Advanced options'|t }}</summary>
+        <div class="mel-form-advanced-content">
+          {{ form.advanced }}
+        </div>
+      </details>
+    {% endif %}
 
-
+    {# Actions #}
+    {% if form.actions %}
+      <div class="mel-form-sticky-footer">
+        {{ form.actions }}
+        {% if form.path %}
+          {{ form.path }}
+        {% endif %}
+      </div>
+    {% endif %}
+  </form>
+{% endif %}

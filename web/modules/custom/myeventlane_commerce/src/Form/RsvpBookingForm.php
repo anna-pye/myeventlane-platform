@@ -119,8 +119,8 @@ final class RsvpBookingForm extends FormBase {
 
           $form['donation_section']['donation_intro'] = [
             '#markup' => '<p class="mel-donation-intro-text">' .
-              $this->t($donationConfig->get('attendee_copy') ?? 'Support this event organiser with an optional donation. Your contribution helps make this event possible.') .
-              '</p>',
+            $this->t($donationConfig->get('attendee_copy') ?? 'Support this event organiser with an optional donation. Your contribution helps make this event possible.') .
+            '</p>',
           ];
 
           $presets = $donationConfig->get('attendee_presets') ?? [5.00, 10.00, 25.00, 50.00];
@@ -258,7 +258,7 @@ final class RsvpBookingForm extends FormBase {
     $variation = \Drupal::entityTypeManager()
       ->getStorage('commerce_product_variation')
       ->load($variation_id);
-    
+
     if (!$variation) {
       $form_state->setError($form, $this->t('Product not found.'));
       return;
@@ -295,7 +295,7 @@ final class RsvpBookingForm extends FormBase {
     $cart_provider = \Drupal::service('commerce_cart.cart_provider');
     $store = \Drupal::entityTypeManager()->getStorage('commerce_store')->loadDefault();
     $cart = $cart_provider->getCart('default', $store);
-    
+
     if (!$cart) {
       $cart = $cart_provider->createCart('default', $store);
     }
@@ -310,6 +310,10 @@ final class RsvpBookingForm extends FormBase {
           if ($event) {
             // Create RSVP submission first (for tracking).
             $rsvpStorage = \Drupal::entityTypeManager()->getStorage('rsvp_submission');
+
+            // Anonymous users should store user_id as 0.
+            $user_id = \Drupal::currentUser()->id() ?: 0;
+
             $submission = $rsvpStorage->create([
               'event_id' => ['target_id' => $event_id],
               'attendee_name' => ($values['first_name'] ?? '') . ' ' . ($values['last_name'] ?? ''),
@@ -319,7 +323,7 @@ final class RsvpBookingForm extends FormBase {
               'guests' => 1,
               'donation' => (float) $donationAmount,
               'status' => 'confirmed',
-              'user_id' => \Drupal::currentUser()->id() ?: 0, // Set to 0 for anonymous users
+              'user_id' => $user_id,
             ]);
             $submission->save();
 
@@ -464,5 +468,3 @@ final class RsvpBookingForm extends FormBase {
   }
 
 }
-
-

@@ -1,31 +1,60 @@
 {#
-/**
- * @file
- * Canonical event card template.
- * Single source of truth for event card markup across all event listings.
- *
- * Available variables:
- * - content: Render array with field_image, field_event_date, field_location, field_cta
- * - label: The event title.
- */
+  Canonical MyEventLane Event Card
+  Used everywhere: Home, Featured, Taxonomy, Search, Views
 #}
+
 <article class="mel-event-card">
-  {% if content.field_image is defined %}
-    <div class="mel-event-card__media">
-      {{ content.field_image }}
-    </div>
-  {% endif %}
+  <a href="{{ url }}" class="mel-card-link">
 
-  <div class="mel-event-card__body">
-    <h3 class="mel-event-card__title">{{ label }}</h3>
+    <div class="mel-card-media">
+      {% if image %}
+        <img src="{{ image }}" alt="{{ title }}" loading="lazy">
+      {% else %}
+        <div class="mel-card-placeholder"></div>
+      {% endif %}
 
-    <div class="mel-event-card__meta">
-      {{ content.field_event_date }}
-      {{ content.field_location }}
+      <div class="mel-date-badge">
+        <span class="mel-date-day">{{ date_day }}</span>
+        <span class="mel-date-month">{{ date_month }}</span>
+      </div>
+
+      <div class="mel-status-pill mel-status-{{ ticket_type }}">
+        {{ ticket_label }}
+      </div>
     </div>
 
-    <div class="mel-event-card__cta">
-      {{ content.field_cta }}
+    <div class="mel-card-body">
+      <h3 class="mel-card-title">{{ title }}</h3>
+
+      <div class="mel-card-meta">
+        <span class="mel-meta-date">{{ date_full }}</span>
+        {% if location %}
+          <span class="mel-meta-location">{{ location }}</span>
+        {% endif %}
+      </div>
+
+      <div class="mel-card-hover-meta">
+        {% if category %}
+          <span class="mel-category-pill mel-cat-{{ category_slug }}">
+            {{ category }}
+          </span>
+        {% endif %}
+
+        {% if accessibility %}
+          <div class="mel-accessibility">
+            {% for icon in accessibility %}
+              <span class="mel-accessibility-icon">{{ icon }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="mel-card-cta">
+        <span class="mel-btn mel-btn-primary">
+          {{ ticket_label }}
+        </span>
+      </div>
     </div>
-  </div>
+
+  </a>
 </article>

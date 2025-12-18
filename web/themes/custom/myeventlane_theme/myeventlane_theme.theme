@@ -5,12 +5,15 @@
  * Theme hooks for MyEventLane.
  */
 
-use Drupal\Core\Render\Element;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\node\NodeInterface;
+use Drupal\taxonomy\TermInterface;
+use Drupal\views\ResultRow;
+use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
-use Drupal\myeventlane_shared\Service\ColorService;
 
 /**
  * Implements hook_theme().
@@ -38,7 +41,7 @@ function myeventlane_theme_theme(): array {
  * Adds cart block and main menu to header if not already placed.
  */
 function myeventlane_theme_preprocess_page(array &$variables): void {
-  // Add cart block to header if not already present
+  // Add cart block to header if not already present.
   if (empty($variables['page']['header']['cart_block'])) {
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
@@ -49,12 +52,13 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
           $variables['page']['header']['cart_block'] = $build;
         }
       }
-    } catch (\Exception $e) {
-      // Cart block not available, continue without it
+    }
+    catch (\Exception $e) {
+      // Cart block not available, continue without it.
     }
   }
-  
-  // Add main menu to header if not already present
+
+  // Add main menu to header if not already present.
   if (empty($variables['page']['header']['main_menu'])) {
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
@@ -65,49 +69,52 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
           $variables['page']['header']['main_menu'] = $build;
         }
       }
-    } catch (\Exception $e) {
-      // Menu block not available, continue without it
+    }
+    catch (\Exception $e) {
+      // Menu block not available, continue without it.
     }
   }
-  
-  // Check if current user is a vendor (for profile link routing)
+
+  // Check if current user is a vendor (for profile link routing).
   $current_user = \Drupal::currentUser();
   if ($current_user->isAuthenticated()) {
     $uid = (int) $current_user->id();
     $is_vendor = FALSE;
-    
+
     if (\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
       $vendor_storage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
-      
-      // Check if user owns a vendor (uid field)
+
+      // Check if user owns a vendor (uid field).
       $owner_ids = $vendor_storage->getQuery()
         ->accessCheck(TRUE)
         ->condition('uid', $uid)
         ->range(0, 1)
         ->execute();
-      
+
       if (empty($owner_ids)) {
-        // Check if user is in field_vendor_users
+        // Check if user is in field_vendor_users.
         $user_ids = $vendor_storage->getQuery()
           ->accessCheck(TRUE)
           ->condition('field_vendor_users', $uid)
           ->range(0, 1)
           ->execute();
-        
+
         if (!empty($user_ids)) {
           $is_vendor = TRUE;
         }
-      } else {
+      }
+      else {
         $is_vendor = TRUE;
       }
     }
-    
+
     $variables['user_is_vendor'] = $is_vendor;
-  } else {
+  }
+  else {
     $variables['user_is_vendor'] = FALSE;
   }
-  
-  // Front page specific processing
+
+  // Front page specific processing.
   // Check if this is the front page.
   if (\Drupal::service('path.matcher')->isFrontPage()) {
     /* #region agent log */
@@ -194,7 +201,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       return (object) [
         'tid' => $term->id(),
         'name' => $name,
-        // Matches views.view.upcoming_events.yml path: events/category/%
+        // Matches views.view.upcoming_events.yml path: events/category/%.
         'url' => '/events/category/' . $term->id(),
         'class' => $key,
         // Alias for templates that expect machine_name.
@@ -212,12 +219,12 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         'url' => $t->url,
       ];
     }, $categories);
-    
-    // Keep original hero headline and subheading
-    // $variables['hero_headline'] = t('Run Your Show');
-    // $variables['hero_subheading'] = t('Empowering Event Creators');
-    
-    // Load category pie chart block for hero
+
+    // Keep original hero headline and subheading.
+    // $variables['hero_headline'] = t('Run Your Show')
+    // $variables['hero_subheading'] = t('Empowering Event Creators')
+
+    // Load category pie chart block for hero.
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $pie_chart_block = $block_manager->createInstance('category_pie_chart_block', []);
@@ -232,11 +239,11 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       // Pie chart block not available, continue without it.
       $variables['hero_pie_chart'] = NULL;
     }
-    
-    // Add calendar data for mini calendar
+
+    // Add calendar data for mini calendar.
     $variables['calendar'] = _myeventlane_theme_get_calendar_data();
-    
-    // Load and render Featured Events view
+
+    // Load and render Featured Events view.
     $featured_view = Views::getView('featured_events');
     if ($featured_view && $featured_view->access('block_featured')) {
       $featured_view->setDisplay('block_featured');
@@ -280,7 +287,8 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         ]);
       }
       /* #endregion agent log */
-    } else {
+    }
+    else {
       /* #region agent log */
       $mel_debug_log('A', 'myeventlane_theme.theme:preprocess_page(front)', 'Featured events view missing or access denied', [
         'view_exists' => (bool) $featured_view,
@@ -289,19 +297,20 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       /* #endregion agent log */
       $variables['featured_events'] = NULL;
     }
-    
-    // Load and render New Events view
+
+    // Load and render New Events view.
     $new_view = Views::getView('new_events');
     if ($new_view && $new_view->access('block_new')) {
       $new_view->setDisplay('block_new');
       $new_view->preExecute();
       $new_view->execute();
       $variables['new_events'] = $new_view->render();
-    } else {
+    }
+    else {
       $variables['new_events'] = NULL;
     }
-    
-    // Render value proposition block
+
+    // Render value proposition block.
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $value_prop_block = $block_manager->createInstance('myeventlane_value_proposition', []);
@@ -311,12 +320,13 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
           $variables['value_proposition'] = $build;
         }
       }
-    } catch (\Exception $e) {
-      // Block not available, continue without it
+    }
+    catch (\Exception $e) {
+      // Block not available, continue without it.
       $variables['value_proposition'] = NULL;
     }
-    
-    // Render category pie chart block
+
+    // Render category pie chart block.
     try {
       $block_manager = \Drupal::service('plugin.manager.block');
       $pie_chart_block = $block_manager->createInstance('category_pie_chart_block', []);
@@ -326,24 +336,25 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
           $variables['category_pie_chart'] = $build;
         }
       }
-    } catch (\Exception $e) {
-      // Block not available, continue without it
+    }
+    catch (\Exception $e) {
+      // Block not available, continue without it.
       $variables['category_pie_chart'] = NULL;
     }
-    
-    // Add theme directory path for feature block icons
+
+    // Add theme directory path for feature block icons.
     $theme_handler = \Drupal::service('extension.list.theme');
     $theme_path = $theme_handler->getPath('myeventlane_theme');
     $variables['theme_directory'] = '/' . $theme_path;
-    
-    // Add hero positioning variables (for platform messaging)
+
+    // Add hero positioning variables (for platform messaging).
     $current_user = \Drupal::currentUser();
     $is_logged_in = $current_user->isAuthenticated();
-    
-    // Determine create event URL based on login status
+
+    // Determine create event URL based on login status.
     $create_event_url = '/create-event';
     if ($is_logged_in) {
-      // Check if user has vendor - if so, route to dashboard, otherwise to /node/add/event
+      // Check if user has vendor: if so, route to dashboard, otherwise to /node/add/event.
       $uid = (int) $current_user->id();
       $has_vendor = FALSE;
       if (\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
@@ -364,8 +375,8 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       }
       $create_event_url = $has_vendor ? '/vendor/dashboard' : '/node/add/event';
     }
-    
-    // Only set default hero values if NOT on front page (front page has its own values)
+
+    // Only set default hero values if NOT on front page (front page has its own values).
     if (!\Drupal::service('path.matcher')->isFrontPage()) {
       $variables['hero_headline'] = t('Your lane to great events.');
       $variables['hero_subheading'] = t('Create, share, and celebrate local stories.');
@@ -385,8 +396,8 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     ];
   }
 
-  // Make category pills data available to listing page headers (taxonomy, search,
-  // filtered listings). This is pure data; Twig handles the presentation.
+  // Make category pills data available to listing page headers (taxonomy, search, filtered listings).
+  // This is pure data; Twig handles the presentation.
   _myeventlane_theme_attach_mel_header_categories($variables);
 }
 
@@ -396,25 +407,26 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
 function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): array {
   $year = $year ?: date('Y');
   $month = $month ?: date('n');
-  
+
   $first_day = mktime(0, 0, 0, $month, 1, $year);
   $days_in_month = date('t', $first_day);
-  $start_day = date('w', $first_day); // 0 = Sunday
-  
-  // Get events for this month
+  // 0 = Sunday.
+  $start_day = date('w', $first_day);
+
+  // Get events for this month.
   $start_date = date('Y-m-01', $first_day);
   $end_date = date('Y-m-t', $first_day);
-  
+
   $query = \Drupal::entityQuery('node')
     ->condition('type', 'event')
     ->condition('status', 1)
     ->condition('field_event_start', $start_date, '>=')
     ->condition('field_event_start', $end_date . 'T23:59:59', '<=')
     ->accessCheck(TRUE);
-  
+
   $nids = $query->execute();
   $events_by_day = [];
-  
+
   if (!empty($nids)) {
     $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
     foreach ($nodes as $node) {
@@ -429,7 +441,7 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
       ];
     }
   }
-  
+
   return [
     'year' => $year,
     'month' => $month,
@@ -450,7 +462,7 @@ function _myeventlane_theme_get_calendar_data($year = NULL, $month = NULL): arra
 function myeventlane_theme_preprocess_page__events__category(array &$variables): void {
   // Get the category term ID from the URL.
   $tid = \Drupal::routeMatch()->getParameter('arg_0');
-  
+
   if ($tid) {
     $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
     if ($term) {
@@ -460,11 +472,11 @@ function myeventlane_theme_preprocess_page__events__category(array &$variables):
       ];
     }
   }
-  
+
   // Load all categories for the hero chips.
   $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
   $terms = $term_storage->loadByProperties(['vid' => 'categories']);
-  
+
   $categories = [];
   foreach ($terms as $term) {
     $categories[] = [
@@ -473,7 +485,7 @@ function myeventlane_theme_preprocess_page__events__category(array &$variables):
       'url' => '/events/category/' . $term->id(),
     ];
   }
-  
+
   $variables['event_categories'] = $categories;
 }
 
@@ -492,7 +504,7 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
 
   if (!empty($nids)) {
     $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-    
+
     // Category colors.
     $category_colors = [
       'music' => '#7c5cff',
@@ -508,7 +520,7 @@ function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
     foreach ($nodes as $node) {
       $start = $node->get('field_event_start')->value;
       $end = $node->hasField('field_event_end') ? $node->get('field_event_end')->value : NULL;
-      
+
       // Get category color.
       $color = '#7c5cff';
       if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
@@ -660,11 +672,11 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
 
   // Check if this is an event node form.
   if ($node && $node->bundle() === 'event') {
-    // For form view mode, suggest the form template
+    // For form view mode, suggest the form template.
     if ($view_mode === 'form' || (isset($variables['form']) && $variables['form'])) {
       $variables['attributes']['class'][] = 'mel-node-form';
       $variables['attributes']['class'][] = 'mel-node-form--event';
-      // Suggest the form template
+      // Suggest the form template.
       $variables['theme_hook_suggestions'][] = 'node__event__form';
     }
   }
@@ -716,17 +728,17 @@ function myeventlane_theme_preprocess_entity(array &$variables): void {
 function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, array $variables, $hook): void {
   $route_match = \Drupal::routeMatch();
   $route_name = $route_match->getRouteName();
-  
-  // Force front-end theme for event node add/edit forms
+
+  // Force front-end theme for event node add/edit forms.
   if (in_array($route_name, ['node.add', 'entity.node.edit_form'])) {
     $node_type = $route_match->getParameter('node_type');
     $node = $route_match->getParameter('node');
-    
-    // Check if this is an event node
-    if (($node_type && $node_type->id() === 'event') || 
+
+    // Check if this is an event node.
+    if (($node_type && $node_type->id() === 'event') ||
         ($node instanceof NodeInterface && $node->bundle() === 'event')) {
-      // Remove admin theme suggestions
-      $suggestions = array_filter($suggestions, function($suggestion) {
+      // Remove admin theme suggestions.
+      $suggestions = array_filter($suggestions, function ($suggestion) {
         return strpos($suggestion, 'admin') === FALSE;
       });
     }
@@ -741,55 +753,59 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
 function myeventlane_theme_preprocess_form(array &$variables): void {
   $form = &$variables['element'];
   $form_id = $form['#form_id'] ?? '';
-  
-  // For event node forms, add template suggestions and pass node to template
+
+  // For event node forms, add template suggestions and pass node to template.
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
-    // Get the node entity if available
+    // Get the node entity if available.
     $node = NULL;
     if (isset($form['#entity']) && $form['#entity'] instanceof NodeInterface) {
       $node = $form['#entity'];
-    } elseif (isset($form['#node']) && $form['#node'] instanceof NodeInterface) {
+    }
+    elseif (isset($form['#node']) && $form['#node'] instanceof NodeInterface) {
       $node = $form['#node'];
     }
-    
-    // Add template suggestions - Drupal will look for these templates
-    // Template naming: form--node--event--form.html.twig
+
+    // Add template suggestions - Drupal will look for these templates.
+    // Template naming: form--node--event--form.html.twig.
     if (!isset($variables['theme_hook_suggestions'])) {
       $variables['theme_hook_suggestions'] = [];
     }
-    // Add suggestions in priority order (most specific first)
+    // Add suggestions in priority order (most specific first).
     array_unshift($variables['theme_hook_suggestions'], 'form__node__event__form');
     array_unshift($variables['theme_hook_suggestions'], 'form__node_event_form');
-    
-    // Pass node to template (available as 'node' variable)
+
+    // Pass node to template (available as 'node' variable).
     $variables['node'] = $node;
-    
-    // Also make form available as 'form' for consistency with other templates
+
+    // Also make form available as 'form' for consistency with other templates.
     $variables['form'] = $form;
-    
-    // Add debug flag
+
+    // Add debug flag.
     $variables['debug'] = TRUE;
-    
-    // Debug: Check if sections exist in form at template preprocessing time
+
+    // Debug: Check if sections exist in form at template preprocessing time.
     $has_location = isset($form['location']) ? 'YES' : 'NO';
     $has_booking = isset($form['booking_config']) ? 'YES' : 'NO';
     $has_visibility = isset($form['visibility']) ? 'YES' : 'NO';
     $form_keys = array_keys($form);
-    $filtered_keys = array_filter($form_keys, function($key) { return !str_starts_with($key, '#'); });
-    
+    $filtered_keys = array_filter($form_keys, function ($key) {
+      return !str_starts_with($key, '#');
+    });
+
     \Drupal::logger('myeventlane_theme')->notice('Event form template suggestion added. Form ID: @form_id, Node: @node. Sections: location=@loc, booking=@book, visibility=@vis. Keys: @keys', [
       '@form_id' => $form_id,
       '@node' => $node ? $node->id() : 'new',
       '@loc' => $has_location,
       '@book' => $has_booking,
       '@vis' => $has_visibility,
-      '@keys' => implode(', ', array_slice($filtered_keys, 0, 20)), // First 20 keys
+      // First 20 keys.
+      '@keys' => implode(', ', array_slice($filtered_keys, 0, 20)),
     ]);
   }
 
   // Vendor profile settings form.
   if ($form_id === 'vendor_profile_settings') {
-    // Add template suggestions for vendor profile settings form
+    // Add template suggestions for vendor profile settings form.
     if (!isset($variables['theme_hook_suggestions'])) {
       $variables['theme_hook_suggestions'] = [];
     }
@@ -803,70 +819,69 @@ function myeventlane_theme_preprocess_form(array &$variables): void {
  *
  * Adds classes and ensures proper styling for public-facing forms.
  */
-function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+function myeventlane_theme_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Only apply to front-end theme, not admin theme.
   $theme = \Drupal::theme()->getActiveTheme()->getName();
   if ($theme !== 'myeventlane_theme') {
     return;
   }
-
-
   // Event node forms.
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--event';
-    
-    // Ensure Drupal's form behaviors are attached for #states API
+
+    // Ensure Drupal's form behaviors are attached for #states API.
     $form['#attached']['library'][] = 'core/drupal.form';
     $form['#attached']['library'][] = 'core/drupal.states';
-    
-    // Attach Conditional Fields library if module is enabled
-    // This ensures conditional fields work for both admin and vendor forms
+
+    // Attach Conditional Fields library if module is enabled.
+    // This ensures conditional fields work for both admin and vendor forms.
     if (\Drupal::moduleHandler()->moduleExists('conditional_fields')) {
       $form['#attached']['library'][] = 'conditional_fields/conditional_fields';
     }
-    
-    // Attach custom event form enhancements
+
+    // Attach custom event form enhancements.
     $form['#attached']['library'][] = 'myeventlane_theme/event-form';
-    
-    // Disable Honeypot flood control for event forms (vendors need to save drafts)
+
+    // Disable Honeypot flood control for event forms (vendors need to save drafts).
     if (isset($form['#attributes']['data-honeypot-time'])) {
       unset($form['#attributes']['data-honeypot-time']);
     }
-    
-    // Add form token to prevent duplicate submissions without flood control
+
+    // Add form token to prevent duplicate submissions without flood control.
     if (!isset($form['form_token'])) {
       $form['form_token'] = [
         '#type' => 'token',
         '#default_value' => \Drupal::csrfToken()->get('node_event_form'),
       ];
     }
-    
-    // Wrap the entire form in our styled container
-    // IMPORTANT: Only wrap the form, don't modify field structure to preserve #states API
+
+    // Wrap the entire form in our styled container.
+    // IMPORTANT: Only wrap the form, don't modify field structure to preserve #states API.
     $is_edit = ($form_id === 'node_event_edit_form');
     $title = $is_edit ? t('Edit Event') : t('Create New Event');
-    $intro = $is_edit 
+    $intro = $is_edit
       ? t('Update your event details below. Changes will be saved when you submit the form.')
       : t('Share your event with the MyEventLane community. Fill out each section below to get started.');
-    
-    // Get node if editing
+
+    // Get node if editing.
     $node = NULL;
     if (isset($form['#entity']) && $form['#entity']) {
       $node = $form['#entity'];
-    } elseif ($form_state->getFormObject() && method_exists($form_state->getFormObject(), 'getEntity')) {
+    }
+    elseif ($form_state->getFormObject() && method_exists($form_state->getFormObject(), 'getEntity')) {
       $node = $form_state->getFormObject()->getEntity();
     }
-    
+
     $breadcrumb = '';
     if ($is_edit && $node && !$node->isNew()) {
       $url = $node->toUrl()->toString();
       $breadcrumb = '<nav class="mel-breadcrumb" aria-label="Breadcrumb"><a href="' . $url . '">' . $node->label() . '</a><span class="mel-breadcrumb-separator">/</span><span>Edit</span></nav>';
     }
-    
-    // Don't add prefix/suffix here - let the page template handle layout
-    // The node--event--form.html.twig template will handle the form structure
-    // Add wrapper class to form itself
+
+    // Don't add prefix/suffix here - let the page template handle layout.
+    // The node--event--form.html.twig template will handle the form structure.
+    // Add wrapper class to form itself.
     $form['#attributes']['class'][] = 'mel-event-form-wrapper';
   }
 
@@ -907,7 +922,7 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
   }
 
   // Commerce checkout form - ensure Commerce Stripe Payment Element libraries are attached.
-  // Commerce Stripe should attach its library automatically, but we ensure it's there
+  // Commerce Stripe should attach its library automatically, but we ensure it's there.
   // as a safeguard in case the payment form structure changes.
   if (\Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
     // Ensure #attached array exists before accessing it.
@@ -917,12 +932,12 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     if (!isset($form['#attached']['library'])) {
       $form['#attached']['library'] = [];
     }
-    
-    // Stripe Payment Element is rendered in the stripe_review pane (on review step),
+
+    // Stripe Payment Element is rendered in the stripe_review pane (on review step).
     // not in payment_information pane. Check both locations for compatibility.
     $has_payment_element = FALSE;
     $has_card_element = FALSE;
-    
+
     // Check stripe_review pane for Payment Element (new preferred method).
     if (isset($form['stripe_review']['stripe_payment_element'])) {
       $has_payment_element = TRUE;
@@ -933,32 +948,32 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
       if (isset($form['payment_information']['stripe_payment_element'])) {
         $has_payment_element = TRUE;
       }
-    // Check if old Card Element is being used (legacy method).
+      // Check if old Card Element is being used (legacy method).
       // The stripe-form class can be on payment_information or nested in payment_details.
       elseif (isset($form['payment_information']['add_payment_method']['payment_details'])) {
         $payment_details = &$form['payment_information']['add_payment_method']['payment_details'];
         // Check if stripe-form class exists on payment_details or any nested element.
         $has_stripe_form_class = FALSE;
-        if (isset($payment_details['#attributes']['class']) && 
+        if (isset($payment_details['#attributes']['class']) &&
             in_array('stripe-form', $payment_details['#attributes']['class'])) {
           $has_stripe_form_class = TRUE;
         }
         // Also check for Card Element mount point IDs (card-number-element, etc.)
-        $has_card_element_ids = isset($payment_details['card_number']) || 
+        $has_card_element_ids = isset($payment_details['card_number']) ||
                                 isset($payment_details['expiration']) ||
                                 isset($payment_details['security_code']);
-        
+
         if ($has_stripe_form_class || $has_card_element_ids) {
           $has_card_element = TRUE;
         }
       }
       // Fallback: check payment_information directly for stripe-form class.
-      elseif (isset($form['payment_information']['#attributes']['class']) && 
+      elseif (isset($form['payment_information']['#attributes']['class']) &&
               in_array('stripe-form', $form['payment_information']['#attributes']['class'])) {
         $has_card_element = TRUE;
       }
     }
-    
+
     // Attach appropriate library based on which Stripe integration is used.
     if ($has_payment_element) {
       // Payment Element uses commerce_stripe/payment_element library.
@@ -966,7 +981,8 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
       if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'])) {
         $form['#attached']['library'][] = 'commerce_stripe/payment_element';
       }
-    } elseif ($has_card_element) {
+    }
+    elseif ($has_card_element) {
       // Card Element uses commerce_stripe/form library.
       // This library depends on commerce_stripe/stripe, which will be auto-attached.
       if (!in_array('commerce_stripe/form', $form['#attached']['library'])) {
@@ -977,23 +993,25 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
         $form['#attached']['library'][] = 'commerce_stripe/stripe';
       }
     }
-    // Fallback: If we're on checkout and payment_information exists but no library detected,
+
+    // Fallback: If we're on checkout and payment_information exists but no library detected.
     // check the order's payment gateway to determine which library to attach.
-    if (!$has_payment_element && !$has_card_element && 
-        isset($form['payment_information']) && 
+    if (!$has_payment_element && !$has_card_element &&
+        isset($form['payment_information']) &&
         (strpos($form_id, 'commerce_checkout') === 0 || $form_id === 'commerce_checkout_flow')) {
       try {
         // Try to get the order from the form.
         $order = NULL;
-        if (isset($form['#order']) && $form['#order'] instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+        if (isset($form['#order']) && $form['#order'] instanceof OrderInterface) {
           $order = $form['#order'];
-        } elseif (isset($form_state) && method_exists($form_state, 'getFormObject')) {
+        }
+        elseif (isset($form_state) && method_exists($form_state, 'getFormObject')) {
           $form_object = $form_state->getFormObject();
           if (method_exists($form_object, 'getOrder')) {
             $order = $form_object->getOrder();
           }
         }
-        
+
         if ($order && !$order->get('payment_gateway')->isEmpty()) {
           $gateway = $order->get('payment_gateway')->entity;
           if ($gateway && $gateway->getPluginId() === 'stripe_payment_element') {
@@ -1001,7 +1019,8 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
             if (!in_array('commerce_stripe/payment_element', $form['#attached']['library'])) {
               $form['#attached']['library'][] = 'commerce_stripe/payment_element';
             }
-          } elseif ($gateway && $gateway->getPluginId() === 'stripe') {
+          }
+          elseif ($gateway && $gateway->getPluginId() === 'stripe') {
             // Legacy Card Element gateway - attach form library.
             if (!in_array('commerce_stripe/form', $form['#attached']['library'])) {
               $form['#attached']['library'][] = 'commerce_stripe/form';
@@ -1024,7 +1043,7 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 function myeventlane_theme_preprocess_block(array &$variables): void {
   $plugin_id = $variables['plugin_id'] ?? '';
   $elements = $variables['elements'] ?? [];
-  
+
   // Handle home-hero block content.
   // Check by plugin ID (block_content:home_hero) or by block content bundle.
   $is_home_hero = FALSE;
@@ -1035,18 +1054,18 @@ function myeventlane_theme_preprocess_block(array &$variables): void {
       $is_home_hero = TRUE;
     }
   }
-  
+
   // Also check by block content entity if available.
   if (!$is_home_hero && isset($elements['#block_content'])) {
     $block_content = $elements['#block_content'];
-    if ($block_content instanceof \Drupal\block_content\Entity\BlockContent) {
+    if ($block_content instanceof BlockContent) {
       $bundle = $block_content->bundle();
       if ($bundle === 'home_hero' || $bundle === 'home-hero') {
         $is_home_hero = TRUE;
       }
     }
   }
-  
+
   if ($is_home_hero) {
     // Load category terms from the vocabulary used for the homepage hero.
     // Prefer 'event_type' (per spec), fall back to 'categories' if needed.
@@ -1099,10 +1118,362 @@ function myeventlane_theme_theme_suggestions_form_alter(array &$suggestions, arr
   $element = $variables['element'] ?? [];
   $form_id = $element['#form_id'] ?? '';
   $route_name = \Drupal::routeMatch()->getRouteName();
-  
+
   // Force event form template suggestion for vendor console event creation route.
   if ($form_id === 'node_event_form' && $route_name === 'myeventlane_vendor.console.events_add') {
     // Prepend the most specific suggestion to ensure it's used first.
     array_unshift($suggestions, 'form__node__event__form');
   }
+}
+
+/**
+ * Implements hook_preprocess_views_view_unformatted().
+ *
+ * Flags "event views" so we can apply the canonical grid wrapper only to
+ * event listings (and not to every unformatted view across the site).
+ */
+function myeventlane_theme_preprocess_views_view_unformatted(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable) {
+    $variables['mel_is_event_view'] = FALSE;
+    return;
+  }
+
+  $variables['mel_is_event_view'] = _myeventlane_theme_is_event_view($view);
+}
+
+/**
+ * Implements hook_preprocess_views_view_fields().
+ *
+ * Populates the canonical event card field values for event Views.
+ *
+ * This keeps Twig dead-simple and ensures Home, Featured, Taxonomy, Search and
+ * future event views render the same event card markup.
+ */
+function myeventlane_theme_preprocess_views_view_fields(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable) {
+    $variables['mel_is_event_view'] = FALSE;
+    return;
+  }
+
+  $is_event_view = _myeventlane_theme_is_event_view($view);
+  $variables['mel_is_event_view'] = $is_event_view;
+  if (!$is_event_view) {
+    return;
+  }
+
+  $row = $variables['row'] ?? NULL;
+  if (!$row instanceof ResultRow || empty($row->_entity) || !$row->_entity instanceof NodeInterface) {
+    return;
+  }
+
+  /** @var \Drupal\node\NodeInterface $node */
+  $node = $row->_entity;
+  if ($node->bundle() !== 'event') {
+    return;
+  }
+
+  // Title.
+  _myeventlane_theme_set_views_field_content($variables, 'title', $node->label());
+
+  // URL.
+  _myeventlane_theme_set_views_field_content($variables, 'view_node', $node->toUrl()->toString());
+
+  // Image URL (optional).
+  $image_url = '';
+  if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+    $file = $node->get('field_event_image')->entity;
+    if ($file) {
+      try {
+        $image_url = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
+      }
+      catch (\Throwable $e) {
+        $image_url = '';
+      }
+    }
+  }
+  _myeventlane_theme_set_views_field_content($variables, 'field_image', $image_url);
+
+  // Dates.
+  $start_value = ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty())
+    ? (string) $node->get('field_event_start')->value
+    : '';
+  $start_ts = $start_value ? (int) strtotime($start_value) : 0;
+
+  if ($start_ts) {
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = \Drupal::service('date.formatter');
+    _myeventlane_theme_set_views_field_content($variables, 'field_date_day', $date_formatter->format($start_ts, 'custom', 'd'));
+    _myeventlane_theme_set_views_field_content($variables, 'field_date_month', $date_formatter->format($start_ts, 'custom', 'M'));
+    _myeventlane_theme_set_views_field_content($variables, 'field_date', $date_formatter->format($start_ts, 'custom', 'M j, Y'));
+  }
+  else {
+    _myeventlane_theme_set_views_field_content($variables, 'field_date_day', '');
+    _myeventlane_theme_set_views_field_content($variables, 'field_date_month', '');
+    _myeventlane_theme_set_views_field_content($variables, 'field_date', '');
+  }
+
+  // Location (venue name preferred).
+  $location = '';
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $location = (string) $node->get('field_venue_name')->value;
+  }
+  elseif ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $address = $node->get('field_location')->first();
+    if ($address) {
+      $locality = (string) ($address->get('locality')->getString() ?? '');
+      $line1 = (string) ($address->get('address_line1')->getString() ?? '');
+      $location = $locality ?: $line1;
+    }
+  }
+  _myeventlane_theme_set_views_field_content($variables, 'field_location', $location);
+
+  // Category + slug.
+  $category = '';
+  $category_slug = '';
+  if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
+    $term = $node->get('field_category')->entity;
+    if ($term instanceof TermInterface) {
+      $category = $term->label();
+      $category_slug = _myeventlane_theme_slugify($category);
+    }
+  }
+  _myeventlane_theme_set_views_field_content($variables, 'field_category', $category);
+  _myeventlane_theme_set_views_field_content($variables, 'field_category_slug', $category_slug);
+
+  // Ticket type + label.
+  $ticket_type = 'rsvp';
+  $ticket_label = 'RSVP';
+  $event_type = ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty())
+    ? (string) $node->get('field_event_type')->value
+    : 'rsvp';
+
+  if (in_array($event_type, ['paid', 'both', 'external'], TRUE)) {
+    $ticket_type = 'tickets';
+    $ticket_label = ($event_type === 'external') ? 'Get Tickets' : 'Tickets';
+  }
+
+  _myeventlane_theme_set_views_field_content($variables, 'field_ticket_type', $ticket_type);
+  _myeventlane_theme_set_views_field_content($variables, 'field_ticket_label', $ticket_label);
+
+  // Accessibility icons (array of emoji).
+  $icons = [];
+  if ($node->hasField('field_accessibility') && !$node->get('field_accessibility')->isEmpty()) {
+    $icon_map = _myeventlane_theme_accessibility_icon_map();
+    foreach ($node->get('field_accessibility')->referencedEntities() as $term) {
+      if (!$term instanceof TermInterface) {
+        continue;
+      }
+      $key = _myeventlane_theme_slugify($term->label());
+      $key = str_replace('-', '_', $key);
+      $icons[] = $icon_map[$key] ?? '♿';
+    }
+  }
+  _myeventlane_theme_set_views_field_content($variables, 'field_accessibility_icons', $icons);
+}
+
+/**
+ * Determines if a Views display is an "event view".
+ */
+function _myeventlane_theme_is_event_view(ViewExecutable $view): bool {
+  if (($view->storage->get('base_table') ?? '') !== 'node_field_data') {
+    return FALSE;
+  }
+
+  $filters = (array) $view->display_handler->getOption('filters');
+  if (empty($filters['type']['value']) || !is_array($filters['type']['value'])) {
+    // Some event listings (notably taxonomy term pages / argument-based views)
+    // don't always expose the "Content type" filter in the display options.
+    // Fall back to inspecting the executed results.
+    if (!empty($view->result) && is_array($view->result)) {
+      foreach ($view->result as $row) {
+        if ($row instanceof ResultRow && !empty($row->_entity) && $row->_entity instanceof NodeInterface) {
+          return $row->_entity->bundle() === 'event';
+        }
+      }
+    }
+    return FALSE;
+  }
+
+  if (isset($filters['type']['value']['event'])) {
+    return TRUE;
+  }
+
+  // As an additional safety net, treat the view as an event listing when the results are event nodes.
+  // This handles displays where the type filter is present but empty/misconfigured.
+  if (!empty($view->result) && is_array($view->result)) {
+    foreach ($view->result as $row) {
+      if ($row instanceof ResultRow && !empty($row->_entity) && $row->_entity instanceof NodeInterface) {
+        return $row->_entity->bundle() === 'event';
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Sets a Views field's rendered content (object-safe).
+ */
+function _myeventlane_theme_set_views_field_content(array &$variables, string $field_id, mixed $content): void {
+  if (empty($variables['fields'][$field_id])) {
+    return;
+  }
+
+  if (is_object($variables['fields'][$field_id])) {
+    $variables['fields'][$field_id]->content = $content;
+  }
+  elseif (is_array($variables['fields'][$field_id])) {
+    $variables['fields'][$field_id]['content'] = $content;
+  }
+}
+
+/**
+ * Slugifies a label into a safe CSS class fragment.
+ */
+function _myeventlane_theme_slugify(string $value): string {
+  $key = strtolower($value);
+  $key = str_replace([' ', '&'], ['-', 'and'], $key);
+  $key = preg_replace('/[^a-z0-9-]/', '', $key);
+  return $key;
+}
+
+/**
+ * Accessibility icon mapping (slug => emoji).
+ */
+function _myeventlane_theme_accessibility_icon_map(): array {
+  return [
+    'wheelchair_accessible' => '♿',
+    'accessible_toilets' => '🚻',
+    'sign_language_interpreter' => '👋',
+    'hearing_loop' => '🔊',
+    'quiet_space' => '🔇',
+    'guide_dog_friendly' => '🐕',
+    'accessible_parking' => '🅿️',
+    'step_free_access' => '♿',
+    'visual_impairment_support' => '👁️',
+    'cognitive_accessibility' => '🧠',
+    'dietary_requirements' => '🥗',
+  ];
+}
+
+/**
+ * Implements hook_preprocess_search_result().
+ *
+ * Renders Event node search results using the canonical event card.
+ */
+function myeventlane_theme_preprocess_search_result(array &$variables): void {
+  $variables['mel_is_event_search_result'] = FALSE;
+  $variables['mel_event_card'] = [];
+
+  if (($variables['plugin_id'] ?? '') !== 'node_search') {
+    return;
+  }
+
+  $result = $variables['result'] ?? [];
+  $node = $result['node'] ?? NULL;
+  if (!$node instanceof NodeInterface) {
+    return;
+  }
+
+  if ($node->bundle() !== 'event') {
+    return;
+  }
+
+  // Build the canonical event-card variables.
+  $url = $node->toUrl()->toString();
+  $title = $node->label();
+
+  $image_url = '';
+  if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+    $file = $node->get('field_event_image')->entity;
+    if ($file) {
+      try {
+        $image_url = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
+      }
+      catch (\Throwable $e) {
+        $image_url = '';
+      }
+    }
+  }
+
+  $start_value = ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty())
+    ? (string) $node->get('field_event_start')->value
+    : '';
+  $start_ts = $start_value ? (int) strtotime($start_value) : 0;
+
+  $date_day = '';
+  $date_month = '';
+  $date_full = '';
+  if ($start_ts) {
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = \Drupal::service('date.formatter');
+    $date_day = $date_formatter->format($start_ts, 'custom', 'd');
+    $date_month = $date_formatter->format($start_ts, 'custom', 'M');
+    $date_full = $date_formatter->format($start_ts, 'custom', 'M j, Y');
+  }
+
+  $location = '';
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $location = (string) $node->get('field_venue_name')->value;
+  }
+  elseif ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $address = $node->get('field_location')->first();
+    if ($address) {
+      $locality = (string) ($address->get('locality')->getString() ?? '');
+      $line1 = (string) ($address->get('address_line1')->getString() ?? '');
+      $location = $locality ?: $line1;
+    }
+  }
+
+  $category = '';
+  $category_slug = '';
+  if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
+    $term = $node->get('field_category')->entity;
+    if ($term instanceof TermInterface) {
+      $category = $term->label();
+      $category_slug = _myeventlane_theme_slugify($category);
+    }
+  }
+
+  $ticket_type = 'rsvp';
+  $ticket_label = 'RSVP';
+  $event_type = ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty())
+    ? (string) $node->get('field_event_type')->value
+    : 'rsvp';
+
+  if (in_array($event_type, ['paid', 'both', 'external'], TRUE)) {
+    $ticket_type = 'tickets';
+    $ticket_label = ($event_type === 'external') ? 'Get Tickets' : 'Tickets';
+  }
+
+  $accessibility = [];
+  if ($node->hasField('field_accessibility') && !$node->get('field_accessibility')->isEmpty()) {
+    $icon_map = _myeventlane_theme_accessibility_icon_map();
+    foreach ($node->get('field_accessibility')->referencedEntities() as $term) {
+      if (!$term instanceof TermInterface) {
+        continue;
+      }
+      $key = _myeventlane_theme_slugify($term->label());
+      $key = str_replace('-', '_', $key);
+      $accessibility[] = $icon_map[$key] ?? '♿';
+    }
+  }
+
+  $variables['mel_is_event_search_result'] = TRUE;
+  $variables['mel_event_card'] = [
+    'title' => $title,
+    'url' => $url,
+    'image' => $image_url,
+    'date_day' => $date_day,
+    'date_month' => $date_month,
+    'date_full' => $date_full,
+    'location' => $location,
+    'category' => $category,
+    'category_slug' => $category_slug,
+    'ticket_type' => $ticket_type,
+    'ticket_label' => $ticket_label,
+    'accessibility' => $accessibility,
+  ];
 }

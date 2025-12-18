@@ -46,8 +46,6 @@ function myeventlane_core_theme(): array {
  * Implements hook_mail().
  */
 function myeventlane_core_mail($key, &$message, $params): void {
-  $renderer = \Drupal::service('renderer');
-
   switch ($key) {
     case 'category_digest':
       $message['subject'] = $params['subject'] ?? t('Weekly Event Digest - New events in your categories');
@@ -62,7 +60,8 @@ function myeventlane_core_mail($key, &$message, $params): void {
  */
 function myeventlane_core_cron(): void {
   // Send weekly category digests on Sundays.
-  $dayOfWeek = (int) date('w'); // 0 = Sunday
+  // 0 = Sunday.
+  $dayOfWeek = (int) date('w');
   if ($dayOfWeek !== 0) {
     return;
   }

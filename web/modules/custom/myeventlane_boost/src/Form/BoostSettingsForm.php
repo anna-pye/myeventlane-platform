@@ -112,9 +112,3 @@ final class BoostSettingsForm extends ConfigFormBase {
   }
 
 }
-
-
-
-
-
-

@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * MyEventLane override for displaying a single search result.
+ *
+ * For event nodes, render the canonical event card.
+ * Otherwise, fall back to core's default search result markup.
+ */
+#}
+
+{% if mel_is_event_search_result %}
+  {% include '@myeventlane_theme/event/event-card.html.twig' with {
+    title: mel_event_card.title,
+    url: mel_event_card.url,
+    image: mel_event_card.image,
+    date_day: mel_event_card.date_day,
+    date_month: mel_event_card.date_month,
+    date_full: mel_event_card.date_full,
+    location: mel_event_card.location,
+    category: mel_event_card.category,
+    category_slug: mel_event_card.category_slug,
+    ticket_type: mel_event_card.ticket_type,
+    ticket_label: mel_event_card.ticket_label,
+    accessibility: mel_event_card.accessibility
+  } %}
+{% else %}
+  {{ title_prefix }}
+  <h3{{ title_attributes }}>
+    <a href="{{ url }}">{{ title }}</a>
+  </h3>
+  {{ title_suffix }}
+  {% if snippet %}
+    <p{{ content_attributes }}>{{ snippet }}</p>
+  {% endif %}
+  {% if info %}
+    <p>{{ info }}</p>
+  {% endif %}
+{% endif %}

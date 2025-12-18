@@ -92,13 +92,16 @@ function myeventlane_event_node_view(array &$build, EntityInterface $entity, Ent
 /**
  * Implements hook_module_implements_alter().
  *
- * Ensures our form alter runs AFTER conditional_fields module.
+ * Ensures our form alter runs AFTER conditional_fields and vendor modules.
  */
 function myeventlane_event_module_implements_alter(&$implementations, $hook): void {
   if ($hook === 'form_node_event_form_alter' || $hook === 'form_node_event_edit_form_alter') {
-    $group = $implementations['myeventlane_event'];
-    unset($implementations['myeventlane_event']);
-    $implementations['myeventlane_event'] = $group;
+    // Move our implementation to run last, after vendor module.
+    if (isset($implementations['myeventlane_event'])) {
+      $group = $implementations['myeventlane_event'];
+      unset($implementations['myeventlane_event']);
+      $implementations['myeventlane_event'] = $group;
+    }
   }
 }
 
@@ -223,26 +226,31 @@ function _myeventlane_event_preserve_existing_handlers(array &$form, FormStateIn
   }
 
   // Add a status message area for existing events.
-  $node = $form_state->getFormObject()->getEntity();
-  if ($node instanceof NodeInterface && !$node->isNew()) {
-    /** @var \Drupal\myeventlane_event\Service\EventModeManager $modeManager */
-    $modeManager = \Drupal::service('myeventlane_event.mode_manager');
-    $status = $modeManager->getConfigurationStatus($node);
+  // BUT: Skip this for wizard forms (they hide it anyway and it's vendor-facing).
+  $is_wizard = isset($form['wizard_current_step']) || (isset($form['#attributes']['class']) && is_array($form['#attributes']['class']) && in_array('mel-event-wizard', $form['#attributes']['class'], TRUE));
+  
+  if (!$is_wizard) {
+    $node = $form_state->getFormObject()->getEntity();
+    if ($node instanceof NodeInterface && !$node->isNew()) {
+      /** @var \Drupal\myeventlane_event\Service\EventModeManager $modeManager */
+      $modeManager = \Drupal::service('myeventlane_event.mode_manager');
+      $status = $modeManager->getConfigurationStatus($node);
 
-    $form['booking_status'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-booking-status']],
-      '#weight' => -10,
-    ];
+      $form['booking_status'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-booking-status']],
+        '#weight' => -10,
+      ];
 
-    $form['booking_status']['info'] = [
-      '#theme' => 'status_messages',
-      '#message_list' => _myeventlane_event_build_status_messages($status),
-      '#status_headings' => [
-        'status' => t('Configuration Status'),
-        'warning' => t('Action Needed'),
-      ],
-    ];
+      $form['booking_status']['info'] = [
+        '#theme' => 'status_messages',
+        '#message_list' => _myeventlane_event_build_status_messages($status),
+        '#status_headings' => [
+          'status' => t('Configuration Status'),
+          'warning' => t('Action Needed'),
+        ],
+      ];
+    }
   }
 
   // Add custom validation.
@@ -250,6 +258,14 @@ function _myeventlane_event_preserve_existing_handlers(array &$form, FormStateIn
     $form['#validate'] = [];
   }
   $form['#validate'][] = '_myeventlane_event_form_validate';
+  $form['#validate'][] = '_myeventlane_event_wizard_validate';
+
+  // Add wizard submit handler for step navigation.
+  if (!isset($form['#submit']) || !is_array($form['#submit'])) {
+    $form['#submit'] = [];
+  }
+  // Insert wizard submit handler before other handlers.
+  array_unshift($form['#submit'], '_myeventlane_event_wizard_submit');
 
   // Final check: ensure form is still valid.
   if (empty($form) || !is_array($form)) {
@@ -865,4 +881,119 @@ function _myeventlane_event_sync_ticket_types(array &$form, FormStateInterface $
   /** @var \Drupal\myeventlane_event\Service\TicketTypeManager $ticketTypeManager */
   $ticketTypeManager = \Drupal::service('myeventlane_event.ticket_type_manager');
   $ticketTypeManager->syncTicketTypesToVariations($node);
+}
+
+/**
+ * Wizard validation handler.
+ *
+ * Validates wizard steps based on current step and required fields.
+ * Works for both vendor and admin event forms.
+ */
+function _myeventlane_event_wizard_validate(array &$form, FormStateInterface $form_state): void {
+  // Only validate if wizard is active.
+  if (!isset($form['wizard_current_step'])) {
+    return;
+  }
+
+  // Skip validation if saving draft or auto-saving.
+  $save_draft = $form_state->getValue('wizard_save_draft');
+  $auto_save = $form_state->getValue('wizard_auto_save');
+  if ($save_draft || $auto_save) {
+    return;
+  }
+
+  // Get current step from form state.
+  $current_step = $form_state->getValue('wizard_current_step') ?? 'basics';
+  $steps = $form_state->get('wizard_steps') ?? [];
+
+  if (empty($steps) || !isset($steps[$current_step])) {
+    return;
+  }
+
+  $step_config = $steps[$current_step];
+  $required_fields = $step_config['required_fields'] ?? [];
+
+  // Validate required fields for current step.
+  foreach ($required_fields as $field_name) {
+    $value = $form_state->getValue([$field_name]);
+    if (empty($value)) {
+      // Try to get field label for better error message.
+      $field_label = $field_name;
+      if (isset($form[$field_name]['#title'])) {
+        $field_label = $form[$field_name]['#title'];
+      }
+      $form_state->setErrorByName(
+        $field_name,
+        t('@field is required to continue.', ['@field' => $field_label])
+      );
+    }
+  }
+
+  // Special validation for schedule step: end cannot be before start.
+  if ($current_step === 'schedule') {
+    $start_value = $form_state->getValue(['field_event_start', 0, 'value']);
+    $end_value = $form_state->getValue(['field_event_end', 0, 'value']);
+    
+    if (!empty($start_value) && !empty($end_value)) {
+      try {
+        $start_date = new \DateTime($start_value);
+        $end_date = new \DateTime($end_value);
+        if ($end_date < $start_date) {
+          $form_state->setErrorByName(
+            'field_event_end',
+            t('End date cannot be before start date.')
+          );
+        }
+      }
+      catch (\Exception $e) {
+        // Invalid date format - let Drupal's field validation handle it.
+      }
+    }
+  }
+}
+
+/**
+ * Wizard submit handler for step navigation.
+ *
+ * Handles moving between steps and auto-saving.
+ */
+function _myeventlane_event_wizard_submit(array &$form, FormStateInterface $form_state): void {
+  // Only process if wizard is active.
+  if (!isset($form['wizard_current_step'])) {
+    return;
+  }
+
+  $current_step = $form_state->getValue('wizard_current_step') ?? 'basics';
+  $steps = $form_state->get('wizard_steps') ?? [];
+  $auto_save = $form_state->getValue('wizard_auto_save');
+  $save_draft = $form_state->getValue('wizard_save_draft');
+
+  // If auto-saving or saving draft, just save and stay on current step.
+  if ($auto_save || $save_draft) {
+    $form_state->setRebuild();
+    $form_state->set('wizard_current_step', $current_step);
+    return;
+  }
+
+  // Check if this is a "Next" button click (not final publish).
+  $triggering_element = $form_state->getTriggeringElement();
+  $is_next = isset($triggering_element['#attributes']['data-wizard-action']) 
+    && $triggering_element['#attributes']['data-wizard-action'] === 'next';
+
+  if ($is_next && $current_step !== 'review') {
+    // Move to next step.
+    $step_keys = array_keys($steps);
+    $current_index = array_search($current_step, $step_keys, TRUE);
+    
+    if ($current_index !== FALSE && $current_index < count($step_keys) - 1) {
+      $next_step = $step_keys[$current_index + 1];
+      $form_state->set('wizard_current_step', $next_step);
+      $form_state->setRebuild();
+      
+      // Redirect to same page with step parameter.
+      $url = \Drupal\Core\Url::fromRouteMatch(\Drupal::routeMatch())
+        ->setOption('query', ['step' => $next_step]);
+      $form_state->setRedirectUrl($url);
+    }
+  }
 }

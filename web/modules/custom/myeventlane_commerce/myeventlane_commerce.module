@@ -1,14 +1,19 @@
 <?php
 
+/**
+ * @file
+ * Helper hooks and form alters for MyEventLane Commerce.
+ */
+
 declare(strict_types=1);
 
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
-use Drupal\node\NodeInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\node\NodeInterface;
 
 /**
  * Helper: find the quantity number element in ATC form (various widget shapes).
@@ -33,9 +38,9 @@ function &_myeventlane_commerce_get_qty_ref(array &$form) {
   return $null;
 }
 
-/* ==========================================================================
- * 🧩 AUTO-LINK EVENT FIELD BETWEEN PRODUCT AND VARIATIONS
- * ========================================================================== */
+/* ========================================================================== */
+/* 🧩 AUTO-LINK EVENT FIELD BETWEEN PRODUCT AND VARIATIONS                    */
+/* ========================================================================== */
 
 /**
  * Implements hook_entity_presave().
@@ -72,13 +77,19 @@ function myeventlane_commerce_entity_presave(EntityInterface $entity): void {
 }
 
 /**
- * Implements hook_entity_insert() and hook_entity_update() for Event nodes.
+ * Implements hook_entity_insert() for Event nodes.
  *
  * Ensures variations are updated if the Event node changes.
  */
 function myeventlane_commerce_entity_insert(EntityInterface $entity): void {
   _myeventlane_commerce_sync_event_variations($entity);
 }
+
+/**
+ * Implements hook_entity_update() for Event nodes.
+ *
+ * Ensures variations are updated if the Event node changes.
+ */
 function myeventlane_commerce_entity_update(EntityInterface $entity): void {
   _myeventlane_commerce_sync_event_variations($entity);
 }
@@ -119,9 +130,9 @@ function _myeventlane_commerce_sync_event_variations(EntityInterface $entity): v
   }
 }
 
-/* ==========================================================================
- * 🛒 ADD-TO-CART FORM CUSTOMIZATION
- * ========================================================================== */
+/* ========================================================================== */
+/* 🛒 ADD-TO-CART FORM CUSTOMIZATION                                         */
+/* ========================================================================== */
 
 /**
  * Alter Commerce add-to-cart forms (labels, validation, drupalSettings).
@@ -137,9 +148,15 @@ function myeventlane_commerce_form_commerce_order_item_add_to_cart_form_alter(ar
   $form['#attributes']['class'][] = 'mel-atc-form';
 
   // Friendly labels + hide unit price override.
-  if (isset($form['purchased_entity'])) { $form['purchased_entity']['#title'] = t('Ticket Type'); }
-  if (isset($form['quantity']))        { $form['quantity']['#title']        = t('Quantity'); }
-  if (isset($form['unit_price']))      { $form['unit_price']['#access']     = FALSE; }
+  if (isset($form['purchased_entity'])) {
+    $form['purchased_entity']['#title'] = t('Ticket Type');
+  }
+  if (isset($form['quantity'])) {
+    $form['quantity']['#title'] = t('Quantity');
+  }
+  if (isset($form['unit_price'])) {
+    $form['unit_price']['#access'] = FALSE;
+  }
 
   // Force quantity constraints + default to 0.
   if ($qty =& _myeventlane_commerce_get_qty_ref($form)) {
@@ -174,7 +191,7 @@ function myeventlane_commerce_form_commerce_order_item_add_to_cart_form_alter(ar
 
   $form_id_html = $form['#attributes']['id'];
   $form['#attached']['drupalSettings']['melTicketMatrix'][$form_id_html] = [
-    'prices'       => $prices,
+    'prices' => $prices,
     'singleOption' => $single_option,
   ];
 }
@@ -259,7 +276,7 @@ function myeventlane_commerce_commerce_order_item_presave(EntityInterface $entit
  * Restores the billing_information pane that commerce_payment removes.
  * This allows us to have a separate "Billing Information" section in checkout
  * even when payment gateways are enabled.
- * 
+ *
  * This hook runs after commerce_payment's hook (due to module dependencies),
  * so we can restore the pane after it's been removed.
  */
@@ -275,7 +292,7 @@ function myeventlane_commerce_commerce_checkout_pane_info_alter(array &$definiti
       'label' => new TranslatableMarkup('Billing information'),
       'default_step' => 'order_information',
       'wrapper_element' => 'fieldset',
-      'class' => 'Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\BillingInformation',
+      'class' => 'Drupal\\commerce_checkout\\Plugin\\Commerce\\CheckoutPane\\BillingInformation',
       'provider' => 'commerce_checkout',
     ];
   }
@@ -291,7 +308,7 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
   if (!isset($form['#id']) || !str_contains($form['#id'], 'commerce-checkout')) {
     return;
   }
-  
+
   // If billing_information exists as a top-level pane, remove it from payment_information.
   // Only do this if payment_information has been built (has #payment_options or other pane structure).
   // We need to be careful not to interfere with the pane's internal structure, especially Stripe forms.
@@ -301,24 +318,28 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
     // 2. payment_information has been built (has #payment_options or payment_method element)
     // 3. billing_information exists within payment_information
     // 4. We're NOT dealing with a Stripe form (which needs its structure intact)
-    if (isset($form['payment_information']) 
-        && is_array($form['payment_information'])
-        && (isset($form['payment_information']['#payment_options']) || isset($form['payment_information']['payment_method']))
-        && isset($form['payment_information']['billing_information'])) {
-      // Check if this is a Stripe form - if so, don't modify structure
+    if (
+      isset($form['payment_information'])
+      && is_array($form['payment_information'])
+      && (isset($form['payment_information']['#payment_options']) || isset($form['payment_information']['payment_method']))
+      && isset($form['payment_information']['billing_information'])
+    ) {
+      // Check if this is a Stripe form - if so, don't modify structure.
       $is_stripe_form = FALSE;
       if (isset($form['payment_information']['add_payment_method']['payment_details'])) {
         $payment_details = $form['payment_information']['add_payment_method']['payment_details'];
-        if (isset($payment_details['#attributes']['class']) && 
-            in_array('stripe-form', $payment_details['#attributes']['class'])) {
+        if (
+          isset($payment_details['#attributes']['class'])
+          && in_array('stripe-form', $payment_details['#attributes']['class'])
+        ) {
           $is_stripe_form = TRUE;
         }
       }
-      
-      // Only remove billing_information if it's not a Stripe form
-      // Stripe forms need their structure intact for proper initialization
+
+      // Only remove billing_information if it's not a Stripe form.
+      // Stripe forms need their structure intact for proper initialization.
       if (!$is_stripe_form) {
-      unset($form['payment_information']['billing_information']);
+        unset($form['payment_information']['billing_information']);
       }
     }
   }
@@ -331,13 +352,13 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
       $form['payment_information']['#after_build'] = [];
     }
     $form['payment_information']['#after_build'][] = 'myeventlane_commerce_payment_information_after_build';
-    
+
     // Add validation to prevent submission if payment_options is empty.
     if (!isset($form['payment_information']['#validate'])) {
       $form['payment_information']['#validate'] = [];
     }
     $form['payment_information']['#validate'][] = 'myeventlane_commerce_validate_payment_information';
-    
+
     // Add a submit handler that runs before the pane's submit to add safety checks.
     // We'll prepend it so it runs first.
     if (!isset($form['#submit'])) {
@@ -361,7 +382,7 @@ function myeventlane_commerce_payment_information_after_build(array $element, Fo
     $element['#payment_options'] = [];
     \Drupal::logger('myeventlane_commerce')->warning('Payment information pane is missing #payment_options. Setting to empty array to prevent submission errors. This may indicate the pane was not properly built (e.g., no payment gateways available).');
   }
-  
+
   return $element;
 }
 
@@ -373,21 +394,22 @@ function myeventlane_commerce_payment_information_after_build(array $element, Fo
 function myeventlane_commerce_validate_payment_information(array &$element, FormStateInterface $form_state): void {
   // Get the values for this pane.
   $values = $form_state->getValue($element['#parents'] ?? []);
-  
+
   // If #payment_options is empty, we can't proceed.
   if (empty($element['#payment_options'])) {
     \Drupal::logger('myeventlane_commerce')->error('Payment information pane has empty #payment_options. Cannot proceed with payment.');
     $form_state->setError($element, t('No payment methods are available. Please contact support.'));
     return;
   }
-  
+
   // If payment_method is set, validate it exists in #payment_options.
   if (isset($values['payment_method'])) {
     if (!isset($element['#payment_options'][$values['payment_method']])) {
       \Drupal::logger('myeventlane_commerce')->error('Selected payment method @method does not exist in payment options.', ['@method' => $values['payment_method']]);
       if (isset($element['payment_method'])) {
         $form_state->setError($element['payment_method'], t('Invalid payment method selected. Please choose a payment method.'));
-      } else {
+      }
+      else {
         $form_state->setError($element, t('Invalid payment method selected.'));
       }
     }
@@ -409,9 +431,9 @@ function myeventlane_commerce_checkout_form_submit_safety_check(array &$form, Fo
       $form['payment_information']['#payment_options'] = [];
       \Drupal::logger('myeventlane_commerce')->warning('Payment information pane #payment_options missing in submit handler. Setting to empty array.');
     }
-    
+
     $values = $form_state->getValue($form['payment_information']['#parents'] ?? []);
-    
+
     // If payment_method is set but doesn't exist in #payment_options, that's a problem.
     if (isset($values['payment_method']) && !empty($form['payment_information']['#payment_options'])) {
       if (!isset($form['payment_information']['#payment_options'][$values['payment_method']])) {

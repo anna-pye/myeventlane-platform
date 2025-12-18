@@ -112,14 +112,3 @@ final class ValuePropositionBlock extends BlockBase {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-

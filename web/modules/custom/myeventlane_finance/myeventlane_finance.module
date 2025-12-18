@@ -31,16 +31,3 @@ function myeventlane_finance_theme(): array {
     ],
   ];
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

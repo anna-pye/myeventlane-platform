@@ -25,7 +25,7 @@ final class MelCategoryPillsBlock extends BlockBase implements ContainerFactoryP
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly FrontCategoryStatsService $frontCategoryStats
+    private readonly FrontCategoryStatsService $frontCategoryStats,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }

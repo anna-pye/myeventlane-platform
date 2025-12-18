@@ -12,6 +12,7 @@ use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for vendor waitlist management.
@@ -45,7 +46,7 @@ final class WaitlistManagementController extends ControllerBase {
    */
   public function list(NodeInterface $node): array {
     if ($node->bundle() !== 'event') {
-      throw $this->createNotFoundException();
+      throw new NotFoundHttpException();
     }
 
     $eventId = (int) $node->id();
@@ -94,7 +95,7 @@ final class WaitlistManagementController extends ControllerBase {
    */
   public function export(NodeInterface $node): Response {
     if ($node->bundle() !== 'event') {
-      throw $this->createNotFoundException();
+      throw new NotFoundHttpException();
     }
 
     $eventId = (int) $node->id();

@@ -145,9 +145,3 @@ final class MessagingSettingsForm extends ConfigFormBase {
   }
 
 }
-
-
-
-
-
-

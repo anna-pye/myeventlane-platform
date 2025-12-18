@@ -191,7 +191,8 @@ final class AnalyticsDataService {
     }
 
     // Estimate views (this is approximate - would need proper tracking).
-    $views = max($completed * 10, 100); // Rough estimate.
+    // Rough estimate.
+    $views = max($completed * 10, 100);
 
     return [
       'views' => $views,
@@ -227,21 +228,3 @@ final class AnalyticsDataService {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

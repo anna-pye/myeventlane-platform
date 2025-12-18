@@ -18,7 +18,7 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
   /**
    * Constructs a VendorThemeNegotiator object.
    *
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domain_detector
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector service.
    */
   public function __construct(
@@ -46,7 +46,7 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
     // Check if vendor theme exists and is enabled.
     $theme_handler = \Drupal::service('theme_handler');
     $theme_list = $theme_handler->listInfo();
-    
+
     if (isset($theme_list['myeventlane_vendor_theme']) && $theme_list['myeventlane_vendor_theme']->status) {
       return 'myeventlane_vendor_theme';
     }
@@ -56,21 +56,3 @@ final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

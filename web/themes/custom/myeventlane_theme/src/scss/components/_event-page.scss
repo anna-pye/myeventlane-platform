@@ -1,0 +1,284 @@
+.mel-event {
+  padding-bottom: 4rem;
+
+  // Soft poster backdrop.
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(244, 164, 192, 0.18), rgba(244, 164, 192, 0) 60%),
+    radial-gradient(1000px 700px at 80% 10%, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0) 55%),
+    #f7f8fb;
+}
+
+// Full-bleed hero inside page container.
+.mel-event__hero {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+
+  height: 420px;
+  overflow: hidden;
+  border-radius: 0 0 32px 32px;
+  background: #fff;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+}
+
+.mel-event__wrap {
+  max-width: 1100px;
+  margin: -120px auto 0;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  padding: 0 1.5rem;
+}
+
+.mel-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.mel-event__main {
+  position: relative;
+}
+
+// Date badge: hide field labels and style times.
+.mel-event__date {
+  position: absolute;
+  top: -28px;
+  left: 24px;
+
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(8px);
+
+  // Standard Drupal field label.
+  .field__label {
+    display: none;
+  }
+
+  // This site’s field output often has a plain first child <div> label.
+  > div > div:first-child {
+    display: none;
+  }
+
+  time {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #111827;
+  }
+
+  // Make the second time (end) a little softer.
+  > div + div time {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
+
+.mel-event__title {
+  font-size: 2.1rem;
+  margin-top: 2.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+// Meta row: turn field output into pills and hide labels.
+.mel-event__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  color: #6b7280;
+
+  // Standard Drupal label.
+  .field__label {
+    display: none;
+  }
+
+  // Site-specific field wrapper has no classes; treat each direct child as a pill.
+  > div {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
+  // Hide the label div inside each field wrapper.
+  > div > div:first-child {
+    display: none;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // myeventlane_location info block styling (if present).
+  .myeventlane-event-location-info {
+    display: inline;
+
+    h3 {
+      display: none;
+    }
+
+    address {
+      font-style: normal;
+      margin: 0;
+    }
+  }
+}
+
+.mel-event__body {
+  margin-top: 1.25rem;
+  line-height: 1.7;
+  color: #111827;
+
+  p {
+    margin: 0 0 1rem;
+  }
+}
+
+.mel-event__accessibility {
+  margin-top: 1.25rem;
+
+  // Hide label and make links look like tags.
+  .field__label,
+  > div > div:first-child {
+    display: none;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(46, 125, 50, 0.12);
+    color: #1b5e20;
+    text-decoration: none;
+    font-size: 0.875rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.mel-event__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mel-event__action {
+  text-align: center;
+}
+
+// Map card: works both for myeventlane_location map output and address fallback.
+.mel-event__map {
+  padding: 0;
+
+  // Header if we render fallback <h3>.
+  > h3 {
+    padding: 1rem 1.25rem;
+    margin: 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  // If myeventlane_location renders its own <h3>, make it match.
+  .mel-event-section-title {
+    padding: 1rem 1.25rem;
+    margin: 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  // Hide any field label output.
+  .field__label,
+  > div > div:first-child {
+    display: none;
+  }
+
+  .field--type-address,
+  .field--type-geofield {
+    padding: 0;
+  }
+
+  .address,
+  address {
+    padding: 1rem 1.25rem;
+    margin: 0;
+    font-style: normal;
+    color: #374151;
+    line-height: 1.5;
+  }
+
+  iframe,
+  .leaflet-container,
+  .myeventlane-event-map-container {
+    width: 100%;
+    height: 220px;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .myeventlane-event-map-container {
+    margin: 0;
+  }
+
+  .myeventlane-event-map-actions {
+    padding: 0.75rem 1.25rem;
+    margin: 0;
+
+    a {
+      font-size: 0.875rem;
+      text-decoration: none;
+    }
+  }
+}
+
+.mel-event__organiser {
+  text-align: center;
+
+  .field__label,
+  > div > div:first-child {
+    display: none;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .mel-event__hero {
+    height: 320px;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .mel-event__wrap {
+    grid-template-columns: 1fr;
+    margin-top: -80px;
+  }
+}

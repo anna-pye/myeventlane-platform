@@ -180,7 +180,7 @@ final class CategoryDigestGenerator {
       $user->getEmail(),
       \Drupal::languageManager()->getDefaultLanguage()->getId(),
       [
-        'subject' => $this->t('Weekly Event Digest - New events in your categories'),
+        'subject' => t('Weekly Event Digest - New events in your categories'),
         'body' => $body,
       ]
     );
@@ -216,4 +216,3 @@ final class CategoryDigestGenerator {
   }
 
 }
-

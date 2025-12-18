@@ -269,7 +269,6 @@ final class BasReportService {
     // GST on purchases would typically come from platform expenses.
     // For now, return 0 as we're only reading existing data.
     // This would need to be populated from purchase records if they exist.
-
     return [
       'total_sales' => $totalSales,
       'gst_collected' => $gstCollected,
@@ -326,7 +325,6 @@ final class BasReportService {
 
     // GST on purchases would typically come from vendor expenses.
     // For now, return 0 as we're only reading existing data.
-
     return [
       'total_sales' => $totalSales,
       'gst_collected' => $gstCollected,
@@ -379,16 +377,3 @@ final class BasReportService {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

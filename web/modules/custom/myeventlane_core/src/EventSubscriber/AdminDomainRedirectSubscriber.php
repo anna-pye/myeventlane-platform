@@ -18,7 +18,7 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
   /**
    * Constructs an AdminDomainRedirectSubscriber object.
    *
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domain_detector
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector service.
    */
   public function __construct(
@@ -29,6 +29,7 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
+    $events = [];
     $events[KernelEvents::REQUEST][] = ['onRequest', 30];
     return $events;
   }
@@ -47,7 +48,7 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
 
     $request = $event->getRequest();
     $path = $request->getPathInfo();
-    
+
     // Redirect root path to admin dashboard.
     // Also handle front page route matches.
     if ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>') {
@@ -59,7 +60,7 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
         $event->setResponse($response);
         return;
       }
-      
+
       $redirect_url = $this->domainDetector->buildDomainUrl('/admin/myeventlane', 'admin');
       $response = new TrustedRedirectResponse($redirect_url, 302);
       $event->setResponse($response);

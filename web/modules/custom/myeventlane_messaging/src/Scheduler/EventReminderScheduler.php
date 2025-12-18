@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_messaging\Scheduler;
 
 use Drupal\Component\Datetime\TimeInterface as DrupalTimeInterface;
@@ -15,6 +17,9 @@ use Psr\Log\LoggerInterface;
  */
 final class EventReminderScheduler {
 
+  /**
+   * Constructs an EventReminderScheduler.
+   */
   public function __construct(
     private readonly LoggerInterface $logger,
     private readonly DrupalTimeInterface $time,
@@ -25,6 +30,9 @@ final class EventReminderScheduler {
     private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
+  /**
+   * Scans for events starting soon and queues reminder emails.
+   */
   public function scan(): void {
     $now = $this->time->getRequestTime();
     $in24 = $now + 86400;
@@ -57,6 +65,7 @@ final class EventReminderScheduler {
         ->condition('field_target_event', $event->id())
         ->accessCheck(FALSE)
         ->execute();
+
       if (!$oi_ids) {
         continue;
       }
@@ -67,6 +76,7 @@ final class EventReminderScheduler {
         if (!$order) {
           continue;
         }
+
         $mail = $order->getEmail() ?: ($order->getCustomer() ? $order->getCustomer()->getEmail() : NULL);
         if (!$mail) {
           continue;
@@ -74,18 +84,22 @@ final class EventReminderScheduler {
 
         $state_key = "mel.msg.event24.sent.{$event->id()}.{$order->id()}";
         if ($this->state->get($state_key)) {
-          continue; // already notified
+          // Already notified.
+          continue;
         }
 
+        // UTC ISO string.
         $startVal = $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()
           ? (string) $event->get('field_event_start')->value
-          : ''; // UTC ISO
+          : '';
+
         $startTs = $startVal ? strtotime($startVal . ' UTC') : NULL;
 
         $ctx = [
-          'title'     => $event->label(),
+          'title' => $event->label(),
           'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
         ];
+
         if ($startTs) {
           $ctx['starts_at'] = $this->dateFormatter->format($startTs, 'custom', 'j M Y, g:ia T');
         }
@@ -98,4 +112,5 @@ final class EventReminderScheduler {
 
     $this->logger->info('EventReminderScheduler: queued @n reminders.', ['@n' => $notified]);
   }
+
 }

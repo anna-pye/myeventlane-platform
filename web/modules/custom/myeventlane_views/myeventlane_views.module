@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Views module.
+ */
+
+use Twig\Loader\FilesystemLoader;
+
+/**
+ * Implements hook_twig_loader_alter().
+ *
+ * Adds a stable Twig namespace alias used by canonical theme includes.
+ */
+function myeventlane_views_twig_loader_alter(FilesystemLoader $loader): void {
+  try {
+    $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+    $templates_path = DRUPAL_ROOT . '/' . $theme_path . '/templates';
+
+    // Allows includes like: @myeventlane/event/event-card.html.twig
+    $loader->addPath($templates_path, 'myeventlane');
+  }
+  catch (\Throwable $e) {
+    // If the theme path cannot be resolved, do nothing.
+  }
+}

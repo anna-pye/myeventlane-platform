@@ -1,8 +1,11 @@
 <?php
 
-declare(strict_types=1);
+/**
+ * @file
+ * Module hooks for MyEventLane Messaging.
+ */
 
-use Drupal\Core\Template\Attribute;
+declare(strict_types=1);
 
 /**
  * Implements hook_cron().
@@ -15,20 +18,20 @@ function myeventlane_messaging_cron(): void {
 
 /**
  * Implements hook_theme().
- * (Drupal 11-safe: avoid drupal_get_path(); use extension.list.module service.)
  */
 function myeventlane_messaging_theme($existing, $type, $theme, $path) {
   $tpl_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging') . '/templates';
+
   return [
     'myeventlane_email' => [
       'variables' => ['body' => '', 'context' => []],
-      'template'  => 'myeventlane-email',
-      'path'      => $tpl_path,
+      'template' => 'myeventlane-email',
+      'path' => $tpl_path,
     ],
     'myeventlane_messaging_inline' => [
       'variables' => ['template' => '', 'context' => []],
-      'template'  => 'myeventlane-messaging-inline',
-      'path'      => $tpl_path,
+      'template' => 'myeventlane-messaging-inline',
+      'path' => $tpl_path,
     ],
   ];
 }
@@ -42,13 +45,15 @@ function template_preprocess_myeventlane_email(array &$variables): void {
 
 /**
  * Implements hook_mail().
+ *
  * Single generic key used by MessagingManager.
  */
 function myeventlane_messaging_mail($key, &$message, $params) {
   if ($key !== 'generic') {
     return;
   }
+
   $message['subject'] = $params['subject'] ?? '(no subject)';
-  $message['body']    = $params['html'] ?? $params['body'] ?? '';
+  $message['body'] = $params['html'] ?? $params['body'] ?? '';
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
 }

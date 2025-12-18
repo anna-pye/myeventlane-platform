@@ -252,16 +252,3 @@ final class BasPdfExportService {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

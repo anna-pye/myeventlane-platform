@@ -24,15 +24,15 @@ function myeventlane_theme_page_attachments(array &$page) {
     if (!in_array('commerce_stripe/stripe', $libraries)) {
       $libraries[] = 'commerce_stripe/stripe';
     }
-    
-    // Also add via html_head as a direct fallback - this ensures it loads even if library system fails
+
+    // Also add via html_head as a direct fallback. This ensures it loads even if library system fails.
     $stripe_config = \Drupal::config('commerce_stripe.settings');
     $user_fraud_signals = $stripe_config->get('collect_user_fraud_signals') ?? TRUE;
     $stripe_src = 'https://js.stripe.com/v3/';
     if (!$user_fraud_signals) {
       $stripe_src .= '?advancedFraudSignals=false';
     }
-    
+
     $page['#attached']['html_head'][] = [
       [
         '#tag' => 'script',
@@ -42,7 +42,8 @@ function myeventlane_theme_page_attachments(array &$page) {
         ],
       ],
       'stripe_js_forced',
-      -100, // Very high priority - load early
+      // Very high priority - load early.
+      -100,
     ];
   }
 
@@ -67,13 +68,3 @@ function myeventlane_theme_page_attachments(array &$page) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-

@@ -259,7 +259,7 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
    *   The ticket code.
    */
   private function generateTicketCode(int $eventId, int $orderId, int $orderItemId): string {
-    // Format: MEL-{EVENT_ID}-{ORDER_ID}-{ITEM_ID}-{RANDOM}
+    // Format: MEL-{EVENT_ID}-{ORDER_ID}-{ITEM_ID}-{RANDOM}.
     $random = strtoupper(substr(md5(uniqid((string) mt_rand(), TRUE)), 0, 6));
     return sprintf('MEL-%d-%d-%d-%s', $eventId, $orderId, $orderItemId, $random);
   }
@@ -278,7 +278,7 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
    */
   private function generateTicketPdf(object $orderItem, object $holder, string $ticketCode, int $eventId): void {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
-    
+
     // Check if myeventlane_tickets.pdf service exists.
     if (!\Drupal::hasService('myeventlane_tickets.pdf')) {
       return;
@@ -313,7 +313,7 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
    */
   private function generateWalletPasses(object $orderItem, object $holder, string $ticketCode, int $eventId): void {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
-    
+
     // Check if wallet services exist.
     if (!\Drupal::hasService('myeventlane_wallet.pk_pass') && !\Drupal::hasService('myeventlane_wallet.google_wallet')) {
       return;
@@ -344,4 +344,3 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
   }
 
 }
-

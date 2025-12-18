@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_messaging\Scheduler;
 
 use Drupal\Component\Datetime\TimeInterface as DrupalTimeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
 use Psr\Log\LoggerInterface;
@@ -14,6 +16,9 @@ use Psr\Log\LoggerInterface;
  */
 final class BoostReminderScheduler {
 
+  /**
+   * Constructs a BoostReminderScheduler.
+   */
   public function __construct(
     private readonly LoggerInterface $logger,
     private readonly DrupalTimeInterface $time,
@@ -22,6 +27,9 @@ final class BoostReminderScheduler {
     private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
+  /**
+   * Scans for boosted events nearing expiry and queues reminder emails.
+   */
   public function scan(): void {
     $now = $this->time->getRequestTime();
     $upper = $now + 86400;
@@ -48,6 +56,7 @@ final class BoostReminderScheduler {
       $nid = (int) $node->id();
       $owner = $node->getOwner();
       $to = (string) $owner->getEmail();
+
       if (!$to) {
         $this->logger->warning('Boost reminder skipped for event @nid (no owner email).', ['@nid' => $nid]);
         continue;
@@ -59,10 +68,11 @@ final class BoostReminderScheduler {
       $extendUrl = Url::fromUri('internal:/boost/' . $nid, ['absolute' => TRUE])->toString();
 
       $ctx = [
-        'entity_id'  => $nid,
-        'title'      => $node->label(),
+        'entity_id' => $nid,
+        'title' => $node->label(),
         'extend_url' => $extendUrl,
       ];
+
       if ($expiresTs) {
         $ctx['expires_at'] = $this->dateFormatter->format($expiresTs, 'custom', 'j M Y, g:ia T');
       }

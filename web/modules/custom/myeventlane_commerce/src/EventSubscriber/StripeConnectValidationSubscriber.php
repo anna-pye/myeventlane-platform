@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\EventSubscriber;
 
-use Drupal\commerce_checkout\Event\CheckoutEvents;
 use Drupal\commerce_checkout\Event\CheckoutCompletionEvent;
 use Drupal\commerce_checkout\Event\CheckoutEvents as CheckoutEventsEnum;
 use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;

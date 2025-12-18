@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_analytics\Service;
 
+use Dompdf\Dompdf;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RendererInterface;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
@@ -107,7 +110,7 @@ final class ReportGeneratorService {
     $html = $this->buildPdfHtml($eventNode, $timeSeries, $ticketBreakdown, $conversionFunnel, $totalRevenue, $totalTickets);
 
     // Generate PDF using dompdf.
-    $dompdf = new \Dompdf\Dompdf();
+    $dompdf = new Dompdf();
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');
     $dompdf->render();
@@ -138,7 +141,7 @@ final class ReportGeneratorService {
    *   Excel response.
    */
   public function generateExcelReport(int $eventId, ?int $startDate = NULL, ?int $endDate = NULL): Response {
-    if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+    if (!class_exists(Spreadsheet::class)) {
       throw new \RuntimeException('PhpSpreadsheet library not available. Install with: composer require phpoffice/phpspreadsheet');
     }
 
@@ -161,7 +164,7 @@ final class ReportGeneratorService {
     }
 
     // Create spreadsheet.
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Analytics Report');
 
@@ -205,7 +208,7 @@ final class ReportGeneratorService {
     }
 
     // Write to temporary file.
-    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer = new Xlsx($spreadsheet);
     $tempFile = tempnam(sys_get_temp_dir(), 'analytics_');
     $writer->save($tempFile);
 
@@ -247,7 +250,7 @@ final class ReportGeneratorService {
     array $ticketBreakdown,
     array $conversionFunnel,
     float $totalRevenue,
-    int $totalTickets
+    int $totalTickets,
   ): string {
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       body { font-family: Arial, sans-serif; padding: 20px; }
@@ -256,14 +259,14 @@ final class ReportGeneratorService {
       th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
       th { background-color: #f5f5f5; font-weight: bold; }
     </style></head><body>';
-    
+
     $html .= '<h1>Analytics Report: ' . htmlspecialchars($eventNode->label()) . '</h1>';
     $html .= '<p><strong>Generated:</strong> ' . date('Y-m-d H:i:s') . '</p>';
-    
+
     $html .= '<h2>Summary</h2>';
     $html .= '<p><strong>Total Revenue:</strong> $' . number_format($totalRevenue, 2) . '</p>';
     $html .= '<p><strong>Total Tickets:</strong> ' . $totalTickets . '</p>';
-    
+
     if (!empty($timeSeries)) {
       $html .= '<h2>Sales Over Time</h2>';
       $html .= '<table><thead><tr><th>Date</th><th>Revenue</th><th>Tickets Sold</th></tr></thead><tbody>';
@@ -276,7 +279,7 @@ final class ReportGeneratorService {
       }
       $html .= '</tbody></table>';
     }
-    
+
     if (!empty($ticketBreakdown)) {
       $html .= '<h2>Ticket Type Breakdown</h2>';
       $html .= '<table><thead><tr><th>Ticket Type</th><th>Sold</th><th>Revenue</th></tr></thead><tbody>';
@@ -289,7 +292,7 @@ final class ReportGeneratorService {
       }
       $html .= '</tbody></table>';
     }
-    
+
     if (!empty($conversionFunnel)) {
       $html .= '<h2>Conversion Funnel</h2>';
       $html .= '<table><thead><tr><th>Stage</th><th>Count</th></tr></thead><tbody>';
@@ -299,16 +302,10 @@ final class ReportGeneratorService {
       $html .= '<tr><td>Completed</td><td>' . ($conversionFunnel['completed'] ?? 0) . '</td></tr>';
       $html .= '</tbody></table>';
     }
-    
+
     $html .= '</body></html>';
-    
+
     return $html;
   }
 
 }
-
-
-
-
-
-

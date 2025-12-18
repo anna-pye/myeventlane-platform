@@ -44,3 +44,13 @@ mel-listing-header:
       dist/css/front.css: {}
   dependencies:
     - core/drupal
+
+# Event page (Poster Card layout).
+# NOTE: This theme uses Vite to compile SCSS into dist/main.css. The event-page
+# styling lives in src/scss/components/_event-page.scss and is bundled via
+# src/scss/main.scss. This library is a Drupal attachment hook + dependencies.
+event-page:
+  dependencies:
+    - myeventlane_theme/global-styling
+    - core/drupal
+    - core/drupalSettings

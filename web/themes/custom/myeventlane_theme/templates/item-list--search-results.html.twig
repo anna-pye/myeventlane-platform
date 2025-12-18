@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * MyEventLane override for the search results list.
+ *
+ * Uses the canonical event grid wrapper.
+ */
+#}
+
+{% if items or empty %}
+  {% if title is not empty %}
+    <h3>{{ title }}</h3>
+  {% endif %}
+
+  {% if items %}
+    <div class="mel-event-grid">
+      {% for item in items %}
+        {{ item.value }}
+      {% endfor %}
+    </div>
+  {% else %}
+    {{ empty }}
+  {% endif %}
+{% endif %}

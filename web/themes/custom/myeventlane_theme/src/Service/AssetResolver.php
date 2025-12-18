@@ -9,14 +9,28 @@ use Drupal\Core\Extension\ExtensionList;
  */
 class AssetResolver {
 
+  /**
+   * The theme extension list service.
+   *
+   * @var \Drupal\Core\Extension\ExtensionList
+   */
   protected ExtensionList $themeList;
 
+  /**
+   * Constructs an AssetResolver.
+   *
+   * @param \Drupal\Core\Extension\ExtensionList $theme_list
+   *   The theme extension list service.
+   */
   public function __construct(ExtensionList $theme_list) {
     $this->themeList = $theme_list;
   }
 
   /**
-   * Returns full path to Vite manifest.json.
+   * Returns the full path to Vite manifest.json.
+   *
+   * @return string|null
+   *   The manifest path, or NULL if it is missing.
    */
   public function getManifestPath(): ?string {
     $path = $this->themeList->getPath('myeventlane_theme');
@@ -24,4 +38,5 @@ class AssetResolver {
 
     return file_exists($manifest) ? $manifest : NULL;
   }
+
 }

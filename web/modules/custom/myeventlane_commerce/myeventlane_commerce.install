@@ -1,12 +1,16 @@
 <?php
 
 /**
+ * @file
+ * Install, update and uninstall hooks for MyEventLane Commerce.
+ */
+
+/**
  * Implements hook_update_N().
  */
-function myeventlane_commerce_update_8000() {
+function myeventlane_commerce_update_8000(): void {
   // Put any schema or config updates here.
   // For example, create a table or add a new field to an entity.
   // If you don't need anything yet, just leave a comment.
-
   \Drupal::logger('myeventlane_commerce')->notice('Ran update 8000.');
 }

@@ -4,8 +4,10 @@ namespace Drupal\myeventlane_commerce\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Provides attendee info controller routes.
+ */
 final class AttendeeInfoController extends ControllerBase {
 
   /**

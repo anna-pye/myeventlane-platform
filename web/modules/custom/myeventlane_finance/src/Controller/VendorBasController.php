@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_finance\Controller;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_finance\Service\BasCsvExportService;
 use Drupal\myeventlane_finance\Service\BasPdfExportService;
@@ -23,6 +24,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Controller for vendor BAS reporting page.
  */
 final class VendorBasController extends VendorConsoleBaseController implements ContainerInjectionInterface {
+
+  use StringTranslationTrait;
 
   /**
    * The BAS report service.
@@ -164,7 +167,7 @@ final class VendorBasController extends VendorConsoleBaseController implements C
     }
 
     $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-    
+
     // First, try to find vendor where user is the owner.
     $vendorIds = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
@@ -264,16 +267,3 @@ final class VendorBasController extends VendorConsoleBaseController implements C
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

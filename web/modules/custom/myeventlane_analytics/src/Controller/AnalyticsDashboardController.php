@@ -21,6 +21,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for analytics dashboard.
@@ -214,7 +215,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
    */
   public function exportPdf(NodeInterface $node): Response {
     if ($node->bundle() !== 'event') {
-      throw $this->createNotFoundException();
+      throw new NotFoundHttpException();
     }
 
     return $this->reportService->generatePdfReport((int) $node->id());
@@ -231,7 +232,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
    */
   public function exportExcel(NodeInterface $node): Response {
     if ($node->bundle() !== 'event') {
-      throw $this->createNotFoundException();
+      throw new NotFoundHttpException();
     }
 
     return $this->reportService->generateExcelReport((int) $node->id());
@@ -271,9 +272,3 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
   }
 
 }
-
-
-
-
-
-
