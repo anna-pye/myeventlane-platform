@@ -1,20 +1,8 @@
-event_wizard:
-  css:
-    theme:
-      css/event-wizard.css: {}
-  js: {}
-  dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
-
 event_node:
   css:
     theme:
       css/event-node.css: {}
-  js:
-    js/event-map.js: {}
+  js: {}
   dependencies:
     - core/drupal
-    - core/drupalSettings
     - core/once

@@ -1,256 +1,190 @@
 // ==========================================================================
-// Event Full Page – Option A final polish
+// Event Full Node Page Layout
 // ==========================================================================
-// Overrides for node--event--full.html.twig.
-// Keep these overrides small and specific so we don’t regress listing cards.
+// Scoped to .node--type-event.node--view-mode-full to avoid conflicts
+// with other event templates and global layouts.
 
-.mel-event {
-  // Constrain the hero image (no full-bleed).
+// Neutralize inherited grid from global layout or _event-page.scss
+.node--type-event.node--view-mode-full {
+  // Reset any inherited grid on parent containers
+  .layout-content,
+  .region-content,
+  .container,
+  article {
+    display: block !important;
+  }
+
+  // Reset _event-page.scss conflicts
+  .mel-event__wrap {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .mel-event__hero {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-
-    // Undo the full-bleed layout from _event-page.scss.
-    margin-left: auto;
-    margin-right: auto;
-    height: auto;
-    overflow: visible;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .mel-event__hero-inner {
-    overflow: hidden;
-    border-radius: 24px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 420px;
-  }
-
-  // Support <picture> wrappers from responsive image output.
-  .mel-event__hero-inner picture,
-  .mel-event__hero-inner .media,
-  .mel-event__hero-inner .field,
-  .mel-event__hero-inner .field__item {
-    width: 100%;
-    height: 100%;
-  }
-
-  .mel-event__hero-inner img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    display: block;
-  }
-
-  // Left card overflow + padding fix.
-  .mel-event__main.mel-card {
-    padding: 2rem;
-  }
-
-  // Title now sits at the top (date badge removed).
-  .mel-event__title {
-    margin-top: 0;
-  }
-
-  // Venue “@” row.
-  .mel-event__venue {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-    margin-top: 0.85rem;
-
-    // Slightly bold as requested.
-    font-weight: 600;
-    color: #111827;
-
-    // Hide field labels if the venue field outputs them.
-    .field__label {
-      display: none;
-    }
-
-    // Ensure venue contents behave like inline text.
-    address {
-      display: inline;
-      font-style: normal;
-      margin: 0;
-    }
-  }
-
-  .mel-event__venue-at {
-    color: var(--mel-coral);
-    font-weight: 700;
-  }
-
-  .mel-event__venue-name {
-    // Keep as normal text but readable.
-    font-weight: inherit;
-
-    // The field render output may include wrapper <div>s; keep it inline.
-    .field,
-    .field__item,
-    p {
-      display: inline;
-      margin: 0;
-    }
-  }
-
-  // Date/time row below venue (no clipping).
-  .mel-event__datetime {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-    color: #6b7280;
-
-    .field__label,
-    .field > div:first-child {
-      display: none;
-    }
-
-    // Drupal field wrappers can add block elements; keep them compact.
-    > div {
-      display: inline-flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-    }
-
-    > div > div,
-    p {
-      margin: 0;
-    }
-
-    time {
-      font-weight: 600;
-      color: #111827;
-    }
-
-    // Slightly softer end time.
-    > div + div time {
-      font-weight: 600;
-      color: #6b7280;
-    }
-  }
-
-  // Bottom pill row: Category (existing pill style) + Accessibility.
-  .mel-event__pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-    align-items: center;
-  }
-
-  .mel-event__meta--pills {
-    margin: 0;
-  }
-
-  .mel-event__meta--pills > div {
-    // The base pill styling is defined in _event-page.scss on .mel-event__meta.
-    // Ensure it still applies when placed in the bottom row.
-    margin: 0;
-  }
-
-  // Map container sizing + visibility.
-  .mel-event__map {
-    overflow: hidden;
-
-    iframe,
-    .leaflet-container,
-    .myeventlane-event-map-container {
-      height: 260px;
-      min-height: 260px;
-    }
-  }
-
-  // Organiser card: show a small rounded logo (if present) or a placeholder.
-  .mel-event__organiser-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    justify-content: center;
-  }
-
-  .mel-event__organiser-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    flex: 0 0 36px;
-  }
-
-  .mel-event__organiser-content {
-    // If the referenced entity renders an image, make it a small rounded logo.
-    img {
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      object-fit: cover;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 0.5rem;
-    }
-
-    // Keep any wrappers compact.
-    .field__label {
-      display: none;
-    }
-
-    .field,
-    .field__item,
-    p {
-      margin: 0;
-    }
-  }
-
-  // Location info card: keep it visually consistent and non-redundant.
-  .mel-event__location-info {
-    .mel-event-section-title {
-      margin: 0;
-    }
-
-    .field__label,
-    > div > div:first-child {
-      display: none;
-    }
-
-    address {
-      font-style: normal;
-      margin: 0;
-    }
-  }
-
-  // CTA card spacing alignment (don’t change CTA logic).
-  .mel-event__action {
-    > *:first-child {
-      margin-top: 0;
-    }
-
-    > *:last-child {
-      margin-bottom: 0;
-    }
+    width: auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    height: auto !important;
+    border-radius: 22px !important;
   }
 }
 
-@media (max-width: 900px) {
-  .mel-event {
-    .mel-event__hero {
-      padding: 0 1rem;
-    }
+// Event wrapper - clean layout
+.mel-event__wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 56px;
+  display: block;
+}
 
-    .mel-event__hero-inner {
-      height: 320px;
-      border-radius: 20px;
-    }
+// Hero image - centered, no grid
+.mel-event__hero {
+  max-width: 1200px;
+  margin: 0 auto 18px;
+  border-radius: 22px;
+  overflow: hidden;
+  display: block;
+}
 
-    .mel-event__main.mel-card {
-      padding: 1.5rem;
-    }
+.mel-event__hero img,
+.mel-event__hero picture img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+// Main grid - ONLY grid in this component
+.mel-event__grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 980px) {
+  .mel-event__grid {
+    grid-template-columns: 1fr;
   }
+}
+
+// Card styling
+.mel-card {
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  display: block;
+}
+
+.mel-card__head {
+  padding: 14px 16px;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.mel-card__body {
+  padding: 14px 16px;
+}
+
+// Event title
+.mel-event__title {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.mel-event__venue {
+  margin-top: 6px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+// Category pills
+.mel-event__pills {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mel-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  background: rgba(110, 126, 242, 0.12);
+}
+
+.mel-pill[style*="--mel-pill:"] {
+  background: color-mix(in srgb, var(--mel-pill) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--mel-pill) 40%, white);
+}
+
+// Sidebar spacing
+.mel-event__sidebar .mel-card + .mel-card {
+  margin-top: 14px;
+}
+
+// Map container - MUST have fixed height
+.myeventlane-event-map-container {
+  height: 230px;
+  min-height: 230px;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+  display: block;
+}
+
+.mel-event__address {
+  margin-top: 12px;
+}
+
+.mel-event__address-text {
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.mel-muted {
+  opacity: 0.7;
+  font-weight: 700;
+}
+
+.mel-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.mel-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mel-k {
+  font-weight: 800;
+  opacity: 0.75;
+}
+
+.mel-v {
+  font-weight: 800;
+}
+
+// Accessibility field styling
+.field--name-field-accessibility .field__label {
+  display: none;
+}
+
+.field--name-field-accessibility h2,
+.field--name-field-accessibility h3 {
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0 0 8px 0;
 }

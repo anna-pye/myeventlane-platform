@@ -1,203 +1,130 @@
 <?php
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Form\FormStateInterface;
+declare(strict_types=1);
+
 use Drupal\node\NodeInterface;
-use Drupal\myeventlane_event\Form\EventFormAlter;
-
-/**
- * Implements hook_form_alter() for event node forms.
- */
-function myeventlane_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  if (str_contains($form_id, 'node_event')) {
-    $service = \Drupal::service('myeventlane_event.form_alter');
-    if ($service instanceof EventFormAlter) {
-      $service->alterForm($form, $form_state, $form_id);
-    }
-  }
-}
-
-/**
- * Implements hook_entity_view().
- */
-function myeventlane_event_entity_view(array &$build, EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode): void {
-  if ($entity->getEntityTypeId() !== 'node') {
-    return;
-  }
-  if ($entity->bundle() !== 'event') {
-    return;
-  }
-  if ($view_mode !== 'full') {
-    return;
-  }
-
-  $build['#attached']['library'][] = 'myeventlane_event/event_node';
-}
-
-/**
- * Implements hook_ENTITY_TYPE_view_alter() for node entities.
- *
- * Modifies event node build array before rendering to:
- * - Hide default field_category rendering (we use colored pills instead)
- * - Ensure map render array is in content region so it's accessible in Twig
- */
-function myeventlane_event_node_view_alter(array &$build, EntityInterface $entity, $display): void {
-  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
-    return;
-  }
-
-  $view_mode = $build['#view_mode'] ?? 'full';
-  if ($view_mode !== 'full') {
-    return;
-  }
-
-  // Hide default category field rendering - we'll use colored pills instead.
-  if (isset($build['field_category'])) {
-    $build['field_category']['#access'] = FALSE;
-  }
-  // Also hide it in content region if it exists there.
-  if (isset($build['content']['field_category'])) {
-    $build['content']['field_category']['#access'] = FALSE;
-  }
-
-  // Ensure event_location_map is in the content region so it's accessible in Twig.
-  // myeventlane_location adds it to the root build array, but we need it in content.
-  if (isset($build['event_location_map'])) {
-    $build['content']['event_location_map'] = $build['event_location_map'];
-    // Optionally remove from root to avoid duplication (though it won't render unless in content).
-    unset($build['event_location_map']);
-  }
-  if (isset($build['event_location_info'])) {
-    $build['content']['event_location_info'] = $build['event_location_info'];
-    unset($build['event_location_info']);
-  }
-}
+use Drupal\taxonomy\TermInterface;
 
 /**
  * Implements hook_preprocess_node().
- *
- * Ensures field_ticket_types is available in content array for full view mode,
- * even if it's hidden in the view display configuration.
- * Also makes CTAs available via EventModeManager.
  */
 function myeventlane_event_preprocess_node(array &$variables): void {
-  $node = $variables['node'] ?? NULL;
-  $view_mode = $variables['view_mode'] ?? 'full';
-
-  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+  if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface) {
     return;
   }
 
-  if ($view_mode !== 'full') {
+  $node = $variables['node'];
+  if ($node->bundle() !== 'event') {
     return;
   }
 
-  // Hide default category rendering since we're using colored pills.
-  // This is a backup - we also do it in hook_node_view_alter.
-  if (isset($variables['content']['field_category'])) {
-    unset($variables['content']['field_category']);
+  // Only target full page output.
+  $view_mode = $variables['view_mode'] ?? '';
+  if (!in_array($view_mode, ['full', 'default'], TRUE)) {
+    return;
   }
 
-  // Ensure event_location_map from myeventlane_location is accessible in content.
-  // It's added via hook_node_view to the root build array, move it to content region.
-  if (isset($variables['elements']['event_location_map']) && !isset($variables['content']['event_location_map'])) {
-    $variables['content']['event_location_map'] = $variables['elements']['event_location_map'];
-  }
-  if (isset($variables['elements']['event_location_info']) && !isset($variables['content']['event_location_info'])) {
-    $variables['content']['event_location_info'] = $variables['elements']['event_location_info'];
-  }
+  // Always attach MEL event node styling.
+  $variables['#attached']['library'][] = 'myeventlane_event/event_node';
 
-  // If field_ticket_types exists on the node but isn't in the content array,
-  // add it so the template can render it.
-  if ($node->hasField('field_ticket_types') && !$node->get('field_ticket_types')->isEmpty()) {
-    if (!isset($variables['content']['field_ticket_types'])) {
-      $field_view = $node->get('field_ticket_types')->view('default');
-      if (!empty($field_view)) {
-        $variables['content']['field_ticket_types'] = $field_view;
-      }
-    }
-  }
+  // Clean title string for data attributes and safe text usage.
+  $variables['mel_title'] = strip_tags($node->getTitle());
 
-  // Ensure accessibility fields are available even if hidden in view display.
-  $accessibility_fields = [
-    'field_accessibility',
-    'field_accessibility_contact',
-    'field_accessibility_directions',
-    'field_accessibility_entry',
-    'field_accessibility_parking',
-  ];
-  foreach ($accessibility_fields as $field_name) {
-    if ($node->hasField($field_name) && !$node->get($field_name)->isEmpty()) {
-      if (!isset($variables['content'][$field_name])) {
-        $field_view = $node->get($field_name)->view('default');
-        if (!empty($field_view)) {
-          $variables['content'][$field_name] = $field_view;
+  // Venue name.
+  $venue_name = '';
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $venue_name = (string) $node->get('field_venue_name')->value;
+  }
+  elseif ($node->hasField('field_event_venue') && !$node->get('field_event_venue')->isEmpty()) {
+    $venue_name = (string) $node->get('field_event_venue')->value;
+  }
+  $variables['mel_venue_name'] = $venue_name;
+
+  // Address text. Prefer address field components.
+  $address_text = '';
+  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $item = $node->get('field_location')->first();
+    if ($item) {
+      $v = $item->getValue();
+      $parts = [];
+      foreach (['address_line1', 'locality', 'administrative_area', 'postal_code', 'country_code'] as $k) {
+        if (!empty($v[$k])) {
+          $parts[] = (string) $v[$k];
         }
       }
+      $address_text = trim(implode(', ', $parts));
     }
   }
-
-  // Add CTAs via EventModeManager service.
-  try {
-    /** @var \Drupal\myeventlane_event\Service\EventModeManager $mode_manager */
-    $mode_manager = \Drupal::service('myeventlane_event.mode_manager');
-    $primary_cta = $mode_manager->getPrimaryCta($node);
-    $all_ctas = $mode_manager->getAllCtas($node);
-    $mode = $mode_manager->getEffectiveMode($node);
-    
-    $variables['event_cta'] = [
-      'primary' => $primary_cta,
-      'all' => $all_ctas,
-      'mode' => $mode,
-    ];
+  elseif ($node->hasField('field_event_address') && !$node->get('field_event_address')->isEmpty()) {
+    $address_text = (string) $node->get('field_event_address')->value;
   }
-  catch (\Exception $e) {
-    // Gracefully fail if service unavailable.
-    $variables['event_cta'] = NULL;
+  $variables['mel_address_text'] = $address_text;
+
+  // Coordinates.
+  $lat = NULL;
+  $lng = NULL;
+
+  if ($node->hasField('field_location_latitude') && !$node->get('field_location_latitude')->isEmpty()) {
+    $lat = (float) $node->get('field_location_latitude')->value;
+  }
+  elseif ($node->hasField('field_event_lat') && !$node->get('field_event_lat')->isEmpty()) {
+    $lat = (float) $node->get('field_event_lat')->value;
   }
 
-  // Add category color classes for styling.
-  if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
-    try {
-      /** @var \Drupal\myeventlane_shared\Service\ColorService $color_service */
-      $color_service = \Drupal::service('myeventlane_shared.color_service');
-      $categories = [];
-      foreach ($node->get('field_category')->referencedEntities() as $term) {
-        $category_name = $term->getName();
-        $color = $color_service->getColorForTerm($category_name);
-        $slug = strtolower($category_name);
-        $slug = str_replace([' ', '&'], ['-', 'and'], $slug);
-        $slug = preg_replace('/[^a-z0-9-+]/', '', $slug);
+  if ($node->hasField('field_location_longitude') && !$node->get('field_location_longitude')->isEmpty()) {
+    $lng = (float) $node->get('field_location_longitude')->value;
+  }
+  elseif ($node->hasField('field_event_lng') && !$node->get('field_event_lng')->isEmpty()) {
+    $lng = (float) $node->get('field_event_lng')->value;
+  }
+
+  $variables['mel_lat'] = $lat;
+  $variables['mel_lng'] = $lng;
+
+  // Vendor label. Prefer a vendor/store/entity reference over author.
+  $vendor_label = '';
+  foreach (['field_vendor_target', 'field_vendor', 'field_store', 'field_organiser', 'field_organizer'] as $candidate) {
+    if ($node->hasField($candidate) && !$node->get($candidate)->isEmpty()) {
+      $ref = $node->get($candidate)->entity;
+      if ($ref) {
+        $vendor_label = $ref->label();
+        break;
+      }
+    }
+  }
+  if ($vendor_label === '') {
+    $vendor_label = $node->getOwner() ? $node->getOwner()->getDisplayName() : '';
+  }
+  $variables['mel_vendor_label'] = $vendor_label;
+
+  // Category pills. Optional term color via common field names.
+  $categories = [];
+  foreach (['field_category', 'field_categories', 'field_event_category'] as $candidate) {
+    if ($node->hasField($candidate) && !$node->get($candidate)->isEmpty()) {
+      foreach ($node->get($candidate)->referencedEntities() as $term) {
+        if (!$term instanceof TermInterface) {
+          continue;
+        }
+        $color = '';
+        foreach (['field_color', 'field_colour', 'field_mel_color'] as $color_field) {
+          if ($term->hasField($color_field) && !$term->get($color_field)->isEmpty()) {
+            $color = (string) $term->get($color_field)->value;
+            break;
+          }
+        }
         $categories[] = [
-          'name' => $category_name,
-          'slug' => $slug,
-          'color' => $color ?? $color_service->getFallbackColor(),
-          'tid' => $term->id(),
+          'tid' => (int) $term->id(),
+          'name' => $term->label(),
+          'color' => $color,
         ];
       }
-      $variables['event_categories'] = $categories;
-    }
-    catch (\Exception $e) {
-      $variables['event_categories'] = [];
+      break;
     }
   }
-  else {
-    $variables['event_categories'] = [];
-  }
-}
+  $variables['mel_categories'] = $categories;
 
-/**
- * Implements hook_entity_presave().
- * Keep any existing presave logic intact if you have it elsewhere.
- */
-function myeventlane_event_entity_presave(\Drupal\Core\Entity\EntityInterface $entity): void {
-  if (!$entity instanceof NodeInterface) {
-    return;
+  // Attach the map library if coords exist. This avoids "map card but no JS".
+  if ($lat !== NULL && $lng !== NULL) {
+    $variables['#attached']['library'][] = 'myeventlane_location/event_map';
   }
-  if ($entity->bundle() !== 'event') {
-    return;
-  }
-
-  // Intentionally left minimal in this rewrite.
-  // Any RSVP/ticket auto-creation should remain in the dedicated custom modules.
 }

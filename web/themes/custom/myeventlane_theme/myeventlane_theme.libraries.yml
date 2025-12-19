@@ -1,6 +1,11 @@
 # MyEventLane Theme Libraries
 # Built with Vite; outputs live in dist/.
 
+myeventlane_global:
+  css:
+    theme:
+      dist/main.css: {}
+
 global-styling:
   css:
     theme:
@@ -65,3 +70,13 @@ event-wizard:
     - core/drupal
     - core/drupal.form
     - core/drupal.states
+
+# Event full node page styling.
+# Styles are compiled via Vite into dist/main.css from src/scss/components/_event-full.scss.
+myeventlane_event_full:
+  css:
+    theme:
+      dist/main.css: {}
+  dependencies:
+    - core/drupal
+    - core/once

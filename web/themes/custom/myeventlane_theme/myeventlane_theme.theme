@@ -700,38 +700,197 @@ function myeventlane_theme_node_view_alter(array &$build, \Drupal\Core\Entity\En
 
 /**
  * Implements hook_preprocess_node().
- *
- * Adds classes and context for event form pages.
  */
 function myeventlane_theme_preprocess_node(array &$variables): void {
-  $node = $variables['node'];
-  $view_mode = $variables['view_mode'] ?? 'full';
-
-  // Check if this is an event node.
-  if ($node && $node->bundle() === 'event') {
-    // For form view mode, suggest the form template.
-    if ($view_mode === 'form' || (isset($variables['form']) && $variables['form'])) {
-      $variables['attributes']['class'][] = 'mel-node-form';
-      $variables['attributes']['class'][] = 'mel-node-form--event';
-      // Suggest the form template.
-      $variables['theme_hook_suggestions'][] = 'node__event__form';
-    }
-      // Ensure mel-event class is in attributes for full/default view modes.
-      elseif (in_array($view_mode, ['full', 'default'], TRUE)) {
-        if (!in_array('mel-event', $variables['attributes']['class'] ?? [], TRUE)) {
-          $variables['attributes']['class'][] = 'mel-event';
-        }
-
-        // Ensure event_location_map from myeventlane_location is accessible in content.
-        // Items added via hook_node_view are in elements, ensure they're in content too.
-        if (isset($variables['elements']['event_location_map'])) {
-          $variables['content']['event_location_map'] = $variables['elements']['event_location_map'];
-        }
-        if (isset($variables['elements']['event_location_info'])) {
-          $variables['content']['event_location_info'] = $variables['elements']['event_location_info'];
-        }
-      }
+  if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface) {
+    return;
   }
+
+  $node = $variables['node'];
+  if ($node->bundle() !== 'event') {
+    return;
+  }
+
+  $view_mode = (string) ($variables['view_mode'] ?? '');
+
+  // Handle form view mode.
+  if ($view_mode === 'form' || (isset($variables['form']) && $variables['form'])) {
+    $variables['attributes']['class'][] = 'mel-node-form';
+    $variables['attributes']['class'][] = 'mel-node-form--event';
+    $variables['theme_hook_suggestions'][] = 'node__event__form';
+    return;
+  }
+
+  // Only process full/default view modes for event display.
+  if (!in_array($view_mode, ['full', 'default'], TRUE)) {
+    return;
+  }
+
+  // Ensure mel-event class is in attributes.
+  if (!in_array('mel-event', $variables['attributes']['class'] ?? [], TRUE)) {
+    $variables['attributes']['class'][] = 'mel-event';
+  }
+
+  $variables['#attached']['library'][] = 'myeventlane_theme/myeventlane_event_full';
+
+  // Clean title string.
+  $variables['mel_title'] = (string) $node->label();
+
+  // Venue name.
+  $venue = '';
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $venue = (string) $node->get('field_venue_name')->value;
+  }
+  elseif ($node->hasField('field_event_venue') && !$node->get('field_event_venue')->isEmpty()) {
+    $venue = (string) $node->get('field_event_venue')->value;
+  }
+  $variables['mel_venue'] = trim($venue);
+
+  // Address (single string, for map card only).
+  $address = '';
+  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $item = $node->get('field_location')->first();
+    if ($item) {
+      $v = $item->getValue();
+      $parts = [];
+
+      if (!empty($v['address_line1'])) {
+        $parts[] = (string) $v['address_line1'];
+      }
+      if (!empty($v['locality'])) {
+        $parts[] = (string) $v['locality'];
+      }
+
+      $state_post = [];
+      if (!empty($v['administrative_area'])) {
+        $state_post[] = (string) $v['administrative_area'];
+      }
+      if (!empty($v['postal_code'])) {
+        $state_post[] = (string) $v['postal_code'];
+      }
+      if ($state_post) {
+        $parts[] = implode(' ', $state_post);
+      }
+
+      if (!empty($v['country_code'])) {
+        $parts[] = (string) $v['country_code'];
+      }
+
+      $address = trim(implode(', ', array_filter($parts)));
+    }
+  }
+  elseif ($node->hasField('field_event_address') && !$node->get('field_event_address')->isEmpty()) {
+    $address = (string) $node->get('field_event_address')->value;
+  }
+  $variables['mel_address'] = trim($address);
+
+  // Coordinates for map only.
+  $lat = NULL;
+  $lng = NULL;
+
+  if ($node->hasField('field_location_latitude') && !$node->get('field_location_latitude')->isEmpty()) {
+    $lat = (float) $node->get('field_location_latitude')->value;
+  }
+  elseif ($node->hasField('field_event_lat') && !$node->get('field_event_lat')->isEmpty()) {
+    $lat = (float) $node->get('field_event_lat')->value;
+  }
+
+  if ($node->hasField('field_location_longitude') && !$node->get('field_location_longitude')->isEmpty()) {
+    $lng = (float) $node->get('field_location_longitude')->value;
+  }
+  elseif ($node->hasField('field_event_lng') && !$node->get('field_event_lng')->isEmpty()) {
+    $lng = (float) $node->get('field_event_lng')->value;
+  }
+
+  $variables['mel_lat'] = $lat;
+  $variables['mel_lng'] = $lng;
+
+  // Attach map JS library when coords exist.
+  // Note: myeventlane_location module also attaches via hook_page_attachments,
+  // but we ensure it here as well for reliability.
+  if ($lat !== NULL && $lng !== NULL) {
+    $variables['#attached']['library'][] = 'myeventlane_location/event_map';
+    
+    // Ensure drupalSettings are set for map JS (backup if myeventlane_location doesn't set them).
+    if (!isset($variables['#attached']['drupalSettings'])) {
+      $variables['#attached']['drupalSettings'] = [];
+    }
+    if (!isset($variables['#attached']['drupalSettings']['myeventlaneLocationEvent'])) {
+      try {
+        /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
+        $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
+        $settings = $provider_manager->getFrontendSettings();
+        $variables['#attached']['drupalSettings']['myeventlaneLocation'] = $settings;
+        $variables['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
+          'latitude' => $lat,
+          'longitude' => $lng,
+          'title' => $variables['mel_title'],
+        ];
+      }
+      catch (\Exception $e) {
+        // Service unavailable, continue without drupalSettings.
+      }
+    }
+  }
+  
+  // Add ticket CTA via EventModeManager.
+  try {
+    /** @var \Drupal\myeventlane_event\Service\EventModeManager $mode_manager */
+    $mode_manager = \Drupal::service('myeventlane_event.mode_manager');
+    $primary_cta = $mode_manager->getPrimaryCta($node);
+    if ($primary_cta) {
+      $variables['content']['mel_ticket_cta'] = $primary_cta;
+    }
+  }
+  catch (\Exception $e) {
+    // Service unavailable, continue without ticket CTA.
+  }
+
+  // Vendor label. Only vendor entities, no author fallback.
+  $vendor = '';
+  foreach (['field_vendor', 'field_vendor_target', 'field_store'] as $f) {
+    if ($node->hasField($f) && !$node->get($f)->isEmpty()) {
+      $ref = $node->get($f)->entity;
+      if ($ref && $ref->getEntityTypeId() === 'myeventlane_vendor') {
+        $vendor = (string) $ref->label();
+        break;
+      }
+    }
+  }
+  // Check organizer field only if it references a vendor entity.
+  if ($vendor === '' && $node->hasField('field_organizer') && !$node->get('field_organizer')->isEmpty()) {
+    $ref = $node->get('field_organizer')->entity;
+    if ($ref && $ref->getEntityTypeId() === 'myeventlane_vendor') {
+      $vendor = (string) $ref->label();
+    }
+  }
+  $variables['mel_vendor'] = trim($vendor);
+
+  // Category pills.
+  $cats = [];
+  foreach (['field_category', 'field_categories', 'field_event_category'] as $f) {
+    if ($node->hasField($f) && !$node->get($f)->isEmpty()) {
+      foreach ($node->get($f)->referencedEntities() as $term) {
+        if (!$term instanceof TermInterface) {
+          continue;
+        }
+        $color = '';
+        foreach (['field_color', 'field_colour', 'field_mel_color'] as $cf) {
+          if ($term->hasField($cf) && !$term->get($cf)->isEmpty()) {
+            $color = (string) $term->get($cf)->value;
+            break;
+          }
+        }
+        $cats[] = [
+          'tid' => (int) $term->id(),
+          'name' => (string) $term->label(),
+          'color' => trim($color),
+        ];
+      }
+      break;
+    }
+  }
+  $variables['mel_categories'] = $cats;
 }
 
 /**
