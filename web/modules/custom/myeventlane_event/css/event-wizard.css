@@ -1,673 +1,129 @@
-/**
- * @file
- * Event wizard styles for event creation/editing form.
- *
- * Implements:
- * - Left vertical stepper navigation
- * - Step content layout
- * - Sticky action bar
- * - Responsive design
- */
-
-/* Hide legacy tabbed UI */
-.mel-simple-tabs,
-.mel-event-form-tabs,
-.mel-simple-tabs__buttons,
-.mel-simple-tab,
-.mel-tab-button {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Hide booking status and RSVP announcements completely */
-.mel-booking-status,
-.mel-form-status,
-.form-item--booking-status,
-[data-drupal-selector*="booking-status"],
-.mel-event-wizard .mel-booking-status,
-.mel-event-wizard [data-drupal-selector*="booking-status"],
-.mel-event-wizard .messages--status,
-.mel-event-wizard .form-item--name-status,
-.mel-event-wizard .fieldset--status,
-.mel-event-wizard .mel-hidden-drupal,
-.mel-event-wizard fieldset.mel-hidden-drupal,
-.mel-event-wizard .fieldset-wrapper.mel-hidden-drupal {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  position: absolute !important;
-  left: -9999px !important;
-  width: 0 !important;
-}
-
-/* Hide Status fieldset by targeting common patterns */
-.mel-event-wizard .form-item--name-status,
-.mel-event-wizard fieldset.form-item--name-status,
-.mel-event-wizard .fieldset-wrapper.mel-hidden-drupal {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Hide Drupal help text and technical details */
-.mel-event-wizard .mel-hidden-drupal,
-.mel-event-wizard .description.mel-hidden-drupal,
-.mel-event-wizard .form-item__description.mel-hidden-drupal,
-.mel-event-wizard .fieldset__description.mel-hidden-drupal {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Hide "About text formats" links */
-.mel-event-wizard .filter-wrapper,
-.mel-event-wizard .js-filter-wrapper,
-.mel-event-wizard a[href*="filter/tips"],
-.mel-event-wizard .form-item__description a[href*="filter"],
-.mel-event-wizard .mel-hide-format-help {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Hide file upload technical details */
-.mel-event-wizard .file-upload-help,
-.mel-event-wizard .form-item__description.mel-hidden-drupal {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Hide text format help bullets */
-.mel-event-wizard .filter-help,
-.mel-event-wizard .filter-guidelines,
-.mel-event-wizard ul.filter-help {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Hide format selector dropdown */
-.mel-event-wizard .js-form-item-body-0-format,
-.mel-event-wizard select[name*="format"] {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* Ensure tab panes don't interfere with wizard */
-.mel-tab-pane:not(.mel-wizard-step--active),
-.mel-simple-tab-pane:not(.mel-wizard-step--active) {
-  display: none !important;
-}
-
-/* Wizard Container */
-.mel-event-wizard,
-.mel-wizard-container {
-  display: flex;
-  gap: 2rem;
-  max-width: 1400px;
+.mel-event-wizard {
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem;
-  position: relative;
+  padding: 24px 16px;
 }
 
-/* Main content area - single column, max width 960px, centered */
-.mel-wizard-steps-container {
-  flex: 1;
-  max-width: 960px;
-  margin: 0 auto;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+.mel-event-wizard__layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
 }
 
-/* Ensure all wizard steps are single column */
-.mel-wizard-step {
-  width: 100%;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Step content cards - match settings page styling */
-.mel-wizard-step__content {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  width: 100%;
-  max-width: 960px;
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Force single column layout - prevent horizontal spreading */
-.mel-wizard-step__content > *,
-.mel-wizard-step__content .form-item,
-.mel-wizard-step__content .form-wrapper {
-  width: 100% !important;
-  max-width: 100% !important;
-  float: none !important;
-  display: block !important;
-}
-
-/* Prevent any two-column layouts */
-.mel-wizard-step__content .form-item--two-column,
-.mel-wizard-step__content .form-wrapper--two-column,
-.mel-wizard-step__content .form-item[class*="col-"],
-.mel-wizard-step__content .form-item[class*="column"] {
-  width: 100% !important;
-  max-width: 100% !important;
-  float: none !important;
-  display: block !important;
-}
-
-@media (max-width: 767px) {
-  .mel-wizard-step__content {
-    padding: 1rem;
+@media (max-width: 900px) {
+  .mel-event-wizard__layout {
+    grid-template-columns: 1fr;
   }
 }
 
-/* Form fields - match vendor settings styling exactly */
-.mel-wizard-step__content .form-item {
-  margin-bottom: 1.5rem;
-}
-
-.mel-wizard-step__content .form-item:last-child {
-  margin-bottom: 0;
-}
-
-.mel-wizard-step__content .form-item label {
-  display: block;
-  font-weight: 600;
-  color: #1A1A1A;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-}
-
-.mel-wizard-step__content .form-item__description,
-.mel-wizard-step__content .description:not(.mel-hidden-drupal) {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #637185;
-  line-height: 1.5;
-}
-
-.mel-wizard-step__content input[type="text"],
-.mel-wizard-step__content input[type="email"],
-.mel-wizard-step__content input[type="tel"],
-.mel-wizard-step__content input[type="url"],
-.mel-wizard-step__content input[type="number"],
-.mel-wizard-step__content input[type="date"],
-.mel-wizard-step__content input[type="time"],
-.mel-wizard-step__content input[type="datetime-local"],
-.mel-wizard-step__content textarea,
-.mel-wizard-step__content select {
-  width: 100%;
-  padding: 1rem !important;
-  font-size: 1rem;
-  font-family: 'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #1A1A1A;
-  background: #ffffff;
-  border: 1px solid #E6E6E6 !important;
-  border-radius: 0.5rem !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.mel-wizard-step__content input[type="text"]:focus,
-.mel-wizard-step__content input[type="email"]:focus,
-.mel-wizard-step__content input[type="tel"]:focus,
-.mel-wizard-step__content input[type="url"]:focus,
-.mel-wizard-step__content input[type="number"]:focus,
-.mel-wizard-step__content input[type="date"]:focus,
-.mel-wizard-step__content input[type="time"]:focus,
-.mel-wizard-step__content input[type="datetime-local"]:focus,
-.mel-wizard-step__content textarea:focus,
-.mel-wizard-step__content select:focus {
-  outline: none;
-  border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
-}
-
-/* Ensure placeholders are visible */
-.mel-wizard-step__content input::placeholder,
-.mel-wizard-step__content textarea::placeholder {
-  color: #9CA3AF !important;
-  opacity: 1 !important;
-}
-
-.mel-wizard-step__content textarea {
-  min-height: 120px;
-  resize: vertical;
-}
-
-/* Remove fieldset borders */
-.mel-wizard-step__content fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.mel-wizard-step__content .fieldset__legend,
-.mel-wizard-step__content legend {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Hide duplicate labels/ghost fields */
-.mel-wizard-step__content .form-item label:empty,
-.mel-wizard-step__content .form-item > label:not([for]),
-.mel-wizard-step__content .form-item > .label:not([for]) {
-  display: none !important;
-}
-
-/* Fix duplicate field rendering - hide any empty containers or duplicate labels */
-.mel-wizard-step__content .form-item:empty,
-.mel-wizard-step__content .form-item:has(> label:only-child),
-.mel-wizard-step__content .form-item:has(> .label:only-child) {
-  display: none !important;
-}
-
-.mel-event-wizard {
-  width: 100%;
-}
-
-/* Left Vertical Stepper */
-.mel-wizard-stepper {
-  flex: 0 0 220px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 1.25rem;
-  height: fit-content;
+.mel-event-wizard__left {
   position: sticky;
-  top: 2rem;
-  z-index: 10;
-  margin-right: 1rem;
+  top: 16px;
+  align-self: start;
 }
 
-.mel-wizard-stepper__items {
+.mel-stepper {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.mel-stepper__item {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 12px;
 }
 
-.mel-wizard-stepper__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+.mel-stepper__item.is-active {
+  background: rgba(110,126,242,.10);
+  border: 1px solid rgba(110,126,242,.25);
 }
 
-.mel-wizard-stepper__item:hover:not(.is-disabled) {
-  background: #f5f5f5;
-}
-
-.mel-wizard-stepper__item.is-active {
-  background: #e3f2fd;
-  border-left: 4px solid #2196f3;
-}
-
-.mel-wizard-stepper__item.is-completed {
-  background: #f1f8e9;
-}
-
-.mel-wizard-stepper__item.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.mel-wizard-stepper__number {
-  display: flex;
+.mel-stepper__num {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: #e0e0e0;
-  color: #666;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  border-radius: 999px;
+  background: rgba(0,0,0,.06);
+  font-weight: 700;
 }
 
-.mel-wizard-stepper__item.is-active .mel-wizard-stepper__number {
-  background: #2196f3;
-  color: #fff;
-  transform: scale(1.1);
+.mel-stepper__label {
+  font-weight: 700;
+  font-size: 14px;
 }
 
-.mel-wizard-stepper__item.is-completed .mel-wizard-stepper__number {
-  background: #4caf50;
-  color: #fff;
-}
-
-.mel-wizard-stepper__item.is-completed .mel-wizard-stepper__number::after {
-  content: '✓';
-  font-size: 1rem;
-}
-
-.mel-wizard-stepper__content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.mel-wizard-stepper__title {
-  display: block;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #333;
-  line-height: 1.3;
-}
-
-.mel-wizard-stepper__item.is-active .mel-wizard-stepper__title {
-  color: #2196f3;
-}
-
-.mel-wizard-stepper__description {
-  display: block;
-  font-size: 0.75rem;
-  color: #666;
-  line-height: 1.3;
-  margin-top: 0.125rem;
-}
-
-/* Wizard Steps Content */
-.mel-event-wizard > .mel-wizard-step,
-.mel-event-wizard .mel-wizard-step {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-.mel-wizard-step {
-  animation: fadeIn 0.3s ease;
-  width: 100%;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Hide steps using #access - more reliable than CSS */
-.mel-wizard-step[style*="display: none"],
-.mel-wizard-step--hidden {
-  display: none !important;
-}
-
-.mel-wizard-step--active {
-  display: block !important;
-}
-
-.mel-wizard-step__content {
-  margin-top: 1rem;
-}
-
-.mel-wizard-step__content .form-item {
-  margin-bottom: 1.5rem;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Sticky Action Bar */
-.mel-sticky-action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.mel-event-wizard__main {
   background: #fff;
-  border-top: 1px solid #e0e0e0;
-  padding: 1rem 2rem;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.mel-event-wizard__step-title {
+  margin: 0 0 6px 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.mel-event-wizard__step-intro {
+  margin: 0 0 16px 0;
+  color: rgba(0,0,0,.62);
+}
+
+.mel-event-wizard__main label {
+  font-weight: 700;
+}
+
+.mel-event-wizard__main input[type="text"],
+.mel-event-wizard__main input[type="email"],
+.mel-event-wizard__main input[type="url"],
+.mel-event-wizard__main input[type="number"],
+.mel-event-wizard__main input[type="datetime-local"],
+.mel-event-wizard__main textarea,
+.mel-event-wizard__main select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.12);
+  padding: 12px 12px;
+  background: #fff;
+}
+
+.mel-event-wizard__actions {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0,0,0,.08);
 }
 
-.mel-sticky-action-bar.is-sticky {
-  transform: translateY(0);
-}
-
-.mel-wizard-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.mel-wizard-actions .mel-btn-primary,
-.mel-wizard-actions .mel-btn-secondary {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  border: none;
+.mel-btn {
+  border-radius: 999px;
+  padding: 12px 16px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-block;
-  font-weight: 500;
+  font-weight: 700;
 }
 
-.mel-wizard-actions .mel-btn-primary {
-  background: #2196f3;
+.mel-btn--primary {
+  background: #f26d5b;
+  border-color: #f26d5b;
   color: #fff;
-  margin-left: auto;
 }
 
-.mel-wizard-actions .mel-btn-primary:hover {
-  background: #1976d2;
+.mel-btn--ghost {
+  background: #fff;
 }
 
-.mel-wizard-actions .mel-btn-secondary {
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #e0e0e0;
-}
-
-.mel-wizard-actions .mel-btn-secondary:hover {
-  background: #e0e0e0;
-}
-
-.mel-wizard-actions .mel-btn-back {
-  order: 1;
-}
-
-.mel-wizard-actions .mel-btn-draft {
-  order: 2;
-}
-
-.mel-wizard-actions .mel-btn-primary {
-  order: 3;
-}
-
-.mel-wizard-actions .mel-btn-preview {
-  order: 4;
-}
-
-/* Review Summary */
-.mel-review-summary {
-  background: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 2rem;
-}
-
-.mel-review-summary h3 {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.mel-review-summary__section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.mel-review-summary__section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.mel-review-summary__section h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.mel-review-summary__section p {
-  margin: 0;
-  color: #333;
-  line-height: 1.6;
-}
-
-/* Error States */
-.mel-wizard-step input.error,
-.mel-wizard-step select.error,
-.mel-wizard-step textarea.error {
-  border-color: #f44336;
-  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
-}
-
-.error-message {
-  color: #f44336;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  display: block;
-}
-
-/* Saving Indicator */
-.mel-saving-indicator {
-  color: #666;
-  font-size: 0.875rem;
-  font-style: italic;
-  margin-right: 1rem;
-}
-
-/* Add padding to body when action bar is sticky */
-body.has-sticky-action-bar {
-  padding-bottom: 80px;
-}
-
-/* Mobile Responsive */
-@media (max-width: 1024px) {
-  .mel-event-wizard {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .mel-wizard-stepper {
-    flex: 0 0 auto;
-    position: static;
-    width: 100%;
-  }
-
-  .mel-wizard-stepper__items {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .mel-wizard-stepper__item {
-    flex: 0 0 200px;
-    min-width: 200px;
-  }
-
-  .mel-wizard-stepper__description {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .mel-event-wizard {
-    padding: 0.5rem;
-  }
-
-  .mel-wizard-step {
-    padding: 1.5rem;
-  }
-
-  .mel-sticky-action-bar {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .mel-wizard-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .mel-wizard-actions .mel-btn-primary,
-  .mel-wizard-actions .mel-btn-secondary {
-    width: 100%;
-    text-align: center;
-  }
-
-  .mel-wizard-actions .mel-btn-primary {
-    margin-left: 0;
-  }
-}
-
-/* Accessibility */
-.mel-wizard-stepper__item:focus {
-  outline: 2px solid #2196f3;
-  outline-offset: 2px;
-}
-
-.mel-wizard-actions button:focus,
-.mel-wizard-actions a:focus {
-  outline: 2px solid #2196f3;
-  outline-offset: 2px;
-}
-
-/* Print Styles */
-@media print {
-  .mel-wizard-stepper,
-  .mel-sticky-action-bar {
-    display: none;
-  }
-
-  .mel-wizard-step--hidden {
-    display: block;
-  }
+.mel-btn--danger {
+  background: #fff;
+  border-color: rgba(242, 109, 91, .4);
+  color: #c0392b;
 }

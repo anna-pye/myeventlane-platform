@@ -1,154 +1,167 @@
-{#
-/**
- * @file
- * Event full page – Option A (Poster Card layout)
- *
- * Uses canonical render arrays (no manual address rendering) so the
- * myeventlane_location map render array + attached libraries work correctly.
- */
-#}
-
+{{ attach_library('myeventlane_event/event_node') }}
 {{ attach_library('myeventlane_theme/event-page') }}
 
-{# Render-once helpers. Avoid printing the same render arrays twice. #}
-{% set venue_markup = '' %}
-{% if content.field_venue_name is defined %}
-  {% set venue_markup = content.field_venue_name|render %}
-{% endif %}
-
-{% set location_markup = '' %}
-{% if content.field_location is defined %}
-  {% set location_markup = content.field_location|render %}
-{% endif %}
-
-{# Organiser: must be the Store/Vendor (not the creator). #}
-{# These fields are hidden in view display, so access node entity directly. #}
-{% set organiser_entity = null %}
-{% if node.field_event_store is defined and not node.field_event_store.isEmpty() %}
-  {% set organiser_entity = node.field_event_store.entity %}
-{% elseif node.field_event_vendor is defined and not node.field_event_vendor.isEmpty() %}
-  {% set organiser_entity = node.field_event_vendor.entity %}
-{% endif %}
-{# IMPORTANT: organiser must be the Store/Vendor, not the creator. #}
+{#
+  MyEventLane
+  Event full view
+  Canonical layout with right sidebar (Tickets + Map)
+#}
 
 <article class="mel-event">
-
-  {# Hero #}
-  <div class="mel-event__hero">
-    <div class="mel-event__hero-inner">
-      {% if content.field_event_image %}
-        {{ content.field_event_image }}
-      {% endif %}
+  {# Hero Image - Top of page, outside main card #}
+  {% if content.field_event_image is defined and content.field_event_image|render %}
+    <div class="mel-event-hero">
+      {{ content.field_event_image }}
     </div>
-  </div>
+  {% endif %}
 
   <div class="mel-event__wrap">
 
-    {# Main content card #}
+    {# =========================
+       Main Event Column
+       ========================= #}
     <div class="mel-event__main mel-card">
-      <h1 class="mel-event__title">
-        {{ label }}
-      </h1>
 
-      {# Venue row (inline text, no pill). #}
-      <div class="mel-event__venue">
-        <span class="mel-event__venue-at" aria-hidden="true">@</span>
+      <h1 class="mel-event__title">{{ label }}</h1>
+
+      {# Venue Name - On its own line under title #}
+      {% if content.field_venue_name is defined and content.field_venue_name|render %}
         <div class="mel-event__venue-name">
-          {% if venue_markup|trim is not empty %}
-            {{ venue_markup|raw }}
-          {% else %}
-            {{ location_markup|raw }}
+          {{ content.field_venue_name }}
+        </div>
+      {% endif %}
+
+      {# Meta Pills - Date/Time, Category (colored), Organizer #}
+      {% set has_meta = (content.field_event_start is defined and content.field_event_start|render)
+        or (content.field_event_end is defined and content.field_event_end|render)
+        or (event_categories is not empty)
+        or (content.field_organizer is defined and content.field_organizer|render) %}
+      {% if has_meta %}
+        <div class="mel-event__meta">
+          {% if content.field_event_start is defined and content.field_event_start|render %}
+            <div class="mel-event__meta-item">
+              {{ content.field_event_start }}
+            </div>
+          {% endif %}
+          {% if content.field_event_end is defined and content.field_event_end|render %}
+            <div class="mel-event__meta-item">
+              {{ content.field_event_end }}
+            </div>
+          {% endif %}
+          {% if event_categories is not empty %}
+            {% for category in event_categories %}
+              <div class="mel-event__category-pill" style="background-color: {{ category.color }}20; color: {{ category.color }}; border: 1px solid {{ category.color }}40;">
+                {{ category.name }}
+              </div>
+            {% endfor %}
+          {% endif %}
+          {% if content.field_organizer is defined and content.field_organizer|render %}
+            <div class="mel-event__meta-item">
+              {{ content.field_organizer }}
+            </div>
           {% endif %}
         </div>
-      </div>
+      {% endif %}
 
-      {# Date / time row (must be below venue; ensure no clipping). #}
-      <div class="mel-event__datetime">
-        {% if content.field_event_start is not empty %}
-          {{ content.field_event_start }}
-        {% endif %}
-        {% if content.field_event_end is not empty %}
-          {{ content.field_event_end }}
-        {% endif %}
-      </div>
+      {% if content.body is defined %}
+        <div class="mel-event__body">
+          {{ content.body }}
+        </div>
+      {% endif %}
 
-      <div class="mel-event__body">
-        {{ content.body }}
-      </div>
-
-      {# Bottom pill row (order matters): Category, then Accessibility. #}
-      <div class="mel-event__pills">
-        {% if content.field_category is not empty %}
-          <div class="mel-event__meta mel-event__meta--pills">
-            {{ content.field_category }}
+      {% set has_accessibility = (content.field_accessibility is defined and content.field_accessibility|render|trim is not empty)
+        or (content.field_accessibility_contact is defined and content.field_accessibility_contact|render|trim is not empty)
+        or (content.field_accessibility_directions is defined and content.field_accessibility_directions|render|trim is not empty)
+        or (content.field_accessibility_entry is defined and content.field_accessibility_entry|render|trim is not empty)
+        or (content.field_accessibility_parking is defined and content.field_accessibility_parking|render|trim is not empty) %}
+      {% if has_accessibility %}
+        <div class="mel-card mel-event__access">
+          <strong>Accessibility information</strong>
+          <div class="mel-event__access-body">
+            {% if content.field_accessibility is defined and content.field_accessibility|render|trim is not empty %}
+              {{ content.field_accessibility }}
+            {% endif %}
+            {% if content.field_accessibility_contact is defined and content.field_accessibility_contact|render|trim is not empty %}
+              <div class="mel-event__access-item">
+                <strong>Contact:</strong>
+                {{ content.field_accessibility_contact }}
+              </div>
+            {% endif %}
+            {% if content.field_accessibility_directions is defined and content.field_accessibility_directions|render|trim is not empty %}
+              <div class="mel-event__access-item">
+                <strong>Directions:</strong>
+                {{ content.field_accessibility_directions }}
+              </div>
+            {% endif %}
+            {% if content.field_accessibility_entry is defined and content.field_accessibility_entry|render|trim is not empty %}
+              <div class="mel-event__access-item">
+                <strong>Entry:</strong>
+                {{ content.field_accessibility_entry }}
+              </div>
+            {% endif %}
+            {% if content.field_accessibility_parking is defined and content.field_accessibility_parking|render|trim is not empty %}
+              <div class="mel-event__access-item">
+                <strong>Parking:</strong>
+                {{ content.field_accessibility_parking }}
+              </div>
+            {% endif %}
           </div>
-        {% endif %}
+        </div>
+      {% endif %}
 
-        {% if content.field_accessibility is not empty %}
-          <div class="mel-event__accessibility">
-            {{ content.field_accessibility }}
-          </div>
-        {% endif %}
-      </div>
     </div>
 
-    {# Sidebar #}
+    {# =========================
+       Sidebar Column
+       ========================= #}
     <aside class="mel-event__sidebar">
 
-      {# RSVP / Tickets card #}
-      {% if content.event_ctas %}
-        <div class="mel-card mel-event__action">
-          {{ content.event_ctas }}
-        </div>
-      {% endif %}
-
-      {# Map card – canonical source: myeventlane_location render array. #}
-      {% if content.event_location_map is defined %}
-        <div class="mel-card mel-event__map">
-          {{ content.event_location_map }}
-          {% if location_markup|trim is not empty %}
-            <div class="mel-event__map-address">
-              {{ location_markup|raw }}
+      {# Tickets / RSVP CTA Card #}
+      {% if event_cta and event_cta.primary %}
+        <div class="mel-card mel-event__cta">
+          <strong>
+            {% if event_cta.mode == 'rsvp' %}
+              RSVP
+            {% elseif event_cta.mode == 'paid' or event_cta.mode == 'both' %}
+              Tickets
+            {% elseif event_cta.mode == 'external' %}
+              Get Tickets
+            {% else %}
+              Registration
+            {% endif %}
+          </strong>
+          <div class="mel-event__cta-action">
+            {{ event_cta.primary }}
+          </div>
+          {% if event_cta.all.waitlist is defined %}
+            <div class="mel-event__cta-secondary">
+              {{ event_cta.all.waitlist }}
             </div>
           {% endif %}
         </div>
-      {% elseif location_markup|trim is not empty %}
-        <div class="mel-card mel-event__map">
-          <h3>{{ 'Location'|t }}</h3>
-          {{ location_markup|raw }}
-        </div>
       {% endif %}
 
-      {# When the map is not available, myeventlane_location may provide text-only location info. #}
-      {% if content.event_location_info %}
-        <div class="mel-card mel-event__location-info">
+      {# Map Card - Use event_location_map render array if available #}
+      {# Check both content array and elements array as fallback #}
+      {% if content.event_location_map is defined and content.event_location_map|render|trim is not empty %}
+        <div class="mel-card mel-event__map">
+          {{ content.event_location_map }}
+        </div>
+      {% elseif elements.event_location_map is defined and elements.event_location_map|render|trim is not empty %}
+        <div class="mel-card mel-event__map">
+          {{ elements.event_location_map }}
+        </div>
+      {% elseif content.event_location_info is defined and content.event_location_info|render|trim is not empty %}
+        <div class="mel-card mel-event__map">
           {{ content.event_location_info }}
         </div>
-      {% endif %}
-
-      {# Organizer #}
-      {% if organiser_entity %}
-        <div class="mel-card mel-event__organiser">
-          <h3>{{ 'Organised by'|t }}</h3>
-          <div class="mel-event__organiser-row">
-            {% set has_logo = false %}
-            {% if organiser_entity.field_logo is defined and not organiser_entity.field_logo.isEmpty() %}
-              {% set has_logo = true %}
-            {% endif %}
-            {% if not has_logo %}
-              <span class="mel-event__organiser-avatar" aria-hidden="true"></span>
-            {% endif %}
-            <div class="mel-event__organiser-content">
-              {% if has_logo %}
-                {{ organiser_entity.field_logo|view('thumbnail') }}
-              {% endif %}
-              <span class="mel-event__organiser-name">{{ organiser_entity.label }}</span>
-            </div>
-          </div>
+      {% elseif elements.event_location_info is defined and elements.event_location_info|render|trim is not empty %}
+        <div class="mel-card mel-event__map">
+          {{ elements.event_location_info }}
         </div>
       {% endif %}
 
     </aside>
-  </div>
 
+  </div>
 </article>

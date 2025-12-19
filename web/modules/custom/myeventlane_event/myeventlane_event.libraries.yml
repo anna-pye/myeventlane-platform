@@ -1,13 +1,20 @@
-event-wizard:
-  version: 1.x
+event_wizard:
   css:
     theme:
       css/event-wizard.css: {}
-  js:
-    js/event-wizard.js: {}
+  js: {}
   dependencies:
     - core/drupal
-    - core/drupal.form
-    - core/drupal.states
     - core/jquery
+    - core/once
+
+event_node:
+  css:
+    theme:
+      css/event-node.css: {}
+  js:
+    js/event-map.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
     - core/once

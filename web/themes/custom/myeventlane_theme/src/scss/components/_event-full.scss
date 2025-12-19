@@ -98,12 +98,6 @@
       display: inline;
       margin: 0;
     }
-
-    // Some field formatters output a plain first child <div> label (no classes).
-    // Hide that label without hiding the wrapper (previously caused venue to disappear).
-    > div > div:first-child {
-      display: none;
-    }
   }
 
   // Date/time row below venue (no clipping).
@@ -116,11 +110,6 @@
 
     .field__label,
     .field > div:first-child {
-      display: none;
-    }
-
-    // Some datetime formatters output a plain first child <div> label (no classes).
-    > div > div:first-child {
       display: none;
     }
 
@@ -176,24 +165,6 @@
     .myeventlane-event-map-container {
       height: 260px;
       min-height: 260px;
-    }
-  }
-
-  .mel-event__map-address {
-    padding: 0.9rem 1.25rem 1.1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    color: #374151;
-    line-height: 1.5;
-
-    .field__label {
-      display: none;
-    }
-
-    .address,
-    address {
-      padding: 0;
-      margin: 0;
-      font-style: normal;
     }
   }
 

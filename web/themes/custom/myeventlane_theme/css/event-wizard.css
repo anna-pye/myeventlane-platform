@@ -1,0 +1,227 @@
+.mel-event-wizard .layout-container {
+  max-width: 1280px;
+}
+
+.mel-event-wizard .mel-wizard {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+  padding: 24px 0 120px 0;
+}
+
+@media (max-width: 1100px) {
+  .mel-event-wizard .mel-wizard {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .mel-event-wizard .mel-wizard__aside {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .mel-event-wizard .mel-wizard {
+    grid-template-columns: 1fr;
+    padding-bottom: 140px;
+  }
+  .mel-event-wizard .mel-wizard__stepper {
+    order: 1;
+  }
+  .mel-event-wizard .mel-wizard__content {
+    order: 2;
+  }
+}
+
+.mel-event-wizard .mel-wizard__stepper {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 88px;
+}
+
+.mel-event-wizard .mel-stepper__item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.mel-event-wizard .mel-stepper__item.is-current {
+  background: rgba(110,126,242,0.10);
+}
+
+.mel-event-wizard .mel-stepper__num {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(242,109,91,0.14);
+  font-weight: 700;
+}
+
+.mel-event-wizard .mel-stepper__title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mel-event-wizard .mel-stepper__hint {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.mel-event-wizard .mel-wizard__content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 18px 24px 18px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.06);
+}
+
+.mel-event-wizard .mel-wizard-step__intro {
+  padding: 6px 2px 14px 2px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+}
+
+.mel-event-wizard .mel-step-title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.mel-event-wizard .mel-step-subtitle {
+  margin: 6px 0 0 0;
+  opacity: 0.8;
+}
+
+.mel-event-wizard .mel-wizard__aside {
+  position: sticky;
+  top: 88px;
+}
+
+.mel-event-wizard .mel-aside-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.06);
+}
+
+.mel-event-wizard .mel-aside-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.mel-event-wizard .mel-aside-row:last-child {
+  border-bottom: 0;
+}
+
+.mel-event-wizard .mel-aside-label {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.mel-event-wizard .mel-aside-value {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Inputs: make them MEL-like without fighting field widgets. */
+.mel-event-wizard input.form-text,
+.mel-event-wizard input.form-email,
+.mel-event-wizard input.form-tel,
+.mel-event-wizard input.form-number,
+.mel-event-wizard input.form-url,
+.mel-event-wizard textarea,
+.mel-event-wizard select {
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.14);
+  padding: 12px 12px;
+  box-shadow: none;
+}
+
+.mel-event-wizard .form-item {
+  margin-bottom: 16px;
+}
+
+.mel-event-wizard label {
+  font-weight: 700;
+}
+
+/* Kill Drupal chrome in wizard scope only. */
+.mel-event-wizard .filter-help,
+.mel-event-wizard .filter-guidelines,
+.mel-event-wizard .filter-wrapper,
+.mel-event-wizard .js-filter-wrapper,
+.mel-event-wizard .link-edit-summary,
+.mel-event-wizard .text-format-wrapper .description,
+.mel-event-wizard .form-item--name-field-body .filter-help,
+.mel-event-wizard a[href*="filter/tips"],
+.mel-event-wizard a[href*="filter-help"],
+.mel-event-wizard .form-item__description a[href*="filter"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Reduce noisy descriptions but keep MEL descriptions we set. */
+.mel-event-wizard .form-item__description {
+  opacity: 0.75;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* Sticky footer actions */
+.mel-event-wizard .mel-wizard-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.92);
+  border-top: 1px solid rgba(0,0,0,0.10);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+}
+
+.mel-event-wizard .mel-wizard-footer__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mel-event-wizard .mel-wizard-footer__left,
+.mel-event-wizard .mel-wizard-footer__right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Buttons assume mel-btn exists; keep safe defaults. */
+.mel-event-wizard .mel-btn {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  border: 0;
+}
+
+.mel-event-wizard .mel-btn--primary {
+  background: #f26d5b;
+  color: #fff;
+}
+
+.mel-event-wizard .mel-btn--secondary {
+  background: rgba(110,126,242,0.12);
+  color: #2b2b2b;
+}
+
+.mel-event-wizard .mel-btn--publish {
+  background: #2f63ff;
+  color: #fff;
+}

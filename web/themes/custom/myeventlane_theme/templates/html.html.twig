@@ -1,67 +1,19 @@
+{#
+  Keep this minimal and do not break admin.
+#}
 <!DOCTYPE html>
-<html lang="{{ language.getId }}">
+<html{{ html_attributes }}>
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    {# Preconnect to Google Fonts for performance #}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    {# Nunito font - weights: 400 (regular), 500 (medium), 600 (semibold), 700 (bold), 800 (extrabold) #}
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <head-placeholder token="{{ placeholder_token }}">
-    <css-placeholder token="{{ placeholder_token }}">
-    <js-placeholder token="{{ placeholder_token }}">
+    <head-placeholder token="{{ placeholder_token|raw }}">
+    <title>{{ head_title|safe_join(' | ') }}</title>
+    <css-placeholder token="{{ placeholder_token|raw }}">
+    <js-placeholder token="{{ placeholder_token|raw }}">
   </head>
-  <body class="mel-body">
-    <a href="#main-content" class="visually-hidden focusable skip-link">
-      {{ 'Skip to main content'|t }}
-    </a>
+  <body{{ attributes }}>
+    <a href="#main-content" class="visually-hidden focusable">Skip to main content</a>
     {{ page_top }}
-    {{ attach_library('core/drupal.big_pipe') }}
     {{ page }}
     {{ page_bottom }}
-    
-    {# CRITICAL: Force Stripe.js to load on checkout pages - runs immediately #}
-    <script>
-    (function() {
-      if (window.location.pathname.indexOf('/checkout') === -1) return;
-      
-      // Check if already loaded
-      if (typeof window.Stripe !== 'undefined') {
-        console.log('✅ Stripe.js already loaded');
-        return;
-      }
-      
-      // Check if script tag exists
-      if (document.querySelector('script[src*="js.stripe.com"]')) {
-        console.log('📋 Stripe script tag exists');
-        return;
-      }
-      
-      // Force load Stripe.js
-      console.log('🔧 FORCING Stripe.js load...');
-      var s = document.createElement('script');
-      s.src = 'https://js.stripe.com/v3/';
-      s.id = 'stripe-js-emergency';
-      s.async = false;
-      s.defer = false;
-      s.onload = function() {
-        console.log('✅ Stripe.js FORCED LOAD successful');
-        if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
-          setTimeout(function() {
-            if (Drupal.behaviors.commerceStripeForm) Drupal.behaviors.commerceStripeForm.attach(document);
-            if (Drupal.behaviors.commerceStripePaymentElement) Drupal.behaviors.commerceStripePaymentElement.attach(document);
-          }, 300);
-        }
-      };
-      s.onerror = function() {
-        console.error('❌ Failed to load Stripe.js');
-      };
-      document.head.insertBefore(s, document.head.firstChild);
-    })();
-    </script>
+    <js-bottom-placeholder token="{{ placeholder_token|raw }}">
   </body>
 </html>

@@ -1,0 +1,353 @@
+/* Event Node Full View - MEL Poster Card */
+
+.mel-event {
+  padding: 0 0 4rem;
+  min-height: 100vh;
+
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(244, 164, 192, 0.18), rgba(244, 164, 192, 0) 60%),
+    radial-gradient(1000px 700px at 80% 10%, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0) 55%),
+    #f7f8fb;
+}
+
+/* Hero Image - Top of page, outside wrap */
+.mel-event-hero {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+  padding: 0 1.5rem;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.mel-event-hero img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 20px;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.mel-event__wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  align-items: start;
+  position: relative;
+  z-index: 2;
+}
+
+.mel-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle "funk" border glow */
+.mel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(242,109,91,.35), rgba(110,126,242,.25), rgba(245,192,76,.20));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.mel-event__main {
+  position: relative;
+  margin-top: 0;
+}
+
+.mel-event__title {
+  font-size: 2.1rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Venue Name - On its own line under title */
+.mel-event__venue-name {
+  margin-bottom: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.mel-event__venue-name .field__label {
+  display: none;
+}
+
+.mel-event__venue-name .field__item {
+  display: inline;
+}
+
+/* Meta Pills - Date/Time, Categories (colored), Organizer */
+.mel-event__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  color: #6b7280;
+}
+
+.mel-event__meta .field__label {
+  display: none;
+}
+
+.mel-event__meta > div,
+.mel-event__meta-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.mel-event__meta > div .field__item,
+.mel-event__meta-item .field__item {
+  display: inline;
+}
+
+/* Category Pills - Colored, distinct from meta pills */
+.mel-event__category-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.mel-event__body {
+  margin-top: 0;
+  margin-bottom: 2rem;
+  line-height: 1.7;
+  color: #111827;
+}
+
+.mel-event__body p {
+  margin: 0 0 1rem;
+}
+
+.mel-event__body p:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+}
+
+/* CTA Card - Tickets/RSVP */
+.mel-event__cta {
+  padding: 1.5rem;
+}
+
+.mel-event__cta > strong {
+  display: block;
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mel-event__cta-action {
+  width: 100%;
+}
+
+.mel-event__cta-action .mel-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.mel-event__cta-secondary {
+  margin-top: 0.75rem;
+}
+
+.mel-event__cta-secondary .mel-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Accessibility card */
+.mel-event__access {
+  margin-top: 2rem;
+  padding: 1.5rem;
+}
+
+.mel-event__access > strong {
+  display: block;
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mel-event__access-body {
+  color: #374151;
+  line-height: 1.6;
+}
+
+.mel-event__access-item {
+  margin-bottom: 1rem;
+}
+
+.mel-event__access-item:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event__access-item > strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Map card - Styles for event_location_map render array */
+.mel-event__map {
+  padding: 0;
+}
+
+.mel-event__map .myeventlane-event-location-map {
+  width: 100%;
+}
+
+.mel-event__map .mel-event-section-title,
+.mel-event__map h3 {
+  display: none;
+}
+
+.mel-event__map .myeventlane-event-venue-name {
+  display: none; /* Venue name shown under title, not in map card */
+}
+
+.mel-event__map .myeventlane-event-map-container {
+  width: 100%;
+  height: 280px;
+  border-radius: 0;
+}
+
+.mel-event__map .myeventlane-event-map-actions {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.mel-event__map .myeventlane-event-map-actions a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.mel-event__map .myeventlane-event-map-actions a:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+.mel-event__map .myeventlane-event-address {
+  padding: 1rem 1.5rem;
+  margin: 0;
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-style: normal;
+}
+
+/* Legacy map container support (fallback) */
+.myeventlane-event-map-container {
+  width: 100%;
+  height: 280px;
+  border-radius: 0 0 20px 20px;
+}
+
+.mel-event__map-fallback {
+  padding: 1.5rem;
+  color: #374151;
+}
+
+.mel-event__map-fallback p {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.mel-event__map-address {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .mel-event {
+    padding-top: 0;
+  }
+
+  .mel-event-hero {
+    margin-bottom: 1.5rem;
+    padding: 0 1rem;
+  }
+
+  .mel-event__wrap {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .mel-event__sidebar {
+    position: static;
+    top: auto;
+  }
+
+  .mel-event__title {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .mel-event__venue-name {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .mel-event__meta {
+    margin-bottom: 1.25rem;
+    gap: 0.5rem;
+  }
+
+  .mel-event__meta > div,
+  .mel-event__category-pill {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.7rem;
+  }
+}

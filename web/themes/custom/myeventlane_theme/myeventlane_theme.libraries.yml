@@ -54,3 +54,14 @@ event-page:
     - myeventlane_theme/global-styling
     - core/drupal
     - core/drupalSettings
+
+# Event wizard form styling.
+# CSS for the vendor event creation wizard.
+event-wizard:
+  css:
+    theme:
+      css/event-wizard.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.form
+    - core/drupal.states

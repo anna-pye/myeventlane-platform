@@ -12,4 +12,3 @@ services:
     arguments:
       - '@config.factory'
       - '@logger.factory'
-

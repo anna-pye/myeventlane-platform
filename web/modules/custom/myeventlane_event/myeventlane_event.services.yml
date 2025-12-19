@@ -28,13 +28,13 @@ services:
       - '@entity_type.manager'
       - '@logger.factory'
 
-  # Event form alter - rebuilds Event form as grouped cards matching V2 UX.
+  # Event form alter - rebuilds Event form as wizard matching MEL UX.
   myeventlane_event.form_alter:
     class: Drupal\myeventlane_event\Form\EventFormAlter
     arguments:
-      - '@entity_type.manager'
       - '@current_user'
       - '@current_route_match'
+      - '@entity_type.manager'
 
   # Event type service - simplified type detection for templates.
   myeventlane_event.type_service:

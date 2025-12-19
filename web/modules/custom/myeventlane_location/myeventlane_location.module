@@ -475,3 +475,96 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
   }
 }
 
+/**
+ * Implements hook_entity_presave().
+ *
+ * Fallback geocoding to ensure latitude/longitude are always populated
+ * when an address exists but coordinates are missing.
+ */
+function myeventlane_location_entity_presave(EntityInterface $entity): void {
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
+    return;
+  }
+
+  if (!$entity->hasField('field_location')) {
+    return;
+  }
+
+  // If coords already exist, do nothing.
+  if (
+    $entity->hasField('field_location_latitude') &&
+    $entity->hasField('field_location_longitude') &&
+    !$entity->get('field_location_latitude')->isEmpty() &&
+    !$entity->get('field_location_longitude')->isEmpty()
+  ) {
+    return;
+  }
+
+  if ($entity->get('field_location')->isEmpty()) {
+    return;
+  }
+
+  $location = $entity->get('field_location')->first()->getValue();
+  if (empty($location)) {
+    return;
+  }
+
+  $parts = array_filter([
+    $location['address_line1'] ?? '',
+    $location['locality'] ?? '',
+    $location['administrative_area'] ?? '',
+    $location['postal_code'] ?? '',
+    $location['country_code'] ?? '',
+  ]);
+
+  if (empty($parts)) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
+  $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
+  $settings = $provider_manager->getFrontendSettings();
+
+  if (empty($settings['google_maps_api_key'])) {
+    \Drupal::logger('myeventlane_location')->warning('No Google Maps API key available for fallback geocoding.');
+    return;
+  }
+
+  $query = urlencode(implode(', ', $parts));
+  $url = sprintf(
+    'https://maps.googleapis.com/maps/api/geocode/json?address=%s&key=%s',
+    $query,
+    $settings['google_maps_api_key']
+  );
+
+  $response = @file_get_contents($url);
+  if (!$response) {
+    return;
+  }
+
+  $data = json_decode($response, TRUE);
+  if (empty($data['results'][0]['geometry']['location'])) {
+    return;
+  }
+
+  $coords = $data['results'][0]['geometry']['location'];
+
+  if ($entity->hasField('field_location_latitude')) {
+    $entity->set('field_location_latitude', (float) $coords['lat']);
+  }
+
+  if ($entity->hasField('field_location_longitude')) {
+    $entity->set('field_location_longitude', (float) $coords['lng']);
+  }
+
+  \Drupal::logger('myeventlane_location')->notice(
+    'Fallback geocoded event @nid to @lat,@lng',
+    [
+      '@nid' => $entity->id(),
+      '@lat' => $coords['lat'],
+      '@lng' => $coords['lng'],
+    ]
+  );
+}
+
+
