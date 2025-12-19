@@ -3,47 +3,32 @@
  * @file
  * Vendor console override for Event node add/edit form.
  *
- * Simple template that lets the wizard control the structure.
+ * Important:
+ * - Do NOT manually render individual fields here.
+ * - The wizard structure is built in PHP (myeventlane_event).
+ * - Twig only prints the wizard container + actions + required hidden tokens.
  */
 #}
 
-<form{{ attributes }}>
-  {# Required hidden form elements #}
+<form{{ attributes.addClass('mel-event-form-page') }}>
   {{ form.form_build_id }}
   {{ form.form_token }}
   {{ form.form_id }}
 
-  {# Wizard wrapper - contains stepper and all steps #}
+  {# Wizard wrapper created by PHP alter. #}
   {% if form.mel_wizard %}
     {{ form.mel_wizard }}
   {% endif %}
 
-  {# Hidden wizard state fields #}
-  {% if form.wizard_current_step %}
-    {{ form.wizard_current_step }}
-  {% endif %}
-  {% if form.wizard_target_step %}
-    {{ form.wizard_target_step }}
-  {% endif %}
-
-  {# Hidden vendor/store fields (auto-populated) #}
-  {% if form.field_event_vendor %}
-    {{ form.field_event_vendor }}
-  {% endif %}
-  {% if form.field_event_store %}
-    {{ form.field_event_store }}
-  {% endif %}
-
-  {# Form actions (Next/Back/Submit) #}
   {% if form.actions %}
     {{ form.actions }}
   {% endif %}
 
-  {# Render any remaining system fields that must be present #}
+  {# Render any remaining system fields that must be present. #}
   {{ form|without(
     'form_build_id', 'form_token', 'form_id',
-    'mel_wizard', 'wizard_current_step', 'wizard_target_step',
-    'field_event_vendor', 'field_event_store',
+    'mel_wizard',
+    'wizard_current_step', 'wizard_target_step',
     'actions'
   ) }}
 </form>

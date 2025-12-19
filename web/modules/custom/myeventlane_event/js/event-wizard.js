@@ -1,49 +1,48 @@
 /**
- * @file
- * Event wizard JavaScript.
+ * Wizard JS (vendor form).
  *
- * The wizard is server-authoritative (PHP controls visibility and validation).
- * JS only provides:
- * - Stepper click -> sets target step and triggers hidden AJAX submit.
- * - Focus management after AJAX rebuild.
+ * Server-authoritative wizard:
+ * - PHP controls which step is visible.
+ * - JS only:
+ *   - Stepper click -> set target step -> trigger hidden AJAX submit (goto).
+ *   - Focus step title after rebuild for accessibility.
  */
 
-(function ($, Drupal, once) {
+(function (Drupal, once) {
   'use strict';
 
   Drupal.behaviors.melEventWizard = {
-    attach: function (context) {
-      const $wrapper = $(once('mel-event-wizard', '#mel-event-wizard-wrapper', context));
-      if (!$wrapper.length) {
-        return;
-      }
+    attach(context) {
+      const wrappers = once('mel-event-wizard', '.mel-event-form--wizard', context);
+      wrappers.forEach((wrapper) => {
+        const form = wrapper.closest('form');
+        if (!form) return;
 
-      const $form = $wrapper.closest('form');
-      const $target = $form.find('.js-mel-wizard-target-step');
-      const $goto = $form.find('.js-mel-wizard-goto');
+        const target = form.querySelector('.js-mel-wizard-target-step');
+        const gotoBtn = form.querySelector('.js-mel-wizard-goto');
+        if (!target || !gotoBtn) return;
 
-      // Stepper navigation.
-      $form.on('click', '.mel-wizard-stepper__link', function (e) {
-        e.preventDefault();
+        // Stepper click delegation.
+        wrapper.addEventListener('click', (e) => {
+          const btn = e.target.closest('.js-mel-stepper-button');
+          if (!btn) return;
 
-        const step = $(this).attr('data-step-target');
-        if (!step || !$target.length || !$goto.length) {
-          return;
+          e.preventDefault();
+          const step = btn.getAttribute('data-step-target');
+          if (!step) return;
+
+          target.value = step;
+          gotoBtn.click();
+        });
+
+        // Focus active step title after AJAX update.
+        const title = wrapper.querySelector('.mel-wizard-step__title');
+        if (title) {
+          title.setAttribute('tabindex', '-1');
+          title.focus();
         }
-
-        $target.val(step);
-        $goto.trigger('click');
       });
-
-      // After AJAX replacement, focus the step title for accessibility.
-      const $activeTitle = $wrapper.find('.mel-wizard-step__title').first();
-      if ($activeTitle.length) {
-        if (!$activeTitle.attr('tabindex')) {
-          $activeTitle.attr('tabindex', '-1');
-        }
-        $activeTitle.trigger('focus');
-      }
     }
   };
 
-})(jQuery, Drupal, once);
+})(Drupal, once);

@@ -1,101 +1,94 @@
-.mel-event-wizard {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1rem;
+/* Wizard layout enhancements to support LEFT stepper.
+ * Vendor theme provides the visual tokens; this file focuses on layout + scoping.
+ */
+
+.mel-event-form--wizard .mel-event-form__wizard-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
-.mel-wizard-stepper {
-  background: #fff;
+@media (min-width: 1200px) {
+  .mel-event-form--wizard .mel-event-form__wizard-layout {
+    grid-template-columns: 280px 1fr;
+    align-items: start;
+  }
+}
+
+/* Left nav */
+.mel-event-form--wizard .mel-event-form__wizard-nav {
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 16px;
   padding: 1rem;
-  margin-bottom: 1rem;
+  position: sticky;
+  top: 1rem;
 }
 
-.mel-wizard-stepper__title {
+.mel-event-form--wizard .mel-event-form__wizard-nav-title {
   font-weight: 600;
   margin-bottom: .75rem;
-  font-size: 1rem;
 }
 
-.mel-wizard-stepper__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Step list */
+.mel-event-form--wizard .mel-event-form__wizard-nav-list {
+  display: grid;
+  gap: .5rem;
 }
 
-.mel-wizard-stepper__list li {
-  margin: 0;
-  padding: 0;
+.mel-event-form--wizard .mel-event-form__step-row {
+  display: grid;
 }
 
-.mel-wizard-stepper__link {
-  display: block;
-  padding: .6rem .75rem;
-  border-radius: 12px;
-  text-decoration: none;
-  color: inherit;
-  transition: background-color 0.2s;
-}
-
-.mel-wizard-stepper__link:hover {
-  background: rgba(0,0,0,.03);
-}
-
-.mel-wizard-stepper__link.is-active {
-  background: rgba(0,0,0,.05);
-  font-weight: 600;
-}
-
-.mel-wizard-step {
-  background: #fff;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.mel-wizard-step__title {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.mel-wizard-actions {
-  display: flex;
+.mel-event-form--wizard .mel-event-form__step {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px 1fr;
   gap: .75rem;
   align-items: center;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(0,0,0,.08);
-}
-
-.mel-wizard-actions .button {
-  border-radius: 999px;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
+  text-align: left;
+  padding: .65rem .75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.02);
   cursor: pointer;
-  border: 1px solid rgba(0,0,0,.12);
-  background: #fff;
-  transition: all 0.2s;
 }
 
-.mel-wizard-actions .button:hover {
-  background: rgba(0,0,0,.03);
+.mel-event-form--wizard .mel-event-form__step.is-active {
+  background: rgba(0,0,0,.05);
+  border-color: rgba(0,0,0,.14);
+  font-weight: 600;
 }
 
-.mel-wizard-actions .button--primary {
-  background: #0066cc;
-  color: #fff;
-  border-color: #0066cc;
+.mel-event-form--wizard .mel-event-form__step-number {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: rgba(0,0,0,.08);
 }
 
-.mel-wizard-actions .button--primary:hover {
-  background: #0052a3;
-  border-color: #0052a3;
+/* Right content */
+.mel-event-form--wizard .mel-event-form__wizard-content {
+  min-width: 0;
 }
 
-/* Keep Drupal's helper compatible if theme lacks it. */
+/* Actions */
+.mel-event-form--wizard .mel-event-form__actions--sticky {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255,255,255,.92);
+  border-top: 1px solid rgba(0,0,0,.08);
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+
+/* Visually hidden helper (in case theme doesn't provide it) */
 .visually-hidden {
   position: absolute !important;
   height: 1px; width: 1px;

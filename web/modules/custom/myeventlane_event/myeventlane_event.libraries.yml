@@ -2,7 +2,6 @@ event_node:
   css:
     theme:
       css/event-node.css: {}
-  js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -16,4 +15,3 @@ event_wizard:
   dependencies:
     - core/drupal
     - core/once
-    - core/jquery
