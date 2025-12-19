@@ -49,10 +49,14 @@ final class EventFormAlter {
 
     $form['#attached']['library'][] = 'myeventlane_event/event_wizard';
 
+    // CRITICAL: Hide conflicting navigation from vendor module and Drupal.
+    $this->hideConflictingNavigation($form);
+
     // Vendor UX: hide admin-only fields and help noise.
     $this->hideAdminFields($form);
     $this->suppressTextFormatHelp($form);
 
+    // Build steps by recursively finding ALL fields in the form.
     $steps = $this->buildStepsFromForm($form);
     if (count($steps) < 2) {
       return;
@@ -96,7 +100,7 @@ final class EventFormAlter {
       '#attributes' => ['class' => ['mel-event-form__wizard-content']],
     ];
 
-    // Move top-level fields into step panels.
+    // Move ALL fields into step panels. PHP controls visibility.
     foreach ($steps as $step_id => $step) {
       $panel_key = 'step_' . $step_id;
       $is_active = ($step_id === $current);
@@ -125,13 +129,14 @@ final class EventFormAlter {
         '#attributes' => ['class' => ['mel-event-form__section']],
       ];
 
+      // Move fields - handle both top-level and nested in sections.
       foreach ($step['fields'] as $field_name) {
-        if (isset($form[$field_name])) {
-          $form['mel_wizard']['layout']['content'][$panel_key]['section'][$field_name] = $form[$field_name];
-          unset($form[$field_name]);
-        }
+        $this->moveFieldToWizard($form, $form['mel_wizard']['layout']['content'][$panel_key]['section'], $field_name);
       }
     }
+
+    // Hide ALL remaining top-level form elements except system fields.
+    $this->hideRemainingFormElements($form);
 
     // Rewrite actions into wizard nav (AJAX + scoped validation).
     $this->rewriteActionsAsWizardNav($form, $form_state, $steps, $current);
@@ -149,6 +154,28 @@ final class EventFormAlter {
     // Conservative: vendor console routes typically contain "/vendor/".
     // If your canonical vendor routes differ, adjust this matcher.
     return str_contains($route_name, 'myeventlane_vendor') || str_contains($route_name, 'vendor');
+  }
+
+  /**
+   * Hide conflicting navigation from vendor module and Drupal defaults.
+   */
+  private function hideConflictingNavigation(array &$form): void {
+    // Hide vendor module's horizontal tabs.
+    if (isset($form['simple_tabs_nav'])) {
+      $form['simple_tabs_nav']['#access'] = FALSE;
+    }
+
+    // Hide Drupal's default vertical tabs if present.
+    if (isset($form['group_primary'])) {
+      $form['group_primary']['#access'] = FALSE;
+    }
+
+    // Hide any other tab navigation containers.
+    foreach (['group_secondary', 'group_advanced', 'group_content'] as $key) {
+      if (isset($form[$key]) && isset($form[$key]['#type']) && $form[$key]['#type'] === 'vertical_tabs') {
+        $form[$key]['#access'] = FALSE;
+      }
+    }
   }
 
   private function hideAdminFields(array &$form): void {
@@ -174,7 +201,7 @@ final class EventFormAlter {
   }
 
   /**
-   * Build steps based on fields present on the current site.
+   * Build steps by recursively finding fields in form structure.
    *
    * @return array<string, array{label: string, fields: string[]}>
    */
@@ -182,27 +209,69 @@ final class EventFormAlter {
     $candidates = [
       'basics' => [
         'label' => 'Basics',
-        'fields' => ['title', 'body', 'field_event_image'],
+        'fields' => [
+          'title',
+          'body',
+          'field_event_image',
+          'field_event_type',
+          'field_category',
+        ],
       ],
       'schedule' => [
         'label' => 'Schedule',
-        'fields' => ['field_event_date', 'field_event_end_date', 'field_event_recurring'],
+        'fields' => [
+          'field_event_date',
+          'field_event_start',
+          'field_event_end_date',
+          'field_event_end',
+          'field_event_recurring',
+        ],
       ],
       'location' => [
         'label' => 'Location',
-        'fields' => ['field_event_location_mode', 'field_event_location', 'field_event_lat', 'field_event_lng', 'field_event_online_url'],
+        'fields' => [
+          'field_event_location_mode',
+          'field_event_location',
+          'field_location',
+          'field_venue_name',
+          'field_event_lat',
+          'field_location_latitude',
+          'field_event_lng',
+          'field_location_longitude',
+          'field_event_online_url',
+        ],
       ],
       'tickets' => [
         'label' => 'Tickets',
-        'fields' => ['field_event_mode', 'field_event_ticket_types', 'field_event_capacity', 'field_event_external_url'],
+        'fields' => [
+          'field_event_mode',
+          'field_event_ticket_types',
+          'field_ticket_types',
+          'field_event_capacity',
+          'field_capacity',
+          'field_waitlist_capacity',
+          'field_event_external_url',
+          'field_external_url',
+          'field_product_target',
+          'field_collect_per_ticket',
+        ],
       ],
       'design' => [
         'label' => 'Design',
-        'fields' => ['field_event_theme', 'field_event_primary_color', 'field_event_secondary_color'],
+        'fields' => [
+          'field_event_theme',
+          'field_event_primary_color',
+          'field_event_secondary_color',
+          'field_accessibility',
+          'field_tags',
+        ],
       ],
       'questions' => [
         'label' => 'Questions',
-        'fields' => ['field_event_questions'],
+        'fields' => [
+          'field_event_questions',
+          'field_attendee_questions',
+        ],
       ],
       'review' => [
         'label' => 'Review',
@@ -214,7 +283,7 @@ final class EventFormAlter {
     foreach ($candidates as $id => $def) {
       $existing = [];
       foreach ($def['fields'] as $field_name) {
-        if (isset($form[$field_name])) {
+        if ($this->fieldExistsInForm($form, $field_name)) {
           $existing[] = $field_name;
         }
       }
@@ -226,6 +295,152 @@ final class EventFormAlter {
       }
     }
     return $steps;
+  }
+
+  /**
+   * Recursively check if a field exists in form (handles nested sections).
+   */
+  private function fieldExistsInForm(array $form, string $field_name): bool {
+    if (isset($form[$field_name])) {
+      return TRUE;
+    }
+
+    // Check nested sections (event_basics, location, date_time, booking_config, visibility).
+    $sections = ['event_basics', 'location', 'date_time', 'booking_config', 'visibility'];
+    foreach ($sections as $section) {
+      if (isset($form[$section]) && is_array($form[$section])) {
+        if ($this->fieldExistsInForm($form[$section], $field_name)) {
+          return TRUE;
+        }
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Move a field from form to wizard section (handles nested locations).
+   */
+  private function moveFieldToWizard(array &$form, array &$target_section, string $field_name): void {
+    // Check top level first.
+    if (isset($form[$field_name])) {
+      $target_section[$field_name] = $form[$field_name];
+      unset($form[$field_name]);
+      return;
+    }
+
+    // Check nested sections.
+    $sections = ['event_basics', 'location', 'date_time', 'booking_config', 'visibility'];
+    foreach ($sections as $section_key) {
+      if (isset($form[$section_key]) && is_array($form[$section_key])) {
+        if ($this->extractFieldFromSection($form[$section_key], $target_section, $field_name)) {
+          // If section is now empty (only has # keys), hide it.
+          $this->cleanupEmptySection($form, $section_key);
+          return;
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively extract field from a section.
+   */
+  private function extractFieldFromSection(array &$section, array &$target, string $field_name): bool {
+    if (isset($section[$field_name])) {
+      $target[$field_name] = $section[$field_name];
+      unset($section[$field_name]);
+      return TRUE;
+    }
+
+    // Check nested content arrays.
+    if (isset($section['content']) && is_array($section['content'])) {
+      return $this->extractFieldFromSection($section['content'], $target, $field_name);
+    }
+
+    // Recursively check all array children.
+    foreach ($section as $key => &$value) {
+      if (is_array($value) && !str_starts_with($key, '#')) {
+        if ($this->extractFieldFromSection($value, $target, $field_name)) {
+          return TRUE;
+        }
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Hide empty section containers.
+   */
+  private function cleanupEmptySection(array &$form, string $section_key): void {
+    if (!isset($form[$section_key]) || !is_array($form[$section_key])) {
+      return;
+    }
+
+    $has_content = FALSE;
+    foreach ($form[$section_key] as $key => $value) {
+      if (!str_starts_with($key, '#')) {
+        $has_content = TRUE;
+        break;
+      }
+    }
+
+    if (!$has_content) {
+      $form[$section_key]['#access'] = FALSE;
+    }
+  }
+
+  /**
+   * Hide all remaining top-level form elements except system fields.
+   */
+  private function hideRemainingFormElements(array &$form): void {
+    $system_keys = [
+      'form_build_id',
+      'form_token',
+      'form_id',
+      'mel_wizard',
+      'wizard_current_step',
+      'wizard_target_step',
+      'actions',
+      'field_event_vendor',
+      'field_event_store',
+    ];
+
+    foreach ($form as $key => &$element) {
+      if (str_starts_with($key, '#')) {
+        continue;
+      }
+
+      if (in_array($key, $system_keys, TRUE)) {
+        continue;
+      }
+
+      // Hide sections that were emptied.
+      if (in_array($key, ['event_basics', 'location', 'date_time', 'booking_config', 'visibility'], TRUE)) {
+        if (isset($element['#access']) && $element['#access'] === FALSE) {
+          continue;
+        }
+        // Check if section is effectively empty.
+        $has_visible_content = FALSE;
+        if (is_array($element)) {
+          foreach ($element as $subkey => $subvalue) {
+            if (!str_starts_with($subkey, '#')) {
+              $has_visible_content = TRUE;
+              break;
+            }
+          }
+        }
+        if (!$has_visible_content) {
+          $element['#access'] = FALSE;
+        }
+        continue;
+      }
+
+      // Hide any other top-level elements that aren't system fields.
+      if (is_array($element)) {
+        $element['#access'] = FALSE;
+      }
+    }
   }
 
   /**
@@ -325,10 +540,12 @@ final class EventFormAlter {
     $is_last = ($index === count($step_ids) - 1);
 
     $original_submit = $form['actions']['submit'] ?? NULL;
+    $original_save_draft = $form['actions']['save_draft'] ?? NULL;
 
     // Keep original actions but only show on last step.
     $other_actions = $form['actions'];
     unset($other_actions['submit']);
+    unset($other_actions['save_draft']);
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -373,10 +590,16 @@ final class EventFormAlter {
       '#attributes' => ['class' => ['js-mel-wizard-goto', 'visually-hidden']],
     ];
 
+    // Only show original submit/save_draft on last step.
     if ($original_submit) {
       $original_submit['#access'] = $is_last;
       $original_submit['#attributes']['class'][] = 'mel-event-form__actions-publish';
       $form['actions']['submit'] = $original_submit;
+    }
+
+    if ($original_save_draft) {
+      $original_save_draft['#access'] = $is_last;
+      $form['actions']['save_draft'] = $original_save_draft;
     }
 
     foreach ($other_actions as $key => $action) {
@@ -400,6 +623,8 @@ final class EventFormAlter {
     if (isset($steps[$step_id])) {
       foreach ($steps[$step_id]['fields'] as $field_name) {
         $limited[] = [$field_name];
+        // Also check nested paths.
+        $limited[] = ['mel_wizard', 'layout', 'content', 'step_' . $step_id, 'section', $field_name];
       }
     }
 
