@@ -2,6 +2,17 @@
  * Vendor theme provides the visual tokens; this file focuses on layout + scoping.
  */
 
+/* CRITICAL: Hide vendor module's horizontal tabs completely. */
+.mel-event-form--wizard ~ .mel-simple-tabs,
+.mel-event-form--wizard .mel-simple-tabs,
+.mel-event-form-page .mel-simple-tabs,
+form .mel-simple-tabs {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
 .mel-event-form--wizard .mel-event-form__wizard-layout {
   display: grid;
   grid-template-columns: 1fr;

@@ -140,6 +140,10 @@ final class EventFormAlter {
 
     // Rewrite actions into wizard nav (AJAX + scoped validation).
     $this->rewriteActionsAsWizardNav($form, $form_state, $steps, $current);
+
+    // CRITICAL: Remove vendor module's horizontal tabs AFTER all wizard setup.
+    // This must run at the very end to catch tabs added by other modules.
+    $this->removeVendorTabs($form);
   }
 
   private function isEventForm(array &$form, FormStateInterface $form_state, string $form_id): bool {
@@ -162,6 +166,25 @@ final class EventFormAlter {
    * Completely removes conflicting elements to ensure clean wizard display.
    */
   private function hideConflictingNavigation(array &$form): void {
+    // Hide Drupal's default vertical tabs if present.
+    if (isset($form['group_primary'])) {
+      $form['group_primary']['#access'] = FALSE;
+    }
+
+    // Hide any other tab navigation containers.
+    foreach (['group_secondary', 'group_advanced', 'group_content'] as $key) {
+      if (isset($form[$key]) && isset($form[$key]['#type']) && $form[$key]['#type'] === 'vertical_tabs') {
+        $form[$key]['#access'] = FALSE;
+      }
+    }
+  }
+
+  /**
+   * Remove vendor module's horizontal tabs and clean up tab pane attributes.
+   *
+   * This MUST run at the very end of alterForm() to catch tabs added by other modules.
+   */
+  private function removeVendorTabs(array &$form): void {
     // Completely remove vendor module's horizontal tabs.
     if (isset($form['simple_tabs_nav'])) {
       unset($form['simple_tabs_nav']);
@@ -193,15 +216,44 @@ final class EventFormAlter {
       }
     }
 
-    // Hide Drupal's default vertical tabs if present.
-    if (isset($form['group_primary'])) {
-      $form['group_primary']['#access'] = FALSE;
-    }
+    // Also check recursively in case tabs are nested.
+    $this->removeVendorTabsRecursive($form);
+  }
 
-    // Hide any other tab navigation containers.
-    foreach (['group_secondary', 'group_advanced', 'group_content'] as $key) {
-      if (isset($form[$key]) && isset($form[$key]['#type']) && $form[$key]['#type'] === 'vertical_tabs') {
-        $form[$key]['#access'] = FALSE;
+  /**
+   * Recursively remove vendor tab elements from form structure.
+   */
+  private function removeVendorTabsRecursive(array &$element): void {
+    foreach ($element as $key => &$value) {
+      if (str_starts_with($key, '#')) {
+        continue;
+      }
+
+      // Remove simple_tabs_nav anywhere in the structure.
+      if ($key === 'simple_tabs_nav') {
+        unset($element[$key]);
+        continue;
+      }
+
+      // Remove tab-related classes and attributes.
+      if (is_array($value)) {
+        if (isset($value['#attributes']['class'])) {
+          $classes = $value['#attributes']['class'];
+          if (is_array($classes)) {
+            $classes = array_filter($classes, function($class) {
+              return !in_array($class, ['mel-simple-tabs', 'mel-simple-tabs__buttons', 'mel-simple-tab', 'mel-tab-pane', 'mel-simple-tab-pane'], TRUE);
+            });
+            $value['#attributes']['class'] = array_values($classes);
+          }
+        }
+        // Remove tab data attributes.
+        foreach (['data-simple-tab', 'data-tab-pane', 'data-simple-tab-pane'] as $attr) {
+          if (isset($value['#attributes'][$attr])) {
+            unset($value['#attributes'][$attr]);
+          }
+        }
+        // Recursively check children.
+        $this->removeVendorTabsRecursive($value);
       }
     }
   }
