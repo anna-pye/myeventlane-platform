@@ -1,0 +1,12 @@
+# Schema for MyEventLane Wallet module configuration.
+# This file defines the structure of config objects used by this module.
+
+# If the module defines any config objects, add them here.
+# Example:
+# myeventlane_wallet.settings:
+#   type: config_object
+#   label: 'MyEventLane Wallet settings'
+#   mapping:
+#     example_setting:
+#       type: string
+#       label: 'Example setting'

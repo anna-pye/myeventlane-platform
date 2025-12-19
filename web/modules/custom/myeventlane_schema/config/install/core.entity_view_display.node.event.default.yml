@@ -19,7 +19,6 @@ dependencies:
     - field.field.node.event.field_external_url
     - field.field.node.event.field_featured
     - field.field.node.event.field_location
-    - field.field.node.event.field_organizer
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
@@ -161,13 +160,6 @@ content:
     weight: 8
     region: content
     settings: {  }
-  field_organizer:
-    type: entity_reference_label
-    label: inline
-    weight: 10
-    region: content
-    settings:
-      link: true
   field_product_target:
     type: entity_reference_label
     label: inline

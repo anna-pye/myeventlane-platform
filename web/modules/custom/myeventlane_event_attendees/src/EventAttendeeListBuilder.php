@@ -2,14 +2,38 @@
 
 namespace Drupal\myeventlane_event_attendees;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Link;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Admin list builder for EventAttendee.
  */
 class EventAttendeeListBuilder extends EntityListBuilder {
+
+  /**
+   * Constructs EventAttendeeListBuilder.
+   */
+  public function __construct(
+    $entity_type,
+    \Drupal\Core\Entity\EntityStorageInterface $storage,
+    protected readonly DateFormatterInterface $dateFormatter,
+  ) {
+    parent::__construct($entity_type, $storage);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createInstance(ContainerInterface $container, $entity_type) {
+    return new static(
+      $entity_type,
+      $container->get('entity_type.manager')->getStorage($entity_type),
+      $container->get('date.formatter')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -45,7 +69,7 @@ class EventAttendeeListBuilder extends EntityListBuilder {
       : $entity->get('name')->value;
 
     $row['status'] = $entity->get('status')->value;
-    $row['created'] = \Drupal::service('date.formatter')->format(
+    $row['created'] = $this->dateFormatter->format(
       $entity->get('created')->value,
       'short'
     );

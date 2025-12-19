@@ -15,7 +15,6 @@ dependencies:
     - field.field.node.event.field_collect_per_ticket
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_image
-    - field.field.node.event.field_event_location
     - field.field.node.event.field_event_start
     - field.field.node.event.field_event_store
     - field.field.node.event.field_event_type
@@ -25,11 +24,9 @@ dependencies:
     - field.field.node.event.field_location
     - field.field.node.event.field_location_latitude
     - field.field.node.event.field_location_longitude
-    - field.field.node.event.field_organizer
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
-    - field.field.node.event.field_rsvp_target
     - field.field.node.event.field_tags
     - field.field.node.event.field_ticket_types
     - field.field.node.event.field_venue_name
@@ -38,12 +35,19 @@ dependencies:
     - node.type.event
   module:
     - address
+    - commerce
     - datetime
+    - field_layout
     - image
+    - layout_discovery
     - link
     - paragraphs
-    - path
     - text
+third_party_settings:
+  field_layout:
+    id: layout_onecol
+    settings:
+      label: ''
 id: node.event.default
 targetEntityType: node
 bundle: event
@@ -51,7 +55,7 @@ mode: default
 content:
   body:
     type: text_textarea_with_summary
-    weight: 5
+    weight: 4
     region: content
     settings:
       rows: 9
@@ -59,39 +63,17 @@ content:
       placeholder: ''
       show_summary: false
     third_party_settings: {  }
-  created:
-    type: datetime_timestamp
-    weight: 15
-    region: content
-    settings: {  }
-    third_party_settings: {  }
   field_accessibility:
-    type: entity_reference_autocomplete_tags
-    weight: 14
-    region: content
-    settings:
-      match_operator: CONTAINS
-      match_limit: 20
-      size: 60
-      placeholder: ''
-    third_party_settings: {  }
-  field_accessibility_contact:
-    type: text_textarea
-    weight: 15
-    region: content
-    settings:
-      rows: 3
-      placeholder: ''
-    third_party_settings: {  }
-  field_accessibility_directions:
-    type: text_textarea
+    type: commerce_entity_select
     weight: 16
     region: content
     settings:
-      rows: 3
-      placeholder: ''
+      hide_single_entity: true
+      autocomplete_threshold: 7
+      autocomplete_size: 60
+      autocomplete_placeholder: ''
     third_party_settings: {  }
-  field_accessibility_entry:
+  field_accessibility_contact:
     type: text_textarea
     weight: 17
     region: content
@@ -99,7 +81,7 @@ content:
       rows: 3
       placeholder: ''
     third_party_settings: {  }
-  field_accessibility_parking:
+  field_accessibility_directions:
     type: text_textarea
     weight: 18
     region: content
@@ -107,9 +89,25 @@ content:
       rows: 3
       placeholder: ''
     third_party_settings: {  }
+  field_accessibility_entry:
+    type: text_textarea
+    weight: 19
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+  field_accessibility_parking:
+    type: text_textarea
+    weight: 20
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
   field_attendee_questions:
     type: paragraphs
-    weight: 20
+    weight: 21
     region: content
     settings:
       title: Question
@@ -128,37 +126,33 @@ content:
     third_party_settings: {  }
   field_capacity:
     type: number
-    weight: 9
+    weight: 10
     region: content
     settings:
       placeholder: ''
     third_party_settings: {  }
   field_category:
-    type: entity_reference_autocomplete_tags
-    weight: 13
+    type: options_select
+    weight: 15
     region: content
-    settings:
-      match_operator: CONTAINS
-      match_limit: 20
-      size: 60
-      placeholder: ''
+    settings: {  }
     third_party_settings: {  }
   field_collect_per_ticket:
     type: boolean_checkbox
-    weight: 19
+    weight: 22
     region: content
     settings:
       display_label: true
     third_party_settings: {  }
   field_event_end:
     type: datetime_default
-    weight: 4
+    weight: 3
     region: content
     settings: {  }
     third_party_settings: {  }
   field_event_image:
     type: image_image
-    weight: 6
+    weight: 5
     region: content
     settings:
       progress_indicator: throbber
@@ -166,51 +160,48 @@ content:
     third_party_settings: {  }
   field_event_start:
     type: datetime_default
-    weight: 3
+    weight: 2
     region: content
     settings: {  }
     third_party_settings: {  }
   field_event_type:
     type: options_select
-    weight: 2
+    weight: 1
     region: content
     settings: {  }
     third_party_settings: {  }
   field_external_url:
     type: link_default
-    weight: 12
+    weight: 14
     region: content
     settings:
       placeholder_url: 'https://'
       placeholder_title: ''
     third_party_settings: {  }
-  field_featured:
-    type: boolean_checkbox
-    weight: 16
-    region: content
-    settings:
-      display_label: true
-    third_party_settings: {  }
   field_location:
     type: address_default
-    weight: 8
+    weight: 7
     region: content
     settings:
       wrapper_type: fieldset
     third_party_settings: {  }
-  field_organizer:
-    type: entity_reference_autocomplete
-    weight: 10
+  field_location_latitude:
+    type: number
+    weight: 9
     region: content
     settings:
-      match_operator: CONTAINS
-      match_limit: 10
-      size: 60
-      placeholder: ''
+      placeholder: 'this will auto populate '
+    third_party_settings: {  }
+  field_location_longitude:
+    type: number
+    weight: 8
+    region: content
+    settings:
+      placeholder: 'this will auto populate '
     third_party_settings: {  }
   field_product_target:
     type: entity_reference_autocomplete
-    weight: 11
+    weight: 12
     region: content
     settings:
       match_operator: CONTAINS
@@ -220,7 +211,7 @@ content:
     third_party_settings: {  }
   field_ticket_types:
     type: paragraphs
-    weight: 12
+    weight: 13
     region: content
     settings:
       title: 'Ticket Type'
@@ -229,17 +220,18 @@ content:
       closed_mode: summary
       autocollapse: none
       closed_mode_threshold: 0
-      add_mode: dropdown
+      add_mode: button
       form_display_mode: default
       default_paragraph_type: ticket_type_config
       features:
         add_above: '0'
         collapse_edit_all: collapse_edit_all
+        convert: '0'
         duplicate: duplicate
     third_party_settings: {  }
   field_venue_name:
     type: string_textfield
-    weight: 7
+    weight: 6
     region: content
     settings:
       size: 60
@@ -247,37 +239,10 @@ content:
     third_party_settings: {  }
   field_waitlist_capacity:
     type: number
-    weight: 10
+    weight: 11
     region: content
     settings:
       placeholder: 'Leave empty for unlimited'
-    third_party_settings: {  }
-  path:
-    type: path
-    weight: 25
-    region: content
-    settings: {  }
-    third_party_settings: {  }
-  promote:
-    type: boolean_checkbox
-    weight: 21
-    region: content
-    settings:
-      display_label: true
-    third_party_settings: {  }
-  status:
-    type: boolean_checkbox
-    weight: 30
-    region: content
-    settings:
-      display_label: true
-    third_party_settings: {  }
-  sticky:
-    type: boolean_checkbox
-    weight: 22
-    region: content
-    settings:
-      display_label: true
     third_party_settings: {  }
   title:
     type: string_textfield
@@ -287,23 +252,16 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-  uid:
-    type: entity_reference_autocomplete
-    weight: 23
-    region: content
-    settings:
-      match_operator: CONTAINS
-      match_limit: 10
-      size: 60
-      placeholder: ''
-    third_party_settings: {  }
 hidden:
-  field_event_location: true
+  created: true
   field_event_store: true
   field_event_vendor: true
-  field_location_latitude: true
-  field_location_longitude: true
+  field_featured: true
   field_promo_expires: true
   field_promoted: true
-  field_rsvp_target: true
   field_tags: true
+  path: true
+  promote: true
+  status: true
+  sticky: true
+  uid: true

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_dashboard\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\TimeInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -15,10 +16,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class CustomerDashboardController extends ControllerBase {
 
   /**
+   * Constructs CustomerDashboardController.
+   */
+  public function __construct(
+    private readonly TimeInterface $time,
+  ) {}
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static();
+    return new static(
+      $container->get('datetime.time')
+    );
   }
 
   /**
@@ -94,7 +104,7 @@ final class CustomerDashboardController extends ControllerBase {
 
     // Build event data from attendees and orders.
     $eventMap = [];
-    $now = \Drupal::time()->getRequestTime();
+    $now = $this->time->getRequestTime();
     $nodeStorage = $this->entityTypeManager()->getStorage('node');
 
     // Process attendees.

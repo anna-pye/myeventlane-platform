@@ -9,7 +9,9 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\Core\Utility\Token;
 use Drupal\node\NodeInterface;
+use Egulias\EmailValidator\EmailValidator;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -46,18 +48,25 @@ class RsvpPublicForm extends FormBase {
   protected MessengerInterface $messengerService;
 
   /**
+   * Email validator.
+   */
+  protected EmailValidator $emailValidator;
+
+  /**
    * Constructor.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     RouteMatchInterface $route_match,
     LoggerInterface $logger,
-    MessengerInterface $messenger
+    MessengerInterface $messenger,
+    EmailValidator $email_validator
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->routeMatch = $route_match;
     $this->logger = $logger;
     $this->messengerService = $messenger;
+    $this->emailValidator = $email_validator;
   }
 
   /**
@@ -68,7 +77,8 @@ class RsvpPublicForm extends FormBase {
       $container->get('entity_type.manager'),
       $container->get('current_route_match'),
       $container->get('logger.factory')->get('myeventlane_rsvp'),
-      $container->get('messenger')
+      $container->get('messenger'),
+      $container->get('email.validator')
     );
   }
 
@@ -356,7 +366,7 @@ class RsvpPublicForm extends FormBase {
     }
 
     $email = $form_state->getValue('email');
-    if (!empty($email) && !\Drupal::service('email.validator')->isValid($email)) {
+    if (!empty($email) && !$this->emailValidator->isValid($email)) {
       $form_state->setErrorByName('email', $this->t('Please enter a valid email address.'));
     }
 

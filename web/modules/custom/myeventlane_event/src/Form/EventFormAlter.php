@@ -181,6 +181,7 @@ final class EventFormAlter {
         'title' => 'Basics',
         'fields' => [
           'title',
+          'body',
           'field_event_image',
         ],
       ],
@@ -207,9 +208,10 @@ final class EventFormAlter {
           'field_event_type',
           'field_ticket_types',
           'field_capacity',
-          'field_rsvp_target',
+          'field_waitlist_capacity',
           'field_product_target',
           'field_external_url',
+          'field_collect_per_ticket',
         ],
       ],
       'design' => [

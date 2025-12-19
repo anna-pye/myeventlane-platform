@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.event.body
     - field.field.node.event.field_accessibility
     - field.field.node.event.field_accessibility_contact
     - field.field.node.event.field_accessibility_directions
@@ -10,27 +11,34 @@ dependencies:
     - field.field.node.event.field_accessibility_parking
     - field.field.node.event.field_attendee_questions
     - field.field.node.event.field_capacity
-    - field.field.node.event.field_waitlist_capacity
     - field.field.node.event.field_category
     - field.field.node.event.field_collect_per_ticket
     - field.field.node.event.field_event_end
     - field.field.node.event.field_event_image
     - field.field.node.event.field_event_start
+    - field.field.node.event.field_event_store
     - field.field.node.event.field_event_type
+    - field.field.node.event.field_event_vendor
     - field.field.node.event.field_external_url
     - field.field.node.event.field_featured
     - field.field.node.event.field_location
-    - field.field.node.event.field_organizer
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
+    - field.field.node.event.field_tags
+    - field.field.node.event.field_ticket_types
     - field.field.node.event.field_venue_name
+    - field.field.node.event.field_waitlist_capacity
+    - image.style.large
     - node.type.event
   module:
     - address
     - datetime
     - image
     - link
+    - options
     - text
     - user
 id: node.event.default
@@ -43,7 +51,7 @@ content:
     label: hidden
     settings: {  }
     third_party_settings: {  }
-    weight: 5
+    weight: 4
     region: content
   field_accessibility:
     type: entity_reference_label
@@ -51,21 +59,21 @@ content:
     settings:
       link: true
     third_party_settings: {  }
-    weight: 14
+    weight: 13
     region: content
   field_accessibility_contact:
     type: text_default
     label: above
     settings: {  }
     third_party_settings: {  }
-    weight: 15
+    weight: 14
     region: content
   field_accessibility_directions:
     type: text_default
     label: above
     settings: {  }
     third_party_settings: {  }
-    weight: 16
+    weight: 15
     region: content
   field_accessibility_entry:
     type: text_default
@@ -88,7 +96,7 @@ content:
       thousand_separator: ','
       prefix_suffix: true
     third_party_settings: {  }
-    weight: 9
+    weight: 7
     region: content
   field_category:
     type: entity_reference_label
@@ -96,7 +104,7 @@ content:
     settings:
       link: true
     third_party_settings: {  }
-    weight: 13
+    weight: 12
     region: content
   field_event_end:
     type: datetime_default
@@ -105,7 +113,7 @@ content:
       timezone_override: ''
       format_type: medium
     third_party_settings: {  }
-    weight: 4
+    weight: 3
     region: content
   field_event_image:
     type: image
@@ -125,14 +133,14 @@ content:
       timezone_override: ''
       format_type: medium
     third_party_settings: {  }
-    weight: 3
+    weight: 2
     region: content
   field_event_type:
     type: list_default
     label: inline
     settings: {  }
     third_party_settings: {  }
-    weight: 2
+    weight: 1
     region: content
   field_external_url:
     type: link
@@ -144,7 +152,7 @@ content:
       rel: ''
       target: _blank
     third_party_settings: {  }
-    weight: 12
+    weight: 11
     region: content
   field_featured:
     type: boolean
@@ -161,15 +169,21 @@ content:
     label: above
     settings: {  }
     third_party_settings: {  }
-    weight: 8
+    weight: 6
     region: content
-  field_organizer:
-    type: entity_reference_label
-    label: inline
-    settings:
-      link: true
+  field_location_latitude:
+    type: number_unformatted
+    label: visually_hidden
+    settings: {  }
     third_party_settings: {  }
-    weight: 10
+    weight: 20
+    region: content
+  field_location_longitude:
+    type: number_unformatted
+    label: visually_hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 21
     region: content
   field_product_target:
     type: entity_reference_label
@@ -177,7 +191,7 @@ content:
     settings:
       link: true
     third_party_settings: {  }
-    weight: 11
+    weight: 10
     region: content
   field_venue_name:
     type: string
@@ -185,7 +199,7 @@ content:
     settings:
       link_to_entity: false
     third_party_settings: {  }
-    weight: 7
+    weight: 5
     region: content
   field_waitlist_capacity:
     type: number_integer
@@ -194,23 +208,19 @@ content:
       thousand_separator: ','
       prefix_suffix: true
     third_party_settings: {  }
-    weight: 10
+    weight: 9
     region: content
   links:
     settings: {  }
     third_party_settings: {  }
-    weight: 50
+    weight: 19
     region: content
 hidden:
   field_attendee_questions: true
   field_collect_per_ticket: true
-  field_event_location: true
   field_event_store: true
   field_event_vendor: true
-  field_location_latitude: true
-  field_location_longitude: true
   field_promo_expires: true
   field_promoted: true
-  field_rsvp_target: true
   field_tags: true
   field_ticket_types: true

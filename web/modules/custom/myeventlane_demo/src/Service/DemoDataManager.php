@@ -322,8 +322,11 @@ final class DemoDataManager {
       $values['field_capacity'] = $definition['capacity'];
     }
 
-    // Organizer.
-    $values['field_organizer'] = ['target_id' => $organizerUid];
+    // Vendor (find or create vendor for organizer user).
+    $vendor = $this->getOrCreateVendorForUser($organizerUid);
+    if ($vendor) {
+      $values['field_event_vendor'] = ['target_id' => $vendor->id()];
+    }
 
     // Category.
     if ($categoryTerm) {
@@ -411,6 +414,49 @@ final class DemoDataManager {
     }
 
     return $uid;
+  }
+
+  /**
+   * Gets or creates a vendor entity for a user.
+   *
+   * @param int $uid
+   *   The user ID.
+   *
+   * @return \Drupal\myeventlane_vendor\Entity\Vendor|null
+   *   The vendor entity, or NULL if unable to create.
+   */
+  private function getOrCreateVendorForUser(int $uid): ?object {
+    $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    
+    // Try to find existing vendor owned by this user.
+    $vendors = $vendorStorage->loadByProperties(['uid' => $uid]);
+    if (!empty($vendors)) {
+      return reset($vendors);
+    }
+    
+    // Try to find vendor where user is in field_vendor_users.
+    $query = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_vendor_users', $uid)
+      ->range(0, 1);
+    $vendorIds = $query->execute();
+    if (!empty($vendorIds)) {
+      return $vendorStorage->load(reset($vendorIds));
+    }
+    
+    // Create a new vendor for this user.
+    $user = $this->entityTypeManager->getStorage('user')->load($uid);
+    if (!$user) {
+      return NULL;
+    }
+    
+    $vendor = $vendorStorage->create([
+      'name' => $user->getDisplayName() . "'s Events",
+      'uid' => $uid,
+    ]);
+    $vendor->save();
+    
+    return $vendor;
   }
 
 }

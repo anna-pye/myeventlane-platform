@@ -83,7 +83,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
 
   // Vendor label. Prefer a vendor/store/entity reference over author.
   $vendor_label = '';
-  foreach (['field_vendor_target', 'field_vendor', 'field_store', 'field_organiser', 'field_organizer'] as $candidate) {
+  foreach (['field_vendor_target', 'field_vendor', 'field_store', 'field_organiser'] as $candidate) {
     if ($node->hasField($candidate) && !$node->get($candidate)->isEmpty()) {
       $ref = $node->get($candidate)->entity;
       if ($ref) {

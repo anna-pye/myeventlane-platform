@@ -69,7 +69,6 @@ hidden:
   field_event_type: true
   field_external_url: true
   field_featured: true
-  field_organizer: true
   field_product_target: true
   field_promo_expires: true
   field_promoted: true

@@ -1,0 +1,8 @@
+# Schema for MyEventLane Vendor module configuration.
+myeventlane_vendor.settings:
+  type: config_object
+  label: 'MyEventLane Vendor settings'
+  mapping:
+    directory_title:
+      type: string
+      label: 'Directory title'

@@ -857,13 +857,6 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       }
     }
   }
-  // Check organizer field only if it references a vendor entity.
-  if ($vendor === '' && $node->hasField('field_organizer') && !$node->get('field_organizer')->isEmpty()) {
-    $ref = $node->get('field_organizer')->entity;
-    if ($ref && $ref->getEntityTypeId() === 'myeventlane_vendor') {
-      $vendor = (string) $ref->label();
-    }
-  }
   $variables['mel_vendor'] = trim($vendor);
 
   // Category pills.

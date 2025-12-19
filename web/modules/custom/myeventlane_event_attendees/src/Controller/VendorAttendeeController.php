@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_attendees\Controller;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
@@ -25,6 +26,7 @@ final class VendorAttendeeController extends ControllerBase {
    */
   public function __construct(
     private readonly AttendanceManagerInterface $attendanceManager,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
   /**
@@ -33,6 +35,7 @@ final class VendorAttendeeController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_event_attendees.manager'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -206,7 +209,7 @@ final class VendorAttendeeController extends ControllerBase {
           'email' => $attendee->getEmail(),
           'status' => ucfirst($attendee->getStatus()),
           'checked_in' => $attendee->isCheckedIn() ? $this->t('Yes') : $this->t('No'),
-          'created' => \Drupal::service('date.formatter')->format($attendee->get('created')->value, 'short'),
+          'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
         ];
       }
       
@@ -255,7 +258,7 @@ final class VendorAttendeeController extends ControllerBase {
             'ticket_code' => $attendee->getTicketCode() ?? '',
             'status' => ucfirst($attendee->getStatus()),
             'checked_in' => $attendee->isCheckedIn() ? $this->t('Yes') : $this->t('No'),
-            'created' => \Drupal::service('date.formatter')->format($attendee->get('created')->value, 'short'),
+            'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
           ];
         }
         
@@ -290,7 +293,7 @@ final class VendorAttendeeController extends ControllerBase {
           'email' => $attendee->getEmail(),
           'status' => ucfirst($attendee->getStatus()),
           'checked_in' => $attendee->isCheckedIn() ? $this->t('Yes') : $this->t('No'),
-          'created' => \Drupal::service('date.formatter')->format($attendee->get('created')->value, 'short'),
+          'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
         ];
       }
       

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_commerce\Form;
 
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
+use Drupal\commerce_price\CurrencyFormatterInterface;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -30,6 +31,7 @@ final class TicketSelectionForm extends FormBase {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CartProviderInterface $cartProvider,
     private readonly CartManagerInterface $cartManager,
+    private readonly CurrencyFormatterInterface $currencyFormatter,
   ) {}
 
   /**
@@ -39,7 +41,8 @@ final class TicketSelectionForm extends FormBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('commerce_cart.cart_provider'),
-      $container->get('commerce_cart.cart_manager')
+      $container->get('commerce_cart.cart_manager'),
+      $container->get('commerce_price.currency_formatter')
     );
   }
 
@@ -93,8 +96,6 @@ final class TicketSelectionForm extends FormBase {
       '#attributes' => ['class' => ['mel-event-title']],
     ];
 
-    $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
-
     // Get ticket type labels from paragraphs.
     $ticket_type_labels = [];
     if ($node->hasField('field_ticket_types') && !$node->get('field_ticket_types')->isEmpty()) {
@@ -130,7 +131,7 @@ final class TicketSelectionForm extends FormBase {
       $variation_id = $variation->id();
       $variation_uuid = $variation->uuid();
       $price = $variation->getPrice();
-      $price_formatted = $price ? $currency_formatter->format($price->getNumber(), $price->getCurrencyCode()) : '';
+      $price_formatted = $price ? $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode()) : '';
 
       // Get ticket type label from paragraph mapping, or fall back to variation title.
       $ticket_label = $ticket_type_labels[$variation_uuid] ?? $variation->label();
