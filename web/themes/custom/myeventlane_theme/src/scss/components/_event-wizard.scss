@@ -105,7 +105,7 @@
 
   &__step.is-completed &__step-number {
     background: colors.$mel-color-success;
-    color: colors.$mel-color-on-success;
+    color: colors.$mel-color-text-inverse;
   }
 
   &__step-label {
@@ -183,7 +183,7 @@
         border: none;
 
         &:hover {
-          background: colors.$mel-color-primary-dark;
+          background: colors.$mel-color-primary-hover;
         }
       }
 
