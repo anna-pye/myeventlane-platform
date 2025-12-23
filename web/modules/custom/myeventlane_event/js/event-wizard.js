@@ -106,19 +106,50 @@
       // Drupal's autocomplete behavior uses 'once' to prevent double initialization.
       // After AJAX, we need to remove the 'autocomplete' marker and re-attach behaviors.
       if (typeof Drupal !== 'undefined' && Drupal.behaviors && Drupal.behaviors.autocomplete) {
+        // Find all autocomplete inputs in the form.
+        const autocompleteInputs = form.querySelectorAll('input.form-autocomplete');
+        
+        if (autocompleteInputs.length === 0) {
+          console.log('Event Wizard: No autocomplete inputs found in form');
+          return;
+        }
+        
+        console.log('Event Wizard: Found', autocompleteInputs.length, 'autocomplete input(s), re-initializing...');
+        
         // Remove the 'autocomplete' once marker from all inputs in the form.
         // This allows the behavior to re-attach after AJAX.
-        const autocompleteInputs = form.querySelectorAll('input.form-autocomplete');
         autocompleteInputs.forEach((input) => {
+          // Check if input has the required data attribute.
+          if (!input.hasAttribute('data-autocomplete-path')) {
+            console.warn('Event Wizard: Autocomplete input missing data-autocomplete-path attribute:', input);
+            return;
+          }
+          
           // Remove the once marker if it exists.
           if (typeof once !== 'undefined' && once.remove) {
             once.remove('autocomplete', input);
+          }
+          
+          // Also destroy any existing jQuery UI autocomplete instance.
+          if (typeof jQuery !== 'undefined' && jQuery(input).autocomplete) {
+            try {
+              jQuery(input).autocomplete('destroy');
+            } catch (e) {
+              // Ignore errors if autocomplete wasn't initialized
+            }
           }
         });
         
         // Re-attach the autocomplete behavior.
         // This will use once() internally to prevent double initialization.
-        Drupal.behaviors.autocomplete.attach(form, drupalSettings);
+        try {
+          Drupal.behaviors.autocomplete.attach(form, drupalSettings);
+          console.log('Event Wizard: Autocomplete behavior re-attached successfully');
+        } catch (e) {
+          console.error('Event Wizard: Failed to re-attach autocomplete behavior:', e);
+        }
+      } else {
+        console.warn('Event Wizard: Drupal.autocomplete behavior not available');
       }
     },
     
