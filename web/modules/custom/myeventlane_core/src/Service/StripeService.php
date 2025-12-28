@@ -259,6 +259,121 @@ final class StripeService {
   }
 
   /**
+   * Validates if a Stripe Connect account is eligible for dashboard login links.
+   *
+   * Eligibility requirements:
+   * - Account exists (can be retrieved)
+   * - Account is not deleted
+   * - Account has details_submitted === true
+   * - Account has charges_enabled === true
+   *
+   * @param string $accountId
+   *   The Stripe Connect account ID (acct_xxx).
+   *
+   * @return array{eligible: bool, account: Account|null, reason: string|null}
+   *   Array with eligibility status, account object (if eligible), and reason (if not eligible).
+   */
+  public function validateAccountDashboardEligibility(string $accountId): array {
+    $client = $this->getPlatformClient();
+
+    try {
+      // Load Stripe account via API.
+      $account = $client->accounts->retrieve($accountId);
+
+      // Validate: account exists (retrieval succeeded means it exists).
+      if (!$account) {
+        return [
+          'eligible' => FALSE,
+          'account' => NULL,
+          'reason' => 'Account not found',
+        ];
+      }
+
+      // Validate: account.deleted !== true.
+      if (isset($account->deleted) && $account->deleted === TRUE) {
+        return [
+          'eligible' => FALSE,
+          'account' => $account,
+          'reason' => 'Account has been deleted',
+        ];
+      }
+
+      // Validate: account.details_submitted === true.
+      if (empty($account->details_submitted) || $account->details_submitted !== TRUE) {
+        return [
+          'eligible' => FALSE,
+          'account' => $account,
+          'reason' => 'Account details not yet submitted',
+        ];
+      }
+
+      // Validate: account.charges_enabled === true.
+      if (empty($account->charges_enabled) || $account->charges_enabled !== TRUE) {
+        return [
+          'eligible' => FALSE,
+          'account' => $account,
+          'reason' => 'Account charges not yet enabled',
+        ];
+      }
+
+      // All checks passed - account is eligible.
+      return [
+        'eligible' => TRUE,
+        'account' => $account,
+        'reason' => NULL,
+      ];
+    }
+    catch (ApiErrorException $e) {
+      // Account retrieval failed - log error and return not eligible.
+      $this->logger()->error('Failed to retrieve Stripe account @id for eligibility check: @message', [
+        '@id' => $accountId,
+        '@message' => $e->getMessage(),
+      ]);
+
+      return [
+        'eligible' => FALSE,
+        'account' => NULL,
+        'reason' => 'Failed to retrieve account: ' . $e->getMessage(),
+      ];
+    }
+  }
+
+  /**
+   * Creates a LoginLink only if the account is eligible for dashboard access.
+   *
+   * Before calling createLoginLink(), this method:
+   * 1. Loads the Stripe account via API
+   * 2. Validates the account exists, is not deleted, details_submitted is true,
+   *    and charges_enabled is true
+   * 3. Only calls createLoginLink() if all checks pass
+   *
+   * @param string $accountId
+   *   The Stripe Connect account ID (acct_xxx).
+   *
+   * @return \Stripe\LoginLink|null
+   *   The LoginLink object if eligible, or NULL if not eligible.
+   */
+  public function createLoginLinkIfEligible(string $accountId): ?LoginLink {
+    // Validate account eligibility before attempting to create login link.
+    $eligibility = $this->validateAccountDashboardEligibility($accountId);
+
+    if (!$eligibility['eligible']) {
+      // Account is not eligible - do NOT call createLoginLink().
+      // Logging will be handled by the caller (controller) with myeventlane_vendor channel.
+      return NULL;
+    }
+
+    // All eligibility checks passed - safe to create login link.
+    try {
+      return $this->createLoginLink($accountId);
+    }
+    catch (ApiErrorException $e) {
+      // Unexpected failure during login link creation - rethrow for controller to handle.
+      throw $e;
+    }
+  }
+
+  /**
    * Gets the status of a Stripe Connect account.
    *
    * @param string $accountId

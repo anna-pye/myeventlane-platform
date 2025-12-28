@@ -47,6 +47,7 @@
   border-radius: $radius-card;
   box-shadow: $shadow-card;
   transition: box-shadow 0.15s ease-in-out;
+  min-height: 140px; // Ensure consistent height
   
   &:hover {
     box-shadow: $shadow-card-hover;
@@ -118,6 +119,14 @@
   font-weight: $font-weight-medium;
   color: $text-secondary;
   margin-bottom: $spacing-2;
+  flex-shrink: 0;
+}
+
+.mel-kpi-card__meta {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  margin-top: auto;
+  padding-top: $spacing-2;
 }
 
 .mel-kpi-card__value {

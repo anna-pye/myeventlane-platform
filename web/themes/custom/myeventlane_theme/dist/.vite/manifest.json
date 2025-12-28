@@ -23,6 +23,10 @@
   "scss/front.scss": {
     "file": "css/front.css",
     "src": "scss/front.scss",
-    "isEntry": true
+    "isEntry": true,
+    "name": "front",
+    "names": [
+      "front.css"
+    ]
   }
 }

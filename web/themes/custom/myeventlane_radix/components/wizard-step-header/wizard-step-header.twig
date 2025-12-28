@@ -1,0 +1,56 @@
+{#
+/**
+ * @file
+ * Wizard Step Header Single Directory Component (SDC).
+ *
+ * Displays a wizard step header with number, title, and description.
+ *
+ * Props:
+ * - step_number: Step number (1, 2, 3, etc.)
+ * - title: Step title
+ * - description: Optional description
+ * - is_active: Boolean for active state
+ * - is_complete: Boolean for completed state
+ */
+#}
+
+{%
+  set classes = [
+    'mel-wizard-step-header',
+    'd-flex',
+    'align-items-start',
+    'gap-3',
+    'mb-4',
+    is_active ? 'mel-wizard-step-header--active' : '',
+    is_complete ? 'mel-wizard-step-header--complete' : '',
+  ]
+%}
+
+<div{{ attributes.addClass(classes) }}>
+  {# Step Number Badge #}
+  <div class="mel-wizard-step-header__number flex-shrink-0">
+    {% if is_complete %}
+      <span class="badge bg-success rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <i class="bi bi-check" aria-hidden="true"></i>
+        <span class="visually-hidden">{{ 'Step @number completed'|t({'@number': step_number}) }}</span>
+      </span>
+    {% else %}
+      <span class="badge{{ is_active ? ' bg-primary' : ' bg-secondary' }} rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        {{ step_number }}
+      </span>
+    {% endif %}
+  </div>
+
+  {# Step Content #}
+  <div class="mel-wizard-step-header__content flex-grow-1">
+    <h2 class="mel-wizard-step-header__title h4 mb-2{{ is_active ? ' text-primary' : ' text-muted' }}">
+      {{ title }}
+    </h2>
+    
+    {% if description %}
+      <p class="mel-wizard-step-header__description text-muted mb-0">
+        {{ description }}
+      </p>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,29 @@
+// ============================================================================
+// Price Display Component (SDC)
+// ============================================================================
+// Styles for the price display Single Directory Component.
+// ============================================================================
+
+@use '../../src/scss/tokens/tokens' as *;
+
+.mel-price-display {
+  &--small {
+    font-size: mel-font-size(sm);
+  }
+  
+  &--large {
+    font-size: mel-font-size(xl);
+  }
+}
+
+.mel-price-display__sale {
+  color: $mel-color-primary;
+}
+
+.mel-price-display__original {
+  font-size: 0.875em;
+}
+
+.mel-price-display__regular {
+  // Default styling via Bootstrap classes
+}

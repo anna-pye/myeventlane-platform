@@ -4,16 +4,17 @@ status: true
 dependencies:
   config:
     - field.storage.myeventlane_vendor.field_public_show_phone
+    - myeventlane_vendor.myeventlane_vendor
   module:
-    - myeventlane_vendor
+    - options
 id: myeventlane_vendor.myeventlane_vendor.field_public_show_phone
 field_name: field_public_show_phone
 entity_type: myeventlane_vendor
 bundle: myeventlane_vendor
 label: 'Show phone publicly'
-description: 'Whether to display the vendor field_public_show_phone on the public vendor page.'
+description: 'Whether to display the vendor phone number on the public vendor page.'
 required: false
-translatable: true
+translatable: false
 default_value:
   -
     value: 0

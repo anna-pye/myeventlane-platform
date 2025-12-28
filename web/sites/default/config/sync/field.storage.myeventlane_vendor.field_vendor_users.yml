@@ -3,7 +3,6 @@ langcode: en
 status: true
 dependencies:
   module:
-    - myeventlane_vendor
     - user
 id: myeventlane_vendor.field_vendor_users
 field_name: field_vendor_users
@@ -14,7 +13,7 @@ settings:
 module: core
 locked: false
 cardinality: -1
-translatable: true
+translatable: false
 indexes: {  }
 persist_with_no_fields: false
 custom_storage: false

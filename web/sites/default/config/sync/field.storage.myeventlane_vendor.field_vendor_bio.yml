@@ -3,7 +3,6 @@ langcode: en
 status: true
 dependencies:
   module:
-    - myeventlane_vendor
     - text
 id: myeventlane_vendor.field_vendor_bio
 field_name: field_vendor_bio

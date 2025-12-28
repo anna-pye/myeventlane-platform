@@ -3,10 +3,10 @@ langcode: en
 status: true
 dependencies:
   config:
-    - commerce_store.commerce_store_type.online
     - field.storage.myeventlane_vendor.field_vendor_store
+    - myeventlane_vendor.myeventlane_vendor
   module:
-    - myeventlane_vendor
+    - commerce_store
 id: myeventlane_vendor.myeventlane_vendor.field_vendor_store
 field_name: field_vendor_store
 entity_type: myeventlane_vendor
@@ -14,7 +14,7 @@ bundle: myeventlane_vendor
 label: Store
 description: 'The Commerce store linked to this vendor.'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:

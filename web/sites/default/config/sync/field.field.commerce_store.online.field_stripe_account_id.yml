@@ -5,6 +5,8 @@ dependencies:
   config:
     - commerce_store.commerce_store_type.online
     - field.storage.commerce_store.field_stripe_account_id
+  module:
+    - text
 id: commerce_store.online.field_stripe_account_id
 field_name: field_stripe_account_id
 entity_type: commerce_store
@@ -12,7 +14,7 @@ bundle: online
 label: 'Stripe Account ID'
 description: 'The Stripe Connect account ID for this store.'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings: {  }

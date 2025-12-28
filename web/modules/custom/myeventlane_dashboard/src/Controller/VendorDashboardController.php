@@ -8,6 +8,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_dashboard\Service\DashboardAccess;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
@@ -29,6 +30,7 @@ final class VendorDashboardController extends ControllerBase {
     private readonly TimeInterface $time,
     private readonly ?BoostManager $boostManager = NULL,
     private readonly ?AttendanceWaitlistManager $waitlistManager = NULL,
+    private readonly ?StripeService $stripeService = NULL,
   ) {}
 
   /**
@@ -49,12 +51,20 @@ final class VendorDashboardController extends ControllerBase {
       $waitlistManager = NULL;
     }
 
+    try {
+      $stripeService = $container->get('myeventlane_core.stripe');
+    }
+    catch (\Exception) {
+      $stripeService = NULL;
+    }
+
     return new static(
       $container->get('myeventlane_dashboard.access'),
       $container->get('myeventlane_dashboard.event_loader'),
       $container->get('datetime.time'),
       $boostManager,
       $waitlistManager,
+      $stripeService,
     );
   }
 
@@ -427,12 +437,17 @@ final class VendorDashboardController extends ControllerBase {
     }
 
     // Check for Stripe account ID.
+    // VALIDATE STRIPE ACCOUNT ID: Only use if it exists, is not empty, and has valid format.
     $accountId = NULL;
     $status = 'unconnected';
     $connected = FALSE;
 
     if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-      $accountId = $store->get('field_stripe_account_id')->value;
+      $rawAccountId = trim($store->get('field_stripe_account_id')->value);
+      // Only accept valid Stripe account IDs (format: acct_xxxxx).
+      if (!empty($rawAccountId) && str_starts_with($rawAccountId, 'acct_')) {
+        $accountId = $rawAccountId;
+      }
     }
 
     // Check charges enabled status - if charges are enabled, account is functional.
@@ -481,14 +496,57 @@ final class VendorDashboardController extends ControllerBase {
       $statusMessage = $this->t('Your Stripe account is pending verification. Complete onboarding to start accepting payments.');
     }
 
+    // CHECK ELIGIBILITY: Only return manage_url if account ID is valid AND account is eligible.
+    // This prevents UI from showing broken Stripe buttons and ensures we never call
+    // createLoginLink() on accounts that aren't dashboard-eligible.
+    $manageUrl = NULL;
+    $dashboardEligible = FALSE;
+    
+    if (!empty($accountId) && str_starts_with($accountId, 'acct_')) {
+      // Check eligibility if StripeService is available.
+      if ($this->stripeService) {
+        try {
+          $eligibility = $this->stripeService->validateAccountDashboardEligibility($accountId);
+          $dashboardEligible = $eligibility['eligible'];
+          
+          if (!$dashboardEligible) {
+            // Account exists but is not eligible - don't show manage button.
+            // Log at notice level (expected for incomplete accounts).
+            \Drupal::logger('myeventlane_vendor')->notice('Stripe dashboard: Account @account_id is not eligible for dashboard access. Reason: @reason', [
+              '@account_id' => $accountId,
+              '@reason' => $eligibility['reason'] ?? 'Unknown',
+            ]);
+            
+            // Update status message to indicate onboarding incomplete.
+            if ($status === 'pending' || $status === 'unconnected') {
+              $statusMessage = $this->t('Stripe onboarding incomplete. Complete onboarding to access dashboard.');
+            }
+          }
+        }
+        catch (\Exception $e) {
+          // If eligibility check fails, don't show manage URL (safe default).
+          \Drupal::logger('myeventlane_vendor')->error('Stripe dashboard: Failed to check eligibility for account @account_id: @message', [
+            '@account_id' => $accountId,
+            '@message' => $e->getMessage(),
+          ]);
+        }
+      }
+      
+      // Only provide manage_url if account is eligible.
+      if ($dashboardEligible) {
+        $manageUrl = Url::fromRoute('myeventlane_vendor.stripe_manage')->toString();
+      }
+    }
+
     return [
       'connected' => $connected,
       'status' => $status,
       'status_label' => $statusLabel,
       'status_message' => $statusMessage,
       'account_id' => $accountId,
+      'dashboard_eligible' => $dashboardEligible,
       'connect_url' => Url::fromRoute('myeventlane_vendor.stripe_connect')->toString(),
-      'manage_url' => !empty($accountId) ? Url::fromRoute('myeventlane_vendor.stripe_manage')->toString() : NULL,
+      'manage_url' => $manageUrl,
     ];
   }
 
@@ -499,21 +557,25 @@ final class VendorDashboardController extends ControllerBase {
    *   The event node.
    *
    * @return array
-   *   Array with 'is_boosted', 'expires_date', 'boost_url', 'can_boost'.
+   *   Array with 'is_boosted', 'expires_date', 'boost_url', 'can_boost', and button data.
    */
   private function getBoostStatus(\Drupal\node\NodeInterface $event): array {
     if (!$this->boostManager) {
+      $isPublished = $event->isPublished();
       return [
         'is_boosted' => FALSE,
+        'is_expired' => FALSE,
         'expires_date' => NULL,
         'boost_url' => NULL,
         'can_boost' => FALSE,
+        'allowed' => $isPublished,
+        'label' => $isPublished ? 'Boost event' : 'Publish to boost',
       ];
     }
 
     $isBoosted = $this->boostManager->isBoosted($event);
     $expiresDate = NULL;
-    $canBoost = TRUE;
+    $isPublished = $event->isPublished();
 
     if ($isBoosted && $event->hasField('field_promo_expires') && !$event->get('field_promo_expires')->isEmpty()) {
       $expiresValue = $event->get('field_promo_expires')->value;
@@ -547,8 +609,12 @@ final class VendorDashboardController extends ControllerBase {
       'is_boosted' => $isBoosted,
       'is_expired' => $isExpired,
       'expires_date' => $expiresDate,
-      'boost_url' => Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event->id()])->toString(),
-      'can_boost' => $canBoost,
+      'boost_url' => $isPublished
+        ? Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event->id()])->toString()
+        : NULL,
+      'can_boost' => $isPublished,
+      'allowed' => $isPublished,
+      'label' => $isPublished ? 'Boost event' : 'Publish to boost',
     ];
   }
 

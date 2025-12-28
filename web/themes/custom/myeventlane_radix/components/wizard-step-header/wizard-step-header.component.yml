@@ -1,0 +1,30 @@
+name: Wizard Step Header
+description: 'Displays a wizard step header with step number, title, and optional description.'
+props:
+  type: object
+  properties:
+    step_number:
+      type: number
+      title: 'Step Number'
+      description: 'The step number (1, 2, 3, etc.)'
+    title:
+      type: string
+      title: 'Step Title'
+      description: 'The step title/heading'
+    description:
+      type: string
+      title: 'Step Description'
+      description: 'Optional step description/help text'
+    is_active:
+      type: boolean
+      title: 'Is Active'
+      description: 'Is this step currently active?'
+      default: false
+    is_complete:
+      type: boolean
+      title: 'Is Complete'
+      description: 'Has this step been completed?'
+      default: false
+library: myeventlane_radix/wizard-step-header
+schema:
+  type: object

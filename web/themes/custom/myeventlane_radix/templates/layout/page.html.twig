@@ -1,0 +1,75 @@
+{#
+/**
+ * @file
+ * Theme override for standard pages.
+ * 
+ * Built on Radix base theme, extended with MyEventLane regions and structure.
+ */
+#}
+{% set page_attributes = create_attribute() %}
+{% set page_attributes = page_attributes.addClass('mel-page') %}
+
+<div{{ page_attributes }}>
+  {{ title_prefix }}
+  {{ title_suffix }}
+
+  {# Skip to main content #}
+  <a href="#main-content" class="visually-hidden focusable skip-link">
+    {{ 'Skip to main content'|t }}
+  </a>
+
+  {# ==================== HEADER ==================== #}
+  {% if page.header %}
+    <div class="mel-region-header">
+      {{ page.header }}
+    </div>
+  {% endif %}
+
+  {# Hero (for pages with hero region) #}
+  {% if page.hero %}
+    <div class="mel-region-hero">
+      {{ page.hero }}
+    </div>
+  {% endif %}
+
+  {# Pre-Content #}
+  {% if page.pre_content %}
+    <div class="mel-region-pre-content">
+      <div class="mel-container">
+        {{ page.pre_content }}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Main Content Area #}
+  <main id="main-content" class="mel-main" role="main">
+    <div class="mel-container">
+      <div class="mel-content">
+        {{ page.content }}
+      </div>
+    </div>
+  </main>
+
+  {# Pre-Footer #}
+  {% if page.pre_footer %}
+    <div class="mel-pre-footer">
+      <div class="mel-container">
+        {{ page.pre_footer }}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ==================== FOOTER ==================== #}
+  {% if page.footer %}
+    <div class="mel-region-footer">
+      {{ page.footer }}
+    </div>
+  {% endif %}
+
+  {# Post-Footer #}
+  {% if page.post_footer %}
+    <div class="mel-region-post-footer">
+      {{ page.post_footer }}
+    </div>
+  {% endif %}
+</div>

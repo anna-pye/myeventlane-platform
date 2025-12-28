@@ -46,10 +46,14 @@
   }
 
   &:disabled,
-  &.is-disabled {
+  &.is-disabled,
+  &.mel-btn--disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
+    background-color: $bg-tertiary;
+    color: $text-muted;
+    border-color: $border-color-light;
   }
 }
 
@@ -147,6 +151,31 @@
 .mel-btn--sm {
   padding: $spacing-2 $spacing-3;
   font-size: $font-size-sm;
+  min-height: 32px; // Smaller but still accessible
+}
+
+// Ensure touch targets are at least 44x44px on mobile (coarse pointer = touch devices)
+@media (pointer: coarse) {
+  .mel-btn {
+    min-height: 44px;
+  }
+
+  .mel-btn--sm {
+    min-height: 44px;
+    padding: $spacing-3 $spacing-4;
+  }
+}
+
+// On small screens, ensure minimum touch target even for desktop
+@media (max-width: 768px) {
+  .mel-btn,
+  .mel-btn--sm {
+    min-height: 44px;
+  }
+
+  .mel-btn--sm {
+    padding: $spacing-3 $spacing-4;
+  }
 }
 
 .mel-btn--lg {
@@ -228,6 +257,27 @@
   &:hover,
   &:focus {
     color: $text-primary;
+  }
+}
+
+// ============================================================================
+// CTA BUTTON ALIAS (semantic class for call-to-action buttons)
+// ============================================================================
+
+.mel-cta {
+  @extend .mel-btn;
+  @extend .mel-btn--primary;
+  
+  &--primary {
+    @extend .mel-btn--primary;
+  }
+  
+  &--secondary {
+    @extend .mel-btn--secondary;
+  }
+  
+  &--disabled {
+    @extend .mel-btn--disabled;
   }
 }
 

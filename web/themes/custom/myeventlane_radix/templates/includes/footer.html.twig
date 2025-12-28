@@ -1,0 +1,56 @@
+{#
+/**
+ * @file
+ * Footer component with links and branding.
+ *
+ * Clean, minimal with essential links.
+ */
+#}
+
+{% set footer_attributes = create_attribute() %}
+{% set footer_attributes = footer_attributes.addClass('mel-footer', 'mel-footer--simple') %}
+
+<footer{{ footer_attributes }}>
+  <div class="mel-footer-inner">
+    <div class="mel-footer-simple-inner">
+      {# Brand & Tagline #}
+      <div class="mel-footer-brand">
+        <span class="mel-footer-logo">MyEventLane</span>
+        <p class="mel-footer-tagline">{{ 'Empowering event creators everywhere.'|t }}</p>
+      </div>
+
+      {# Quick Links #}
+      <nav class="mel-footer-nav" aria-label="{{ 'Footer navigation'|t }}">
+        {% if page.footer.footer_menu %}
+          {{ page.footer.footer_menu }}
+        {% else %}
+          <ul class="mel-footer-links-inline">
+            <li><a href="/about">{{ 'About'|t }}</a></li>
+            <li><a href="/support">{{ 'Support'|t }}</a></li>
+            <li><a href="/contact">{{ 'Contact'|t }}</a></li>
+            <li><a href="/privacy">{{ 'Privacy'|t }}</a></li>
+            <li><a href="/terms">{{ 'Terms'|t }}</a></li>
+          </ul>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+</footer>
+
+{# Post Footer - Copyright #}
+<div class="mel-post-footer mel-post-footer--dark">
+  <div class="mel-post-footer-inner">
+    <span>© {{ "now"|date("Y") }} MyEventLane. {{ 'All rights reserved.'|t }}</span>
+    <div class="mel-footer-social-icons">
+      <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Facebook'|t }}">
+        <span aria-hidden="true">FB</span>
+      </a>
+      <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Instagram'|t }}">
+        <span aria-hidden="true">IG</span>
+      </a>
+      <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Twitter'|t }}">
+        <span aria-hidden="true">X</span>
+      </a>
+    </div>
+  </div>
+</div>

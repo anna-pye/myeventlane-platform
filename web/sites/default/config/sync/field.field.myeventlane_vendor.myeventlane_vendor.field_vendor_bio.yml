@@ -4,8 +4,8 @@ status: true
 dependencies:
   config:
     - field.storage.myeventlane_vendor.field_vendor_bio
+    - myeventlane_vendor.myeventlane_vendor
   module:
-    - myeventlane_vendor
     - text
 id: myeventlane_vendor.myeventlane_vendor.field_vendor_bio
 field_name: field_vendor_bio

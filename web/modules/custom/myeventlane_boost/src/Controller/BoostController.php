@@ -14,6 +14,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -70,7 +71,8 @@ final class BoostController extends ControllerBase {
    *   The access result.
    */
   public function access(NodeInterface $node): AccessResultInterface {
-    if ($node->bundle() !== 'event' || !$node->isPublished()) {
+    // Must be an event node.
+    if ($node->bundle() !== 'event') {
       return AccessResult::forbidden()
         ->addCacheableDependency($node);
     }
@@ -80,7 +82,23 @@ final class BoostController extends ControllerBase {
     $canPurchase = $account->hasPermission('purchase boost for events');
     $canAdmin = $account->hasPermission('administer nodes');
 
-    return AccessResult::allowedIf($isOwner || $canPurchase || $canAdmin)
+    // Admins can always access, even for unpublished events.
+    if ($canAdmin) {
+      return AccessResult::allowed()
+        ->addCacheableDependency($node)
+        ->cachePerPermissions()
+        ->cachePerUser();
+    }
+
+    // For non-admins, event must be published.
+    if (!$node->isPublished()) {
+      return AccessResult::forbidden()
+        ->addCacheableDependency($node)
+        ->cachePerUser();
+    }
+
+    // Check if user is owner or has purchase permission.
+    return AccessResult::allowedIf($isOwner || $canPurchase)
       ->addCacheableDependency($node)
       ->cachePerPermissions()
       ->cachePerUser();
@@ -92,12 +110,23 @@ final class BoostController extends ControllerBase {
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
    *
-   * @return array
-   *   The render array.
+   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   The render array or redirect response.
    */
-  public function build(NodeInterface $node): array {
+  public function build(NodeInterface $node): array|\Symfony\Component\HttpFoundation\RedirectResponse {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
+    }
+
+    // Show warning message for vendors trying to boost unpublished events.
+    if (!$node->isPublished() && !$this->currentUser()->hasPermission('administer myeventlane')) {
+      $this->messenger()->addWarning(
+        $this->t('This event must be published before it can be boosted.')
+      );
+
+      return $this->redirect('entity.node.edit_form', [
+        'node' => $node->id(),
+      ]);
     }
 
     $form = $this->formBuilder->getForm(BoostSelectForm::class, $node);

@@ -14,6 +14,7 @@ global-styling:
     dist/main.js: { attributes: { type: module } }
   dependencies:
     - core/drupal
+    - core/once
 
 # Account dropdown fallback bundle (kept for legacy attachments).
 account-dropdown:
@@ -37,6 +38,7 @@ front:
       dist/css/front.css: {}
   js:
     dist/js/front-pie.js: {}
+    dist/js/homepage-toggle.js: {}
   dependencies:
     - core/drupal
     - core/once

@@ -14,7 +14,10 @@ services:
 
   myeventlane_vendor.service.rsvp_stats:
     class: Drupal\myeventlane_vendor\Service\RsvpStatsService
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@entity_type.manager'
 
   myeventlane_vendor.service.category_audience:
     class: Drupal\myeventlane_vendor\Service\CategoryAudienceService
@@ -22,7 +25,9 @@ services:
 
   myeventlane_vendor.service.boost_status:
     class: Drupal\myeventlane_vendor\Service\BoostStatusService
-    arguments: ['@entity_type.manager', '@datetime.time']
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
 
   myeventlane_vendor.service.metrics_aggregator:
     class: Drupal\myeventlane_vendor\Service\MetricsAggregator
@@ -36,7 +41,7 @@ services:
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@myeventlane_vendor.service.metrics_aggregator', '@entity_type.manager']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@myeventlane_vendor.service.rsvp_stats', '@entity_type.manager', '@myeventlane_vendor.service.boost_status', '@myeventlane_vendor.service.ticket_sales']
     tags:
       - { name: controller.service_arguments }
 
@@ -111,4 +116,3 @@ services:
     arguments: ['@myeventlane_core.domain_detector', '@current_user', '@entity_type.manager', '@form_builder']
     tags:
       - { name: controller.service_arguments }
-

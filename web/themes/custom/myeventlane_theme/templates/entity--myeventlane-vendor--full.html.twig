@@ -1,0 +1,99 @@
+{#
+  Vendor public profile - shows fields based on vendor visibility preferences.
+  Always shows: Name, Logo, Bio, and Events.
+  Conditionally shows: Email, Phone, Address, Website, Social Links, Summary, Description, Banner.
+#}
+
+<article{{ attributes.addClass('vendor-profile') }}>
+  {# Banner image (if enabled) #}
+  {% if content.field_banner_image %}
+    <div class="vendor-profile__banner">
+      {{ content.field_banner_image }}
+    </div>
+  {% endif %}
+
+  <header class="vendor-profile__header">
+    {% if content.field_vendor_logo %}
+      <div class="vendor-profile__logo">
+        {{ content.field_vendor_logo }}
+      </div>
+    {% elseif content.field_logo_image %}
+      <div class="vendor-profile__logo">
+        {{ content.field_logo_image }}
+      </div>
+    {% endif %}
+
+    <div class="vendor-profile__title">
+      <h2{{ title_attributes.addClass('vendor-profile__name') }}>{{ entity.label }}</h2>
+      {% if content.field_summary %}
+        <div class="vendor-profile__summary">
+          {{ content.field_summary }}
+        </div>
+      {% endif %}
+    </div>
+  </header>
+  
+  {# Hide the name field from content since we're rendering it in the header #}
+  {% set content = content|without('name', 'field_summary', 'field_banner_image') %}
+
+  {% if content.field_vendor_bio %}
+    <div class="vendor-profile__bio">
+      {{ content.field_vendor_bio }}
+    </div>
+  {% endif %}
+
+  {% if content.field_description %}
+    <div class="vendor-profile__description">
+      {{ content.field_description }}
+    </div>
+  {% endif %}
+
+  {# Contact Information Section #}
+  {% if content.field_email or content.field_phone or content.field_address or content.field_website or content.field_social_links %}
+    <section class="vendor-profile__contact" aria-labelledby="vendor-contact-heading">
+      <h3 id="vendor-contact-heading" class="vendor-profile__contact-title">Contact Information</h3>
+      <div class="vendor-profile__contact-details">
+        {% if content.field_email %}
+          <div class="vendor-profile__contact-item vendor-profile__contact-item--email">
+            <span class="vendor-profile__contact-label">Email:</span>
+            {{ content.field_email }}
+          </div>
+        {% endif %}
+
+        {% if content.field_phone %}
+          <div class="vendor-profile__contact-item vendor-profile__contact-item--phone">
+            <span class="vendor-profile__contact-label">Phone:</span>
+            {{ content.field_phone }}
+          </div>
+        {% endif %}
+
+        {% if content.field_address %}
+          <div class="vendor-profile__contact-item vendor-profile__contact-item--address">
+            <span class="vendor-profile__contact-label">Address:</span>
+            {{ content.field_address }}
+          </div>
+        {% endif %}
+
+        {% if content.field_website %}
+          <div class="vendor-profile__contact-item vendor-profile__contact-item--website">
+            <span class="vendor-profile__contact-label">Website:</span>
+            {{ content.field_website }}
+          </div>
+        {% endif %}
+
+        {% if content.field_social_links %}
+          <div class="vendor-profile__contact-item vendor-profile__contact-item--social">
+            <span class="vendor-profile__contact-label">Follow us:</span>
+            {{ content.field_social_links }}
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if vendor_events %}
+    <section class="vendor-profile__events" aria-labelledby="vendor-events-heading">
+      {{ vendor_events }}
+    </section>
+  {% endif %}
+</article>

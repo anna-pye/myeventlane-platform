@@ -1,0 +1,298 @@
+// ==========================================================================
+// Vibe Mixer Component (MEL v2)
+// ==========================================================================
+// Chip selector + optional sliders for filtering.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Vibe Mixer Container
+// ---------------------------------------------------------------------------
+
+.mel-vibe-mixer {
+  margin-bottom: spacing.mel-space(6);
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+}
+
+// ---------------------------------------------------------------------------
+// Chip Container
+// ---------------------------------------------------------------------------
+
+.mel-vibe-mixer__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(3);
+  align-items: center;
+}
+
+// ---------------------------------------------------------------------------
+// Vibe Chip
+// ---------------------------------------------------------------------------
+
+.mel-vibe-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 12px 20px;
+  border-radius: var(--mel-radius-chip, 999px);
+  background: var(--mel-card, #ffffff);
+  border: 3px solid var(--mel-primary, #f26d5b);
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-bold;
+  color: var(--mel-ink, #293241);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: typography.$mel-font-family;
+  box-shadow: var(--mel-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  transform: rotate(-1deg);
+
+  @include breakpoints.mel-break(md, max) {
+    height: 40px;
+    padding: 10px 16px;
+    font-size: typography.mel-font-size(sm);
+    border-width: 2px;
+  }
+
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+  }
+
+  // Hover state
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      border-color: var(--mel-primary, #f26d5b);
+      color: var(--mel-ink, #293241);
+      transform: rotate(-2deg) scale(1.08);
+      box-shadow: var(--mel-shadow-md, 0 2px 4px rgba(0, 0, 0, 0.08));
+    }
+  }
+
+  // Selected state
+  &--selected {
+    background: var(--mel-primary, #f26d5b);
+    border-color: var(--mel-primary, #f26d5b);
+    color: var(--mel-card, #ffffff);
+    box-shadow: var(--mel-shadow-md, 0 2px 4px rgba(0, 0, 0, 0.08));
+    transform: rotate(1deg);
+
+    &:hover {
+      background: var(--mel-primary-hover, #e85a4d);
+      border-color: var(--mel-primary-hover, #e85a4d);
+      color: var(--mel-card, #ffffff);
+      transform: rotate(0deg) scale(1.05);
+    }
+  }
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--mel-card, #ffffff),
+                0 0 0 5px var(--mel-secondary, #6e7ef2);
+  }
+
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sliders Container
+// ---------------------------------------------------------------------------
+
+.mel-vibe-mixer__sliders {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    gap: spacing.mel-space(6);
+  }
+
+  // Hidden by default on mobile, shown via toggle
+  @include breakpoints.mel-break(md, max) {
+    display: none;
+
+    &[data-mel-vibe-sliders][aria-hidden="false"] {
+      display: flex;
+    }
+  }
+}
+
+.mel-vibe-mixer__slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+  flex: 1;
+  min-width: 200px;
+
+  @include breakpoints.mel-break(md, max) {
+    min-width: 100%;
+  }
+}
+
+.mel-vibe-mixer__slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  color: var(--mel-ink, #293241);
+}
+
+.mel-vibe-mixer__slider-label-text {
+  flex: 1;
+}
+
+.mel-vibe-mixer__slider-value {
+  font-weight: typography.$mel-font-bold;
+  color: var(--mel-primary, #f26d5b);
+  min-width: 40px;
+  text-align: right;
+}
+
+// ---------------------------------------------------------------------------
+// Slider Input
+// ---------------------------------------------------------------------------
+
+.mel-vibe-mixer__slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--mel-bg, #fef5ec);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  // Webkit thumb
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--mel-primary, #f26d5b);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  // Firefox thumb
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--mel-primary, #f26d5b);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  // Webkit track
+  &::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--mel-bg, #fef5ec);
+  }
+
+  // Firefox track
+  &::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--mel-bg, #fef5ec);
+  }
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--mel-card, #ffffff),
+                0 0 0 5px var(--mel-secondary, #6e7ef2);
+  }
+
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::-webkit-slider-thumb:hover,
+    &::-moz-range-thumb:hover {
+      transform: none;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// More Filters Toggle (Mobile)
+// ---------------------------------------------------------------------------
+
+.mel-vibe-mixer__toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: spacing.mel-space(1);
+  padding: spacing.mel-space(2) spacing.mel-space(4);
+  background: var(--mel-card, #ffffff);
+  border: 2px solid var(--mel-primary, #f26d5b);
+  border-radius: var(--mel-radius-chip, 999px);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: var(--mel-primary, #f26d5b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: typography.$mel-font-family;
+
+  @include breakpoints.mel-break(md, max) {
+    display: flex;
+  }
+
+  &:hover {
+    background: var(--mel-primary, #f26d5b);
+    color: var(--mel-card, #ffffff);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--mel-card, #ffffff),
+                0 0 0 5px var(--mel-secondary, #6e7ef2);
+  }
+
+  &[aria-expanded="true"] .mel-vibe-mixer__toggle-icon {
+    transform: rotate(180deg);
+  }
+}
+
+.mel-vibe-mixer__toggle-text {
+  flex: 1;
+}
+
+.mel-vibe-mixer__toggle-icon {
+  font-size: 0.75rem;
+  transition: transform 0.15s ease;
+  display: inline-block;
+}

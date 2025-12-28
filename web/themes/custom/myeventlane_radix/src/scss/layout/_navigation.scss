@@ -1,0 +1,138 @@
+// ============================================================================
+// MyEventLane Radix - Navigation Components
+// ============================================================================
+// Navigation components built on Bootstrap 5, extended with MyEventLane styles.
+// Uses Bootstrap's .navbar classes and extends with .mel-nav-* modifiers.
+//
+// USAGE:
+//   <nav class="navbar mel-nav">...</nav>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Navigation Base
+// ============================================================================
+// Bootstrap's .navbar is already included via Radix.
+// We extend it with MyEventLane-specific styles.
+
+.navbar {
+  // Use MyEventLane colors
+  background-color: $mel-color-surface;
+  
+  // Use MyEventLane focus ring for nav links
+  .navbar-nav .nav-link {
+    @include mel-focus-visible;
+  }
+}
+
+// ============================================================================
+// Breadcrumbs
+// ============================================================================
+
+.breadcrumb {
+  background-color: transparent;
+  padding: mel-space(2) 0;
+  margin-bottom: mel-space(4);
+  
+  .breadcrumb-item {
+    font-size: mel-font-size(sm);
+    
+    a {
+      color: $mel-color-text-muted;
+      text-decoration: none;
+      @include mel-focus-visible;
+      
+      &:hover {
+        color: $mel-color-primary;
+      }
+    }
+    
+    &.active {
+      color: $mel-color-text;
+    }
+    
+    + .breadcrumb-item::before {
+      content: '/';
+      color: $mel-color-text-light;
+      padding: 0 mel-space(2);
+    }
+  }
+}
+
+// ============================================================================
+// Pagination
+// ============================================================================
+
+.pagination {
+  .page-link {
+    color: $mel-color-text;
+    border-color: $mel-color-border;
+    @include mel-focus-visible;
+    
+    &:hover {
+      background-color: $mel-color-bg;
+      border-color: $mel-color-primary;
+      color: $mel-color-primary;
+    }
+  }
+  
+  .page-item.active .page-link {
+    background-color: $mel-color-primary;
+    border-color: $mel-color-primary;
+    color: $mel-color-on-primary;
+  }
+  
+  .page-item.disabled .page-link {
+    background-color: $mel-color-surface-alt;
+    border-color: $mel-color-border;
+    color: $mel-color-text-light;
+    opacity: 0.6;
+  }
+}
+
+// ============================================================================
+// Tabs
+// ============================================================================
+
+.nav-tabs {
+  border-bottom-color: $mel-color-border;
+  
+  .nav-link {
+    color: $mel-color-text-muted;
+    border-color: transparent;
+    @include mel-focus-visible;
+    
+    &:hover {
+      border-color: $mel-color-border;
+      color: $mel-color-text;
+    }
+    
+    &.active {
+      color: $mel-color-primary;
+      border-color: $mel-color-primary $mel-color-primary $mel-color-surface;
+      background-color: $mel-color-surface;
+    }
+  }
+}
+
+// ============================================================================
+// Pills Navigation
+// ============================================================================
+
+.nav-pills {
+  .nav-link {
+    color: $mel-color-text;
+    @include mel-focus-visible;
+    
+    &:hover {
+      background-color: $mel-color-bg;
+      color: $mel-color-primary;
+    }
+    
+    &.active {
+      background-color: $mel-color-primary;
+      color: $mel-color-on-primary;
+    }
+  }
+}

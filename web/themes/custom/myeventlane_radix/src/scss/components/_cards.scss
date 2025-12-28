@@ -1,0 +1,168 @@
+// ============================================================================
+// MyEventLane Radix - Card Components
+// ============================================================================
+// Card system built on Bootstrap 5, extended with MyEventLane variants.
+// Uses Bootstrap's .card base class and extends with .mel-card-* modifiers.
+//
+// USAGE:
+//   <div class="card mel-card">...</div>
+//   <div class="card mel-card mel-card--elevated">...</div>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Base Card Extensions
+// ============================================================================
+// Bootstrap's .card is already included via Radix.
+// We extend it with MyEventLane-specific styles.
+
+.card {
+  // Use MyEventLane colors
+  background-color: $mel-color-surface;
+  border-color: $mel-color-border;
+  
+  // Use MyEventLane border radius
+  border-radius: $mel-radius-md;
+  
+  // Smooth transitions
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  // Hover lift effect
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// ============================================================================
+// MyEventLane Card Variants
+// ============================================================================
+
+// Elevated card (more prominent shadow)
+.mel-card--elevated {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    }
+  }
+}
+
+// Flat card (no shadow, border only)
+.mel-card--flat {
+  box-shadow: none;
+  border: 1px solid $mel-color-border;
+  
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: none;
+      transform: none;
+      border-color: $mel-color-border-strong;
+    }
+  }
+}
+
+// Primary card (colored background)
+.mel-card--primary {
+  background-color: $mel-color-primary;
+  color: $mel-color-on-primary;
+  border-color: $mel-color-primary;
+}
+
+// Secondary card (colored background)
+.mel-card--secondary {
+  background-color: $mel-color-secondary;
+  color: $mel-color-on-primary;
+  border-color: $mel-color-secondary;
+}
+
+// ============================================================================
+// Card Body Extensions
+// ============================================================================
+
+.card-body {
+  // Use MyEventLane spacing
+  padding: mel-space(4);
+}
+
+.mel-card-body--compact {
+  padding: mel-space(3);
+}
+
+.mel-card-body--spacious {
+  padding: mel-space(6);
+}
+
+// ============================================================================
+// Card Header/Footer Extensions
+// ============================================================================
+
+.card-header {
+  background-color: $mel-color-surface-alt;
+  border-bottom-color: $mel-color-border;
+  padding: mel-space(3) mel-space(4);
+  font-weight: $mel-font-semibold;
+}
+
+.card-footer {
+  background-color: $mel-color-surface-alt;
+  border-top-color: $mel-color-border;
+  padding: mel-space(3) mel-space(4);
+}
+
+// ============================================================================
+// Card Image Extensions
+// ============================================================================
+
+.card-img-top {
+  border-radius: $mel-radius-md $mel-radius-md 0 0;
+}
+
+.card-img-bottom {
+  border-radius: 0 0 $mel-radius-md $mel-radius-md;
+}
+
+// ============================================================================
+// Card Link (entire card is clickable)
+// ============================================================================
+
+.mel-card-link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+  height: 100%;
+  
+  &:hover,
+  &:focus,
+  &:active {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+// ============================================================================
+// Card Grid
+// ============================================================================
+
+.mel-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: mel-space(3);
+  
+  @media (min-width: 700px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: mel-space(4);
+  }
+  
+  @media (min-width: 1100px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: mel-space(5);
+  }
+}

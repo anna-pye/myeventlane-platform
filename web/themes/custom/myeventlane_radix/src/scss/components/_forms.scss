@@ -1,0 +1,230 @@
+// ============================================================================
+// MyEventLane Radix - Form Components
+// ============================================================================
+// Form styling built on Bootstrap 5, extended with MyEventLane variants.
+// Uses Bootstrap's form classes and extends with MyEventLane-specific styles.
+//
+// USAGE:
+//   <input type="text" class="form-control mel-form-control">
+//   <label class="form-label mel-form-label">Label</label>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Form Control Extensions
+// ============================================================================
+// Bootstrap's .form-control is already included via Radix.
+// We extend it with MyEventLane-specific styles.
+
+.form-control,
+.form-select {
+  // Use MyEventLane colors
+  border-color: $mel-color-border;
+  color: $mel-color-text;
+  background-color: $mel-color-surface;
+  
+  // Use MyEventLane focus ring
+  @include mel-focus-visible;
+  
+  // Use MyEventLane border radius
+  border-radius: $mel-radius-md;
+  
+  // Touch-friendly sizing
+  min-height: 44px;
+  padding: mel-space(2) mel-space(3);
+  
+  // Smooth transitions
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  
+  // Placeholder styling
+  &::placeholder {
+    color: $mel-color-text-light;
+    opacity: 1;
+  }
+  
+  // Focus state
+  &:focus {
+    border-color: $mel-color-primary;
+    background-color: $mel-color-surface;
+    color: $mel-color-text;
+  }
+  
+  // Disabled state
+  &:disabled {
+    background-color: $mel-color-surface-alt;
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  // Invalid state
+  &:invalid:not(:placeholder-shown) {
+    border-color: $mel-color-error;
+  }
+  
+  // Valid state
+  &:valid:not(:placeholder-shown) {
+    border-color: $mel-color-success;
+  }
+}
+
+// ============================================================================
+// Form Label Extensions
+// ============================================================================
+
+.form-label {
+  font-weight: $mel-font-semibold;
+  color: $mel-color-text;
+  margin-bottom: mel-space(1);
+  
+  // Required indicator
+  &.required::after {
+    content: ' *';
+    color: $mel-color-error;
+  }
+}
+
+// ============================================================================
+// Form Text (help text)
+// ============================================================================
+
+.form-text {
+  font-size: mel-font-size(sm);
+  color: $mel-color-text-muted;
+  margin-top: mel-space(1);
+}
+
+// ============================================================================
+// Form Check Extensions
+// ============================================================================
+
+.form-check-input {
+  // Use MyEventLane focus ring
+  @include mel-focus-visible;
+  
+  // Custom colors
+  border-color: $mel-color-border-strong;
+  
+  &:checked {
+    background-color: $mel-color-primary;
+    border-color: $mel-color-primary;
+  }
+  
+  &:focus {
+    border-color: $mel-color-primary;
+    box-shadow: 0 0 0 0.25rem rgba(255, 111, 97, 0.25);
+  }
+}
+
+.form-check-label {
+  color: $mel-color-text;
+  margin-left: mel-space(2);
+}
+
+// ============================================================================
+// Form Select Extensions
+// ============================================================================
+
+.form-select {
+  // Same as form-control, but with select-specific styling
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right mel-space(3) center;
+  background-size: 16px 12px;
+  padding-right: mel-space(8);
+  
+  &:focus {
+    border-color: $mel-color-primary;
+    box-shadow: 0 0 0 0.25rem rgba(255, 111, 97, 0.25);
+  }
+}
+
+// ============================================================================
+// Form Range Extensions
+// ============================================================================
+
+.form-range {
+  // Use MyEventLane colors
+  &::-webkit-slider-thumb {
+    background-color: $mel-color-primary;
+    
+    &:focus {
+      box-shadow: 0 0 0 1px $mel-color-surface, 0 0 0 0.25rem rgba(255, 111, 97, 0.25);
+    }
+  }
+  
+  &::-moz-range-thumb {
+    background-color: $mel-color-primary;
+    
+    &:focus {
+      box-shadow: 0 0 0 1px $mel-color-surface, 0 0 0 0.25rem rgba(255, 111, 97, 0.25);
+    }
+  }
+}
+
+// ============================================================================
+// Input Groups
+// ============================================================================
+
+.input-group-text {
+  background-color: $mel-color-surface-alt;
+  border-color: $mel-color-border;
+  color: $mel-color-text;
+}
+
+.input-group {
+  .form-control:focus,
+  .form-select:focus {
+    z-index: 3;
+  }
+}
+
+// ============================================================================
+// Form Validation
+// ============================================================================
+
+.was-validated {
+  .form-control:valid,
+  .form-select:valid {
+    border-color: $mel-color-success;
+    
+    &:focus {
+      border-color: $mel-color-success;
+      box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.25);
+    }
+  }
+  
+  .form-control:invalid,
+  .form-select:invalid {
+    border-color: $mel-color-error;
+    
+    &:focus {
+      border-color: $mel-color-error;
+      box-shadow: 0 0 0 0.25rem rgba(239, 68, 68, 0.25);
+    }
+  }
+}
+
+.invalid-feedback {
+  color: $mel-color-error;
+  font-size: mel-font-size(sm);
+  margin-top: mel-space(1);
+}
+
+.valid-feedback {
+  color: $mel-color-success;
+  font-size: mel-font-size(sm);
+  margin-top: mel-space(1);
+}
+
+// ============================================================================
+// Form Spacing
+// ============================================================================
+
+.mb-3 {
+  margin-bottom: mel-space(3) !important;
+}
+
+.mb-4 {
+  margin-bottom: mel-space(4) !important;
+}

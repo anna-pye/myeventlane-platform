@@ -1,33 +1,38 @@
 {#
 /**
  * @file
- * Template override for Featured Events unformatted rows.
- * Displays first event as large featured card, remaining events in a carousel.
+ * Featured events carousel.
+ * Horizontal scroll carousel with prev/next controls on desktop.
  */
 #}
 
 {% if rows %}
-  <div class="mel-featured-events-carousel">
-    {# First event - large featured card #}
-    {% set first_row = rows|first %}
-    {% if first_row %}
-      <div class="mel-featured-events-carousel__hero">
-        {{ first_row.content }}
+  <div class="mel-featured-carousel" aria-label="{{ 'Featured events'|t }}">
+    <div class="mel-featured-carousel__container">
+      <div class="mel-featured-carousel__track" role="list">
+        {% for row in rows %}
+          <div class="mel-featured-carousel__slide" role="listitem">
+            {{ row.content }}
+          </div>
+        {% endfor %}
       </div>
-    {% endif %}
-
-    {# Remaining events - carousel #}
-    {% set remaining_rows = rows|slice(1) %}
-    {% if remaining_rows|length > 0 %}
-      <div class="mel-featured-events-carousel__carousel">
-        <div class="mel-featured-events-carousel__track">
-          {% for row in remaining_rows %}
-            <div class="mel-featured-events-carousel__slide">
-              {{ row.content }}
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    {% endif %}
+    </div>
+    
+    <div class="mel-featured-carousel__controls">
+      <button 
+        type="button" 
+        class="mel-featured-carousel__button mel-featured-carousel__button--prev" 
+        aria-label="{{ 'Previous featured events'|t }}"
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button 
+        type="button" 
+        class="mel-featured-carousel__button mel-featured-carousel__button--next" 
+        aria-label="{{ 'Next featured events'|t }}"
+      >
+        <span aria-hidden="true">›</span>
+      </button>
+    </div>
   </div>
 {% endif %}

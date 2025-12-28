@@ -1,0 +1,33 @@
+{%
+  set item = item|default({
+    url: '#',
+    title: '',
+    date: '',
+    price: '',
+    category: null, # { label, color_class }
+    thumb: null
+  })
+%}
+
+<article class="mel-card mel-card--compact">
+  <a class="mel-card__link" href="{{ item.url }}">
+    {% if item.thumb %}
+      <div class="mel-card__thumb">
+        {{ item.thumb }}
+      </div>
+    {% endif %}
+
+    <div class="mel-card__compact-body">
+      <div class="mel-card__compact-top">
+        {% if item.category %}
+          <span class="mel-dot {{ item.category.color_class|default('') }}" aria-hidden="true"></span>
+        {% endif %}
+        <h3 class="mel-card__compact-title">{{ item.title }}</h3>
+      </div>
+      <div class="mel-card__compact-meta">
+        {% if item.date %}<span class="mel-meta">{{ item.date }}</span>{% endif %}
+        {% if item.price %}<span class="mel-meta-sep">•</span><span class="mel-meta">{{ item.price }}</span>{% endif %}
+      </div>
+    </div>
+  </a>
+</article>

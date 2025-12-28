@@ -1,0 +1,103 @@
+{#
+/**
+ * @file
+ * Vibe Mixer Component - Chip selector + optional sliders for filtering.
+ *
+ * Available variables:
+ *   - vibe.chips: Array of vibe chip labels, e.g. ['Chill', 'Loud', 'Cute'] (required)
+ *   - vibe.selected: Array of selected chip labels, e.g. ['Cute'] (optional)
+ *   - vibe.energy_value: Energy slider value (0-100), default 50 (optional)
+ *   - vibe.budget_value: Budget slider value (0-100), default 50 (optional)
+ *
+ * Example usage:
+ * @code
+ * {% include '@myeventlane_theme/components/vibe-mixer/vibe-mixer.twig' with {
+ *   vibe: {
+ *     chips: ['Chill', 'Loud', 'Cute', 'Artsy', 'Family', 'Outdoors'],
+ *     selected: ['Cute'],
+ *     energy_value: 50,
+ *     budget_value: 50
+ *   }
+ * } only %}
+ * @endcode
+ */
+#}
+
+{%
+  set vibe = vibe|default({
+    chips: [],
+    selected: [],
+    energy_value: 50,
+    budget_value: 50
+  })
+%}
+
+<div class="mel-vibe-mixer">
+  
+  {# Chip Container #}
+  <div class="mel-vibe-mixer__chips">
+    {% for chip in vibe.chips %}
+      {% set is_selected = chip in vibe.selected %}
+      {% set chip_classes = [
+        'mel-vibe-chip',
+        is_selected ? 'mel-vibe-chip--selected' : ''
+      ]|join(' ') %}
+      <button 
+        type="button" 
+        class="{{ chip_classes }}"
+        data-vibe="{{ chip|lower }}"
+        aria-pressed="{{ is_selected ? 'true' : 'false' }}"
+      >
+        {{ chip }}
+      </button>
+    {% endfor %}
+  </div>
+
+  {# Sliders Container (optional, can be collapsed) #}
+  <div class="mel-vibe-mixer__sliders" data-mel-vibe-sliders>
+    <div class="mel-vibe-mixer__slider-group">
+      <label for="mel-vibe-energy" class="mel-vibe-mixer__slider-label">
+        <span class="mel-vibe-mixer__slider-label-text">Energy</span>
+        <span class="mel-vibe-mixer__slider-value" data-mel-energy-value>{{ vibe.energy_value }}</span>
+      </label>
+      <input 
+        type="range" 
+        id="mel-vibe-energy"
+        class="mel-vibe-mixer__slider"
+        min="0" 
+        max="100" 
+        value="{{ vibe.energy_value }}"
+        aria-label="{{ 'Energy level'|t }}"
+      />
+    </div>
+
+    <div class="mel-vibe-mixer__slider-group">
+      <label for="mel-vibe-budget" class="mel-vibe-mixer__slider-label">
+        <span class="mel-vibe-mixer__slider-label-text">Budget</span>
+        <span class="mel-vibe-mixer__slider-value" data-mel-budget-value>{{ vibe.budget_value }}</span>
+      </label>
+      <input 
+        type="range" 
+        id="mel-vibe-budget"
+        class="mel-vibe-mixer__slider"
+        min="0" 
+        max="100" 
+        value="{{ vibe.budget_value }}"
+        aria-label="{{ 'Budget level'|t }}"
+      />
+    </div>
+  </div>
+
+  {# More Filters Toggle (mobile only, optional) #}
+  <button 
+    type="button" 
+    class="mel-vibe-mixer__toggle"
+    data-mel-vibe-toggle
+    aria-expanded="false"
+    aria-controls="mel-vibe-sliders"
+  >
+    <span class="mel-vibe-mixer__toggle-text">{{ 'More filters'|t }}</span>
+    <span class="mel-vibe-mixer__toggle-icon" aria-hidden="true">▼</span>
+  </button>
+
+</div>

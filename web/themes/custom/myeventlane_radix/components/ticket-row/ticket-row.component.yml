@@ -1,0 +1,47 @@
+name: Ticket Row
+description: 'Displays a ticket type row with name, price, quantity selector, and availability.'
+props:
+  type: object
+  properties:
+    name:
+      type: string
+      title: 'Ticket Name'
+      description: 'Name of the ticket type'
+    description:
+      type: string
+      title: 'Description'
+      description: 'Optional ticket description'
+    price:
+      type: object
+      title: 'Price'
+      properties:
+        amount:
+          type: number
+          title: 'Price Amount'
+        currency:
+          type: string
+          title: 'Currency Code'
+          default: 'AUD'
+        formatted:
+          type: string
+          title: 'Formatted Price'
+    available:
+      type: number
+      title: 'Available Tickets'
+      description: 'Number of tickets remaining'
+    total:
+      type: number
+      title: 'Total Tickets'
+      description: 'Total ticket capacity'
+    sold_out:
+      type: boolean
+      title: 'Sold Out'
+      default: false
+    required:
+      type: boolean
+      title: 'Required'
+      description: 'Is this ticket type required?'
+      default: false
+library: myeventlane_radix/ticket-row
+schema:
+  type: object

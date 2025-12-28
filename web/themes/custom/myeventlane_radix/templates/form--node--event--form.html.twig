@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * Theme override for Event node add/edit form (Radix/Bootstrap 5).
+ *
+ * This template renders the Event Wizard structure built by EventFormAlter.php.
+ * Uses Bootstrap 5 markup while preserving all form IDs, element names, and states.
+ *
+ * CRITICAL: Do NOT modify form structure or IDs - only markup/classes.
+ */
+#}
+
+<form{{ attributes.addClass('mel-event-form-page') }}>
+  {# Required hidden form elements - preserve exactly as-is #}
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+
+  {# Wizard wrapper - contains stepper and all steps #}
+  {% if form.mel_wizard %}
+    {# 
+      The mel_wizard structure is built by EventFormAlter.php.
+      It contains:
+      - layout.nav: Left sidebar navigation
+      - layout.content: Step panels (only current step visible)
+      - wizard_current_step: Hidden field for JS
+      - wizard_target_step: Hidden field for step navigation
+    #}
+    {{ form.mel_wizard }}
+  {% endif %}
+
+  {# Hidden wizard state fields - required for AJAX navigation #}
+  {% if form.wizard_current_step %}
+    {{ form.wizard_current_step }}
+  {% endif %}
+  {% if form.wizard_target_step %}
+    {{ form.wizard_target_step }}
+  {% endif %}
+
+  {# Hidden vendor/store fields (auto-populated) #}
+  {% if form.field_event_vendor %}
+    {{ form.field_event_vendor }}
+  {% endif %}
+  {% if form.field_event_store %}
+    {{ form.field_event_store }}
+  {% endif %}
+
+  {# Form actions (Next/Back/Submit) - Bootstrap 5 button classes #}
+  {% if form.actions %}
+    <div class="mel-event-form__actions-wrapper d-flex gap-3 mt-4">
+      {{ form.actions }}
+    </div>
+  {% endif %}
+
+  {# Render any remaining system fields that must be present #}
+  {{ form|without(
+    'form_build_id', 'form_token', 'form_id',
+    'mel_wizard', 'wizard_current_step', 'wizard_target_step',
+    'field_event_vendor', 'field_event_store',
+    'actions'
+  ) }}
+</form>

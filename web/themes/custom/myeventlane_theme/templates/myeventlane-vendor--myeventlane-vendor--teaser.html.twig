@@ -1,0 +1,22 @@
+<article{{ attributes.addClass('vendor-card') }}>
+  <a href="{{ url }}" class="vendor-card__link">
+    {% if content.field_vendor_logo or content.field_logo_image %}
+      <div class="vendor-card__logo">
+        {% if content.field_vendor_logo %}
+          {{ content.field_vendor_logo }}
+        {% elseif content.field_logo_image %}
+          {{ content.field_logo_image }}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="vendor-card__meta">
+      <h3 class="vendor-card__name">{{ entity.label }}</h3>
+      {% if content.field_tagline %}
+        <div class="vendor-card__tagline">{{ content.field_tagline }}</div>
+      {% elseif content.field_summary %}
+        <div class="vendor-card__tagline">{{ content.field_summary }}</div>
+      {% endif %}
+    </div>
+  </a>
+</article>

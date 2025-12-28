@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Template\Attribute;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -31,28 +32,174 @@ final class VendorDetailController extends ControllerBase {
    *   A render array.
    */
   public function view(Vendor $myeventlane_vendor): array {
-    // Build standard entity view.
+    // Build standard entity view using 'full' view mode for public profile.
+    // Public profile shows only: Name, Logo, Bio, and Events.
     $view_builder = $this->entityTypeManager()->getViewBuilder('myeventlane_vendor');
-    $build = $view_builder->view($myeventlane_vendor, 'full');
+    $entity_build = $view_builder->view($myeventlane_vendor, 'full');
+    
+    // Render fields manually based on vendor visibility preferences.
+    // Always show: logo and bio (core profile fields).
+    $content = [];
+    foreach (['field_vendor_logo', 'field_logo_image', 'field_vendor_bio'] as $field_name) {
+      if ($myeventlane_vendor->hasField($field_name) && !$myeventlane_vendor->get($field_name)->isEmpty()) {
+        $content[$field_name] = $view_builder->viewField($myeventlane_vendor->get($field_name), 'full');
+      }
+    }
 
-    // Add analytics data.
-    $analytics = $this->getVendorAnalytics($myeventlane_vendor);
-    $events = $this->getVendorEvents($myeventlane_vendor);
+    // Conditionally show fields based on vendor visibility settings.
+    // Email
+    if ($myeventlane_vendor->hasField('field_email') && !$myeventlane_vendor->get('field_email')->isEmpty()) {
+      $show_email = $myeventlane_vendor->hasField('field_public_show_email') 
+        && !$myeventlane_vendor->get('field_public_show_email')->isEmpty()
+        && (bool) $myeventlane_vendor->get('field_public_show_email')->value;
+      if ($show_email) {
+        $content['field_email'] = $view_builder->viewField($myeventlane_vendor->get('field_email'), 'full');
+      }
+    }
 
-    // Add analytics section.
-    $build['vendor_analytics'] = [
-      '#theme' => 'myeventlane_vendor_analytics',
-      '#vendor' => $myeventlane_vendor,
-      '#analytics' => $analytics,
-      '#events' => $events,
-      '#weight' => 100,
-      '#attached' => [
-        'library' => [
-          'myeventlane_vendor/vendor_detail_analytics',
+    // Phone
+    if ($myeventlane_vendor->hasField('field_phone') && !$myeventlane_vendor->get('field_phone')->isEmpty()) {
+      $show_phone = $myeventlane_vendor->hasField('field_public_show_phone') 
+        && !$myeventlane_vendor->get('field_public_show_phone')->isEmpty()
+        && (bool) $myeventlane_vendor->get('field_public_show_phone')->value;
+      if ($show_phone) {
+        $content['field_phone'] = $view_builder->viewField($myeventlane_vendor->get('field_phone'), 'full');
+      }
+    }
+
+    // Address/Location
+    if ($myeventlane_vendor->hasField('field_address') && !$myeventlane_vendor->get('field_address')->isEmpty()) {
+      $show_location = $myeventlane_vendor->hasField('field_public_show_location') 
+        && !$myeventlane_vendor->get('field_public_show_location')->isEmpty()
+        && (bool) $myeventlane_vendor->get('field_public_show_location')->value;
+      if ($show_location) {
+        $content['field_address'] = $view_builder->viewField($myeventlane_vendor->get('field_address'), 'full');
+      }
+    }
+
+    // Website (check if visibility field exists, default to showing if field exists but visibility field doesn't)
+    if ($myeventlane_vendor->hasField('field_website') && !$myeventlane_vendor->get('field_website')->isEmpty()) {
+      $show_website = TRUE;
+      if ($myeventlane_vendor->hasField('field_public_show_website')) {
+        $show_website = !$myeventlane_vendor->get('field_public_show_website')->isEmpty()
+          && (bool) $myeventlane_vendor->get('field_public_show_website')->value;
+      }
+      if ($show_website) {
+        $content['field_website'] = $view_builder->viewField($myeventlane_vendor->get('field_website'), 'full');
+      }
+    }
+
+    // Social Links
+    if ($myeventlane_vendor->hasField('field_social_links') && !$myeventlane_vendor->get('field_social_links')->isEmpty()) {
+      $show_social = TRUE;
+      if ($myeventlane_vendor->hasField('field_public_show_social_links')) {
+        $show_social = !$myeventlane_vendor->get('field_public_show_social_links')->isEmpty()
+          && (bool) $myeventlane_vendor->get('field_public_show_social_links')->value;
+      }
+      if ($show_social) {
+        $content['field_social_links'] = $view_builder->viewField($myeventlane_vendor->get('field_social_links'), 'full');
+      }
+    }
+
+    // Summary
+    if ($myeventlane_vendor->hasField('field_summary') && !$myeventlane_vendor->get('field_summary')->isEmpty()) {
+      $show_summary = TRUE;
+      if ($myeventlane_vendor->hasField('field_public_show_summary')) {
+        $show_summary = !$myeventlane_vendor->get('field_public_show_summary')->isEmpty()
+          && (bool) $myeventlane_vendor->get('field_public_show_summary')->value;
+      }
+      if ($show_summary) {
+        $content['field_summary'] = $view_builder->viewField($myeventlane_vendor->get('field_summary'), 'full');
+      }
+    }
+
+    // Description
+    if ($myeventlane_vendor->hasField('field_description') && !$myeventlane_vendor->get('field_description')->isEmpty()) {
+      $show_description = TRUE;
+      if ($myeventlane_vendor->hasField('field_public_show_description')) {
+        $show_description = !$myeventlane_vendor->get('field_public_show_description')->isEmpty()
+          && (bool) $myeventlane_vendor->get('field_public_show_description')->value;
+      }
+      if ($show_description) {
+        $content['field_description'] = $view_builder->viewField($myeventlane_vendor->get('field_description'), 'full');
+      }
+    }
+
+    // Banner Image
+    if ($myeventlane_vendor->hasField('field_banner_image') && !$myeventlane_vendor->get('field_banner_image')->isEmpty()) {
+      $show_banner = TRUE;
+      if ($myeventlane_vendor->hasField('field_public_show_banner')) {
+        $show_banner = !$myeventlane_vendor->get('field_public_show_banner')->isEmpty()
+          && (bool) $myeventlane_vendor->get('field_public_show_banner')->value;
+      }
+      if ($show_banner) {
+        $content['field_banner_image'] = $view_builder->viewField($myeventlane_vendor->get('field_banner_image'), 'full');
+      }
+    }
+    
+    // Query and render upcoming events for this vendor.
+    $vendor_id = (int) $myeventlane_vendor->id();
+    $now = time();
+    
+    $event_ids = $this->entityTypeManager()
+      ->getStorage('node')
+      ->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('type', 'event')
+      ->condition('field_event_vendor', $vendor_id)
+      ->condition('field_event_end', date('Y-m-d\TH:i:s', $now), '>=')
+      ->condition('status', 1)
+      ->sort('field_event_start', 'ASC')
+      ->range(0, 10)
+      ->execute();
+
+    $events_build = [];
+    if (!empty($event_ids)) {
+      $events = $this->entityTypeManager()->getStorage('node')->loadMultiple($event_ids);
+      $node_view_builder = $this->entityTypeManager()->getViewBuilder('node');
+      
+      foreach ($events as $event) {
+        $events_build[] = $node_view_builder->view($event, 'card');
+      }
+    }
+
+    // Add the events section to the build.
+    $vendor_events = NULL;
+    if (!empty($events_build)) {
+      $vendor_events = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['vendor-profile__events']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h2',
+          '#attributes' => ['id' => 'vendor-events-heading'],
+          '#value' => 'Upcoming events',
         ],
+        'events' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['vendor-events-list']],
+        ] + $events_build,
+        '#weight' => 100,
+      ];
+    }
+    
+    // Build using our custom template.
+    $renderer = \Drupal::service('renderer');
+    $build = [
+      '#theme' => 'entity__myeventlane_vendor__full',
+      '#entity' => $myeventlane_vendor,
+      '#view_mode' => 'full',
+      '#content' => $content,
+      '#vendor_events' => $vendor_events,
+      '#attributes' => new Attribute(['class' => ['vendor-profile-wrapper']]),
+      '#title_attributes' => new Attribute(),
+      '#cache' => [
+        'tags' => $myeventlane_vendor->getCacheTags(),
+        'contexts' => $myeventlane_vendor->getCacheContexts(),
+        'max-age' => $myeventlane_vendor->getCacheMaxAge(),
       ],
     ];
-
+    
     return $build;
   }
 

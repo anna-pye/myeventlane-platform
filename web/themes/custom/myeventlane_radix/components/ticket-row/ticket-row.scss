@@ -1,0 +1,44 @@
+// ============================================================================
+// Ticket Row Component (SDC)
+// ============================================================================
+// Styles for the ticket row Single Directory Component.
+// Used in checkout and cart tables.
+// ============================================================================
+
+@use '../../src/scss/tokens/tokens' as *;
+
+.mel-ticket-row {
+  &--sold-out {
+    opacity: 0.6;
+    
+    .mel-ticket-row__info,
+    .mel-ticket-row__price,
+    .mel-ticket-row__quantity {
+      text-decoration: line-through;
+    }
+  }
+  
+  &--required {
+    .mel-ticket-row__info::before {
+      content: '*';
+      color: $mel-color-error;
+      margin-right: 0.25rem;
+    }
+  }
+}
+
+.mel-ticket-row__info {
+  min-width: 200px;
+}
+
+.mel-ticket-row__price {
+  min-width: 100px;
+}
+
+.mel-ticket-row__quantity {
+  min-width: 120px;
+}
+
+.mel-ticket-row__subtotal {
+  min-width: 100px;
+}

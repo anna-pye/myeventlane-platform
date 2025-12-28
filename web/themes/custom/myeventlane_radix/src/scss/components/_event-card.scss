@@ -1,0 +1,248 @@
+// ============================================================================
+// MyEventLane Radix - Event Card Component
+// ============================================================================
+// Event-specific card component built on Bootstrap 5 card system.
+// Used for displaying events in grids, lists, and featured sections.
+//
+// USAGE:
+//   <article class="card mel-event-card">
+//     <a href="/event" class="mel-card-link">...</a>
+//   </article>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Event Card Base
+// ============================================================================
+// Note: Bootstrap's .card class is applied in HTML, not extended here.
+// This allows the component to work with Bootstrap's card system.
+
+.mel-event-card {
+  // Card base styles (matching Bootstrap .card)
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: $mel-color-surface;
+  background-clip: border-box;
+  border: 1px solid $mel-color-border;
+  border-radius: $mel-radius-md;
+  
+  // Override card defaults for event cards
+  padding: 0; // No padding - image should be edge-to-edge
+  overflow: hidden;
+  height: 100%;
+  
+  // Entire card is a link
+  .mel-card-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    color: inherit;
+    text-decoration: none;
+    width: 100%;
+    height: 100%;
+    
+    &:hover,
+    &:focus,
+    &:active {
+      text-decoration: none;
+      color: inherit;
+    }
+  }
+}
+
+// ============================================================================
+// Event Card Media (Image)
+// ============================================================================
+
+.mel-event-card__media,
+.mel-card-media {
+  aspect-ratio: 4 / 3;
+  min-height: 180px;
+  max-height: 220px;
+  border-radius: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  background: $mel-color-surface-alt;
+  width: 100%;
+  
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+    margin: 0;
+    padding: 0;
+  }
+  
+  // Hover zoom effect
+  @media (hover: hover) {
+    .mel-card-link:hover & img {
+      transform: scale(1.05);
+    }
+  }
+}
+
+.mel-card-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f2f2f2, #e8e8e8);
+}
+
+// ============================================================================
+// Event Card Content
+// ============================================================================
+
+.mel-event-card__content,
+.mel-card-body {
+  padding: mel-space(3) mel-space(4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================================================
+// Event Card Date Badge
+// ============================================================================
+
+.mel-date-badge {
+  position: absolute;
+  top: mel-space(2);
+  left: mel-space(2);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: $mel-radius-sm;
+  padding: mel-space(1) mel-space(2);
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  
+  .mel-date-day {
+    display: block;
+    font-weight: $mel-font-bold;
+    font-size: mel-font-size(sm);
+    line-height: 1.2;
+  }
+  
+  .mel-date-month {
+    font-size: mel-font-size(xs);
+    text-transform: uppercase;
+    opacity: 0.8;
+    line-height: 1;
+  }
+}
+
+// ============================================================================
+// Event Card Status Pill
+// ============================================================================
+
+.mel-status-pill {
+  position: absolute;
+  top: mel-space(2);
+  right: mel-space(2);
+  padding: mel-space(1) mel-space(2);
+  border-radius: $mel-radius-full;
+  font-size: mel-font-size(xs);
+  font-weight: $mel-font-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  
+  // Status variants
+  &.mel-status-free {
+    background-color: $mel-color-success;
+    color: $mel-color-on-primary;
+  }
+  
+  &.mel-status-paid {
+    background-color: $mel-color-primary;
+    color: $mel-color-on-primary;
+  }
+  
+  &.mel-status-rsvp {
+    background-color: $mel-color-secondary;
+    color: $mel-color-on-primary;
+  }
+  
+  &.mel-status-sold-out {
+    background-color: $mel-color-error;
+    color: $mel-color-on-primary;
+  }
+}
+
+// ============================================================================
+// Event Card Typography
+// ============================================================================
+
+.mel-card-date {
+  font-size: mel-font-size(sm);
+  color: $mel-color-text-muted;
+  margin-bottom: mel-space(1);
+}
+
+.mel-card-title {
+  font-size: mel-font-size(lg);
+  font-weight: $mel-font-bold;
+  color: $mel-color-text;
+  margin: 0 0 mel-space(1) 0;
+  line-height: $mel-leading-tight;
+  
+  // Truncate long titles
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mel-card-location {
+  font-size: mel-font-size(sm);
+  color: $mel-color-text-muted;
+  margin-top: auto;
+  padding-top: mel-space(2);
+}
+
+// ============================================================================
+// Event Card Variants
+// ============================================================================
+
+.mel-event-card--featured {
+  // Featured events can have special styling
+  border: 2px solid $mel-color-primary;
+}
+
+.mel-event-card--compact {
+  .mel-event-card__content {
+    padding: mel-space(2) mel-space(3);
+  }
+  
+  .mel-card-title {
+    font-size: mel-font-size(md);
+  }
+}
+
+// ============================================================================
+// Event Grid
+// ============================================================================
+
+.mel-event-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: mel-space(3);
+  
+  @media (min-width: 700px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: mel-space(4);
+  }
+  
+  @media (min-width: 1100px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: mel-space(5);
+  }
+}

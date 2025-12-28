@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: myeventlane_vendor.full
+label: Full
+targetEntityType: myeventlane_vendor
+cache: true

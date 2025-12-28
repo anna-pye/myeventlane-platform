@@ -1,0 +1,35 @@
+<article{{ attributes.addClass('event-card') }}>
+  <a href="{{ url }}" class="event-card__link">
+    {% if node.field_event_image.entity or content.field_event_image %}
+      <div class="event-card__image">
+        {% if content.field_event_image %}
+          {{ content.field_event_image }}
+        {% elseif node.field_event_image.entity %}
+          {{ node.field_event_image|view('card') }}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="event-card__content">
+      <h3 class="event-card__title">{{ label }}</h3>
+
+      <div class="event-card__dates">
+        {% if node.field_event_start.value %}
+          <time datetime="{{ node.field_event_start.value|date('c') }}">
+            {{ node.field_event_start.value|date('D j M Y, g:ia') }}
+          </time>
+        {% endif %}
+      </div>
+
+      {% if node.field_venue_name.value or content.field_venue_name %}
+        <div class="event-card__venue">
+          {% if content.field_venue_name %}
+            {{ content.field_venue_name }}
+          {% elseif node.field_venue_name.value %}
+            {{ node.field_venue_name.value }}
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </a>
+</article>

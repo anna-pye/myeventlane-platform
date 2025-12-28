@@ -195,3 +195,255 @@
     color: colors.$mel-color-text;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Happening Soon Strip (horizontal scroll on mobile)
+// ---------------------------------------------------------------------------
+
+.mel-happening-soon {
+  margin: spacing.mel-space(6) 0;
+
+  &__scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: spacing.mel-space(2);
+
+    @include breakpoints.mel-break(md) {
+      overflow-x: visible;
+    }
+
+    .view-content {
+      display: flex;
+      gap: spacing.mel-space(4);
+      min-width: max-content;
+
+      @include breakpoints.mel-break(md) {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        min-width: auto;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Category Entry Tiles
+// ---------------------------------------------------------------------------
+
+.mel-category-tiles {
+  margin: spacing.mel-space(8) 0;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: spacing.mel-space(4);
+
+    @include breakpoints.mel-break(md) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+}
+
+.mel-category-tile {
+  display: block;
+  padding: spacing.mel-space(5);
+  background: #f8f9fa;
+  border-radius: radii.$mel-radius-md;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover,
+  &:focus {
+    transform: translateY(-2px);
+    box-shadow: shadows.$mel-shadow-md;
+    text-decoration: none;
+  }
+
+  &__name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 spacing.mel-space(1) 0;
+    color: colors.$mel-color-text;
+  }
+
+  &__count {
+    font-size: 0.875rem;
+    color: #666;
+    margin: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// All Events with Free/Paid Toggle
+// ---------------------------------------------------------------------------
+
+.mel-all-events {
+  margin: spacing.mel-space(8) 0;
+
+  &__header {
+    margin-bottom: spacing.mel-space(5);
+  }
+}
+
+.mel-event-type-toggle {
+  display: flex;
+  gap: spacing.mel-space(2);
+  margin-top: spacing.mel-space(3);
+  flex-wrap: wrap;
+}
+
+.mel-toggle-pill {
+  padding: spacing.mel-space(2) spacing.mel-space(4);
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: radii.$mel-radius-full;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: colors.$mel-color-text;
+
+  &:hover {
+    background: #e0e0e0;
+  }
+
+  &[aria-pressed="true"] {
+    background: #FC675A;
+    color: #fff;
+    border-color: #FC675A;
+  }
+
+  &:focus {
+    outline: 2px solid #FC675A;
+    outline-offset: 2px;
+  }
+}
+
+.mel-all-events__grid {
+  margin-top: spacing.mel-space(5);
+}
+
+// ---------------------------------------------------------------------------
+// Popular This Week
+// ---------------------------------------------------------------------------
+
+.mel-popular-this-week {
+  margin: spacing.mel-space(8) 0;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: spacing.mel-space(4);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Organiser Spotlight
+// ---------------------------------------------------------------------------
+
+.mel-organiser-spotlight {
+  margin: spacing.mel-space(8) 0;
+  padding: spacing.mel-space(6);
+  background: #f8f9fa;
+  border-radius: radii.$mel-radius-md;
+  text-align: center;
+
+  &__name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 spacing.mel-space(2) 0;
+    color: colors.$mel-color-text;
+  }
+
+  &__count {
+    font-size: 1rem;
+    color: #666;
+    margin: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// For You Section
+// ---------------------------------------------------------------------------
+
+.mel-for-you {
+  margin: spacing.mel-space(8) 0;
+
+  &__helper {
+    font-size: 0.875rem;
+    color: #666;
+    margin: 0 0 spacing.mel-space(4) 0;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: spacing.mel-space(4);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Vendor CTA (contextual)
+// ---------------------------------------------------------------------------
+
+.mel-home-cta {
+  margin: spacing.mel-space(10) 0;
+  padding: spacing.mel-space(8);
+  background: linear-gradient(135deg, #FC675A 0%, #e55a4e 100%);
+  border-radius: radii.$mel-radius-lg;
+  text-align: center;
+  color: #fff;
+
+  &__content {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  &__question {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 spacing.mel-space(2) 0;
+  }
+
+  &__text {
+    font-size: 1.125rem;
+    margin: 0 0 spacing.mel-space(4) 0;
+    opacity: 0.95;
+  }
+
+  .mel-button {
+    display: inline-block;
+    padding: spacing.mel-space(3) spacing.mel-space(6);
+    background: #fff;
+    color: #FC675A;
+    border-radius: radii.$mel-radius-full;
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover,
+    &:focus {
+      transform: translateY(-2px);
+      box-shadow: shadows.$mel-shadow-lg;
+      text-decoration: none;
+    }
+
+    &--primary {
+      background: #fff;
+      color: #FC675A;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section Titles
+// ---------------------------------------------------------------------------
+
+.mel-section-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 spacing.mel-space(4) 0;
+  color: colors.$mel-color-text;
+}

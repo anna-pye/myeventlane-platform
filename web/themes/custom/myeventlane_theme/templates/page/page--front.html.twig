@@ -1,0 +1,117 @@
+{#
+  MEL v2 Front Page
+  - Hero
+  - Category strip (real taxonomy terms)
+  - Discover events (View render)
+  - Secondary rows (Views)
+#}
+
+{% set container_class = 'mel-container' %}
+
+<main class="mel-home">
+  {# HERO #}
+  <section class="mel-home__hero">
+    <div class="{{ container_class }}">
+      <div class="mel-hero">
+        <div class="mel-hero__copy">
+          <h1 class="mel-hero__title">Find something fun.</h1>
+          <p class="mel-hero__subtitle">Discover local events with proper MEL energy.</p>
+
+          <form class="mel-search" action="/events" method="get">
+            <label class="visually-hidden" for="mel-search-q">Search events</label>
+            <input id="mel-search-q" class="mel-search__input" type="search" name="q" placeholder="What do you feel like doing?" />
+            <button class="mel-btn mel-btn--primary" type="submit">Search</button>
+          </form>
+
+          <p class="mel-hero__hint">Music • Markets • Workshops • Family • Weird stuff</p>
+        </div>
+
+        <div class="mel-hero__decor" aria-hidden="true">
+          <div class="mel-sticker-burst"></div>
+          <div class="mel-sticker-burst mel-sticker-burst--two"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# CATEGORY STRIP (real taxonomy) #}
+  <section class="mel-home__categories">
+    <div class="{{ container_class }}">
+      <div class="mel-section-head">
+        <h2 class="mel-section-head__title">Pick a category</h2>
+      </div>
+
+      {#
+        IMPORTANT:
+        This expects a block/view/term list.
+        If unknown, ASK: how are categories currently exposed?
+        For now, render a block placeholder region:
+      #}
+      <div class="mel-category-strip">
+        {{ drupal_block('myeventlane_event_categories_strip') }}
+      </div>
+    </div>
+  </section>
+
+  {# DISCOVER EVENTS (poster card view mode via View) #}
+  <section class="mel-home__discover">
+    <div class="{{ container_class }}">
+      <div class="mel-section-head">
+        <h2 class="mel-section-head__title">Discover events</h2>
+        <a class="mel-link" href="/events">See all</a>
+      </div>
+
+      <div class="mel-sticker-wall">
+        {{ drupal_view('mel_home_events', 'discover') }}
+      </div>
+    </div>
+  </section>
+
+  {# SECONDARY ROWS (compact) #}
+  <section class="mel-home__rows">
+    <div class="{{ container_class }}">
+      <div class="mel-row">
+        <div class="mel-section-head">
+          <h2 class="mel-section-head__title">Tonight</h2>
+          <a class="mel-link" href="/events?when=tonight">More</a>
+        </div>
+        <div class="mel-row__scroller">
+          {{ drupal_view('mel_home_events', 'tonight') }}
+        </div>
+      </div>
+
+      <div class="mel-row">
+        <div class="mel-section-head">
+          <h2 class="mel-section-head__title">Free & under $20</h2>
+          <a class="mel-link" href="/events?price=under20">More</a>
+        </div>
+        <div class="mel-row__scroller">
+          {{ drupal_view('mel_home_events', 'under_20') }}
+        </div>
+      </div>
+
+      <div class="mel-row">
+        <div class="mel-section-head">
+          <h2 class="mel-section-head__title">Near you</h2>
+          <a class="mel-link" href="/events?near=me">More</a>
+        </div>
+        <div class="mel-row__scroller">
+          {{ drupal_view('mel_home_events', 'near_you') }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# CREATE EVENT CTA #}
+  <section class="mel-home__cta">
+    <div class="{{ container_class }}">
+      <div class="mel-cta-card">
+        <div class="mel-cta-card__copy">
+          <h2 class="mel-cta-card__title">Got something to share?</h2>
+          <p class="mel-cta-card__text">Create an event listing in minutes.</p>
+        </div>
+        <a class="mel-btn mel-btn--primary" href="/event/add">Create event</a>
+      </div>
+    </div>
+  </section>
+</main>

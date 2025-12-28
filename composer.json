@@ -48,6 +48,7 @@
         "drupal/migrate_tools": "^6.1",
         "drupal/paragraphs": "^1.19",
         "drupal/pathauto": "^1.14",
+        "drupal/radix": "^6.0",
         "drupal/social_auth_google": "^4.0",
         "drupal/stable": "^2.1",
         "drupal/token": "^1.16",

@@ -1,0 +1,76 @@
+{#
+/**
+ * @file
+ * Header component with logo, navigation, and user actions.
+ *
+ * Mobile-first, accessible, built on Bootstrap 5 navbar.
+ */
+#}
+
+{{ attach_library('myeventlane_radix/global') }}
+
+{% set header_attributes = create_attribute()
+  .addClass('mel-header')
+  .setAttribute('role', 'banner')
+%}
+
+<header{{ header_attributes }}>
+  <div class="mel-header-inner">
+    {# Logo #}
+    <div class="mel-header-left">
+      <a href="{{ path('<front>') }}" class="mel-logo" aria-label="{{ 'Home'|t }}">
+        <span class="mel-logo-text">MyEventLane</span>
+      </a>
+    </div>
+
+    {# Desktop Navigation #}
+    <nav class="mel-nav-desktop" aria-label="{{ 'Main navigation'|t }}">
+      {% if page.header.main_menu %}
+        {{ page.header.main_menu }}
+      {% else %}
+        <ul class="mel-nav-list">
+          <li><a href="/events" class="mel-nav-link">Events</a></li>
+          <li><a href="/categories" class="mel-nav-link">Categories</a></li>
+          <li><a href="/vendors" class="mel-nav-link">Vendors</a></li>
+        </ul>
+      {% endif %}
+    </nav>
+
+    {# Header Actions #}
+    <div class="mel-header-actions">
+      {% if logged_in %}
+        <a href="/dashboard" class="btn mel-btn-primary">Dashboard</a>
+      {% else %}
+        <a href="/user/login" class="btn mel-btn-ghost">Login</a>
+      {% endif %}
+      <a href="/create-event" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a>
+    </div>
+
+    {# Mobile Toggle #}
+    <button class="mel-nav-toggle" aria-label="{{ 'Open menu'|t }}" aria-expanded="false" aria-controls="mel-nav-mobile">
+      <span class="mel-nav-toggle-box">
+        <span class="mel-nav-toggle-line"></span>
+        <span class="mel-nav-toggle-line"></span>
+        <span class="mel-nav-toggle-line"></span>
+      </span>
+    </button>
+  </div>
+
+  {# Mobile Navigation #}
+  <div class="mel-nav-mobile-wrapper" id="mel-nav-mobile">
+    <nav class="mel-nav-mobile" aria-label="{{ 'Mobile navigation'|t }}">
+      <ul class="mel-nav-mobile-list">
+        <li><a href="/events">Events</a></li>
+        <li><a href="/categories">Categories</a></li>
+        <li><a href="/vendors">Vendors</a></li>
+        <li class="mel-mobile-divider" aria-hidden="true"></li>
+        {% if logged_in %}
+          <li><a href="/dashboard">Dashboard</a></li>
+        {% else %}
+          <li><a href="/user/login">Login</a></li>
+        {% endif %}
+        <li><a href="/create-event" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>

@@ -78,6 +78,13 @@
   background: $bg-tertiary;
 }
 
+// Boost / Active promotion
+.mel-badge--boost {
+  color: #d97706;
+  background: #fef3c7;
+  font-weight: $font-weight-semibold;
+}
+
 // ============================================================================
 // BADGE SIZES
 // ============================================================================

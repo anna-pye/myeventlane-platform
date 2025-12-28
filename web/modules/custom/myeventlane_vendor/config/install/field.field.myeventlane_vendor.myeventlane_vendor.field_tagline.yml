@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_tagline
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.myeventlane_vendor.field_tagline
+field_name: field_tagline
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: Tagline
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: string

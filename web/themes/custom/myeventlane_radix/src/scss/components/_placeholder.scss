@@ -1,0 +1,62 @@
+// ============================================================================
+// MyEventLane Radix - Component Placeholder
+// ============================================================================
+// This file serves as a template for creating new components.
+//
+// COMPONENT STRUCTURE:
+//   - Use Bootstrap 5 classes as a foundation
+//   - Extend with MyEventLane-specific classes (mel-* prefix)
+//   - Follow BEM-like naming: .mel-component, .mel-component-element, .mel-component--modifier
+//   - Use design tokens from tokens/_tokens.scss
+//
+// SINGLE DIRECTORY COMPONENTS (SDCs):
+//   When SDCs are implemented, move component styles to:
+//     components/component-name/component-name.scss
+//   And reference from main.scss or import directly in the component.
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// Example component structure:
+// .mel-example-component {
+//   // Use Bootstrap utilities where possible
+//   @extend .card;
+//   @extend .shadow-sm;
+//
+//   // Add MyEventLane-specific styles
+//   background-color: $mel-color-surface;
+//   border-radius: $mel-radius-md;
+//   padding: mel-space(3);
+//
+//   &__title {
+//     @include mel-text(lg, bold);
+//     color: $mel-color-text;
+//   }
+//
+//   &--highlighted {
+//     border: 2px solid $mel-color-primary;
+//   }
+// }
+
+// ============================================================================
+// TODO: Create component files
+// ============================================================================
+// Recommended component files to create:
+//
+// - _buttons.scss      - Button variants and states
+// - _cards.scss        - Card components (event cards, etc.)
+// - _forms.scss        - Form field styling and validation states
+// - _event-card.scss   - Event-specific card component
+// - _checkout.scss     - Checkout flow components
+// - _navigation.scss   - Navigation menus and breadcrumbs
+// - _modals.scss       - Modal dialogs and overlays
+// - _badges.scss       - Badge and tag components
+// - _tables.scss       - Table styling
+// - _alerts.scss       - Alert and notification components
+//
+// Each component should:
+//   1. Import tokens
+//   2. Use Bootstrap classes as foundation
+//   3. Add MyEventLane-specific enhancements
+//   4. Be mobile-first and accessible
+//   5. Include focus states and hover effects

@@ -19,6 +19,16 @@ services:
     class: Drupal\myeventlane_analytics\Service\ReportGeneratorService
     arguments: ['@entity_type.manager', '@renderer', '@myeventlane_analytics.data']
 
+  # Trending score service.
+  myeventlane_analytics.trending_score:
+    class: Drupal\myeventlane_analytics\Service\TrendingScoreService
+    arguments: ['@database', '@datetime.time', '@entity_type.manager']
+
+  # Logger channel for analytics module.
+  logger.channel.myeventlane_analytics:
+    parent: logger.channel_base
+    arguments: ['myeventlane_analytics']
+
 
 
 

@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_accent_colour
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.myeventlane_vendor.field_accent_colour
+field_name: field_accent_colour
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Accent Colour'
+description: 'HEX colour like #AABBCC'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: string

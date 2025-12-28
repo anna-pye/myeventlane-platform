@@ -1,0 +1,261 @@
+// ============================================================================
+// MyEventLane Radix - Design Tokens
+// ============================================================================
+// Extracted from myeventlane_theme (Stable9) for Bootstrap 5 migration.
+// These tokens map to Bootstrap 5 SCSS variables for consistent theming.
+//
+// USAGE:
+//   @use 'tokens/tokens' as tokens;
+//   @use 'tokens/tokens' as *; // For direct variable access
+//
+// BOOTSTRAP MAPPING:
+//   Colors -> $primary, $secondary, $success, $danger, $warning, $info
+//   Typography -> $font-family-base, $font-size-base, $font-weight-*
+//   Spacing -> $spacer, $spacers map
+//   Border radius -> $border-radius-*
+// ============================================================================
+
+@use 'sass:color';
+@use 'sass:map';
+
+// ============================================================================
+// 1. COLOR TOKENS
+// ============================================================================
+// Extracted from myeventlane_theme/src/scss/tokens/_colors.scss
+// These will override Bootstrap's default color variables.
+
+// ----------------------------------------------------------------------------
+// Brand Colors (Primary Palette)
+// ----------------------------------------------------------------------------
+$mel-color-primary: #ff6f61;          // Coral - primary CTA, brand accent
+$mel-color-primary-hover: #e85a4d;    // Darker coral for hover
+$mel-color-primary-active: #d14a3d;   // Even darker for active/pressed
+
+$mel-color-secondary: #8d79f6;        // Lavender purple - secondary actions
+$mel-color-secondary-hover: #7a65e8;  // Darker lavender for hover
+$mel-color-secondary-active: #6852d9; // Even darker for active
+
+$mel-color-accent: #ffd46f;           // Soft yellow - highlights, badges
+$mel-color-accent-alt: #70d6c4;       // Aqua/teal - optional accent
+
+// ----------------------------------------------------------------------------
+// Background & Surface
+// ----------------------------------------------------------------------------
+$mel-color-bg: #faf7fb;              // Page background - soft lavender tint
+$mel-color-surface: #ffffff;          // Cards, modals, elevated surfaces
+$mel-color-surface-alt: #f5f0f7;      // Alternate surface - slightly darker
+$mel-color-overlay: rgba(16, 12, 34, 0.38); // Overlay for drawers/modals (AA-friendly)
+$mel-color-on-primary: #ffffff;       // Text on primary surfaces
+
+// ----------------------------------------------------------------------------
+// Text Colors
+// ----------------------------------------------------------------------------
+$mel-color-text: #1a1a2e;             // Primary text - near black with warmth
+$mel-color-text-muted: #5c5c6f;       // Secondary/meta text
+$mel-color-text-light: #8888a0;       // Tertiary/placeholder text
+$mel-color-text-inverse: #ffffff;     // Text on dark/colored backgrounds
+
+// ----------------------------------------------------------------------------
+// Border Colors
+// ----------------------------------------------------------------------------
+$mel-color-border: rgba(0, 0, 0, 0.1);
+$mel-color-border-strong: rgba(0, 0, 0, 0.2);
+
+// ----------------------------------------------------------------------------
+// State Colors (Semantic)
+// ----------------------------------------------------------------------------
+$mel-color-success: #22c55e;          // Green - success messages
+$mel-color-success-bg: #dcfce7;       // Light green background
+$mel-color-error: #ef4444;            // Red - errors, destructive
+$mel-color-error-bg: #fee2e2;         // Light red background
+$mel-color-warning: #f59e0b;          // Amber - warnings
+$mel-color-warning-bg: #fef3c7;       // Light amber background
+$mel-color-info: #3b82f6;             // Blue - informational
+$mel-color-info-bg: #dbeafe;          // Light blue background
+
+// ----------------------------------------------------------------------------
+// Focus & Accessibility
+// ----------------------------------------------------------------------------
+$mel-focus-ring-color: $mel-color-secondary;
+$mel-focus-ring-offset: 2px;
+$mel-focus-ring-width: 3px;
+
+// ============================================================================
+// 2. TYPOGRAPHY TOKENS
+// ============================================================================
+// Extracted from myeventlane_theme/src/scss/tokens/_typography.scss
+
+$mel-font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$mel-font-family-mono: 'SF Mono', 'Fira Code', Consolas, monospace;
+
+// Font Weights
+$mel-font-regular: 400;
+$mel-font-medium: 500;
+$mel-font-semibold: 600;
+$mel-font-bold: 700;
+$mel-font-extrabold: 800;
+
+// Type Scale (1.25 ratio - major third)
+$mel-type-scale: (
+  xs: 0.75rem,      // 12px - Fine print, captions
+  sm: 0.875rem,     // 14px - Meta text, labels
+  base: 1rem,       // 16px - Body text
+  md: 1.125rem,     // 18px - Large body, intro text
+  lg: 1.25rem,      // 20px - H4, card titles
+  xl: 1.5rem,       // 24px - H3
+  2xl: 1.875rem,    // 30px - H2
+  3xl: 2.25rem,     // 36px - H1
+  4xl: 3rem,        // 48px - Hero titles
+);
+
+// Line Heights
+$mel-leading-tight: 1.2;
+$mel-leading-snug: 1.3;
+$mel-leading-normal: 1.5;
+$mel-leading-relaxed: 1.6;
+
+// Letter Spacing
+$mel-tracking-tight: -0.025em;
+$mel-tracking-normal: 0;
+$mel-tracking-wide: 0.025em;
+
+// ============================================================================
+// 3. SPACING TOKENS
+// ============================================================================
+// Extracted from myeventlane_theme/src/scss/tokens/_spacing.scss
+// 8px grid system for consistent spacing.
+
+$mel-space: (
+  0: 0,
+  1: 0.5rem,   // 8px
+  2: 1rem,     // 16px
+  3: 1.5rem,   // 24px
+  4: 2rem,     // 32px
+  5: 2.5rem,   // 40px
+  6: 3rem,     // 48px
+  7: 4rem,     // 64px
+  8: 5rem,     // 80px
+  9: 6rem,     // 96px
+  10: 8rem     // 128px
+);
+
+// ============================================================================
+// 4. BORDER RADIUS TOKENS
+// ============================================================================
+// Extracted from myeventlane_theme/src/scss/tokens/_radii.scss
+
+$mel-radius-sm: 6px;
+$mel-radius-md: 12px;
+$mel-radius-lg: 18px;
+$mel-radius-xl: 28px;
+$mel-radius-full: 999px;
+
+// ============================================================================
+// 5. BOOTSTRAP 5 VARIABLE OVERRIDES
+// ============================================================================
+// Map MyEventLane tokens to Bootstrap 5 variables.
+// These should be imported BEFORE Bootstrap's variables.scss in main.scss.
+//
+// IMPORTANT: Bootstrap variables are defined in Radix's SCSS structure.
+// Override them here to customize the theme while maintaining Bootstrap compatibility.
+
+// Colors
+$primary: $mel-color-primary;
+$secondary: $mel-color-secondary;
+$success: $mel-color-success;
+$danger: $mel-color-error;
+$warning: $mel-color-warning;
+$info: $mel-color-info;
+
+// Background
+$body-bg: $mel-color-bg;
+$body-color: $mel-color-text;
+
+// Typography
+$font-family-base: $mel-font-family;
+$font-size-base: map.get($mel-type-scale, base); // 1rem (16px)
+
+// Border Radius
+$border-radius-sm: $mel-radius-sm;
+$border-radius: $mel-radius-md;
+$border-radius-lg: $mel-radius-lg;
+$border-radius-xl: $mel-radius-xl;
+$border-radius-pill: $mel-radius-full;
+
+// Spacing (Bootstrap uses $spacer and $spacers map)
+// Bootstrap default is 1rem (16px), which matches our $mel-space(2)
+$spacer: map.get($mel-space, 2); // 1rem (16px)
+
+// Custom spacers map (extends Bootstrap's default 0-5)
+$spacers: (
+  0: 0,
+  1: map.get($mel-space, 1),  // 0.5rem (8px)
+  2: map.get($mel-space, 2),  // 1rem (16px)
+  3: map.get($mel-space, 3),  // 1.5rem (24px)
+  4: map.get($mel-space, 4),  // 2rem (32px)
+  5: map.get($mel-space, 5),  // 2.5rem (40px)
+  6: map.get($mel-space, 6),  // 3rem (48px)
+  7: map.get($mel-space, 7),  // 4rem (64px)
+  8: map.get($mel-space, 8),  // 5rem (80px)
+  9: map.get($mel-space, 9),  // 6rem (96px)
+  10: map.get($mel-space, 10), // 8rem (128px)
+);
+
+// Focus ring (Bootstrap 5.2+)
+$focus-ring-color: $mel-focus-ring-color;
+$focus-ring-width: $mel-focus-ring-width;
+$focus-ring-offset: $mel-focus-ring-offset;
+
+// ============================================================================
+// 6. HELPER FUNCTIONS
+// ============================================================================
+
+@function mel-space($key) {
+  @if map.has-key($mel-space, $key) {
+    @return map.get($mel-space, $key);
+  }
+  @warn "Unknown spacing key `#{$key}`. Available: #{map.keys($mel-space)}";
+  @return map.get($mel-space, 2); // Default to 16px
+}
+
+@function mel-font-size($size) {
+  @if map.has-key($mel-type-scale, $size) {
+    @return map.get($mel-type-scale, $size);
+  }
+  @warn "Unknown font size `#{$size}`. Available: #{map.keys($mel-type-scale)}";
+  @return map.get($mel-type-scale, base);
+}
+
+// ============================================================================
+// 7. MIXINS
+// ============================================================================
+
+@mixin mel-focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 $mel-focus-ring-offset $mel-color-surface,
+              0 0 0 ($mel-focus-ring-offset + $mel-focus-ring-width) $mel-focus-ring-color;
+}
+
+@mixin mel-focus-visible {
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    @include mel-focus-ring;
+  }
+}
+
+@mixin mel-text($size, $leading: normal) {
+  font-size: mel-font-size($size);
+
+  @if $leading == tight {
+    line-height: $mel-leading-tight;
+  } @else if $leading == snug {
+    line-height: $mel-leading-snug;
+  } @else if $leading == relaxed {
+    line-height: $mel-leading-relaxed;
+  } @else {
+    line-height: $mel-leading-normal;
+  }
+}

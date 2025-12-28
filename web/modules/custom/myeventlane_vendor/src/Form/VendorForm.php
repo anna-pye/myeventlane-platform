@@ -15,6 +15,43 @@ class VendorForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    parent::validateForm($form, $form_state);
+
+    $entity = $this->getEntity();
+    $currentUser = $this->currentUser();
+
+    // ENFORCE 1:1 RELATIONSHIP: Prevent duplicate Vendor creation at form level.
+    // This validation runs before preSave(), providing early feedback.
+    if ($entity->isNew()) {
+      $ownerId = $entity->getOwnerId();
+      
+      // If owner is not set, it will be set in preSave() to current user.
+      // Check for current user's existing vendor.
+      if ($ownerId === NULL) {
+        $ownerId = (int) $currentUser->id();
+      }
+
+      if ($ownerId > 0) {
+        $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
+        $existingVendorIds = $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('uid', $ownerId)
+          ->execute();
+
+        if (!empty($existingVendorIds)) {
+          $form_state->setError($form, $this->t('A vendor entity already exists for this user. Each user can only have one vendor entity.'));
+          $this->logger('myeventlane_vendor')->warning('Form validation blocked duplicate Vendor creation for user @uid', [
+            '@uid' => $ownerId,
+          ]);
+        }
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
     $entity = $this->getEntity();

@@ -1,0 +1,28 @@
+name: MyEventLane Radix
+type: theme
+base theme: radix
+core_version_requirement: ^11
+
+description: 'MyEventLane v2 theme built on Radix (Bootstrap 5). Incremental migration from Stable9. Prepared for Single Directory Components (SDCs).'
+
+# Regions match the existing myeventlane_theme for consistency
+regions:
+  utility_bar: Utility Bar
+  header: Header
+  hero: Hero
+  pre_content: Pre-Content
+  sidebar_left: Sidebar Left
+  content: Content
+  sidebar_right: Sidebar Right
+  pre_footer: Pre-Footer
+  footer: Footer
+  post_footer: Post-Footer
+
+# Libraries are defined in myeventlane_radix.libraries.yml
+libraries:
+  - myeventlane_radix/global
+
+# Theme settings (can be configured in admin/appearance/settings/myeventlane_radix)
+settings:
+  # Bootstrap 5 settings will be inherited from Radix
+  # Additional custom settings can be added here if needed

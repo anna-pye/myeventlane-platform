@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.field_accent_colour
+field_name: field_accent_colour
+entity_type: myeventlane_vendor
+type: string
+settings:
+  max_length: 7
+module: text
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

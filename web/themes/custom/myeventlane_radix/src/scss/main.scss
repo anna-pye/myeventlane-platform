@@ -1,0 +1,123 @@
+// ============================================================================
+// MyEventLane Radix Theme - Main Stylesheet
+// ============================================================================
+// Entry point for SCSS compilation.
+//
+// BUILD TOOLING:
+//   This theme requires a build tool (Vite, Webpack, Gulp, etc.) to compile SCSS.
+//   Bootstrap 5 is included via Radix base theme, but we override variables here.
+//
+// COMPILATION ORDER:
+//   1. Design tokens (Bootstrap variable overrides)
+//   2. Bootstrap imports (via Radix)
+//   3. Base styles
+//   4. Components
+//   5. Layout
+//
+// NOTE: Radix handles Bootstrap imports. We only need to:
+//   - Override Bootstrap variables via tokens
+//   - Add custom MyEventLane styles
+// ============================================================================
+
+// ============================================================================
+// 1. DESIGN TOKENS (Bootstrap Variable Overrides)
+// ============================================================================
+// Import tokens FIRST to override Bootstrap's default variables.
+// Bootstrap variables are defined in Radix's SCSS, so our overrides take precedence.
+
+@use 'tokens/tokens' as *;
+
+// ============================================================================
+// 2. BOOTSTRAP 5 (via Radix)
+// ============================================================================
+// Radix base theme includes Bootstrap 5.
+// We don't need to import Bootstrap directly here.
+// If you need to customize Bootstrap imports, check Radix's SCSS structure.
+//
+// NOTE: If Radix doesn't provide a way to inject custom variables before
+// Bootstrap loads, you may need to create a custom _bootstrap-overrides.scss
+// file that Radix can use, or override variables in Radix's theme settings.
+
+// ============================================================================
+// 3. BASE STYLES
+// ============================================================================
+// MyEventLane-specific base styles that complement Bootstrap.
+
+@use 'base/base';
+
+// ============================================================================
+// 4. COMPONENTS
+// ============================================================================
+// MyEventLane-specific components built on Bootstrap 5.
+// These extend Bootstrap components or create new ones.
+
+@use 'components/buttons';
+@use 'components/cards';
+@use 'components/forms';
+@use 'components/event-card';
+@use 'components/checkout';
+@use 'components/wizard';
+
+// ============================================================================
+// 5. LAYOUT
+// ============================================================================
+// Page structure, regions, and layout-specific styles.
+
+@use 'layout/header';
+@use 'layout/footer';
+@use 'layout/navigation';
+@use 'layout/regions';
+
+// ============================================================================
+// 6. PAGES (Page-specific styles)
+// ============================================================================
+// Styles for specific page types (event pages, checkout, etc.).
+
+// @use 'pages/event';
+// @use 'pages/checkout';
+// TODO: Uncomment and create page files as needed
+
+// ============================================================================
+// 7. UTILITIES (Optional)
+// ============================================================================
+// Additional utility classes beyond Bootstrap's utilities.
+
+// @use 'utilities/custom';
+// TODO: Add custom utilities if needed
+
+// ============================================================================
+// 8. SINGLE DIRECTORY COMPONENTS (SDCs) - Future
+// ============================================================================
+// When SDCs are implemented, component styles can be co-located with
+// component definitions. For now, keep component SCSS in components/.
+//
+// SDC Structure (future):
+//   components/
+//     event-card/
+//       event-card.component.yml
+//       event-card.twig
+//       event-card.scss
+//       event-card.js (optional)
+//
+// See: https://www.drupal.org/docs/core-modules-and-themes/core-modules/sdc-module
+
+// ============================================================================
+// 9. PRODUCTION OPTIMIZATIONS
+// ============================================================================
+// CSS purging should be configured in your build tooling (e.g., PurgeCSS).
+//
+// Recommended PurgeCSS configuration:
+//   content: [
+//     './templates/**/*.twig',
+//     './src/**/*.scss',
+//     '../../modules/custom/**/*.twig',
+//     '../../modules/custom/**/*.php',
+//   ],
+//   safelist: [
+//     /^mel-/,
+//     /^btn-/,
+//     /^bg-/,
+//     /^text-/,
+//   ]
+//
+// This ensures Bootstrap classes and MyEventLane classes (mel-*) are preserved.

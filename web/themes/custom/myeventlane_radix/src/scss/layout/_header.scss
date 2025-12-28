@@ -1,0 +1,267 @@
+// ============================================================================
+// MyEventLane Radix - Header Layout
+// ============================================================================
+// Header component built on Bootstrap 5 navbar, extended with MyEventLane styles.
+// Uses Bootstrap's .navbar classes and extends with .mel-header-* modifiers.
+//
+// USAGE:
+//   <header class="navbar mel-header">...</header>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Header Base
+// ============================================================================
+
+.mel-header {
+  position: sticky;
+  top: 0;
+  z-index: 1050; // Bootstrap navbar z-index
+  background-color: $mel-color-surface;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mel-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: mel-space(3) mel-space(4);
+  gap: mel-space(4);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+// ============================================================================
+// Logo
+// ============================================================================
+
+.mel-header-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mel-logo {
+  display: flex;
+  align-items: center;
+  gap: mel-space(2);
+  text-decoration: none;
+  @include mel-focus-visible;
+  
+  .mel-logo-image {
+    height: 40px;
+    width: auto;
+    
+    @media (min-width: 768px) {
+      height: 44px;
+    }
+  }
+  
+  .mel-logo-text {
+    font-size: mel-font-size(lg);
+    font-weight: $mel-font-bold;
+    color: $mel-color-text;
+  }
+}
+
+// ============================================================================
+// Desktop Navigation
+// ============================================================================
+
+.mel-nav-desktop {
+  display: none;
+  
+  @media (min-width: 768px) {
+    display: block;
+    flex: 1;
+  }
+}
+
+.mel-nav-list {
+  display: flex;
+  gap: mel-space(1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  align-items: center;
+}
+
+.mel-nav-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: $mel-color-text;
+  padding: mel-space(2) mel-space(3);
+  border-radius: $mel-radius-md;
+  font-size: mel-font-size(base);
+  font-weight: $mel-font-medium;
+  transition: background 0.15s ease, color 0.15s ease;
+  @include mel-focus-visible;
+  
+  &:hover {
+    background-color: $mel-color-bg;
+    color: $mel-color-primary;
+  }
+  
+  &.is-active,
+  &.active {
+    background-color: $mel-color-bg;
+    color: $mel-color-primary;
+    font-weight: $mel-font-semibold;
+  }
+}
+
+// ============================================================================
+// Header Actions
+// ============================================================================
+
+.mel-header-actions {
+  display: none;
+  
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    gap: mel-space(2);
+  }
+}
+
+// ============================================================================
+// Mobile Navigation Toggle
+// ============================================================================
+
+.mel-nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  @include mel-focus-visible;
+  
+  @media (min-width: 768px) {
+    display: none;
+  }
+  
+  .mel-nav-toggle-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 24px;
+    height: 18px;
+  }
+  
+  .mel-nav-toggle-line {
+    width: 100%;
+    height: 2px;
+    background-color: $mel-color-text;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+}
+
+// ============================================================================
+// Mobile Navigation Menu
+// ============================================================================
+
+.mel-nav-mobile-wrapper {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// CSS-only mobile menu using checkbox (if using checkbox approach)
+.mel-nav-toggle-checkbox:checked ~ .mel-header .mel-nav-mobile-wrapper {
+  max-height: 500px;
+}
+
+.mel-nav-mobile {
+  background-color: $mel-color-surface;
+  border-top: 1px solid $mel-color-border;
+  padding: mel-space(4);
+}
+
+.mel-nav-mobile-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: mel-space(2);
+  
+  a {
+    display: block;
+    padding: mel-space(2) mel-space(3);
+    color: $mel-color-text;
+    text-decoration: none;
+    border-radius: $mel-radius-md;
+    @include mel-focus-visible;
+    
+    &:hover {
+      background-color: $mel-color-bg;
+      color: $mel-color-primary;
+    }
+  }
+}
+
+.mel-mobile-divider {
+  height: 1px;
+  background-color: $mel-color-border;
+  margin: mel-space(2) 0;
+}
+
+// ============================================================================
+// Account Dropdown
+// ============================================================================
+
+.mel-account-dropdown {
+  position: relative;
+}
+
+.mel-account-toggle {
+  display: flex;
+  align-items: center;
+  gap: mel-space(2);
+}
+
+.mel-account-menu {
+  position: absolute;
+  top: calc(100% + mel-space(1));
+  right: 0;
+  background-color: $mel-color-surface;
+  border: 1px solid $mel-color-border;
+  border-radius: $mel-radius-md;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  padding: mel-space(2);
+  z-index: 1000;
+  display: none;
+  
+  &.show {
+    display: block;
+  }
+}
+
+.mel-account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: mel-space(2);
+  padding: mel-space(2) mel-space(3);
+  color: $mel-color-text;
+  text-decoration: none;
+  border-radius: $mel-radius-sm;
+  @include mel-focus-visible;
+  
+  &:hover {
+    background-color: $mel-color-bg;
+    color: $mel-color-primary;
+  }
+}

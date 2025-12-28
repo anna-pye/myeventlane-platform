@@ -1,15 +1,19 @@
 {#
 /**
  * @file
- * Template override for Upcoming Events view block display.
- *
- * Canonical event grid wrapper - no additional markup.
+ * Views unformatted template for homepage "Discover events" Sticker Wall.
+ * Outputs cards directly without .mel-event-grid wrapper (sticker wall handles grid).
  */
 #}
+
 {% if rows %}
-  <div class="mel-event-grid">
-    {% for row in rows %}
+  {# Output cards directly - .mel-sticker-wall parent handles grid layout #}
+  {% for row in rows %}
+    {%
+      set tilt_class = 'mel-tilt-' ~ ((loop.index0 % 3) + 1)
+    %}
+    <div class="mel-sticker-wall__item {{ tilt_class }}">
       {{- row.content -}}
-    {% endfor %}
-  </div>
+    </div>
+  {% endfor %}
 {% endif %}

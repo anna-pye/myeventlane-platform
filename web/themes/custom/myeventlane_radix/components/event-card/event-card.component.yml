@@ -1,0 +1,60 @@
+name: Event Card
+description: 'Displays an event in card format with image, title, date, location, and CTA.'
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: 'Event Title'
+      description: 'The event title/name'
+    url:
+      type: string
+      title: 'Event URL'
+      description: 'Link to the event page'
+    image:
+      type: object
+      title: 'Event Image'
+      properties:
+        src:
+          type: string
+          title: 'Image Source'
+        alt:
+          type: string
+          title: 'Image Alt Text'
+    date:
+      type: string
+      title: 'Event Date'
+      description: 'Formatted event date string'
+    location:
+      type: string
+      title: 'Location'
+      description: 'Event location (venue name or "Online")'
+    price:
+      type: object
+      title: 'Price'
+      properties:
+        amount:
+          type: number
+          title: 'Price Amount'
+        currency:
+          type: string
+          title: 'Currency Code'
+          default: 'AUD'
+        formatted:
+          type: string
+          title: 'Formatted Price'
+    event_type:
+      type: string
+      title: 'Event Type'
+      description: 'Type of event (RSVP, Paid, Both, External)'
+    featured:
+      type: boolean
+      title: 'Featured Event'
+      default: false
+slots:
+  body:
+    title: 'Card Body'
+    description: 'Additional content for the card body'
+library: myeventlane_radix/event-card
+schema:
+  type: object

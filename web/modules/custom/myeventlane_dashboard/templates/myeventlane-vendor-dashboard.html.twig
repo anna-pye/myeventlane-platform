@@ -237,9 +237,18 @@
                         {% endif %}
                       </div>
                     {% else %}
-                      {% if event.boost_status.boost_url %}
-                        <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ 'Boost Event'|t }}</a>
+                      {% if event.boost_status.allowed %}
+                        <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost_status.label|t }}</a>
+                      {% else %}
+                        <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost_status.label|t }}</span>
                       {% endif %}
+                    {% endif %}
+                  {% elseif event.boost %}
+                    {# Support for new boost button structure from myeventlane_vendor controller #}
+                    {% if event.boost.allowed %}
+                      <a href="{{ event.boost.url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost.label|t }}</a>
+                    {% else %}
+                      <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost.label|t }}</span>
                     {% endif %}
                   {% endif %}
                 </td>

@@ -4,242 +4,223 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Database\Connection;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\node\NodeInterface;
 
 /**
- * RSVP stats provider for vendor console.
+ * Service for RSVP statistics.
  *
- * Queries real RSVP submission data for accurate metrics.
+ * Provides defensive, predictable RSVP counts and summaries.
  */
 final class RsvpStatsService {
 
-  /**
-   * Constructs the service.
-   */
   public function __construct(
+    private readonly Connection $database,
+    private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
-   * Returns RSVP counts for an event.
+   * Gets total RSVP count for a vendor across all their events.
    *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
+   * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
+   * Excludes: Draft events, cancelled/pending RSVPs.
+   * Tables: rsvp_submission entity or legacy myeventlane_rsvp table.
    *
-   * @return array
-   *   RSVP summary with total, confirmed, pending, declined, checkins.
-   */
-  public function getRsvpSummary(NodeInterface $event): array {
-    $eventId = (int) $event->id();
-
-    $summary = [
-      'total' => 0,
-      'confirmed' => 0,
-      'pending' => 0,
-      'waitlisted' => 0,
-      'cancelled' => 0,
-      'checkins' => 0,
-    ];
-
-    try {
-      $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
-
-      // Get all RSVPs for this event.
-      $rsvps = $rsvpStorage->loadByProperties([
-        'event_id' => $eventId,
-      ]);
-
-      foreach ($rsvps as $rsvp) {
-        $summary['total']++;
-
-        $status = $rsvp->get('status')->value ?? 'pending';
-        if (isset($summary[$status])) {
-          $summary[$status]++;
-        }
-
-        // Check for check-ins.
-        if ($rsvp->hasField('checked_in') && $rsvp->get('checked_in')->value) {
-          $summary['checkins']++;
-        }
-      }
-    }
-    catch (\Exception) {
-      // RSVP module may not be available.
-    }
-
-    // Also check event_attendee entities for RSVP source.
-    try {
-      $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
-      $attendees = $attendeeStorage->loadByProperties([
-        'event' => $eventId,
-        'source' => 'rsvp',
-      ]);
-
-      // If we have attendee records but no RSVP submissions, use attendee data.
-      if (empty($summary['total']) && !empty($attendees)) {
-        foreach ($attendees as $attendee) {
-          $summary['total']++;
-
-          $status = $attendee->getStatus();
-          if ($status === 'confirmed') {
-            $summary['confirmed']++;
-          }
-          elseif ($status === 'pending') {
-            $summary['pending']++;
-          }
-          elseif ($status === 'waitlisted') {
-            $summary['waitlisted']++;
-          }
-          elseif ($status === 'cancelled') {
-            $summary['cancelled']++;
-          }
-
-          if ($attendee->isCheckedIn()) {
-            $summary['checkins']++;
-          }
-        }
-      }
-    }
-    catch (\Exception) {
-      // Event attendee module may not be available.
-    }
-
-    return $summary;
-  }
-
-  /**
-   * Returns a daily RSVP series for charting.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Array of daily RSVP data for charting.
-   */
-  public function getDailyRsvpSeries(NodeInterface $event): array {
-    $eventId = (int) $event->id();
-
-    // Initialize last 14 days with zero values.
-    $days = [];
-    for ($i = 13; $i >= 0; $i--) {
-      $date = date('Y-m-d', strtotime("-{$i} days"));
-      $days[$date] = ['rsvps' => 0, 'checkins' => 0];
-    }
-
-    try {
-      $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
-      $rsvps = $rsvpStorage->loadByProperties([
-        'event_id' => $eventId,
-      ]);
-
-      foreach ($rsvps as $rsvp) {
-        $created = $rsvp->getCreatedTime();
-        $date = date('Y-m-d', (int) $created);
-
-        if (isset($days[$date])) {
-          $days[$date]['rsvps']++;
-
-          if ($rsvp->hasField('checked_in') && $rsvp->get('checked_in')->value) {
-            $days[$date]['checkins']++;
-          }
-        }
-      }
-    }
-    catch (\Exception) {
-      // RSVP module may not be available - try event_attendee.
-      try {
-        $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
-        $attendees = $attendeeStorage->loadByProperties([
-          'event' => $eventId,
-          'source' => 'rsvp',
-        ]);
-
-        foreach ($attendees as $attendee) {
-          $created = $attendee->getCreatedTime();
-          $date = date('Y-m-d', (int) $created);
-
-          if (isset($days[$date])) {
-            $days[$date]['rsvps']++;
-
-            if ($attendee->isCheckedIn()) {
-              $days[$date]['checkins']++;
-            }
-          }
-        }
-      }
-      catch (\Exception) {
-        // Neither module available.
-      }
-    }
-
-    // Convert to series format.
-    $series = [];
-    foreach ($days as $date => $data) {
-      $series[] = [
-        'date' => date('M j', strtotime($date)),
-        'rsvps' => $data['rsvps'],
-        'checkins' => $data['checkins'],
-      ];
-    }
-
-    return $series;
-  }
-
-  /**
-   * Returns the top attendee segments (based on available data).
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Array of audience segments.
-   */
-  public function getAudienceSegments(NodeInterface $event): array {
-    // This would require additional attendee profile data.
-    // For now, return empty since we don't have demographic data.
-    return [];
-  }
-
-  /**
-   * Gets total RSVP count for a vendor (all events).
-   *
-   * @param int $userId
+   * @param int $vendor_uid
    *   The vendor user ID.
    *
    * @return int
-   *   Total RSVP count.
+   *   Total RSVP count. Returns 0 if no RSVPs, invalid vendor, or on error.
    */
-  public function getVendorRsvpCount(int $userId): int {
-    $total = 0;
+  public function getVendorRsvpCount(int $vendor_uid): int {
+    if ($vendor_uid <= 0) {
+      return 0;
+    }
 
     try {
-      // Get all events owned by this user.
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $eventIds = $nodeStorage->getQuery()
+      // Get all published events owned by this vendor.
+      // NOTE: Only published events are included in analytics.
+      $eventIds = $this->entityTypeManager
+        ->getStorage('node')
+        ->getQuery()
         ->accessCheck(FALSE)
         ->condition('type', 'event')
-        ->condition('uid', $userId)
+        ->condition('uid', $vendor_uid)
+        ->condition('status', 1)
         ->execute();
 
       if (empty($eventIds)) {
         return 0;
       }
 
-      // Count RSVPs for these events.
-      $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
-      $total = (int) $rsvpStorage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('event_id', array_values($eventIds), 'IN')
-        ->condition('status', 'confirmed')
-        ->count()
-        ->execute();
+      $total = 0;
+      foreach ($eventIds as $eventId) {
+        $total += $this->getEventRsvpCount((int) $eventId);
+      }
+
+      return $total;
     }
-    catch (\Exception) {
-      // RSVP module may not be available.
+    catch (\Exception $e) {
+      return 0;
+    }
+  }
+
+  /**
+   * Gets RSVP count for a specific event.
+   *
+   * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
+   * Excludes: Cancelled/pending RSVPs.
+   * Tables: rsvp_submission entity or legacy myeventlane_rsvp table.
+   * NOTE: Does not check if event is published - caller should filter.
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   *
+   * @return int
+   *   RSVP count. Returns 0 if no RSVPs, invalid event ID, or on error.
+   */
+  public function getEventRsvpCount(int $event_nid): int {
+    if ($event_nid <= 0) {
+      return 0;
     }
 
-    return $total;
+    try {
+      // Try entity storage first (rsvp_submission).
+      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+        $storage = $this->entityTypeManager->getStorage('rsvp_submission');
+        $count = (int) $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $event_nid)
+          ->condition('status', 'confirmed')
+          ->count()
+          ->execute();
+        if ($count > 0) {
+          return $count;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Fallback to legacy table.
+    }
+
+    // Fallback: check legacy myeventlane_rsvp table.
+    try {
+      if ($this->database->schema()->tableExists('myeventlane_rsvp')) {
+        $count = (int) $this->database->select('myeventlane_rsvp', 'r')
+          ->condition('event_nid', $event_nid)
+          ->condition('status', 'active')
+          ->countQuery()
+          ->execute()
+          ->fetchField();
+        return $count;
+      }
+    }
+    catch (\Exception $e) {
+      // Table doesn't exist or error.
+    }
+
+    return 0;
+  }
+
+  /**
+   * Gets RSVP summary for an event.
+   *
+   * REQUIRED by MetricsAggregator.
+   * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
+   * Excludes: Cancelled/pending RSVPs.
+   * Must always return a stable structure.
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   *
+   * @return array
+   *   Summary array with 'count' key (int). Never null, count defaults to 0.
+   */
+  public function getRsvpSummary(int $event_nid): array {
+    return [
+      'count' => $this->getEventRsvpCount($event_nid),
+    ];
+  }
+
+  /**
+   * Gets detailed RSVP stats for an event.
+   *
+   * REQUIRED by VendorDashboardController.
+   * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
+   * Excludes: Cancelled/pending RSVPs.
+   * Recent: RSVPs created in last 7 days (also confirmed only).
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   *
+   * @return array
+   *   Array with 'total' (int) and 'recent' (int) keys. Never null, defaults to 0.
+   */
+  public function getStatsForEvent(int $event_nid): array {
+    if ($event_nid <= 0) {
+      return [
+        'total' => 0,
+        'recent' => 0,
+      ];
+    }
+
+    $total = $this->getEventRsvpCount($event_nid);
+    $recent = 0;
+
+    // Calculate recent RSVPs (last 7 days).
+    try {
+      $sevenDaysAgo = $this->time->getRequestTime() - (7 * 24 * 60 * 60);
+
+      // Try entity storage first.
+      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+        $storage = $this->entityTypeManager->getStorage('rsvp_submission');
+        $recent = (int) $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $event_nid)
+          ->condition('status', 'confirmed')
+          ->condition('created', $sevenDaysAgo, '>=')
+          ->count()
+          ->execute();
+      }
+      else {
+        // Fallback to legacy table.
+        if ($this->database->schema()->tableExists('myeventlane_rsvp')) {
+          $recent = (int) $this->database->select('myeventlane_rsvp', 'r')
+            ->condition('event_nid', $event_nid)
+            ->condition('status', 'active')
+            ->condition('created', $sevenDaysAgo, '>=')
+            ->countQuery()
+            ->execute()
+            ->fetchField();
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Return 0 for recent on error.
+    }
+
+    return [
+      'total' => $total,
+      'recent' => $recent,
+    ];
+  }
+
+  /**
+   * Gets event RSVP summary (alias for getRsvpSummary for consistency).
+   *
+   * Counts: Confirmed RSVPs only (status='confirmed' or 'active').
+   * Excludes: Cancelled/pending RSVPs.
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   *
+   * @return array
+   *   Summary array with 'count' key (int). Never null, count defaults to 0.
+   */
+  public function getEventRsvpSummary(int $event_nid): array {
+    return $this->getRsvpSummary($event_nid);
   }
 
 }

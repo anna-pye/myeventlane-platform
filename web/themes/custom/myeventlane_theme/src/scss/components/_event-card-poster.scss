@@ -1,0 +1,381 @@
+// ==========================================================================
+// Poster Card Component (MEL v2)
+// ==========================================================================
+// Primary event card with optional title overlay mode.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Poster Card Base
+// ---------------------------------------------------------------------------
+
+.mel-card--poster {
+  background: var(--mel-card, #ffffff);
+  border-radius: var(--mel-radius-card, 18px);
+  overflow: hidden;
+  box-shadow: var(--mel-shadow-rest, 0 10px 30px rgba(41, 50, 65, 0.08));
+  width: 100%;
+  min-width: 0; // Prevent flex shrink overflow
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  position: relative;
+
+  // Hover lift (desktop only)
+  // Note: Tilt transforms are handled in homepage SCSS
+  // This hover only applies when no tilt class is present
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(.mel-tilt-1):not(.mel-tilt-2):not(.mel-tilt-3),
+    &:focus-visible:not(.mel-tilt-1):not(.mel-tilt-2):not(.mel-tilt-3) {
+      box-shadow: var(--mel-shadow-hover, 0 12px 40px rgba(41, 50, 65, 0.12));
+      transform: translateY(-4px);
+    }
+
+    // For tilted cards, only update shadow on hover (tilt transform stays)
+    &.mel-tilt-1:hover,
+    &.mel-tilt-1:focus-visible,
+    &.mel-tilt-2:hover,
+    &.mel-tilt-2:focus-visible,
+    &.mel-tilt-3:hover,
+    &.mel-tilt-3:focus-visible {
+      box-shadow: var(--mel-shadow-hover, 0 12px 40px rgba(41, 50, 65, 0.12));
+      // Tilt transform is maintained from homepage SCSS
+    }
+  }
+
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    transition: box-shadow 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+  }
+
+  // Focus state
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--mel-card, #ffffff),
+                0 0 0 5px var(--mel-secondary, #6e7ef2);
+  }
+}
+
+.mel-card__link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+  height: 100%;
+  min-width: 0; // Prevent flex shrink issues
+
+  &:hover,
+  &:focus,
+  &:active {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Image Container
+// ---------------------------------------------------------------------------
+
+.mel-card__image-wrapper,
+.mel-card__media {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 4; // Poster-style aspect ratio
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  min-width: 0; // Prevent flex shrink issues
+  flex-shrink: 0;
+}
+
+.mel-card__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f26d5b 0%, #6e7ef2 50%, #f5c04c 100%);
+}
+
+.mel-card__placeholder-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+// ---------------------------------------------------------------------------
+// Scrim Gradient (for overlay title mode)
+// ---------------------------------------------------------------------------
+
+.mel-card__scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: var(--mel-scrim-gradient, linear-gradient(transparent, rgba(0, 0, 0, 0.55)));
+  pointer-events: none;
+  z-index: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Date Badge
+// ---------------------------------------------------------------------------
+
+.mel-card__date-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mel-card__date-label {
+  display: block;
+  font-weight: typography.$mel-font-bold;
+  font-size: typography.mel-font-size(xs);
+  line-height: 1.2;
+  color: colors.$mel-color-text;
+}
+
+// ---------------------------------------------------------------------------
+// Stamp
+// ---------------------------------------------------------------------------
+
+.mel-card__stamp {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  pointer-events: none;
+  transform: rotate(-2deg);
+  transition: transform 0.2s ease;
+
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+  }
+}
+
+.mel-card__stamp-text {
+  display: inline-block;
+  background: var(--mel-primary, #f26d5b);
+  color: var(--mel-card, #ffffff);
+  padding: 8px 16px;
+  border-radius: var(--mel-radius-chip, 999px);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-extrabold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: var(--mel-shadow-stamp, 0 3px 12px rgba(0, 0, 0, 0.2)),
+              0 0 0 2px var(--mel-card, #ffffff);
+  line-height: 1.2;
+  border: 2px solid var(--mel-card, #ffffff);
+}
+
+// ---------------------------------------------------------------------------
+// Vibe Chips (on image)
+// ---------------------------------------------------------------------------
+
+.mel-card__vibe-chips {
+  position: absolute;
+  bottom: 60px; // Above title if overlay mode
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  z-index: 2;
+  pointer-events: none;
+
+  .mel-title--below & {
+    bottom: 12px; // At bottom if title is below
+  }
+}
+
+.mel-card__vibe-chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  color: colors.$mel-color-text;
+  padding: 4px 10px;
+  border-radius: var(--mel-radius-chip, 999px);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+// ---------------------------------------------------------------------------
+// Title Overlay (Mode A)
+// ---------------------------------------------------------------------------
+
+.mel-card__title-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.mel-title--overlay .mel-card__title {
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-extrabold;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--mel-card, #ffffff);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(2xl);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Card Body
+// ---------------------------------------------------------------------------
+
+.mel-card__body {
+  flex-grow: 1;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Title Below (Mode B)
+.mel-title--below .mel-card__title {
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-extrabold;
+  line-height: 1.25;
+  margin: 0 0 12px;
+  color: var(--mel-ink, #293241);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(2xl);
+  }
+}
+
+// Hide title in body if overlay mode
+.mel-title--overlay .mel-card__body .mel-card__title {
+  display: none;
+}
+
+// ---------------------------------------------------------------------------
+// Meta Information
+// ---------------------------------------------------------------------------
+
+.mel-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: typography.mel-font-size(sm);
+  color: var(--mel-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.mel-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.mel-card__meta-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mel-card__meta-text {
+  flex: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Bottom Row (Price + CTA)
+// ---------------------------------------------------------------------------
+
+.mel-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 8px;
+  gap: 12px;
+}
+
+.mel-card__price {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: var(--mel-ink, #293241);
+  flex: 1;
+}
+
+.mel-card__cta {
+  flex-shrink: 0;
+}
+
+.mel-card__cta-label {
+  display: inline-block;
+  background: var(--mel-primary, #f26d5b);
+  color: var(--mel-card, #ffffff);
+  padding: 12px 24px;
+  border-radius: var(--mel-radius-chip, 999px);
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-bold;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(242, 109, 91, 0.3);
+
+  @media (hover: hover) and (pointer: fine) {
+    .mel-card--poster:hover & {
+      background: var(--mel-primary-hover, #e85a4d);
+      transform: scale(1.05);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: background-color 0.15s ease;
+
+    .mel-card--poster:hover & {
+      transform: none;
+    }
+  }
+}

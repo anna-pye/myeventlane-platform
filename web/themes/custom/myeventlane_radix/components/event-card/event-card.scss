@@ -1,0 +1,61 @@
+// ============================================================================
+// Event Card Component (SDC)
+// ============================================================================
+// Styles for the event card Single Directory Component.
+// Uses Bootstrap 5 card component as base.
+// ============================================================================
+
+@use '../../src/scss/tokens/tokens' as *;
+
+.mel-event-card {
+  border-radius: $mel-radius-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid $mel-color-border;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  
+  &--featured {
+    border: 2px solid $mel-color-primary;
+  }
+}
+
+.mel-event-card__image-link {
+  display: block;
+  overflow: hidden;
+  border-radius: $mel-radius-lg $mel-radius-lg 0 0;
+}
+
+.mel-event-card__image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  
+  .mel-event-card:hover & {
+    transform: scale(1.05);
+  }
+}
+
+.mel-event-card__type {
+  font-size: mel-font-size(xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mel-event-card__meta {
+  font-size: mel-font-size(sm);
+  color: $mel-color-text-muted;
+}
+
+.mel-event-card__price {
+  font-size: mel-font-size(lg);
+}
+
+.mel-event-card__body {
+  font-size: mel-font-size(sm);
+  color: $mel-color-text;
+}

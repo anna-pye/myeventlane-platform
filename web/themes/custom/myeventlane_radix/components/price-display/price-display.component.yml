@@ -1,0 +1,42 @@
+name: Price Display
+description: 'Displays a formatted price with currency symbol and optional sale price.'
+props:
+  type: object
+  properties:
+    amount:
+      type: number
+      title: 'Price Amount'
+      description: 'The numeric price amount'
+    currency:
+      type: string
+      title: 'Currency Code'
+      description: 'ISO currency code (AUD, USD, etc.)'
+      default: 'AUD'
+    formatted:
+      type: string
+      title: 'Formatted Price'
+      description: 'Pre-formatted price string (e.g., "$50.00")'
+    sale_amount:
+      type: number
+      title: 'Sale Price Amount'
+      description: 'Optional sale price amount'
+    sale_formatted:
+      type: string
+      title: 'Formatted Sale Price'
+      description: 'Pre-formatted sale price string'
+    show_currency:
+      type: boolean
+      title: 'Show Currency Symbol'
+      default: true
+    size:
+      type: string
+      title: 'Display Size'
+      description: 'Size variant: small, medium, large'
+      default: 'medium'
+      enum:
+        - small
+        - medium
+        - large
+library: myeventlane_radix/price-display
+schema:
+  type: object

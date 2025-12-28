@@ -1,0 +1,35 @@
+{#
+  Vendor public profile - simplified.
+  Only shows: Name, Logo, Bio, and Events.
+#}
+
+<article{{ attributes.addClass('vendor-profile') }}>
+  <header class="vendor-profile__header">
+    {% if content.field_vendor_logo or content.field_logo_image %}
+      <div class="vendor-profile__logo">
+        {% if content.field_vendor_logo %}
+          {{ content.field_vendor_logo }}
+        {% elseif content.field_logo_image %}
+          {{ content.field_logo_image }}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="vendor-profile__title">
+      <h1{{ title_attributes }} class="vendor-profile__name">{{ entity.label }}</h1>
+    </div>
+  </header>
+
+  {% if content.field_vendor_bio %}
+    <div class="vendor-profile__bio">
+      {{ content.field_vendor_bio }}
+    </div>
+  {% endif %}
+
+  <section class="vendor-profile__events" aria-labelledby="vendor-events-heading">
+    <h2 id="vendor-events-heading">Upcoming events</h2>
+
+    {# Embed the views block for vendor upcoming events #}
+    {{ drupal_block('views_block:vendor_upcoming_events-block_1', {'arg_0': entity.id()}) }}
+  </section>
+</article>

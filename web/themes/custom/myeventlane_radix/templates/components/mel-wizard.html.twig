@@ -1,0 +1,66 @@
+{#
+/**
+ * @file
+ * Generic Wizard Component Template (Radix/Bootstrap 5).
+ *
+ * Reusable wizard layout wrapper for:
+ * - Event creation wizard
+ * - Commerce checkout steps
+ * - User onboarding flows
+ *
+ * Uses Bootstrap 5 grid and utility classes.
+ *
+ * Variables:
+ * - wizard_nav: (optional) Navigation markup to inject
+ * - wizard_content: (required) Main content area (form fields, etc.)
+ * - wizard_actions: (optional) Action buttons (Back/Next/Submit)
+ * - wizard_progress: (optional) Progress indicator markup
+ * - wizard_title: (optional) Wizard title/heading
+ * - wizard_class: (optional) Additional CSS classes for root element
+ * - wizard_nav_title: (optional) Title for the navigation sidebar
+ * - wizard_actions_sticky: (optional) Enable sticky actions on mobile
+ */
+#}
+
+<div class="mel-wizard{{ wizard_class ? ' ' ~ wizard_class }}">
+  {% if wizard_title %}
+    <h1 class="mel-wizard__title visually-hidden">{{ wizard_title }}</h1>
+  {% endif %}
+
+  {% if wizard_progress %}
+    <div class="mel-wizard__progress mb-4">
+      {{ wizard_progress }}
+    </div>
+  {% endif %}
+
+  {# Bootstrap 5 grid: sidebar (left) + content (right) #}
+  <div class="mel-wizard__layout row g-4">
+    {# Left: Step Navigation Sidebar #}
+    {% if wizard_nav %}
+      <nav class="mel-wizard__nav col-12 col-lg-3" aria-label="{{ 'Wizard steps'|t }}">
+        <div class="card mel-wizard__nav-card">
+          <div class="card-body">
+            {% if wizard_nav_title %}
+              <div class="mel-wizard__nav-title h5 mb-3">{{ wizard_nav_title }}</div>
+            {% endif %}
+            {{ wizard_nav }}
+          </div>
+        </div>
+      </nav>
+    {% endif %}
+
+    {# Right: Step Content Panel #}
+    <main class="mel-wizard__content col-12{{ wizard_nav ? ' col-lg-9' : '' }}" role="main">
+      {{ wizard_content }}
+    </main>
+  </div>
+
+  {# Actions (Back/Next/Submit buttons) - Bootstrap 5 button group #}
+  {% if wizard_actions %}
+    <div class="mel-wizard__actions{{ wizard_actions_sticky ? ' mel-wizard__actions--sticky' : '' }} mt-4">
+      <div class="d-flex gap-3 flex-wrap">
+        {{ wizard_actions }}
+      </div>
+    </div>
+  {% endif %}
+</div>

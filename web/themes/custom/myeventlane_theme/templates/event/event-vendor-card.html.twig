@@ -1,0 +1,18 @@
+{#
+  Vendor card for event pages.
+  Shows vendor name and logo, links to public vendor profile.
+#}
+
+{% if vendor %}
+  <div class="event-vendor-card">
+    <h3 class="event-vendor-card__title">{{ 'Organised by'|t }}</h3>
+    <a href="{{ vendor_url }}" class="event-vendor-card__link">
+      {% if vendor_logo %}
+        <div class="event-vendor-card__logo">
+          {{ vendor_logo }}
+        </div>
+      {% endif %}
+      <div class="event-vendor-card__name">{{ vendor_name }}</div>
+    </a>
+  </div>
+{% endif %}

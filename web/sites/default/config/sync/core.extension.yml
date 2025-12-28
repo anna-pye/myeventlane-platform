@@ -141,4 +141,6 @@ theme:
   myeventlane_theme: 0
   myeventlane_vendor_theme: 0
   myeventlane_admin: 0
+  radix: 0
+  myeventlane_radix: 0
 profile: standard

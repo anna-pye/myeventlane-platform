@@ -74,6 +74,10 @@
 @use 'components/home-hero';
 @use 'components/event-grid';
 @use 'components/event-card';
+@use 'components/event-card-poster';
+@use 'components/event-card-compact';
+@use 'components/vibe-mixer';
+@use 'components/featured-carousel';
 @use 'components/event-page';
 @use 'components/event-full';
 @use 'components/event-node';
@@ -83,6 +87,7 @@
 @use 'components/rsvp';
 @use 'components/cart';
 @use 'components/checkout';
+@use 'components/search-form';
 @use 'components/footer';
 @use 'components/vendor-detail';
 @use 'components/feature-block';
@@ -90,6 +95,7 @@
 @use 'components/wizard';
 @use 'components/ticket-types';
 @use 'components/diagnostics';
+@use 'components/vendor-profile';
 
 // ---------------------------------------------------------------------------
 // 6. Pages
@@ -97,6 +103,7 @@
 // Page-specific styles.
 
 @use 'pages/front';
+@use 'pages/homepage' as homepage-pages;
 @use 'pages/event';
 @use 'pages/event-form';
 @use 'pages/dashboard';

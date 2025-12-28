@@ -1,0 +1,80 @@
+{#
+/**
+ * @file
+ * Ticket Row Single Directory Component (SDC).
+ *
+ * Displays a ticket type in a table row format for checkout/cart.
+ *
+ * Props:
+ * - name: Ticket name
+ * - description: Optional description
+ * - price: Price object
+ * - available: Available tickets count
+ * - total: Total ticket capacity
+ * - sold_out: Boolean for sold out state
+ * - required: Boolean for required tickets
+ */
+#}
+
+{%
+  set classes = [
+    'mel-ticket-row',
+    sold_out ? 'mel-ticket-row--sold-out' : '',
+    required ? 'mel-ticket-row--required' : '',
+  ]
+%}
+
+<tr{{ attributes.addClass(classes) }}>
+  {# Ticket Name & Description #}
+  <td class="mel-ticket-row__info">
+    <div class="fw-semibold mb-1">{{ name }}</div>
+    {% if description %}
+      <div class="text-muted small">{{ description }}</div>
+    {% endif %}
+    
+    {# Availability Badge #}
+    {% if sold_out %}
+      <span class="badge bg-danger mt-2">{{ 'Sold Out'|t }}</span>
+    {% elseif available is not null %}
+      <span class="badge bg-warning text-dark mt-2">
+        {{ 'Only @count left'|t({'@count': available}) }}
+      </span>
+    {% endif %}
+  </td>
+
+  {# Price #}
+  <td class="mel-ticket-row__price text-end">
+    {% if price.formatted %}
+      <div class="fw-bold">{{ price.formatted }}</div>
+    {% else %}
+      <div class="fw-bold text-muted">{{ 'Free'|t }}</div>
+    {% endif %}
+  </td>
+
+  {# Quantity Selector #}
+  <td class="mel-ticket-row__quantity">
+    {% if sold_out %}
+      <span class="text-muted">{{ 'Sold Out'|t }}</span>
+    {% else %}
+      {# Quantity input would be rendered by form system #}
+      <div class="input-group" style="max-width: 120px;">
+        <button class="btn btn-outline-secondary" type="button" aria-label="{{ 'Decrease quantity'|t }}">-</button>
+        <input 
+          type="number" 
+          class="form-control text-center" 
+          value="0" 
+          min="0" 
+          max="{{ available|default(999) }}"
+          aria-label="{{ 'Quantity'|t }}"
+        />
+        <button class="btn btn-outline-secondary" type="button" aria-label="{{ 'Increase quantity'|t }}">+</button>
+      </div>
+    {% endif %}
+  </td>
+
+  {# Subtotal #}
+  <td class="mel-ticket-row__subtotal text-end">
+    <div class="fw-semibold">$0.00</div>
+    <div class="text-muted small">{{ 'Subtotal'|t }}</div>
+  </td>
+</tr>

@@ -82,3 +82,21 @@ services:
       - '@datetime.time'
       - '@myeventlane_core.category_color'
       - '@config.factory'
+
+  myeventlane_core.homepage_location:
+    class: Drupal\myeventlane_core\Service\HomepageLocationService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+
+  myeventlane_core.homepage_popularity:
+    class: Drupal\myeventlane_core\Service\HomepagePopularityService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+
+  myeventlane_core.homepage_organiser:
+    class: Drupal\myeventlane_core\Service\HomepageOrganiserService
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.data'

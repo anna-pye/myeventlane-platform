@@ -86,6 +86,44 @@ function myeventlane_vendor_entity_insert(EntityInterface $entity): void {
  * Implements hook_form_alter().
  */
 function myeventlane_vendor_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+  // Fix form action URLs on vendor domain - ensure they're at root level, not under /vendor/.
+  if (\Drupal::hasService('myeventlane_core.domain_detector')) {
+    $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
+    if ($domain_detector->isVendorDomain()) {
+      // CRITICAL: Override form action URL generation by setting it to use root path.
+      // Drupal's FormBuilder generates action URLs based on current request path.
+      // We need to force it to use root-level path for form action tokens.
+      // Setting #action to '/' ensures FormBuilder generates form_action_ tokens at root level.
+      $form['#action'] = '/';
+      
+      // Also fix if already set incorrectly (defensive check).
+      if (isset($form['#action']) && is_string($form['#action']) && str_contains($form['#action'], '/vendor/form_action_')) {
+        $form['#action'] = str_replace('/vendor/form_action_', '/form_action_', $form['#action']);
+      }
+      
+      // Add pre_render callback to fix form action URL before rendering.
+      // This runs after Drupal generates the form action URL but before output.
+      // Use a trusted callback class to satisfy Drupal's security requirements.
+      if (!isset($form['#pre_render'])) {
+        $form['#pre_render'] = [];
+      }
+      array_unshift($form['#pre_render'], [
+        \Drupal\myeventlane_vendor\Form\FormActionUrlFixer::class,
+        'fixFormActionUrl',
+      ]);
+      
+      // Attach JavaScript to fix form action URLs client-side (runs after form is rendered).
+      // This is a fallback in case server-side fixes don't work.
+      if (!isset($form['#attached'])) {
+        $form['#attached'] = [];
+      }
+      if (!isset($form['#attached']['library'])) {
+        $form['#attached']['library'] = [];
+      }
+      $form['#attached']['library'][] = 'myeventlane_vendor/fix_form_action';
+    }
+  }
+
   // Add message to login form if coming from create-event.
   if ($form_id === 'user_login_form') {
     $request = \Drupal::request();

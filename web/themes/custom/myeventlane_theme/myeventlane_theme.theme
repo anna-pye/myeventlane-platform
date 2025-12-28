@@ -33,6 +33,16 @@ function myeventlane_theme_theme(): array {
       ],
       'template' => 'components/event-type-pill',
     ],
+    'entity__myeventlane_vendor__full' => [
+      'variables' => [
+        'entity' => NULL,
+        'content' => [],
+        'attributes' => NULL,
+        'title_attributes' => NULL,
+        'vendor_events' => NULL,
+      ],
+      'template' => 'entity--myeventlane-vendor--full',
+    ],
   ];
 }
 
@@ -679,6 +689,21 @@ function _myeventlane_theme_manifest_css(): ?string {
 
 
 /**
+ * Implements hook_entity_view_alter().
+ *
+ * Remove name field from vendor entity build for public profile.
+ */
+function myeventlane_theme_entity_view_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display): void {
+  // Only process vendor entities in 'full' view mode (public profile).
+  if ($entity->getEntityTypeId() === 'myeventlane_vendor' && ($build['#view_mode'] ?? 'default') === 'full') {
+    // Remove name field from build - it's rendered in our template.
+    if (isset($build['name'])) {
+      unset($build['name']);
+    }
+  }
+}
+
+/**
  * Implements hook_node_view_alter().
  *
  * Attaches libraries and modifies build for event nodes.
@@ -755,23 +780,36 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     // Set card variables according to Theme + Preprocess Contract.
     // URL (for card link).
     try {
-      $variables['url'] = $node->toUrl()->toString();
+      $variables['card_url'] = $node->toUrl()->toString();
+      $variables['url'] = $variables['card_url'];
     }
     catch (\Exception $e) {
+      $variables['card_url'] = '#';
       $variables['url'] = '#';
     }
     
     // Title.
     $variables['card_title'] = (string) $node->label();
     
-    // Image URL.
+    // Image URL with image style.
     $variables['card_image_url'] = NULL;
+    $variables['card_image_style'] = 'medium';
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
-      $image_file = $node->get('field_event_image')->entity;
+      $image_field = $node->get('field_event_image');
+      $image_file = $image_field->entity;
       if ($image_file) {
         try {
-          $file_url_generator = \Drupal::service('file_url_generator');
-          $variables['card_image_url'] = $file_url_generator->generateString($image_file->getFileUri());
+          $image_style = \Drupal::entityTypeManager()->getStorage('image_style')->load('medium');
+          if ($image_style) {
+            $variables['card_image_url'] = $image_style->buildUrl($image_file->getFileUri());
+            $variables['card_image_alt'] = $image_field->alt ?: $variables['card_title'];
+          }
+          else {
+            // Fallback to direct file URL if style doesn't exist.
+            $file_url_generator = \Drupal::service('file_url_generator');
+            $variables['card_image_url'] = $file_url_generator->generateString($image_file->getFileUri());
+            $variables['card_image_alt'] = $image_field->alt ?: $variables['card_title'];
+          }
         }
         catch (\Exception $e) {
           // Image unavailable.
@@ -779,18 +817,40 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       }
     }
     
-    // Date.
-    $variables['card_date'] = NULL;
+    // Date components: day, month, time range.
+    $variables['card_day'] = NULL;
+    $variables['card_month'] = NULL;
+    $variables['card_time_range'] = NULL;
     if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
       $start_value = $node->get('field_event_start')->value;
       $start_timestamp = strtotime($start_value);
       if ($start_timestamp) {
         $date_formatter = \Drupal::service('date.formatter');
-        $variables['card_date'] = $date_formatter->format($start_timestamp, 'custom', 'M j, Y');
+        
+        // Day and month for badge.
+        $variables['card_day'] = (string) date('j', $start_timestamp);
+        $variables['card_month'] = (string) date('M', $start_timestamp);
+        
+        // Time range.
+        $time_format = $date_formatter->format($start_timestamp, 'custom', 'g:i A');
+        if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+          $end_value = $node->get('field_event_end')->value;
+          $end_timestamp = strtotime($end_value);
+          if ($end_timestamp) {
+            $end_time = $date_formatter->format($end_timestamp, 'custom', 'g:i A');
+            $variables['card_time_range'] = $time_format . ' - ' . $end_time;
+          }
+          else {
+            $variables['card_time_range'] = $time_format;
+          }
+        }
+        else {
+          $variables['card_time_range'] = $time_format;
+        }
       }
     }
     
-    // Location.
+    // Location (venue name preferred).
     $variables['card_location'] = NULL;
     if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
       $variables['card_location'] = (string) $node->get('field_venue_name')->value;
@@ -803,16 +863,53 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       }
     }
     
-    // Badge (optional).
-    $variables['card_badge'] = NULL;
+    // Category pill.
+    $variables['card_category'] = NULL;
+    if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
+      $category_term = $node->get('field_category')->entity;
+      if ($category_term) {
+        $variables['card_category'] = [
+          'label' => $category_term->label(),
+          'url' => $category_term->toUrl()->toString(),
+        ];
+      }
+    }
+    
+    // Event type and ticket/RSVP pills.
     $event_type = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
       ? (string) $node->get('field_event_type')->value
       : 'rsvp';
-    if (in_array($event_type, ['paid', 'both'], TRUE)) {
-      $variables['card_badge'] = t('Tickets');
+    
+    // Determine card_type for template.
+    if ($event_type === 'both') {
+      $variables['card_type'] = 'both';
+      $variables['card_price_label'] = t('RSVP + Tickets');
+    }
+    elseif ($event_type === 'paid') {
+      $variables['card_type'] = 'paid';
+      $variables['card_price_label'] = t('Tickets');
     }
     elseif ($event_type === 'rsvp') {
-      $variables['card_badge'] = t('RSVP');
+      $variables['card_type'] = 'rsvp';
+      $variables['card_price_label'] = t('Free RSVP');
+    }
+    else {
+      $variables['card_type'] = 'none';
+      $variables['card_price_label'] = t('Details');
+    }
+    
+    // Accessibility indicators.
+    $variables['card_accessibility'] = NULL;
+    if ($node->hasField('field_accessibility') && !$node->get('field_accessibility')->isEmpty()) {
+      $accessibility_terms = [];
+      foreach ($node->get('field_accessibility') as $item) {
+        if ($item->entity) {
+          $accessibility_terms[] = $item->entity->label();
+        }
+      }
+      if (!empty($accessibility_terms)) {
+        $variables['card_accessibility'] = $accessibility_terms;
+      }
     }
     
     return;
@@ -1088,7 +1185,25 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
   
   if ($vendor_entity) {
     $vendor_name = (string) $vendor_entity->label();
-    // Get vendor logo if available.
+    // Get vendor logo render array if available.
+    $vendor_logo_render = NULL;
+    if ($vendor_entity->hasField('field_vendor_logo') && !$vendor_entity->get('field_vendor_logo')->isEmpty()) {
+      $view_builder = \Drupal::entityTypeManager()->getViewBuilder('myeventlane_vendor');
+      $logo_display = $view_builder->viewField($vendor_entity->get('field_vendor_logo'), 'default');
+      if ($logo_display) {
+        $vendor_logo_render = $logo_display;
+      }
+    }
+    // Fallback to field_logo_image if field_vendor_logo is empty.
+    if (!$vendor_logo_render && $vendor_entity->hasField('field_logo_image') && !$vendor_entity->get('field_logo_image')->isEmpty()) {
+      $view_builder = \Drupal::entityTypeManager()->getViewBuilder('myeventlane_vendor');
+      $logo_display = $view_builder->viewField($vendor_entity->get('field_logo_image'), 'default');
+      if ($logo_display) {
+        $vendor_logo_render = $logo_display;
+      }
+    }
+    // Legacy: also set logo URL for backward compatibility.
+    $vendor_logo = NULL;
     if ($vendor_entity->hasField('field_vendor_logo') && !$vendor_entity->get('field_vendor_logo')->isEmpty()) {
       $logo_file = $vendor_entity->get('field_vendor_logo')->entity;
       if ($logo_file) {
@@ -1100,11 +1215,17 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         }
       }
     }
+    // Vendor URL for linking to public profile.
+    $vendor_url = $vendor_entity->toUrl('canonical')->toString();
   }
   
   $variables['mel_vendor'] = trim($vendor_name);
   $variables['mel_vendor_entity'] = $vendor_entity;
   $variables['mel_vendor_logo'] = $vendor_logo;
+  $variables['vendor'] = $vendor_entity;
+  $variables['vendor_name'] = $vendor_name ?? '';
+  $variables['vendor_logo'] = $vendor_logo_render ?? NULL;
+  $variables['vendor_url'] = $vendor_url ?? NULL;
 
   // Category pills.
   $cats = [];
@@ -1807,21 +1928,78 @@ function myeventlane_theme_preprocess_user(array &$variables): void {
 /**
  * Implements hook_preprocess_entity().
  *
- * Adds classes and context for vendor entity forms.
+ * Adds classes and context for vendor entity forms and views.
  */
 function myeventlane_theme_preprocess_entity(array &$variables): void {
-  $entity = $variables['entity'];
-  $view_mode = $variables['view_mode'] ?? 'full';
+  $entity = $variables['entity'] ?? NULL;
+  $view_mode = $variables['view_mode'] ?? 'default';
 
-  // Only process form view modes.
-  if ($view_mode !== 'form' && $view_mode !== 'default') {
-    return;
-  }
-
-  // Check if this is a vendor entity form.
+  // Process vendor entity views (public profile).
   if ($entity && $entity->getEntityTypeId() === 'myeventlane_vendor') {
-    $variables['attributes']['class'][] = 'mel-entity-form';
-    $variables['attributes']['class'][] = 'mel-entity-form--vendor';
+    if ($view_mode === 'full') {
+      // Ensure entity and content variables are available for template.
+      $variables['entity'] = $entity;
+      
+      // Extract content from elements if not already set.
+      if (!isset($variables['content']) && isset($variables['elements'])) {
+        $variables['content'] = $variables['elements'];
+      }
+      
+      // Hide the name field from content since we render it in the template header.
+      if (isset($variables['content']['name'])) {
+        unset($variables['content']['name']);
+      }
+      
+      // Extract vendor_events from build if it exists.
+      if (isset($variables['elements']['#vendor_events'])) {
+        $variables['vendor_events'] = $variables['elements']['#vendor_events'];
+      }
+      elseif (isset($variables['elements']['vendor_events'])) {
+        $variables['vendor_events'] = $variables['elements']['vendor_events'];
+      }
+      // Also check in content array.
+      elseif (isset($variables['content']['vendor_events'])) {
+        $variables['vendor_events'] = $variables['content']['vendor_events'];
+      }
+      
+      // Ensure title_attributes is set.
+      if (!isset($variables['title_attributes'])) {
+        $variables['title_attributes'] = new \Drupal\Core\Template\Attribute();
+      }
+      
+      // Ensure attributes is set.
+      if (!isset($variables['attributes'])) {
+        $variables['attributes'] = new \Drupal\Core\Template\Attribute();
+      }
+    }
+    // Also handle form view modes.
+    elseif ($view_mode === 'form' || $view_mode === 'default') {
+      if (!isset($variables['attributes'])) {
+        $variables['attributes'] = new \Drupal\Core\Template\Attribute();
+      }
+      if (!isset($variables['attributes']['class'])) {
+        $variables['attributes']['class'] = [];
+      }
+      $variables['attributes']['class'][] = 'mel-entity-form';
+      $variables['attributes']['class'][] = 'mel-entity-form--vendor';
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_entity_alter().
+ *
+ * Ensures vendor entity uses theme template for public profile.
+ */
+function myeventlane_theme_theme_suggestions_entity_alter(array &$suggestions, array $variables): void {
+  $entity = $variables['elements']['#entity'] ?? $variables['entity'] ?? NULL;
+  $view_mode = $variables['elements']['#view_mode'] ?? $variables['view_mode'] ?? 'default';
+
+  if ($entity && $entity->getEntityTypeId() === 'myeventlane_vendor' && $view_mode === 'full') {
+    // Add theme template suggestion for vendor full view.
+    // This ensures entity--myeventlane-vendor--full.html.twig is used.
+    $suggestions[] = 'entity__myeventlane_vendor__full';
+    $suggestions[] = 'entity__myeventlane_vendor__myeventlane_vendor__full';
   }
 }
 
@@ -2781,4 +2959,29 @@ function _myeventlane_theme_event_calendar_links(NodeInterface $node): array {
       'contexts' => ['url.path', 'languages:language_interface'],
     ],
   ];
+}
+
+/**
+ * Implements hook_preprocess_html().
+ *
+ * Adds body class for A/B layout toggle (Sticker Wall vs Cleaner Grid).
+ * Query param: ?mel_layout=clean adds mel-layout--clean class.
+ */
+/**
+ * Implements hook_preprocess_html().
+ *
+ * Adds an A/B layout class to <body>.
+ * ?mel_layout=clean => mel-layout--clean
+ * Otherwise => mel-layout--sticker
+ */
+function myeventlane_theme_preprocess_html(array &$variables): void {
+  $request = \Drupal::request();
+  $layout = (string) $request->query->get('mel_layout');
+
+  if ($layout === 'clean') {
+    $variables['attributes']['class'][] = 'mel-layout--clean';
+  }
+  else {
+    $variables['attributes']['class'][] = 'mel-layout--sticker';
+  }
 }

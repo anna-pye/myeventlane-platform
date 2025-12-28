@@ -1,5 +1,3 @@
-_core:
-  default_config_hash: B3iTPTzPn5T3E33lgemf25gtlfl1vwk2UnIpdwbDOrE
 langcode: en
 status: true
 id: myeventlane_vendor
@@ -37,4 +35,5 @@ links:
   edit-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/edit'
   delete-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/delete'
   collection: /admin/structure/myeventlane/vendor
+admin_permission: 'administer myeventlane vendor'
 field_ui_base_route: myeventlane_vendor.settings

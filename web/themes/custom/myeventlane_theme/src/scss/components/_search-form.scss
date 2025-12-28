@@ -1,0 +1,91 @@
+// ==========================================================================
+// Search Form Component (MEL v2)
+// ==========================================================================
+// Label-maker style search form for homepage.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Search Form
+// ---------------------------------------------------------------------------
+
+.mel-search-form {
+  width: 100%;
+}
+
+.mel-search-form__wrapper {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border: 2px solid var(--mel-primary, #f26d5b);
+  border-radius: var(--mel-radius-chip, 999px);
+  background: var(--mel-card, #ffffff);
+  padding: 0 spacing.mel-space(3);
+  transition: box-shadow 0.15s ease;
+
+  @include breakpoints.mel-break(md, max) {
+    height: 48px;
+    padding: 0 spacing.mel-space(2);
+  }
+
+  &:focus-within {
+    box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.2);
+  }
+}
+
+.mel-search-form__input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: typography.mel-font-size(base);
+  font-family: typography.$mel-font-family;
+  color: var(--mel-ink, #293241);
+  padding: 0;
+  outline: none;
+
+  @include breakpoints.mel-break(md, max) {
+    font-size: typography.mel-font-size(sm);
+  }
+
+  &::placeholder {
+    color: var(--mel-muted, #6b7280);
+  }
+}
+
+.mel-search-form__submit {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: spacing.mel-space(2);
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--mel-card, #ffffff),
+                0 0 0 5px var(--mel-secondary, #6e7ef2);
+    border-radius: 50%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}

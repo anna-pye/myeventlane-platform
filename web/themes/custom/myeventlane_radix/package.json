@@ -1,0 +1,20 @@
+{
+  "name": "myeventlane_radix",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MyEventLane v2 theme built on Radix (Bootstrap 5)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.33",
+    "sass": "^1.77.0",
+    "sass-embedded": "^1.93.3",
+    "vite": "^5.2.0",
+    "vite-plugin-purgecss": "^0.2.0"
+  }
+}

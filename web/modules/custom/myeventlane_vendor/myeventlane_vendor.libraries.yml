@@ -69,3 +69,9 @@ simple_tabs:
   dependencies:
     - core/drupal
 
+fix_form_action:
+  version: 1.x
+  js:
+    js/fix-form-action.js: {}
+  dependencies:
+    - core/drupal

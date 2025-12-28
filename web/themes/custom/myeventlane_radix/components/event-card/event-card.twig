@@ -1,0 +1,97 @@
+{#
+/**
+ * @file
+ * Event Card Single Directory Component (SDC).
+ *
+ * Displays an event in a Bootstrap 5 card format.
+ *
+ * Props:
+ * - title: Event title
+ * - url: Link to event page
+ * - image: Image object with src and alt
+ * - date: Formatted date string
+ * - location: Location string
+ * - price: Price object with amount, currency, formatted
+ * - event_type: Event type (RSVP, Paid, Both, External)
+ * - featured: Boolean for featured styling
+ */
+#}
+
+{%
+  set classes = [
+    'card',
+    'mel-event-card',
+    'h-100',
+    featured ? 'mel-event-card--featured' : '',
+  ]
+%}
+
+<article{{ attributes.addClass(classes) }}>
+  {# Event Image #}
+  {% if image.src %}
+    <a href="{{ url }}" class="mel-event-card__image-link">
+      <img 
+        src="{{ image.src }}" 
+        alt="{{ image.alt|default('') }}" 
+        class="card-img-top mel-event-card__image"
+        loading="lazy"
+      />
+    </a>
+  {% endif %}
+
+  <div class="card-body d-flex flex-column">
+    {# Event Type Badge #}
+    {% if event_type %}
+      <div class="mb-2">
+        <span class="badge bg-primary mel-event-card__type">
+          {{ event_type }}
+        </span>
+      </div>
+    {% endif %}
+
+    {# Event Title #}
+    <h3 class="card-title h5 mb-2">
+      <a href="{{ url }}" class="text-decoration-none text-dark">
+        {{ title }}
+      </a>
+    </h3>
+
+    {# Event Meta (Date, Location) #}
+    <div class="mel-event-card__meta mb-3">
+      {% if date %}
+        <div class="d-flex align-items-center mb-1">
+          <i class="bi bi-calendar3 me-2" aria-hidden="true"></i>
+          <span class="text-muted small">{{ date }}</span>
+        </div>
+      {% endif %}
+      
+      {% if location %}
+        <div class="d-flex align-items-center">
+          <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>
+          <span class="text-muted small">{{ location }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    {# Price Display #}
+    {% if price.formatted %}
+      <div class="mel-event-card__price mb-3">
+        <span class="fw-bold text-primary">{{ price.formatted }}</span>
+      </div>
+    {% endif %}
+
+    {# Card Body Slot (for additional content) #}
+    {% if body %}
+      <div class="mel-event-card__body mb-3">
+        {{ body }}
+      </div>
+    {% endif %}
+
+    {# CTA Button #}
+    <div class="mt-auto">
+      <a href="{{ url }}" class="btn btn-primary w-100">
+        {{ 'View Event'|t }}
+      </a>
+    </div>
+  </div>
+</article>

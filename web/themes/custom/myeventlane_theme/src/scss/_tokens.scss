@@ -1,36 +1,44 @@
-// ==========================================================================
-// MyEventLane Design Tokens (CSS Custom Properties)
-// ==========================================================================
-// Single source of truth for design tokens as CSS variables.
-// These are available globally via :root and can be overridden per component.
-
 :root {
-  // Background & Surface
-  --mel-bg: #fef5ec;
-  --mel-card: #ffffff;
-  --mel-ink: #293241;
-  --mel-muted: #6b7280;
+  --mel-paper: #fff9f4;
+  --mel-ink: #2b2b2b;
+  --mel-muted: rgba(43, 43, 43, 0.7);
 
-  // Brand Colors
-  --mel-primary: #f26d5b;
-  --mel-secondary: #6e7ef2;
-  --mel-accent: #f5c04c;
+  --mel-peach: #ffd6c9;
+  --mel-lilac: #e6d9ff;
+  --mel-mint: #dff5ea;
+  --mel-sky: #d9f1ff;
+  --mel-butter: #fff1bf;
 
-  // Border Radius
-  --mel-radius-lg: 18px;
-  --mel-radius-md: 12px;
+  --mel-radius-2: 10px;
+  --mel-radius-3: 14px;
+  --mel-radius-pill: 999px;
 
-  // Shadows
-  --mel-shadow-soft: 0 10px 30px rgba(41, 50, 65, 0.08);
-
-  // Spacing Scale
   --mel-space-1: 6px;
   --mel-space-2: 10px;
   --mel-space-3: 14px;
   --mel-space-4: 18px;
-  --mel-space-5: 24px;
-  --mel-space-6: 32px;
+  --mel-space-5: 26px;
+  --mel-space-6: 34px;
 
-  // Layout
-  --mel-max: 1100px;
+  --mel-shadow-rest: 0 6px 18px rgba(0,0,0,.08);
+  --mel-shadow-hover: 0 12px 26px rgba(0,0,0,.12);
+
+  --mel-border: 2px solid rgba(43, 43, 43, 0.12);
+}
+
+.mel-container {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 28px);
+}
+
+.mel-muted { color: var(--mel-muted); }
+.mel-link { color: var(--mel-ink); text-decoration: underline; text-underline-offset: 3px; }
+
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
 }

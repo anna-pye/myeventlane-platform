@@ -14,7 +14,7 @@ bundle: online
 label: 'Stripe Onboarding URL'
 description: 'The Stripe Connect onboarding URL (admin-only, not shown in forms).'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:

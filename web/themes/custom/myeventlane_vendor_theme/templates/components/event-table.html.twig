@@ -69,7 +69,9 @@
                   </svg>
                   {{ 'Manage Attendees'|t }}
                 </a>
-                <a href="/event/{{ event.id }}/boost" class="mel-actions-menu__item">
+                {# Only show boost link if user has access - access is checked by route #}
+                {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
+                <a href="{{ boost_url }}" class="mel-actions-menu__item">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                   </svg>

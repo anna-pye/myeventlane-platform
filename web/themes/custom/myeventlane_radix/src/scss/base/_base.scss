@@ -1,0 +1,105 @@
+// ============================================================================
+// MyEventLane Radix - Base Styles
+// ============================================================================
+// Base element styles, resets, and global defaults.
+// These complement Bootstrap 5's base styles from Radix.
+//
+// NOTE: Bootstrap's reset and base styles are already included via Radix.
+// This file adds MyEventLane-specific base overrides and enhancements.
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Global Base Overrides
+// ============================================================================
+
+// Ensure body uses MyEventLane background color
+body {
+  background-color: $mel-color-bg;
+  color: $mel-color-text;
+}
+
+// ============================================================================
+// Typography Enhancements
+// ============================================================================
+
+// Headings can use MyEventLane type scale if needed
+// Bootstrap's heading styles are already applied via Radix
+h1, h2, h3, h4, h5, h6 {
+  color: $mel-color-text;
+  font-weight: $mel-font-bold;
+}
+
+// ============================================================================
+// Links
+// ============================================================================
+
+a {
+  // Bootstrap handles link colors, but we can enhance focus states
+  @include mel-focus-visible;
+}
+
+// ============================================================================
+// Forms (Base)
+// ============================================================================
+// Detailed form styling should go in components/_forms.scss
+// This file only contains essential base form overrides.
+
+// Ensure form controls use MyEventLane focus ring
+.form-control,
+.form-select,
+.form-check-input {
+  @include mel-focus-visible;
+}
+
+// ============================================================================
+// Buttons (Base)
+// ============================================================================
+// Detailed button styling should go in components/_buttons.scss
+// This file only contains essential base button overrides.
+
+.btn {
+  @include mel-focus-visible;
+}
+
+// ============================================================================
+// Accessibility Enhancements
+// ============================================================================
+
+// Skip link (if not already provided by Radix)
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: $mel-color-primary;
+  color: $mel-color-on-primary;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// ============================================================================
+// Utility Classes (MyEventLane-specific)
+// ============================================================================
+// Bootstrap utilities are available via Radix.
+// Add MyEventLane-specific utilities here if needed.
+
+.mel-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 mel-space(2);
+}
+
+// ============================================================================
+// Print Styles (Placeholder)
+// ============================================================================
+// TODO: Add print-specific styles if needed
+
+@media print {
+  // Print styles here
+}

@@ -1,0 +1,220 @@
+/* ================================
+   Featured Events Carousel
+   ================================ */
+
+@use '../tokens/colors';
+@use '../tokens/spacing' as space-tokens;
+@use '../tokens/breakpoints';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+
+// ---------------------------------------------------------------------------
+// Carousel Container
+// ---------------------------------------------------------------------------
+
+.mel-featured-carousel {
+  position: relative;
+  width: 100%;
+  margin-bottom: space-tokens.mel-space(6);
+
+  &__container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  // Track (scrollable container)
+  &__track {
+    display: flex;
+    gap: space-tokens.mel-space(4);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 space-tokens.mel-space(4);
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: space-tokens.mel-space(2);
+
+    // Hide scrollbar but keep functionality
+    scrollbar-width: thin;
+    scrollbar-color: colors.$mel-color-border colors.$mel-color-surface;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: colors.$mel-color-surface;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: colors.$mel-color-border;
+      border-radius: 3px;
+
+      &:hover {
+        background: colors.$mel-color-border-strong;
+      }
+    }
+
+    // Respect reduced motion
+    @media (prefers-reduced-motion: reduce) {
+      scroll-behavior: auto;
+    }
+  }
+
+  // Individual slide
+  &__slide {
+    flex: 0 0 auto;
+    width: 80vw;
+    max-width: 420px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+
+    @include breakpoints.mel-break(md) {
+      width: 360px;
+    }
+
+    // Ensure card fills slide
+    .mel-event-card {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  // Controls (desktop only)
+  &__controls {
+    display: none;
+
+    @include breakpoints.mel-break(md) {
+      display: flex;
+      justify-content: space-between;
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 2;
+    }
+  }
+
+  // Navigation buttons
+  &__button {
+    display: none;
+
+    @include breakpoints.mel-break(md) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border: 1px solid colors.$mel-color-border;
+      border-radius: radii.$mel-radius-full;
+      color: colors.$mel-color-text;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.2s ease;
+      box-shadow: shadows.$mel-shadow-sm;
+      font-size: 24px;
+      line-height: 1;
+      padding: 0;
+
+      &:hover {
+        background: colors.$mel-color-surface;
+        box-shadow: shadows.$mel-shadow-md;
+        transform: scale(1.05);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &:focus-visible {
+        outline: 2px solid colors.$mel-color-primary;
+        outline-offset: 2px;
+      }
+
+      // Respect reduced motion
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+        transform: none;
+
+        &:hover {
+          transform: none;
+        }
+
+        &:active {
+          transform: none;
+        }
+      }
+
+      &--prev {
+        margin-left: space-tokens.mel-space(2);
+      }
+
+      &--next {
+        margin-right: space-tokens.mel-space(2);
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section Header (Title Row)
+// ---------------------------------------------------------------------------
+
+.mel-featured-events {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: space-tokens.mel-space(4);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: colors.$mel-color-text;
+
+    @include breakpoints.mel-break(md) {
+      font-size: 1.75rem;
+    }
+  }
+
+  &__see-all {
+    display: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+    padding: space-tokens.mel-space(2) space-tokens.mel-space(3);
+    border-radius: radii.$mel-radius-md;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: colors.$mel-color-bg;
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid colors.$mel-color-primary;
+      outline-offset: 2px;
+    }
+
+    // Only show if route exists (handled in template)
+    &[href] {
+      display: inline-flex;
+      align-items: center;
+      gap: space-tokens.mel-space(1);
+    }
+  }
+
+  &__helper {
+    font-size: 0.875rem;
+    color: colors.$mel-color-text-muted;
+    margin-bottom: space-tokens.mel-space(5);
+  }
+}

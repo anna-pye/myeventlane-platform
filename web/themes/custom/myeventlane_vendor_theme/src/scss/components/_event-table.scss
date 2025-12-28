@@ -100,6 +100,39 @@
     color: var(--mel-color-text-secondary);
   }
 
+  &__rsvp-today {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #059669;
+    background: #d1fae5;
+    border-radius: 4px;
+  }
+
+  &__waitlist {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 12px;
+    color: var(--mel-color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  &__boost-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
   // Responsive
   @media (max-width: 768px) {
     thead {
@@ -115,17 +148,18 @@
 
       td {
         display: block;
-        padding: 4px 0;
+        padding: 8px 0;
         text-align: left !important;
 
         &:first-child {
-          padding-bottom: 8px;
+          padding-bottom: 12px;
         }
 
         &:last-child {
-          position: absolute;
-          top: 16px;
-          right: 16px;
+          position: static;
+          padding-top: 12px;
+          margin-top: 8px;
+          border-top: 1px solid var(--mel-color-border-light);
         }
 
         &::before {
@@ -136,8 +170,13 @@
           color: var(--mel-color-text-secondary);
           text-transform: uppercase;
           margin-right: 8px;
-          min-width: 70px;
+          min-width: 80px;
         }
+      }
+
+      .mel-events-table__actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
       }
     }
   }

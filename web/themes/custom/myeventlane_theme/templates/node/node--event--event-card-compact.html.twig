@@ -1,0 +1,56 @@
+{#
+  Event node in view mode: event_card_compact
+  Maps real Drupal fields to Compact Card component API.
+#}
+
+{% set url = url('entity.node.canonical', {'node': node.id}) %}
+{% set thumb = content.field_event_image is defined ? content.field_event_image : null %}
+
+{# Category: first category term #}
+{% set category_label = '' %}
+{% set category_color_class = '' %}
+{% if node.hasField('field_category') and not node.field_category.isEmpty %}
+  {% set first_category = node.field_category[0].entity %}
+  {% if first_category %}
+    {% set category_label = first_category.label %}
+    {% set category_color_class = 'mel-cat--' ~ category_label|lower|replace({' ': '-', '&': 'and', '+': ''}) %}
+  {% endif %}
+{% endif %}
+
+{# Date: short format #}
+{% set date_label = '' %}
+{% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+  {% set date_label = node.field_event_start.value|date('D') %}
+{% endif %}
+
+{# Price: from Commerce product or event type #}
+{% set price_label = '' %}
+{% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
+  {% set product = node.field_product_target.entity %}
+  {% if product %}
+    {% set default_variation = product.getDefaultVariation() %}
+    {% if default_variation and default_variation.hasField('price') %}
+      {% set price = default_variation.getPrice() %}
+      {% if price %}
+        {% set price_label = price|commerce_price_format %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+  {% set event_type = node.field_event_type.value %}
+  {% if event_type == 'rsvp' %}
+    {% set price_label = 'Free' %}
+  {% endif %}
+{% endif %}
+
+{# Build item data #}
+{% set item = {
+  url: url,
+  title: label,
+  date: date_label,
+  price: price_label,
+  category: category_label ? { label: category_label, color_class: category_color_class } : null,
+  thumb: thumb
+} %}
+
+{% include '@myeventlane_theme/components/event-card/event-card-compact.twig' with { item: item } only %}

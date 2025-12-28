@@ -4,7 +4,6 @@ status: true
 dependencies:
   module:
     - commerce_store
-    - myeventlane_vendor
 id: myeventlane_vendor.field_vendor_store
 field_name: field_vendor_store
 entity_type: myeventlane_vendor
@@ -14,7 +13,7 @@ settings:
 module: core
 locked: false
 cardinality: 1
-translatable: true
+translatable: false
 indexes: {  }
 persist_with_no_fields: false
 custom_storage: false

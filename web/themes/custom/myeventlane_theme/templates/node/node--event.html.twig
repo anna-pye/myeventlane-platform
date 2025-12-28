@@ -1,0 +1,159 @@
+{#
+  MEL v2 Event Full Page
+  Machine names confirmed:
+  - field_event_image
+  - field_category
+  - field_event_start
+  - field_location
+  - field_venue_name
+  - field_product_target (for tickets)
+  - body (for description)
+#}
+
+<article class="mel-event">
+  <header class="mel-event__hero">
+    <div class="mel-container mel-event__hero-inner">
+      <div class="mel-event__hero-grid">
+        <div class="mel-event__media">
+          {% if content.field_event_image is defined %}
+            <div class="mel-event__image">
+              {{ content.field_event_image }}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="mel-event__summary">
+          <h1 class="mel-event__title">{{ label }}</h1>
+
+          {% if content.field_category is defined %}
+            <div class="mel-event__categories">
+              {{ content.field_category }}
+            </div>
+          {% endif %}
+
+          <div class="mel-event__meta">
+            {% if content.field_event_start is defined %}
+              <div class="mel-meta-block">
+                <span class="mel-meta-label">When</span>
+                <span class="mel-meta-value">{{ content.field_event_start|render|striptags|trim }}</span>
+              </div>
+            {% endif %}
+
+            {% if content.field_venue_name is defined or content.field_location is defined %}
+              <div class="mel-meta-block">
+                <span class="mel-meta-label">Where</span>
+                <span class="mel-meta-value">
+                  {% if content.field_venue_name is defined %}
+                    {{ content.field_venue_name|render|striptags|trim }}
+                  {% elseif content.field_location is defined %}
+                    {{ content.field_location|render|striptags|trim }}
+                  {% endif %}
+                </span>
+              </div>
+            {% endif %}
+
+            {# Price from Commerce product or event type #}
+            {% set price_display = '' %}
+            {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
+              {% set product = node.field_product_target.entity %}
+              {% if product %}
+                {% set default_variation = product.getDefaultVariation() %}
+                {% if default_variation and default_variation.hasField('price') %}
+                  {% set price = default_variation.getPrice() %}
+                  {% if price %}
+                    {% set price_display = price|commerce_price_format %}
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+              {% set event_type = node.field_event_type.value %}
+              {% if event_type == 'rsvp' %}
+                {% set price_display = 'Free' %}
+              {% endif %}
+            {% endif %}
+            {% if price_display %}
+              <div class="mel-meta-block">
+                <span class="mel-meta-label">Price</span>
+                <span class="mel-meta-value">{{ price_display }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="mel-event__actions">
+            {# CTA based on event type #}
+            {% set cta_url = '#' %}
+            {% set cta_label = 'Get tickets' %}
+            {% if node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+              {% set event_type = node.field_event_type.value %}
+              {% if event_type == 'rsvp' %}
+                {% set cta_label = 'RSVP' %}
+                {# TODO: Add RSVP route #}
+              {% elseif event_type == 'both' %}
+                {% set cta_label = 'Get tickets' %}
+                {# TODO: Add ticket booking route #}
+              {% elseif event_type == 'external' and node.hasField('field_external_url') and not node.field_external_url.isEmpty %}
+                {% set cta_label = 'Book' %}
+                {% set external_url = node.field_external_url[0].url %}
+                {% set cta_url = external_url %}
+              {% endif %}
+            {% endif %}
+            {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
+              {# Use Commerce booking route if available #}
+              {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
+            {% endif %}
+            <a class="mel-btn mel-btn--primary mel-event__cta" href="{{ cta_url }}">{{ cta_label }}</a>
+            <a class="mel-btn mel-btn--ghost" href="#share">Share</a>
+          </div>
+        </div>
+
+        <aside class="mel-event__ticketbox" id="tickets">
+          <div class="mel-ticketbox">
+            <h2 class="mel-ticketbox__title">Tickets</h2>
+            <div class="mel-ticketbox__content">
+              {# If you have a ticket field/block, render it here. Otherwise ask. #}
+              {% if content.field_product_target is defined %}
+                {# Render ticket types or product info #}
+                {% if node.hasField('field_ticket_types') and not node.field_ticket_types.isEmpty %}
+                  {{ content.field_ticket_types }}
+                {% else %}
+                  <p class="mel-muted">Ticketing information will appear here.</p>
+                {% endif %}
+              {% else %}
+                <p class="mel-muted">Ticketing module integration not detected. Ask which field/block renders tickets.</p>
+              {% endif %}
+            </div>
+            <a class="mel-btn mel-btn--primary mel-ticketbox__buy" href="#tickets">Proceed</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </header>
+
+  <div class="mel-container mel-event__body">
+    <div class="mel-event__content">
+      <section class="mel-event__section">
+        <h2>About</h2>
+        {% if content.body is defined %}
+          {{ content.body }}
+        {% else %}
+          <p class="mel-muted">No description field found. Ask which field holds the description.</p>
+        {% endif %}
+      </section>
+
+      <section class="mel-event__section" id="share">
+        <h2>Share</h2>
+        <div class="mel-share">
+          <button class="mel-btn mel-btn--ghost" type="button">Copy link</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {# Sticky CTA for mobile #}
+  <div class="mel-sticky-cta" role="region" aria-label="Ticket actions">
+    <div class="mel-sticky-cta__inner">
+      <span class="mel-sticky-cta__title">{{ label }}</span>
+      <a class="mel-btn mel-btn--primary" href="#tickets">Tickets</a>
+    </div>
+  </div>
+</article>

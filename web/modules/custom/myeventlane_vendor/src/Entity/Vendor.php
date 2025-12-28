@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Entity;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -76,8 +77,57 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
     parent::preSave($storage);
 
     // Set the owner to the current user if not already set.
-    if ($this->getOwnerId() === NULL) {
-      $this->setOwnerId((int) \Drupal::currentUser()->id());
+    $ownerId = $this->getOwnerId();
+    if ($ownerId === NULL) {
+      $ownerId = (int) \Drupal::currentUser()->id();
+      $this->setOwnerId($ownerId);
+    }
+
+    // ENFORCE 1:1 RELATIONSHIP: One Drupal user → one Vendor entity.
+    // Prevent duplicate Vendor creation at storage level.
+    // This is a hard constraint: if a vendor already exists for this owner,
+    // throw an exception to prevent duplicate creation.
+    if ($this->isNew() && $ownerId > 0) {
+      $existingVendorIds = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $ownerId)
+        ->execute();
+
+      if (!empty($existingVendorIds)) {
+        // Remove this entity from the list if it's somehow in there.
+        $existingVendorIds = array_filter($existingVendorIds, function ($id) {
+          return $id !== $this->id();
+        });
+
+        if (!empty($existingVendorIds)) {
+          $logger = \Drupal::logger('myeventlane_vendor');
+          $logger->error('Attempted to create duplicate Vendor entity for user @uid. Existing vendor ID: @existing_id', [
+            '@uid' => $ownerId,
+            '@existing_id' => reset($existingVendorIds),
+          ]);
+          throw new \Drupal\Core\Entity\EntityStorageException(
+            'A vendor entity already exists for this user. Each user can only have one vendor entity.'
+          );
+        }
+      }
+    }
+
+    // Ensure field_vendor_users references are valid.
+    // The entity reference access check can fail if the current user doesn't have
+    // permission to view the referenced users, but the references themselves are valid.
+    if ($this->hasField('field_vendor_users') && !$this->get('field_vendor_users')->isEmpty()) {
+      $valid_users = [];
+      foreach ($this->get('field_vendor_users') as $item) {
+        if ($item->target_id) {
+          $user = \Drupal::entityTypeManager()->getStorage('user')->load($item->target_id);
+          // Only keep references to users that exist and are active.
+          if ($user && $user->isActive()) {
+            $valid_users[] = ['target_id' => $item->target_id];
+          }
+        }
+      }
+      // Reset the field with only valid users.
+      $this->set('field_vendor_users', $valid_users);
     }
   }
 

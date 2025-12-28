@@ -9,187 +9,125 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Boost / promotion status provider.
+ * Service for boost status information.
+ *
+ * Provides structured boost status data with eligibility checks.
  */
 final class BoostStatusService {
 
-  /**
-   * Constructs the service.
-   */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
   ) {}
 
   /**
-   * Returns current boost placements for an event.
+   * Gets boost statuses for an event.
    *
-   * @param \Drupal\node\NodeInterface|null $event
-   *   The event node, or NULL for all vendor events.
+   * REQUIRED by MetricsAggregator.
+   * Returns structured data with eligible, active, and reason keys.
+   *
+   * @param int $event_nid
+   *   The event node ID.
    *
    * @return array
-   *   Array of boost status items.
+   *   Array with keys:
+   *   - eligible: bool - Whether event is eligible for boosting
+   *   - active: bool - Whether boost is currently active
+   *   - reason: string|null - Reason if not eligible
+   *   - types: array - Boost types available
+   *   - expires: string|null - Expiration date if active
    */
-  public function getBoostStatuses(?NodeInterface $event = NULL): array {
-    if ($event === NULL) {
-      return $this->getAllActiveBoosts();
-    }
-
-    return $this->getEventBoostStatus($event);
-  }
-
-  /**
-   * Get boost status for a single event.
-   */
-  private function getEventBoostStatus(NodeInterface $event): array {
-    if ($event->bundle() !== 'event') {
-      return [];
-    }
-
-    $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
-    $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
-
-    if (!$promoted || !$expiresValue) {
-      return [];
+  public function getBoostStatuses(int $event_nid): array {
+    // Guard against invalid event ID.
+    if ($event_nid <= 0) {
+      return [
+        'eligible' => FALSE,
+        'active' => FALSE,
+        'reason' => 'missing_event',
+        'types' => [],
+        'expires' => NULL,
+      ];
     }
 
     try {
-      $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-      $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $event = $nodeStorage->load($event_nid);
 
-      if ($expires <= $now) {
+      if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
         return [
-          [
-            'label' => 'Homepage boost',
-            'status' => 'Expired',
-            'ends' => $expires->format('M j, Y'),
-            'event_id' => $event->id(),
-            'event_title' => $event->label(),
-          ],
+          'eligible' => FALSE,
+          'active' => FALSE,
+          'reason' => 'invalid_event',
+          'types' => [],
+          'expires' => NULL,
         ];
       }
 
-      $diff = $now->diff($expires);
-      $daysRemaining = $diff->days;
-
-      return [
-        [
-          'label' => 'Homepage boost',
-          'status' => 'Active',
-          'ends' => $expires->format('M j, Y') . " ({$daysRemaining} days)",
-          'event_id' => $event->id(),
-          'event_title' => $event->label(),
-        ],
-      ];
-    }
-    catch (\Exception) {
-      return [];
-    }
-  }
-
-  /**
-   * Get all active boosts for the current user's events.
-   */
-  private function getAllActiveBoosts(): array {
-    $currentUser = \Drupal::currentUser();
-    $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
-    $nowFormatted = $now->format('Y-m-d\TH:i:s');
-
-    // Query for promoted events owned by current user.
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $query = $nodeStorage->getQuery()
-      ->condition('type', 'event')
-      ->condition('uid', $currentUser->id())
-      ->condition('field_promoted', 1)
-      ->condition('field_promo_expires', $nowFormatted, '>')
-      ->accessCheck(FALSE)
-      ->sort('field_promo_expires', 'ASC');
-
-    $nids = $query->execute();
-
-    if (empty($nids)) {
-      return [];
-    }
-
-    $events = $nodeStorage->loadMultiple($nids);
-    $boosts = [];
-
-    foreach ($events as $event) {
-      $expiresValue = $event->get('field_promo_expires')->value;
-      try {
-        $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-        $diff = $now->diff($expires);
-        $daysRemaining = $diff->days;
-
-        $boosts[] = [
-          'label' => $event->label(),
-          'status' => 'Active',
-          'ends' => $expires->format('M j, Y') . " ({$daysRemaining} days left)",
-          'event_id' => $event->id(),
-          'event_title' => $event->label(),
-          'boost_url' => "/event/{$event->id()}/boost",
+      // Check if event is published (required for boost).
+      $isPublished = $event->isPublished();
+      if (!$isPublished) {
+        return [
+          'eligible' => FALSE,
+          'active' => FALSE,
+          'reason' => 'unpublished',
+          'types' => [],
+          'expires' => NULL,
         ];
       }
-      catch (\Exception) {
-        continue;
-      }
-    }
 
-    return $boosts;
-  }
-
-  /**
-   * Get events available for boosting (not currently boosted).
-   */
-  public function getBoostableEvents(): array {
-    $currentUser = \Drupal::currentUser();
-    $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
-    $nowFormatted = $now->format('Y-m-d\TH:i:s');
-
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-
-    // Get all published events owned by user.
-    $query = $nodeStorage->getQuery()
-      ->condition('type', 'event')
-      ->condition('uid', $currentUser->id())
-      ->condition('status', 1)
-      ->accessCheck(FALSE)
-      ->sort('created', 'DESC');
-
-    $nids = $query->execute();
-
-    if (empty($nids)) {
-      return [];
-    }
-
-    $events = $nodeStorage->loadMultiple($nids);
-    $boostable = [];
-
-    foreach ($events as $event) {
+      // Check if boost is currently active.
       $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
       $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
+      $isActive = FALSE;
 
-      $isCurrentlyBoosted = FALSE;
       if ($promoted && $expiresValue) {
         try {
           $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-          $isCurrentlyBoosted = $expires > $now;
+          $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
+          $isActive = $expires > $now;
         }
-        catch (\Exception) {
-          // Invalid date.
+        catch (\Exception $e) {
+          // Invalid date format.
+          $isActive = FALSE;
         }
       }
 
-      $boostable[] = [
-        'id' => $event->id(),
-        'title' => $event->label(),
-        'is_boosted' => $isCurrentlyBoosted,
-        'boost_url' => "/event/{$event->id()}/boost",
+      // Event is eligible if published.
+      // Additional eligibility checks (e.g., Stripe connection) should be
+      // handled at the route access level.
+      return [
+        'eligible' => TRUE,
+        'active' => $isActive,
+        'reason' => NULL,
+        'types' => $this->getAvailableBoostTypes(),
+        'expires' => $expiresValue,
       ];
     }
+    catch (\Exception $e) {
+      // Return safe defaults on error.
+      return [
+        'eligible' => FALSE,
+        'active' => FALSE,
+        'reason' => 'error',
+        'types' => [],
+        'expires' => NULL,
+      ];
+    }
+  }
 
-    return $boostable;
+  /**
+   * Gets available boost types for events.
+   *
+   * @return array
+   *   Array of boost type identifiers.
+   */
+  private function getAvailableBoostTypes(): array {
+    // Default boost types. Can be extended based on configuration.
+    return [
+      'featured',
+      'homepage',
+      'category',
+    ];
   }
 
 }
-

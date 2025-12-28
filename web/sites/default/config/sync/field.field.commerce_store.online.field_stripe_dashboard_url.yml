@@ -14,7 +14,7 @@ bundle: online
 label: 'Stripe Dashboard URL'
 description: 'The Stripe Connect dashboard login URL (admin-only, not shown in forms).'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:

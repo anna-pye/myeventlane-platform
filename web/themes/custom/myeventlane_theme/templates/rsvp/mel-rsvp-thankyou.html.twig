@@ -1,0 +1,33 @@
+{#
+  RSVP Thank You page template.
+  Simple, accessible thank you message after RSVP submission.
+#}
+<div class="mel-rsvp-thankyou">
+  {% if title %}
+    <h1 class="mel-rsvp-thankyou__title">{{ title }}</h1>
+  {% endif %}
+
+  {% if message %}
+    <div class="mel-rsvp-thankyou__message">
+      {{ message }}
+    </div>
+  {% endif %}
+
+  {% if event_title %}
+    <div class="mel-rsvp-thankyou__event">
+      <p>{{ 'Thanks for RSVPing to'|t }} <strong>{{ event_title }}</strong>.</p>
+
+      {% if event_link %}
+        <p>
+          {{ event_link }}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if donation_enabled %}
+    <div class="mel-rsvp-thankyou__donation">
+      <p>You can optionally add a donation on the next step.</p>
+    </div>
+  {% endif %}
+</div>

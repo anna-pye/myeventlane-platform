@@ -3,7 +3,6 @@ langcode: en
 status: true
 dependencies:
   module:
-    - commerce_store
     - myeventlane_vendor
 id: commerce_store.field_vendor_reference
 field_name: field_vendor_reference
@@ -14,7 +13,7 @@ settings:
 module: core
 locked: false
 cardinality: 1
-translatable: true
+translatable: false
 indexes: {  }
 persist_with_no_fields: false
 custom_storage: false

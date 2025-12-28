@@ -5,6 +5,9 @@ dependencies:
   config:
     - commerce_store.commerce_store_type.online
     - field.storage.commerce_store.field_vendor_reference
+    - myeventlane_vendor.myeventlane_vendor
+  module:
+    - myeventlane_vendor
 id: commerce_store.online.field_vendor_reference
 field_name: field_vendor_reference
 entity_type: commerce_store
@@ -12,7 +15,7 @@ bundle: online
 label: Vendor
 description: 'The vendor this store belongs to.'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:

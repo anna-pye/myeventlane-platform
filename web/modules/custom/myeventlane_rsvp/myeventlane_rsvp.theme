@@ -13,5 +13,12 @@ function myeventlane_rsvp_theme($existing, $type, $theme, $path) {
       'variables' => ['params' => NULL],
       'template' => 'email-vendor-copy',
     ],
+    'mel_rsvp_thankyou' => [
+      'variables' => [
+        'event' => NULL,
+        'message' => NULL,
+      ],
+      'template' => 'mel-rsvp-thankyou',
+    ],
   ];
 }

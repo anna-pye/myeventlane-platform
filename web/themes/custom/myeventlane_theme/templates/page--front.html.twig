@@ -1,6 +1,13 @@
 {#
-  Front page wrapper.
-  Renders the custom hero, then exactly two Views blocks.
+/**
+ * @file
+ * Front page template - MEL v2 Sticker Wall + Vibe Mixer layout.
+ *
+ * Available variables:
+ *   - page: Page content
+ *   - featured_events: Featured events block (optional)
+ *   - upcoming_events: Upcoming events block (optional)
+ */
 #}
 
 {% set page_attributes = create_attribute() %}
@@ -21,7 +28,7 @@
     {% include '@myeventlane_theme/includes/header.html.twig' %}
   </div>
 
-  {# ==================== HERO (EVENT-LED) ==================== #}
+  {# ==================== HERO ==================== #}
   <section class="mel-home-hero">
     <div class="mel-container">
       <div class="mel-home-hero__wrapper">
@@ -29,67 +36,132 @@
           <h1>Your lane to great events.</h1>
           <p>Discover local events, workshops, gigs, and community gatherings — or create your own in minutes.</p>
 
-          {% include '@myeventlane_theme/components/front/_front-search.html.twig' with {
-            front: mel_front|default({})
-          } only %}
-
-          <div class="mel-home-hero__categories">
-            <p class="mel-home-hero__categories-intro">Explore by interest</p>
-            {% include '@myeventlane_theme/components/front/_front-pills.html.twig' with {
-              front: mel_front|default({})
-            } only %}
+          {# Label-maker style search (placeholder) #}
+          <div class="mel-home-hero__search">
+            <form action="/search" method="get" class="mel-search-form">
+              <div class="mel-search-form__wrapper">
+                <input 
+                  type="search" 
+                  name="keys" 
+                  placeholder="{{ 'Search events, venues, artists...'|t }}"
+                  class="mel-search-form__input"
+                  aria-label="{{ 'Search events'|t }}"
+                />
+                <button type="submit" class="mel-search-form__submit" aria-label="{{ 'Submit search'|t }}">
+                  <span aria-hidden="true">🔍</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-
+        {# Optional visual element (sticker cluster or featured event) #}
         <div class="mel-home-hero__visual">
-          {% if featured_events is defined and featured_events %}
-            <div class="mel-home-hero__event-strip">
-              {{ featured_events }}
-            </div>
-          {% endif %}
+          {# Can add featured event poster card or decorative stickers here #}
         </div>
       </div>
     </div>
   </section>
 
-  {# ==================== MAIN (TWO VIEWS ONLY) ==================== #}
+  {# ==================== MAIN CONTENT ==================== #}
   <main id="main-content" class="mel-main mel-front-content" role="main">
-    <div class="mel-container mel-home-events">
-      <section class="mel-featured-events">
-        <h2>Featured events</h2>
-        <p class="mel-featured-events__helper">Handpicked events happening soon.</p>
-        <div class="mel-featured-events__row">
-          {% if featured_events is defined and featured_events %}
-            {{ featured_events }}
+    <div class="mel-container">
+
+      {# ==================== VIBE MIXER ==================== #}
+      <section class="mel-home-vibe-mixer">
+        {% include '@myeventlane_theme/components/vibe-mixer/vibe-mixer.twig' with {
+          vibe: {
+            chips: ['Chill', 'Loud', 'Cute', 'Artsy', 'Family', 'Outdoors'],
+            selected: [],
+            energy_value: 50,
+            budget_value: 50
+          }
+        } only %}
+      </section>
+
+      {# ==================== STICKER WALL ==================== #}
+      <section class="mel-home-section">
+        <div class="mel-home-section__header">
+          <h2 class="mel-home-section__title">Discover events</h2>
+          <p class="mel-home-section__subtitle">Handpicked events happening soon.</p>
+        </div>
+
+        {# Sticker Wall - Views output will be wrapped here #}
+        <div class="mel-sticker-wall">
+          {# Render Events via Views using event_card_poster view mode #}
+          {# Note: Views may output .mel-event-grid or .view-content - both are overridden in SCSS #}
+          {% if page.content.discover_events is defined %}
+            <div class="mel-sticker-wall__content">
+              {{ page.content.discover_events }}
+            </div>
           {% else %}
-            {{ drupal_block('views_block:featured_events-block_featured') }}
+            {# Fallback: Use upcoming_events view block #}
+            <div class="mel-sticker-wall__content">
+              {{ drupal_view('upcoming_events', 'block_upcoming') }}
+            </div>
           {% endif %}
         </div>
       </section>
 
-      <section class="mel-all-events">
-        <h2>All events</h2>
-        <p class="mel-all-events__helper">Browse everything happening on MyEventLane.</p>
-        {{ drupal_view('upcoming_events', 'block_upcoming') }}
-      </section>
+      {# ==================== SECONDARY ROWS ==================== #}
+      
+      {# Tonight Row - Use Views with event_card_compact view mode #}
+      {% if page.content.tonight_events is defined %}
+        <section class="mel-home-secondary-row">
+          <div class="mel-home-secondary-row__header">
+            <h2 class="mel-home-secondary-row__title">Tonight</h2>
+            <a href="/events/tonight" class="mel-home-secondary-row__link">
+              {{ 'See all'|t }} →
+            </a>
+          </div>
+          <div class="mel-home-secondary-row__content">
+            {{ page.content.tonight_events }}
+          </div>
+        </section>
+      {% endif %}
 
-      <section class="mel-home-calendar">
-        <h2>Browse by date</h2>
-        <p class="mel-home-calendar__intro">See what's happening over the next few weeks.</p>
-        {% if calendar is defined and calendar %}
-          {% include '@myeventlane_theme/components/front/_front-calendar.html.twig' with {
-            calendar: calendar
-          } only %}
-        {% endif %}
-      </section>
+      {# Free & Under $20 Row - Use Views with event_card_compact view mode #}
+      {% if page.content.budget_events is defined %}
+        <section class="mel-home-secondary-row">
+          <div class="mel-home-secondary-row__header">
+            <h2 class="mel-home-secondary-row__title">Free & under $20</h2>
+            <a href="/events/budget" class="mel-home-secondary-row__link">
+              {{ 'See all'|t }} →
+            </a>
+          </div>
+          <div class="mel-home-secondary-row__content">
+            {{ page.content.budget_events }}
+          </div>
+        </section>
+      {% endif %}
 
-      {# Call to Action #}
+      {# Near You Row - Use Views with event_card_compact view mode #}
+      {% if page.content.nearby_events is defined %}
+        <section class="mel-home-secondary-row">
+          <div class="mel-home-secondary-row__header">
+            <h2 class="mel-home-secondary-row__title">Near you</h2>
+            <a href="/events/nearby" class="mel-home-secondary-row__link">
+              {{ 'See all'|t }} →
+            </a>
+          </div>
+          <div class="mel-home-secondary-row__content">
+            {{ page.content.nearby_events }}
+          </div>
+        </section>
+      {% endif %}
+
+      {# ==================== CTA SECTION ==================== #}
       <section class="mel-home-cta">
-        <div class="mel-home-cta__content">
-          <p class="mel-home-cta__question">Got something to share?</p>
-          <p class="mel-home-cta__text">Create an event in minutes.</p>
+        <div class="mel-home-cta__card">
+          <div class="mel-home-cta__content">
+            <h2 class="mel-home-cta__title">Got something to share?</h2>
+            <p class="mel-home-cta__text">Create an event in minutes.</p>
+            <a href="/node/add/event" class="mel-home-cta__button">
+              {{ 'Create your event'|t }}
+            </a>
+          </div>
         </div>
       </section>
+
     </div>
   </main>
 

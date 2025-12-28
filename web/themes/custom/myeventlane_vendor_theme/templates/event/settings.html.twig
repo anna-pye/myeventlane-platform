@@ -50,7 +50,9 @@
         <span class="mel-list__text">{{ 'View Booking Page'|t }}</span>
         <span class="mel-list__arrow">→</span>
       </a>
-      <a class="mel-list__item mel-list__item--link" href="/event/{{ event.id() }}/boost">
+      {# Only show boost link if user has access - access is checked by route #}
+      {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id()}) %}
+      <a class="mel-list__item mel-list__item--link" href="{{ boost_url }}">
         <span class="mel-list__icon">⚡</span>
         <span class="mel-list__text">{{ 'Boost This Event'|t }}</span>
         <span class="mel-list__arrow">→</span>

@@ -1,0 +1,206 @@
+// ============================================================================
+// MyEventLane Radix - Wizard Component
+// ============================================================================
+// Generic wizard component built on Bootstrap 5.
+// Used for Event Wizard, Checkout, and other multi-step flows.
+//
+// USAGE:
+//   Applied via mel-wizard.html.twig template.
+//   Uses Bootstrap 5 grid, cards, and utilities.
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Wizard Root Container
+// ============================================================================
+
+.mel-wizard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: mel-space(4) mel-space(2);
+  
+  @media (min-width: 768px) {
+    padding: mel-space(6) mel-space(4);
+  }
+}
+
+// ============================================================================
+// Wizard Layout (Bootstrap Grid)
+// ============================================================================
+
+.mel-wizard__layout {
+  // Bootstrap 5 grid is applied via row/col classes in template
+  // Additional spacing handled by Bootstrap's g-4 gap utility
+}
+
+// ============================================================================
+// Navigation Sidebar
+// ============================================================================
+
+.mel-wizard__nav {
+  // Sticky on desktop for better UX
+  @media (min-width: 992px) {
+    position: sticky;
+    top: mel-space(4);
+    align-self: start;
+  }
+}
+
+.mel-wizard__nav-card {
+  // Card styling via Bootstrap .card class
+  // Additional customizations below
+  border-radius: $mel-radius-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mel-wizard__nav-title {
+  color: $mel-color-text;
+  font-weight: $mel-font-bold;
+  margin-bottom: mel-space(3);
+}
+
+// ============================================================================
+// Step Navigation Items
+// ============================================================================
+
+.mel-wizard__step-row {
+  margin-bottom: mel-space(2);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-wizard__step {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: mel-space(2);
+  padding: mel-space(2);
+  border: none;
+  background: transparent;
+  border-radius: $mel-radius-md;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  color: $mel-color-text-muted;
+  
+  // Focus state (accessibility)
+  @include mel-focus-visible;
+  
+  &:hover {
+    background-color: $mel-color-bg;
+    color: $mel-color-text;
+  }
+  
+  &.is-active {
+    background-color: rgba(255, 111, 97, 0.1);
+    color: $mel-color-primary;
+    font-weight: $mel-font-semibold;
+    
+    .mel-wizard__step-number {
+      background-color: $mel-color-primary;
+      color: $mel-color-on-primary;
+    }
+  }
+}
+
+.mel-wizard__step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: $mel-color-surface-alt;
+  color: $mel-color-text-muted;
+  font-weight: $mel-font-semibold;
+  font-size: mel-font-size(sm);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.mel-wizard__step-label {
+  flex: 1;
+  font-size: mel-font-size(base);
+}
+
+// ============================================================================
+// Step Content Panel
+// ============================================================================
+
+.mel-wizard__content {
+  // Content area - Bootstrap grid handles layout
+}
+
+.mel-wizard-step {
+  // Step panel container
+  display: none;
+  
+  &.is-active {
+    display: block;
+  }
+  
+  &.is-hidden {
+    display: none;
+  }
+}
+
+// ============================================================================
+// Actions (Buttons)
+// ============================================================================
+
+.mel-wizard__actions {
+  // Button container - Bootstrap flex utilities handle layout
+  padding-top: mel-space(4);
+  border-top: 1px solid $mel-color-border;
+  
+  // Sticky on mobile for better UX
+  &--sticky {
+    @media (max-width: 991px) {
+      position: sticky;
+      bottom: 0;
+      background-color: $mel-color-surface;
+      padding: mel-space(3);
+      // Negative margins to extend to container edges (using CSS calc)
+      margin: mel-space(4) calc(-1rem) calc(-1rem);
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+      z-index: 10;
+    }
+  }
+  
+  // Bootstrap button styling is applied via classes in template
+  .btn {
+    min-width: 120px;
+    
+    @media (max-width: 575px) {
+      width: 100%;
+    }
+  }
+}
+
+// ============================================================================
+// Event Wizard Variant
+// ============================================================================
+
+.mel-wizard--event {
+  // Event-specific overrides can go here
+  // Most styling is handled by generic wizard classes
+}
+
+// ============================================================================
+// Checkout Wizard Variant
+// ============================================================================
+
+.mel-wizard--checkout {
+  // Checkout-specific overrides
+  .mel-wizard__layout {
+    // Three-column layout: nav + content + sidebar
+    @media (min-width: 992px) {
+      .mel-wizard__content {
+        // Adjust grid if order summary sidebar is present
+      }
+    }
+  }
+}

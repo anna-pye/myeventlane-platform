@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Template for trending events block.
+ *
+ * Variables:
+ * - events: Array of event data with nid, title, url, is_trending.
+ */
+#}
+<div class="mel-trending-events">
+  <h2 class="mel-trending-events__title">{{ 'Trending Events'|t }}</h2>
+  <div class="mel-trending-events__grid">
+    {% for event in events %}
+      <article class="mel-event-card">
+        <a href="{{ event.url }}" class="mel-event-card__link">
+          <div class="mel-event-card__content">
+            <h3>{{ event.title }}</h3>
+            <span class="mel-event-card__badge mel-event-card__badge--trending">
+              🔥 {{ 'Trending'|t }}
+            </span>
+          </div>
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+</div>

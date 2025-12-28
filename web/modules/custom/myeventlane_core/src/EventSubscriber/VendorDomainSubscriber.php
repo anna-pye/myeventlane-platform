@@ -66,6 +66,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     'entity.myeventlane_vendor.canonical',
     'myeventlane_vendor.public_list',
     'myeventlane_vendor.organisers',
+    'system.form_action',
   ];
 
   /**
@@ -131,6 +132,12 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     // Check if redirects are enabled for other redirects.
     $config = $this->configFactory->get('myeventlane_core.domain_settings');
     if (!$config->get('force_redirects')) {
+      return;
+    }
+
+    // Allow form action paths on both domains (Drupal form submission tokens).
+    // These can appear as /form_action_... or /vendor/form_action_... depending on context.
+    if (str_starts_with($path, '/form_action_') || str_contains($path, '/form_action_')) {
       return;
     }
 

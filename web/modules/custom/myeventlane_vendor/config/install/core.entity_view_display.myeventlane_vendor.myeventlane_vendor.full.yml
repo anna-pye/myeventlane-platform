@@ -1,0 +1,64 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.myeventlane_vendor.full
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_bio
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_logo
+  module:
+    - image
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.myeventlane_vendor.full
+targetEntityType: myeventlane_vendor
+bundle: myeventlane_vendor
+mode: full
+content:
+  field_vendor_bio:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_vendor_logo:
+    type: image
+    label: hidden
+    settings:
+      image_link: ''
+      image_style: medium
+      image_loading:
+        attribute: lazy
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  name:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  changed: true
+  created: true
+  field_accent_colour: true
+  field_address: true
+  field_banner_image: true
+  field_description: true
+  field_email: true
+  field_logo_image: true
+  field_owner: true
+  field_phone: true
+  field_public_show_email: true
+  field_public_show_location: true
+  field_public_show_phone: true
+  field_social_links: true
+  field_summary: true
+  field_tagline: true
+  field_vendor_store: true
+  field_vendor_users: true
+  field_website: true
+  name: true
+  uid: true

@@ -1,0 +1,27 @@
+# MyEventLane Radix Theme Libraries
+# ============================================================================
+# SCSS is compiled via build tooling (e.g., Vite, Webpack, or Gulp).
+# Output CSS should be placed in dist/ or css/ directory.
+#
+# NOTE: This theme uses Bootstrap 5 via Radix base theme.
+# Custom SCSS overrides Bootstrap variables and adds MyEventLane-specific styles.
+# ============================================================================
+
+global:
+  css:
+    theme:
+      # TODO: Update path after build tooling is configured
+      # Expected: dist/main.css or css/main.css
+      dist/main.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+# Placeholder for future component-specific libraries
+# These will be attached when SDCs are implemented
+# component-event-card:
+#   css:
+#     theme:
+#       dist/components/event-card.css: {}
+#   dependencies:
+#     - myeventlane_radix/global

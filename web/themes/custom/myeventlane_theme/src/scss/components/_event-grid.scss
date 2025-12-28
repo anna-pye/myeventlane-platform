@@ -16,6 +16,7 @@
   box-sizing: border-box;
 
   // Ensure grid items are equal width and don't overflow
+  // BUT: Allow override for sticker wall (see homepage SCSS)
   > * {
     min-width: 0 !important;
     width: 100% !important;
@@ -29,6 +30,12 @@
   @media (max-width: 640px) {
     grid-template-columns: 1fr !important;
   }
+}
+
+// Exception: Sticker Wall overrides this (defined in _homepage.scss)
+// This prevents the minmax(0, 1fr) from collapsing cards on homepage
+.mel-sticker-wall .mel-event-grid {
+  // Override handled in _homepage.scss with higher specificity
 }
 
 // ---------------------------------------------------------------------------

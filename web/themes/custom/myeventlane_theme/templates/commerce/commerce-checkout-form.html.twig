@@ -1,287 +1,46 @@
 {#
 /**
  * @file
- * Theme override for the checkout form.
+ * Safe override for Commerce checkout form.
  *
- * Available variables:
- * - form: The checkout form with all its panes and elements.
+ * Goals:
+ * - Zero Twig syntax errors
+ * - No inline PHP-style logic
+ * - Compatible with Drupal 10/11 + Commerce
+ * - MEL styling hook points only
  */
 #}
 
 <div class="mel-checkout">
-  <div class="mel-checkout-main">
-    {# Progress Steps #}
-    {% if form['#steps'] is defined %}
-      <nav class="mel-checkout-steps" aria-label="Checkout progress">
-        {% for step_id, step in form['#steps'] %}
-          <div class="mel-checkout-step {{ step.status == 'current' ? 'is-active' : '' }} {{ step.status == 'complete' ? 'is-complete' : '' }}">
-            <span class="mel-checkout-step-number">
-              {% if step.status != 'complete' %}{{ loop.index }}{% endif %}
-            </span>
-            <span class="mel-checkout-step-label">{{ step.label }}</span>
-          </div>
-        {% endfor %}
-      </nav>
-    {% endif %}
 
-    {# Global messages #}
-    {{ status_messages }}
+  {% if title %}
+    <h1 class="mel-checkout__title">{{ title }}</h1>
+  {% endif %}
 
-    {# Checkout Panes #}
-    {% for key, pane in form if key matches '/^(?!#|actions$|sidebar$)/' %}
-      {% if pane['#type'] is defined or pane['#markup'] is defined or pane|render|trim %}
-        <section class="mel-checkout-pane {{ key == 'payment_information' ? 'mel-checkout-pane--payment' : '' }}">
-          {% if pane['#title'] is defined %}
-            <h2 class="mel-checkout-pane-title">{{ pane['#title'] }}</h2>
-          {% endif %}
-          <div class="mel-checkout-pane-content">
-            {{ pane }}
-          </div>
-        </section>
-      {% endif %}
-    {% endfor %}
-
-    {# Display form errors at top level, not inline with fields #}
-    {% if form['#errors'] %}
-      <div class="messages messages--error" role="alert">
-        <h2 class="visually-hidden">{{ 'Error message'|t }}</h2>
-        <ul>
-          {% for error in form['#errors'] %}
-            <li>{{ error }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
-    {# Actions #}
-    <div class="mel-checkout-actions">
-      {{ form.actions }}
+  {% if form.progress %}
+    <div class="mel-checkout__progress">
+      {{ form.progress }}
     </div>
+  {% endif %}
+
+  <div class="mel-checkout__layout">
+
+    <div class="mel-checkout__main">
+      {{ form|without('progress', 'sidebar', 'actions') }}
+    </div>
+
+    {% if form.sidebar %}
+      <aside class="mel-checkout__sidebar">
+        {{ form.sidebar }}
+      </aside>
+    {% endif %}
+
   </div>
 
-  {# Order Summary Sidebar #}
-  <aside class="mel-checkout-sidebar">
-    <div class="mel-checkout-order-summary">
-      <h2 class="mel-checkout-order-title">Order Summary</h2>
-
-      {% if form.sidebar is defined %}
-        {{ form.sidebar }}
-      {% endif %}
-
-      <p class="mel-checkout-security">Secure checkout</p>
+  {% if form.actions %}
+    <div class="mel-checkout__actions">
+      {{ form.actions }}
     </div>
-  </aside>
-</div>
+  {% endif %}
 
-{# Stripe.js Initialization - Single consolidated script #}
-<script>
-(function() {
-  'use strict';
-  
-  console.log('🔍 Stripe Loader: Starting on checkout page');
-  
-  function checkAndInit() {
-    // Check 1: Stripe.js must be loaded
-    if (typeof window.Stripe === 'undefined') {
-      console.log('⏳ Waiting for Stripe.js...');
-      return false;
-    }
-    console.log('✅ Stripe.js is loaded');
-    
-    // Check 2: Drupal must be ready
-    if (typeof Drupal === 'undefined' || !Drupal.behaviors) {
-      console.log('⏳ Waiting for Drupal...');
-      return false;
-    }
-    console.log('✅ Drupal is ready');
-    
-    // Check 3: drupalSettings must be available
-    if (typeof drupalSettings === 'undefined') {
-      console.log('⏳ Waiting for drupalSettings...');
-      return false;
-    }
-    console.log('✅ drupalSettings is available');
-    
-    // Check 4: Commerce Stripe settings must exist
-    var hasPaymentElement = drupalSettings.commerceStripePaymentElement && 
-                            drupalSettings.commerceStripePaymentElement.publishableKey;
-    var hasForm = drupalSettings.commerceStripe && 
-                  drupalSettings.commerceStripe.publishableKey;
-    
-    if (!hasPaymentElement && !hasForm) {
-      console.log('⏳ Waiting for Commerce Stripe settings...');
-      console.log('drupalSettings.commerceStripePaymentElement:', drupalSettings.commerceStripePaymentElement);
-      console.log('drupalSettings.commerceStripe:', drupalSettings.commerceStripe);
-      console.log('All drupalSettings keys:', Object.keys(drupalSettings));
-      return false;
-    }
-    console.log('✅ Commerce Stripe settings found');
-    if (hasPaymentElement) {
-      console.log('  - Payment Element mode');
-      console.log('  - Element ID:', drupalSettings.commerceStripePaymentElement.elementId);
-      console.log('  - Publishable Key:', drupalSettings.commerceStripePaymentElement.publishableKey ? 'SET' : 'MISSING');
-    }
-    if (hasForm) {
-      console.log('  - Form mode (Card Element)');
-      console.log('  - Publishable Key:', drupalSettings.commerceStripe.publishableKey ? 'SET ✅' : 'MISSING ❌');
-    }
-    
-    // All checks passed - initialize
-    initPaymentFields();
-    return true;
-  }
-  
-  function safeAttach(behaviorName) {
-    const behavior = Drupal.behaviors[behaviorName];
-    if (behavior && typeof behavior.attach === 'function') {
-      console.log(`➡️ Attaching behavior: ${behaviorName}`);
-      behavior.attach(document, drupalSettings);
-      return true;
-    }
-    console.warn(`⚠️ Behavior missing: ${behaviorName}`);
-    return false;
-  }
-  
-  function initPaymentFields() {
-    console.log('🔄 Initializing payment fields...');
-    
-    setTimeout(function() {
-      // Payment Element mode
-      if (drupalSettings.commerceStripePaymentElement) {
-        const id = drupalSettings.commerceStripePaymentElement.elementId;
-        const container = document.getElementById(id);
-        
-        if (container) {
-          console.log('Payment Element container found:', id);
-          safeAttach('commerceStripePaymentElement');
-          
-          // Verify mount after delay
-          setTimeout(function() {
-            const iframe = container.querySelector('iframe');
-            console.log('Payment Element iframe:', iframe ? 'MOUNTED ✅' : 'NOT MOUNTED ❌');
-            if (!iframe) {
-              console.warn('⚠️ Payment Element not mounted - re-running behavior');
-              safeAttach('commerceStripePaymentElement');
-            }
-          }, 1000);
-        } else {
-          console.error('❌ Payment Element container not found: #' + id);
-        }
-      }
-      
-      // Card Element Form mode
-      if (drupalSettings.commerceStripe) {
-        const stripeForm = document.querySelector('.stripe-form');
-        const cardNumberEl = document.getElementById('card-number-element');
-        const expirationEl = document.getElementById('expiration-element');
-        const securityCodeEl = document.getElementById('security-code-element');
-        
-        console.log('Card Element elements:');
-        console.log('  - .stripe-form:', stripeForm ? 'FOUND ✅' : 'MISSING ❌');
-        console.log('  - #card-number-element:', cardNumberEl ? 'FOUND ✅' : 'MISSING ❌');
-        console.log('  - #expiration-element:', expirationEl ? 'FOUND ✅' : 'MISSING ❌');
-        console.log('  - #security-code-element:', securityCodeEl ? 'FOUND ✅' : 'MISSING ❌');
-        
-        if (stripeForm && cardNumberEl && expirationEl && securityCodeEl && drupalSettings.commerceStripe.publishableKey) {
-          // Remove once() marker if present to force re-attachment
-          if (stripeForm.classList.contains('js-once-processed')) {
-            console.log('  - Removing js-once-processed class to force re-attach');
-            stripeForm.classList.remove('js-once-processed');
-            if (stripeForm.hasAttribute('data-once')) {
-              stripeForm.removeAttribute('data-once');
-            }
-          }
-          
-          safeAttach('commerceStripeForm');
-          
-          // Verify mount after delay
-          setTimeout(function() {
-            const cardNumberIframe = cardNumberEl.querySelector('iframe');
-            const expirationIframe = expirationEl.querySelector('iframe');
-            const securityCodeIframe = securityCodeEl.querySelector('iframe');
-            
-            console.log('Card Element iframes:');
-            console.log('  - Card Number:', cardNumberIframe ? 'MOUNTED ✅' : 'NOT MOUNTED ❌');
-            console.log('  - Expiration:', expirationIframe ? 'MOUNTED ✅' : 'NOT MOUNTED ❌');
-            console.log('  - Security Code:', securityCodeIframe ? 'MOUNTED ✅' : 'NOT MOUNTED ❌');
-            
-            // Manual mount fallback if elements not mounted
-            if ((!cardNumberIframe || !expirationIframe || !securityCodeIframe) && 
-                typeof window.Stripe !== 'undefined' && drupalSettings.commerceStripe.publishableKey) {
-              console.warn('⚠️ Some Card Elements not mounted - attempting manual mount');
-              try {
-                const stripe = window.Stripe(drupalSettings.commerceStripe.publishableKey);
-                const elements = stripe.elements();
-                
-                // Unmount existing if any
-                if (Drupal.behaviors.commerceStripeForm.cardNumber) {
-                  try { Drupal.behaviors.commerceStripeForm.cardNumber.unmount(); } catch(e) {}
-                }
-                if (Drupal.behaviors.commerceStripeForm.cardExpiry) {
-                  try { Drupal.behaviors.commerceStripeForm.cardExpiry.unmount(); } catch(e) {}
-                }
-                if (Drupal.behaviors.commerceStripeForm.cardCvc) {
-                  try { Drupal.behaviors.commerceStripeForm.cardCvc.unmount(); } catch(e) {}
-                }
-                
-                // Create and mount
-                const classes = { base: 'form-text', invalid: 'error' };
-                Drupal.behaviors.commerceStripeForm.cardNumber = elements.create('cardNumber', {
-                  showIcon: drupalSettings.commerceStripe.enable_credit_card_logos || false,
-                  classes: classes,
-                  placeholder: '',
-                });
-                Drupal.behaviors.commerceStripeForm.cardExpiry = elements.create('cardExpiry', { classes: classes });
-                Drupal.behaviors.commerceStripeForm.cardCvc = elements.create('cardCvc', { classes: classes });
-                
-                Drupal.behaviors.commerceStripeForm.cardNumber.mount('#card-number-element');
-                Drupal.behaviors.commerceStripeForm.cardExpiry.mount('#expiration-element');
-                Drupal.behaviors.commerceStripeForm.cardCvc.mount('#security-code-element');
-                
-                console.log('✅ Manual mount successful!');
-              } catch (e) {
-                console.error('❌ Manual mount failed:', e);
-              }
-            }
-          }, 1000);
-        } else {
-          console.warn('⚠️ Missing required elements for Card Element form');
-        }
-      }
-    }, 500);
-  }
-  
-  // Poll until all conditions are met
-  let attempts = 0;
-  const maxAttempts = 200;
-  
-  const checkInterval = setInterval(function() {
-    attempts++;
-    if (checkAndInit()) {
-      clearInterval(checkInterval);
-      console.log('✅ Initialization complete after ' + attempts + ' attempts');
-    } else if (attempts >= maxAttempts) {
-      clearInterval(checkInterval);
-      console.error('❌ Failed to initialize after ' + maxAttempts + ' attempts');
-      console.error('Final state:');
-      console.error('  window.Stripe:', typeof window.Stripe);
-      console.error('  Drupal:', typeof Drupal);
-      console.error('  drupalSettings:', typeof drupalSettings);
-      if (typeof drupalSettings !== 'undefined') {
-        console.error('  All drupalSettings keys:', Object.keys(drupalSettings));
-      }
-    }
-  }, 100);
-  
-  // Run immediately
-  checkAndInit();
-  
-  // Also run after Drupal behaviors (in case they attach settings)
-  if (typeof Drupal !== 'undefined' && Drupal.behaviors) {
-    setTimeout(function() {
-      console.log('🔄 Re-checking after Drupal behaviors...');
-      checkAndInit();
-    }, 1000);
-  }
-})();
-</script>
+</div>

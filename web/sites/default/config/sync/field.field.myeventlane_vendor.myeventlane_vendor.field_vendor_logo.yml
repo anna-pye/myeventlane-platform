@@ -4,9 +4,9 @@ status: true
 dependencies:
   config:
     - field.storage.myeventlane_vendor.field_vendor_logo
+    - myeventlane_vendor.myeventlane_vendor
   module:
     - image
-    - myeventlane_vendor
 id: myeventlane_vendor.myeventlane_vendor.field_vendor_logo
 field_name: field_vendor_logo
 entity_type: myeventlane_vendor
@@ -14,7 +14,7 @@ bundle: myeventlane_vendor
 label: Logo
 description: 'The vendor logo image.'
 required: false
-translatable: true
+translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:

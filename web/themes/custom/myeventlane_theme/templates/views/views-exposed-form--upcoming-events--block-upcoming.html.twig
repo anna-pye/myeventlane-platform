@@ -1,0 +1,60 @@
+{#
+/**
+ * @file
+ * Front page Upcoming Events exposed filters.
+ *
+ * Requirements:
+ *   - Keep the Ticket/RSVP pills (All, Free RSVP, Ticketed)
+ *   - Hide accessibility filter UI on front page
+ *   - No guessing: if filter keys differ, stop and ask
+ */
+#}
+
+{% set ticket_filter = null %}
+
+{# Find the actual ticket filter #}
+{% if form.ticket_type %}
+  {% set ticket_filter = form.ticket_type %}
+{% elseif form.field_ticket_type %}
+  {% set ticket_filter = form.field_ticket_type %}
+{% elseif form.field_ticket_type_value %}
+  {% set ticket_filter = form.field_ticket_type_value %}
+{% elseif form.field_event_ticket_type %}
+  {% set ticket_filter = form.field_event_ticket_type %}
+{% elseif form.field_event_ticket_type_value %}
+  {% set ticket_filter = form.field_event_ticket_type_value %}
+{% endif %}
+
+<div class="mel-front-filters">
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+
+  {% if ticket_filter %}
+    {{ ticket_filter }}
+  {% else %}
+    {# Stop point: we cannot safely render pills without knowing the key #}
+    Ticket type filter not found in exposed form. Check the filter element key in the render array and update this template.
+  {% endif %}
+
+  {# Intentionally do not render accessibility filter on front page #}
+  {# Intentionally do not render generic submit/reset buttons if pills auto-submit via JS #}
+  {# Render remaining form elements (excluding common filter keys) in visually-hidden #}
+  <div class="visually-hidden">
+    {{ form|without(
+      'form_build_id',
+      'form_token',
+      'form_id',
+      'actions',
+      'ticket_type',
+      'field_ticket_type',
+      'field_ticket_type_value',
+      'field_event_ticket_type',
+      'field_event_ticket_type_value',
+      'accessibility',
+      'field_accessibility',
+      'field_accessibility_target_id',
+      'field_accessibility_value'
+    ) }}
+  </div>
+</div>

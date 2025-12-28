@@ -1,0 +1,76 @@
+{%
+  set card = card|default({
+    url: '#',
+    image: null,
+    title: '',
+    date: '',
+    time: '',
+    location: '',
+    price: '',
+    category: null,      # { label: 'Artsy', url: '/events?cat=artsy', color_class: 'mel-cat--artsy' }
+    stamp: null,         # e.g. 'TONIGHT'
+    cta_label: 'Tickets',
+    title_placement: 'below' # 'overlay'|'below'
+  })
+%}
+
+{% set title_mode_class = card.title_placement == 'overlay' ? 'mel-title--overlay' : 'mel-title--below' %}
+
+<article class="mel-card mel-card--poster {{ title_mode_class }}">
+  <a class="mel-card__link" href="{{ card.url }}">
+    <div class="mel-card__media">
+      {% if card.image %}
+        {{ card.image }}
+      {% else %}
+        <div class="mel-card__media--placeholder" aria-hidden="true"></div>
+      {% endif %}
+
+      {% if card.stamp %}
+        <div class="mel-stamp">{{ card.stamp }}</div>
+      {% endif %}
+
+      {% if card.category %}
+        <div class="mel-pill mel-pill--category {{ card.category.color_class|default('') }}">
+          {% if card.category.url %}
+            <span class="mel-pill__text">{{ card.category.label }}</span>
+          {% else %}
+            <span class="mel-pill__text">{{ card.category.label }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if card.title_placement == 'overlay' %}
+        <div class="mel-card__title-overlay">
+          <h3 class="mel-card__title">{{ card.title }}</h3>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mel-card__body">
+      {% if card.title_placement != 'overlay' %}
+        <h3 class="mel-card__title">{{ card.title }}</h3>
+      {% endif %}
+
+      <div class="mel-card__meta">
+        {% if card.date or card.time %}
+          <div class="mel-meta-line">
+            <span class="mel-meta">{{ card.date }}</span>
+            {% if card.time %}<span class="mel-meta-sep">•</span><span class="mel-meta">{{ card.time }}</span>{% endif %}
+          </div>
+        {% endif %}
+        {% if card.location %}
+          <div class="mel-meta-line">
+            <span class="mel-meta">{{ card.location }}</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="mel-card__footer">
+        {% if card.price %}
+          <span class="mel-price">{{ card.price }}</span>
+        {% endif %}
+        <span class="mel-btn mel-btn--ghost">{{ card.cta_label }}</span>
+      </div>
+    </div>
+  </a>
+</article>

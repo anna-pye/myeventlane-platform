@@ -1,0 +1,59 @@
+{#
+/**
+ * @file
+ * Price Display Single Directory Component (SDC).
+ *
+ * Displays a formatted price with optional sale price.
+ *
+ * Props:
+ * - amount: Numeric price amount
+ * - currency: Currency code (AUD, USD, etc.)
+ * - formatted: Pre-formatted price string
+ * - sale_amount: Optional sale price amount
+ * - sale_formatted: Pre-formatted sale price string
+ * - show_currency: Boolean to show/hide currency symbol
+ * - size: Display size (small, medium, large)
+ */
+#}
+
+{%
+  set classes = [
+    'mel-price-display',
+    'd-inline-flex',
+    'align-items-baseline',
+    'gap-2',
+    size == 'small' ? 'mel-price-display--small' : '',
+    size == 'large' ? 'mel-price-display--large' : '',
+  ]
+%}
+
+<div{{ attributes.addClass(classes) }}>
+  {# Sale Price (if available) #}
+  {% if sale_formatted %}
+    <span class="mel-price-display__sale fw-bold text-primary">
+      {{ sale_formatted }}
+    </span>
+    <span class="mel-price-display__original text-muted text-decoration-line-through">
+      {{ formatted }}
+    </span>
+  {% else %}
+    {# Regular Price #}
+    <span class="mel-price-display__regular fw-bold{{ amount == 0 ? ' text-muted' : ' text-primary' }}">
+      {% if formatted %}
+        {{ formatted }}
+      {% elseif amount == 0 %}
+        {{ 'Free'|t }}
+      {% else %}
+        {% if show_currency %}
+          {% if currency == 'AUD' or currency == 'USD' %}
+            ${{ amount|number_format(2, '.', ',') }}
+          {% else %}
+            {{ amount|number_format(2, '.', ',') }} {{ currency }}
+          {% endif %}
+        {% else %}
+          {{ amount|number_format(2, '.', ',') }}
+        {% endif %}
+      {% endif %}
+    </span>
+  {% endif %}
+</div>

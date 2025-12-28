@@ -200,34 +200,11 @@ class RsvpPublicForm extends FormBase {
     $donationEnabled = $donationConfig->get('enable_rsvp_donations') ?? FALSE;
     $requireStripeConnected = $donationConfig->get('require_stripe_connected_for_attendee_donations') ?? TRUE;
 
-    $this->logger->debug('RSVP donation check for event @event_id: enabled=@enabled, require_stripe=@require_stripe', [
-      '@event_id' => $event->id(),
-      '@enabled' => $donationEnabled ? 'yes' : 'no',
-      '@require_stripe' => $requireStripeConnected ? 'yes' : 'no',
-    ]);
-
     if ($donationEnabled) {
       // Check if vendor has Stripe Connect if required.
       $showDonation = TRUE;
       if ($requireStripeConnected) {
         $showDonation = $this->isVendorStripeConnected($event);
-        // Log for debugging.
-        if (!$showDonation) {
-          $this->logger->debug('Donation section hidden: Vendor Stripe Connect not enabled for event @event_id (vendor uid: @uid)', [
-            '@event_id' => $event->id(),
-            '@uid' => $event->getOwnerId(),
-          ]);
-        }
-        else {
-          $this->logger->debug('Donation section will be shown: Vendor has Stripe Connect enabled for event @event_id', [
-            '@event_id' => $event->id(),
-          ]);
-        }
-      }
-      else {
-        $this->logger->debug('Donation section will be shown: Stripe Connect not required for event @event_id', [
-          '@event_id' => $event->id(),
-        ]);
       }
 
       if ($showDonation) {
@@ -333,9 +310,6 @@ class RsvpPublicForm extends FormBase {
     }
     else {
       // Donations disabled globally.
-      $this->logger->debug('Donation section hidden: RSVP donations disabled globally for event @event_id', [
-        '@event_id' => $event->id(),
-      ]);
       $form['donation'] = [
         '#type' => 'hidden',
         '#default_value' => 0,
@@ -609,7 +583,6 @@ class RsvpPublicForm extends FormBase {
       // Get vendor from event owner.
       $vendorUid = (int) $event->getOwnerId();
       if ($vendorUid === 0) {
-        $this->logger->debug('Event @event_id has no owner (uid 0)', ['@event_id' => $event->id()]);
         return FALSE;
       }
 
@@ -628,9 +601,6 @@ class RsvpPublicForm extends FormBase {
           $vendor = $vendorStorage->load(reset($vendors));
           if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
             $store = $vendor->get('field_vendor_store')->entity;
-            $this->logger->debug('Found store via vendor entity for event @event_id', [
-              '@event_id' => $event->id(),
-            ]);
           }
         }
       }
@@ -646,41 +616,25 @@ class RsvpPublicForm extends FormBase {
 
         if (!empty($storeIds)) {
           $store = $storeStorage->load(reset($storeIds));
-          $this->logger->debug('Found store via owner UID for event @event_id', [
-            '@event_id' => $event->id(),
-          ]);
         }
       }
 
       if (!$store) {
-        $this->logger->debug('No store found for vendor uid @uid (event @event_id)', [
-          '@uid' => $vendorUid,
-          '@event_id' => $event->id(),
-        ]);
         return FALSE;
       }
 
       // Check if Stripe is connected and charges are enabled.
       if ($store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
         $connected = (bool) $store->get('field_stripe_charges_enabled')->value;
-        $this->logger->debug('Stripe charges enabled check for store @store_id: @connected', [
-          '@store_id' => $store->id(),
-          '@connected' => $connected ? 'yes' : 'no',
-        ]);
         return $connected;
       }
 
       // Fallback: check connected flag.
       if ($store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()) {
         $connected = (bool) $store->get('field_stripe_connected')->value;
-        $this->logger->debug('Stripe connected flag check for store @store_id: @connected', [
-          '@store_id' => $store->id(),
-          '@connected' => $connected ? 'yes' : 'no',
-        ]);
         return $connected;
       }
 
-      $this->logger->debug('No Stripe fields found on store @store_id', ['@store_id' => $store->id()]);
       return FALSE;
     }
     catch (\Exception $e) {

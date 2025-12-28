@@ -144,6 +144,17 @@ class VendorProfileSettingsForm extends FormBase {
       '#weight' => -1000,
     ];
 
+    // CRITICAL: Override form action URL on vendor domain to prevent /vendor/ prefix.
+    // Drupal generates form action URLs based on current request path.
+    // Setting #action here ensures it's set BEFORE FormBuilder generates the action token.
+    if (\Drupal::hasService('myeventlane_core.domain_detector')) {
+      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
+      if ($domain_detector->isVendorDomain()) {
+        // Set action to root path to prevent /vendor/ prefix in form action token.
+        $form['#action'] = '/';
+      }
+    }
+
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
     $form['#attached']['library'][] = 'myeventlane_vendor/vendor_settings';
@@ -410,6 +421,56 @@ class VendorProfileSettingsForm extends FormBase {
         '#title' => $this->t('Show address/location on public page'),
         '#default_value' => !$vendor->get('field_public_show_location')->isEmpty()
           ? (bool) $vendor->get('field_public_show_location')->value : FALSE,
+      ];
+    }
+
+    if ($vendor->hasField('field_website')) {
+      $form['public']['show_website'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Show website on public page'),
+        '#default_value' => $vendor->hasField('field_public_show_website') && !$vendor->get('field_public_show_website')->isEmpty()
+          ? (bool) $vendor->get('field_public_show_website')->value : FALSE,
+        '#description' => $this->t('Display your website URL on your public vendor profile.'),
+      ];
+    }
+
+    if ($vendor->hasField('field_social_links')) {
+      $form['public']['show_social_links'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Show social media links on public page'),
+        '#default_value' => $vendor->hasField('field_public_show_social_links') && !$vendor->get('field_public_show_social_links')->isEmpty()
+          ? (bool) $vendor->get('field_public_show_social_links')->value : FALSE,
+        '#description' => $this->t('Display your social media links on your public vendor profile.'),
+      ];
+    }
+
+    if ($vendor->hasField('field_summary')) {
+      $form['public']['show_summary'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Show summary on public page'),
+        '#default_value' => $vendor->hasField('field_public_show_summary') && !$vendor->get('field_public_show_summary')->isEmpty()
+          ? (bool) $vendor->get('field_public_show_summary')->value : FALSE,
+        '#description' => $this->t('Display your short summary on your public vendor profile.'),
+      ];
+    }
+
+    if ($vendor->hasField('field_description')) {
+      $form['public']['show_description'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Show description on public page'),
+        '#default_value' => $vendor->hasField('field_public_show_description') && !$vendor->get('field_public_show_description')->isEmpty()
+          ? (bool) $vendor->get('field_public_show_description')->value : FALSE,
+        '#description' => $this->t('Display your full description on your public vendor profile.'),
+      ];
+    }
+
+    if ($vendor->hasField('field_banner_image')) {
+      $form['public']['show_banner'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Show banner image on public page'),
+        '#default_value' => $vendor->hasField('field_public_show_banner') && !$vendor->get('field_public_show_banner')->isEmpty()
+          ? (bool) $vendor->get('field_public_show_banner')->value : FALSE,
+        '#description' => $this->t('Display your banner image on your public vendor profile.'),
       ];
     }
 
@@ -846,28 +907,106 @@ class VendorProfileSettingsForm extends FormBase {
       $vendor->set('field_public_show_location', (int) $form_state->getValue(['public', 'show_location']));
     }
 
-    // Validate entity before saving.
+    // Save visibility settings for additional fields (only if fields exist).
+    // Note: These visibility fields may not exist yet, so we check before setting.
+    $visibility_fields = [
+      'field_public_show_website' => ['public', 'show_website'],
+      'field_public_show_social_links' => ['public', 'show_social_links'],
+      'field_public_show_summary' => ['public', 'show_summary'],
+      'field_public_show_description' => ['public', 'show_description'],
+      'field_public_show_banner' => ['public', 'show_banner'],
+    ];
+
+    foreach ($visibility_fields as $field_name => $form_path) {
+      if ($vendor->hasField($field_name)) {
+        $value = $form_state->getValue($form_path) ?? FALSE;
+        $vendor->set($field_name, (int) $value);
+      }
+    }
+
+    // Validate entity before saving, but skip access checks for entity references.
+    // The entity reference access check can fail if the current user doesn't have
+    // permission to view the referenced entity, even though the reference is valid.
     $violations = $vendor->validate();
+    $real_violations = [];
+    
     if ($violations->count() > 0) {
       foreach ($violations as $violation) {
+        $property_path = $violation->getPropertyPath();
+        $message = (string) $violation->getMessage();
+        
+        // Skip "cannot be referenced" errors for field_vendor_users if the user exists.
+        // This is an access check issue, not a validation issue.
+        if (str_contains($property_path, 'field_vendor_users') && str_contains($message, 'cannot be referenced')) {
+          // Verify the referenced users actually exist and are valid.
+          $field = $vendor->get('field_vendor_users');
+          $all_valid = TRUE;
+          foreach ($field as $item) {
+            if ($item->target_id) {
+              $user = $this->entityTypeManager->getStorage('user')->load($item->target_id);
+              if (!$user || !$user->isActive()) {
+                $all_valid = FALSE;
+                break;
+              }
+            }
+          }
+          // If all users are valid, skip this violation (it's an access check, not a real validation error).
+          if ($all_valid) {
+            \Drupal::logger('myeventlane_vendor')->debug('Skipping entity reference access check violation for field_vendor_users - users are valid.');
+            continue;
+          }
+        }
+        
+        // This is a real validation error - collect it.
+        $real_violations[] = $violation;
         $this->messenger()->addError($this->t('Validation error: @message', [
-          '@message' => $violation->getMessage(),
+          '@message' => $message,
         ]));
       }
-      $form_state->setRebuild();
-      return;
+      
+      // Only rebuild if we have real validation errors.
+      if (!empty($real_violations)) {
+        \Drupal::logger('myeventlane_vendor')->warning('Vendor validation failed with @count real errors. Vendor ID: @vendor_id', [
+          '@count' => count($real_violations),
+          '@vendor_id' => $vendor->id(),
+        ]);
+        $form_state->setRebuild();
+        return;
+      }
     }
 
     try {
       // Log the save attempt for debugging.
-      \Drupal::logger('myeventlane_vendor')->info('Attempting to save vendor settings. Vendor ID: @vendor_id', [
+      \Drupal::logger('myeventlane_vendor')->info('Attempting to save vendor settings. Vendor ID: @vendor_id, Name: @name', [
         '@vendor_id' => $vendor->id(),
+        '@name' => $vendor->getName(),
       ]);
       
+      // Log field values being saved for debugging.
+      $fields_to_log = [
+        'name' => $vendor->getName(),
+        'field_summary' => $vendor->hasField('field_summary') && !$vendor->get('field_summary')->isEmpty() ? $vendor->get('field_summary')->value : 'empty',
+        'field_vendor_bio' => $vendor->hasField('field_vendor_bio') && !$vendor->get('field_vendor_bio')->isEmpty() ? 'has value' : 'empty',
+        'field_email' => $vendor->hasField('field_email') && !$vendor->get('field_email')->isEmpty() ? $vendor->get('field_email')->value : 'empty',
+      ];
+      \Drupal::logger('myeventlane_vendor')->debug('Vendor field values before save: @fields', [
+        '@fields' => print_r($fields_to_log, TRUE),
+      ]);
+      
+      // Save the vendor entity.
+      // The preSave hook will handle entity reference validation.
       $vendor->save();
       
       // Clear entity cache to ensure fresh data is displayed.
       $this->entityTypeManager->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
+      
+      // Reload vendor to verify save worked.
+      $saved_vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
+      if ($saved_vendor) {
+        \Drupal::logger('myeventlane_vendor')->info('Vendor reloaded after save. Name: @name', [
+          '@name' => $saved_vendor->getName(),
+        ]);
+      }
       
       // Invalidate cache tags for the vendor entity and any related views.
       $cache_tags = [
@@ -886,12 +1025,16 @@ class VendorProfileSettingsForm extends FormBase {
       $form_state->setRedirect('myeventlane_vendor.console.settings');
     }
     catch (\Exception $e) {
-      \Drupal::logger('myeventlane_vendor')->error('Failed to save vendor settings: @message. Vendor ID: @vendor_id. Trace: @trace', [
+      \Drupal::logger('myeventlane_vendor')->error('Failed to save vendor settings: @message. Vendor ID: @vendor_id. File: @file, Line: @line. Trace: @trace', [
         '@message' => $e->getMessage(),
         '@vendor_id' => $vendor->id() ?? 'unknown',
+        '@file' => $e->getFile(),
+        '@line' => $e->getLine(),
         '@trace' => $e->getTraceAsString(),
       ]);
-      $this->messenger()->addError($this->t('An error occurred while saving. Please try again. If the problem persists, contact support.'));
+      $this->messenger()->addError($this->t('An error occurred while saving: @message', [
+        '@message' => $e->getMessage(),
+      ]));
       $form_state->setRebuild();
     }
   }

@@ -50,8 +50,16 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
     $this->assertStripeConnected();
     $tabs = $this->eventTabs($event, 'rsvps');
-    $summary = $this->rsvpStatsService->getRsvpSummary($event);
-    $series = $this->rsvpStatsService->getDailyRsvpSeries($event);
+    
+    // Use new API: getStatsForEvent returns ['total' => int, 'recent' => int].
+    $rsvpStats = $this->rsvpStatsService->getStatsForEvent((int) $event->id());
+    $summary = [
+      'total' => $rsvpStats['total'] ?? 0,
+      'recent' => $rsvpStats['recent'] ?? 0,
+    ];
+    
+    // Daily series no longer available - use empty array.
+    $series = [];
 
     // Get actual RSVP submissions.
     $rsvpList = $this->getRsvpList($event);
@@ -59,19 +67,13 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     $chart_data = [
       'event-rsvps' => [
         'type' => 'line',
-        'labels' => array_column($series, 'date'),
+        'labels' => [],
         'datasets' => [
           [
             'label' => 'RSVPs',
-            'data' => array_column($series, 'rsvps'),
+            'data' => [],
             'borderColor' => '#2563eb',
             'backgroundColor' => 'rgba(37, 99, 235, 0.12)',
-          ],
-          [
-            'label' => 'Check-ins',
-            'data' => array_column($series, 'checkins'),
-            'borderColor' => '#10b981',
-            'backgroundColor' => 'rgba(16, 185, 129, 0.12)',
           ],
         ],
       ],

@@ -5,14 +5,16 @@ dependencies:
   config:
     - commerce_store.commerce_store_type.online
     - field.storage.commerce_store.field_stripe_payouts_enabled
+  module:
+    - options
 id: commerce_store.online.field_stripe_payouts_enabled
 field_name: field_stripe_payouts_enabled
 entity_type: commerce_store
 bundle: online
 label: 'Payouts Enabled'
-description: 'Whether Payouts Enabled for this Stripe account.'
+description: 'Whether payouts are enabled for this Stripe account.'
 required: false
-translatable: true
+translatable: false
 default_value:
   -
     value: 0

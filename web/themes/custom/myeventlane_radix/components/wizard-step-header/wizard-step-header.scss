@@ -1,0 +1,37 @@
+// ============================================================================
+// Wizard Step Header Component (SDC)
+// ============================================================================
+// Styles for the wizard step header Single Directory Component.
+// ============================================================================
+
+@use '../../src/scss/tokens/tokens' as *;
+
+.mel-wizard-step-header {
+  padding: mel-space(3);
+  border-radius: $mel-radius-md;
+  background-color: $mel-color-surface;
+  border: 1px solid $mel-color-border;
+  
+  &--active {
+    border-color: $mel-color-primary;
+    background-color: rgba(255, 111, 97, 0.05);
+  }
+  
+  &--complete {
+    border-color: $mel-color-success;
+    background-color: rgba(34, 197, 94, 0.05);
+  }
+}
+
+.mel-wizard-step-header__number {
+  // Badge styling handled by Bootstrap classes
+}
+
+.mel-wizard-step-header__title {
+  margin: 0;
+}
+
+.mel-wizard-step-header__description {
+  font-size: mel-font-size(sm);
+  line-height: $mel-leading-relaxed;
+}

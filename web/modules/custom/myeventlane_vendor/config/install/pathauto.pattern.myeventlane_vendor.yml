@@ -6,7 +6,7 @@ dependencies:
 id: myeventlane_vendor
 label: 'Vendor paths'
 type: 'canonical_entities:myeventlane_vendor'
-pattern: 'vendor/[myeventlane_vendor:name]'
+pattern: 'vendors/[myeventlane_vendor:name]'
 selection_criteria: {  }
 weight: 0
 

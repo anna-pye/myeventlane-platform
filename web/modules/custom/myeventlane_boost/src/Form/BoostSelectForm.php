@@ -227,8 +227,22 @@ final class BoostSelectForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    if (!$form_state->getValue('choices')) {
+    $choices = $form_state->getValue('choices');
+    if (empty($choices)) {
       $form_state->setErrorByName('choices', $this->t('Please select a boost option.'));
+      return;
+    }
+    
+    // Verify the selected variation exists and is valid.
+    $variationId = (int) $choices;
+    if ($variationId <= 0) {
+      $form_state->setErrorByName('choices', $this->t('Invalid boost option selected.'));
+      return;
+    }
+    
+    $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variationId);
+    if (!$variation || !$variation->isPublished()) {
+      $form_state->setErrorByName('choices', $this->t('The selected boost option is no longer available.'));
     }
   }
 
@@ -236,42 +250,82 @@ final class BoostSelectForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $nid = (int) $form_state->getValue('event_nid');
-    $variationId = (int) $form_state->getValue('choices');
+    try {
+      \Drupal::logger('myeventlane_boost')->notice('Boost form submission started');
+      
+      $nid = (int) $form_state->getValue('event_nid');
+      $variationId = (int) $form_state->getValue('choices');
 
-    /** @var \Drupal\node\NodeInterface|null $node */
-    $node = $this->entityTypeManager->getStorage('node')->load($nid);
-    /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
-    $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variationId);
+      \Drupal::logger('myeventlane_boost')->notice('Form values: nid=@nid, variationId=@vid', [
+        '@nid' => $nid,
+        '@vid' => $variationId,
+      ]);
 
-    if (!$node instanceof NodeInterface || !$variation instanceof ProductVariationInterface) {
-      $this->messenger()->addError($this->t('Invalid selection.'));
-      $form_state->setRedirect('<front>');
-      return;
+      if ($nid <= 0 || $variationId <= 0) {
+        \Drupal::logger('myeventlane_boost')->warning('Form submission failed: invalid values');
+        $this->messenger()->addError($this->t('Please select a boost option.'));
+        $form_state->setRebuild();
+        return;
+      }
+
+      /** @var \Drupal\node\NodeInterface|null $node */
+      $node = $this->entityTypeManager->getStorage('node')->load($nid);
+      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
+      $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variationId);
+
+      if (!$node instanceof NodeInterface || !$variation instanceof ProductVariationInterface) {
+        $this->messenger()->addError($this->t('Invalid selection.'));
+        $form_state->setRedirect('<front>');
+        return;
+      }
+
+      // Resolve store from the parent product.
+      $store = $this->resolveStoreFromVariation($variation);
+      if ($store === NULL) {
+        $this->messenger()->addError($this->t('No store available for this product.'));
+        $form_state->setRedirect('<front>');
+        return;
+      }
+
+      // Get/create cart for that store.
+      $cart = $this->cartProvider->getCart('default', $store)
+        ?: $this->cartProvider->createCart('default', $store);
+
+      if (!$cart) {
+        $this->messenger()->addError($this->t('Unable to create cart. Please try again.'));
+        $form_state->setRebuild();
+        return;
+      }
+
+      // Let Commerce create the correct order-item bundle and fields.
+      $orderItem = $this->cartManager->addEntity($cart, $variation, '1', TRUE);
+
+      if (!$orderItem) {
+        $this->messenger()->addError($this->t('Unable to add item to cart. Please try again.'));
+        $form_state->setRebuild();
+        return;
+      }
+
+      // Set the target event on the order item if the field exists.
+      if ($orderItem->hasField('field_target_event')) {
+        $orderItem->set('field_target_event', ['target_id' => $node->id()]);
+        $orderItem->save();
+      }
+
+      // Redirect to cart page.
+      \Drupal::logger('myeventlane_boost')->notice('Form submission successful, redirecting to cart. Cart ID: @cart_id', [
+        '@cart_id' => $cart->id(),
+      ]);
+      $form_state->setRedirect('commerce_cart.page');
     }
-
-    // Resolve store from the parent product.
-    $store = $this->resolveStoreFromVariation($variation);
-    if ($store === NULL) {
-      $this->messenger()->addError($this->t('No store available for this product.'));
-      $form_state->setRedirect('<front>');
-      return;
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('An error occurred: @message', ['@message' => $e->getMessage()]));
+      \Drupal::logger('myeventlane_boost')->error('Boost form submission error: @message', [
+        '@message' => $e->getMessage(),
+        '@trace' => $e->getTraceAsString(),
+      ]);
+      $form_state->setRebuild();
     }
-
-    // Get/create cart for that store.
-    $cart = $this->cartProvider->getCart('default', $store)
-      ?: $this->cartProvider->createCart('default', $store);
-
-    // Let Commerce create the correct order-item bundle and fields.
-    $orderItem = $this->cartManager->addEntity($cart, $variation, '1', TRUE);
-
-    // Set the target event on the order item if the field exists.
-    if ($orderItem !== NULL && $orderItem->hasField('field_target_event')) {
-      $orderItem->set('field_target_event', ['target_id' => $node->id()]);
-      $orderItem->save();
-    }
-
-    $form_state->setRedirect('commerce_cart.page');
   }
 
   /**

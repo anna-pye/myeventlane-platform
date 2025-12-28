@@ -1,0 +1,242 @@
+// ============================================================================
+// MyEventLane Radix - Checkout Components
+// ============================================================================
+// Checkout flow styling built on Bootstrap 5.
+// Extends Bootstrap components for Commerce checkout panes and forms.
+//
+// USAGE:
+//   Applied automatically to Commerce checkout forms.
+//   Uses Bootstrap classes with MyEventLane color overrides.
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Checkout Container
+// ============================================================================
+
+.mel-checkout {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: mel-space(4) mel-space(2);
+  
+  @media (min-width: 768px) {
+    padding: mel-space(6) mel-space(4);
+  }
+}
+
+// ============================================================================
+// Checkout Steps/Progress
+// ============================================================================
+
+.mel-checkout-progress {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: mel-space(6);
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: $mel-color-border;
+    z-index: 0;
+  }
+  
+  .mel-checkout-step {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    
+    &__number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: $mel-color-surface;
+      border: 2px solid $mel-color-border;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: $mel-font-bold;
+      color: $mel-color-text-muted;
+      margin-bottom: mel-space(1);
+    }
+    
+    &__label {
+      font-size: mel-font-size(sm);
+      color: $mel-color-text-muted;
+      text-align: center;
+    }
+    
+    &.active {
+      .mel-checkout-step__number {
+        background-color: $mel-color-primary;
+        border-color: $mel-color-primary;
+        color: $mel-color-on-primary;
+      }
+      
+      .mel-checkout-step__label {
+        color: $mel-color-text;
+        font-weight: $mel-font-semibold;
+      }
+    }
+    
+    &.completed {
+      .mel-checkout-step__number {
+        background-color: $mel-color-success;
+        border-color: $mel-color-success;
+        color: $mel-color-on-primary;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Checkout Pane
+// ============================================================================
+
+.mel-checkout-pane {
+  background-color: $mel-color-surface;
+  border: 1px solid $mel-color-border;
+  border-radius: $mel-radius-lg;
+  padding: mel-space(4);
+  margin-bottom: mel-space(4);
+  
+  &__title {
+    font-size: mel-font-size(xl);
+    font-weight: $mel-font-bold;
+    color: $mel-color-text;
+    margin: 0 0 mel-space(3) 0;
+    padding-bottom: mel-space(2);
+    border-bottom: 2px solid $mel-color-border;
+  }
+  
+  &__content {
+    // Content styling
+  }
+}
+
+// ============================================================================
+// Checkout Form Fields
+// ============================================================================
+
+.mel-checkout {
+  .form-control,
+  .form-select {
+    // Use larger touch targets for checkout
+    min-height: 48px;
+    padding: mel-space(2) mel-space(4);
+  }
+  
+  .form-label {
+    font-weight: $mel-font-semibold;
+    margin-bottom: mel-space(2);
+  }
+}
+
+// ============================================================================
+// Checkout Summary
+// ============================================================================
+
+.mel-checkout-summary {
+  background-color: $mel-color-surface-alt;
+  border-radius: $mel-radius-md;
+  padding: mel-space(4);
+  margin-bottom: mel-space(4);
+  
+  &__title {
+    font-size: mel-font-size(lg);
+    font-weight: $mel-font-bold;
+    margin: 0 0 mel-space(3) 0;
+  }
+  
+  &__item {
+    display: flex;
+    justify-content: space-between;
+    padding: mel-space(2) 0;
+    border-bottom: 1px solid $mel-color-border;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  &__label {
+    color: $mel-color-text-muted;
+  }
+  
+  &__value {
+    font-weight: $mel-font-semibold;
+    color: $mel-color-text;
+  }
+  
+  &__total {
+    margin-top: mel-space(3);
+    padding-top: mel-space(3);
+    border-top: 2px solid $mel-color-border;
+    font-size: mel-font-size(lg);
+    font-weight: $mel-font-bold;
+    
+    .mel-checkout-summary__value {
+      color: $mel-color-primary;
+    }
+  }
+}
+
+// ============================================================================
+// Checkout Actions
+// ============================================================================
+
+.mel-checkout-actions {
+  display: flex;
+  gap: mel-space(3);
+  margin-top: mel-space(6);
+  
+  .btn {
+    flex: 1;
+    
+    @media (max-width: 767px) {
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Payment Methods
+// ============================================================================
+
+.mel-payment-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: mel-space(3);
+  margin-bottom: mel-space(4);
+  
+  .mel-payment-method {
+    border: 2px solid $mel-color-border;
+    border-radius: $mel-radius-md;
+    padding: mel-space(3);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    
+    &:hover {
+      border-color: $mel-color-primary;
+      background-color: $mel-color-bg;
+    }
+    
+    &.active {
+      border-color: $mel-color-primary;
+      background-color: rgba(255, 111, 97, 0.1);
+    }
+  }
+}

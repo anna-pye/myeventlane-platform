@@ -15,6 +15,9 @@ import { initMobileNav, initAccountDropdown } from './header.js';
 // Import event form enhancements (Drupal behavior)
 import './event-form.js';
 
+// Import event card media and carousel (Drupal behavior)
+import './mel-card-media.js';
+
 /**
  * Initialize theme functionality.
  * Wrapped in Drupal behavior to ensure it doesn't interfere with Commerce payment JS.

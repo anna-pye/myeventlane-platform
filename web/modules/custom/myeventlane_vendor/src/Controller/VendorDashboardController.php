@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
+use Drupal\myeventlane_vendor\Service\RsvpStatsService;
+use Drupal\myeventlane_vendor\Service\BoostStatusService;
+use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -27,16 +31,36 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * RSVP stats service.
+   */
+  protected RsvpStatsService $rsvpStats;
+
+  /**
+   * Ticket sales service.
+   */
+  protected TicketSalesService $ticketSales;
+
+  /**
+   * Boost status service.
+   */
+  protected BoostStatusService $boostStatus;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
-    private readonly MetricsAggregator $metricsAggregator,
+    RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
+    BoostStatusService $boost_status,
+    TicketSalesService $ticket_sales,
   ) {
     parent::__construct($domain_detector, $current_user);
+    $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
+    $this->boostStatus = $boost_status;
+    $this->ticketSales = $ticket_sales;
   }
 
   /**
@@ -46,8 +70,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
-      $container->get('myeventlane_vendor.service.metrics_aggregator'),
+      $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_vendor.service.boost_status'),
+      $container->get('myeventlane_vendor.service.ticket_sales'),
     );
   }
 
@@ -56,6 +82,15 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    */
   public function dashboard(): array {
     $userId = (int) $this->currentUser->id();
+
+    // Load vendor entity for current user.
+    $vendor = $this->getCurrentVendorOrNull();
+    $vendorEditUrl = NULL;
+    if ($vendor) {
+      $vendorEditUrl = Url::fromRoute('entity.myeventlane_vendor.edit_form', [
+        'myeventlane_vendor' => $vendor->id(),
+      ]);
+    }
 
     // Load vendor's events once for all queries.
     $userEvents = $this->getUserEvents($userId);
@@ -94,6 +129,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     // Use vendor theme template format (matches myeventlane_vendor_theme).
     return $this->buildVendorPage('myeventlane_vendor_dashboard', [
+      'vendor' => $vendor,
+      'vendor_edit_url' => $vendorEditUrl,
       'kpis' => $kpis,
       'charts' => $charts,
       'events' => $events,
@@ -116,107 +153,165 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
-   * Get all events owned by user.
+   * Get all events owned by user (includes drafts).
+   *
+   * Used for display purposes (event list, notifications).
+   * For analytics, use getPublishedUserEvents() instead.
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return array
+   *   Array of event node IDs. Returns empty array if no events or invalid user.
    */
   private function getUserEvents(int $userId): array {
-    return $this->entityTypeManager
-      ->getStorage('node')
-      ->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('type', 'event')
-      ->condition('uid', $userId)
-      ->execute();
+    if ($userId <= 0) {
+      return [];
+    }
+
+    try {
+      return $this->entityTypeManager
+        ->getStorage('node')
+        ->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('type', 'event')
+        ->condition('uid', $userId)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      return [];
+    }
+  }
+
+  /**
+   * Get published events owned by user (excludes drafts).
+   *
+   * Used for analytics calculations.
+   * All vendor analytics exclude draft events.
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return array
+   *   Array of published event node IDs. Returns empty array if no events or invalid user.
+   */
+  private function getPublishedUserEvents(int $userId): array {
+    if ($userId <= 0) {
+      return [];
+    }
+
+    try {
+      return $this->entityTypeManager
+        ->getStorage('node')
+        ->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('type', 'event')
+        ->condition('uid', $userId)
+        ->condition('status', 1)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      return [];
+    }
+  }
+
+  /**
+   * Safely gets the order from an order item.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface $order_item
+   *   The order item.
+   *
+   * @return \Drupal\commerce_order\Entity\OrderInterface|null
+   *   The order entity, or NULL if not available.
+   */
+  private function getOrderFromItem(OrderItemInterface $order_item) {
+    if (!$order_item->hasField('order_id') || $order_item->get('order_id')->isEmpty()) {
+      return NULL;
+    }
+
+    // Get the target_id from field value to avoid triggering Commerce's lazy loading.
+    // Access the field value directly without triggering entity loading.
+    $field_value = $order_item->get('order_id')->getValue();
+    if (empty($field_value) || !isset($field_value[0]['target_id'])) {
+      return NULL;
+    }
+
+    $order_id = $field_value[0]['target_id'];
+    if (!$order_id) {
+      return NULL;
+    }
+
+    try {
+      return $this->entityTypeManager
+        ->getStorage('commerce_order')
+        ->load($order_id);
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
   }
 
   /**
    * Build comprehensive KPI card data.
+   *
+   * Uses TicketSalesService and RsvpStatsService to avoid duplicate calculations.
+   * All metrics exclude draft events (only published events are counted).
+   * Metrics:
+   * - Total Revenue: Gross revenue from completed orders (published events only)
+   * - Last 30 Days Revenue: Revenue from orders completed in last 30 days
+   * - Upcoming Events: Published events with start date in the future
+   * - Total Events: All events (published + drafts) for context
+   * - Tickets Sold: Total tickets from completed orders (published events only)
+   * - RSVPs: Total confirmed RSVPs (published events only)
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   * @param array $userEvents
+   *   All events (includes drafts) - used for total event count display only.
+   *
+   * @return array
+   *   Array of KPI card arrays. Returns empty array if services unavailable.
    */
   private function buildKpiCards(int $userId, array $userEvents): array {
+    // Defensive guard: ensure services are available.
+    if (!$this->rsvpStats || !$this->ticketSales) {
+      return [];
+    }
+
+    if ($userId <= 0) {
+      return [];
+    }
+
+    // Get published events for analytics (excludes drafts).
+    $publishedEvents = $this->getPublishedUserEvents($userId);
     $eventCount = count($userEvents);
 
-    // Calculate revenue metrics.
-    $totalRevenue = 0;
-    $last30DaysRevenue = 0;
-    $ticketsSold = 0;
+    // Use TicketSalesService for revenue metrics (includes published filter).
+    $revenue = $this->ticketSales->getVendorRevenue($userId);
+    $totalRevenue = $revenue['gross_raw'] ?? 0.0;
+    $ticketsSold = $revenue['tickets'] ?? 0;
+
+    // Calculate last 30 days revenue using TicketSalesService method.
     $thirtyDaysAgo = strtotime('-30 days');
-
-    if (!empty($userEvents)) {
-      try {
-        $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-        $orderItems = $orderItemStorage->loadByProperties([
-          'field_target_event' => array_values($userEvents),
-        ]);
-
-        foreach ($orderItems as $item) {
-          if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-            continue;
-          }
-          try {
-            $order = $item->getOrder();
-            if ($order && $order->getState()->getId() === 'completed') {
-              $totalPrice = $item->getTotalPrice();
-              if ($totalPrice) {
-                $amount = (float) $totalPrice->getNumber();
-                $totalRevenue += $amount;
-                $ticketsSold += (int) $item->getQuantity();
-
-                // Check if order is within last 30 days.
-                $orderTime = $order->getCompletedTime() ?? $order->getChangedTime();
-                if ($orderTime >= $thirtyDaysAgo) {
-                  $last30DaysRevenue += $amount;
-                }
-              }
-            }
-          }
-          catch (\Exception $e) {
-            continue;
-          }
-        }
-      }
-      catch (\Exception $e) {
-        // Commerce may not be available.
-      }
+    $last30DaysRevenue = 0.0;
+    try {
+      $last30DaysRevenue = $this->ticketSales->getVendorRevenueInRange($userId, $thirtyDaysAgo);
+    }
+    catch (\Exception $e) {
+      // Default to 0 if method fails.
     }
 
-    // Count RSVPs.
-    $rsvpCount = 0;
-    if (!empty($userEvents)) {
-      try {
-        $rsvpCount = (int) $this->entityTypeManager
-          ->getStorage('rsvp_submission')
-          ->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('event_id', $userEvents, 'IN')
-          ->condition('status', 'confirmed')
-          ->count()
-          ->execute();
-      }
-      catch (\Exception $e) {
-        // RSVP module may not be available.
-      }
+    // Use RsvpStatsService for RSVP count (includes published filter).
+    $total_rsvps = 0;
+    try {
+      $total_rsvps = $this->rsvpStats->getVendorRsvpCount($userId);
+    }
+    catch (\Exception $e) {
+      // Default to 0 if service fails.
     }
 
-    // Count attendees (if separate from commerce).
-    $attendeeCount = 0;
-    if (!empty($userEvents)) {
-      try {
-        $attendeeCount = (int) $this->entityTypeManager
-          ->getStorage('event_attendee')
-          ->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('event', $userEvents, 'IN')
-          ->condition('status', 'confirmed')
-          ->count()
-          ->execute();
-      }
-      catch (\Exception $e) {
-        // Use tickets sold as fallback.
-        $attendeeCount = $ticketsSold;
-      }
-    }
-
-    // Get upcoming events count.
-    $upcomingCount = $this->getUpcomingEventsCount($userEvents);
+    // Get upcoming events count (filters by published internally).
+    $upcomingCount = $this->getUpcomingEventsCount($publishedEvents);
 
     return [
       [
@@ -245,14 +340,14 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ],
       [
         'label' => 'Tickets Sold',
-        'value' => (string) max($ticketsSold, $attendeeCount),
+        'value' => (string) $ticketsSold,
         'icon' => 'tickets',
         'color' => 'green',
         'delta' => NULL,
       ],
       [
         'label' => 'RSVPs',
-        'value' => (string) $rsvpCount,
+        'value' => (string) $total_rsvps,
         'icon' => 'users',
         'color' => 'purple',
         'delta' => NULL,
@@ -261,20 +356,30 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
-   * Get upcoming events count.
+   * Get upcoming events count (published events with future start date).
+   *
+   * Counts: Published events (status=1) with start date >= now.
+   * Excludes: Draft events, past events.
+   * Tables: node (event).
+   *
+   * @param array $eventIds
+   *   Array of event node IDs (should be published events only).
+   *
+   * @return int
+   *   Count of upcoming events. Returns 0 if no events, empty array, or on error.
    */
-  private function getUpcomingEventsCount(array $userEvents): int {
-    if (empty($userEvents)) {
+  private function getUpcomingEventsCount(array $eventIds): int {
+    if (empty($eventIds)) {
       return 0;
     }
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $now = date('Y-m-d\TH:i:s');
-
     try {
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $now = date('Y-m-d\TH:i:s');
+
       return (int) $nodeStorage->getQuery()
         ->accessCheck(TRUE)
-        ->condition('nid', $userEvents, 'IN')
+        ->condition('nid', $eventIds, 'IN')
         ->condition('status', 1)
         ->condition('field_event_start', $now, '>=')
         ->count()
@@ -287,14 +392,42 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   /**
    * Get events table data with full details.
+   *
+   * Loads event nodes and builds table data including revenue, tickets, RSVPs.
+   * Uses TicketSalesService and RsvpStatsService to avoid duplicate calculations.
+   * Includes both published and draft events for display purposes.
+   *
+   * @param array $userEvents
+   *   Array of event node IDs (can include drafts).
+   *
+   * @return array
+   *   Array of event data arrays. Returns empty array if no events, services unavailable,
+   *   or on error. Each event array includes: id, title, venue, date, status, revenue,
+   *   tickets_sold, rsvps, boost data, URLs, etc.
    */
   private function getEventsTableData(array $userEvents): array {
     if (empty($userEvents)) {
       return [];
     }
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $nodes = $nodeStorage->loadMultiple($userEvents);
+    // Guard against null services during container rebuilds.
+    if (!$this->boostStatus || !$this->ticketSales || !$this->rsvpStats) {
+      return [];
+    }
+
+    try {
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $nodes = $nodeStorage->loadMultiple($userEvents);
+    }
+    catch (\Exception $e) {
+      // Entity storage may fail during container rebuilds.
+      return [];
+    }
+
+    if (empty($nodes)) {
+      return [];
+    }
+
     $events = [];
 
     foreach ($nodes as $node) {
@@ -342,13 +475,65 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         }
       }
 
-      // Get revenue and ticket counts.
-      $revenue = $this->getEventRevenue($eventId);
-      $ticketsSold = $this->getEventTicketsSold($eventId);
-      $rsvps = $this->getEventRsvpCount($eventId);
+      // Get revenue and ticket counts using services (avoids duplicate calculations).
+      $salesSummary = [];
+      try {
+        if ($this->ticketSales) {
+          $salesSummary = $this->ticketSales->getSalesSummary($node);
+        }
+      }
+      catch (\Exception $e) {
+        // Service may fail, use defaults.
+      }
+      $revenue = $salesSummary['gross_raw'] ?? 0.0;
+      $ticketsSold = $salesSummary['tickets_sold'] ?? 0;
+
+      $rsvps = 0;
+      try {
+        if ($this->rsvpStats) {
+          $rsvps = $this->rsvpStats->getEventRsvpCount($eventId);
+        }
+      }
+      catch (\Exception $e) {
+        // Service may fail, use default 0.
+      }
 
       // Get waitlist analytics.
       $waitlistAnalytics = $this->getEventWaitlistAnalytics($eventId);
+
+      // Get RSVP stats and boost status with defensive checks.
+      try {
+        $stats = $this->rsvpStats->getStatsForEvent($eventId);
+      }
+      catch (\Exception $e) {
+        $stats = ['total' => 0, 'recent' => 0];
+      }
+
+      try {
+        $boostData = $this->boostStatus->getBoostStatuses($eventId);
+      }
+      catch (\Exception $e) {
+        $boostData = [
+          'eligible' => FALSE,
+          'active' => FALSE,
+          'reason' => 'error',
+        ];
+      }
+
+      $isBoosted = !empty($boostData['active']);
+      $isPublished = $node->isPublished();
+      $isEligible = !empty($boostData['eligible']);
+
+      // Build boost button data with proper state handling.
+      $boost = [
+        'allowed' => $isPublished && $isEligible,
+        'label' => $isBoosted ? 'Boost active' : ($isPublished ? 'Boost event' : 'Publish to boost'),
+        'url' => ($isPublished && $isEligible)
+          ? Url::fromRoute('myeventlane_boost.boost_page', ['node' => $eventId])->toString()
+          : NULL,
+        'is_boosted' => $isBoosted,
+        'message' => !$isPublished ? 'Publish this event to enable boosting.' : ($boostData['reason'] ?? NULL),
+      ];
 
       $events[] = [
         'id' => $eventId,
@@ -363,6 +548,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'tickets_sold' => $ticketsSold,
         'rsvps' => $rsvps,
         'waitlist' => $waitlistAnalytics,
+        'rsvp' => $stats,
+        'boost' => $boost,
         'view_url' => $node->toUrl()->toString(),
         // Use wizard route for editing (vendors never see default node edit form).
         'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eventId])->toString(),
@@ -374,10 +561,62 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ];
     }
 
-    // Sort by start date descending.
+    // Sort by start date descending (newest first).
     usort($events, fn($a, $b) => $b['start_timestamp'] <=> $a['start_timestamp']);
 
     return $events;
+  }
+
+  /**
+   * Safely gets event revenue using TicketSalesService.
+   *
+   * Counts: Completed orders only (order state='completed').
+   * Excludes: Draft/cancelled/refunded orders.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return float
+   *   Total revenue. Returns 0.0 if service unavailable, no sales, or on error.
+   */
+  private function getEventRevenueSafe(NodeInterface $event): float {
+    if (!$this->ticketSales) {
+      return 0.0;
+    }
+
+    try {
+      $salesSummary = $this->ticketSales->getSalesSummary($event);
+      return $salesSummary['gross_raw'] ?? 0.0;
+    }
+    catch (\Exception $e) {
+      return 0.0;
+    }
+  }
+
+  /**
+   * Safely gets event tickets sold using TicketSalesService.
+   *
+   * Counts: Completed orders only (order state='completed').
+   * Excludes: Draft/cancelled/refunded orders.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return int
+   *   Total tickets sold. Returns 0 if service unavailable, no sales, or on error.
+   */
+  private function getEventTicketsSoldSafe(NodeInterface $event): int {
+    if (!$this->ticketSales) {
+      return 0;
+    }
+
+    try {
+      $salesSummary = $this->ticketSales->getSalesSummary($event);
+      return $salesSummary['tickets_sold'] ?? 0;
+    }
+    catch (\Exception $e) {
+      return 0;
+    }
   }
 
   /**
@@ -688,91 +927,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ];
   }
 
-  /**
-   * Get revenue for a specific event.
-   */
-  private function getEventRevenue(int $eventId): float {
-    $revenue = 0;
-    try {
-      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      $orderItems = $orderItemStorage->loadByProperties([
-        'field_target_event' => $eventId,
-      ]);
-
-      foreach ($orderItems as $item) {
-        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-          continue;
-        }
-        try {
-          $order = $item->getOrder();
-          if ($order && $order->getState()->getId() === 'completed') {
-            $totalPrice = $item->getTotalPrice();
-            if ($totalPrice) {
-              $revenue += (float) $totalPrice->getNumber();
-            }
-          }
-        }
-        catch (\Exception $e) {
-          continue;
-        }
-      }
-    }
-    catch (\Exception $e) {
-      // Commerce may not be available.
-    }
-    return $revenue;
-  }
-
-  /**
-   * Get tickets sold for a specific event.
-   */
-  private function getEventTicketsSold(int $eventId): int {
-    $count = 0;
-    try {
-      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      $orderItems = $orderItemStorage->loadByProperties([
-        'field_target_event' => $eventId,
-      ]);
-
-      foreach ($orderItems as $item) {
-        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-          continue;
-        }
-        try {
-          $order = $item->getOrder();
-          if ($order && $order->getState()->getId() === 'completed') {
-            $count += (int) $item->getQuantity();
-          }
-        }
-        catch (\Exception $e) {
-          continue;
-        }
-      }
-    }
-    catch (\Exception $e) {
-      // Commerce may not be available.
-    }
-    return $count;
-  }
-
-  /**
-   * Get RSVP count for a specific event.
-   */
-  private function getEventRsvpCount(int $eventId): int {
-    try {
-      return (int) $this->entityTypeManager
-        ->getStorage('rsvp_submission')
-        ->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('event_id', $eventId)
-        ->condition('status', 'confirmed')
-        ->count()
-        ->execute();
-    }
-    catch (\Exception $e) {
-      return 0;
-    }
-  }
 
   /**
    * Get waitlist analytics for a specific event.

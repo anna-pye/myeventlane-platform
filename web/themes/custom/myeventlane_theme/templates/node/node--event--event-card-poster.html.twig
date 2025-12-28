@@ -1,0 +1,117 @@
+{#
+  Event node in view mode: event_card_poster
+  Maps real Drupal fields to Poster Card component API.
+#}
+
+{% set url = url('entity.node.canonical', {'node': node.id}) %}
+
+{# Image field render already in content array. #}
+{% set image = content.field_event_image is defined ? content.field_event_image : null %}
+
+{# Category: taxonomy term label + optional class mapping #}
+{% set category_label = '' %}
+{% set category_url = null %}
+{% set category_color_class = '' %}
+{% if content.field_category is defined and node.hasField('field_category') and not node.field_category.isEmpty %}
+  {% set first_category = node.field_category[0].entity %}
+  {% if first_category %}
+    {% set category_label = first_category.label %}
+    {% set category_tid = first_category.id %}
+    {% set category_url = '/events/category/' ~ category_tid %}
+    {% set category_color_class = 'mel-cat--' ~ category_label|lower|replace({' ': '-', '&': 'and', '+': ''}) %}
+  {% endif %}
+{% endif %}
+
+{# Date and time formatting #}
+{% set date_label = '' %}
+{% set time_label = '' %}
+{% if content.field_event_start is defined and node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+  {% set start_date = node.field_event_start.value|date('U') %}
+  {% set date_label = node.field_event_start.value|date('D j M') %}
+  {% set time_label = node.field_event_start.value|date('g:ia') %}
+{% endif %}
+
+{# Location: prefer venue name, fallback to address locality #}
+{% set location_label = '' %}
+{% if node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+  {% set location_label = node.field_venue_name.value %}
+{% elseif node.hasField('field_location') and not node.field_location.isEmpty %}
+  {% set location_item = node.field_location[0] %}
+  {% if location_item.locality %}
+    {% set location_label = location_item.locality %}
+    {% if location_item.administrative_area %}
+      {% set location_label = location_label ~ ', ' ~ location_item.administrative_area %}
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+{# Price: from Commerce product or event type #}
+{% set price_label = '' %}
+{% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
+  {% set product = node.field_product_target.entity %}
+  {% if product %}
+    {% set default_variation = product.getDefaultVariation() %}
+    {% if default_variation and default_variation.hasField('price') %}
+      {% set price = default_variation.getPrice() %}
+      {% if price %}
+        {% set price_label = price|commerce_price_format %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+  {% set event_type = node.field_event_type.value %}
+  {% if event_type == 'rsvp' %}
+    {% set price_label = 'Free' %}
+  {% endif %}
+{% endif %}
+
+{# Stamp: TONIGHT or FREE #}
+{% set stamp = null %}
+{% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+  {% set start_date = node.field_event_start.value|date('U') %}
+  {% set now = 'now'|date('U') %}
+  {% set today_start = 'now'|date('Y-m-d 00:00:00')|date('U') %}
+  {% set today_end = 'now'|date('Y-m-d 23:59:59')|date('U') %}
+  {% if start_date >= today_start and start_date <= today_end %}
+    {% set stamp = 'TONIGHT' %}
+  {% endif %}
+{% endif %}
+{% if not stamp and node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+  {% set event_type = node.field_event_type.value %}
+  {% if event_type == 'rsvp' %}
+    {% set stamp = 'FREE' %}
+  {% endif %}
+{% endif %}
+
+{# CTA label based on event type #}
+{% set cta_label = 'Tickets' %}
+{% if node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
+  {% set event_type = node.field_event_type.value %}
+  {% if event_type == 'rsvp' %}
+    {% set cta_label = 'RSVP' %}
+  {% elseif event_type == 'both' %}
+    {% set cta_label = 'Tickets' %}
+  {% elseif event_type == 'external' %}
+    {% set cta_label = 'Book' %}
+  {% endif %}
+{% endif %}
+
+{# Title placement: overlay by default for homepage, below for listings #}
+{% set title_placement = title_placement|default('overlay') %}
+
+{# Build card data #}
+{% set card = {
+  url: url,
+  image: image,
+  title: label,
+  date: date_label,
+  time: time_label,
+  location: location_label,
+  price: price_label,
+  category: category_label ? { label: category_label, url: category_url, color_class: category_color_class } : null,
+  stamp: stamp,
+  cta_label: cta_label,
+  title_placement: title_placement
+} %}
+
+{% include '@myeventlane_theme/components/event-card/event-card-poster.twig' with { card: card } only %}

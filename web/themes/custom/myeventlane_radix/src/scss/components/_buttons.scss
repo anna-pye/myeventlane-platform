@@ -1,0 +1,274 @@
+// ============================================================================
+// MyEventLane Radix - Button Components
+// ============================================================================
+// Button system built on Bootstrap 5, extended with MyEventLane variants.
+// Uses Bootstrap's .btn base class and extends with .mel-btn-* modifiers.
+//
+// USAGE:
+//   <button class="btn mel-btn-primary">Primary</button>
+//   <a href="#" class="btn mel-btn-secondary">Secondary</a>
+//   <button class="btn mel-btn-ghost mel-btn-sm">Small Ghost</button>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+@use 'sass:color';
+
+// ============================================================================
+// Base Button Extensions
+// ============================================================================
+// Bootstrap's .btn is already included via Radix.
+// We extend it with MyEventLane-specific styles.
+
+.btn {
+  // Use MyEventLane font family
+  font-family: $mel-font-family;
+  font-weight: $mel-font-semibold;
+  
+  // Use MyEventLane focus ring
+  @include mel-focus-visible;
+  
+  // Touch-friendly minimum height
+  min-height: 44px;
+  
+  // Smooth transitions
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  
+  // Hover lift effect
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+  
+  // Disabled state
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// ============================================================================
+// MyEventLane Button Variants
+// ============================================================================
+// Extend Bootstrap's button variants with MyEventLane-specific colors.
+
+// Primary (Coral) - Main CTAs
+.mel-btn-primary,
+.btn.mel-btn-primary {
+  background-color: $mel-color-primary;
+  border-color: $mel-color-primary;
+  color: $mel-color-on-primary;
+  
+  &:hover:not(:disabled) {
+    background-color: $mel-color-primary-hover;
+    border-color: $mel-color-primary-hover;
+    box-shadow: 0 6px 18px rgba(255, 111, 97, 0.35);
+  }
+  
+  &:active:not(:disabled) {
+    background-color: $mel-color-primary-active;
+    border-color: $mel-color-primary-active;
+  }
+}
+
+// Secondary (Lavender) - Secondary actions
+.mel-btn-secondary,
+.btn.mel-btn-secondary {
+  background-color: $mel-color-secondary;
+  border-color: $mel-color-secondary;
+  color: $mel-color-on-primary;
+  
+  &:hover:not(:disabled) {
+    background-color: $mel-color-secondary-hover;
+    border-color: $mel-color-secondary-hover;
+  }
+  
+  &:active:not(:disabled) {
+    background-color: $mel-color-secondary-active;
+    border-color: $mel-color-secondary-active;
+  }
+}
+
+// Accent (Yellow) - Highlights, special actions
+.mel-btn-accent,
+.btn.mel-btn-accent {
+  background-color: $mel-color-accent;
+  border-color: $mel-color-accent;
+  color: $mel-color-text;
+  
+  &:hover:not(:disabled) {
+    background-color: color.adjust($mel-color-accent, $lightness: -8%);
+    border-color: color.adjust($mel-color-accent, $lightness: -8%);
+  }
+  
+  &:active:not(:disabled) {
+    background-color: color.adjust($mel-color-accent, $lightness: -12%);
+    border-color: color.adjust($mel-color-accent, $lightness: -12%);
+  }
+}
+
+// Ghost - Subtle, outlined
+.mel-btn-ghost,
+.btn.mel-btn-ghost {
+  background-color: transparent;
+  border-color: $mel-color-border-strong;
+  color: $mel-color-text;
+  
+  &:hover:not(:disabled) {
+    background-color: $mel-color-bg;
+    border-color: $mel-color-text-muted;
+  }
+  
+  &:active:not(:disabled) {
+    background-color: $mel-color-surface-alt;
+  }
+}
+
+// Text - No background or border
+.mel-btn-text,
+.btn.mel-btn-text {
+  background-color: transparent;
+  border-color: transparent;
+  color: $mel-color-primary;
+  padding-left: mel-space(2);
+  padding-right: mel-space(2);
+  
+  &:hover:not(:disabled) {
+    color: $mel-color-primary-hover;
+    text-decoration: underline;
+    background-color: transparent;
+  }
+}
+
+// Danger - Destructive actions
+.mel-btn-danger,
+.btn.mel-btn-danger {
+  background-color: $mel-color-error;
+  border-color: $mel-color-error;
+  color: $mel-color-on-primary;
+  
+  &:hover:not(:disabled) {
+    background-color: color.adjust($mel-color-error, $lightness: -10%);
+    border-color: color.adjust($mel-color-error, $lightness: -10%);
+  }
+}
+
+// Success - Positive confirmations
+.mel-btn-success,
+.btn.mel-btn-success {
+  background-color: $mel-color-success;
+  border-color: $mel-color-success;
+  color: $mel-color-on-primary;
+  
+  &:hover:not(:disabled) {
+    background-color: color.adjust($mel-color-success, $lightness: -10%);
+    border-color: color.adjust($mel-color-success, $lightness: -10%);
+  }
+}
+
+// ============================================================================
+// Button Sizes
+// ============================================================================
+// Bootstrap provides .btn-sm and .btn-lg, but we can add custom sizes if needed.
+
+.mel-btn-sm {
+  padding: mel-space(1) mel-space(3);
+  min-height: 36px;
+  font-size: mel-font-size(sm);
+}
+
+.mel-btn-lg {
+  padding: mel-space(3) mel-space(6);
+  min-height: 52px;
+  font-size: mel-font-size(md);
+}
+
+// ============================================================================
+// Button Modifiers
+// ============================================================================
+
+// Full width
+.mel-btn-block {
+  display: flex;
+  width: 100%;
+}
+
+// Pill shape
+.mel-btn-pill {
+  border-radius: $mel-radius-full;
+}
+
+// Icon only (square)
+.mel-btn-icon {
+  padding: mel-space(2);
+  min-width: 44px;
+}
+
+// ============================================================================
+// Button Groups
+// ============================================================================
+// Extend Bootstrap's button groups with MyEventLane spacing.
+
+.mel-btn-group {
+  display: inline-flex;
+  gap: mel-space(2);
+}
+
+.mel-btn-group-attached {
+  display: inline-flex;
+  
+  .btn {
+    border-radius: 0;
+    
+    &:first-child {
+      border-radius: $mel-radius-md 0 0 $mel-radius-md;
+    }
+    
+    &:last-child {
+      border-radius: 0 $mel-radius-md $mel-radius-md 0;
+    }
+    
+    &:not(:last-child) {
+      border-right-width: 1px;
+    }
+  }
+}
+
+// ============================================================================
+// Legacy Button Classes (for backward compatibility)
+// ============================================================================
+// These classes from the old theme are mapped to new variants.
+
+.button--rsvp,
+.button--ticket {
+  @extend .mel-btn-primary;
+  background-color: #C74848; // WCAG compliant red
+  
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#C74848, $lightness: -8%);
+    box-shadow: 0 6px 18px rgba(199, 72, 72, 0.35);
+  }
+}
+
+.button--primary {
+  @extend .mel-btn-primary;
+  background-color: #FC9167;
+  
+  &:hover:not(:disabled) {
+    background-color: color.adjust(#FC9167, $lightness: -8%);
+    box-shadow: 0 6px 18px rgba(252, 145, 103, 0.35);
+  }
+}
+
+.button--secondary {
+  @extend .mel-btn-ghost;
+  border-color: #FC9167;
+  color: #FC9167;
+  
+  &:hover:not(:disabled) {
+    border-color: color.adjust(#FC9167, $lightness: -8%);
+    color: color.adjust(#FC9167, $lightness: -8%);
+  }
+}

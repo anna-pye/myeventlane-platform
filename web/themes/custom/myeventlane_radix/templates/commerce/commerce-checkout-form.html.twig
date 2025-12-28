@@ -1,0 +1,101 @@
+{#
+/**
+ * @file
+ * Theme override for the checkout form (Radix/Bootstrap 5).
+ *
+ * Available variables:
+ * - form: The checkout form with all its panes and elements.
+ * - status_messages: Status messages for the current page.
+ *
+ * CRITICAL: Do NOT modify form structure, IDs, or Commerce configuration.
+ * Only markup/classes are changed to use Bootstrap 5.
+ */
+#}
+
+<div class="mel-checkout container-fluid">
+  <div class="row g-4">
+    {# Main Checkout Content #}
+    <div class="mel-checkout-main col-12 col-lg-8">
+      {# Progress Steps - Bootstrap 5 progress component #}
+      {% if form['#steps'] is defined %}
+        <nav class="mel-checkout-steps mb-4" aria-label="{{ 'Checkout progress'|t }}">
+          <div class="d-flex justify-content-between align-items-center position-relative">
+            {# Progress line (background) #}
+            <div class="position-absolute top-50 start-0 end-0" style="height: 2px; background-color: var(--bs-border-color); z-index: 0;"></div>
+            
+            {% for step_id, step in form['#steps'] %}
+              <div class="mel-checkout-step position-relative{{ step.status == 'current' ? ' active' : '' }}{{ step.status == 'complete' ? ' completed' : '' }}" style="z-index: 1;">
+                <div class="mel-checkout-step__number d-flex align-items-center justify-content-center rounded-circle{{ step.status == 'current' ? ' bg-primary text-white' : '' }}{{ step.status == 'complete' ? ' bg-success text-white' : ' bg-light border border-secondary' }}" style="width: 40px; height: 40px; margin-bottom: 0.5rem;">
+                  {% if step.status != 'complete' %}{{ loop.index }}{% else %}&#10003;{% endif %}
+                </div>
+                <span class="mel-checkout-step__label d-block text-center{{ step.status == 'current' ? ' fw-semibold text-dark' : ' text-muted' }}" style="font-size: 0.875rem;">
+                  {{ step.label }}
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </nav>
+      {% endif %}
+
+      {# Global messages - Bootstrap 5 alert component #}
+      {{ status_messages }}
+
+      {# Checkout Panes - Bootstrap 5 card component #}
+      {% for key, pane in form if key matches '/^(?!#|actions$|sidebar$)/' %}
+        {% if pane['#type'] is defined or pane['#markup'] is defined or pane|render|trim %}
+          <section class="mel-checkout-pane card mb-4{{ key == 'payment_information' ? ' mel-checkout-pane--payment' : '' }}">
+            {% if pane['#title'] is defined %}
+              <div class="card-header">
+                <h2 class="mel-checkout-pane-title h5 mb-0">{{ pane['#title'] }}</h2>
+              </div>
+            {% endif %}
+            <div class="card-body mel-checkout-pane-content">
+              {{ pane }}
+            </div>
+          </section>
+        {% endif %}
+      {% endfor %}
+
+      {# Display form errors at top level - Bootstrap 5 alert #}
+      {% if form['#errors'] %}
+        <div class="alert alert-danger" role="alert">
+          <h2 class="visually-hidden">{{ 'Error message'|t }}</h2>
+          <ul class="mb-0">
+            {% for error in form['#errors'] %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {# Actions - Bootstrap 5 button group #}
+      <div class="mel-checkout-actions">
+        {{ form.actions }}
+      </div>
+    </div>
+
+    {# Order Summary Sidebar - Bootstrap 5 card #}
+    <aside class="mel-checkout-sidebar col-12 col-lg-4">
+      <div class="mel-checkout-order-summary card position-sticky" style="top: 1rem;">
+        <div class="card-header">
+          <h2 class="mel-checkout-order-title h5 mb-0">{{ 'Order Summary'|t }}</h2>
+        </div>
+        <div class="card-body">
+          {% if form.sidebar is defined %}
+            {{ form.sidebar }}
+          {% endif %}
+
+          <p class="mel-checkout-security text-muted small mt-3 mb-0">
+            <i class="bi bi-shield-check" aria-hidden="true"></i> {{ 'Secure checkout'|t }}
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+{#
+  NOTE: Stripe.js initialization scripts should remain in the module
+  or be attached via libraries.yml. Do NOT include inline scripts here
+  unless absolutely necessary for theme-specific behavior.
+#}

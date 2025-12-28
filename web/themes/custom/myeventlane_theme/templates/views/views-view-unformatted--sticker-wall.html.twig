@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Views unformatted template for Sticker Wall grid.
+ * Adds deterministic tilt classes to each row.
+ */
+#}
+
+{% if title %}
+  <h3>{{ title }}</h3>
+{% endif %}
+
+<div class="mel-sticker-wall">
+  {% for row in rows %}
+    {%
+      set tilt_class = 'mel-tilt-' ~ ((loop.index0 % 3) + 1)
+      set row_classes = [
+        'mel-sticker-wall__item',
+        tilt_class
+      ]
+    %}
+    <div{{ row.attributes.addClass(row_classes) }}>
+      {{ row.content }}
+    </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,208 @@
+// ============================================================================
+// MyEventLane Radix - Footer Layout
+// ============================================================================
+// Footer component built on Bootstrap 5, extended with MyEventLane styles.
+//
+// USAGE:
+//   <footer class="mel-footer">...</footer>
+// ============================================================================
+
+@use '../tokens/tokens' as *;
+
+// ============================================================================
+// Footer Base
+// ============================================================================
+
+.mel-footer {
+  background-color: $mel-color-surface;
+  padding: mel-space(8) 0;
+  border-top: 1px solid $mel-color-border;
+  margin-top: mel-space(10);
+}
+
+.mel-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 mel-space(4);
+}
+
+// ============================================================================
+// Footer Simple Variant
+// ============================================================================
+
+.mel-footer--simple {
+  .mel-footer-simple-inner {
+    display: flex;
+    flex-direction: column;
+    gap: mel-space(6);
+    
+    @media (min-width: 768px) {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+}
+
+.mel-footer-brand {
+  .mel-footer-logo {
+    font-size: mel-font-size(xl);
+    font-weight: $mel-font-bold;
+    color: $mel-color-text;
+    display: block;
+    margin-bottom: mel-space(2);
+  }
+  
+  .mel-footer-tagline {
+    font-size: mel-font-size(sm);
+    color: $mel-color-text-muted;
+    margin: 0;
+  }
+}
+
+.mel-footer-nav {
+  nav {
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: mel-space(3);
+      
+      a {
+        color: $mel-color-text-muted;
+        text-decoration: none;
+        font-size: mel-font-size(sm);
+        @include mel-focus-visible;
+        
+        &:hover {
+          color: $mel-color-primary;
+        }
+      }
+    }
+  }
+}
+
+.mel-footer-links-inline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: mel-space(3);
+  
+  a {
+    color: $mel-color-text-muted;
+    text-decoration: none;
+    font-size: mel-font-size(sm);
+    @include mel-focus-visible;
+    
+    &:hover {
+      color: $mel-color-primary;
+    }
+  }
+}
+
+// ============================================================================
+// Post Footer (Copyright)
+// ============================================================================
+
+.mel-post-footer {
+  background-color: $mel-color-surface-alt;
+  padding: mel-space(4) 0;
+  border-top: 1px solid $mel-color-border;
+  
+  &--dark {
+    background-color: $mel-color-text;
+    color: $mel-color-text-inverse;
+    
+    a {
+      color: $mel-color-text-inverse;
+      
+      &:hover {
+        color: $mel-color-primary;
+      }
+    }
+  }
+}
+
+.mel-post-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 mel-space(4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: mel-space(3);
+  
+  font-size: mel-font-size(sm);
+  color: $mel-color-text-muted;
+}
+
+.mel-footer-social-icons {
+  display: flex;
+  gap: mel-space(3);
+  
+  a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: $mel-color-text-inverse;
+    text-decoration: none;
+    @include mel-focus-visible;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// ============================================================================
+// Footer Grid (Full version)
+// ============================================================================
+
+.mel-footer-grid {
+  display: grid;
+  gap: mel-space(6);
+  grid-template-columns: 1fr;
+  
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mel-footer-col {
+  margin-bottom: mel-space(2);
+}
+
+.mel-footer-title {
+  font-size: mel-font-size(xl);
+  font-weight: $mel-font-extrabold;
+  line-height: $mel-leading-snug;
+  margin-bottom: mel-space(3);
+  color: $mel-color-text;
+}
+
+.mel-footer-subtitle {
+  font-size: mel-font-size(md);
+  font-weight: $mel-font-bold;
+  line-height: $mel-leading-snug;
+  margin-bottom: mel-space(3);
+  color: $mel-color-text;
+}
+
+.mel-footer-text {
+  color: $mel-color-text-muted;
+  font-size: mel-font-size(sm);
+  line-height: $mel-leading-relaxed;
+}
