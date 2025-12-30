@@ -5,35 +5,22 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Service for detecting the current domain and determining domain context.
+ * Domain detection and domain-aware URL helper.
+ *
+ * IMPORTANT:
+ * - This service MUST NOT be used for authentication or access control.
+ * - It is intended ONLY for UI logic and redirect helpers.
+ * - Session handling is controlled by Drupal settings, not this service.
  */
 final class DomainDetector {
 
-  /**
-   * The request stack.
-   *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
-   */
   private readonly RequestStack $requestStack;
-
-  /**
-   * The config factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
   private readonly ConfigFactoryInterface $configFactory;
 
-  /**
-   * Constructs a DomainDetector object.
-   *
-   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *   The request stack.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
-   */
   public function __construct(
     RequestStack $request_stack,
     ConfigFactoryInterface $config_factory,
@@ -43,208 +30,76 @@ final class DomainDetector {
   }
 
   /**
-   * Gets the current hostname from the request.
-   *
-   * @return string
-   *   The hostname (e.g., 'myeventlane.com' or 'vendor.myeventlane.com').
+   * Returns the current Symfony request.
    */
-  public function getCurrentHostname(): string {
-    $request = $this->requestStack->getCurrentRequest();
-    if (!$request) {
-      return '';
-    }
-
-    return $request->getHost();
+  private function getRequest(): ?Request {
+    return $this->requestStack->getCurrentRequest();
   }
 
   /**
-   * Checks if the current domain is the vendor domain.
+   * Gets the current hostname.
    *
-   * @return bool
-   *   TRUE if on vendor domain, FALSE otherwise.
+   * @return string|null
+   *   Hostname only (no scheme, no port), or NULL if unavailable.
+   */
+  public function getCurrentHostname(): ?string {
+    $request = $this->getRequest();
+    return $request ? $request->getHost() : NULL;
+  }
+
+  /**
+   * Determines whether the current request is on the vendor domain.
    */
   public function isVendorDomain(): bool {
-    $hostname = $this->getCurrentHostname();
-    if (empty($hostname)) {
-      return FALSE;
-    }
-
-    // Check if hostname starts with 'vendor.'.
-    if (str_starts_with($hostname, 'vendor.')) {
-      return TRUE;
-    }
-
-    // Also check configured vendor domain from settings.
-    $config = $this->configFactory->get('myeventlane_core.domain_settings');
-    $vendor_domain = $config->get('vendor_domain') ?? '';
-    if (!empty($vendor_domain)) {
-      $vendor_host = parse_url($vendor_domain, PHP_URL_HOST) ?: $vendor_domain;
-      if ($hostname === $vendor_host || str_ends_with($hostname, '.' . $vendor_host)) {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
+    return $this->isMatchingConfiguredDomain('vendor_domain', 'vendor.');
   }
 
   /**
-   * Checks if the current domain is the admin domain.
-   *
-   * @return bool
-   *   TRUE if on admin domain, FALSE otherwise.
+   * Determines whether the current request is on the admin domain.
    */
   public function isAdminDomain(): bool {
-    $hostname = $this->getCurrentHostname();
-    if (empty($hostname)) {
-      return FALSE;
-    }
-
-    // Check if hostname starts with 'admin.'.
-    if (str_starts_with($hostname, 'admin.')) {
-      return TRUE;
-    }
-
-    // Also check configured admin domain from settings.
-    $config = $this->configFactory->get('myeventlane_core.domain_settings');
-    $admin_domain = $config->get('admin_domain') ?? '';
-    if (!empty($admin_domain)) {
-      $admin_host = parse_url($admin_domain, PHP_URL_HOST) ?: $admin_domain;
-      if ($hostname === $admin_host || str_ends_with($hostname, '.' . $admin_host)) {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
+    return $this->isMatchingConfiguredDomain('admin_domain', 'admin.');
   }
 
   /**
-   * Checks if the current domain is the public domain.
-   *
-   * @return bool
-   *   TRUE if on public domain, FALSE otherwise.
+   * Determines whether the current request is on the public domain.
    */
   public function isPublicDomain(): bool {
     return !$this->isVendorDomain() && !$this->isAdminDomain();
   }
 
   /**
-   * Gets the current domain type.
+   * Returns the current domain type.
    *
    * @return string
-   *   Either 'vendor', 'admin', or 'public'.
+   *   One of: vendor, admin, public.
    */
   public function getCurrentDomainType(): string {
+    if (PHP_SAPI === 'cli') {
+      return 'public';
+    }
+
     if ($this->isVendorDomain()) {
       return 'vendor';
     }
+
     if ($this->isAdminDomain()) {
       return 'admin';
     }
+
     return 'public';
   }
 
   /**
-   * Gets the configured public domain URL.
-   *
-   * @return string
-   *   The public domain URL.
-   */
-  public function getPublicDomainUrl(): string {
-    $config = $this->configFactory->get('myeventlane_core.domain_settings');
-    $public_domain = $config->get('public_domain') ?? '';
-    if (!empty($public_domain)) {
-      return $public_domain;
-    }
-
-    // Fallback: construct from current request (production-ready).
-    $request = $this->requestStack->getCurrentRequest();
-    if ($request) {
-      $scheme = $request->getScheme();
-      $host = $request->getHost();
-      // Remove 'vendor.' or 'admin.' prefix if present to get base domain.
-      $host = preg_replace('/^(vendor|admin)\./', '', $host);
-      return $scheme . '://' . $host;
-    }
-
-    // Last resort fallback: construct from base hostname if available.
-    // This will work in both dev and production environments.
-    return 'https://myeventlane.ddev.site';
-  }
-
-  /**
-   * Gets the configured vendor domain URL.
-   *
-   * @return string
-   *   The vendor domain URL.
-   */
-  public function getVendorDomainUrl(): string {
-    $config = $this->configFactory->get('myeventlane_core.domain_settings');
-    $vendor_domain = $config->get('vendor_domain') ?? '';
-    if (!empty($vendor_domain)) {
-      return $vendor_domain;
-    }
-
-    // Fallback: construct from current request (production-ready).
-    $request = $this->requestStack->getCurrentRequest();
-    if ($request) {
-      $scheme = $request->getScheme();
-      $host = $request->getHost();
-      // Ensure 'vendor.' prefix.
-      if (!str_starts_with($host, 'vendor.')) {
-        // Remove 'admin.' prefix if present, then add 'vendor.'.
-        $host = preg_replace('/^admin\./', '', $host);
-        $host = 'vendor.' . $host;
-      }
-      return $scheme . '://' . $host;
-    }
-
-    // Last resort fallback: construct vendor subdomain.
-    // This will work in both dev and production environments.
-    return 'https://vendor.myeventlane.ddev.site';
-  }
-
-  /**
-   * Gets the configured admin domain URL.
-   *
-   * @return string
-   *   The admin domain URL.
-   */
-  public function getAdminDomainUrl(): string {
-    $config = $this->configFactory->get('myeventlane_core.domain_settings');
-    $admin_domain = $config->get('admin_domain') ?? '';
-    if (!empty($admin_domain)) {
-      return $admin_domain;
-    }
-
-    // Fallback: construct from current request (production-ready).
-    $request = $this->requestStack->getCurrentRequest();
-    if ($request) {
-      $scheme = $request->getScheme();
-      $host = $request->getHost();
-      // Ensure 'admin.' prefix.
-      if (!str_starts_with($host, 'admin.')) {
-        // Remove vendor. prefix if present, then add admin.
-        $host = preg_replace('/^vendor\./', '', $host);
-        $host = 'admin.' . $host;
-      }
-      return $scheme . '://' . $host;
-    }
-
-    // Last resort fallback: construct admin subdomain.
-    // This will work in both dev and production environments.
-    return 'https://admin.myeventlane.ddev.site';
-  }
-
-  /**
-   * Builds a URL for the specified domain type.
+   * Builds a fully-qualified URL for a given domain type.
    *
    * @param string $path
-   *   The path (e.g., '/vendor/dashboard').
+   *   Internal path, with or without leading slash.
    * @param string $domain_type
-   *   Either 'vendor', 'admin', or 'public'. Defaults to current domain.
+   *   vendor|admin|public|current
    *
-   * @return string
-   *   The full URL.
+   * @throws \RuntimeException
+   *   When required domain configuration is missing.
    */
   public function buildDomainUrl(string $path, string $domain_type = 'current'): string {
     if ($domain_type === 'current') {
@@ -252,15 +107,76 @@ final class DomainDetector {
     }
 
     $base_url = match ($domain_type) {
-      'vendor' => $this->getVendorDomainUrl(),
-      'admin' => $this->getAdminDomainUrl(),
-      default => $this->getPublicDomainUrl(),
+      'vendor' => $this->getConfiguredDomainUrl('vendor_domain'),
+      'admin' => $this->getConfiguredDomainUrl('admin_domain'),
+      'public' => $this->getConfiguredDomainUrl('public_domain'),
+      default => throw new \InvalidArgumentException(sprintf('Unknown domain type "%s".', $domain_type)),
     };
 
-    // Ensure path starts with /.
     $path = '/' . ltrim($path, '/');
 
     return $base_url . $path;
+  }
+
+  /**
+   * Checks whether the current hostname matches a configured domain.
+   */
+  private function isMatchingConfiguredDomain(string $config_key, string $prefix): bool {
+    $hostname = $this->getCurrentHostname();
+    if ($hostname === NULL) {
+      return FALSE;
+    }
+
+    $configured = $this->getConfiguredDomainHost($config_key);
+    if ($configured === NULL) {
+      return str_starts_with($hostname, $prefix);
+    }
+
+    return $hostname === $configured;
+  }
+
+  /**
+   * Returns a configured domain URL (scheme + host).
+   *
+   * @throws \RuntimeException
+   *   If configuration is missing or invalid.
+   */
+  private function getConfiguredDomainUrl(string $config_key): string {
+    $config = $this->configFactory->get('myeventlane_core.domain_settings');
+    $value = (string) $config->get($config_key);
+
+    if ($value === '') {
+      throw new \RuntimeException(sprintf(
+        'Missing required domain configuration: myeventlane_core.domain_settings.%s',
+        $config_key
+      ));
+    }
+
+    $parsed = parse_url($value);
+    if (!isset($parsed['scheme'], $parsed['host'])) {
+      throw new \RuntimeException(sprintf(
+        'Invalid domain configuration for %s: %s',
+        $config_key,
+        $value
+      ));
+    }
+
+    return $parsed['scheme'] . '://' . $parsed['host'];
+  }
+
+  /**
+   * Returns the configured domain host only.
+   */
+  private function getConfiguredDomainHost(string $config_key): ?string {
+    $config = $this->configFactory->get('myeventlane_core.domain_settings');
+    $value = (string) $config->get($config_key);
+
+    if ($value === '') {
+      return NULL;
+    }
+
+    $host = parse_url($value, PHP_URL_HOST);
+    return is_string($host) ? $host : NULL;
   }
 
 }
