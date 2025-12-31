@@ -20,7 +20,8 @@
   <a class="mel-card__link" href="{{ card.url }}">
     <div class="mel-card__media">
       {% if card.image %}
-        {{ card.image }}
+        {# card.image is a render array from Drupal #}
+        {{ card.image|render }}
       {% else %}
         <div class="mel-card__media--placeholder" aria-hidden="true"></div>
       {% endif %}

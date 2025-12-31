@@ -1,19 +1,22 @@
 <?php
 
-/**
- * @file
- * Primary module file for MyEventLane Vendor v3.
- */
-
 declare(strict_types=1);
 
+/**
+ * @file
+ * Primary module file for MyEventLane Vendor.
+ */
+
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_theme().
  */
-function myeventlane_vendor_theme($existing, $type, $theme, $path) {
+function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
   return [
     'myeventlane_vendor_list' => [
       'variables' => ['vendors' => NULL],
@@ -34,17 +37,9 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path) {
     'myeventlane_manage_event' => [
       'variables' => [
         'event' => NULL,
-        'event_title' => NULL,
-        'event_status' => NULL,
-        'event_status_class' => NULL,
         'steps' => [],
         'current_step' => NULL,
         'content' => NULL,
-        'page_title' => NULL,
-        'preview_url' => NULL,
-        'edit_url' => NULL,
-        'next_step_url' => NULL,
-        'prev_step_url' => NULL,
       ],
       'template' => 'myeventlane-manage-event',
     ],
@@ -58,7 +53,6 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'vendor-onboard-step',
     ],
-    // Vendor console page theme - generic wrapper for console pages.
     'myeventlane_vendor_console_page' => [
       'variables' => [
         'title' => NULL,
@@ -68,8 +62,6 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'vendor-console-page',
     ],
-    // Note: myeventlane_vendor_dashboard is defined in myeventlane_vendor_theme
-    // to allow the theme to fully control the dashboard presentation.
   ];
 }
 
@@ -78,605 +70,156 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path) {
  */
 function myeventlane_vendor_entity_insert(EntityInterface $entity): void {
   if ($entity instanceof Vendor) {
-    \Drupal::service('myeventlane_vendor.vendor_store_subscriber')->onVendorInsertFromHook($entity);
+    \Drupal::service('myeventlane_vendor.vendor_store_subscriber')
+      ->onVendorInsertFromHook($entity);
   }
 }
 
 /**
  * Implements hook_form_alter().
+ *
+ * IMPORTANT:
+ * - NEVER touch login, register, or password forms.
+ * - NEVER override #action globally.
  */
-function myeventlane_vendor_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
-  // Fix form action URLs on vendor domain - ensure they're at root level, not under /vendor/.
-  if (\Drupal::hasService('myeventlane_core.domain_detector')) {
-    $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-    if ($domain_detector->isVendorDomain()) {
-      // CRITICAL: Override form action URL generation by setting it to use root path.
-      // Drupal's FormBuilder generates action URLs based on current request path.
-      // We need to force it to use root-level path for form action tokens.
-      // Setting #action to '/' ensures FormBuilder generates form_action_ tokens at root level.
-      $form['#action'] = '/';
-      
-      // Also fix if already set incorrectly (defensive check).
-      if (isset($form['#action']) && is_string($form['#action']) && str_contains($form['#action'], '/vendor/form_action_')) {
-        $form['#action'] = str_replace('/vendor/form_action_', '/form_action_', $form['#action']);
-      }
-      
-      // Add pre_render callback to fix form action URL before rendering.
-      // This runs after Drupal generates the form action URL but before output.
-      // Use a trusted callback class to satisfy Drupal's security requirements.
-      if (!isset($form['#pre_render'])) {
-        $form['#pre_render'] = [];
-      }
-      array_unshift($form['#pre_render'], [
-        \Drupal\myeventlane_vendor\Form\FormActionUrlFixer::class,
-        'fixFormActionUrl',
-      ]);
-      
-      // Attach JavaScript to fix form action URLs client-side (runs after form is rendered).
-      // This is a fallback in case server-side fixes don't work.
-      if (!isset($form['#attached'])) {
-        $form['#attached'] = [];
-      }
-      if (!isset($form['#attached']['library'])) {
-        $form['#attached']['library'] = [];
-      }
-      $form['#attached']['library'][] = 'myeventlane_vendor/fix_form_action';
-    }
+function myeventlane_vendor_form_alter(
+  array &$form,
+  FormStateInterface $form_state,
+  string $form_id
+): void {
+
+  // 🚫 Absolutely never alter authentication forms.
+  if (in_array($form_id, [
+    'user_login_form',
+    'user_login_block_form',
+    'user_register_form',
+    'user_pass',
+    'user_pass_reset',
+  ], TRUE)) {
+    return;
   }
 
-  // Add message to login form if coming from create-event.
-  if ($form_id === 'user_login_form') {
-    $request = \Drupal::request();
-    $destination = $request->query->get('destination');
-    if ($destination && strpos($destination, '/create-event') !== FALSE) {
-      // Create two different registration URLs:
-      // 1. Vendor registration - redirects to vendor onboarding after signup
-      // 2. Regular user registration - standard destination
-      $vendor_register_url = \Drupal\Core\Url::fromRoute('user.register', [], [
-        'query' => ['vendor' => '1', 'destination' => '/vendor/onboard'],
-      ])->toString();
-      
-      $regular_register_url = \Drupal\Core\Url::fromRoute('user.register', [], [
-        'query' => ['destination' => '/user'],
-      ])->toString();
-      
-      // Attach JavaScript library for tooltip functionality.
-      $form['#attached']['library'][] = 'myeventlane_vendor/vendor_onboard_tooltip';
-      
-      $form['#prefix'] = '<div class="mel-vendor-notice" style="background: #fff4e6; border: 2px solid #ffd46f; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-        <div style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem;">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0; margin-top: 2px;">
-            <circle cx="10" cy="10" r="9" stroke="#1a1a2e" stroke-width="1.5"/>
-            <path d="M10 6v4M10 13h.01" stroke="#1a1a2e" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          <div style="flex: 1;">
-            <p style="margin: 0 0 0.5rem 0; color: #1a1a2e; font-size: 0.9375rem; line-height: 1.5; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              To create events, you need a vendor/organiser account. Log in if you already have one, or create a new account below.
-              <span style="position: relative; display: inline-flex; align-items: center;">
-                <button type="button" class="mel-help-trigger" aria-label="What is an organiser account?" style="background: none; border: none; cursor: help; padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center; color: #6b7280; margin-left: 0.25rem;">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
-                    <path d="M8 5v2M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </button>
-                <div class="mel-help-tooltip" role="tooltip" style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 0.5rem; background: #1a1a2e; color: white; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; line-height: 1.4; width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; z-index: 1000; pointer-events: none;">
-                  <strong>Create events as an organiser</strong><br>
-                  Organisers can create and manage events on MyEventLane. After creating your account, you\'ll set up your organiser profile.
-                </div>
-              </span>
-            </p>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-              <a href="' . $vendor_register_url . '" class="mel-btn mel-btn-primary" style="text-decoration: none; display: inline-flex;">
-                Create Organiser Account
-              </a>
-              <a href="' . $regular_register_url . '" class="mel-btn mel-btn-ghost" style="text-decoration: none; display: inline-flex;">
-                Create Account
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>';
-    }
-  }
-  
-  // Add messaging to registration form to distinguish vendor vs regular registration.
-  if ($form_id === 'user_register_form') {
-    $request = \Drupal::request();
-    $is_vendor_registration = $request->query->get('vendor') === '1';
-    
-    // Store vendor flag in form state for later use in submit handler.
-    $form_state->set('is_vendor_registration', $is_vendor_registration);
-    
-    if ($is_vendor_registration) {
-      $form['#prefix'] = '<div class="mel-vendor-register-notice" style="background: #e8f5e9; border: 2px solid #4caf50; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-        <p style="margin: 0; color: #1a1a2e; font-size: 0.9375rem; line-height: 1.5; display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-            <circle cx="10" cy="10" r="9" stroke="#4caf50" stroke-width="1.5"/>
-            <path d="M7 10l2 2 4-4" stroke="#4caf50" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <strong>Creating an Organiser Account</strong> - After registration, you\'ll set up your organiser profile to start creating events.
-        </p>
-      </div>';
-      
-      // Override destination to go to vendor onboarding (new step-by-step flow).
-      if (isset($form['actions']['submit'])) {
-        $form['actions']['submit']['#submit'][] = '_myeventlane_vendor_redirect_to_onboard';
-      }
-    } else {
-      $form['#prefix'] = '<div class="mel-regular-register-notice" style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
-        <p style="margin: 0; color: #1a1a2e; font-size: 0.9375rem; line-height: 1.5; display: flex; align-items: center; gap: 0.5rem;">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink: 0;">
-            <circle cx="10" cy="10" r="9" stroke="#2196f3" stroke-width="1.5"/>
-            <path d="M10 6v4M10 13h.01" stroke="#2196f3" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          <strong>Creating a Customer Account</strong> - This account lets you browse events, RSVP, and purchase tickets. To create events, you\'ll need an organiser account.
-        </p>
-      </div>';
-    }
-  }
-  
-  // Pre-fill vendor field on event creation form if vendor is provided in query.
-  if ($form_id === 'node_event_form' || $form_id === 'node_event_edit_form') {
-    $request = \Drupal::request();
-    $vendor_id = $request->query->get('vendor');
-
-    if ($vendor_id && isset($form['field_event_vendor'])) {
-      $current_user = \Drupal::currentUser();
-      
-      // Only pre-fill if the user is associated with this vendor.
-      $vendor_ids = _myeventlane_vendor_get_user_vendors((int) $current_user->id());
-      
-      if (in_array((int) $vendor_id, $vendor_ids, TRUE)) {
-        // Set default value if the field is empty (new event).
-        $entity = $form_state->getFormObject()->getEntity();
-        if ($entity->isNew() && $entity->get('field_event_vendor')->isEmpty()) {
-          $vendor = \Drupal::entityTypeManager()
-            ->getStorage('myeventlane_vendor')
-            ->load($vendor_id);
-          if ($vendor) {
-            // Set the vendor on the entity.
-            $entity->set('field_event_vendor', $vendor);
-          }
-        }
-      }
-    }
+  // Only vendor-domain cosmetic/UX changes are allowed here.
+  if (!\Drupal::service('myeventlane_core.domain_detector')->isVendorDomain()) {
+    return;
   }
 }
 
 /**
- * Submit handler to redirect vendor registrations to onboarding.
+ * Implements hook_form_user_login_form_alter().
  *
- * @param array $form
- *   The form array.
- * @param \Drupal\Core\Form\FormStateInterface $form_state
- *   The form state.
+ * Adds vendor onboarding messaging ONLY.
  */
-function _myeventlane_vendor_redirect_to_onboard(array $form, \Drupal\Core\Form\FormStateInterface $form_state): void {
-  // Only redirect if this was a vendor registration.
+function myeventlane_vendor_form_user_login_form_alter(
+  array &$form,
+  FormStateInterface $form_state
+): void {
+  $destination = \Drupal::request()->query->get('destination');
+
+  if ($destination && str_contains($destination, '/vendor')) {
+    $vendor_register = Url::fromRoute('user.register', [], [
+      'query' => [
+        'vendor' => '1',
+        'destination' => '/vendor/onboard',
+      ],
+    ])->toString();
+
+    $form['vendor_notice'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="mel-vendor-login-notice">
+          <p><strong>Creating events?</strong> You need an organiser account.</p>
+          <a class="mel-btn mel-btn--primary" href="' . $vendor_register . '">
+            Create organiser account
+          </a>
+        </div>',
+      '#weight' => -100,
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_user_register_form_alter().
+ */
+function myeventlane_vendor_form_user_register_form_alter(
+  array &$form,
+  FormStateInterface $form_state
+): void {
+  $is_vendor = \Drupal::request()->query->get('vendor') === '1';
+  $form_state->set('is_vendor_registration', $is_vendor);
+
+  if ($is_vendor && isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#submit'][] =
+      '_myeventlane_vendor_redirect_to_onboard';
+  }
+}
+
+/**
+ * Redirect vendor registrations to onboarding.
+ */
+function _myeventlane_vendor_redirect_to_onboard(
+  array $form,
+  FormStateInterface $form_state
+): void {
   if ($form_state->get('is_vendor_registration')) {
-    // Redirect to new step-by-step onboarding flow (profile step).
     $form_state->setRedirect('myeventlane_vendor.onboard.profile');
   }
 }
 
 /**
- * Helper function to get vendor IDs associated with a user.
- *
- * @param int $uid
- *   The user ID.
- *
- * @return array
- *   Array of vendor IDs (as integers).
+ * Helper: Get vendor IDs associated with a user.
  */
 function _myeventlane_vendor_get_user_vendors(int $uid): array {
   $storage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
-  
-  // Check vendors where user is the owner (uid field).
-  $owner_ids = $storage->getQuery()
-    ->accessCheck(TRUE)
-    ->condition('uid', $uid)
-    ->execute();
 
-  // Check vendors where user is in field_vendor_users.
-  $users_ids = $storage->getQuery()
-    ->accessCheck(TRUE)
-    ->condition('field_vendor_users', $uid)
-    ->execute();
-
-  // Merge and return unique IDs, converting to integers.
-  $all_ids = array_merge(
-    $owner_ids ?: [],
-    $users_ids ?: []
+  $ids = array_merge(
+    $storage->getQuery()->condition('uid', $uid)->execute() ?: [],
+    $storage->getQuery()->condition('field_vendor_users', $uid)->execute() ?: []
   );
-  
-  // Convert string keys to integer values and ensure uniqueness.
-  return array_values(array_unique(array_map('intval', $all_ids)));
+
+  return array_values(array_unique(array_map('intval', $ids)));
 }
 
 /**
  * Implements hook_page_attachments_alter().
- *
- * Hides admin sidebar blocks on vendor event management pages.
  */
 function myeventlane_vendor_page_attachments_alter(array &$attachments): void {
-  $route_name = \Drupal::routeMatch()->getRouteName();
-  
-  // Hide admin sidebar on vendor event management routes.
-  if ($route_name && strpos($route_name, 'myeventlane_vendor.manage_event') === 0) {
-    // Hide admin toolbar and sidebar blocks.
-    $attachments['#attached']['drupalSettings']['hideAdminSidebar'] = TRUE;
-    
-    // Add CSS to hide the admin sidebar.
-    $attachments['#attached']['library'][] = 'myeventlane_vendor/hide_admin_sidebar';
+  $route = \Drupal::routeMatch()->getRouteName();
+
+  if ($route && str_starts_with($route, 'myeventlane_vendor.')) {
+    $attachments['#attached']['library'][] =
+      'myeventlane_vendor/hide_admin_sidebar';
   }
 }
 
 /**
- * Implements hook_form_node_event_form_alter().
- *
- * Wraps form sections in tab panes for the vendor console.
+ * Submit handler: publish event.
  */
-function myeventlane_vendor_form_node_event_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
-  // Only alter if this is a vendor console route.
-  $route_name = \Drupal::routeMatch()->getRouteName();
-  $vendor_routes = [
-    'myeventlane_vendor.console.events_add',
-    'myeventlane_vendor.manage_event.basics',
-  ];
-  if (!in_array($route_name, $vendor_routes)) {
-    return;
-  }
-  
-  // CRITICAL: If EventFormAlter has already created the wizard structure,
-  // do NOT add vendor tabs. The wizard provides its own navigation.
-  if (isset($form['mel_wizard'])) {
-    // Wizard is present, skip vendor tab system.
-    return;
-  }
-  
-  // Debug: Log form structure before wrapping.
-  $logger = \Drupal::logger('myeventlane_vendor');
-  $top_level_keys = array_filter(array_keys($form), function($key) {
-    return !str_starts_with($key, '#');
-  });
-  $logger->debug('Vendor form alter START - Top-level form keys: @keys', [
-    '@keys' => implode(', ', $top_level_keys),
-  ]);
-  $logger->debug('Has booking_config: @has', ['@has' => isset($form['booking_config']) ? 'YES' : 'NO']);
-  $logger->debug('Has visibility: @has', ['@has' => isset($form['visibility']) ? 'YES' : 'NO']);
-  if (isset($form['booking_config'])) {
-    $logger->debug('booking_config keys: @keys', [
-      '@keys' => implode(', ', array_filter(array_keys($form['booking_config']), function($k) {
-        return !str_starts_with($k, '#');
-      })),
-    ]);
-  }
-  if (isset($form['visibility'])) {
-    $logger->debug('visibility keys: @keys', [
-      '@keys' => implode(', ', array_filter(array_keys($form['visibility']), function($k) {
-        return !str_starts_with($k, '#');
-      })),
-    ]);
-  }
-  
-  // Add marker class for JS.
-  if (!isset($form['#attributes'])) {
-    $form['#attributes'] = [];
-  }
-  if (!isset($form['#attributes']['class'])) {
-    $form['#attributes']['class'] = [];
-  }
-  $form['#attributes']['class'][] = 'vendor-event-create-form';
-  $form['#attributes']['data-vendor-form'] = 'true';
-  
-  // Define tab mappings: section_name => tab_id
-  $tab_mappings = [
-    'event_basics' => ['tab' => 'basics', 'active' => TRUE],
-    'location' => ['tab' => 'location', 'active' => FALSE],
-    'date_time' => ['tab' => 'schedule', 'active' => FALSE],
-    'booking_config' => ['tab' => 'tickets', 'active' => FALSE],
-    'visibility' => ['tab' => 'design', 'active' => FALSE],
-  ];
-  
-  // Lightweight tab nav (rendered regardless of theme template).
-  $form['simple_tabs_nav'] = [
-    '#type' => 'container',
-    '#weight' => -10000,
-    '#attributes' => ['class' => ['mel-simple-tabs']],
-    'buttons' => [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-simple-tabs__buttons']],
-      'basics' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Basics'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab', 'is-active'],
-          'data-simple-tab' => 'basics',
-        ],
-      ],
-      'schedule' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Schedule'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab'],
-          'data-simple-tab' => 'schedule',
-        ],
-      ],
-      'location' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Location'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab'],
-          'data-simple-tab' => 'location',
-        ],
-      ],
-      'tickets' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Tickets'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab'],
-          'data-simple-tab' => 'tickets',
-        ],
-      ],
-      'design' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Design'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab'],
-          'data-simple-tab' => 'design',
-        ],
-      ],
-      'questions' => [
-        '#type' => 'html_tag',
-        '#tag' => 'button',
-        '#value' => t('Questions'),
-        '#attributes' => [
-          'type' => 'button',
-          'class' => ['mel-simple-tab'],
-          'data-simple-tab' => 'questions',
-        ],
-      ],
-    ],
-  ];
-
-  // Wrap each section in a tab pane.
-  foreach ($tab_mappings as $section => $config) {
-    if (isset($form[$section]) && is_array($form[$section])) {
-      $logger->debug('Wrapping section: @section', ['@section' => $section]);
-      // Store original content.
-      $original = $form[$section];
-      $weight = $original['#weight'] ?? 0;
-      
-      // If section already has 'content' key (from EventFormAlter), preserve it exactly.
-      // This prevents double-nesting: booking_config.content.paid_fields stays accessible.
-      if (isset($original['content']) && is_array($original['content'])) {
-        // Preserve the existing structure exactly, only add wrapper attributes.
-        $existing_attributes = $original['#attributes'] ?? [];
-        $existing_classes = $existing_attributes['class'] ?? [];
-        if (!is_array($existing_classes)) {
-          $existing_classes = [$existing_classes];
-        }
-        
-        // Add tab pane classes.
-        $tab_classes = ['mel-tab-pane', 'mel-simple-tab-pane'];
-        $merged_classes = array_unique(array_merge($existing_classes, $tab_classes));
-        
-        // Build attributes.
-        $wrapper_attributes = array_merge($existing_attributes, [
-          'class' => $merged_classes,
-          'data-tab-pane' => $config['tab'],
-          'data-simple-tab-pane' => $config['tab'],
-          'role' => 'tabpanel',
-        ]);
-        
-        // Add 'is-active' class only to the default tab.
-        if ($config['active']) {
-          $wrapper_attributes['class'][] = 'is-active';
-        }
-        
-        // Preserve original structure exactly - don't create content.content.*
-        $form[$section] = $original;
-        $form[$section]['#attributes'] = $wrapper_attributes;
-        $form[$section]['#weight'] = $weight;
-        
-        // Preserve all non-# keys (like 'header', 'content') - they're already in place.
-        $logger->debug('Preserved existing content structure for @section', ['@section' => $section]);
-        
-        // Debug: Verify fields exist at expected paths.
-        if ($section === 'booking_config' && isset($form[$section]['content']['paid_fields'])) {
-          $paid_keys = array_filter(array_keys($form[$section]['content']['paid_fields']), function($k) {
-            return !str_starts_with($k, '#');
-          });
-          $logger->debug('booking_config.content.paid_fields keys: @keys', ['@keys' => implode(', ', $paid_keys)]);
-        }
-        if ($section === 'visibility' && isset($form[$section]['content'])) {
-          $vis_keys = array_filter(array_keys($form[$section]['content']), function($k) {
-            return !str_starts_with($k, '#');
-          });
-          $logger->debug('visibility.content keys: @keys', ['@keys' => implode(', ', $vis_keys)]);
-        }
-      }
-      else {
-        // Original wrapping logic for sections without 'content' key.
-        $form[$section] = [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['mel-tab-pane', 'mel-simple-tab-pane'],
-            'data-tab-pane' => $config['tab'],
-            'data-simple-tab-pane' => $config['tab'],
-            'role' => 'tabpanel',
-          ],
-          '#weight' => $weight,
-        ];
-        
-        // Add 'is-active' class only to the default tab.
-        if ($config['active']) {
-          $form[$section]['#attributes']['class'][] = 'is-active';
-        }
-        
-        // Move original content inside (only if it doesn't already have 'content').
-        $form[$section]['content'] = $original;
-        // Remove weight from inner content to prevent double weighting.
-        unset($form[$section]['content']['#weight']);
-        $logger->debug('Wrapped section @section without existing content key', ['@section' => $section]);
-      }
-    } else {
-      $logger->warning('Section @section not found in form when attempting to wrap', ['@section' => $section]);
-    }
-  }
-  
-  // Debug: Log final structure after wrapping.
-  $final_keys = array_filter(array_keys($form), function($key) {
-    return !str_starts_with($key, '#');
-  });
-  $logger->debug('Vendor form alter END - Top-level form keys: @keys', [
-    '@keys' => implode(', ', $final_keys),
-  ]);
-  
-  // Create addons tab pane.
-  $form['addons_tab'] = [
-    '#type' => 'container',
-    '#attributes' => [
-      'class' => ['mel-tab-pane'],
-      'data-tab-pane' => 'addons',
-      'role' => 'tabpanel',
-    ],
-    '#weight' => -5,
-  ];
-  $form['addons_tab']['card'] = [
-    '#type' => 'container',
-    '#attributes' => ['class' => ['mel-form-card']],
-  ];
-  $form['addons_tab']['card']['content'] = [
-    '#type' => 'container',
-    '#attributes' => ['class' => ['mel-form-content']],
-  ];
-  
-  // Move addon-related fields.
-  if (isset($form['field_collect_per_ticket'])) {
-    $form['addons_tab']['card']['content']['field_collect_per_ticket'] = $form['field_collect_per_ticket'];
-    unset($form['field_collect_per_ticket']);
-  }
-  if (isset($form['field_attendee_questions'])) {
-    $form['addons_tab']['card']['content']['field_attendee_questions'] = $form['field_attendee_questions'];
-    unset($form['field_attendee_questions']);
-  }
-  
-  // Create publish tab pane.
-  $form['publish_tab'] = [
-    '#type' => 'container',
-    '#attributes' => [
-      'class' => ['mel-tab-pane'],
-      'data-tab-pane' => 'publish',
-      'role' => 'tabpanel',
-    ],
-    '#weight' => 100,
-  ];
-  $form['publish_tab']['card'] = [
-    '#type' => 'container',
-    '#attributes' => ['class' => ['mel-form-card']],
-  ];
-  $form['publish_tab']['card']['content'] = [
-    '#type' => 'container',
-    '#attributes' => ['class' => ['mel-form-content']],
-  ];
-  
-  // Move publish-related fields.
-  if (isset($form['status'])) {
-    $form['publish_tab']['card']['content']['status'] = $form['status'];
-    unset($form['status']);
-  }
-  if (isset($form['promote'])) {
-    $form['publish_tab']['card']['content']['promote'] = $form['promote'];
-    unset($form['promote']);
-  }
-  
-  // Attach libraries.
-  if (!isset($form['#attached'])) {
-    $form['#attached'] = [];
-  }
-  if (!isset($form['#attached']['library'])) {
-    $form['#attached']['library'] = [];
-  }
-  $form['#attached']['library'][] = 'myeventlane_vendor_theme/event-form';
-  $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
-  // Attach dedicated simple tabs library for tab functionality.
-  $form['#attached']['library'][] = 'myeventlane_vendor/simple_tabs';
-  
-  // Customize actions.
-  if (isset($form['actions'])) {
-    $form['actions']['#weight'] = 200;
-    if (!isset($form['actions']['#attributes'])) {
-      $form['actions']['#attributes'] = [];
-    }
-    if (!isset($form['actions']['#attributes']['class'])) {
-      $form['actions']['#attributes']['class'] = [];
-    }
-    $form['actions']['#attributes']['class'][] = 'mel-event-form-actions';
-    
-    // Override submit button.
-    if (isset($form['actions']['submit'])) {
-      $form['actions']['submit']['#value'] = t('Publish event');
-      if (!isset($form['actions']['submit']['#attributes'])) {
-        $form['actions']['submit']['#attributes'] = [];
-      }
-      if (!isset($form['actions']['submit']['#attributes']['class'])) {
-        $form['actions']['submit']['#attributes']['class'] = [];
-      }
-      $form['actions']['submit']['#attributes']['class'][] = 'mel-btn';
-      $form['actions']['submit']['#attributes']['class'][] = 'mel-btn--primary';
-      $form['actions']['submit']['#submit'][] = '_myeventlane_vendor_publish_event';
-    }
-    
-    // Add save draft button.
-    $form['actions']['save_draft'] = [
-      '#type' => 'submit',
-      '#value' => t('Save draft'),
-      '#submit' => array_filter(
-        $form['actions']['submit']['#submit'] ?? [],
-        fn($handler) => $handler !== '_myeventlane_vendor_publish_event'
-      ),
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--secondary'],
-      ],
-      '#weight' => -10,
-    ];
-    $form['actions']['save_draft']['#submit'][] = '_myeventlane_vendor_save_draft';
-  }
-}
-
-/**
- * Submit handler for publishing an event.
- */
-function _myeventlane_vendor_publish_event(array &$form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+function _myeventlane_vendor_publish_event(
+  array &$form,
+  FormStateInterface $form_state
+): void {
   $entity = $form_state->getFormObject()->getEntity();
-  if ($entity instanceof \Drupal\node\NodeInterface) {
+
+  if ($entity instanceof NodeInterface) {
     $entity->setPublished();
-    \Drupal::messenger()->addStatus(t('Event published successfully.'));
-    $form_state->setRedirect('myeventlane_vendor.console.event_overview', [
-      'event' => $entity->id(),
-    ]);
+    \Drupal::messenger()->addStatus(t('Event published.'));
+    $form_state->setRedirect('myeventlane_vendor.console.events');
   }
 }
 
 /**
- * Submit handler for saving an event as draft.
+ * Submit handler: save draft.
  */
-function _myeventlane_vendor_save_draft(array &$form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+function _myeventlane_vendor_save_draft(
+  array &$form,
+  FormStateInterface $form_state
+): void {
   $entity = $form_state->getFormObject()->getEntity();
-  if ($entity instanceof \Drupal\node\NodeInterface) {
+
+  if ($entity instanceof NodeInterface) {
     $entity->setUnpublished();
-    \Drupal::messenger()->addStatus(t('Event saved as draft.'));
+    \Drupal::messenger()->addStatus(t('Draft saved.'));
     $form_state->setRedirect('myeventlane_vendor.console.events');
   }
 }

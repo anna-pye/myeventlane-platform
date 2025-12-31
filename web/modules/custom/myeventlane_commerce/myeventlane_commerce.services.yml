@@ -12,6 +12,13 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_commerce.field_attendee_data_write_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\FieldAttendeeDataWriteSubscriber
+    arguments:
+      - '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_commerce.order_completed_subscriber:
     class: Drupal\myeventlane_commerce\EventSubscriber\OrderCompletedSubscriber
     arguments:

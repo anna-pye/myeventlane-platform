@@ -13,6 +13,11 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Service for handling Stripe Connect payments for ticket sales.
+ *
+ * This service ensures correct financial handling:
+ * - Ticket revenue → transferred to vendor (minus platform fee)
+ * - Donation revenue → retained by platform (not transferred to vendor)
+ * - Application fees calculated only on ticket revenue
  */
 final class StripeConnectPaymentService {
 
@@ -156,7 +161,83 @@ final class StripeConnectPaymentService {
   }
 
   /**
+   * Checks if an order item is a donation (should be excluded from vendor payout).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
+   *   The order item.
+   *
+   * @return bool
+   *   TRUE if the item is a donation, FALSE otherwise.
+   */
+  private function isDonationItem(OrderItemInterface $item): bool {
+    $bundle = $item->bundle();
+    return in_array($bundle, ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE);
+  }
+
+  /**
+   * Calculates ticket revenue (excludes donations, boosts, and other non-ticket items).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return int
+   *   Ticket revenue in cents.
+   */
+  public function calculateTicketRevenue(OrderInterface $order): int {
+    $ticketAmount = 0;
+
+    foreach ($order->getItems() as $item) {
+      // Skip donation items (platform revenue, not vendor revenue).
+      if ($this->isDonationItem($item)) {
+        continue;
+      }
+
+      // Skip Boost items (they don't use Connect).
+      if ($item->bundle() === 'boost') {
+        continue;
+      }
+
+      $totalPrice = $item->getTotalPrice();
+      if ($totalPrice) {
+        // Convert to cents.
+        $ticketAmount += (int) round($totalPrice->getNumber() * 100);
+      }
+    }
+
+    return $ticketAmount;
+  }
+
+  /**
+   * Calculates donation revenue (for reference/logging).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return int
+   *   Donation revenue in cents.
+   */
+  public function calculateDonationRevenue(OrderInterface $order): int {
+    $donationAmount = 0;
+
+    foreach ($order->getItems() as $item) {
+      if ($this->isDonationItem($item)) {
+        $totalPrice = $item->getTotalPrice();
+        if ($totalPrice) {
+          // Convert to cents.
+          $donationAmount += (int) round($totalPrice->getNumber() * 100);
+        }
+      }
+    }
+
+    return $donationAmount;
+  }
+
+  /**
    * Calculates application fee for an order.
+   *
+   * IMPORTANT: Application fee is calculated ONLY on ticket revenue,
+   * NOT on donations. Donations are platform revenue and do not incur
+   * vendor payout fees.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -166,29 +247,30 @@ final class StripeConnectPaymentService {
    *   Fixed fee in cents (e.g., 30 for $0.30).
    *
    * @return int
-   *   Application fee in cents.
+   *   Application fee in cents (calculated on ticket revenue only).
    */
   public function calculateApplicationFee(OrderInterface $order, float $feePercentage = 0.03, int $fixedFeeCents = 30): int {
-    $totalAmount = 0;
+    // Calculate fee only on ticket revenue (excludes donations).
+    $ticketRevenue = $this->calculateTicketRevenue($order);
 
-    foreach ($order->getItems() as $item) {
-      // Skip Boost items (they don't use Connect).
-      if ($item->bundle() === 'boost') {
-        continue;
-      }
-
-      $totalPrice = $item->getTotalPrice();
-      if ($totalPrice) {
-        // Convert to cents.
-        $totalAmount += (int) round($totalPrice->getNumber() * 100);
-      }
-    }
-
-    return $this->stripeService->calculateApplicationFee($totalAmount, $feePercentage, $fixedFeeCents);
+    return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, $fixedFeeCents);
   }
 
   /**
    * Gets payment intent parameters for Connect destination charge.
+   *
+   * STRIPE CONNECT MATH:
+   * - Customer pays: total order amount (tickets + donations + fees + tax)
+   * - Platform receives: application_fee_amount + donation revenue
+   * - Vendor receives: ticket revenue - application_fee_amount
+   *
+   * Example:
+   * - Tickets: $100.00
+   * - Donations: $20.00
+   * - Application fee (3% + $0.30 on $100): $3.30
+   * - Total charged: $120.00
+   * - Vendor receives: $100.00 - $3.30 = $96.70
+   * - Platform receives: $3.30 (fee) + $20.00 (donation) = $23.30
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -202,14 +284,56 @@ final class StripeConnectPaymentService {
       return [];
     }
 
+    // Calculate ticket revenue (excludes donations).
+    $ticketRevenue = $this->calculateTicketRevenue($order);
+
+    // If no ticket revenue, no Connect transfer needed.
+    // (Donation-only orders should not use Connect.)
+    if ($ticketRevenue <= 0) {
+      $this->logger->warning(
+        'Order @order_id has no ticket revenue but Connect account ID is set. This may indicate a configuration issue.',
+        ['@order_id' => $order->id()]
+      );
+      return [];
+    }
+
+    // Calculate application fee on ticket revenue only.
     $applicationFee = $this->calculateApplicationFee($order);
 
-    return [
+    // Build Connect parameters.
+    // Note: In Stripe Connect destination charges:
+    // - The total PaymentIntent amount includes everything (tickets + donations)
+    // - transfer_data[destination] transfers ticket revenue to vendor
+    // - application_fee_amount is deducted from the transfer
+    // - Donations remain with platform (not transferred)
+    //
+    // Stripe automatically calculates: vendor_receives = ticket_revenue - application_fee
+    // We use transfer_data[amount] to explicitly set the transfer amount to ticket revenue.
+    $params = [
       'application_fee_amount' => $applicationFee,
       'transfer_data' => [
         'destination' => $accountId,
+        // Explicitly set transfer amount to ticket revenue.
+        // This ensures vendor receives: ticket_revenue - application_fee
+        // and donations remain with platform.
+        'amount' => $ticketRevenue,
       ],
     ];
+
+    // Log for debugging.
+    $donationRevenue = $this->calculateDonationRevenue($order);
+    $this->logger->info(
+      'Stripe Connect params for order @order_id: ticket_revenue=@ticket, donation_revenue=@donation, fee=@fee, vendor_receives=@vendor',
+      [
+        '@order_id' => $order->id(),
+        '@ticket' => $ticketRevenue,
+        '@donation' => $donationRevenue,
+        '@fee' => $applicationFee,
+        '@vendor' => $ticketRevenue - $applicationFee,
+      ]
+    );
+
+    return $params;
   }
 
 }

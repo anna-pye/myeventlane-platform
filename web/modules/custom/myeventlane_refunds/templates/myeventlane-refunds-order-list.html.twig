@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Template for vendor order list.
+ *
+ * Available variables:
+ * - orders: Array of order data.
+ * - event: The event node.
+ */
+#}
+<div class="mel-order-list">
+  {% if orders is empty %}
+    <p>{{ 'No orders found.'|t }}</p>
+  {% else %}
+    <div class="mel-order-cards">
+      {% for order in orders %}
+        <div class="mel-order-card">
+          <div class="mel-order-header">
+            <h3>{{ 'Order'|t }} {{ order.order_number }}</h3>
+            <span class="mel-order-status">{{ order.status }}</span>
+          </div>
+          <div class="mel-order-body">
+            <p><strong>{{ 'Customer:'|t }}</strong> {{ order.customer_name }} ({{ order.customer_email }})</p>
+            <p><strong>{{ 'Placed:'|t }}</strong> {{ order.placed_date }}</p>
+            <p><strong>{{ 'Tickets:'|t }}</strong> {{ order.ticket_qty }}</p>
+            <p><strong>{{ 'Ticket Subtotal:'|t }}</strong> {{ order.ticket_subtotal }}</p>
+            <p><strong>{{ 'Order Total:'|t }}</strong> {{ order.order_total }}</p>
+          </div>
+          <div class="mel-order-actions">
+            <a href="{{ order.refund_url }}" class="button button--primary">{{ 'Refund'|t }}</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+

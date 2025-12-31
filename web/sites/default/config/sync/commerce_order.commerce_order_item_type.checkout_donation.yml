@@ -1,0 +1,20 @@
+uuid: 15fe078c-1a21-4310-a7fd-c270f59f30ed
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_tax
+  enforced:
+    module:
+      - myeventlane_checkout_flow
+third_party_settings:
+  commerce_tax:
+    taxable_type: events
+_core:
+  default_config_hash: nLfyH8lYtJqwvMLhY0lo1AkdUuoq1o1KYVQ9F2Ow95M
+id: checkout_donation
+label: 'Checkout Donation'
+traits: {  }
+locked: false
+purchasableEntityType: null
+orderType: default

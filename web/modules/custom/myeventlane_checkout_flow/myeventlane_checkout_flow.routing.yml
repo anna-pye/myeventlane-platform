@@ -1,0 +1,90 @@
+myeventlane_checkout_flow.my_tickets:
+  path: '/my-tickets'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::overview'
+    _title: 'My Tickets'
+  requirements:
+    _permission: 'access content'
+    _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::checkAccess'
+  options:
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.order_detail:
+  path: '/my-tickets/order/{commerce_order}'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::orderDetail'
+    _title_callback: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::orderDetailTitle'
+  requirements:
+    _entity_access: 'commerce_order.view'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.vendor_attendees:
+  path: '/vendor/attendees'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::dashboard'
+    _title: 'Attendees & Sales'
+  requirements:
+    _permission: 'access content'
+    _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::checkAccess'
+  options:
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.vendor_event_attendees:
+  path: '/vendor/events/{node}/attendees'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::eventAttendees'
+    _title_callback: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::eventAttendeesTitle'
+  requirements:
+    _entity_access: 'node.view'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.vendor_checkin:
+  path: '/vendor/events/{node}/check-in'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\VendorCheckInController::checkInPage'
+    _title: 'Check In'
+  requirements:
+    _entity_access: 'node.view'
+    _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\VendorCheckInController::checkAccess'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.vendor_checkin_action:
+  path: '/vendor/check-in/paragraph/{paragraph}'
+  defaults:
+    _form: '\Drupal\myeventlane_checkout_flow\Form\CheckInForm'
+  requirements:
+    _entity_access: 'paragraph.update'
+    paragraph: \d+
+  options:
+    parameters:
+      paragraph:
+        type: entity:paragraph
+    _admin_route: FALSE
+
+myeventlane_checkout_flow.vendor_checkin_scan:
+  path: '/vendor/check-in/scan/{token}'
+  defaults:
+    _controller: '\Drupal\myeventlane_checkout_flow\Controller\VendorCheckInController::scanCheckIn'
+    _title: 'Check In via QR Code'
+  requirements:
+    _permission: 'access content'
+    _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\VendorCheckInController::checkAccess'
+    token: '[A-Za-z0-9+/=_-]+'
+  options:
+    _admin_route: FALSE
+

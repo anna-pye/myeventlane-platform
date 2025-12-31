@@ -64,7 +64,9 @@
 // Primary (Coral) - Main CTAs
 .mel-btn-primary {
   background-color: colors.$mel-color-primary;
-  color: colors.$mel-color-text-inverse;
+  color: white;
+  border-radius: radii.$mel-radius-full; // Pill shape
+  font-weight: typography.$mel-font-bold;
 
   &:hover {
     background-color: colors.$mel-color-primary-hover;
@@ -104,21 +106,26 @@
 
 .button--secondary {
   background: transparent;
-  border: 1px solid #FC9167;
-  color: #FC9167;
+  border: 2px solid colors.$mel-color-primary;
+  color: colors.$mel-color-primary;
+  border-radius: radii.$mel-radius-full; // Pill shape
+  font-weight: typography.$mel-font-bold;
 }
 
-// Secondary (Lavender) - Secondary actions
+// Secondary (Outline) - Secondary actions
 .mel-btn-secondary {
-  background-color: colors.$mel-color-secondary;
-  color: colors.$mel-color-text-inverse;
+  background-color: transparent;
+  border: 2px solid colors.$mel-color-primary;
+  color: colors.$mel-color-primary;
+  border-radius: radii.$mel-radius-full; // Pill shape
+  font-weight: typography.$mel-font-bold;
 
   &:hover {
-    background-color: colors.$mel-color-secondary-hover;
+    background-color: rgba(242, 109, 91, 0.05);
   }
 
   &:active {
-    background-color: colors.$mel-color-secondary-active;
+    background-color: rgba(242, 109, 91, 0.1);
   }
 }
 
@@ -275,8 +282,10 @@
 // Additional button classes using CSS custom properties for consistency.
 
 .mel-btn--primary {
-  background: var(--mel-primary);
+  background: var(--mel-coral);
   color: #fff;
+  border-radius: radii.$mel-radius-full; // Pill shape
+  font-weight: typography.$mel-font-bold;
 
   &:hover {
     transform: translateY(-1px);

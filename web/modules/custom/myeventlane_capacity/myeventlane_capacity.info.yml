@@ -5,4 +5,6 @@ core_version_requirement: ^11
 package: MyEventLane
 dependencies:
   - drupal:node
+  - commerce_cart:commerce_cart
+  - commerce_order:commerce_order
   - myeventlane_core:myeventlane_core

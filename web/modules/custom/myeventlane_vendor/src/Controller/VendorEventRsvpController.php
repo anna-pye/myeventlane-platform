@@ -123,7 +123,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
           'email' => $rsvp->get('email')->value ?? '',
           'status' => ucfirst($rsvp->get('status')->value ?? 'pending'),
           'guests' => (int) ($rsvp->get('guests')->value ?? 0),
-          'created' => date('M j, Y', (int) $rsvp->getCreatedTime()),
+          'created' => date('M j, Y', (int) ($rsvp->get('created')->value ?? 0)),
         ];
       }
 

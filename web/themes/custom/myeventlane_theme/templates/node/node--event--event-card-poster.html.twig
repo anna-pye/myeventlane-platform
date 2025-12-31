@@ -5,8 +5,8 @@
 
 {% set url = url('entity.node.canonical', {'node': node.id}) %}
 
-{# Image field render already in content array. #}
-{% set image = content.field_event_image is defined ? content.field_event_image : null %}
+{# Image field render - use content array which is already rendered by Drupal #}
+{% set image = content.field_event_image|default(null) %}
 
 {# Category: taxonomy term label + optional class mapping #}
 {% set category_label = '' %}
@@ -45,7 +45,7 @@
   {% endif %}
 {% endif %}
 
-{# Price: from Commerce product or event type #}
+{# Price: show "Tickets" if product exists, otherwise nothing #}
 {% set price_label = '' %}
 {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
   {% set product = node.field_product_target.entity %}
@@ -55,7 +55,11 @@
       {% set price = default_variation.getPrice() %}
       {% if price %}
         {% set price_label = price|commerce_price_format %}
+      {% else %}
+        {% set price_label = 'Tickets' %}
       {% endif %}
+    {% else %}
+      {% set price_label = 'Tickets' %}
     {% endif %}
   {% endif %}
 {% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
@@ -96,8 +100,8 @@
   {% endif %}
 {% endif %}
 
-{# Title placement: overlay by default for homepage, below for listings #}
-{% set title_placement = title_placement|default('overlay') %}
+{# Title placement: overlay for homepage (discover), below for listings #}
+{% set title_placement = 'overlay' %}
 
 {# Build card data #}
 {% set card = {

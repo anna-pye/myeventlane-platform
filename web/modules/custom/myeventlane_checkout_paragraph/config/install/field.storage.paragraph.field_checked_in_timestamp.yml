@@ -1,0 +1,19 @@
+uuid: 00000000-0000-0000-0000-000000000002
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: paragraph.field_checked_in_timestamp
+field_name: field_checked_in_timestamp
+entity_type: paragraph
+type: timestamp
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
+

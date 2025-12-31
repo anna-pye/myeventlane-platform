@@ -25,6 +25,15 @@ final class DonationAccess {
    *   The access result.
    */
   public static function platformAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+    // Administrators always have access.
+    if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
+      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
+      if (!$domain_detector->isVendorDomain()) {
+        return AccessResult::forbidden('Platform donations are only available on the vendor domain.');
+      }
+      return AccessResult::allowed()->cachePerPermissions();
+    }
+
     // Get domain detector service.
     // Note: Static access check methods cannot use dependency injection,
     // so we retrieve the service directly.
@@ -38,6 +47,11 @@ final class DonationAccess {
     // Must be logged in.
     if ($account->isAnonymous()) {
       return AccessResult::forbidden('You must be logged in to make a donation.');
+    }
+
+    // Check for vendor console permission.
+    if (!$account->hasPermission('access vendor console')) {
+      return AccessResult::forbidden('You do not have permission to make donations.');
     }
 
     return AccessResult::allowed()->cachePerPermissions();
@@ -55,6 +69,15 @@ final class DonationAccess {
    *   The access result.
    */
   public static function vendorAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+    // Administrators always have access.
+    if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
+      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
+      if (!$domain_detector->isVendorDomain()) {
+        return AccessResult::forbidden('Vendor donation pages are only available on the vendor domain.');
+      }
+      return AccessResult::allowed()->cachePerPermissions();
+    }
+
     // Get domain detector service.
     // Note: Static access check methods cannot use dependency injection,
     // so we retrieve the service directly.
@@ -68,6 +91,11 @@ final class DonationAccess {
     // Must be logged in.
     if ($account->isAnonymous()) {
       return AccessResult::forbidden('You must be logged in to view donations.');
+    }
+
+    // Check for vendor console permission.
+    if (!$account->hasPermission('access vendor console')) {
+      return AccessResult::forbidden('You do not have permission to view donations.');
     }
 
     return AccessResult::allowed()->cachePerPermissions();

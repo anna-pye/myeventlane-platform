@@ -1,0 +1,22 @@
+uuid: 00000000-0000-0000-0000-000000000004
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_checked_in
+    - paragraphs.paragraphs_type.attendee_answer
+id: paragraph.attendee_answer.field_checked_in
+field_name: field_checked_in
+entity_type: paragraph
+bundle: attendee_answer
+label: 'Checked in'
+description: 'Whether this attendee has been checked in to the event.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings: {  }
+field_type: boolean
+

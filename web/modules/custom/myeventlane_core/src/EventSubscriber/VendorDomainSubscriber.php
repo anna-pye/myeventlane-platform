@@ -115,6 +115,23 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
 
+    // DIAGNOSTIC LOGGING: Track authentication state at kernel.request
+    $host = $request->getHost();
+    $uid = $this->currentUser->id();
+    $is_authenticated = $this->currentUser->isAuthenticated();
+    $is_anonymous = $this->currentUser->isAnonymous();
+    
+    \Drupal::logger('vendor_domain_diagnostic')->debug('VendorDomainSubscriber::onRequest', [
+      'host' => $host,
+      'path' => $path,
+      'route_name' => $route_name ?? 'NULL',
+      'uid' => $uid,
+      'is_authenticated' => $is_authenticated ? 'TRUE' : 'FALSE',
+      'is_anonymous' => $is_anonymous ? 'TRUE' : 'FALSE',
+      'is_vendor_domain' => $is_vendor_domain ? 'TRUE' : 'FALSE',
+      'session_id' => $request->hasSession() ? substr($request->getSession()->getId(), 0, 8) . '...' : 'NO_SESSION',
+    ]);
+
     // Redirect vendor domain root to vendor dashboard (always, regardless of force_redirects).
     if ($is_vendor_domain && ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>')) {
       // If user is anonymous, redirect to login first, then to dashboard.

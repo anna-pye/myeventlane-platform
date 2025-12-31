@@ -1,0 +1,22 @@
+services:
+  myeventlane_refunds.order_inspector:
+    class: Drupal\myeventlane_refunds\Service\RefundOrderInspector
+    arguments: ['@entity_type.manager']
+
+  myeventlane_refunds.access_resolver:
+    class: Drupal\myeventlane_refunds\Service\RefundAccessResolver
+    arguments:
+      - '@myeventlane_checkout_flow.vendor_ownership_resolver'
+      - '@entity_type.manager'
+
+  myeventlane_refunds.processor:
+    class: Drupal\myeventlane_refunds\Service\RefundProcessor
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_refunds.order_inspector'
+      - '@myeventlane_refunds.access_resolver'
+      - '@myeventlane_messaging.manager'
+      - '@logger.factory'
+      - '@queue'
+      - '@current_user'
+

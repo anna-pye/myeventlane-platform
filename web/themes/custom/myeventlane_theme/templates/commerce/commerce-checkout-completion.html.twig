@@ -22,52 +22,154 @@
 
   <p class="mel-confirmation-message">
     We've sent a confirmation email to <strong>{{ order_entity.getEmail }}</strong>
-    with your tickets and event details.
+    with your tickets, event details, and calendar file.
   </p>
 
-  <div class="mel-confirmation-actions">
-    <a href="/user/orders" class="mel-btn mel-btn-primary">View My Orders</a>
-    <a href="/events" class="mel-btn mel-btn-ghost">Browse More Events</a>
-  </div>
-</div>
-
-{# Order Details #}
-<div class="mel-checkout-order-details mel-mt-6">
-  <div class="mel-card">
-    <div class="mel-card-header">
-      <h2 class="mel-card-title">Order Details</h2>
-    </div>
-    <div class="mel-card-body">
-      {% if order_entity.getItems()|length %}
-        <div class="mel-checkout-order-items">
-          {% for item in order_entity.getItems() %}
-            <div class="mel-checkout-order-item">
-              <div class="mel-checkout-order-item-info">
-                <div class="mel-checkout-order-item-title">
-                  {{ item.getTitle() }}
-                </div>
-                <div class="mel-checkout-order-item-variant">
-                  Qty: {{ item.getQuantity()|number_format(0) }}
-                </div>
-              </div>
-              <div class="mel-checkout-order-item-price">
-                {{ item.getTotalPrice()|commerce_price_format }}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-
-        <div class="mel-checkout-grand-total">
-          <span>Total Paid</span>
-          <span>{{ order_entity.getTotalPrice()|commerce_price_format }}</span>
-        </div>
+  {# Event Summary #}
+  {% set events = [] %}
+  {% set ticket_items = [] %}
+  {% set donation_total = 0 %}
+  
+  {% for item in order_entity.getItems() %}
+    {% if item.bundle() == 'checkout_donation' or item.bundle() == 'platform_donation' or item.bundle() == 'rsvp_donation' %}
+      {% set donation_total = donation_total + item.getTotalPrice().getNumber() %}
+    {% else %}
+      {% set ticket_items = ticket_items|merge([item]) %}
+      {% if item.hasField('field_target_event') and not item.get('field_target_event').isEmpty() %}
+        {% set event = item.get('field_target_event').entity %}
+        {% if event and event not in events %}
+          {% set events = events|merge([event]) %}
+        {% endif %}
       {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {% if events|length > 0 %}
+    <div class="mel-confirmation-events mel-mt-6">
+      <h2 class="mel-confirmation-section-title">Your Events</h2>
+      {% for event in events %}
+        <div class="mel-confirmation-event-card mel-card mel-mt-4">
+          <div class="mel-card-body">
+            <h3 class="mel-event-title">{{ event.label() }}</h3>
+            
+            {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
+              <div class="mel-event-details">
+                <div class="mel-event-date">
+                  <strong>Date:</strong> {{ event.get('field_event_start').value|date('F j, Y') }}
+                </div>
+                {% if event.hasField('field_event_start') and event.hasField('field_event_end') %}
+                  <div class="mel-event-time">
+                    <strong>Time:</strong> {{ event.get('field_event_start').value|date('g:i A') }}
+                    {% if not event.get('field_event_end').isEmpty() %}
+                      - {{ event.get('field_event_end').value|date('g:i A') }}
+                    {% endif %}
+                  </div>
+                {% endif %}
+                {% if event.hasField('field_location') and not event.get('field_location').isEmpty() %}
+                  <div class="mel-event-location">
+                    <strong>Location:</strong> {{ event.get('field_location').value }}
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {# Calendar Download #}
+            <div class="mel-confirmation-calendar mel-mt-4">
+              <a href="{{ url('myeventlane_rsvp.ics_download', {'node': event.id()}) }}" 
+                 class="mel-btn mel-btn-secondary">
+                📅 Download Calendar (.ics)
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Ticket Details #}
+  {% if ticket_items|length > 0 %}
+    <div class="mel-confirmation-tickets mel-mt-6">
+      <h2 class="mel-confirmation-section-title">Your Tickets</h2>
+      <div class="mel-card mel-mt-4">
+        <div class="mel-card-body">
+          <div class="mel-checkout-order-items">
+            {% for item in ticket_items %}
+              <div class="mel-checkout-order-item">
+                <div class="mel-checkout-order-item-info">
+                  <div class="mel-checkout-order-item-title">
+                    {{ item.getTitle() }}
+                  </div>
+                  <div class="mel-checkout-order-item-variant">
+                    Quantity: {{ item.getQuantity()|number_format(0) }}
+                  </div>
+                  
+                  {# Attendee Names #}
+                  {% if item.hasField('field_ticket_holder') and not item.get('field_ticket_holder').isEmpty() %}
+                    <div class="mel-attendee-names mel-mt-2">
+                      <strong>Attendees:</strong>
+                      <ul class="mel-attendee-list">
+                        {% for paragraph in item.get('field_ticket_holder').referencedEntities() %}
+                          <li>
+                            {{ paragraph.get('field_first_name').value }} 
+                            {{ paragraph.get('field_last_name').value }}
+                            {% if paragraph.hasField('field_email') and not paragraph.get('field_email').isEmpty() %}
+                              ({{ paragraph.get('field_email').value }})
+                            {% endif %}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="mel-checkout-order-item-price">
+                  {{ item.getTotalPrice()|commerce_price_format }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Donation (if present) #}
+  {% if donation_total > 0 %}
+    <div class="mel-confirmation-donation mel-mt-6">
+      <div class="mel-card mel-card-highlight">
+        <div class="mel-card-body">
+          <h3 class="mel-donation-title">💝 Your Donation</h3>
+          <p class="mel-donation-amount">
+            <strong>Donation Amount:</strong> {{ donation_total|commerce_price_format }}
+          </p>
+          <p class="mel-donation-note">
+            Thank you for your generous donation! Your contribution helps support our platform and events.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Order Total #}
+  <div class="mel-checkout-grand-total mel-mt-6">
+    <div class="mel-card">
+      <div class="mel-card-body">
+        <div class="mel-total-row">
+          <span class="mel-total-label">Total Paid</span>
+          <span class="mel-total-amount">{{ order_entity.getTotalPrice()|commerce_price_format }}</span>
+        </div>
+      </div>
     </div>
   </div>
+
+  {# Actions #}
+  <div class="mel-confirmation-actions mel-mt-6">
+    <a href="{{ url('entity.commerce_order.user_view', {'commerce_order': order_entity.id()}) }}" 
+       class="mel-btn mel-btn-primary">
+      View My Tickets
+    </a>
+    <a href="{{ url('view.events.page_1') }}" 
+       class="mel-btn mel-btn-ghost">
+      Browse More Events
+    </a>
+  </div>
 </div>
-
-
-
-
-
-

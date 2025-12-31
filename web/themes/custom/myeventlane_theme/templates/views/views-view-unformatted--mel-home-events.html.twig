@@ -1,0 +1,14 @@
+{#
+/**
+ * @file
+ * Template for mel_home_events view - all displays.
+ * 
+ * Outputs rows directly into grid containers provided by homepage template.
+ * No wrapper divs - rows are direct children of .mel-sticker-wall or .mel-row__scroller.
+ */
+#}
+{% if rows %}
+  {% for row in rows %}
+    {{- row.content -}}
+  {% endfor %}
+{% endif %}

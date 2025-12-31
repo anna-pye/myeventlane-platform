@@ -471,14 +471,20 @@
 
       const scope = widgetRoot || form || document;
 
-      // Look for latitude field
-      let latField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="latitude"], input[type="hidden"][name*="field_location_latitude"], input[type="hidden"][name*="latitude"]');
+      // Look for latitude field - prefer explicit classes added by myeventlane_location module
+      let latField = scope.querySelector('input.myeventlane-location-latitude-field[type="hidden"], input.myeventlane-location-latitude[type="hidden"]');
+      if (!latField) {
+        latField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="latitude"], input[type="hidden"][name*="field_location_latitude"], input[type="hidden"][name*="latitude"]');
+      }
       if (!latField && form) {
         latField = form.querySelector('input[type="hidden"][name*="latitude"]');
       }
 
-      // Look for longitude field
-      let lngField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="longitude"], input[type="hidden"][name*="field_location_longitude"], input[type="hidden"][name*="longitude"]');
+      // Look for longitude field - prefer explicit classes added by myeventlane_location module
+      let lngField = scope.querySelector('input.myeventlane-location-longitude-field[type="hidden"], input.myeventlane-location-longitude[type="hidden"]');
+      if (!lngField) {
+        lngField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="longitude"], input[type="hidden"][name*="field_location_longitude"], input[type="hidden"][name*="longitude"]');
+      }
       if (!lngField && form) {
         lngField = form.querySelector('input[type="hidden"][name*="longitude"]');
       }

@@ -1,0 +1,15 @@
+name: 'MyEventLane Checkout Flow'
+type: module
+description: 'Custom single-page checkout flow for MyEventLane events. Provides Humanitix-level checkout experience with grouped panes, donation support, and fee transparency.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - myeventlane_commerce:myeventlane_commerce
+  - myeventlane_checkout_paragraph:myeventlane_checkout_paragraph
+  - myeventlane_donations:myeventlane_donations
+  - drupal:commerce_checkout
+  - drupal:commerce_order
+  - drupal:commerce_payment
+

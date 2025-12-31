@@ -1,0 +1,17 @@
+name: MyEventLane Seed
+type: module
+description: 'Deterministic test seed data for MyEventLane v2 with vendor and event reset capabilities.'
+core_version_requirement: ^11
+package: MyEventLane
+
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:file
+  - drupal:image
+  - commerce:commerce_product
+  - commerce:commerce_store
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_rsvp:myeventlane_rsvp
+  - myeventlane_event:myeventlane_event
+

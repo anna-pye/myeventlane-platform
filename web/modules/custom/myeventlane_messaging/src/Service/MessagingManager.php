@@ -107,8 +107,13 @@ final class MessagingManager {
       'body' => $body,
       // Used by symfony_mailer_lite / Easy Email.
       'html' => $body,
-      'headers' => ['Content-Type' => 'text/html; charset=UTF-8'],
+      // Headers are set in hook_mail(), not here.
     ];
+
+    // Add attachments if provided.
+    if (!empty($opts['attachments']) && is_array($opts['attachments'])) {
+      $params['attachments'] = $opts['attachments'];
+    }
 
     $result = $this->mailManager->mail(
       'myeventlane_messaging',

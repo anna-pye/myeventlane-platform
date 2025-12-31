@@ -28,6 +28,17 @@
   display: block;
 }
 
+.mel-card__media--placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--mel-peach) 0%, var(--mel-lilac) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mel-muted);
+  font-size: 14px;
+}
+
 /* poster texture feel */
 .mel-card__media::after {
   content: '';

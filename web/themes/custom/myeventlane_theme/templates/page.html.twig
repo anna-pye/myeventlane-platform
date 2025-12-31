@@ -35,13 +35,15 @@
   {% endif %}
 
   {# Main Content Area #}
-  <main id="main-content" class="mel-main" role="main">
-    <div class="mel-container">
-      <div class="mel-content">
-        {{ page.content }}
+  {% block content %}
+    <main id="main-content" class="mel-main" role="main">
+      <div class="mel-container">
+        <div class="mel-content">
+          {{ page.content }}
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  {% endblock %}
 
   {# Pre-Footer #}
   {% if page.pre_footer %}

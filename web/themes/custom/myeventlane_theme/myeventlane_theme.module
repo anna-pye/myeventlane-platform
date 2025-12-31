@@ -10,8 +10,21 @@
  *
  * Ensures Stripe.js loads on checkout pages and exports category colors to JS.
  * Also ensures event page CSS loads on event node pages.
+ * Loads Inter font from Google Fonts.
  */
 function myeventlane_theme_page_attachments(array &$page) {
+  // Add Inter font from Google Fonts.
+  $page['#attached']['html_head'][] = [
+    [
+      '#tag' => 'link',
+      '#attributes' => [
+        'href' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+        'rel' => 'stylesheet',
+      ],
+    ],
+    'inter_font',
+  ];
+
   $route = \Drupal::routeMatch()->getRouteName();
   
   // Attach event full page CSS on event node canonical pages.

@@ -48,7 +48,13 @@
         For now, render a block placeholder region:
       #}
       <div class="mel-category-strip">
-        {{ drupal_block('myeventlane_event_categories_strip') }}
+        {% set category_block = drupal_block('myeventlane_event_categories_strip') %}
+        {% if category_block %}
+          {{ category_block }}
+        {% else %}
+          {# Fallback: try the alternative block name #}
+          {{ drupal_block('myeventlane_category_pills') }}
+        {% endif %}
       </div>
     </div>
   </section>

@@ -1,0 +1,40 @@
+// ==========================================================================
+// Event Detail Grid Layout - Festival Design
+// ==========================================================================
+// Two-column layout for event page: main content + sticky sidebar.
+// Mobile-first: single column, then switches to grid on desktop.
+
+@use '../tokens/spacing' as space;
+@use '../tokens/breakpoints' as *;
+
+// --------------------------------------------------------------------------
+// Event Detail Grid
+// --------------------------------------------------------------------------
+
+.mel-event-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space.mel-space(5);
+
+  @include mel-break(lg) {
+    grid-template-columns: 1.4fr 0.6fr;
+    gap: space.mel-space(6);
+    align-items: start;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Main Content Column
+// --------------------------------------------------------------------------
+
+.mel-event-detail-grid__main {
+  display: flex;
+  flex-direction: column;
+  gap: space.mel-space(5);
+
+  @include mel-break(lg) {
+    gap: space.mel-space(6);
+  }
+}
+
+

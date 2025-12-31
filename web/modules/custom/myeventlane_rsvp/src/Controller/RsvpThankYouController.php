@@ -26,14 +26,20 @@ final class RsvpThankYouController extends ControllerBase {
 
   public function page(RouteMatchInterface $route_match): array {
     // Adjust this if your route uses a different param name.
-    $event_id = $route_match->getParameter('event');
-    if (!$event_id) {
+    $event_param = $route_match->getParameter('event');
+    if (!$event_param) {
       throw new NotFoundHttpException();
     }
 
-    $event = $this->entityTypeManagerService->getStorage('node')->load((int) $event_id);
-    if (!$event instanceof NodeInterface) {
-      throw new NotFoundHttpException();
+    // Handle both Node object and ID.
+    if ($event_param instanceof NodeInterface) {
+      $event = $event_param;
+    }
+    else {
+      $event = $this->entityTypeManagerService->getStorage('node')->load((int) $event_param);
+      if (!$event instanceof NodeInterface) {
+        throw new NotFoundHttpException();
+      }
     }
 
     $event_link = NULL;

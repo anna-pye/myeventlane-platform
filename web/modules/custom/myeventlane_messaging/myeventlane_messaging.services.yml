@@ -48,3 +48,18 @@ services:
       - '@state'
       - '@myeventlane_messaging.manager'
       - '@date.formatter'
+
+  myeventlane_messaging.event_reminder_scheduler:
+    class: Drupal\myeventlane_messaging\Service\EventReminderScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@queue'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_messaging'
+
+  myeventlane_messaging.order_placed_subscriber:
+    class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
+    arguments:
+      - '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }

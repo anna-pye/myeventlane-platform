@@ -24,3 +24,62 @@ function myeventlane_views_twig_loader_alter(FilesystemLoader $loader): void {
     // If the theme path cannot be resolved, do nothing.
   }
 }
+
+/**
+ * Implements hook_views_post_execute().
+ *
+ * Ensures null field values are converted to empty strings to prevent
+ * Html::escape() errors when rendering Views fields.
+ */
+function myeventlane_views_views_post_execute(\Drupal\views\ViewExecutable $view): void {
+  foreach ($view->result as $index => $row) {
+    foreach ($view->field as $field_id => $field) {
+      if (isset($field->field_alias)) {
+        $alias = $field->field_alias;
+        if (isset($row->{$alias}) && $row->{$alias} === null) {
+          $row->{$alias} = '';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ *
+ * Ensures null field values are converted to empty strings to prevent
+ * Html::escape() errors when rendering Views fields.
+ */
+function myeventlane_views_views_pre_render(\Drupal\views\ViewExecutable $view): void {
+  foreach ($view->result as $index => $row) {
+    foreach ($view->field as $field_id => $field) {
+      if (isset($field->field_alias)) {
+        $alias = $field->field_alias;
+        if (isset($row->{$alias}) && $row->{$alias} === null) {
+          $row->{$alias} = '';
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements template_preprocess_views_view_field().
+ *
+ * Ensures null values are converted to empty strings to prevent
+ * Html::escape() errors when rendering Views fields.
+ */
+function myeventlane_views_preprocess_views_view_field(array &$variables): void {
+  // Convert null output to empty string to prevent Html::escape() errors.
+  if ($variables['output'] === null) {
+    $variables['output'] = '';
+  }
+  // Also check if output is a render array with null values.
+  if (is_array($variables['output'])) {
+    array_walk_recursive($variables['output'], function (&$value) {
+      if ($value === null) {
+        $value = '';
+      }
+    });
+  }
+}

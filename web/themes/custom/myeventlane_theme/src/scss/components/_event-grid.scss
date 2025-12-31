@@ -11,16 +11,39 @@
   display: grid !important;
   // Humanitix-density: 4-column grid at desktop for optimal density
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: space-tokens.mel-space(4);
+  gap: space-tokens.mel-space(4) !important;
   width: 100% !important;
   box-sizing: border-box;
+
+  // Remove ANY wrapper divs that break the grid - make them invisible to grid
+  .view,
+  .view-content,
+  .views-row,
+  div[class*="view"],
+  div[class*="views"] {
+    display: contents !important;
+  }
 
   // Ensure grid items are equal width and don't overflow
   // BUT: Allow override for sticker wall (see homepage SCSS)
   > * {
     min-width: 0 !important;
     width: 100% !important;
-    box-sizing: border-box;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: block !important;
+  }
+
+  // Ensure event cards are grid items - target them directly
+  .mel-card,
+  .mel-event-card,
+  article[class*="card"],
+  article[class*="event"] {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-column: auto !important;
   }
 
   @media (max-width: 1023px) {
@@ -45,7 +68,9 @@
 .mel-section .mel-event-grid,
 .mel-container .mel-event-grid,
 .view-content .mel-event-grid,
-.view .mel-event-grid {
+.view .mel-event-grid,
+.mel-page .mel-event-grid,
+.mel-content .mel-event-grid {
   display: grid !important;
   // Humanitix-density: 4-column grid at desktop for optimal density
   grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -54,10 +79,33 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
 
+  // Remove ANY wrapper divs that break the grid
+  .view,
+  .view-content,
+  .views-row,
+  div[class*="view"],
+  div[class*="views"] {
+    display: contents !important;
+  }
+
   > * {
     min-width: 0 !important;
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    display: block !important;
+  }
+
+  // Ensure event cards are grid items
+  .mel-card,
+  .mel-event-card,
+  article[class*="card"],
+  article[class*="event"] {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-column: auto !important;
   }
 
   @media (max-width: 1023px) {

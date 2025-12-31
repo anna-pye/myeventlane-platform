@@ -78,3 +78,23 @@ function myeventlane_core_cron(): void {
     $queue->createItem(['user_id' => $userId]);
   }
 }
+
+/**
+ * Implements hook_entity_access().
+ *
+ * Ensures administrators can access Commerce payment methods.
+ */
+function myeventlane_core_entity_access(\Drupal\Core\Entity\EntityInterface $entity, string $operation, \Drupal\Core\Session\AccountInterface $account): \Drupal\Core\Access\AccessResult {
+  // Only handle Commerce payment method entities.
+  if ($entity->getEntityTypeId() !== 'commerce_payment_method') {
+    return \Drupal\Core\Access\AccessResult::neutral();
+  }
+
+  // Administrators (UID 1 or has 'administer site configuration') always have access.
+  if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
+    return \Drupal\Core\Access\AccessResult::allowed()->cachePerPermissions();
+  }
+
+  // Let Commerce handle access for other users.
+  return \Drupal\Core\Access\AccessResult::neutral();
+}

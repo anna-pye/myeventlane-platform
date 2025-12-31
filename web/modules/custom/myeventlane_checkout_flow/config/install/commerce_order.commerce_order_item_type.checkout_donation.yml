@@ -1,0 +1,21 @@
+uuid: 00000000-0000-0000-0000-000000000001
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_tax
+  enforced:
+    module:
+      - myeventlane_checkout_flow
+third_party_settings:
+  commerce_tax:
+    taxable_type: events
+_core:
+  default_config_hash: CHECKOUT_DONATION_HASH
+id: checkout_donation
+label: 'Checkout Donation'
+traits: {  }
+locked: false
+purchasableEntityType: null
+orderType: default
+

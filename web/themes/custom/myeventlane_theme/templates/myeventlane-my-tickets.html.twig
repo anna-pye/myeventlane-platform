@@ -1,0 +1,162 @@
+{#
+/**
+ * @file
+ * Template for My Tickets overview page.
+ *
+ * Available variables:
+ * - title: Page title
+ * - upcoming_orders: Array of order data for upcoming events
+ * - past_orders: Array of order data for past events
+ */
+#}
+
+<div class="mel-my-tickets">
+  <div class="mel-page-header">
+    <h1 class="mel-page-title">{{ title }}</h1>
+    <p class="mel-page-description">
+      View your ticket orders, download calendar files, and access event details.
+    </p>
+  </div>
+
+  {# Upcoming Events #}
+  {% if upcoming_orders|length > 0 %}
+    <div class="mel-section mel-mt-6">
+      <h2 class="mel-section-title">Upcoming Events</h2>
+      <div class="mel-order-cards">
+        {% for order_data in upcoming_orders %}
+          <div class="mel-card mel-order-card mel-mt-4">
+            <div class="mel-card-body">
+              {# Event Names #}
+              {% if order_data.events|length > 0 %}
+                <div class="mel-order-events">
+                  {% for event in order_data.events %}
+                    <h3 class="mel-event-title">
+                      <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
+                    </h3>
+                    {% if event.start_date %}
+                      <div class="mel-event-meta">
+                        <span class="mel-event-date">📅 {{ event.start_date }}</span>
+                        {% if event.start_time %}
+                          <span class="mel-event-time">{{ event.start_time }}</span>
+                        {% endif %}
+                        {% if event.location %}
+                          <span class="mel-event-location">📍 {{ event.location }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {# Order Info #}
+              <div class="mel-order-info mel-mt-4">
+                <div class="mel-order-meta">
+                  <span class="mel-order-number">
+                    <strong>Order:</strong> {{ order_data.order_number }}
+                  </span>
+                  <span class="mel-order-date">
+                    <strong>Placed:</strong> {{ order_data.placed_date }}
+                  </span>
+                  <span class="mel-order-status">
+                    <strong>Status:</strong> {{ order_data.state }}
+                  </span>
+                </div>
+                <div class="mel-order-total mel-mt-2">
+                  <strong>Total:</strong> ${{ order_data.total_price|number_format(2) }}
+                </div>
+              </div>
+
+              {# Actions #}
+              <div class="mel-order-actions mel-mt-4">
+                <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}" 
+                   class="mel-btn mel-btn-primary">
+                  View Details
+                </a>
+                {% if order_data.events|length > 0 %}
+                  {% for event in order_data.events %}
+                    <a href="{{ event.ics_url }}" 
+                       class="mel-btn mel-btn-secondary"
+                       download>
+                      📅 Download Calendar
+                    </a>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Past Events #}
+  {% if past_orders|length > 0 %}
+    <div class="mel-section mel-mt-6">
+      <details class="mel-past-events">
+        <summary class="mel-section-title">
+          <h2>Past Events ({{ past_orders|length }})</h2>
+        </summary>
+        <div class="mel-order-cards mel-mt-4">
+          {% for order_data in past_orders %}
+            <div class="mel-card mel-order-card mel-mt-4">
+              <div class="mel-card-body">
+                {# Event Names #}
+                {% if order_data.events|length > 0 %}
+                  <div class="mel-order-events">
+                    {% for event in order_data.events %}
+                      <h3 class="mel-event-title">
+                        <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
+                      </h3>
+                      {% if event.start_date %}
+                        <div class="mel-event-meta">
+                          <span class="mel-event-date">📅 {{ event.start_date }}</span>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+                {# Order Info #}
+                <div class="mel-order-info mel-mt-4">
+                  <div class="mel-order-meta">
+                    <span class="mel-order-number">
+                      <strong>Order:</strong> {{ order_data.order_number }}
+                    </span>
+                    <span class="mel-order-date">
+                      <strong>Placed:</strong> {{ order_data.placed_date }}
+                    </span>
+                  </div>
+                </div>
+
+                {# Actions #}
+                <div class="mel-order-actions mel-mt-4">
+                  <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}" 
+                     class="mel-btn mel-btn-secondary">
+                    View Details
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </details>
+    </div>
+  {% endif %}
+
+  {# Empty State #}
+  {% if upcoming_orders|length == 0 and past_orders|length == 0 %}
+    <div class="mel-empty-state mel-mt-6">
+      <div class="mel-card">
+        <div class="mel-card-body" style="text-align: center; padding: 40px;">
+          <p class="mel-empty-message">
+            You haven't purchased any tickets yet.
+          </p>
+          <a href="{{ url('view.events.page_1') }}" class="mel-btn mel-btn-primary mel-mt-4">
+            Browse Events
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+

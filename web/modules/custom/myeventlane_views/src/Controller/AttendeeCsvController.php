@@ -1,19 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_views\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\views\Views;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\paragraphs\ParagraphInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Provides an attendee CSV export response for a view display.
+ * Provides an attendee CSV export response.
+ *
+ * Loads attendee_answer paragraphs via entity storage and applies
+ * entity access checks to ensure users can only export data they
+ * are entitled to view.
  */
-class AttendeeCsvController extends ControllerBase {
+final class AttendeeCsvController extends ControllerBase {
 
   /**
-   * Builds a CSV response for the attendee answers view.
+   * Constructs AttendeeCsvController.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
+   *   The current user.
+   */
+  public function __construct(
+    EntityTypeManagerInterface $entityTypeManager,
+    AccountProxyInterface $currentUser,
+  ) {
+    $this->entityTypeManager = $entityTypeManager;
+    $this->currentUser = $currentUser;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('entity_type.manager'),
+      $container->get('current_user')
+    );
+  }
+
+  /**
+   * Builds a CSV response for attendee answers.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The incoming request.
@@ -24,51 +59,125 @@ class AttendeeCsvController extends ControllerBase {
   public function handle(Request $request) {
     $download_title = $request->query->get('download_csv');
 
-    \Drupal::logger('csv_debug')->notice('✅ Exporting CSV for event: @event', ['@event' => $download_title]);
+    \Drupal::logger('myeventlane_views')->notice('Exporting CSV for event: @event', ['@event' => $download_title]);
 
     if ($download_title) {
-      $view = Views::getView('attendee_answer');
+      // Load paragraphs via entity storage (not Views).
+      $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
+      $access_handler = $this->entityTypeManager->getAccessControlHandler('paragraph');
 
-      if ($view) {
-        $view->setDisplay('page_1');
+      // Query attendee_answer paragraphs.
+      // Note: We load entities directly and check access manually.
+      // We use accessCheck(FALSE) to load all paragraphs, then filter by access.
+      $query = $paragraph_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'attendee_answer')
+        ->condition('status', 1);
 
-        // ✅ Pass contextual filter argument to the View.
-        $view->setArguments([$download_title]);
-        $view->execute();
+      // If event ID is provided, filter by event via order items.
+      // This is a simplified approach - in production, you might want
+      // to join through order items to filter by event.
+      // For now, we load all accessible paragraphs and filter in memory.
+      $paragraph_ids = $query->execute();
 
-        $rows = [];
-        $rows[] = ['First name', 'Last name', 'Email', 'Question', 'Answer'];
+      $rows = [];
+      $rows[] = ['First name', 'Last name', 'Email', 'Phone', 'Question', 'Answer', 'Checked in', 'Checked in time'];
 
-        foreach ($view->result as $row) {
-          $entity = $row->_entity;
-          $q = $row->_relationship_entities['field_attendee_questions'] ?? NULL;
-
-          $rows[] = [
-            $entity->field_first_name->value ?? '',
-            $entity->field_last_name->value ?? '',
-            $entity->field_email->value ?? '',
-            $q->field_question_label->value ?? '',
-            $q->field_attendee_extra_field->value ?? '',
-          ];
-        }
-
-        $filename = 'attendees-' . preg_replace('/[^a-z0-9]/i', '_', $download_title) . '-' . date('Ymd-His') . '.csv';
-        $csv = fopen('php://temp', 'r+');
-        foreach ($rows as $fields) {
-          fputcsv($csv, $fields);
-        }
-        rewind($csv);
-        $content = stream_get_contents($csv);
-        fclose($csv);
-
-        return new Response($content, 200, [
-          'Content-Type' => 'text/csv',
-          'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+      $access_resolver = NULL;
+      if (\Drupal::hasService('myeventlane_checkout_paragraph.access_resolver')) {
+        $access_resolver = \Drupal::service('myeventlane_checkout_paragraph.access_resolver');
       }
+
+      foreach ($paragraph_ids as $paragraph_id) {
+        $paragraph = $paragraph_storage->load($paragraph_id);
+        if (!$paragraph instanceof ParagraphInterface || $paragraph->bundle() !== 'attendee_answer') {
+          continue;
+        }
+
+        // Check entity access - this enforces vendor/customer access rules.
+        $access = $access_handler->access($paragraph, 'view', $this->currentUser);
+        if (!$access) {
+          // User cannot view this paragraph, skip it.
+          continue;
+        }
+
+        // If event filter is provided, verify paragraph belongs to that event.
+        if ($download_title && $access_resolver) {
+          $event = $access_resolver->getEvent($paragraph);
+          if (!$event || (string) $event->id() !== (string) $download_title) {
+            continue;
+          }
+        }
+
+        // Extract attendee data.
+        $first_name = $paragraph->hasField('field_first_name') && !$paragraph->get('field_first_name')->isEmpty()
+          ? $paragraph->get('field_first_name')->value : '';
+        $last_name = $paragraph->hasField('field_last_name') && !$paragraph->get('field_last_name')->isEmpty()
+          ? $paragraph->get('field_last_name')->value : '';
+        $email = $paragraph->hasField('field_email') && !$paragraph->get('field_email')->isEmpty()
+          ? $paragraph->get('field_email')->value : '';
+        $phone = $paragraph->hasField('field_phone') && !$paragraph->get('field_phone')->isEmpty()
+          ? $paragraph->get('field_phone')->value : '';
+
+        // Extract check-in data.
+        $checked_in = 'No';
+        $checked_in_time = '';
+        if ($paragraph->hasField('field_checked_in') && !$paragraph->get('field_checked_in')->isEmpty()) {
+          $checked_in_value = (bool) $paragraph->get('field_checked_in')->value;
+          $checked_in = $checked_in_value ? 'Yes' : 'No';
+          
+          if ($checked_in_value && $paragraph->hasField('field_checked_in_timestamp') && !$paragraph->get('field_checked_in_timestamp')->isEmpty()) {
+            $timestamp = (int) $paragraph->get('field_checked_in_timestamp')->value;
+            $checked_in_time = date('Y-m-d H:i:s', $timestamp);
+          }
+        }
+
+        // Extract extra questions.
+        $questions = [];
+        if ($paragraph->hasField('field_attendee_questions') && !$paragraph->get('field_attendee_questions')->isEmpty()) {
+          $question_paragraphs = $paragraph->get('field_attendee_questions')->referencedEntities();
+          foreach ($question_paragraphs as $q_para) {
+            $q_label = $q_para->hasField('field_question_label') && !$q_para->get('field_question_label')->isEmpty()
+              ? $q_para->get('field_question_label')->value : '';
+            $q_answer = $q_para->hasField('field_attendee_extra_field') && !$q_para->get('field_attendee_extra_field')->isEmpty()
+              ? $q_para->get('field_attendee_extra_field')->value : '';
+
+            if ($q_label || $q_answer) {
+              $questions[] = [
+                'label' => $q_label,
+                'answer' => $q_answer,
+              ];
+            }
+          }
+        }
+
+        // Add rows: one per question, or one row if no questions.
+        if (empty($questions)) {
+          $rows[] = [$first_name, $last_name, $email, $phone, '', '', $checked_in, $checked_in_time];
+        }
+        else {
+          foreach ($questions as $q) {
+            $rows[] = [$first_name, $last_name, $email, $phone, $q['label'], $q['answer'], $checked_in, $checked_in_time];
+          }
+        }
+      }
+
+      $filename = 'attendees-' . preg_replace('/[^a-z0-9]/i', '_', $download_title) . '-' . date('Ymd-His') . '.csv';
+      $csv = fopen('php://temp', 'r+');
+      foreach ($rows as $fields) {
+        fputcsv($csv, $fields);
+      }
+      rewind($csv);
+      $content = stream_get_contents($csv);
+      fclose($csv);
+
+      return new Response($content, 200, [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+      ]);
     }
 
-    // Fallback: render the normal View.
+    // Fallback: render the normal View (for non-CSV requests).
     return views_embed_view('attendee_answer', 'page_1');
   }
 

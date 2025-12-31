@@ -1,0 +1,39 @@
+myeventlane_refunds.vendor_orders:
+  path: '/vendor/events/{node}/orders'
+  defaults:
+    _controller: '\Drupal\myeventlane_refunds\Controller\VendorOrdersController::list'
+    _title: 'Event Orders'
+  requirements:
+    _entity_access: 'node.view'
+    _custom_access: '\Drupal\myeventlane_refunds\Controller\VendorOrdersController::access'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_refunds.vendor_refund:
+  path: '/vendor/orders/{commerce_order}/refund'
+  defaults:
+    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundForm'
+    _title: 'Refund Order'
+  requirements:
+    _entity_access: 'commerce_order.view'
+    _custom_access: '\Drupal\myeventlane_refunds\Form\VendorRefundForm::access'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+myeventlane_refunds.vendor_cancel_event:
+  path: '/vendor/events/{node}/cancel'
+  defaults:
+    _form: '\Drupal\myeventlane_refunds\Form\VendorCancelEventForm'
+    _title: 'Cancel Event'
+  requirements:
+    _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_refunds\Form\VendorCancelEventForm::access'
+  options:
+    parameters:
+      node:
+        type: entity:node
+

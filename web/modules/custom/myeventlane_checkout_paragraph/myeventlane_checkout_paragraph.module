@@ -1,86 +1,155 @@
 <?php
 
-use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Entity\EntityInterface;
-
 /**
  * @file
- * myeventlane_checkout_paragraph.module
- *
- * Attaches checkout paragraph functionality.
- * Now delegates sanitation to the theme's recursive sanitizer.
+ * Module hooks for MyEventLane Checkout Paragraph.
  */
 
-/**
- * Implements hook_form_alter().
- */
-function myeventlane_checkout_paragraph_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id): void {
-  if (isset($form['#id']) && str_contains($form['#id'], 'commerce-checkout')) {
-    if (function_exists('_myeventlane_theme_sanitize_recursive')) {
-      _myeventlane_theme_sanitize_recursive($form, ['checkout_paragraph', 'form_alter']);
-    }
-  }
-}
+declare(strict_types=1);
 
-/**
- * Implements hook_form_after_build().
- */
-function myeventlane_checkout_paragraph_after_build_normalize($form, \Drupal\Core\Form\FormStateInterface $form_state): array {
-  if (function_exists('_myeventlane_theme_sanitize_recursive')) {
-    _myeventlane_theme_sanitize_recursive($form, ['checkout_paragraph', 'after_build']);
-  }
-  return $form;
-}
+use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\paragraphs\ParagraphInterface;
 
 /**
  * Implements hook_entity_access().
  *
- * Controls access to checkout-related paragraph types (attendee_answer and
- * attendee_extra_field). Only vendors who own the related event can access
- * these paragraphs.
+ * Enforces access control for attendee_answer paragraphs.
  */
-function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, $operation, AccountInterface $account) {
-  // Only process paragraph entities - return neutral for everything else.
-  if ($entity->getEntityTypeId() !== 'paragraph') {
+function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, string $operation, AccountInterface $account): AccessResult {
+  // Only handle attendee_answer paragraphs.
+  if (!$entity instanceof ParagraphInterface || $entity->bundle() !== 'attendee_answer') {
     return AccessResult::neutral();
   }
 
-  $bundle = $entity->bundle();
-
-  // Only restrict specific checkout-related paragraph bundles.
-  if (!in_array($bundle, ['attendee_answer', 'attendee_extra_field'], TRUE)) {
-    return AccessResult::neutral();
-  }
-
-  // Admins with paragraph administration permission always have access.
-  if ($account->hasPermission('administer paragraphs')) {
+  // Admin users always have access.
+  if ($account->hasPermission('administer commerce_order') || $account->hasPermission('bypass node access')) {
     return AccessResult::allowed()->cachePerPermissions();
   }
 
-  // Restrict attendee_answer (used during checkout).
-  if ($bundle === 'attendee_answer') {
-    $parent = $entity->getParentEntity();
-    if ($parent && $parent->getEntityTypeId() === 'commerce_order_item') {
-      $event = $parent->get('field_event')->entity ?? NULL;
-      if ($event && $event->getOwnerId() === $account->id()) {
-        return AccessResult::allowed()->cachePerUser()->addCacheableDependency($event);
-      }
-    }
-    return AccessResult::forbidden()->cachePerUser();
+  // Anonymous users are denied.
+  if ($account->isAnonymous()) {
+    return AccessResult::forbidden()->cachePerPermissions();
   }
 
-  // Restrict attendee_extra_field (defined on Event).
-  if ($bundle === 'attendee_extra_field') {
-    $parent = $entity->getParentEntity();
-    if ($parent && $parent->getEntityTypeId() === 'node' && $parent->bundle() === 'event') {
-      if ($parent->getOwnerId() === $account->id()) {
-        return AccessResult::allowed()->cachePerUser()->addCacheableDependency($parent);
-      }
-    }
-    return AccessResult::forbidden()->cachePerUser();
+  // Resolve paragraph relationships.
+  $access_resolver = \Drupal::service('myeventlane_checkout_paragraph.access_resolver');
+  $order = $access_resolver->getParentOrder($entity);
+  if (!$order) {
+    // If we can't resolve the order, deny access (safety first).
+    return AccessResult::forbidden()->addCacheableDependency($entity);
   }
 
-  // Fallback: neutral for anything else.
-  return AccessResult::neutral();
+  // Check customer access: user must own the order.
+  $customer_id = (int) ($order->getCustomerId() ?? 0);
+  $is_customer = $customer_id === (int) $account->id() && $customer_id > 0;
+
+  // Check vendor access: vendor must own the event.
+  $is_vendor = FALSE;
+  $event = $access_resolver->getEvent($entity);
+  if ($event) {
+    $vendor_resolver = \Drupal::service('myeventlane_checkout_flow.vendor_ownership_resolver');
+    $store = $vendor_resolver->getStoreForUser($account);
+    if ($store) {
+      $is_vendor = $vendor_resolver->vendorOwnsEvent($store, $event);
+    }
+  }
+
+  // Determine access based on operation.
+  switch ($operation) {
+    case 'view':
+      // Customers and vendors can view attendee data.
+      if ($is_customer || $is_vendor) {
+        return AccessResult::allowed()
+          ->cachePerUser()
+          ->addCacheableDependency($entity)
+          ->addCacheableDependency($order);
+      }
+      return AccessResult::forbidden()
+        ->cachePerUser()
+        ->addCacheableDependency($entity)
+        ->addCacheableDependency($order);
+
+    case 'update':
+    case 'delete':
+      // Check if order is locked (placed or later).
+      if ($access_resolver->isOrderLocked($order)) {
+        // Order is locked - deny update/delete for everyone except admin.
+        return AccessResult::forbidden('Attendee data cannot be modified after order placement.')
+          ->cachePerUser()
+          ->addCacheableDependency($entity)
+          ->addCacheableDependency($order);
+      }
+
+      // For unlocked orders, only customers can update/delete their own data.
+      if ($is_customer) {
+        return AccessResult::allowed()
+          ->cachePerUser()
+          ->addCacheableDependency($entity)
+          ->addCacheableDependency($order);
+      }
+
+      // Vendors cannot update/delete attendee data (even for their events).
+      return AccessResult::forbidden('Vendors cannot modify attendee data.')
+        ->cachePerUser()
+        ->addCacheableDependency($entity)
+        ->addCacheableDependency($order);
+
+    default:
+      return AccessResult::neutral()->cachePerPermissions();
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function myeventlane_checkout_paragraph_entity_delete(EntityInterface $entity): void {
+  // Cascade delete attendee paragraphs when order item is deleted.
+  if ($entity instanceof OrderItemInterface) {
+    if ($entity->hasField('field_ticket_holder') && !$entity->get('field_ticket_holder')->isEmpty()) {
+      $paragraphs = $entity->get('field_ticket_holder')->referencedEntities();
+      foreach ($paragraphs as $paragraph) {
+        if ($paragraph instanceof ParagraphInterface) {
+          // Delete nested question paragraphs first.
+          if ($paragraph->hasField('field_attendee_questions') && !$paragraph->get('field_attendee_questions')->isEmpty()) {
+            $question_paragraphs = $paragraph->get('field_attendee_questions')->referencedEntities();
+            foreach ($question_paragraphs as $question_para) {
+              $question_para->delete();
+            }
+          }
+          // Delete the attendee paragraph.
+          $paragraph->delete();
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_paragraph_presave().
+ */
+function myeventlane_checkout_paragraph_paragraph_presave(ParagraphInterface $paragraph): void {
+  // Integrity check: ensure attendee_answer paragraphs have a parent order item.
+  if ($paragraph->bundle() === 'attendee_answer') {
+    // Check if this paragraph is referenced by any order item.
+    $order_item_storage = \Drupal::entityTypeManager()->getStorage('commerce_order_item');
+    $query = $order_item_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_ticket_holder', $paragraph->id())
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($query)) {
+      // Paragraph is being saved without a parent order item reference.
+      // This could be legitimate during creation, but log a warning if it's not new.
+      if (!$paragraph->isNew()) {
+        \Drupal::logger('myeventlane_checkout')->warning(
+          'Integrity check: attendee_answer paragraph @pid is being saved but is not referenced by any order item via field_ticket_holder.',
+          ['@pid' => $paragraph->id()]
+        );
+      }
+    }
+  }
 }

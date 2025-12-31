@@ -1,0 +1,10 @@
+manage_refunds:
+  title: 'Manage refunds'
+  description: 'Issue refunds for orders on owned events.'
+  restrict access: true
+
+cancel_events:
+  title: 'Cancel events'
+  description: 'Cancel owned events and send cancellation notifications.'
+  restrict access: true
+

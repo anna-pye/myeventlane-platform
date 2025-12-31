@@ -1,0 +1,12 @@
+name: MyEventLane Vendor Communications
+type: module
+description: Allows vendors to send event updates to attendees
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:node
+  - drupal:user
+  - commerce:commerce_order
+  - myeventlane_checkout_flow:myeventlane_checkout_flow
+  - myeventlane_messaging:myeventlane_messaging
+

@@ -1,0 +1,3 @@
+rate_limit_hourly: 5
+rate_limit_daily: 20
+

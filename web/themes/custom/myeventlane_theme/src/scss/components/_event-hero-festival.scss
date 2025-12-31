@@ -1,0 +1,178 @@
+// ==========================================================================
+// Event Hero - Festival Design
+// ==========================================================================
+// Bold, festival-like hero with pastel gradients and centered content.
+// Mobile-first, full-width hero section with stamp badge, meta chips, and vibe chips.
+
+@use '../tokens/colors' as *;
+@use '../tokens/typography' as type;
+@use '../tokens/spacing' as space;
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints' as *;
+
+// --------------------------------------------------------------------------
+// Hero Container
+// --------------------------------------------------------------------------
+
+.mel-event-hero {
+  position: relative;
+  width: 100%;
+  min-height: 70vh;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--mel-peach) 0%, var(--mel-lilac) 50%, var(--mel-mint) 100%);
+  border-radius: 0 0 radii.$mel-radius-lg radii.$mel-radius-lg;
+  margin-bottom: space.mel-space(6);
+
+  @include mel-break(md) {
+    min-height: 75vh;
+    max-height: 85vh;
+  }
+}
+
+// Image-based hero (when image exists)
+.mel-event-hero--image {
+  background: linear-gradient(135deg, rgba(255, 214, 201, 0.85) 0%, rgba(230, 217, 255, 0.75) 100%);
+}
+
+.mel-event-hero__image-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.3;
+  }
+}
+
+.mel-event-hero__scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
+  z-index: 1;
+}
+
+// --------------------------------------------------------------------------
+// Hero Content (Positioned at Bottom)
+// --------------------------------------------------------------------------
+
+.mel-event-hero__content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 60px) clamp(16px, 3vw, 28px);
+  text-align: center;
+}
+
+// --------------------------------------------------------------------------
+// Stamp Badge (TONIGHT, LIVE, SOLD OUT, etc.)
+// --------------------------------------------------------------------------
+
+.mel-event-hero__stamp {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.95);
+  padding: space.mel-space(2) space.mel-space(5);
+  border-radius: radii.$mel-radius-full;
+  font-size: type.mel-font-size(sm);
+  font-weight: type.$mel-font-extrabold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $mel-color-text;
+  box-shadow: shadows.$mel-shadow-sm;
+  margin-bottom: space.mel-space(4);
+}
+
+// --------------------------------------------------------------------------
+// Hero Title
+// --------------------------------------------------------------------------
+
+.mel-event-hero__title {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: type.$mel-font-extrabold;
+  line-height: 1.1;
+  color: $mel-color-text-inverse;
+  margin: 0 0 space.mel-space(5) 0;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+// --------------------------------------------------------------------------
+// Meta Items (Date, Time, Location, Price)
+// --------------------------------------------------------------------------
+
+.mel-event-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(3);
+  justify-content: center;
+  margin-top: space.mel-space(5);
+}
+
+.mel-event-hero__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: space.mel-space(2);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: space.mel-space(3) space.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  font-size: type.mel-font-size(base);
+  font-weight: type.$mel-font-semibold;
+  color: $mel-color-text;
+  box-shadow: shadows.$mel-shadow-sm;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  @media (hover: hover) {
+    @media (prefers-reduced-motion: no-preference) {
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: shadows.$mel-shadow-md;
+      }
+    }
+  }
+}
+
+.mel-event-hero__meta-icon {
+  font-size: type.mel-font-size(lg);
+}
+
+// --------------------------------------------------------------------------
+// Vibe Chips (Categories/Tags)
+// --------------------------------------------------------------------------
+
+.mel-event-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(2);
+  justify-content: center;
+  margin-top: space.mel-space(4);
+}
+
+.mel-vibe-chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  padding: space.mel-space(2) space.mel-space(4);
+  border-radius: radii.$mel-radius-full;
+  font-size: type.mel-font-size(sm);
+  font-weight: type.$mel-font-semibold;
+  color: $mel-color-text;
+}

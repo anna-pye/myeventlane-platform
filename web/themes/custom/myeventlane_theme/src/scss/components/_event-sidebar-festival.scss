@@ -1,0 +1,252 @@
+// ==========================================================================
+// Event Sidebar / Ticket Panel - Festival Design
+// ==========================================================================
+// Sticky sidebar card with ticket CTA, pricing, date/time, and location info.
+// Mobile: stacks below content. Desktop: sticky on right.
+
+@use '../tokens/colors' as *;
+@use '../tokens/typography' as type;
+@use '../tokens/spacing' as space;
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints' as *;
+
+// --------------------------------------------------------------------------
+// Sidebar Container
+// --------------------------------------------------------------------------
+
+.mel-event-detail-grid__sidebar {
+  position: static;
+
+  @include mel-break(lg) {
+    position: sticky;
+    top: space.mel-space(4);
+    align-self: start;
+    height: fit-content;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Sidebar Card
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card {
+  background: $mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  padding: space.mel-space(6);
+  box-shadow: shadows.$mel-shadow-md;
+  border: 2px solid var(--mel-peach);
+
+  @include mel-break(md) {
+    padding: space.mel-space(6);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Card Sections
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__section {
+  margin-bottom: space.mel-space(5);
+  padding-bottom: space.mel-space(5);
+  border-bottom: 1px solid rgba(41, 50, 65, 0.1);
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Primary CTA Button
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__cta {
+  display: block;
+  width: 100%;
+  padding: space.mel-space(4) space.mel-space(5);
+  background: linear-gradient(135deg, $mel-color-primary 0%, #ff8a75 100%);
+  color: $mel-color-text-inverse;
+  text-align: center;
+  text-decoration: none;
+  font-size: type.mel-font-size(lg);
+  font-weight: type.$mel-font-extrabold;
+  border-radius: radii.$mel-radius-md;
+  box-shadow: shadows.$mel-shadow-md;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: space.mel-space(4);
+
+  @media (hover: hover) {
+    @media (prefers-reduced-motion: no-preference) {
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: shadows.$mel-shadow-lg;
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+
+  &:focus-visible {
+    outline: 3px solid $mel-color-secondary;
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-sidebar-card__cta--secondary {
+  background: linear-gradient(135deg, var(--mel-lilac) 0%, #d4bfff 100%);
+  margin-bottom: 0;
+  margin-top: space.mel-space(3);
+}
+
+.mel-event-sidebar-card__cta--disabled {
+  background: $mel-color-grey-light;
+  color: $mel-color-text-muted;
+  cursor: not-allowed;
+  opacity: 0.7;
+
+  &:hover {
+    transform: none;
+    box-shadow: shadows.$mel-shadow-md;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Price Display
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__price {
+  font-size: type.mel-font-size(3xl);
+  font-weight: type.$mel-font-extrabold;
+  color: $mel-color-text;
+  margin-bottom: space.mel-space(3);
+  line-height: 1.2;
+
+  @include mel-break(md) {
+    font-size: type.mel-font-size(4xl);
+  }
+}
+
+// --------------------------------------------------------------------------
+// Section Titles
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__title {
+  font-size: type.mel-font-size(sm);
+  font-weight: type.$mel-font-extrabold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $mel-color-text-muted;
+  margin: 0 0 space.mel-space(3) 0;
+}
+
+// --------------------------------------------------------------------------
+// Date & Time
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__date {
+  display: block;
+  font-size: type.mel-font-size(lg);
+  font-weight: type.$mel-font-bold;
+  color: $mel-color-text;
+  margin-bottom: space.mel-space(2);
+}
+
+.mel-event-sidebar-card__date-time {
+  font-size: type.mel-font-size(base);
+  font-weight: type.$mel-font-medium;
+  color: $mel-color-text-muted;
+}
+
+// --------------------------------------------------------------------------
+// Calendar Links
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__calendar-links {
+  display: flex;
+  flex-direction: column;
+  gap: space.mel-space(2);
+  margin-top: space.mel-space(3);
+}
+
+.mel-event-sidebar-card__calendar-link {
+  display: inline-block;
+  padding: space.mel-space(2) space.mel-space(4);
+  background: var(--mel-paper);
+  border: 1px solid rgba(41, 50, 65, 0.1);
+  border-radius: radii.$mel-radius-sm;
+  color: $mel-color-text;
+  text-decoration: none;
+  font-size: type.mel-font-size(sm);
+  font-weight: type.$mel-font-semibold;
+  text-align: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--mel-peach);
+      border-color: var(--mel-peach);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-color-secondary;
+    outline-offset: 2px;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Location
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__venue {
+  display: block;
+  font-size: type.mel-font-size(lg);
+  font-weight: type.$mel-font-bold;
+  color: $mel-color-text;
+  margin-bottom: space.mel-space(2);
+}
+
+.mel-event-sidebar-card__address {
+  font-size: type.mel-font-size(base);
+  color: $mel-color-text-muted;
+  line-height: 1.6;
+  margin-bottom: space.mel-space(3);
+}
+
+.mel-event-sidebar-card__map-link {
+  display: inline-block;
+  color: $mel-color-primary;
+  text-decoration: none;
+  font-weight: type.$mel-font-semibold;
+  font-size: type.mel-font-size(base);
+  transition: text-decoration 0.2s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-color-secondary;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Embedded Map in Sidebar
+// --------------------------------------------------------------------------
+
+.mel-event-sidebar-card__map {
+  margin-top: space.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  overflow: hidden;
+  height: 200px;
+  background: $mel-color-grey-light;
+  min-height: 200px;
+}

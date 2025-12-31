@@ -82,6 +82,12 @@
 @use 'components/event-full';
 @use 'components/event-node';
 @use 'components/event' as event-component;
+@use 'components/event-grid-festival';
+@use 'components/event-hero-festival';
+@use 'components/event-cards-festival';
+@use 'components/event-sidebar-festival';
+@use 'components/event-detail-grid';
+@use 'components/event-mobile-cta';
 @use 'components/mel-page-header';
 @use 'components/event-type-pill';
 @use 'components/rsvp';

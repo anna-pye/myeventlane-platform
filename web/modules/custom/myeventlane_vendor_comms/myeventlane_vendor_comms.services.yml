@@ -1,0 +1,12 @@
+services:
+  myeventlane_vendor_comms.recipient_resolver:
+    class: Drupal\myeventlane_vendor_comms\Service\EventRecipientResolver
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_vendor_comms.rate_limiter:
+    class: Drupal\myeventlane_vendor_comms\Service\CommsRateLimiter
+    arguments:
+      - '@database'
+      - '@datetime.time'
+

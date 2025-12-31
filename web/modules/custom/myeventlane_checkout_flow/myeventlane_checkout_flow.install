@@ -1,0 +1,134 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for MyEventLane Checkout Flow.
+ */
+
+/**
+ * Creates the checkout flow and order item type configurations.
+ */
+function myeventlane_checkout_flow_install() {
+  $config_factory = \Drupal::configFactory();
+
+  // Create checkout flow configuration.
+  $checkout_flow_config = $config_factory->getEditable('commerce_checkout.commerce_checkout_flow.mel_event_checkout');
+  $checkout_flow_config->set('uuid', \Drupal::service('uuid')->generate());
+  $checkout_flow_config->set('langcode', 'en');
+  $checkout_flow_config->set('status', TRUE);
+  $checkout_flow_config->set('dependencies', [
+    'module' => [
+      'commerce_payment',
+      'commerce_promotion',
+      'myeventlane_checkout_flow',
+      'myeventlane_checkout_paragraph',
+      'myeventlane_commerce',
+      'myeventlane_donations',
+    ],
+  ]);
+  $checkout_flow_config->set('id', 'mel_event_checkout');
+  $checkout_flow_config->set('label', 'MyEventLane Event Checkout');
+  $checkout_flow_config->set('plugin', 'mel_event_checkout');
+  $checkout_flow_config->set('configuration', [
+    'display_checkout_progress' => FALSE,
+    'display_checkout_progress_breadcrumb_links' => FALSE,
+    'display_sidebar_checkout_complete' => TRUE,
+    'guest_order_assign' => FALSE,
+    'guest_new_account' => TRUE,
+    'guest_new_account_notify' => TRUE,
+    'panes' => [
+      'mel_buyer_details' => [
+        'display_label' => 'Buyer details',
+        'step' => 'checkout',
+        'weight' => 0,
+        'wrapper_element' => 'fieldset',
+      ],
+      'ticket_holder_paragraph' => [
+        'display_label' => 'Attendee details',
+        'step' => 'checkout',
+        'weight' => 1,
+        'wrapper_element' => 'fieldset',
+      ],
+      'mel_donation' => [
+        'display_label' => 'Donation',
+        'step' => 'checkout',
+        'weight' => 2,
+        'wrapper_element' => 'fieldset',
+      ],
+      'mel_legal_consent' => [
+        'display_label' => 'Terms and conditions',
+        'step' => 'checkout',
+        'weight' => 3,
+        'wrapper_element' => 'fieldset',
+      ],
+      'payment_information' => [
+        'display_label' => 'Payment',
+        'step' => 'checkout',
+        'weight' => 4,
+        'wrapper_element' => 'container',
+        'always_display' => TRUE,
+        'require_payment_method' => FALSE,
+      ],
+      'grouped_order_summary' => [
+        'display_label' => NULL,
+        'step' => '_sidebar',
+        'weight' => 0,
+        'wrapper_element' => 'fieldset',
+      ],
+      'mel_fee_transparency' => [
+        'display_label' => 'Order summary',
+        'step' => '_sidebar',
+        'weight' => 1,
+        'wrapper_element' => 'fieldset',
+      ],
+      'order_summary' => [
+        'display_label' => NULL,
+        'step' => '_sidebar',
+        'weight' => 2,
+        'wrapper_element' => 'container',
+        'view' => 'commerce_checkout_order_summary',
+      ],
+      'contact_information' => [
+        'step' => '_disabled',
+        'weight' => 100,
+      ],
+      'billing_information' => [
+        'step' => '_disabled',
+        'weight' => 101,
+      ],
+      'myeventlane_attendee_info_per_ticket' => [
+        'step' => '_disabled',
+        'weight' => 102,
+      ],
+    ],
+  ]);
+  $checkout_flow_config->save();
+
+  // Create order item type configuration.
+  $order_item_config = $config_factory->getEditable('commerce_order.commerce_order_item_type.checkout_donation');
+  $order_item_config->set('uuid', \Drupal::service('uuid')->generate());
+  $order_item_config->set('langcode', 'en');
+  $order_item_config->set('status', TRUE);
+  $order_item_config->set('dependencies', [
+    'module' => [
+      'commerce_tax',
+    ],
+    'enforced' => [
+      'module' => [
+        'myeventlane_checkout_flow',
+      ],
+    ],
+  ]);
+  $order_item_config->set('id', 'checkout_donation');
+  $order_item_config->set('label', 'Checkout Donation');
+  $order_item_config->set('traits', []);
+  $order_item_config->set('locked', FALSE);
+  $order_item_config->set('purchasableEntityType', NULL);
+  $order_item_config->set('orderType', 'default');
+  $order_item_config->set('third_party_settings', [
+    'commerce_tax' => [
+      'taxable_type' => 'events',
+    ],
+  ]);
+  $order_item_config->save();
+}

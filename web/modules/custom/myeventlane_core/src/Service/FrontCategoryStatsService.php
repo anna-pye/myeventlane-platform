@@ -89,7 +89,7 @@ final class FrontCategoryStatsService {
 
     $event_type = (string) $settings->get('front_page.event_type') ?: 'event';
     $vocab = (string) $settings->get('front_page.category_vocab') ?: 'categories';
-    $field = (string) $settings->get('front_page.category_field') ?: 'field_event_category';
+    $field = (string) $settings->get('front_page.category_field') ?: 'field_category';
 
     $cid = "myeventlane:front:category_stats:v3:$event_type:$vocab:$field";
     if ($cached = $this->cache->get($cid)) {

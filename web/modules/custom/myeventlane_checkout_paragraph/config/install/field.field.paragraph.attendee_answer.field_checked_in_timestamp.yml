@@ -1,0 +1,20 @@
+uuid: 00000000-0000-0000-0000-000000000005
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_checked_in_timestamp
+    - paragraphs.paragraphs_type.attendee_answer
+id: paragraph.attendee_answer.field_checked_in_timestamp
+field_name: field_checked_in_timestamp
+entity_type: paragraph
+bundle: attendee_answer
+label: 'Checked in timestamp'
+description: 'When this attendee was checked in.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp
+

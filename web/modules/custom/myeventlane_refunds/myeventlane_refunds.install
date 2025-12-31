@@ -1,0 +1,124 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the myeventlane_refunds module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_refunds_schema(): array {
+  $schema['myeventlane_refund_log'] = [
+    'description' => 'Audit log for vendor refunds and cancellations.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order ID.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'vendor_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Vendor user ID who initiated the refund.',
+      ],
+      'refund_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => 'Type: full or partial.',
+      ],
+      'refund_scope' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Scope: tickets_only, tickets_and_donation, or donation_only.',
+      ],
+      'amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Refund amount in cents.',
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+        'description' => 'Currency code (ISO 4217).',
+      ],
+      'donation_refunded' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether donation was included (0 or 1).',
+      ],
+      'stripe_refund_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Stripe refund ID if available.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Status: pending, completed, or failed.',
+      ],
+      'reason' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Refund reason provided by vendor.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when refund was requested.',
+      ],
+      'completed' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when refund was completed.',
+      ],
+      'error_message' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Error message if refund failed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'order_id' => ['order_id'],
+      'event_id' => ['event_id'],
+      'vendor_uid' => ['vendor_uid'],
+      'status' => ['status'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_refunds_uninstall(): void {
+  // Optionally truncate the table instead of dropping it for audit purposes.
+  // For now, we'll drop it.
+}
+

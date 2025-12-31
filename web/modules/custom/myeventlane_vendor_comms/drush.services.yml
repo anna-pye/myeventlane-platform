@@ -1,0 +1,6 @@
+services:
+  myeventlane_vendor_comms.commands:
+    class: Drupal\myeventlane_vendor_comms\Commands\VendorCommsCommands
+    tags:
+      - { name: drush.command }
+

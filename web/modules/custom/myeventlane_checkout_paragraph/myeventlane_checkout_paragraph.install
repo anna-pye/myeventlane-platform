@@ -53,3 +53,97 @@ function myeventlane_checkout_paragraph_update_9001() {
 
   \Drupal::logger('myeventlane')->notice('✅ field_event added to commerce_product.');
 }
+
+/**
+ * Adds check-in fields to attendee_answer paragraphs.
+ */
+function myeventlane_checkout_paragraph_update_9002() {
+  $entity_type = 'paragraph';
+  $bundle = 'attendee_answer';
+
+  // Check if fields already exist.
+  $field_storage_checked = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load("$entity_type.field_checked_in");
+  if ($field_storage_checked) {
+    \Drupal::logger('myeventlane_checkout_paragraph')->notice('Check-in fields already exist.');
+    return;
+  }
+
+  // Create field_checked_in storage.
+  $field_storage_checked = \Drupal\field\Entity\FieldStorageConfig::create([
+    'field_name' => 'field_checked_in',
+    'entity_type' => $entity_type,
+    'type' => 'boolean',
+    'settings' => [
+      'on_label' => 'Yes',
+      'off_label' => 'No',
+    ],
+    'cardinality' => 1,
+  ]);
+  $field_storage_checked->save();
+
+  // Create field_checked_in instance.
+  $field_checked = \Drupal\field\Entity\FieldConfig::create([
+    'field_name' => 'field_checked_in',
+    'entity_type' => $entity_type,
+    'bundle' => $bundle,
+    'label' => 'Checked in',
+    'description' => 'Whether this attendee has been checked in to the event.',
+    'required' => FALSE,
+    'default_value' => [['value' => 0]],
+  ]);
+  $field_checked->save();
+
+  // Create field_checked_in_timestamp storage.
+  $field_storage_timestamp = \Drupal\field\Entity\FieldStorageConfig::create([
+    'field_name' => 'field_checked_in_timestamp',
+    'entity_type' => $entity_type,
+    'type' => 'timestamp',
+    'cardinality' => 1,
+  ]);
+  $field_storage_timestamp->save();
+
+  // Create field_checked_in_timestamp instance.
+  $field_timestamp = \Drupal\field\Entity\FieldConfig::create([
+    'field_name' => 'field_checked_in_timestamp',
+    'entity_type' => $entity_type,
+    'bundle' => $bundle,
+    'label' => 'Checked in timestamp',
+    'description' => 'When this attendee was checked in.',
+    'required' => FALSE,
+  ]);
+  $field_timestamp->save();
+
+  // Create field_checked_in_by storage.
+  $field_storage_by = \Drupal\field\Entity\FieldStorageConfig::create([
+    'field_name' => 'field_checked_in_by',
+    'entity_type' => $entity_type,
+    'type' => 'entity_reference',
+    'settings' => [
+      'target_type' => 'user',
+    ],
+    'cardinality' => 1,
+  ]);
+  $field_storage_by->save();
+
+  // Create field_checked_in_by instance.
+  $field_by = \Drupal\field\Entity\FieldConfig::create([
+    'field_name' => 'field_checked_in_by',
+    'entity_type' => $entity_type,
+    'bundle' => $bundle,
+    'label' => 'Checked in by',
+    'description' => 'The user who checked in this attendee.',
+    'required' => FALSE,
+    'settings' => [
+      'target_type' => 'user',
+      'handler' => 'default',
+      'handler_settings' => [
+        'target_bundles' => NULL,
+        'sort' => ['field' => '_none'],
+        'auto_create' => FALSE,
+      ],
+    ],
+  ]);
+  $field_by->save();
+
+  \Drupal::logger('myeventlane_checkout_paragraph')->notice('✅ Check-in fields added to attendee_answer paragraphs.');
+}

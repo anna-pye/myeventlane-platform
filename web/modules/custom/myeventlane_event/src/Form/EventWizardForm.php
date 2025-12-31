@@ -216,6 +216,9 @@ final class EventWizardForm extends FormBase {
         if (!isset($form['wizard']['content'][$name]['#weight'])) {
           $form['wizard']['content'][$name]['#weight'] = 0;
         }
+        
+        // Store event reference for later use in widget conversion.
+        $form['wizard']['content'][$name]['#wizard_event'] = $event;
       }
       else {
         // Only log if field is not in optional list - these are expected to be missing sometimes.
@@ -644,7 +647,12 @@ final class EventWizardForm extends FormBase {
     // Render with the node form display widgets.
     // NOTE: Only title is in basics step now.
     // field_event_type has been moved to tickets_capacity step.
-    $this->buildEntityWidgets($event, ['title'], $form, $form_state);
+    $this->buildEntityWidgets($event, ['title', 'field_category'], $form, $form_state);
+    
+    // Force field_category to use select widget (multiple select) instead of autocomplete.
+    if (isset($form['wizard']['content']['field_category'])) {
+      $this->convertTaxonomyToSelect($form['wizard']['content']['field_category'], TRUE);
+    }
     
     // Debug: Check if title field was created.
     if (!isset($form['wizard']['content']['title'])) {
@@ -1086,8 +1094,20 @@ final class EventWizardForm extends FormBase {
   }
 
   private function buildPolicies(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
-    // Ensure field_refund_policy exists and is on form display.
-    $this->buildEntityWidgets($event, ['field_refund_policy'], $form, $form_state);
+    // Build policy and accessibility fields.
+    $policy_fields = ['field_refund_policy', 'field_accessibility', 'field_tags'];
+    
+    // Add cancellation policy if field exists.
+    if ($event->hasField('field_cancellation_policy')) {
+      $policy_fields[] = 'field_cancellation_policy';
+    }
+    
+    $this->buildEntityWidgets($event, $policy_fields, $form, $form_state);
+    
+    // Force field_accessibility to use select widget (multiple select) instead of autocomplete.
+    if (isset($form['wizard']['content']['field_accessibility'])) {
+      $this->convertTaxonomyToSelect($form['wizard']['content']['field_accessibility'], TRUE);
+    }
   }
 
   private function buildReview(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
@@ -1199,6 +1219,25 @@ final class EventWizardForm extends FormBase {
       }
     }
 
+    // Save custom venue_name field if present (it's not part of entity widget).
+    $this->saveVenueName($event, $form_state);
+
+    // Save location address if present (populated by JavaScript).
+    $this->saveLocationAddress($event, $form_state);
+
+    // Preserve existing coordinates before extractFormValues.
+    $existing_lat = NULL;
+    $existing_lng = NULL;
+    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
+      $existing_lat = $event->get('field_location_latitude')->value;
+    }
+    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
+      $existing_lng = $event->get('field_location_longitude')->value;
+    }
+
+    // Save location coordinates if present (populated by JavaScript).
+    $this->saveLocationCoordinates($event, $form_state, $existing_lat, $existing_lng);
+
     // Save draft every step to ensure nothing gets lost.
     $event->save();
 
@@ -1213,6 +1252,21 @@ final class EventWizardForm extends FormBase {
   public function saveEvent(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEvent($form_state);
 
+    // Preserve existing address and coordinates before extractFormValues
+    // (which might clear them if the widget is hidden).
+    $existing_address = NULL;
+    if (!$event->get('field_location')->isEmpty()) {
+      $existing_address = $event->get('field_location')->first()->getValue();
+    }
+    $existing_lat = NULL;
+    $existing_lng = NULL;
+    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
+      $existing_lat = $event->get('field_location_latitude')->value;
+    }
+    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
+      $existing_lng = $event->get('field_location_longitude')->value;
+    }
+
     // Extract form values.
     $entity_type_manager = \Drupal::entityTypeManager();
     $display = $entity_type_manager
@@ -1222,6 +1276,15 @@ final class EventWizardForm extends FormBase {
     if ($display) {
       $display->extractFormValues($event, $form, $form_state);
     }
+
+    // Save custom venue_name field if present.
+    $this->saveVenueName($event, $form_state);
+
+    // Save location address if present (or restore existing if not changed).
+    $this->saveLocationAddress($event, $form_state, $existing_address);
+
+    // Save location coordinates if present (or restore existing if not changed).
+    $this->saveLocationCoordinates($event, $form_state, $existing_lat, $existing_lng);
 
     // Save without changing publish status.
     $event->save();
@@ -1253,6 +1316,29 @@ final class EventWizardForm extends FormBase {
       $display->extractFormValues($event, $form, $form_state);
     }
 
+    // Save custom venue_name field if present.
+    $this->saveVenueName($event, $form_state);
+
+    // Preserve existing address and coordinates.
+    $existing_address = NULL;
+    if (!$event->get('field_location')->isEmpty()) {
+      $existing_address = $event->get('field_location')->first()->getValue();
+    }
+    $existing_lat = NULL;
+    $existing_lng = NULL;
+    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
+      $existing_lat = $event->get('field_location_latitude')->value;
+    }
+    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
+      $existing_lng = $event->get('field_location_longitude')->value;
+    }
+
+    // Save location address if present.
+    $this->saveLocationAddress($event, $form_state, $existing_address);
+
+    // Save location coordinates if present.
+    $this->saveLocationCoordinates($event, $form_state, $existing_lat, $existing_lng);
+
     // Ensure it's saved as draft.
     $event->setUnpublished();
     $event->save();
@@ -1278,6 +1364,29 @@ final class EventWizardForm extends FormBase {
     if ($display) {
       $display->extractFormValues($event, $form, $form_state);
     }
+
+    // Save custom venue_name field if present.
+    $this->saveVenueName($event, $form_state);
+
+    // Preserve existing address and coordinates.
+    $existing_address = NULL;
+    if (!$event->get('field_location')->isEmpty()) {
+      $existing_address = $event->get('field_location')->first()->getValue();
+    }
+    $existing_lat = NULL;
+    $existing_lng = NULL;
+    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
+      $existing_lat = $event->get('field_location_latitude')->value;
+    }
+    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
+      $existing_lng = $event->get('field_location_longitude')->value;
+    }
+
+    // Save location address if present.
+    $this->saveLocationAddress($event, $form_state, $existing_address);
+
+    // Save location coordinates if present.
+    $this->saveLocationCoordinates($event, $form_state, $existing_lat, $existing_lng);
 
     // Publish the event.
     $event->setPublished(TRUE);
@@ -1330,6 +1439,285 @@ final class EventWizardForm extends FormBase {
    */
   public function ajaxRefresh(array &$form, FormStateInterface $form_state): array {
     return $form;
+  }
+
+  /**
+   * Converts taxonomy autocomplete widget to select widget.
+   *
+   * @param array &$field_element
+   *   The field form element (passed by reference).
+   * @param bool $multiple
+   *   Whether to allow multiple selections.
+   */
+  private function convertTaxonomyToSelect(array &$field_element, bool $multiple = TRUE): void {
+    // Check if this is a taxonomy entity reference field.
+    if (!isset($field_element['widget'])) {
+      return;
+    }
+
+    // Get field name and event.
+    $field_name = $field_element['#field_name'] ?? NULL;
+    $event = $field_element['#wizard_event'] ?? NULL;
+    
+    if (!$field_name || !$event) {
+      return;
+    }
+
+    // Load field config to get vocabulary.
+    $field_config = \Drupal::entityTypeManager()
+      ->getStorage('field_config')
+      ->load('node.event.' . $field_name);
+
+    if (!$field_config) {
+      return;
+    }
+
+    $handler_settings = $field_config->getSetting('handler_settings');
+    $target_bundles = $handler_settings['target_bundles'] ?? [];
+    
+    if (empty($target_bundles)) {
+      return;
+    }
+
+    // Get terms from the vocabulary, sorted by weight.
+    $vocabulary = reset($target_bundles);
+    $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    $terms = $term_storage->loadTree($vocabulary, 0, NULL, TRUE);
+    
+    $options = [];
+    foreach ($terms as $term) {
+      $options[$term->id()] = $term->getName();
+    }
+
+    // Get current value from event.
+    $default_value = [];
+    if ($event->hasField($field_name) && !$event->get($field_name)->isEmpty()) {
+      foreach ($event->get($field_name) as $item) {
+        if ($item->entity) {
+          $default_value[] = $item->entity->id();
+        }
+      }
+    }
+
+    // Replace widget with select.
+    $field_element['widget'] = [
+      '#type' => 'select',
+      '#title' => $field_element['#title'] ?? $this->t('Select'),
+      '#description' => $field_element['#description'] ?? NULL,
+      '#options' => $options,
+      '#multiple' => $multiple,
+      '#default_value' => $multiple ? $default_value : ($default_value[0] ?? NULL),
+      '#required' => $field_element['#required'] ?? FALSE,
+      '#empty_option' => $multiple ? NULL : $this->t('- Select -'),
+      '#empty_value' => $multiple ? NULL : '',
+    ];
+  }
+
+  /**
+   * Saves location address from hidden form widget to event entity.
+   *
+   * The address is populated by JavaScript into the hidden field_location widget.
+   * We explicitly extract it because extractFormValues() may skip hidden widgets.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   */
+  private function saveLocationAddress(NodeInterface $event, FormStateInterface $form_state, array $existing_address = NULL): void {
+    // Check if field_location exists on the event.
+    if (!$event->hasField('field_location')) {
+      return;
+    }
+
+    // Try to get address from form state.
+    // The field_location widget is hidden but should still be in form state.
+    $address_value = NULL;
+    $user_input = $form_state->getUserInput();
+
+    // Check for field_location in form state (standard widget path).
+    if ($form_state->hasValue(['field_location', 0, 'address'])) {
+      $address_value = $form_state->getValue(['field_location', 0, 'address']);
+    }
+    // Check wizard structure path (where it's actually located).
+    elseif ($form_state->hasValue(['wizard', 'content', '_venue_wrapper', 'field_location', 0, 'address'])) {
+      $address_value = $form_state->getValue(['wizard', 'content', '_venue_wrapper', 'field_location', 0, 'address']);
+    }
+    // Check wizard content path.
+    elseif ($form_state->hasValue(['wizard', 'content', 'field_location', 0, 'address'])) {
+      $address_value = $form_state->getValue(['wizard', 'content', 'field_location', 0, 'address']);
+    }
+    // Check user input directly (fallback if form state doesn't have it).
+    elseif (isset($user_input['field_location'][0]['address']) && is_array($user_input['field_location'][0]['address'])) {
+      $address_value = $user_input['field_location'][0]['address'];
+    }
+    elseif (isset($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address']) && is_array($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address'])) {
+      $address_value = $user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address'];
+    }
+
+    // If we have address data, save it to the entity.
+    if ($address_value && is_array($address_value)) {
+      // Filter out empty values and ensure we have at least one component.
+      $filtered = array_filter($address_value, function ($value) {
+        return !empty($value) && $value !== '';
+      });
+
+      if (!empty($filtered)) {
+        // Set the address value on the entity.
+        $event->set('field_location', [$address_value]);
+      }
+    }
+    // If no address in form state but we have existing address, restore it.
+    // This handles cases where extractFormValues cleared it because widget is hidden.
+    elseif ($existing_address && is_array($existing_address)) {
+      $filtered = array_filter($existing_address, function ($value) {
+        return !empty($value) && $value !== '';
+      });
+      if (!empty($filtered)) {
+        $event->set('field_location', [$existing_address]);
+      }
+    }
+  }
+
+  /**
+   * Saves location coordinates from hidden form fields to event entity.
+   *
+   * Coordinates are populated by JavaScript (venue selection widget) into
+   * hidden fields added by myeventlane_location module form_alter.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   */
+  private function saveLocationCoordinates(NodeInterface $event, FormStateInterface $form_state, $existing_lat = NULL, $existing_lng = NULL): void {
+    // Check if coordinate fields exist on the event.
+    if (!$event->hasField('field_location_latitude') || !$event->hasField('field_location_longitude')) {
+      return;
+    }
+
+    $lat = NULL;
+    $lng = NULL;
+
+    // Get coordinates from hidden fields added by myeventlane_location module.
+    // These fields are named 'myeventlane_location_latitude' and 'myeventlane_location_longitude'.
+    $user_input = $form_state->getUserInput();
+
+    // Check custom hidden fields first (from JavaScript population).
+    if (isset($user_input['myeventlane_location_latitude']) && !empty($user_input['myeventlane_location_latitude']) && is_numeric($user_input['myeventlane_location_latitude'])) {
+      $lat = (float) $user_input['myeventlane_location_latitude'];
+    }
+    elseif ($form_state->hasValue('myeventlane_location_latitude')) {
+      $lat_value = $form_state->getValue('myeventlane_location_latitude');
+      if (!empty($lat_value) && is_numeric($lat_value)) {
+        $lat = (float) $lat_value;
+      }
+    }
+
+    if (isset($user_input['myeventlane_location_longitude']) && !empty($user_input['myeventlane_location_longitude']) && is_numeric($user_input['myeventlane_location_longitude'])) {
+      $lng = (float) $user_input['myeventlane_location_longitude'];
+    }
+    elseif ($form_state->hasValue('myeventlane_location_longitude')) {
+      $lng_value = $form_state->getValue('myeventlane_location_longitude');
+      if (!empty($lng_value) && is_numeric($lng_value)) {
+        $lng = (float) $lng_value;
+      }
+    }
+
+    // Also check the actual entity fields in case they were set directly.
+    if ($lat === NULL && isset($user_input['field_location_latitude']) && !empty($user_input['field_location_latitude']) && is_numeric($user_input['field_location_latitude'])) {
+      $lat = (float) $user_input['field_location_latitude'];
+    }
+    if ($lng === NULL && isset($user_input['field_location_longitude']) && !empty($user_input['field_location_longitude']) && is_numeric($user_input['field_location_longitude'])) {
+      $lng = (float) $user_input['field_location_longitude'];
+    }
+
+    // Check for dedicated coordinate fields in form state.
+    if ($lat === NULL && $form_state->hasValue(['field_location_latitude', 0, 'value'])) {
+      $lat_value = $form_state->getValue(['field_location_latitude', 0, 'value']);
+      if (!empty($lat_value) && is_numeric($lat_value)) {
+        $lat = (float) $lat_value;
+      }
+    }
+
+    if ($lng === NULL && $form_state->hasValue(['field_location_longitude', 0, 'value'])) {
+      $lng_value = $form_state->getValue(['field_location_longitude', 0, 'value']);
+      if (!empty($lng_value) && is_numeric($lng_value)) {
+        $lng = (float) $lng_value;
+      }
+    }
+
+    // Save coordinates to entity fields if we have valid values.
+    if ($lat !== NULL && is_numeric($lat) && $lat >= -90 && $lat <= 90) {
+      $event->set('field_location_latitude', $lat);
+    }
+    // If no new coordinates but we have existing ones, restore them.
+    elseif ($existing_lat !== NULL && is_numeric($existing_lat)) {
+      $event->set('field_location_latitude', $existing_lat);
+    }
+
+    if ($lng !== NULL && is_numeric($lng) && $lng >= -180 && $lng <= 180) {
+      $event->set('field_location_longitude', $lng);
+    }
+    // If no new coordinates but we have existing ones, restore them.
+    elseif ($existing_lng !== NULL && is_numeric($existing_lng)) {
+      $event->set('field_location_longitude', $existing_lng);
+    }
+  }
+
+  /**
+   * Saves venue_name from custom form field to event entity.
+   *
+   * The venue_name field is a custom form field (not part of entity widget),
+   * so it needs to be manually saved from form state.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   */
+  private function saveVenueName(NodeInterface $event, FormStateInterface $form_state): void {
+    // Check if venue_name field exists on the event.
+    if (!$event->hasField('field_venue_name')) {
+      return;
+    }
+
+    // Get venue_name from form state.
+    // The field is in wizard.content._venue_wrapper.venue_name, but after form processing
+    // it may be in different locations. Check multiple possible paths.
+    $venue_name_value = NULL;
+    
+    // Try the most likely path first (nested in _venue_wrapper).
+    $value = $form_state->getValue(['_venue_wrapper', 'venue_name']);
+    if ($value !== NULL && $value !== '') {
+      $venue_name_value = is_array($value) ? ($value[0] ?? $value) : (string) $value;
+    }
+    
+    // Try alternative paths.
+    if ($venue_name_value === NULL) {
+      $all_values = $form_state->getValues();
+      
+      // Check nested structure.
+      if (isset($all_values['_venue_wrapper']['venue_name'])) {
+        $value = $all_values['_venue_wrapper']['venue_name'];
+        $venue_name_value = is_array($value) ? ($value[0] ?? $value) : (string) $value;
+      }
+      // Check direct access.
+      elseif (isset($all_values['venue_name'])) {
+        $value = $all_values['venue_name'];
+        $venue_name_value = is_array($value) ? ($value[0] ?? $value) : (string) $value;
+      }
+      // Check wizard.content path.
+      elseif (isset($all_values['wizard']['content']['_venue_wrapper']['venue_name'])) {
+        $value = $all_values['wizard']['content']['_venue_wrapper']['venue_name'];
+        $venue_name_value = is_array($value) ? ($value[0] ?? $value) : (string) $value;
+      }
+    }
+
+    // Save venue_name if we have a value.
+    if ($venue_name_value !== NULL && $venue_name_value !== '') {
+      $event->set('field_venue_name', trim($venue_name_value));
+    }
   }
 
   /**

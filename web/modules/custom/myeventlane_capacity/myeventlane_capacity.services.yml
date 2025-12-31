@@ -2,3 +2,21 @@ services:
   myeventlane_capacity.service:
     class: Drupal\myeventlane_capacity\Service\EventCapacityService
     arguments: ['@entity_type.manager', '@cache.default']
+
+  myeventlane_capacity.order_inspector:
+    class: Drupal\myeventlane_capacity\Service\CapacityOrderInspector
+
+  logger.channel.myeventlane_capacity:
+    parent: logger.channel_base
+    arguments: ['myeventlane_capacity']
+
+  myeventlane_capacity.commerce_enforcement_subscriber:
+    class: Drupal\myeventlane_capacity\EventSubscriber\CommerceCapacityEnforcementSubscriber
+    arguments:
+      - '@myeventlane_capacity.service'
+      - '@myeventlane_capacity.order_inspector'
+      - '@entity_type.manager'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_capacity'
+    tags:
+      - { name: event_subscriber }

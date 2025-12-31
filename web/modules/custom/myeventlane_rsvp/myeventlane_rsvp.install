@@ -278,3 +278,72 @@ function myeventlane_rsvp_update_9007() {
   
   return t('Cleared entity definition cache. Please visit /admin/reports/status/entity-updates to apply RSVP field definition updates.');
 }
+
+/**
+ * Update RSVP Submission status and event_id fields using EntityDefinitionUpdateManager.
+ */
+function myeventlane_rsvp_update_9008() {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('rsvp_submission');
+  $base_field_definitions = \Drupal\myeventlane_rsvp\Entity\RsvpSubmission::baseFieldDefinitions($entity_type);
+  
+  $field_storage_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  
+  // Update status field.
+  if (isset($base_field_definitions['status'])) {
+    $field_definition = $base_field_definitions['status'];
+    $field_storage = $field_storage_storage->load('rsvp_submission.status');
+    
+    if (!$field_storage) {
+      // Field doesn't exist, install it.
+      $entity_definition_update_manager->installFieldStorageDefinition('status', 'rsvp_submission', 'myeventlane_rsvp', $field_definition);
+    }
+    else {
+      // Field exists - check if update is needed via change list.
+      $change_list = $entity_definition_update_manager->getChangeList();
+      if (isset($change_list['field_storage']['rsvp_submission.status']) && 
+          $change_list['field_storage']['rsvp_submission.status'] === 'update') {
+        // Get the original definition and update.
+        try {
+          $original = $entity_definition_update_manager->getFieldStorageDefinition('status', 'rsvp_submission');
+          if ($original) {
+            $entity_definition_update_manager->updateFieldStorageDefinition($field_definition, $original);
+          }
+        }
+        catch (\Exception $e) {
+          \Drupal::logger('myeventlane_rsvp')->warning('Could not update status field: @message', ['@message' => $e->getMessage()]);
+        }
+      }
+    }
+  }
+  
+  // Update event_id field.
+  if (isset($base_field_definitions['event_id'])) {
+    $field_definition = $base_field_definitions['event_id'];
+    $field_storage = $field_storage_storage->load('rsvp_submission.event_id');
+    
+    if (!$field_storage) {
+      // Field doesn't exist, install it.
+      $entity_definition_update_manager->installFieldStorageDefinition('event_id', 'rsvp_submission', 'myeventlane_rsvp', $field_definition);
+    }
+    else {
+      // Field exists - check if update is needed via change list.
+      $change_list = $entity_definition_update_manager->getChangeList();
+      if (isset($change_list['field_storage']['rsvp_submission.event_id']) && 
+          $change_list['field_storage']['rsvp_submission.event_id'] === 'update') {
+        // Get the original definition and update.
+        try {
+          $original = $entity_definition_update_manager->getFieldStorageDefinition('event_id', 'rsvp_submission');
+          if ($original) {
+            $entity_definition_update_manager->updateFieldStorageDefinition($field_definition, $original);
+          }
+        }
+        catch (\Exception $e) {
+          \Drupal::logger('myeventlane_rsvp')->warning('Could not update event_id field: @message', ['@message' => $e->getMessage()]);
+        }
+      }
+    }
+  }
+  
+  return t('Updated RSVP Submission status and event_id field definitions.');
+}

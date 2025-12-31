@@ -87,10 +87,10 @@
               {% set event_type = node.field_event_type.value %}
               {% if event_type == 'rsvp' %}
                 {% set cta_label = 'RSVP' %}
-                {# TODO: Add RSVP route #}
+                {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
               {% elseif event_type == 'both' %}
                 {% set cta_label = 'Get tickets' %}
-                {# TODO: Add ticket booking route #}
+                {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
               {% elseif event_type == 'external' and node.hasField('field_external_url') and not node.field_external_url.isEmpty %}
                 {% set cta_label = 'Book' %}
                 {% set external_url = node.field_external_url[0].url %}
@@ -110,19 +110,13 @@
           <div class="mel-ticketbox">
             <h2 class="mel-ticketbox__title">Tickets</h2>
             <div class="mel-ticketbox__content">
-              {# If you have a ticket field/block, render it here. Otherwise ask. #}
+              {# Render field_product_target - this will output whatever formatter is configured #}
               {% if content.field_product_target is defined %}
-                {# Render ticket types or product info #}
-                {% if node.hasField('field_ticket_types') and not node.field_ticket_types.isEmpty %}
-                  {{ content.field_ticket_types }}
-                {% else %}
-                  <p class="mel-muted">Ticketing information will appear here.</p>
-                {% endif %}
+                {{ content.field_product_target }}
               {% else %}
-                <p class="mel-muted">Ticketing module integration not detected. Ask which field/block renders tickets.</p>
+                <p class="mel-muted">Ticketing information will appear here.</p>
               {% endif %}
             </div>
-            <a class="mel-btn mel-btn--primary mel-ticketbox__buy" href="#tickets">Proceed</a>
           </div>
         </aside>
       </div>
@@ -136,7 +130,7 @@
         {% if content.body is defined %}
           {{ content.body }}
         {% else %}
-          <p class="mel-muted">No description field found. Ask which field holds the description.</p>
+          <p class="mel-muted">No description available.</p>
         {% endif %}
       </section>
 

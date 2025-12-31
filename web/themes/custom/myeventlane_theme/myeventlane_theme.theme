@@ -710,12 +710,23 @@ function myeventlane_theme_entity_view_alter(array &$build, \Drupal\Core\Entity\
  * Prevents default field rendering so our custom template has full control.
  */
 function myeventlane_theme_node_view_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display): void {
-  // Only process event nodes in full/default view modes.
+  // Only process event nodes.
   if (!$entity instanceof \Drupal\node\NodeInterface || $entity->bundle() !== 'event') {
     return;
   }
 
   $view_mode = $build['#view_mode'] ?? 'full';
+  
+  // For event_card view mode, remove field_event_image from build to prevent duplicate rendering.
+  // We use preprocessed card_image_url in the template instead.
+  if ($view_mode === 'event_card') {
+    if (isset($build['field_event_image'])) {
+      unset($build['field_event_image']);
+    }
+    return;
+  }
+  
+  // Only process full/default view modes for other logic.
   if (!in_array($view_mode, ['full', 'default'], TRUE)) {
     return;
   }
@@ -759,6 +770,159 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $variables['attributes']['class'][] = 'mel-node-form--event';
     $variables['theme_hook_suggestions'][] = 'node__event__form';
     return;
+  }
+
+  // Process event_card view mode for event cards in Views.
+  if ($view_mode === 'event_card') {
+    // Set URL for card link.
+    try {
+      $variables['card_url'] = $node->toUrl()->toString();
+      $variables['url'] = $variables['card_url'];
+    }
+    catch (\Exception $e) {
+      $variables['card_url'] = '#';
+      $variables['url'] = '#';
+    }
+    
+    // Title.
+    $variables['card_title'] = (string) $node->label();
+    
+    // Image URL with image style.
+    $variables['card_image_url'] = NULL;
+    $variables['card_image_alt'] = '';
+    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+      $image_field = $node->get('field_event_image');
+      $image_file = $image_field->entity;
+      if ($image_file) {
+        try {
+          $image_style = \Drupal::entityTypeManager()->getStorage('image_style')->load('medium');
+          if ($image_style) {
+            $variables['card_image_url'] = $image_style->buildUrl($image_file->getFileUri());
+            $variables['card_image_alt'] = $image_field->alt ?: $variables['card_title'];
+          }
+          else {
+            $file_url_generator = \Drupal::service('file_url_generator');
+            $variables['card_image_url'] = $file_url_generator->generateString($image_file->getFileUri());
+            $variables['card_image_alt'] = $image_field->alt ?: $variables['card_title'];
+          }
+        }
+        catch (\Exception $e) {
+          // Image unavailable.
+        }
+      }
+    }
+    
+    // Date components: day, month, time range.
+    $variables['card_day'] = NULL;
+    $variables['card_month'] = NULL;
+    $variables['card_time_range'] = NULL;
+    if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+      $start_value = $node->get('field_event_start')->value;
+      $start_timestamp = strtotime($start_value);
+      if ($start_timestamp) {
+        $date_formatter = \Drupal::service('date.formatter');
+        
+        // Day and month for badge.
+        $variables['card_day'] = (string) date('j', $start_timestamp);
+        $variables['card_month'] = (string) date('M', $start_timestamp);
+        
+        // Time range.
+        $time_format = $date_formatter->format($start_timestamp, 'custom', 'g:i A');
+        if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+          $end_value = $node->get('field_event_end')->value;
+          $end_timestamp = strtotime($end_value);
+          if ($end_timestamp) {
+            $end_time = $date_formatter->format($end_timestamp, 'custom', 'g:i A');
+            $variables['card_time_range'] = $time_format . ' - ' . $end_time;
+          }
+          else {
+            $variables['card_time_range'] = $time_format;
+          }
+        }
+        else {
+          $variables['card_time_range'] = $time_format;
+        }
+      }
+    }
+    
+    // Location (venue name preferred).
+    $variables['card_location'] = NULL;
+    if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+      $variables['card_location'] = (string) $node->get('field_venue_name')->value;
+    }
+    elseif ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+      $location_item = $node->get('field_location')->first();
+      if ($location_item) {
+        $location_value = $location_item->getValue();
+        $variables['card_location'] = (string) ($location_value['locality'] ?? $location_value['address_line1'] ?? '');
+      }
+    }
+    
+    // Category pill.
+    $variables['card_category'] = NULL;
+    if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
+      $category_term = $node->get('field_category')->entity;
+      if ($category_term) {
+        $variables['card_category'] = [
+          'label' => $category_term->label(),
+          'url' => $category_term->toUrl()->toString(),
+        ];
+      }
+    }
+    
+    // Event type and ticket/RSVP pills.
+    $event_type = $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+      ? (string) $node->get('field_event_type')->value
+      : 'rsvp';
+    
+    // Determine card_type for template.
+    if ($event_type === 'both') {
+      $variables['card_type'] = 'both';
+      $variables['card_price_label'] = t('RSVP + Tickets');
+    }
+    elseif ($event_type === 'paid') {
+      $variables['card_type'] = 'paid';
+      $variables['card_price_label'] = t('Tickets');
+    }
+    elseif ($event_type === 'rsvp') {
+      $variables['card_type'] = 'rsvp';
+      $variables['card_price_label'] = t('Free RSVP');
+    }
+    else {
+      $variables['card_type'] = 'none';
+      $variables['card_price_label'] = t('Details');
+    }
+    
+    // Accessibility indicators.
+    $variables['card_accessibility'] = NULL;
+    if ($node->hasField('field_accessibility') && !$node->get('field_accessibility')->isEmpty()) {
+      $accessibility_terms = [];
+      foreach ($node->get('field_accessibility') as $item) {
+        if ($item->entity) {
+          $accessibility_terms[] = $item->entity->label();
+        }
+      }
+      if (!empty($accessibility_terms)) {
+        $variables['card_accessibility'] = $accessibility_terms;
+      }
+    }
+    
+    // Remove field_event_image from content array to prevent duplicate rendering.
+    // We're using preprocessed card_image_url instead.
+    if (isset($variables['content']['field_event_image'])) {
+      unset($variables['content']['field_event_image']);
+    }
+    
+    // Also remove from elements if present (some render contexts use this).
+    if (isset($variables['elements']['field_event_image'])) {
+      unset($variables['elements']['field_event_image']);
+    }
+    
+    // Ensure template suggestion is added for event_card view mode.
+    if (!isset($variables['theme_hook_suggestions'])) {
+      $variables['theme_hook_suggestions'] = [];
+    }
+    array_unshift($variables['theme_hook_suggestions'], 'node__event__event_card');
   }
 
   // Process teaser view mode for event cards in Views.
@@ -1065,6 +1229,48 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
 
   $variables['mel_lat'] = $lat;
   $variables['mel_lng'] = $lng;
+
+  // Set event_location for templates that use it (compatibility with node--event--full template).
+  $event_location_venue_name = !empty($venue) ? $venue : NULL;
+  if (empty($event_location_venue_name) && $node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $event_location_venue_name = (string) $node->get('field_venue_name')->value;
+  }
+
+  if ($event_location_venue_name || $address) {
+    $variables['event_location'] = [
+      'venue_name' => $event_location_venue_name,
+      'address' => $address,
+      'map_url' => $address ? 'https://maps.google.com/?q=' . urlencode($address) : NULL,
+    ];
+  }
+  else {
+    $variables['event_location'] = NULL;
+  }
+
+  // Set event_host for templates that use it.
+  $variables['event_host'] = NULL;
+  if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
+    $vendor = $node->get('field_event_vendor')->entity;
+    if ($vendor && $vendor->getEntityTypeId() === 'myeventlane_vendor') {
+      $variables['event_host'] = [
+        'name' => $vendor->label(),
+        'url' => $vendor->toUrl(),
+      ];
+    }
+  }
+
+  // Set directions URL.
+  $directions_url = NULL;
+  if ($address) {
+    $directions_url = 'https://maps.google.com/?q=' . rawurlencode($address);
+  }
+  elseif ($venue) {
+    $directions_url = 'https://maps.google.com/?q=' . rawurlencode($venue);
+  }
+  elseif ($lat !== NULL && $lng !== NULL) {
+    $directions_url = 'https://maps.google.com/?q=' . $lat . ',' . $lng;
+  }
+  $variables['mel_directions_url'] = $directions_url;
 
   // Attach map JS library when coords exist.
   // Note: myeventlane_location module also attaches via hook_page_attachments,
@@ -1856,23 +2062,100 @@ function myeventlane_theme_preprocess_node__event__full(array &$variables): void
       }
     }
   }
-  // Fallback to node's location field.
-  elseif ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
-    $address_array = $node->get('field_location')->first()->toArray();
-    $address = implode(' ', array_filter([
-      $address_array['address_line1'] ?? '',
-      $address_array['locality'] ?? '',
-      $address_array['administrative_area'] ?? '',
-    ]));
+  
+  // If no venue name from entity, check field_venue_name on node.
+  if (empty($venue_name) && $node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $venue_name = (string) $node->get('field_venue_name')->value;
+  }
+  
+  // Fallback to node's location field for address.
+  if (empty($address) && $node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $location_item = $node->get('field_location')->first();
+    if ($location_item) {
+      $location_value = $location_item->getValue();
+      $parts = [];
+
+      // Address line 1
+      if (!empty($location_value['address_line1'])) {
+        $parts[] = (string) $location_value['address_line1'];
+      }
+
+      // Locality (suburb)
+      if (!empty($location_value['locality'])) {
+        $parts[] = (string) $location_value['locality'];
+      }
+
+      // State and postcode together
+      $state_post = [];
+      if (!empty($location_value['administrative_area'])) {
+        $state_post[] = (string) $location_value['administrative_area'];
+      }
+      if (!empty($location_value['postal_code'])) {
+        $state_post[] = (string) $location_value['postal_code'];
+      }
+      if ($state_post) {
+        $parts[] = implode(' ', $state_post);
+      }
+
+      // Country (optional, usually AU)
+      if (!empty($location_value['country_code']) && $location_value['country_code'] !== 'AU') {
+        $parts[] = (string) $location_value['country_code'];
+      }
+
+      $address = trim(implode(', ', array_filter($parts)));
+    }
   }
 
-  if ($address) {
+  // Get coordinates for map rendering.
+  $lat = NULL;
+  $lng = NULL;
+
+  // Check for coordinates on the event node.
+  if ($node->hasField('field_location_latitude') && !$node->get('field_location_latitude')->isEmpty()) {
+    $lat = (float) $node->get('field_location_latitude')->value;
+  }
+  if ($node->hasField('field_location_longitude') && !$node->get('field_location_longitude')->isEmpty()) {
+    $lng = (float) $node->get('field_location_longitude')->value;
+  }
+
+  // If no coordinates but we have address, try to get from venue entity.
+  if (($lat === NULL || $lng === NULL) && $node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue = $node->get('field_venue')->entity;
+    if ($venue) {
+      if ($lat === NULL && $venue->hasField('field_latitude') && !$venue->get('field_latitude')->isEmpty()) {
+        $lat = (float) $venue->get('field_latitude')->value;
+      }
+      if ($lng === NULL && $venue->hasField('field_longitude') && !$venue->get('field_longitude')->isEmpty()) {
+        $lng = (float) $venue->get('field_longitude')->value;
+      }
+    }
+  }
+
+  // Set event_location if we have either venue name or address.
+  if ($venue_name || $address) {
     $variables['event_location'] = [
       'venue_name' => $venue_name,
       'address' => $address,
-      'map_url' => 'https://maps.google.com/?q=' . urlencode($address),
+      'map_url' => $address ? 'https://maps.google.com/?q=' . urlencode($address) : NULL,
     ];
   }
+
+  // Set coordinates for map rendering (even if no address, in case we have coords).
+  $variables['mel_lat'] = $lat;
+  $variables['mel_lng'] = $lng;
+
+  // Set directions URL for map link.
+  $directions_url = NULL;
+  if ($address) {
+    $directions_url = 'https://maps.google.com/?q=' . rawurlencode($address);
+  }
+  elseif ($venue_name) {
+    $directions_url = 'https://maps.google.com/?q=' . rawurlencode($venue_name);
+  }
+  elseif ($lat !== NULL && $lng !== NULL) {
+    $directions_url = 'https://maps.google.com/?q=' . $lat . ',' . $lng;
+  }
+  $variables['mel_directions_url'] = $directions_url;
 
   /* ==========================
    * HOST / ORGANISER
@@ -2961,12 +3244,6 @@ function _myeventlane_theme_event_calendar_links(NodeInterface $node): array {
   ];
 }
 
-/**
- * Implements hook_preprocess_html().
- *
- * Adds body class for A/B layout toggle (Sticker Wall vs Cleaner Grid).
- * Query param: ?mel_layout=clean adds mel-layout--clean class.
- */
 /**
  * Implements hook_preprocess_html().
  *

@@ -23,7 +23,7 @@
   {% set date_label = node.field_event_start.value|date('D') %}
 {% endif %}
 
-{# Price: from Commerce product or event type #}
+{# Price: show "Tickets" if product exists, otherwise nothing #}
 {% set price_label = '' %}
 {% if node.hasField('field_product_target') and not node.field_product_target.isEmpty %}
   {% set product = node.field_product_target.entity %}
@@ -33,7 +33,11 @@
       {% set price = default_variation.getPrice() %}
       {% if price %}
         {% set price_label = price|commerce_price_format %}
+      {% else %}
+        {% set price_label = 'Tickets' %}
       {% endif %}
+    {% else %}
+      {% set price_label = 'Tickets' %}
     {% endif %}
   {% endif %}
 {% elseif node.hasField('field_event_type') and not node.field_event_type.isEmpty %}

@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * Module hooks for MyEventLane Checkout Flow.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_checkout_flow_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'myeventlane_my_tickets' => [
+      'variables' => [
+        'title' => NULL,
+        'upcoming_orders' => [],
+        'past_orders' => [],
+      ],
+      'template' => 'myeventlane-my-tickets',
+    ],
+    'myeventlane_order_detail' => [
+      'variables' => [
+        'title' => NULL,
+        'order' => NULL,
+      ],
+      'template' => 'myeventlane-order-detail',
+    ],
+    'myeventlane_vendor_attendees_dashboard' => [
+      'variables' => [
+        'title' => NULL,
+        'events' => [],
+      ],
+      'template' => 'myeventlane-vendor-attendees-dashboard',
+    ],
+    'myeventlane_vendor_event_attendees' => [
+      'variables' => [
+        'title' => NULL,
+        'event' => NULL,
+        'attendees' => [],
+        'stats' => [],
+      ],
+      'template' => 'myeventlane-vendor-event-attendees',
+    ],
+    'myeventlane_vendor_checkin' => [
+      'variables' => [
+        'title' => NULL,
+        'event' => NULL,
+        'attendees' => [],
+        'search' => '',
+      ],
+      'template' => 'myeventlane-vendor-checkin',
+    ],
+  ];
+}
+

@@ -19,18 +19,24 @@ $mel-color-on-primary: #ffffff;       // Text on primary surfaces
 // ---------------------------------------------------------------------------
 // Accent Colors
 // ---------------------------------------------------------------------------
-// Primary palette - warm and inviting
+// Primary palette - matching style guide exactly
 
-$mel-color-primary: #ff6f61;          // Coral - primary CTA, brand accent
+$mel-color-primary: #f26d5b;          // Coral - primary CTA, brand accent
 $mel-color-primary-hover: #e85a4d;    // Darker coral for hover
 $mel-color-primary-active: #d14a3d;   // Even darker for active/pressed
 
-$mel-color-secondary: #8d79f6;        // Lavender purple - secondary actions
+$mel-color-navy: #293241;             // Navy - text and dark elements
+$mel-color-blue: #6c7ef2;             // Blue - accents
+$mel-color-orange: #f5a04c;           // Orange - highlights
+$mel-color-cream: #fef5ec;            // Cream - backgrounds
+$mel-color-grey-light: #f4f4f4;       // Light grey - subtle backgrounds
+
+$mel-color-secondary: #8d79f6;        // Lavender purple - secondary actions (legacy)
 $mel-color-secondary-hover: #7a65e8;  // Darker lavender for hover
 $mel-color-secondary-active: #6852d9; // Even darker for active
 
-$mel-color-accent: #ffd46f;           // Soft yellow - highlights, badges
-$mel-color-accent-alt: #70d6c4;       // Aqua/teal - optional accent
+$mel-color-accent: #ffd46f;           // Soft yellow - highlights, badges (legacy)
+$mel-color-accent-alt: #70d6c4;       // Aqua/teal - optional accent (legacy)
 
 // Legacy aliases (for backward compatibility)
 $mel-color-accent-1: $mel-color-primary;
@@ -42,7 +48,7 @@ $mel-color-accent-4: $mel-color-accent-alt;
 // Text Colors
 // ---------------------------------------------------------------------------
 
-$mel-color-text: #1a1a2e;             // Primary text - near black with warmth
+$mel-color-text: #293241;             // Primary text - navy matching style guide
 $mel-color-text-muted: #5c5c6f;       // Secondary/meta text
 $mel-color-text-light: #8888a0;       // Tertiary/placeholder text
 $mel-color-text-inverse: #ffffff;     // Text on dark/colored backgrounds

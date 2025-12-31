@@ -382,10 +382,10 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   cursor: pointer;
-  border: 2px solid rgba($primary, 0.2) !important;
+  border: 2px solid rgba($wizard-coral, 0.2) !important;
   width: 100%;
   text-align: left;
-  background: linear-gradient(135deg, $bg-primary 0%, rgba($primary, 0.03) 100%) !important;
+  background: linear-gradient(135deg, $bg-primary 0%, rgba($wizard-coral, 0.03) 100%) !important;
   font-size: $font-size-sm;
   position: relative;
   overflow: hidden;
@@ -394,22 +394,22 @@
 
   // Funky hover effect
   &:hover:not(.is-active) {
-    background: linear-gradient(135deg, rgba($primary, 0.08) 0%, rgba($primary, 0.15) 100%) !important;
-    border-color: rgba($primary, 0.4) !important;
+    background: linear-gradient(135deg, rgba($wizard-coral, 0.08) 0%, rgba($wizard-coral, 0.15) 100%) !important;
+    border-color: rgba($wizard-coral, 0.4) !important;
     transform: translateX(4px) scale(1.02);
-    box-shadow: 0 4px 12px rgba($primary, 0.15), 0 0 0 2px rgba($primary, 0.1);
-    color: $primary !important;
+    box-shadow: 0 4px 12px rgba($wizard-coral, 0.15), 0 0 0 2px rgba($wizard-coral, 0.1);
+    color: $wizard-coral !important;
   }
 
   // Active state - funky and bold
   &.is-active {
-    background: linear-gradient(135deg, rgba($primary, 0.15) 0%, rgba($primary, 0.25) 100%) !important;
-    color: $primary !important;
-    border-color: $primary !important;
+    background: linear-gradient(135deg, rgba($wizard-coral, 0.15) 0%, rgba($wizard-coral, 0.25) 100%) !important;
+    color: $wizard-coral !important;
+    border-color: $wizard-coral !important;
     border-width: 3px !important;
     box-shadow: 
-      0 0 0 6px rgba($primary, 0.12),
-      0 4px 16px rgba($primary, 0.2),
+      0 0 0 6px rgba($wizard-coral, 0.12),
+      0 4px 16px rgba($wizard-coral, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     font-weight: $font-weight-bold;
     transform: translateX(6px) scale(1.03);
@@ -422,9 +422,9 @@
       top: 0;
       bottom: 0;
       width: 5px;
-      background: linear-gradient(180deg, $primary 0%, lighten($primary, 10%) 100%);
+      background: linear-gradient(180deg, $wizard-coral 0%, lighten($wizard-coral, 10%) 100%);
       border-radius: $radius-lg 0 0 $radius-lg;
-      box-shadow: 2px 0 8px rgba($primary, 0.4);
+      box-shadow: 2px 0 8px rgba($wizard-coral, 0.4);
       z-index: 1;
     }
 
@@ -443,10 +443,10 @@
   }
 
   &:focus-visible {
-    outline: 3px solid $primary !important;
+    outline: 3px solid $wizard-coral !important;
     outline-offset: 3px;
-    border-color: $primary !important;
-    box-shadow: 0 0 0 6px rgba($primary, 0.2);
+    border-color: $wizard-coral !important;
+    box-shadow: 0 0 0 6px rgba($wizard-coral, 0.2);
   }
 }
 
@@ -474,10 +474,10 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   text-decoration: none !important;
   cursor: pointer !important;
-  border: 2px solid rgba($primary, 0.2) !important;
+  border: 2px solid rgba($wizard-coral, 0.2) !important;
   width: 100% !important;
   text-align: left !important;
-  background: linear-gradient(135deg, $bg-primary 0%, rgba($primary, 0.03) 100%) !important;
+  background: linear-gradient(135deg, $bg-primary 0%, rgba($wizard-coral, 0.03) 100%) !important;
   font-size: $font-size-sm !important;
   position: relative !important;
   overflow: hidden !important;
@@ -487,21 +487,21 @@
   line-height: 1.4 !important;
 
   &:hover:not(.is-active) {
-    background: linear-gradient(135deg, rgba($primary, 0.08) 0%, rgba($primary, 0.15) 100%) !important;
-    border-color: rgba($primary, 0.4) !important;
+    background: linear-gradient(135deg, rgba($wizard-coral, 0.08) 0%, rgba($wizard-coral, 0.15) 100%) !important;
+    border-color: rgba($wizard-coral, 0.4) !important;
     transform: translateX(4px) scale(1.02) !important;
-    box-shadow: 0 4px 12px rgba($primary, 0.15), 0 0 0 2px rgba($primary, 0.1) !important;
-    color: $primary !important;
+    box-shadow: 0 4px 12px rgba($wizard-coral, 0.15), 0 0 0 2px rgba($wizard-coral, 0.1) !important;
+    color: $wizard-coral !important;
   }
 
   &.is-active {
-    background: linear-gradient(135deg, rgba($primary, 0.15) 0%, rgba($primary, 0.25) 100%) !important;
-    color: $primary !important;
-    border-color: $primary !important;
+    background: linear-gradient(135deg, rgba($wizard-coral, 0.15) 0%, rgba($wizard-coral, 0.25) 100%) !important;
+    color: $wizard-coral !important;
+    border-color: $wizard-coral !important;
     border-width: 3px !important;
     box-shadow: 
-      0 0 0 6px rgba($primary, 0.12),
-      0 4px 16px rgba($primary, 0.2),
+      0 0 0 6px rgba($wizard-coral, 0.12),
+      0 4px 16px rgba($wizard-coral, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
     font-weight: $font-weight-bold !important;
     transform: translateX(6px) scale(1.03) !important;
@@ -513,9 +513,9 @@
       top: 0 !important;
       bottom: 0 !important;
       width: 5px !important;
-      background: linear-gradient(180deg, $primary 0%, lighten($primary, 10%) 100%) !important;
+      background: linear-gradient(180deg, $wizard-coral 0%, lighten($wizard-coral, 10%) 100%) !important;
       border-radius: $radius-lg 0 0 $radius-lg !important;
-      box-shadow: 2px 0 8px rgba($primary, 0.4) !important;
+      box-shadow: 2px 0 8px rgba($wizard-coral, 0.4) !important;
       z-index: 1 !important;
     }
 
@@ -533,10 +533,10 @@
   }
 
   &:focus-visible {
-    outline: 3px solid $primary !important;
+    outline: 3px solid $wizard-coral !important;
     outline-offset: 3px !important;
-    border-color: $primary !important;
-    box-shadow: 0 0 0 6px rgba($primary, 0.2) !important;
+    border-color: $wizard-coral !important;
+    box-shadow: 0 0 0 6px rgba($wizard-coral, 0.2) !important;
   }
 }
 
@@ -579,25 +579,25 @@
   .mel-wizard__step.is-active &,
   .mel-vendor-wizard__step.is-active &,
   button.is-active & {
-    background: linear-gradient(135deg, $primary 0%, lighten($primary, 8%) 100%) !important;
+    background: linear-gradient(135deg, $wizard-coral 0%, lighten($wizard-coral, 8%) 100%) !important;
     color: $text-inverse !important;
     box-shadow: 
-      0 4px 12px rgba($primary, 0.4),
-      0 0 0 3px rgba($primary, 0.2),
+      0 4px 12px rgba($wizard-coral, 0.4),
+      0 0 0 3px rgba($wizard-coral, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
     transform: scale(1.15) rotate(5deg);
-    border-color: lighten($primary, 15%) !important;
+    border-color: lighten($wizard-coral, 15%) !important;
     animation: melPulse 2s ease-in-out infinite;
   }
 
   .mel-wizard__step:hover:not(.is-active) &,
   .mel-vendor-wizard__step:hover:not(.is-active) &,
   button:hover:not(.is-active) & {
-    background: linear-gradient(135deg, rgba($primary, 0.2) 0%, rgba($primary, 0.3) 100%) !important;
-    border-color: rgba($primary, 0.4) !important;
-    color: $primary !important;
+    background: linear-gradient(135deg, rgba($wizard-coral, 0.2) 0%, rgba($wizard-coral, 0.3) 100%) !important;
+    border-color: rgba($wizard-coral, 0.4) !important;
+    color: $wizard-coral !important;
     transform: scale(1.08);
-    box-shadow: 0 3px 8px rgba($primary, 0.2);
+    box-shadow: 0 3px 8px rgba($wizard-coral, 0.2);
   }
 }
 

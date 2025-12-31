@@ -16,8 +16,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Provides the Ticket Holder Paragraph checkout pane.
  *
- * Writes and entity creation are deferred to submit-time to avoid duplication
- * during form rebuilds.
+ * Stores attendee data in paragraph entities (attendee_answer) referenced
+ * via field_ticket_holder on order items. This is the canonical attendee
+ * storage system for MyEventLane.
  *
  * @CommerceCheckoutPane(
  *   id = "ticket_holder_paragraph",
@@ -105,6 +106,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#open' => TRUE,
     ];
 
+    // Required fields: first_name, last_name, email.
     $fieldset['field_first_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('First name'),
@@ -139,7 +141,12 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $type = $question->get('field_question_type')->value ?? 'text';
       $required = (bool) ($question->get('field_question_required')->value ?? FALSE);
       $field_name = "extra_{$itemIndex}_{$delta}_{$q_index}";
-      $default = $question->get('field_attendee_extra_field')->value ?? '';
+
+      // Normalize: always read from field_attendee_extra_field.
+      $default = '';
+      if ($question->hasField('field_attendee_extra_field') && !$question->get('field_attendee_extra_field')->isEmpty()) {
+        $default = $question->get('field_attendee_extra_field')->value ?? '';
+      }
 
       $options = [];
       foreach ($question->get('field_question_options')->getValue() ?? [] as $item) {
@@ -212,6 +219,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
     foreach ($order_items as $index => $tickets) {
       foreach ($tickets as $delta => $entry) {
+        // Validate required fields.
         if (empty($entry['field_first_name'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_first_name", $this->t('First name is required.'));
         }
@@ -220,6 +228,9 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         }
         if (empty($entry['field_email'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_email", $this->t('Email is required.'));
+        }
+        elseif (!\Drupal::service('email.validator')->isValid($entry['field_email'])) {
+          $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_email", $this->t('Please enter a valid email address.'));
         }
         if (empty($entry['field_phone'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_phone", $this->t('Phone number is required.'));
@@ -278,6 +289,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         continue;
       }
 
+      // Save required fields.
       $paragraph->set('field_first_name', $entry['field_first_name'] ?? '');
       $paragraph->set('field_last_name', $entry['field_last_name'] ?? '');
       $paragraph->set('field_email', $entry['field_email'] ?? '');
@@ -285,26 +297,65 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         $paragraph->set('field_phone', $entry['field_phone'] ?? '');
       }
 
+      // Save extra questions - normalize to field_attendee_extra_field.
       if ($paragraph->hasField('field_attendee_questions')) {
         $children = $paragraph->get('field_attendee_questions')->referencedEntities();
         foreach ($children as $q_index => $child) {
           $field_key = "extra_{$itemIndex}_{$delta}_{$q_index}";
           $value = $entry[$field_key] ?? NULL;
           if ($value !== NULL && $child->hasField('field_attendee_extra_field')) {
-            $child->set('field_attendee_extra_field', is_array($value) ? json_encode($value) : $value);
+            // Normalize: always write to field_attendee_extra_field.
+            // Convert arrays (e.g., checkboxes) to JSON string.
+            $normalized_value = is_array($value) ? json_encode($value) : (string) $value;
+            $child->set('field_attendee_extra_field', $normalized_value);
             $child->save();
           }
         }
       }
 
+      // Integrity check: ensure paragraph has a parent order item reference.
+      // This is implicit via field_ticket_holder, but we log if something seems wrong.
       $paragraph->save();
+
+      // Verify the paragraph is still referenced by this order item.
+      $order_item->save();
+      $this->verifyParagraphAttachment($paragraph, $order_item);
     }
 
-    $order_item->save();
     $this->logger->info('Saved @count ticket holder(s) for order item @id.', [
       '@count' => count($holders),
       '@id' => $order_item->id(),
     ]);
+  }
+
+  /**
+   * Verifies that a paragraph is properly attached to an order item.
+   *
+   * @param \Drupal\paragraphs\ParagraphInterface $paragraph
+   *   The attendee paragraph.
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface $order_item
+   *   The order item that should reference it.
+   */
+  private function verifyParagraphAttachment(ParagraphInterface $paragraph, OrderItemInterface $order_item): void {
+    // Check if paragraph is referenced by the order item.
+    $referenced_paragraphs = $order_item->get('field_ticket_holder')->referencedEntities();
+    $is_referenced = FALSE;
+    foreach ($referenced_paragraphs as $ref_para) {
+      if ($ref_para->id() === $paragraph->id()) {
+        $is_referenced = TRUE;
+        break;
+      }
+    }
+
+    if (!$is_referenced) {
+      $this->logger->error(
+        'Integrity check failed: attendee paragraph @pid is not referenced by order item @item_id.',
+        [
+          '@pid' => $paragraph->id(),
+          '@item_id' => $order_item->id(),
+        ]
+      );
+    }
   }
 
   /**
@@ -316,6 +367,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $clones = [];
     foreach ($templates as $template) {
       $clone = $template->createDuplicate();
+      // Normalize: ensure field_attendee_extra_field exists and is empty.
       if ($clone->hasField('field_attendee_extra_field')) {
         $clone->set('field_attendee_extra_field', NULL);
       }

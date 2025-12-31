@@ -3,12 +3,11 @@
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\node\NodeInterface;
-use Drupal\Component\Utility\Unicode;
 
 final class IcsGenerator {
 
   public function generate(NodeInterface $event): string {
-    $title = Unicode::convertToUtf8($event->label());
+    $title = $event->label();
     $start = $this->formatDate($event->get('field_event_start')->value);
     $end   = $this->formatDate($event->get('field_event_end')->value ?? $event->get('field_event_start')->value);
 

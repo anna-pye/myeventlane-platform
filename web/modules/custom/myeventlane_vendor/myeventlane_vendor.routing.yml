@@ -119,7 +119,7 @@ myeventlane_vendor.stripe_manage:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::manage'
     _title: 'Manage Stripe'
   requirements:
-    _permission: 'access vendor dashboard'
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
   options:
     _maintenance_access: FALSE
 

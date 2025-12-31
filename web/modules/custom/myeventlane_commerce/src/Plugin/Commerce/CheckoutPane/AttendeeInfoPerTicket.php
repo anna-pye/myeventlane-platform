@@ -14,6 +14,16 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Attendee information (per ticket) pane.
  *
+ * @deprecated in myeventlane_commerce:2.0.0 and is removed from checkout flows.
+ *   Use ticket_holder_paragraph pane instead, which stores attendee data in
+ *   paragraph entities (attendee_answer) via field_ticket_holder.
+ *
+ * This pane stored attendee data in JSON format (field_attendee_data), which
+ * has been replaced by the paragraph-based system for better data integrity
+ * and vendor access control.
+ *
+ * @see \Drupal\myeventlane_checkout_paragraph\Plugin\Commerce\CheckoutPane\TicketHolderParagraphPane
+ *
  * @CommerceCheckoutPane(
  *   id = "myeventlane_attendee_info_per_ticket",
  *   label = @Translation("Attendee information (per ticket)"),
@@ -67,12 +77,8 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    *   TRUE if the pane should be visible.
    */
   public function isVisible(): bool {
-    foreach ($this->order->getItems() as $item) {
-      $event = $this->loadEventFromOrderItem($item);
-      if ($event && $event->hasField('field_collect_per_ticket') && $event->get('field_collect_per_ticket')->value) {
-        return TRUE;
-      }
-    }
+    // Always return FALSE - this pane is deprecated and should not be visible.
+    // It is disabled in checkout flow configuration.
     return FALSE;
   }
 
@@ -80,108 +86,29 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    * {@inheritdoc}
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
-    $pane_form['#tree'] = TRUE;
-
-    foreach ($this->order->getItems() as $order_item) {
-      $event = $this->loadEventFromOrderItem($order_item);
-      if (!$event || !$event->get('field_collect_per_ticket')->value) {
-        continue;
-      }
-
-      $qty = (int) $order_item->getQuantity();
-      $wrapper_key = 'item_' . $order_item->id();
-      $pane_form[$wrapper_key] = [
-        '#type' => 'details',
-        '#open' => TRUE,
-        '#title' => $this->t('@title — Attendees', ['@title' => $order_item->label()]),
-      ];
-
-      for ($i = 1; $i <= $qty; $i++) {
-        $defaults = $this->getExistingTicketData($order_item, $i);
-
-        $card = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-card']],
-          'title' => [
-            '#markup' => '<h3 class="mel-ticket-title">' . $this->t('Ticket @n', ['@n' => $i]) . '</h3>',
-          ],
-          'name' => [
-            '#type' => 'textfield',
-            '#title' => $this->t('Full name'),
-            '#required' => TRUE,
-            '#default_value' => $defaults['name'] ?? '',
-          ],
-          'email' => [
-            '#type' => 'email',
-            '#title' => $this->t('Email'),
-            '#required' => TRUE,
-            '#default_value' => $defaults['email'] ?? '',
-          ],
-        ];
-
-        // Add accessibility needs field (optional).
-        $card['accessibility_needs'] = [
-          '#type' => 'checkboxes',
-          '#title' => $this->t('Accessibility needs (optional)'),
-          '#description' => $this->t('Let us know if you have any accessibility requirements. ' .
-            'This helps us ensure the event is accessible for everyone.'),
-          '#options' => $this->getAccessibilityOptions(),
-          '#default_value' => $defaults['accessibility_needs'] ?? [],
-        ];
-
-        // Vendor-defined questions via Paragraphs mapper.
-        $card += $this->questionMapper->buildElements($event, $defaults);
-
-        $pane_form[$wrapper_key]['ticket_' . $i] = $card;
-      }
-    }
-
-    // UX helper: copy Ticket 1 to all.
-    $pane_form['copy_first'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Apply Ticket 1 details to all tickets'),
-    ];
-
-    $cache = new CacheableMetadata();
-    $cache->setCacheMaxAge(0);
-    $cache->setCacheContexts(['user.roles:authenticated']);
-    $cache->setCacheTags(['your_custom_tag']);
-    $cache->applyTo($pane_form);
-
-    return $pane_form;
+    // This pane is deprecated. Return empty form.
+    \Drupal::logger('myeventlane_commerce')->warning(
+      'Deprecated AttendeeInfoPerTicket pane was accessed. This pane stores attendee data in JSON format and has been replaced by the paragraph-based system.'
+    );
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   public function validatePaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
-    // Email format validated by #type 'email'.
+    // No validation needed - pane is deprecated.
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
-    $pane_form_key = property_exists($this, 'paneFormKey') ? $this->{'paneFormKey'} : $this->getPluginId();
-    $values = $form_state->getValue($pane_form_key, []);
-    unset($values['copy_first']);
-
-    foreach ($this->order->getItems() as $order_item) {
-      $key = 'item_' . $order_item->id();
-      if (!isset($values[$key])) {
-        continue;
-      }
-      $per_item = $values[$key];
-      $store = [];
-      foreach ($per_item as $ticket_key => $ticket_values) {
-        if (strpos($ticket_key, 'ticket_') !== 0) {
-          continue;
-        }
-        $store[$ticket_key] = $ticket_values;
-      }
-      $order_item->set('field_attendee_data', $store);
-      $order_item->save();
-    }
+    // Log warning if this deprecated pane attempts to write data.
+    \Drupal::logger('myeventlane_commerce')->warning(
+      'Deprecated AttendeeInfoPerTicket pane attempted to write to field_attendee_data. This is deprecated in favor of paragraph-based storage.'
+    );
+    // Do not write any data.
   }
 
   /**
@@ -213,7 +140,7 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    *   Default values for this ticket.
    */
   protected function getExistingTicketData(OrderItemInterface $order_item, int $n): array {
-    // If you later store JSON/map, hydrate specific ticket_n defaults here.
+    // Deprecated - do not read from field_attendee_data.
     return [];
   }
 

@@ -1,0 +1,11 @@
+myeventlane_vendor_comms.settings:
+  type: config_object
+  label: 'Vendor Communications Settings'
+  mapping:
+    rate_limit_hourly:
+      type: integer
+      label: 'Hourly rate limit'
+    rate_limit_daily:
+      type: integer
+      label: 'Daily rate limit'
+

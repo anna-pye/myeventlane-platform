@@ -32,6 +32,104 @@ function myeventlane_capacity_entity_delete(EntityInterface $entity): void {
 }
 
 /**
+ * Implements hook_form_alter().
+ */
+function myeventlane_capacity_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+  // Add capacity validation to cart form.
+  if ($form_id === 'commerce_cart_form') {
+    $form['#validate'][] = 'myeventlane_capacity_cart_form_validate';
+  }
+}
+
+/**
+ * Validates cart form for capacity enforcement.
+ *
+ * @param array $form
+ *   The form array.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state.
+ */
+function myeventlane_capacity_cart_form_validate(array &$form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+  if (!\Drupal::hasService('myeventlane_capacity.service')) {
+    return;
+  }
+
+  $capacity_service = \Drupal::service('myeventlane_capacity.service');
+  $order_inspector = \Drupal::service('myeventlane_capacity.order_inspector');
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  // Get the cart order from form state.
+  $cart = $form_state->get('cart');
+  if (!$cart instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+    return;
+  }
+
+  // Extract event quantities from the cart.
+  $event_quantities = $order_inspector->extractEventQuantities($cart);
+  if (empty($event_quantities)) {
+    // No ticket items, no capacity check needed.
+    return;
+  }
+
+  // Load all events in bulk.
+  $event_ids = array_keys($event_quantities);
+  $event_storage = $entity_type_manager->getStorage('node');
+  $events = $event_storage->loadMultiple($event_ids);
+
+  // Enforce capacity for each event.
+  foreach ($event_quantities as $event_id => $requested_total) {
+    if ($requested_total <= 0) {
+      continue;
+    }
+
+    $event_node = $events[$event_id] ?? NULL;
+    if (!$event_node instanceof NodeInterface || $event_node->bundle() !== 'event') {
+      continue;
+    }
+
+    // Check if event has capacity limits (NULL = unlimited).
+    $capacity_total = $capacity_service->getCapacityTotal($event_node);
+    if ($capacity_total === NULL) {
+      // Unlimited capacity, allow.
+      continue;
+    }
+
+    // Enforce capacity.
+    try {
+      $capacity_service->assertCanBook($event_node, $requested_total);
+    }
+    catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
+      // Get remaining capacity for user-friendly message.
+      $remaining = $capacity_service->getRemaining($event_node);
+      if ($remaining !== NULL && $remaining > 0) {
+        $message = t('Sorry, only @remaining ticket(s) remaining for "@event". Please adjust your quantity.', [
+          '@remaining' => $remaining,
+          '@event' => $event_node->label(),
+        ]);
+      }
+      else {
+        $message = t('Sorry, "@event" is sold out. Please try another event.', [
+          '@event' => $event_node->label(),
+        ]);
+      }
+
+      // Set form error on the cart form.
+      $form_state->setError($form, $message);
+
+      // Log the blocked cart update.
+      \Drupal::logger('myeventlane_capacity')->warning(
+        'Capacity enforcement blocked cart update: cart @cart_id, event @event_id, requested @qty',
+        [
+          '@cart_id' => $cart->id(),
+          '@event_id' => $event_id,
+          '@qty' => $requested_total,
+        ]
+      );
+    }
+  }
+}
+
+/**
  * Invalidates capacity cache for related events.
  */
 function myeventlane_capacity_invalidate_event_cache(EntityInterface $entity): void {

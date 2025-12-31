@@ -1,0 +1,84 @@
+{#
+/**
+ * @file
+ * Template for vendor attendee dashboard.
+ *
+ * Available variables:
+ * - title: Page title
+ * - events: Array of event data with stats
+ */
+#}
+
+<div class="mel-vendor-attendees-dashboard">
+  <div class="mel-page-header">
+    <h1 class="mel-page-title">{{ title }}</h1>
+    <p class="mel-page-description">
+      View attendees and sales for your events.
+    </p>
+  </div>
+
+  {% if events|length > 0 %}
+    <div class="mel-events-list mel-mt-6">
+      {% for event_data in events %}
+        <div class="mel-card mel-event-card mel-mt-4">
+          <div class="mel-card-body">
+            <div class="mel-event-header">
+              <h2 class="mel-event-title">
+                <a href="{{ event_data.url }}" class="mel-link">{{ event_data.title }}</a>
+              </h2>
+              {% if event_data.start_date %}
+                <div class="mel-event-date">
+                  📅 {{ event_data.start_date }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mel-event-stats mel-mt-4">
+              <div class="mel-stat-row">
+                <div class="mel-stat-item">
+                  <div class="mel-stat-label">Tickets Sold</div>
+                  <div class="mel-stat-value">{{ event_data.tickets_sold }}</div>
+                </div>
+                <div class="mel-stat-item">
+                  <div class="mel-stat-label">Attendees</div>
+                  <div class="mel-stat-value">{{ event_data.attendee_count }}</div>
+                </div>
+                <div class="mel-stat-item">
+                  <div class="mel-stat-label">Revenue</div>
+                  <div class="mel-stat-value">${{ event_data.revenue|number_format(2) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mel-event-actions mel-mt-4">
+              <a href="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event_data.id}) }}" 
+                 class="mel-btn mel-btn-primary">
+                ✓ Check In
+              </a>
+              <a href="{{ url('myeventlane_checkout_flow.vendor_event_attendees', {'node': event_data.id}) }}" 
+                 class="mel-btn mel-btn-secondary">
+                View Attendees
+              </a>
+              <a href="{{ url('myeventlane_views.attendee_csv', [], {'query': {'download_csv': event_data.id}}) }}" 
+                 class="mel-btn mel-btn-secondary"
+                 target="_blank">
+                📥 Export CSV
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="mel-empty-state mel-mt-6">
+      <div class="mel-card">
+        <div class="mel-card-body" style="text-align: center; padding: 40px;">
+          <p class="mel-empty-message">
+            You don't have any events yet.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+

@@ -71,14 +71,10 @@ content:
       show_summary: false
     third_party_settings: {  }
   field_accessibility:
-    type: entity_reference_autocomplete
+    type: options_buttons
     weight: 15
     region: content
-    settings:
-      match_operator: STARTS_WITH
-      match_limit: 10
-      size: 60
-      placeholder: ''
+    settings: {  }
     third_party_settings: {  }
   field_accessibility_contact:
     type: text_textarea
@@ -139,14 +135,10 @@ content:
       placeholder: ''
     third_party_settings: {  }
   field_category:
-    type: entity_reference_autocomplete
+    type: options_buttons
     weight: 14
     region: content
-    settings:
-      match_operator: STARTS_WITH
-      match_limit: 10
-      size: 60
-      placeholder: ''
+    settings: {  }
     third_party_settings: {  }
   field_collect_per_ticket:
     type: boolean_checkbox

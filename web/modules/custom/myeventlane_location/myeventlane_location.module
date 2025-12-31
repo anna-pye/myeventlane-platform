@@ -567,12 +567,53 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
   elseif ($lat === NULL && $entity->hasField('field_event_lat') && !$entity->get('field_event_lat')->isEmpty()) {
     $lat = (float) $entity->get('field_event_lat')->value;
   }
+  // Try to extract lat from address field if available.
+  // Address module may store coordinates in the value array.
+  elseif ($lat === NULL && $entity->hasField('field_location') && !$entity->get('field_location')->isEmpty()) {
+    $location_item = $entity->get('field_location')->first();
+    if ($location_item) {
+      $location_value = $location_item->getValue();
+      // Check if latitude is in the value array.
+      if (is_array($location_value) && isset($location_value['latitude']) && !empty($location_value['latitude']) && is_numeric($location_value['latitude'])) {
+        $lat = (float) $location_value['latitude'];
+      }
+      // Also try hasProperty/get method.
+      else {
+        if ($location_item->hasProperty('latitude')) {
+          $lat_value = $location_item->get('latitude')->getValue();
+          if (!empty($lat_value) && is_numeric($lat_value)) {
+            $lat = (float) $lat_value;
+          }
+        }
+      }
+    }
+  }
 
   if ($lng === NULL && $entity->hasField('field_location_longitude') && !$entity->get('field_location_longitude')->isEmpty()) {
     $lng = (float) $entity->get('field_location_longitude')->value;
   }
   elseif ($lng === NULL && $entity->hasField('field_event_lng') && !$entity->get('field_event_lng')->isEmpty()) {
     $lng = (float) $entity->get('field_event_lng')->value;
+  }
+  // Try to extract lng from address field if available.
+  elseif ($lng === NULL && $entity->hasField('field_location') && !$entity->get('field_location')->isEmpty()) {
+    $location_item = $entity->get('field_location')->first();
+    if ($location_item) {
+      $location_value = $location_item->getValue();
+      // Check if longitude is in the value array.
+      if (is_array($location_value) && isset($location_value['longitude']) && !empty($location_value['longitude']) && is_numeric($location_value['longitude'])) {
+        $lng = (float) $location_value['longitude'];
+      }
+      // Also try hasProperty/get method.
+      else {
+        if ($location_item->hasProperty('longitude')) {
+          $lng_value = $location_item->get('longitude')->getValue();
+          if (!empty($lng_value) && is_numeric($lng_value)) {
+            $lng = (float) $lng_value;
+          }
+        }
+      }
+    }
   }
 
   // Fallback address from legacy fields.
@@ -619,12 +660,48 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
     }
   }
 
+  // Attach library and settings even if coordinates don't exist (for debugging).
+  // Get provider settings.
+  /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
+  $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
+  $settings = $provider_manager->getFrontendSettings();
+
+  // For Apple Maps, generate token.
+  if ($settings['provider'] === 'apple_maps') {
+    /** @var \Drupal\myeventlane_location\Service\MapKitTokenGenerator $token_generator */
+    $token_generator = \Drupal::service('myeventlane_location.mapkit_token_generator');
+    $token = $token_generator->generateToken();
+    if (!empty($token)) {
+      $settings['apple_maps_token'] = $token;
+    }
+  }
+
+  // Always attach library and settings to build (not just when coordinates exist).
+  if (!isset($build['#attached'])) {
+    $build['#attached'] = [];
+  }
+  if (!isset($build['#attached']['library'])) {
+    $build['#attached']['library'] = [];
+  }
+  if (!isset($build['#attached']['drupalSettings'])) {
+    $build['#attached']['drupalSettings'] = [];
+  }
+
+  $build['#attached']['library'][] = 'myeventlane_location/event_map';
+  $build['#attached']['drupalSettings']['myeventlaneLocation'] = $settings;
+  
   // Only add map if coordinates exist.
   if ($lat !== NULL && $lng !== NULL) {
-
-    /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
-    $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
     $provider = $provider_manager->getDefaultProvider();
+
+    // Add event coordinates to drupalSettings.
+    $build['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
+      'latitude' => $lat,
+      'longitude' => $lng,
+      'title' => $entity->label(),
+      'address' => $address,
+      'venue_name' => $venue_name,
+    ];
 
     // Add map to build array.
     $build['event_location_map'] = [
@@ -645,8 +722,19 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
       ],
     ];
   }
+  else {
+    // Even without coordinates, set empty event data so JS knows to skip map.
+    $build['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
+      'latitude' => NULL,
+      'longitude' => NULL,
+      'title' => $entity->label(),
+      'address' => $address,
+      'venue_name' => $venue_name,
+    ];
+  }
+
   // Even if no coordinates, add venue name and address info if available.
-  elseif (!empty($venue_name) || !empty($address)) {
+  if (($lat === NULL || $lng === NULL) && (!empty($venue_name) || !empty($address))) {
     $build['event_location_info'] = [
       '#theme' => 'event_location_info',
       '#event' => $entity,

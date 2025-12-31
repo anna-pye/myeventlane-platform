@@ -5,7 +5,7 @@ myeventlane_analytics.dashboard:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::dashboard'
     _title: 'Analytics Dashboard'
   requirements:
-    _permission: 'access vendor dashboard'
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
 
 # Per-event analytics.
 myeventlane_analytics.event:

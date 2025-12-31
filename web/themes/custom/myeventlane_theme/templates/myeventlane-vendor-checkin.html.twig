@@ -1,0 +1,172 @@
+{#
+/**
+ * @file
+ * Template for vendor check-in page.
+ *
+ * Available variables:
+ * - title: Page title
+ * - event: Event node
+ * - attendees: Array of attendee data
+ * - search: Search query string
+ */
+#}
+
+<div class="mel-vendor-checkin">
+  <div class="mel-page-header">
+    <a href="{{ url('myeventlane_checkout_flow.vendor_attendees') }}" class="mel-link mel-back-link">
+      ← Back to Attendees & Sales
+    </a>
+    <h1 class="mel-page-title">{{ title }}</h1>
+    
+    {# Event Info #}
+    <div class="mel-event-info mel-mt-3">
+      <h2 class="mel-event-title">
+        <a href="{{ event.toUrl() }}" class="mel-link">{{ event.label() }}</a>
+      </h2>
+      {% if event.hasField('field_event_start') and not event.get('field_event_start').isEmpty() %}
+        <div class="mel-event-meta mel-mt-2">
+          <span class="mel-event-date">
+            📅 {{ event.get('field_event_start').value|date('F j, Y') }}
+          </span>
+          {% if event.hasField('field_location') and not event.get('field_location').isEmpty() %}
+            <span class="mel-event-location">
+              📍 {{ event.get('field_location').value }}
+            </span>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Search Box #}
+  <div class="mel-section mel-mt-6">
+    <form method="get" action="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event.id()}) }}" class="mel-search-form">
+      <div class="mel-search-box">
+        <input type="text" 
+               name="search" 
+               value="{{ search }}" 
+               placeholder="Search by name or email..."
+               class="mel-input mel-input-search">
+        <button type="submit" class="mel-btn mel-btn-primary">Search</button>
+        {% if search %}
+          <a href="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event.id()}) }}" 
+             class="mel-btn mel-btn-secondary">
+            Clear
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  {# Check-in Stats #}
+  {% set checked_in_count = 0 %}
+  {% set total_count = attendees|length %}
+  {% for attendee in attendees %}
+    {% if attendee.checked_in %}
+      {% set checked_in_count = checked_in_count + 1 %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="mel-section mel-mt-4">
+    <div class="mel-card">
+      <div class="mel-card-body">
+        <div class="mel-stat-row">
+          <div class="mel-stat-item">
+            <div class="mel-stat-label">Total Attendees</div>
+            <div class="mel-stat-value">{{ total_count }}</div>
+          </div>
+          <div class="mel-stat-item">
+            <div class="mel-stat-label">Checked In</div>
+            <div class="mel-stat-value mel-stat-success">{{ checked_in_count }}</div>
+          </div>
+          <div class="mel-stat-item">
+            <div class="mel-stat-label">Remaining</div>
+            <div class="mel-stat-value">{{ total_count - checked_in_count }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Attendees List #}
+  <div class="mel-section mel-mt-6">
+    <h2 class="mel-section-title">Attendees ({{ total_count }})</h2>
+
+    {% if attendees|length > 0 %}
+      <div class="mel-card mel-mt-4">
+        <div class="mel-card-body">
+          <table class="mel-checkin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Ticket Type</th>
+                <th>Status</th>
+                <th>QR Code</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attendee in attendees %}
+                <tr class="{% if attendee.checked_in %}mel-checked-in{% endif %}">
+                  <td>{{ attendee.name }}</td>
+                  <td>{{ attendee.email }}</td>
+                  <td>{{ attendee.ticket_type }}</td>
+                  <td>
+                    {% if attendee.checked_in %}
+                      <span class="mel-status-badge mel-status-success">
+                        ✓ Checked In
+                      </span>
+                      {% if attendee.checked_in_timestamp %}
+                        <div class="mel-checkin-time">
+                          {{ attendee.checked_in_timestamp|date('g:i A') }}
+                        </div>
+                      {% endif %}
+                    {% else %}
+                      <span class="mel-status-badge mel-status-pending">
+                        Not Checked In
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ url('myeventlane_checkout_flow.vendor_checkin_scan', {'token': attendee.qr_token}) }}" 
+                       class="mel-btn mel-btn-small mel-btn-secondary"
+                       target="_blank"
+                       title="Open QR code for scanning">
+                      📱 QR Code
+                    </a>
+                  </td>
+                  <td>
+                    <a href="{{ url('myeventlane_checkout_flow.vendor_checkin_action', {'paragraph': attendee.paragraph_id}) }}" 
+                       class="mel-btn mel-btn-small {% if attendee.checked_in %}mel-btn-warning{% else %}mel-btn-primary{% endif %}">
+                      {% if attendee.checked_in %}
+                        Undo
+                      {% else %}
+                        Check In
+                      {% endif %}
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="mel-empty-state mel-mt-4">
+        <div class="mel-card">
+          <div class="mel-card-body" style="text-align: center; padding: 40px;">
+            <p class="mel-empty-message">
+              {% if search %}
+                No attendees found matching "{{ search }}".
+              {% else %}
+                No attendees found for this event.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+

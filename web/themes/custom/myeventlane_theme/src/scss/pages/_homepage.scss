@@ -1,135 +1,308 @@
-.mel-home {
-  background: #fff;
-}
+/* =========================================================
+   MyEventLane v2 — Homepage Styles
+   Grid-safe, Views-safe, brand-aligned
+   ========================================================= */
 
-.mel-home__hero {
-  padding: clamp(26px, 4vw, 52px) 0;
-  background: var(--mel-paper);
-}
-
-.mel-hero {
-  display: grid;
-  gap: 22px;
-  align-items: center;
-}
-
-@media (min-width: 900px) {
+   .mel-home {
+    background: #fff;
+  }
+  
+  /* ---------------------------------------------------------
+     HERO
+  --------------------------------------------------------- */
+  
+  .mel-home__hero {
+    padding: clamp(26px, 4vw, 52px) 0;
+    background: var(--mel-paper);
+  }
+  
   .mel-hero {
-    grid-template-columns: 1.1fr .9fr;
+    display: grid;
+    gap: 22px;
+    align-items: center;
   }
-}
-
-.mel-hero__title {
-  font-size: clamp(32px, 5vw, 56px);
-  margin: 0 0 10px;
-}
-
-.mel-hero__subtitle {
-  margin: 0 0 18px;
-  color: var(--mel-muted);
-  font-size: 18px;
-}
-
-.mel-search {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.mel-search__input {
-  flex: 1 1 260px;
-  padding: 12px 14px;
-  border-radius: var(--mel-radius-pill);
-  border: 2px solid rgba(43, 43, 43, .18);
-  font-size: 16px;
-}
-
-.mel-hero__hint { margin-top: 12px; color: var(--mel-muted); }
-
-.mel-hero__decor {
-  min-height: 220px;
-  position: relative;
-}
-
-.mel-sticker-burst {
-  position: absolute;
-  inset: 20px;
-  border-radius: 28px;
-  border: 2px dashed rgba(43,43,43,.18);
-  background: var(--mel-lilac);
-  transform: rotate(2deg);
-  opacity: .9;
-}
-
-.mel-sticker-burst--two {
-  inset: 46px 36px 26px;
-  background: var(--mel-mint);
-  transform: rotate(-2deg);
-}
-
-.mel-home__categories,
-.mel-home__discover,
-.mel-home__rows,
-.mel-home__cta {
-  padding: 22px 0;
-}
-
-.mel-section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.mel-section-head__title { margin: 0; font-size: 22px; }
-
-.mel-category-strip {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 8px 2px 12px;
-  scrollbar-width: thin;
-}
-
-.mel-sticker-wall {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--mel-space-4);
-  align-items: start;
-}
-
-/* Rows */
-.mel-row { margin-bottom: 18px; }
-.mel-row__scroller {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(260px, 1fr);
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-}
-
-@media (min-width: 900px) {
+  
+  @media (min-width: 900px) {
+    .mel-hero {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+  }
+  
+  .mel-hero__title {
+    font-size: clamp(32px, 5vw, 56px);
+    margin: 0 0 10px;
+  }
+  
+  .mel-hero__subtitle {
+    margin: 0 0 18px;
+    color: var(--mel-muted);
+    font-size: 18px;
+  }
+  
+  .mel-search {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .mel-search__input {
+    flex: 1 1 260px;
+    padding: 12px 14px;
+    border-radius: var(--mel-radius-pill);
+    border: 2px solid rgba(43, 43, 43, 0.18);
+    font-size: 16px;
+  }
+  
+  .mel-hero__hint {
+    margin-top: 12px;
+    color: var(--mel-muted);
+  }
+  
+  .mel-hero__decor {
+    min-height: 220px;
+    position: relative;
+  }
+  
+  .mel-sticker-burst {
+    position: absolute;
+    inset: 20px;
+    border-radius: 28px;
+    border: 2px dashed rgba(43, 43, 43, 0.18);
+    background: var(--mel-lilac);
+    transform: rotate(2deg);
+    opacity: 0.9;
+  }
+  
+  .mel-sticker-burst--two {
+    inset: 46px 36px 26px;
+    background: var(--mel-mint);
+    transform: rotate(-2deg);
+  }
+  
+  /* ---------------------------------------------------------
+     SECTIONS
+  --------------------------------------------------------- */
+  
+  .mel-home__categories,
+  .mel-home__discover,
+  .mel-home__rows,
+  .mel-home__cta {
+    padding: 22px 0;
+  }
+  
+  .mel-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  
+  .mel-section-head__title {
+    margin: 0;
+    font-size: 22px;
+  }
+  
+  /* ---------------------------------------------------------
+     CATEGORY STRIP (taxonomy pills)
+  --------------------------------------------------------- */
+  
+  .mel-category-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 2px 12px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mel-category-strip .mel-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 44px; /* WCAG touch target */
+  }
+  
+  @media (max-width: 767px) {
+    .mel-category-strip {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+  
+    .mel-category-strip::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  
+  /* ---------------------------------------------------------
+     STICKER WALL — MAIN EVENT GRID (CRITICAL FIX)
+  --------------------------------------------------------- */
+  
+  .mel-sticker-wall {
+    display: grid !important;
+    gap: var(--mel-space-4) !important;
+    align-items: start;
+  
+    /* Mobile first */
+    grid-template-columns: 1fr !important;
+    
+    /* Remove ANY wrapper divs that break the grid - make them invisible to grid */
+    .view,
+    .view-content,
+    .views-row,
+    div[class*="view"],
+    div[class*="views"] {
+      display: contents !important;
+    }
+    
+    /* Ensure all direct children are grid items */
+    > * {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure event cards are grid items - target them directly */
+    .mel-card,
+    .mel-event-card,
+    article[class*="card"],
+    article[class*="event"] {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      grid-column: auto !important;
+    }
+  }
+  
+  /* Tablet */
+  @media (min-width: 640px) {
+    .mel-sticker-wall {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+  
+  /* Desktop */
+  @media (min-width: 1024px) {
+    .mel-sticker-wall {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+  }
+  
+  /* ---------------------------------------------------------
+     SECONDARY ROWS (Tonight / Under $20 / Near You)
+  --------------------------------------------------------- */
+  
+  .mel-row {
+    margin-bottom: 18px;
+  }
+  
+  /* Mobile: horizontal scroll
+     Desktop: grid
+  */
   .mel-row__scroller {
-    grid-auto-flow: initial;
-    grid-template-columns: repeat(3, 1fr);
-    overflow: visible;
+    display: grid !important;
+    gap: 12px !important;
+  
+    /* Mobile behaviour */
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Remove ANY wrapper divs that break the grid - make them invisible to grid */
+    .view,
+    .view-content,
+    .views-row,
+    div[class*="view"],
+    div[class*="views"] {
+      display: contents !important;
+    }
+    
+    /* Ensure all direct children are grid items */
+    > * {
+      display: block !important;
+      width: 100% !important;
+      min-width: 260px !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure event cards are grid items - target them directly */
+    .mel-card,
+    .mel-event-card,
+    article[class*="card"],
+    article[class*="event"] {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      grid-column: auto !important;
+    }
   }
-}
-
-/* CTA */
-.mel-cta-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 18px;
-  border-radius: var(--mel-radius-3);
-  border: var(--mel-border);
-  background: var(--mel-paper);
-  box-shadow: var(--mel-shadow-rest);
-}
-.mel-cta-card__title { margin: 0 0 6px; }
-.mel-cta-card__text { margin: 0; color: var(--mel-muted); }
+  
+  @media (min-width: 640px) {
+    .mel-row__scroller {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-auto-flow: initial !important;
+      grid-auto-columns: initial !important;
+    }
+    
+    .mel-row__scroller > * {
+      min-width: 0 !important;
+    }
+    
+    .mel-row__scroller .mel-card,
+    .mel-row__scroller .mel-event-card,
+    .mel-row__scroller article[class*="card"],
+    .mel-row__scroller article[class*="event"] {
+      min-width: 0 !important;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .mel-row__scroller {
+      overflow: visible !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      grid-auto-flow: initial !important;
+      grid-auto-columns: initial !important;
+    }
+    
+    .mel-row__scroller > * {
+      min-width: 0 !important;
+    }
+    
+    .mel-row__scroller .mel-card,
+    .mel-row__scroller .mel-event-card,
+    .mel-row__scroller article[class*="card"],
+    .mel-row__scroller article[class*="event"] {
+      min-width: 0 !important;
+    }
+  }
+  
+  /* ---------------------------------------------------------
+     CTA
+  --------------------------------------------------------- */
+  
+  .mel-cta-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px;
+    border-radius: var(--mel-radius-3);
+    border: var(--mel-border);
+    background: var(--mel-paper);
+    box-shadow: var(--mel-shadow-rest);
+  }
+  
+  .mel-cta-card__title {
+    margin: 0 0 6px;
+  }
+  
+  .mel-cta-card__text {
+    margin: 0;
+    color: var(--mel-muted);
+  }

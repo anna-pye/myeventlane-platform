@@ -222,6 +222,7 @@ display:
       row:
         type: 'entity:node'
         options:
+          relationship: none
           view_mode: teaser
       query:
         type: views_query
@@ -307,7 +308,7 @@ display:
         type: views_query
         options: {  }
       display_extenders: {  }
-      path: taxonomy/term/%
+      path: view_path/%
     cache_metadata:
       max-age: -1
       contexts:

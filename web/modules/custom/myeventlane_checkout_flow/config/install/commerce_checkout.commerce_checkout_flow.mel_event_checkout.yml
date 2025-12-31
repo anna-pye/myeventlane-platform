@@ -1,0 +1,80 @@
+uuid: 00000000-0000-0000-0000-000000000002
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_payment
+    - commerce_promotion
+    - myeventlane_checkout_flow
+    - myeventlane_checkout_paragraph
+    - myeventlane_commerce
+    - myeventlane_donations
+_core:
+  default_config_hash: MEL_EVENT_CHECKOUT_FLOW_HASH
+id: mel_event_checkout
+label: 'MyEventLane Event Checkout'
+plugin: mel_event_checkout
+configuration:
+  display_checkout_progress: false
+  display_checkout_progress_breadcrumb_links: false
+  display_sidebar_checkout_complete: true
+  guest_order_assign: false
+  guest_new_account: true
+  guest_new_account_notify: true
+  panes:
+    # MAIN REGION - Checkout step
+    mel_buyer_details:
+      display_label: 'Buyer details'
+      step: checkout
+      weight: 0
+      wrapper_element: fieldset
+    ticket_holder_paragraph:
+      display_label: 'Attendee details'
+      step: checkout
+      weight: 1
+      wrapper_element: fieldset
+    mel_donation:
+      display_label: 'Donation'
+      step: checkout
+      weight: 2
+      wrapper_element: fieldset
+    mel_legal_consent:
+      display_label: 'Terms and conditions'
+      step: checkout
+      weight: 3
+      wrapper_element: fieldset
+    payment_information:
+      display_label: 'Payment'
+      step: checkout
+      weight: 4
+      wrapper_element: container
+      always_display: true
+      require_payment_method: false
+    # SIDEBAR REGION
+    grouped_order_summary:
+      display_label: null
+      step: _sidebar
+      weight: 0
+      wrapper_element: fieldset
+    mel_fee_transparency:
+      display_label: 'Order summary'
+      step: _sidebar
+      weight: 1
+      wrapper_element: fieldset
+    order_summary:
+      display_label: null
+      step: _sidebar
+      weight: 2
+      wrapper_element: container
+      view: commerce_checkout_order_summary
+    # DISABLED - Legacy panes we don't want
+    contact_information:
+      step: _disabled
+      weight: 100
+    billing_information:
+      step: _disabled
+      weight: 101
+    myeventlane_attendee_info_per_ticket:
+      step: _disabled
+      weight: 102
+

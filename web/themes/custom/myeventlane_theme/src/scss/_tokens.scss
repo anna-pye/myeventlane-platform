@@ -1,7 +1,14 @@
 :root {
-  --mel-paper: #fff9f4;
-  --mel-ink: #2b2b2b;
-  --mel-muted: rgba(43, 43, 43, 0.7);
+  --mel-coral: #f26d5b;
+  --mel-navy: #293241;
+  --mel-blue: #6c7ef2;
+  --mel-orange: #f5a04c;
+  --mel-cream: #fef5ec;
+  --mel-grey-light: #f4f4f4;
+
+  --mel-paper: var(--mel-cream);
+  --mel-ink: var(--mel-navy);
+  --mel-muted: rgba(41, 50, 65, 0.7);
 
   --mel-peach: #ffd6c9;
   --mel-lilac: #e6d9ff;
@@ -23,7 +30,8 @@
   --mel-shadow-rest: 0 6px 18px rgba(0,0,0,.08);
   --mel-shadow-hover: 0 12px 26px rgba(0,0,0,.12);
 
-  --mel-border: 2px solid rgba(43, 43, 43, 0.12);
+  --mel-border: 2px solid rgba(41, 50, 65, 0.12);
+  --mel-primary: var(--mel-coral);
 }
 
 .mel-container {
@@ -34,6 +42,7 @@
 
 .mel-muted { color: var(--mel-muted); }
 .mel-link { color: var(--mel-ink); text-decoration: underline; text-underline-offset: 3px; }
+.mel-text-coral { color: var(--mel-coral); }
 
 .visually-hidden {
   position: absolute !important;

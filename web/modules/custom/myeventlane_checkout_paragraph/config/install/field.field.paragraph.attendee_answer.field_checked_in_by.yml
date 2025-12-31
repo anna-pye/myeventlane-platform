@@ -1,0 +1,29 @@
+uuid: 00000000-0000-0000-0000-000000000006
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_checked_in_by
+    - paragraphs.paragraphs_type.attendee_answer
+  module:
+    - user
+id: paragraph.attendee_answer.field_checked_in_by
+field_name: field_checked_in_by
+entity_type: paragraph
+bundle: attendee_answer
+label: 'Checked in by'
+description: 'The user who checked in this attendee.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  target_type: user
+  handler: default
+  handler_settings:
+    target_bundles: null
+    sort:
+      field: _none
+    auto_create: false
+field_type: entity_reference
+

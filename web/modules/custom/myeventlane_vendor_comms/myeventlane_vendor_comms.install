@@ -1,0 +1,152 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for MyEventLane Vendor Communications.
+ */
+
+use Drupal\Core\Database\Database;
+
+/**
+ * Creates the event communications log table.
+ */
+function myeventlane_vendor_comms_schema(): array {
+  $schema = [];
+
+  $schema['myeventlane_event_comms_log'] = [
+    'description' => 'Logs vendor event communications sent to attendees.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'vendor_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'User ID of vendor who sent the message.',
+      ],
+      'message_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Message type: update, important_change, cancellation.',
+      ],
+      'subject' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Email subject line.',
+      ],
+      'body' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Message body (HTML).',
+      ],
+      'recipient_count' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of recipients.',
+      ],
+      'sent_count' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of emails successfully sent.',
+      ],
+      'failed_count' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of emails that failed to send.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Status: pending, sending, completed, failed.',
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when send was initiated.',
+      ],
+      'completed_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Timestamp when send completed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_id' => ['event_id'],
+      'vendor_uid' => ['vendor_uid'],
+      'sent_at' => ['sent_at'],
+      'status' => ['status'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_vendor_comms_install(): void {
+  // Schema is created automatically via hook_schema().
+  // Email templates should be imported via config sync or manually.
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_vendor_comms_uninstall(): void {
+  Database::getConnection()->schema()->dropTable('myeventlane_event_comms_log');
+}
+
+/**
+ * Imports email templates.
+ */
+function myeventlane_vendor_comms_update_9001(): void {
+  $config_factory = \Drupal::configFactory();
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging');
+  
+  $templates = [
+    'vendor_event_update',
+    'vendor_event_important_change',
+    'vendor_event_cancellation',
+  ];
+
+  foreach ($templates as $template_key) {
+    $config_name = "myeventlane_messaging.template.{$template_key}";
+    $config = $config_factory->getEditable($config_name);
+    
+    // Only create if it doesn't exist.
+    if ($config->isNew()) {
+      $template_path = $module_path . "/config/install/{$config_name}.yml";
+      
+      if (file_exists($template_path)) {
+        // Use Drupal's YAML parser.
+        $template_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($template_path));
+        $config->setData($template_data)->save();
+        \Drupal::logger('myeventlane_vendor_comms')->notice("Imported template: {$template_key}");
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+name: MyEventLane Refunds
+type: module
+description: 'Vendor refunds, cancellations, and customer recovery for MyEventLane.'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - commerce_order
+  - commerce_payment
+  - commerce_price
+  - myeventlane_checkout_flow:myeventlane_checkout_flow
+  - myeventlane_messaging:myeventlane_messaging
+  - myeventlane_vendor_comms:myeventlane_vendor_comms
+  - node
+

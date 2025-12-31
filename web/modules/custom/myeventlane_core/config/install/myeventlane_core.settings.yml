@@ -1,4 +1,4 @@
 front_page:
   event_type: event
   category_vocab: categories
-  category_field: field_event_category
+  category_field: field_category

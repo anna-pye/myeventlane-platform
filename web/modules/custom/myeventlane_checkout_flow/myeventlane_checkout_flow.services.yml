@@ -1,0 +1,5 @@
+services:
+  myeventlane_checkout_flow.vendor_ownership_resolver:
+    class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
+    arguments: ['@entity_type.manager']
+

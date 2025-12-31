@@ -6,6 +6,8 @@
  * Humanitix-adjacent, MEL pastel tone, clear hierarchy, comfortable spacing.
  */
 
+@use '../tokens/colors' as *;
+
 .mel-vendor-wizard {
   max-width: 1200px;
   margin: 0 auto;
@@ -80,13 +82,13 @@
 }
 
 .mel-vendor-wizard__step.is-active {
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba($wizard-coral, 0.08);
   color: #293241;
   
   .mel-vendor-wizard__step-number {
-    background: #2563eb;
+    background: $wizard-coral;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 2px 8px rgba($wizard-coral, 0.25);
   }
   
   .mel-vendor-wizard__step-label {

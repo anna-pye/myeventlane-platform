@@ -14,6 +14,8 @@ function myeventlane_messaging_cron(): void {
   \Drupal::service('myeventlane_messaging.scheduler.boost')->scan();
   \Drupal::service('myeventlane_messaging.scheduler.cart')->scan();
   \Drupal::service('myeventlane_messaging.scheduler.event')->scan();
+  // Scan for event reminders (7 days and 24 hours before event start).
+  \Drupal::service('myeventlane_messaging.event_reminder_scheduler')->scan();
 }
 
 /**
@@ -54,6 +56,48 @@ function myeventlane_messaging_mail($key, &$message, $params) {
   }
 
   $message['subject'] = $params['subject'] ?? '(no subject)';
-  $message['body'] = $params['html'] ?? $params['body'] ?? '';
+  
+  // PhpMail expects body to be an array, but HTML emails need string.
+  // Set body as array for PhpMail compatibility, or as string for HTML mailers.
+  $body_content = $params['html'] ?? $params['body'] ?? '';
+  if (is_array($body_content)) {
+    $message['body'] = $body_content;
+  }
+  else {
+    // For HTML emails, set as array with single element to satisfy PhpMail.
+    $message['body'] = [$body_content];
+  }
+  
+  // Ensure headers is an array.
+  if (!isset($message['headers']) || !is_array($message['headers'])) {
+    $message['headers'] = [];
+  }
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
+  
+  // Store HTML body separately for HTML mailers that need it.
+  if (!empty($params['html'])) {
+    $message['params']['html'] = $params['html'];
+  }
+
+  // Handle attachments.
+  // Drupal's mail system supports attachments via $message['params']['attachments']
+  // Format: array of arrays with 'filecontent', 'filename', and optionally 'filemime'
+  if (!empty($params['attachments']) && is_array($params['attachments'])) {
+    if (!isset($message['params'])) {
+      $message['params'] = [];
+    }
+    if (!isset($message['params']['attachments'])) {
+      $message['params']['attachments'] = [];
+    }
+
+    foreach ($params['attachments'] as $attachment) {
+      if (isset($attachment['filename']) && isset($attachment['content'])) {
+        $message['params']['attachments'][] = [
+          'filecontent' => $attachment['content'],
+          'filename' => $attachment['filename'],
+          'filemime' => $attachment['mime'] ?? 'text/calendar',
+        ];
+      }
+    }
+  }
 }

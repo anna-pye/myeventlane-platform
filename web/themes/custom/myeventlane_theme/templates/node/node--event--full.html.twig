@@ -3,55 +3,90 @@
  * @file
  * Event node template for full view mode (canonical route).
  *
- * Humanitix-level completeness with:
- * - Hero image with gradient overlay
- * - State badge and meta chips
+ * MyEventLane v2 Festival Design:
+ * - Hero section with centered content, stamp badge, meta chips, and vibe chips
  * - Two-column layout with sticky sidebar
- * - Card-based sections
+ * - Card-based sections with gradient backgrounds
  * - Mobile-first with sticky bottom CTA
  */
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
-{% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
-  {{ attach_library('myeventlane_location/event_map') }}
-{% endif %}
+{{ attach_library('myeventlane_location/event_map') }}
 
 <article{{ attributes.addClass('mel-event', 'mel-event--full') }}>
   
   {# ==========================================================================
      HERO SECTION
      ========================================================================== #}
-  {% if hero_image_url is defined and hero_image_url %}
-    <section class="event-hero">
-      <img
-        src="{{ hero_image_url }}"
-        alt="{{ node.label }}"
-        class="event-hero__image"
-      />
+  <section class="mel-event-hero{% if hero_image_url is defined and hero_image_url %} mel-event-hero--image{% endif %}">
+    {% if hero_image_url is defined and hero_image_url %}
+      <div class="mel-event-hero__image-wrapper">
+        <img
+          src="{{ hero_image_url }}"
+          alt="{{ node.label }}"
+          class="mel-event-hero__image"
+        />
+      </div>
+      <div class="mel-event-hero__scrim"></div>
+    {% endif %}
 
-      <div class="event-hero__overlay">
-        <h1 class="event-hero__title">{{ node.label }}</h1>
-
-        {% if mel_event_state is defined and mel_event_state %}
-          <span class="event-hero__status">
-            {% if mel_event_state == 'scheduled' %}
-              {{ 'Scheduled'|t }}
-            {% elseif mel_event_state == 'live' %}
-              {{ 'Live'|t }}
-            {% elseif mel_event_state == 'sold_out' %}
-              {{ 'Sold Out'|t }}
-            {% elseif mel_event_state == 'cancelled' %}
-              {{ 'Cancelled'|t }}
-            {% elseif mel_event_state == 'ended' %}
-              {{ 'Ended'|t }}
-            {% else %}
-              {{ 'Draft'|t }}
-            {% endif %}
-          </span>
+    <div class="mel-event-hero__content">
+      <h1 class="mel-event-hero__title">{{ node.label }}</h1>
+      
+      {# Meta Items (Date, Time, Location, Price) #}
+      <div class="mel-event-hero__meta">
+        {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+          <div class="mel-event-hero__meta-item">
+            <span class="mel-event-hero__meta-icon">📅</span>
+            <span>{{ node.field_event_start.value|date('l j F Y') }}</span>
+          </div>
+          <div class="mel-event-hero__meta-item">
+            <span class="mel-event-hero__meta-icon">🕐</span>
+            <span>
+              {{ node.field_event_start.value|date('g:ia') }}
+              {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                – {{ node.field_event_end.value|date('g:ia') }}
+              {% endif %}
+            </span>
+          </div>
+        {% endif %}
+        
+        {% if event_location and event_location.venue_name %}
+          <div class="mel-event-hero__meta-item">
+            <span class="mel-event-hero__meta-icon">📍</span>
+            <span>{{ event_location.venue_name }}</span>
+          </div>
+        {% endif %}
+        
+        {% if mel_price_summary is defined and mel_price_summary %}
+          <div class="mel-event-hero__meta-item">
+            <span class="mel-event-hero__meta-icon">💰</span>
+            <span>{{ mel_price_summary }}</span>
+          </div>
         {% endif %}
       </div>
-    </section>
-  {% endif %}
+
+      {# Vibe Chips (Categories/Tags) #}
+      {% if node.hasField('field_category') and not node.field_category.isEmpty or node.hasField('field_tags') and not node.field_tags.isEmpty %}
+        <div class="mel-event-hero__chips">
+          {% if node.hasField('field_category') and not node.field_category.isEmpty %}
+            {% for category in node.field_category %}
+              {% if category.entity %}
+                <span class="mel-vibe-chip">{{ category.entity.label }}</span>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {% if node.hasField('field_tags') and not node.field_tags.isEmpty %}
+            {% for tag in node.field_tags %}
+              {% if tag.entity %}
+                <span class="mel-vibe-chip">{{ tag.entity.label }}</span>
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
 
   {# ==========================================================================
      CANCELLED BANNER (if cancelled)
@@ -70,193 +105,225 @@
   {# ==========================================================================
      MAIN CONTENT GRID
      ========================================================================== #}
-  <div class="mel-event-grid">
-    
-    {# Left Column: Main Content #}
-    <div class="mel-event-grid__main">
+  <div class="mel-container">
+    <div class="mel-event-detail-grid">
       
-      {# About Section Card #}
-      {% if node.hasField('body') and not node.body.isEmpty and content.body %}
-        <section class="mel-event-card mel-event-card--about">
-          <h2 class="mel-event-card__title">{{ 'About this event'|t }}</h2>
-          <div class="mel-event-card__content">
-            {{ content.body }}
-          </div>
-        </section>
-      {% endif %}
-
-      {# Accessibility & Inclusion Section Card #}
-      {% if node.hasField('field_accessibility') and not node.field_accessibility.isEmpty %}
-        <section class="mel-event-card mel-event-card--accessibility">
-          <h2 class="mel-event-card__title">{{ 'Accessibility & inclusion'|t }}</h2>
-          <div class="mel-event-card__content">
-            {% if content.field_accessibility %}
-              {% include '@myeventlane_theme/components/accessibility-icons.html.twig' with {
-                accessibility_terms: content.field_accessibility,
-                variant: 'badges',
-                show_all: true
-              } only %}
-            {% endif %}
-            <p class="mel-helper">{{ 'Inclusive by design. If you need support, the organiser can help.'|t }}</p>
-          </div>
-        </section>
-      {% endif %}
-
-      {# Refund / Cancellation Policy Section Card #}
-      {% if node.hasField('field_refund_policy') and not node.field_refund_policy.isEmpty %}
-        <section class="mel-event-card mel-event-card--policy">
-          <h2 class="mel-event-card__title">{{ 'Refund / cancellation policy'|t }}</h2>
-          <div class="mel-event-card__content">
-            <p>{{ node.field_refund_policy.value|replace({
-              'none_specified': 'No specified policy on refunds',
-              '1_day': 'Refunds are available up to 1 day prior to the event',
-              '7_days': 'Refunds are available up to 7 days prior to the event',
-              '14_days': 'Refunds are available up to 14 days prior to the event',
-              '30_days': 'Refunds are available up to 30 days prior to the event',
-              'no_refunds': 'No refunds'
-            }) }}</p>
-          </div>
-        </section>
-      {% endif %}
-
-      {# Hosted by Section Card (linked) #}
-      {% if event_host %}
-        <section class="mel-event-card mel-event-card--host">
-          <h2 class="mel-event-card__title">{{ 'Hosted by'|t }}</h2>
-          <div class="mel-event-card__content">
-            <div class="event-host">
-              {{ 'Hosted by'|t }}
-              <a href="{{ event_host.url }}">
-                {{ event_host.name }}
-              </a>
+      {# Left Column: Main Content #}
+      <div class="mel-event-detail-grid__main">
+        
+        {# About Section Card #}
+        {% if node.hasField('body') and not node.body.isEmpty and content.body %}
+          <section class="mel-event-card mel-event-card--about">
+            <h2 class="mel-event-card__title">{{ 'About this event'|t }}</h2>
+            <div class="mel-event-card__content">
+              {{ content.body }}
             </div>
-          </div>
-        </section>
-      {% endif %}
+          </section>
+        {% endif %}
 
-      {# Tags / Keywords Section Card #}
-      {% if node.hasField('field_tags') and not node.field_tags.isEmpty %}
-        <section class="mel-event-card mel-event-card--tags">
-          <h2 class="mel-event-card__title">{{ 'Tags / keywords'|t }}</h2>
-          <div class="mel-event-card__content">
-            <div class="mel-tags">
-              {% for tag in node.field_tags %}
-                {% if tag.entity %}
-                  <span class="mel-tag">{{ tag.entity.label }}</span>
-                {% endif %}
-              {% endfor %}
+        {# Schedule & Line-up Section Card (if schedule field exists) #}
+        {% if node.hasField('field_schedule') and not node.field_schedule.isEmpty %}
+          <section class="mel-event-card mel-event-card--schedule">
+            <h2 class="mel-event-card__title">{{ 'Schedule & Line-up'|t }}</h2>
+            <div class="mel-event-card__content">
+              {{ content.field_schedule }}
             </div>
-          </div>
-        </section>
-      {% endif %}
+          </section>
+        {% endif %}
 
-    </div>
-
-    {# Right Column: Sticky Sidebar #}
-    <aside class="mel-event-sidebar">
-      
-      {# Action Card (Sticky) #}
-      <div class="mel-event-sidebar__action-card">
-        {# Registration Badge #}
-        {% if mel_registration_badge is defined and mel_registration_badge %}
-          <div class="mel-event-sidebar__section mel-event-sidebar__section--badge">
-            <div class="mel-event-sidebar__registration-badge">
-              {{ mel_registration_badge }}
+        {# Hosted by Section Card #}
+        {% if event_host %}
+          <section class="mel-event-card mel-event-card--organiser">
+            <h2 class="mel-event-card__title">{{ 'Hosted by'|t }}</h2>
+            <div class="mel-event-card__content">
+              <p><strong>{{ event_host.name }}</strong></p>
+              {% if event_host.description %}
+                <p>{{ event_host.description }}</p>
+              {% endif %}
             </div>
-          </div>
+          </section>
         {% endif %}
 
-        {# Primary CTA - show if event_cta exists and has a label #}
-        {% if event_cta and event_cta.label %}
-          <div class="mel-event-sidebar__section mel-event-sidebar__section--cta">
-            {% if event_cta.url %}
-              <a href="{{ event_cta.url }}" class="mel-btn mel-btn--primary event-cta">
-                {{ event_cta.label }}
-              </a>
-            {% else %}
-              <span class="mel-btn mel-btn--disabled">
-                {{ event_cta.label }}
-              </span>
-            {% endif %}
-            
-            {# Secondary CTA for "both" mode (RSVP when tickets are primary) #}
-            {% if event_cta_secondary and event_cta_secondary.url and event_cta_secondary.label %}
-              <a href="{{ event_cta_secondary.url }}" class="mel-btn mel-btn--secondary event-cta" style="margin-top: 0.75rem; display: block;">
-                {{ event_cta_secondary.label }}
-              </a>
-            {% endif %}
-          </div>
-        {% endif %}
-
-        {# Price Summary #}
-        {% if mel_price_summary is defined and mel_price_summary %}
-          <div class="mel-event-sidebar__section mel-event-sidebar__section--price">
-            <div class="mel-event-sidebar__price">{{ mel_price_summary }}</div>
-          </div>
-        {% endif %}
-
-        {# Date & Time #}
-        {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-          <div class="mel-event-sidebar__section">
-            <h3 class="mel-event-sidebar__title">{{ 'Date & time'|t }}</h3>
-            <time datetime="{{ node.field_event_start.value|date('c') }}" class="mel-event-sidebar__date">
-              <div class="mel-event-sidebar__date-main">
-                {{ node.field_event_start.value|date('l j F Y') }}
-              </div>
-              <div class="mel-event-sidebar__date-time">
-                {{ node.field_event_start.value|date('g:ia') }}
-                {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-                  – {{ node.field_event_end.value|date('g:ia') }}
+        {# Policies & FAQs Section Card #}
+        {% if node.hasField('field_refund_policy') and not node.field_refund_policy.isEmpty or node.hasField('field_accessibility') and not node.field_accessibility.isEmpty %}
+          <section class="mel-event-card mel-event-card--policies">
+            <h2 class="mel-event-card__title">{{ 'Policies & FAQs'|t }}</h2>
+            <div class="mel-event-card__content">
+              {% if node.hasField('field_refund_policy') and not node.field_refund_policy.isEmpty %}
+                <p><strong>{{ 'Refund Policy:'|t }}</strong> 
+                  {{ node.field_refund_policy.value|replace({
+                    'none_specified': 'No specified policy on refunds'|t,
+                    '1_day': 'Full refunds available up to 48 hours before the event. After that, tickets are transferable to another person.'|t,
+                    '7_days': 'Full refunds available up to 7 days before the event. After that, tickets are transferable to another person.'|t,
+                    '14_days': 'Full refunds available up to 14 days before the event. After that, tickets are transferable to another person.'|t,
+                    '30_days': 'Full refunds available up to 30 days before the event. After that, tickets are transferable to another person.'|t,
+                    'no_refunds': 'No refunds'|t
+                  }) }}
+                </p>
+              {% endif %}
+              {% if node.hasField('field_accessibility') and not node.field_accessibility.isEmpty %}
+                <p><strong>{{ 'Accessibility:'|t }}</strong> 
+                  {{ 'The venue is fully accessible. Please contact us at least 7 days before the event if you need specific accommodations.'|t }}
+                </p>
+              {% endif %}
+              {% if node.hasField('field_category') and not node.field_category.isEmpty %}
+                {% set is_all_ages = false %}
+                {% for category in node.field_category %}
+                  {% if category.entity and category.entity.label|lower == 'all ages' %}
+                    {% set is_all_ages = true %}
+                  {% endif %}
+                {% endfor %}
+                {% if is_all_ages %}
+                  <p><strong>{{ 'Age Restrictions:'|t }}</strong> 
+                    {{ 'This is an all-ages event. Children under 12 enter free with a paying adult.'|t }}
+                  </p>
                 {% endif %}
-              </div>
-            </time>
-
-            {# Calendar buttons (pill group) #}
-            {% if mel_ics_url is defined and mel_ics_url or mel_google_cal_url is defined and mel_google_cal_url %}
-              <div class="mel-event-sidebar__calendar-links">
-                {% if mel_ics_url is defined and mel_ics_url %}
-                  <a href="{{ mel_ics_url }}" 
-                     download="{{ node.label|replace({' ': '_'}) }}.ics"
-                     class="mel-event-sidebar__calendar-link">
-                    {{ 'Apple / Outlook (.ics)'|t }}
-                  </a>
-                {% endif %}
-                {% if mel_google_cal_url is defined and mel_google_cal_url %}
-                  <a href="{{ mel_google_cal_url }}" 
-                     target="_blank" 
-                     rel="noopener"
-                     class="mel-event-sidebar__calendar-link">
-                    {{ 'Google Calendar'|t }}
-                  </a>
-                {% endif %}
-              </div>
-            {% endif %}
-          </div>
-        {% endif %}
-
-        {# Location + Map (embedded) #}
-        {% if event_location %}
-          <div class="mel-event-sidebar__section event-info__location">
-            <h3 class="mel-event-sidebar__title">{{ 'Location'|t }}</h3>
-            {% if event_location.venue_name %}
-              <strong>{{ event_location.venue_name }}</strong>
-            {% endif %}
-            <div class="event-location__address">
-              {{ event_location.address }}
+              {% endif %}
             </div>
-            <a href="{{ event_location.map_url }}"
-               target="_blank"
-               rel="noopener"
-               class="event-location__map-link">
-              {{ 'View on map'|t }} →
-            </a>
-          </div>
+          </section>
         {% endif %}
-
 
       </div>
-    </aside>
 
+      {# Right Column: Sticky Sidebar #}
+      <aside class="mel-event-detail-grid__sidebar">
+        <div class="mel-event-sidebar-card">
+          
+          {# Primary CTA #}
+          {% if event_cta and event_cta.label %}
+            <div class="mel-event-sidebar-card__section mel-event-sidebar-card__section--cta">
+              {% if event_cta.url %}
+                <a href="{{ event_cta.url }}" class="mel-event-sidebar-card__cta">
+                  {{ event_cta.label }}
+                </a>
+              {% else %}
+                <span class="mel-event-sidebar-card__cta mel-event-sidebar-card__cta--disabled">
+                  {{ event_cta.label }}
+                </span>
+              {% endif %}
+              
+              {# Secondary CTA for "both" mode #}
+              {% if event_cta_secondary and event_cta_secondary.url and event_cta_secondary.label %}
+                <a href="{{ event_cta_secondary.url }}" class="mel-event-sidebar-card__cta mel-event-sidebar-card__cta--secondary">
+                  {{ event_cta_secondary.label }}
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {# Price Summary #}
+          {% if mel_price_summary is defined and mel_price_summary %}
+            <div class="mel-event-sidebar-card__section mel-event-sidebar-card__section--price">
+              <div class="mel-event-sidebar-card__price">{{ mel_price_summary }}</div>
+              <p style="font-size: 14px; color: var(--mel-muted); margin-top: var(--mel-space-2);">
+                {{ 'Early bird pricing available'|t }}
+              </p>
+            </div>
+          {% endif %}
+
+          {# Date & Time #}
+          {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+            <div class="mel-event-sidebar-card__section">
+              <h3 class="mel-event-sidebar-card__title">{{ 'Date & Time'|t }}</h3>
+              <time class="mel-event-sidebar-card__date" datetime="{{ node.field_event_start.value|date('c') }}">
+                {{ node.field_event_start.value|date('l j F Y') }}
+                <div class="mel-event-sidebar-card__date-time">
+                  {{ node.field_event_start.value|date('g:ia') }}
+                  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+                    – {{ node.field_event_end.value|date('g:ia') }}
+                  {% endif %}
+                </div>
+              </time>
+              
+              {# Calendar Links #}
+              {% if mel_ics_url is defined and mel_ics_url or mel_google_cal_url is defined and mel_google_cal_url %}
+                <div class="mel-event-sidebar-card__calendar-links">
+                  {% if mel_ics_url is defined and mel_ics_url %}
+                    <a href="{{ mel_ics_url }}" 
+                       download="{{ node.label|replace({' ': '_'}) }}.ics"
+                       class="mel-event-sidebar-card__calendar-link">
+                      {{ 'Apple / Outlook (.ics)'|t }}
+                    </a>
+                  {% endif %}
+                  {% if mel_google_cal_url is defined and mel_google_cal_url %}
+                    <a href="{{ mel_google_cal_url }}" 
+                       target="_blank" 
+                       rel="noopener"
+                       class="mel-event-sidebar-card__calendar-link">
+                      {{ 'Google Calendar'|t }}
+                    </a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          {# Location #}
+          {% if event_location or mel_venue or mel_address or content.field_location or (mel_lat is defined and mel_lng is defined and mel_lat and mel_lng) %}
+            <div class="mel-event-sidebar-card__section">
+              <h3 class="mel-event-sidebar-card__title">{{ 'Location'|t }}</h3>
+              
+              {# Venue Name #}
+              {% if event_location and event_location.venue_name %}
+                <strong class="mel-event-sidebar-card__venue">{{ event_location.venue_name }}</strong>
+              {% elseif mel_venue %}
+                <strong class="mel-event-sidebar-card__venue">{{ mel_venue }}</strong>
+              {% endif %}
+              
+              {# Address (rendered under venue name) #}
+              {% if event_location and event_location.address %}
+                <div class="mel-event-sidebar-card__address">
+                  {{ event_location.address }}
+                </div>
+              {% elseif mel_address %}
+                <div class="mel-event-sidebar-card__address">
+                  {{ mel_address }}
+                </div>
+              {% elseif content.field_location %}
+                <div class="mel-event-sidebar-card__address">
+                  {{ content.field_location }}
+                </div>
+              {% endif %}
+              
+              {# Embedded Map (rendered under address, or standalone if no address) #}
+              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
+                <div class="mel-event-sidebar-card__map myeventlane-event-map-container" 
+                     data-latitude="{{ mel_lat }}" 
+                     data-longitude="{{ mel_lng }}" 
+                     data-title="{{ node.label }}">
+                </div>
+              {% endif %}
+              
+              {# Map link (optional, after map) #}
+              {% if event_location and event_location.map_url %}
+                <a href="{{ event_location.map_url }}"
+                   target="_blank"
+                   rel="noopener"
+                   class="mel-event-sidebar-card__map-link">
+                  {{ 'View on map'|t }} →
+                </a>
+              {% elseif mel_directions_url %}
+                <a href="{{ mel_directions_url }}"
+                   target="_blank"
+                   rel="noopener"
+                   class="mel-event-sidebar-card__map-link">
+                  {{ 'Get directions'|t }} →
+                </a>
+              {% elseif mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
+                <a href="https://maps.google.com/?q={{ mel_lat }},{{ mel_lng }}"
+                   target="_blank"
+                   rel="noopener"
+                   class="mel-event-sidebar-card__map-link">
+                  {{ 'Get directions'|t }} →
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+        </div>
+      </aside>
+
+    </div>
   </div>
 
   {# ==========================================================================
@@ -265,7 +332,7 @@
   {% if event_cta and event_cta.url %}
     <div class="mel-event-cta-mobile-sticky">
       <a href="{{ event_cta.url }}"
-         class="mel-btn mel-btn--primary event-cta">
+         class="mel-event-cta-mobile-sticky__button">
         {{ event_cta.label }}
       </a>
     </div>

@@ -77,6 +77,7 @@ module:
   myeventlane_capacity: 0
   myeventlane_cart: 0
   myeventlane_checkin: 0
+  myeventlane_checkout_flow: 0
   myeventlane_checkout_paragraph: 0
   myeventlane_commerce: 0
   myeventlane_core: 0
