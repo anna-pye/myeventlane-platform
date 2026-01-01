@@ -3,7 +3,6 @@
 
 # Composer
 /vendor/
-/composer.lock
 
 # Node/Vite
 /node_modules/
@@ -77,42 +76,19 @@ settings.local.*
 *.log
 logs/
 
-# Drupal private files and config overrides
-web/sites/*/files/
-web/sites/*/private/
-
-# Local development scripts
-web/modules/custom/*/scripts/local/
+# Local development scripts (nested paths)
+web/modules/custom/**/scripts/local/
 
 # Zip files (build artifacts, backups)
 *.zip
 !web/themes/contrib/**/*.zip
 !web/modules/contrib/**/*.zip
 
-# Local development scripts and utilities
-*.sh
-!web/modules/custom/**/*.sh
-!web/themes/custom/**/*.sh
-*.php
-!web/modules/custom/**/*.php
-!web/themes/custom/**/*.php
-!web/core/**/*.php
-!web/modules/contrib/**/*.php
-!web/themes/contrib/**/*.php
-
-# Documentation and audit files (temporary)
-*.md
-!README.md
-!CHANGELOG.md
-!web/modules/custom/**/*.md
-!web/themes/custom/**/*.md
-docs/
-
 # Cursor IDE
 .cursor/
 
-# Local scratch/temporary areas (if any exist)
-web/modules/custom/*/scratch/
-web/modules/custom/*/tmp/
-web/themes/custom/*/scratch/
-web/themes/custom/*/tmp/
+# Local scratch/temporary areas
+web/modules/custom/**/scratch/
+web/modules/custom/**/tmp/
+web/themes/custom/**/scratch/
+web/themes/custom/**/tmp/
