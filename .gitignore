@@ -76,6 +76,7 @@ settings.local.*
 *.log
 logs/
 
+HEAD
 # Local development scripts (nested paths)
 web/modules/custom/**/scripts/local/
 
@@ -92,3 +93,8 @@ web/modules/custom/**/scratch/
 web/modules/custom/**/tmp/
 web/themes/custom/**/scratch/
 web/themes/custom/**/tmp/
+
+# Drupal private files and config overrides
+web/sites/*/files/
+web/sites/*/private/
+main
