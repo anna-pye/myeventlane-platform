@@ -1,0 +1,11 @@
+uuid: 74bc4fb0-6006-4db7-9b81-189b61cb1e92
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.event_card_poster
+label: 'Event card (Poster)'
+description: null
+targetEntityType: node
+cache: true

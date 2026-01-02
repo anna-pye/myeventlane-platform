@@ -1,0 +1,20 @@
+uuid: c94ace44-8029-4ae5-863b-be6700238bd1
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.field_summary
+field_name: field_summary
+entity_type: myeventlane_vendor
+type: text
+settings:
+  max_length: 255
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

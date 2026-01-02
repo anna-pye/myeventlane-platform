@@ -1,2 +1,0 @@
-permission_callbacks:
-  - \Drupal\commerce_log\LogCommentPermissions::buildPermissions

@@ -1,0 +1,24 @@
+uuid: 0ce1441f-e42e-4c07-a876-39a0c3a028a0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.commerce_payment_method.card_exp_month
+  module:
+    - commerce_payment
+id: commerce_payment_method.credit_card.card_exp_month
+field_name: card_exp_month
+entity_type: commerce_payment_method
+bundle: credit_card
+label: 'Card expiration month'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

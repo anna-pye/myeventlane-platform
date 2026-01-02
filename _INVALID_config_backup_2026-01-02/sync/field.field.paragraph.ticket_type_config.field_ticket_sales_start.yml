@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_ticket_sales_start
+    - paragraphs.paragraphs_type.ticket_type_config
+  module:
+    - datetime
+id: paragraph.ticket_type_config.field_ticket_sales_start
+field_name: field_ticket_sales_start
+entity_type: paragraph
+bundle: ticket_type_config
+label: 'Sales Start'
+description: 'Optional: When ticket sales for this type begin. Leave empty to start immediately.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  timezone_override: ''
+field_type: datetime

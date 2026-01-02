@@ -1,0 +1,21 @@
+uuid: 2caab23c-3d9f-4142-a7fa-3dfb07cc40ba
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_phone
+  module:
+    - myeventlane_vendor
+    - telephone
+id: myeventlane_vendor.myeventlane_vendor.field_phone
+field_name: field_phone
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Phone number'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: telephone

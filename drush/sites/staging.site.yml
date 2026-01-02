@@ -1,0 +1,3 @@
+staging:
+  root: /home/myeventlanecom/staging/web
+  uri: https://staging.myeventlane.com.au

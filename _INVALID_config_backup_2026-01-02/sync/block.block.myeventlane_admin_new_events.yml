@@ -1,0 +1,30 @@
+uuid: 7820503c-e0c5-41d6-bcb7-91fd803d22be
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.new_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_admin
+id: myeventlane_admin_new_events
+theme: myeventlane_admin
+region: content
+weight: 10
+provider: null
+plugin: 'views_block:new_events-block_new'
+settings:
+  id: 'views_block:new_events-block_new'
+  label: 'New Events'
+  label_display: visible
+  provider: views
+  views_label: 'New Events'
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

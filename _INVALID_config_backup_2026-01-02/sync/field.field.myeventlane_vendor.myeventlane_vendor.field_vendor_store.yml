@@ -1,0 +1,29 @@
+uuid: 44e1ac23-49ae-4d18-bafe-0eef802d6f00
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_vendor_store
+    - myeventlane_vendor.myeventlane_vendor
+  module:
+    - commerce_store
+id: myeventlane_vendor.myeventlane_vendor.field_vendor_store
+field_name: field_vendor_store
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: Store
+description: 'The Commerce store linked to this vendor.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:commerce_store'
+  handler_settings:
+    target_bundles:
+      online: online
+    sort:
+      field: name
+      direction: ASC
+    auto_create: false
+field_type: entity_reference

@@ -1,0 +1,25 @@
+uuid: ddbf24af-7607-4fbb-a319-2749945756a5
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_core
+    - system
+  theme:
+    - radix
+id: radix_value_proposition
+theme: radix
+region: content
+weight: -5
+provider: null
+plugin: myeventlane_value_proposition
+settings:
+  id: myeventlane_value_proposition
+  label: 'Value Proposition'
+  label_display: '0'
+  provider: myeventlane_core
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

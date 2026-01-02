@@ -1,7 +1,0 @@
-administer commerce_payment_gateway:
-  title: 'Administer payment gateways'
-  restrict access: true
-
-administer commerce_payment:
-  title: 'Administer payments'
-  restrict access: true

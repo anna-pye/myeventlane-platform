@@ -1,0 +1,21 @@
+uuid: 7c78cb21-516d-48b4-a3a9-5f9351326bd2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_promo_expires
+    - node.type.event
+  module:
+    - datetime
+id: node.event.field_promo_expires
+field_name: field_promo_expires
+entity_type: node
+bundle: event
+label: 'Promotion Expires'
+description: 'When the boost/promotion expires. Managed automatically by the boost system.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

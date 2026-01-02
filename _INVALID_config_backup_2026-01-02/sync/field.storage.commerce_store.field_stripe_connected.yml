@@ -1,0 +1,18 @@
+uuid: 82d0b2cc-bad0-440a-b140-bdc56e406875
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+id: commerce_store.field_stripe_connected
+field_name: field_stripe_connected
+entity_type: commerce_store
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

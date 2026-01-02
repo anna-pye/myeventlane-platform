@@ -1,0 +1,25 @@
+uuid: 59530af3-bfb9-463e-988f-93650a863da4
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_core
+    - system
+  theme:
+    - myeventlane_radix
+id: myeventlane_radix_value_proposition
+theme: myeventlane_radix
+region: content
+weight: -5
+provider: null
+plugin: myeventlane_value_proposition
+settings:
+  id: myeventlane_value_proposition
+  label: 'Value Proposition'
+  label_display: '0'
+  provider: myeventlane_core
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

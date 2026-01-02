@@ -1,0 +1,71 @@
+uuid: 18215e89-6a32-473c-a9d5-3a93604974ea
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.ticket_type_config.field_ticket_capacity
+    - field.field.paragraph.ticket_type_config.field_ticket_label_custom
+    - field.field.paragraph.ticket_type_config.field_ticket_label_mode
+    - field.field.paragraph.ticket_type_config.field_ticket_label_preset
+    - field.field.paragraph.ticket_type_config.field_ticket_price
+    - field.field.paragraph.ticket_type_config.field_ticket_sales_end
+    - field.field.paragraph.ticket_type_config.field_ticket_sales_start
+    - field.field.paragraph.ticket_type_config.field_ticket_variation_uuid
+    - paragraphs.paragraphs_type.ticket_type_config
+  module:
+    - datetime
+id: paragraph.ticket_type_config.default
+targetEntityType: paragraph
+bundle: ticket_type_config
+mode: default
+content:
+  field_ticket_capacity:
+    type: number
+    weight: 4
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  field_ticket_label_custom:
+    type: string_textfield
+    weight: 2
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_ticket_label_mode:
+    type: options_select
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_ticket_label_preset:
+    type: options_select
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_ticket_price:
+    type: number
+    weight: 3
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  field_ticket_sales_end:
+    type: datetime_default
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_ticket_sales_start:
+    type: datetime_default
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_ticket_variation_uuid: true
+  status: true

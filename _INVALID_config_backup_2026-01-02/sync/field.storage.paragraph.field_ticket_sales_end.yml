@@ -1,0 +1,20 @@
+uuid: 8c3770e1-2f71-47af-bd4e-4ea3244296e2
+langcode: en
+status: true
+dependencies:
+  module:
+    - datetime
+    - paragraphs
+id: paragraph.field_ticket_sales_end
+field_name: field_ticket_sales_end
+entity_type: paragraph
+type: datetime
+settings:
+  datetime_type: datetime
+module: datetime
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,5 @@
+pdf_enabled: 1
+pdf_expiry_days: '365'
+include_qr_code: 1
+show_ticket_code: 1
+ticket_code_format: alphanumeric

@@ -1,0 +1,19 @@
+uuid: 2f75f0c1-ea4e-4345-8c53-13d79bcb8583
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_options
+    - paragraphs.paragraphs_type.attendee_extra_field
+id: paragraph.attendee_extra_field.field_question_options
+field_name: field_question_options
+entity_type: paragraph
+bundle: attendee_extra_field
+label: Options
+description: 'For select/checkbox/radio fields, enter one option per line.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

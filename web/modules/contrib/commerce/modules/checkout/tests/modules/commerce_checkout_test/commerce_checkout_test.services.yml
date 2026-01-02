@@ -1,5 +1,0 @@
-services:
-  commerce_checkout_test.checkout_subscriber:
-    class: Drupal\commerce_checkout_test\EventSubscriber\CheckoutSubscriber
-    tags:
-      - { name: event_subscriber }

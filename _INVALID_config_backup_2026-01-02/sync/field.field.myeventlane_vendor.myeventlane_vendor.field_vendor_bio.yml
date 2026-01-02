@@ -1,0 +1,22 @@
+uuid: 77f620ba-de8c-434b-8802-57f33ff9930e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_vendor_bio
+    - myeventlane_vendor.myeventlane_vendor
+  module:
+    - text
+id: myeventlane_vendor.myeventlane_vendor.field_vendor_bio
+field_name: field_vendor_bio
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: Bio
+description: 'A longer description or biography of the vendor.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

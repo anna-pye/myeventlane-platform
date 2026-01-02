@@ -1,0 +1,15 @@
+uuid: c7f2d4db-44ee-49e1-831e-a8f9b2b11a61
+langcode: en
+status: true
+dependencies: {  }
+id: rsvp_donation
+label: 'RSVP Donation'
+traits: {  }
+locked: false
+workflow: order_default
+numberPattern: order_default
+refresh_mode: customer
+refresh_frequency: 0
+sendReceipt: true
+receiptBcc: ''
+receiptSubject: 'Thank you for your donation'

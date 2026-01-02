@@ -1,0 +1,17 @@
+uuid: f3501866-00db-4fe9-b8fa-531b96e3f012
+langcode: en
+status: true
+dependencies:
+  module:
+    - menu_ui
+third_party_settings:
+  menu_ui:
+    available_menus: {  }
+    parent: ''
+name: Event
+type: event
+description: 'MyEventLane Event - a ticketed or RSVP-based event with date, location, and capacity.'
+help: 'Create events for your venue or organization. Events can be free (RSVP) or paid (ticketed via Commerce).'
+new_revision: false
+preview_mode: 2
+display_submitted: false

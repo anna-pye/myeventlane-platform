@@ -1,0 +1,19 @@
+uuid: 6017c619-4e3a-4351-a372-c06c6de2c8db
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_help
+    - paragraphs.paragraphs_type.attendee_extra_field
+id: paragraph.attendee_extra_field.field_question_help
+field_name: field_question_help
+entity_type: paragraph
+bundle: attendee_extra_field
+label: 'Help Text'
+description: 'Optional help text shown below the question field.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

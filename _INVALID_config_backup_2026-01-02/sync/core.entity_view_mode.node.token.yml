@@ -1,0 +1,11 @@
+uuid: 0050bf2e-ecad-4a93-b804-c105fdceda0d
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.token
+label: Token
+description: null
+targetEntityType: node
+cache: true

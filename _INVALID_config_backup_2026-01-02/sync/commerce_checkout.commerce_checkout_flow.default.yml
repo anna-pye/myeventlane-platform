@@ -1,0 +1,88 @@
+uuid: 5df7d0a6-546f-4e7f-9259-74f085478bd3
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_payment
+    - commerce_promotion
+_core:
+  default_config_hash: 50QUbDL5hfMj6JF3n2JcOsPZtzq8PyU9UR0iXIpVThA
+label: Default
+id: default
+plugin: multistep_default
+configuration:
+  display_checkout_progress: false
+  display_checkout_progress_breadcrumb_links: false
+  display_sidebar_checkout_complete: true
+  guest_order_assign: false
+  guest_new_account: true
+  guest_new_account_notify: true
+  panes:
+    login:
+      step: login
+      weight: 0
+      wrapper_element: container
+      allow_guest_checkout: false
+      allow_registration: true
+      registration_form_mode: register
+    contact_information:
+      display_label: null
+      step: order_information
+      weight: 1
+      wrapper_element: fieldset
+      double_entry: true
+      always_display: false
+    billing_information:
+      display_label: 'Billing information'
+      step: order_information
+      weight: 5
+      wrapper_element: container
+      always_display: true
+    payment_information:
+      step: order_information
+      weight: 4
+      wrapper_element: container
+      always_display: true
+      require_payment_method: false
+    review:
+      display_label: null
+      step: review
+      weight: 6
+      wrapper_element: null
+    payment_process:
+      display_label: null
+      step: payment
+      weight: 8
+      wrapper_element: container
+      capture: true
+    completion_message:
+      display_label: null
+      step: complete
+      weight: 9
+      wrapper_element: null
+      message:
+        value: "Your order number is [commerce_order:order_number].\r\nYou can view your order on your account page when logged in."
+        format: plain_text
+      display_pane_summaries: true
+    completion_register:
+      display_label: null
+      step: complete
+      weight: 10
+      wrapper_element: null
+    order_summary:
+      display_label: null
+      step: _sidebar
+      weight: 11
+      wrapper_element: container
+      view: commerce_checkout_order_summary
+    coupon_redemption:
+      display_label: null
+      step: _sidebar
+      weight: 12
+      wrapper_element: container
+      allow_multiple: false
+    customer_comments:
+      display_label: null
+      step: _disabled
+      weight: 14
+      wrapper_element: fieldset

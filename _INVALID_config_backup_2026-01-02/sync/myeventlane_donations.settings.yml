@@ -1,0 +1,18 @@
+_core:
+  default_config_hash: Q4rvnEeIOjVKTn14w9g5y1-e1IOmYbfRPyVbv5mqgxI
+enable_platform_donations: true
+enable_rsvp_donations: true
+platform_presets:
+  - 10.0
+  - 25.0
+  - 50.0
+  - 100.0
+attendee_presets:
+  - 5.0
+  - 10.0
+  - 25.0
+  - 50.0
+min_amount: 1.0
+platform_copy: 'Support MyEventLane and help us continue building tools for event creators.'
+attendee_copy: 'Support this event organiser with an optional donation. Your contribution helps make this event possible.'
+require_stripe_connected_for_attendee_donations: true

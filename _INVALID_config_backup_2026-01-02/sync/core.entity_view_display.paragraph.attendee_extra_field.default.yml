@@ -1,0 +1,48 @@
+uuid: e69ba321-0845-4afe-a63d-064722961274
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.attendee_extra_field.field_question_help
+    - field.field.paragraph.attendee_extra_field.field_question_label
+    - field.field.paragraph.attendee_extra_field.field_question_machine_name
+    - field.field.paragraph.attendee_extra_field.field_question_options
+    - field.field.paragraph.attendee_extra_field.field_question_required
+    - field.field.paragraph.attendee_extra_field.field_question_type
+    - paragraphs.paragraphs_type.attendee_extra_field
+  module:
+    - options
+id: paragraph.attendee_extra_field.default
+targetEntityType: paragraph
+bundle: attendee_extra_field
+mode: default
+content:
+  field_question_label:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_question_required:
+    type: boolean
+    label: inline
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_question_type:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  field_question_help: true
+  field_question_machine_name: true
+  field_question_options: true

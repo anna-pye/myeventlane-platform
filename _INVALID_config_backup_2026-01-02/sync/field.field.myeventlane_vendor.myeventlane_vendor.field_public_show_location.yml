@@ -1,0 +1,25 @@
+uuid: 300184f7-b457-4eae-9368-877ee19edab2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_public_show_location
+    - myeventlane_vendor.myeventlane_vendor
+  module:
+    - options
+id: myeventlane_vendor.myeventlane_vendor.field_public_show_location
+field_name: field_public_show_location
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Show location publicly'
+description: 'Whether to display the vendor location/address on the public vendor page.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

@@ -1,0 +1,15 @@
+enabled: '1'
+subject: 'Sales are now open: {{ event_title }}'
+body_html: |
+  <p>Great news! Ticket sales for <strong>{{ event_title }}</strong> are now open.</p>
+  {% if sales_start %}
+  <p>Sales opened at <strong>{{ sales_start }}</strong>.</p>
+  {% endif %}
+  <p><a href="{{ event_url }}" style="display:inline-block;padding:12px 16px;border-radius:999px;background:#f5c04c;color:#293241;text-decoration:none;font-weight:600;">View Event & Buy Tickets</a></p>
+  <p>Good luck with your event!</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: notification
+    utm_campaign: sales_open

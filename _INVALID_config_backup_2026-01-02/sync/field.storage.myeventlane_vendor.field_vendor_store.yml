@@ -1,0 +1,19 @@
+uuid: ec3507a5-e623-47c6-9dbb-8f6e787db31c
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_store
+id: myeventlane_vendor.field_vendor_store
+field_name: field_vendor_store
+entity_type: myeventlane_vendor
+type: entity_reference
+settings:
+  target_type: commerce_store
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

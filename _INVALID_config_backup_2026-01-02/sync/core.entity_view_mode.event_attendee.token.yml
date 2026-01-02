@@ -1,0 +1,11 @@
+uuid: beeed950-56bf-4e8a-b7df-a3e2ec501c5d
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_event_attendees
+id: event_attendee.token
+label: Token
+description: null
+targetEntityType: event_attendee
+cache: true

@@ -1,0 +1,20 @@
+uuid: a2cf0a5d-ae03-4ace-8fcf-80b86a71e503
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_address
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_address
+field_name: field_address
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: Address
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

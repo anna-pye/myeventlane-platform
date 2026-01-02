@@ -1,0 +1,20 @@
+uuid: f94c709e-5646-43da-9205-d3af3586e9cf
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_accessibility_parking
+    - node.type.event
+id: node.event.field_accessibility_parking
+field_name: field_accessibility_parking
+entity_type: node
+bundle: event
+label: 'Accessibility Parking Information'
+description: 'Parking information for attendees with accessibility needs (e.g., accessible parking spaces, parking locations, permits required).'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long
