@@ -1,0 +1,23 @@
+uuid: d1975d79-2750-41b6-8e02-e3bc29f83a77
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.boost_duration
+    - field.storage.commerce_product_variation.field_boost_days
+id: commerce_product_variation.boost_duration.field_boost_days
+field_name: field_boost_days
+entity_type: commerce_product_variation
+bundle: boost_duration
+label: 'Boost days'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

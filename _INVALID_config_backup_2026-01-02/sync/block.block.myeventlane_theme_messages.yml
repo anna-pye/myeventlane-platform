@@ -1,0 +1,22 @@
+uuid: fde8c6f7-3bf4-4cd3-af3a-33d42cc7a167
+langcode: en
+status: false
+dependencies:
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+_core:
+  default_config_hash: BZ5tpW7H8X4PVGRm3MImTIHd2tN0eF7zOtp4SpRYUA0
+id: myeventlane_theme_messages
+theme: myeventlane_theme
+region: utility_bar
+weight: -5
+provider: null
+plugin: system_messages_block
+settings:
+  id: system_messages_block
+  label: 'Status messages'
+  label_display: '0'
+  provider: system
+visibility: {  }

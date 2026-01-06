@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_type.ticket
+    - field.storage.commerce_product.field_event
+    - node.type.event
+id: commerce_product.ticket.field_event
+field_name: field_event
+entity_type: commerce_product
+bundle: ticket
+label: Event
+description: 'Link this ticket product to an event. Required for ticket products.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      event: event
+    sort:
+      field: title
+      direction: asc
+    auto_create: false
+field_type: entity_reference

@@ -1,0 +1,9 @@
+langcode: ''
+send_vendor_copy: true
+send_confirmation: 1
+digest_frequency: individual
+waitlist_enabled_default: 1
+auto_promote: 1
+notify_on_promotion: 1
+allow_cancellation: 1
+cancellation_cutoff_hours: '24'

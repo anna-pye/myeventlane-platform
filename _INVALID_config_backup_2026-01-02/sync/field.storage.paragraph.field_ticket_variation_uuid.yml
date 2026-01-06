@@ -1,0 +1,21 @@
+uuid: b8700643-e9dd-41e6-8dfd-f373ee03dd6e
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: paragraph.field_ticket_variation_uuid
+field_name: field_ticket_variation_uuid
+entity_type: paragraph
+type: string
+settings:
+  max_length: 36
+  case_sensitive: false
+  is_ascii: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,22 @@
+uuid: 15f9550f-69ef-4622-a0ea-01a1d4d6791b
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_owner
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_owner
+field_name: field_owner
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Owner (user)'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings: {  }
+field_type: entity_reference

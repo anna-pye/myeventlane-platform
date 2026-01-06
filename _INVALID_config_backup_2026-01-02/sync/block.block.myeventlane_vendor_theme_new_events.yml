@@ -1,0 +1,30 @@
+uuid: f2a64218-82ce-49c4-b888-72d17fc7e4f6
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.new_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_vendor_theme
+id: myeventlane_vendor_theme_new_events
+theme: myeventlane_vendor_theme
+region: content
+weight: 10
+provider: null
+plugin: 'views_block:new_events-block_new'
+settings:
+  id: 'views_block:new_events-block_new'
+  label: 'New Events'
+  label_display: visible
+  provider: views
+  views_label: 'New Events'
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

@@ -1,8 +1,0 @@
-from_name: MyEventLane
-from_email: anna_pye@icloud.com
-reply_to: anna_pye@icloud.com
-event_reminder_enabled: 1
-event_reminder_hours: '24'
-cart_abandoned_enabled: 1
-cart_abandoned_hours: '2'
-batch_size: '50'

@@ -1,0 +1,23 @@
+uuid: f88419a8-b0aa-4359-a5d5-df2cea3bfd73
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_required
+    - paragraphs.paragraphs_type.attendee_extra_field
+id: paragraph.attendee_extra_field.field_question_required
+field_name: field_question_required
+entity_type: paragraph
+bundle: attendee_extra_field
+label: Required
+description: 'Whether this question must be answered.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: Required
+  off_label: Optional
+field_type: boolean

@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_ticket_sales_end
+    - paragraphs.paragraphs_type.ticket_type_config
+  module:
+    - datetime
+id: paragraph.ticket_type_config.field_ticket_sales_end
+field_name: field_ticket_sales_end
+entity_type: paragraph
+bundle: ticket_type_config
+label: 'Sales End'
+description: 'Optional: When ticket sales for this type end. Leave empty for no end date.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  timezone_override: ''
+field_type: datetime

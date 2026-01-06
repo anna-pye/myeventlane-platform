@@ -1,0 +1,13 @@
+uuid: 13b1d21f-bc68-48b5-a198-2046f8ae4acb
+langcode: en
+status: true
+dependencies: {  }
+id: ticket
+label: 'Event Ticket'
+traits: {  }
+locked: false
+description: 'Ticket product for MyEventLane events (free RSVP or paid)'
+variationTypes:
+  - ticket_variation
+multipleVariations: true
+injectVariationFields: true

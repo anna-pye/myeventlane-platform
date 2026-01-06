@@ -1,0 +1,23 @@
+uuid: bb8386ff-109e-40c3-b3ce-e0bc1f1b5562
+langcode: en
+status: false
+dependencies:
+  module:
+    - search
+  theme:
+    - myeventlane_vendor_theme
+_core:
+  default_config_hash: pbbed0hdqGDF-_QWVVTWRAwgDIotFuAvWH5mWUZu0fA
+id: myeventlane_vendor_theme_search_form_wide
+theme: myeventlane_vendor_theme
+region: content
+weight: -5
+provider: null
+plugin: search_form_block
+settings:
+  id: search_form_block
+  label: 'Search form (wide)'
+  label_display: '0'
+  provider: search
+  page_id: null
+visibility: {  }
