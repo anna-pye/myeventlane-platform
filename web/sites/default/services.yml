@@ -1,0 +1,10 @@
+parameters:
+  twig.config:
+    debug: true
+  session.storage.options:
+    cookie_httponly: true
+    cookie_secure: false
+    cookie_samesite: 'Lax'
+services:
+  cache.backend.null:
+    class: Drupal\Core\Cache\NullBackendFactory
