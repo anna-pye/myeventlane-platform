@@ -1,0 +1,79 @@
+/**
+ * @file
+ * MyEventLane Tickets Event Wizard CSS.
+ *
+ * Styles for:
+ * - Wizard button layout
+ * - Conditional field visibility
+ * - Mobile-friendly button arrangement
+ */
+
+/* Ensure wizard buttons are inline with Save/Preview */
+.form-actions,
+[data-drupal-selector="edit-actions"],
+#edit-actions,
+.mel-event-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: center;
+  margin-top: 1em;
+}
+
+/* Wizard-specific action buttons */
+.mel-vendor-wizard__actions,
+[data-wizard-actions],
+.wizard-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: center;
+}
+
+/* Ensure all buttons in actions container are properly styled */
+.form-actions button,
+.form-actions input[type="submit"],
+[data-drupal-selector="edit-actions"] button,
+[data-drupal-selector="edit-actions"] input[type="submit"],
+#edit-actions button,
+#edit-actions input[type="submit"],
+.mel-event-form__actions button,
+.mel-event-form__actions input[type="submit"] {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Hide ticketing fields when RSVP-only */
+.field--name-field-ticket-types.js-hidden,
+.field--name-field-collect-per-ticket.js-hidden,
+[data-drupal-selector*="field-ticket-types"].js-hidden,
+[data-drupal-selector*="field-collect-per-ticket"].js-hidden {
+  display: none !important;
+}
+
+/* Mobile-friendly button layout */
+@media (max-width: 768px) {
+  .form-actions,
+  [data-drupal-selector="edit-actions"],
+  #edit-actions,
+  .mel-event-form__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions button,
+  .form-actions input[type="submit"],
+  [data-drupal-selector="edit-actions"] button,
+  [data-drupal-selector="edit-actions"] input[type="submit"],
+  #edit-actions button,
+  #edit-actions input[type="submit"],
+  .mel-event-form__actions button,
+  .mel-event-form__actions input[type="submit"] {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.5em;
+  }
+}
+
