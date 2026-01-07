@@ -110,3 +110,8 @@ services:
       - '@myeventlane_core.domain_detector'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_core.staging_security_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\StagingSecuritySubscriber
+    tags:
+      - { name: event_subscriber }

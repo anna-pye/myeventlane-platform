@@ -1,0 +1,50 @@
+#
+# robots.txt - STAGING ENVIRONMENT
+#
+# This staging site is blocked from all search engine crawlers.
+# Do not index or cache any content from this environment.
+#
+
+User-agent: *
+Disallow: /
+
+# Explicitly block common crawlers
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-Mobile
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+User-agent: Sogou
+Disallow: /
+
+User-agent: Exabot
+Disallow: /
+
+User-agent: facebot
+Disallow: /
+
+User-agent: ia_archiver
+Disallow: /
+
+# Crawl-delay set to maximum to discourage crawling
+Crawl-delay: 86400
+
