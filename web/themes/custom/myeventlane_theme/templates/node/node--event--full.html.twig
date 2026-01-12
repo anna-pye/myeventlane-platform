@@ -13,81 +13,32 @@
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
 {{ attach_library('myeventlane_location/event_map') }}
 
+<div class="mel-event-hero-wrapper">
+  <div class="mel-event-hero">
+    <img
+      src="{{ image_src }}"
+      alt="{{ label }}"
+      class="mel-event-hero__image"
+      loading="eager"
+    />
+
+    <div class="mel-event-hero__overlay">
+      <h1 class="mel-event-hero__title">{{ label }}</h1>
+
+      <div class="mel-event-hero__meta">
+        {{ content.field_event_date }}
+        {{ content.field_event_time }}
+      </div>
+
+      <div class="mel-event-hero__categories">
+        {{ content.field_categories }}
+      </div>
+    </div>
+  </div>
+</div>
+
 <article{{ attributes.addClass('mel-event', 'mel-event--full') }}>
   
-  {# ==========================================================================
-     HERO SECTION
-     ========================================================================== #}
-  <section class="mel-event-hero{% if hero_image_url is defined and hero_image_url %} mel-event-hero--image{% endif %}">
-    {% if hero_image_url is defined and hero_image_url %}
-      <div class="mel-event-hero__image-wrapper">
-        <img
-          src="{{ hero_image_url }}"
-          alt="{{ node.label }}"
-          class="mel-event-hero__image"
-        />
-      </div>
-      <div class="mel-event-hero__scrim"></div>
-    {% endif %}
-
-    <div class="mel-event-hero__content">
-      <h1 class="mel-event-hero__title">{{ node.label }}</h1>
-      
-      {# Meta Items (Date, Time, Location, Price) #}
-      <div class="mel-event-hero__meta">
-        {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-          <div class="mel-event-hero__meta-item">
-            <span class="mel-event-hero__meta-icon">📅</span>
-            <span>{{ node.field_event_start.value|date('l j F Y') }}</span>
-          </div>
-          <div class="mel-event-hero__meta-item">
-            <span class="mel-event-hero__meta-icon">🕐</span>
-            <span>
-              {{ node.field_event_start.value|date('g:ia') }}
-              {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-                – {{ node.field_event_end.value|date('g:ia') }}
-              {% endif %}
-            </span>
-          </div>
-        {% endif %}
-        
-        {% if event_location and event_location.venue_name %}
-          <div class="mel-event-hero__meta-item">
-            <span class="mel-event-hero__meta-icon">📍</span>
-            <span>{{ event_location.venue_name }}</span>
-          </div>
-        {% endif %}
-        
-        {% if mel_price_summary is defined and mel_price_summary %}
-          <div class="mel-event-hero__meta-item">
-            <span class="mel-event-hero__meta-icon">💰</span>
-            <span>{{ mel_price_summary }}</span>
-          </div>
-        {% endif %}
-      </div>
-
-      {# Vibe Chips (Categories/Tags) #}
-      {% if node.hasField('field_category') and not node.field_category.isEmpty or node.hasField('field_tags') and not node.field_tags.isEmpty %}
-        <div class="mel-event-hero__chips">
-          {% if node.hasField('field_category') and not node.field_category.isEmpty %}
-            {% for category in node.field_category %}
-              {% if category.entity %}
-                <span class="mel-vibe-chip">{{ category.entity.label }}</span>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-          {% if node.hasField('field_tags') and not node.field_tags.isEmpty %}
-            {% for tag in node.field_tags %}
-              {% if tag.entity %}
-                <span class="mel-vibe-chip">{{ tag.entity.label }}</span>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div>
-      {% endif %}
-    </div>
-  </section>
-
   {# ==========================================================================
      CANCELLED BANNER (if cancelled)
      ========================================================================== #}

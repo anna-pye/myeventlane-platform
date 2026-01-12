@@ -67,11 +67,17 @@
 @use 'components/buttons';
 @use 'components/cards';
 @use 'components/chips';
+@use 'components/mel-category-pills';
+@use 'components/mel-lane-cards';
+@use 'components/mel-mascot';
 @use 'components/alerts';
 @use 'components/tables';
 @use 'components/header';
+@use 'components/cta-bar';
 @use 'components/hero';
 @use 'components/home-hero';
+@use 'components/mel-hero-illustration';
+@use 'components/mel-lane-animate';
 @use 'components/event-grid';
 @use 'components/event-card';
 @use 'components/event-card-poster';
@@ -79,9 +85,10 @@
 @use 'components/vibe-mixer';
 @use 'components/featured-carousel';
 @use 'components/event-page';
-@use 'components/event-full';
+@use 'components/event-full' as event_full_component;
 @use 'components/event-node';
 @use 'components/event' as event-component;
+@use 'components/event-hero';
 @use 'components/event-grid-festival';
 @use 'components/event-hero-festival';
 @use 'components/event-cards-festival';
@@ -111,6 +118,7 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/event';
+@use 'pages/event-full' as event_full_page;
 @use 'pages/event-form';
 @use 'pages/dashboard';
 @use 'pages/user';
