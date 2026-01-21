@@ -1,0 +1,48 @@
+{#
+/**
+ * @file
+ * Recommended events unformatted template (block_1).
+ * Renders event cards in a Swiper carousel: 2 cards on tablet/desktop, ~1.1 on mobile.
+ */
+#}
+
+{% set classes = [
+  'view',
+  'view-' ~ id|clean_class,
+  'view-display-id-' ~ display_id|clean_class,
+  'mel-home-section',
+  'mel-home-section--recommended',
+] %}
+
+<div class="mel-recommended-context">
+  <header class="mel-section-head">
+    <h2 class="mel-section-head__title">{{ "What's on next"|t }}</h2>
+    <p class="mel-section-head__hint">
+      {{ "See what's coming up on MyEventLane."|t }}
+    </p>
+  </header>
+
+  <div{{ attributes.addClass(classes) }}>
+    {% if title %}
+      {{ title }}
+    {% endif %}
+
+    {% if rows %}
+      {% set items = [] %}
+      {% for row in rows %}
+        {% set item = row.content %}
+        {% set items = items|merge([item]) %}
+      {% endfor %}
+      {% include '@myeventlane_theme/components/card-carousel/card-carousel.twig' with {
+        items: items,
+        carousel_id: 'recommended-events-carousel',
+      } %}
+    {% else %}
+      <p class="mel-muted">
+        {{ 'More recommendations coming soon.'|t }}
+      </p>
+    {% endif %}
+
+    {{ pager }}
+  </div>
+</div>

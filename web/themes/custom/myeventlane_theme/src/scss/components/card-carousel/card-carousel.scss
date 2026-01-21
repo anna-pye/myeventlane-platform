@@ -1,0 +1,54 @@
+// ==========================================================================
+// MEL Card Carousel (Swiper)
+// ==========================================================================
+// Pastel arrow buttons, 2 cards on tablet/desktop, ~1.1 on mobile.
+// Uses existing MEL tokens; defines --mel-purple-100/200/900 scoped for arrows.
+
+.mel-card-carousel {
+  // Pastel arrow tokens (scoped; fallbacks if not in :root)
+  --mel-purple-100: var(--mel-lilac, #e6d9ff);
+  --mel-purple-200: #d6c6ff;
+  --mel-purple-900: var(--mel-navy, #293241);
+
+  position: relative;
+  padding: 1rem 0;
+
+  .swiper-slide {
+    height: auto;
+    display: flex;
+  }
+
+  .swiper-button-prev,
+  .swiper-button-next {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--mel-purple-100);
+    color: var(--mel-purple-900);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+    &::after {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    &:hover {
+      background: var(--mel-purple-200);
+    }
+  }
+
+  .swiper-button-prev {
+    left: -16px;
+  }
+
+  .swiper-button-next {
+    right: -16px;
+  }
+
+  @media (max-width: 768px) {
+    .swiper-button-prev,
+    .swiper-button-next {
+      display: none;
+    }
+  }
+}
