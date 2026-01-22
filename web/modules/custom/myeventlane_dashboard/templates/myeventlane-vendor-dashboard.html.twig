@@ -175,6 +175,40 @@
   {% endif %}
 
 
+  {# Metrics cards #}
+  {% if dashboard.metrics %}
+    <section class="mel-dashboard-section" aria-labelledby="metrics-title">
+      <h2 id="metrics-title" class="mel-section-title">{{ 'Overview'|t }}</h2>
+      <div class="mel-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        {% for metric in dashboard.metrics %}
+          <div class="mel-metric-card mel-card" style="padding: 1.5rem;">
+            <div class="mel-metric-card__label" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.875rem; color: #666; font-weight: 500;">
+              <span>{{ metric.label }}</span>
+              {% if metric.provenance %}
+                <button
+                  type="button"
+                  class="mel-tooltip-trigger"
+                  aria-label="How this metric is calculated"
+                  title="{{ metric.provenance|e }}"
+                  style="width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: #999; cursor: help; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; line-height: 1;">
+                  ?
+                </button>
+              {% endif %}
+            </div>
+            <div class="mel-metric-card__value" style="font-size: 2rem; font-weight: 700; color: #293241; margin-bottom: 0.5rem;">
+              {{ metric.value }}
+            </div>
+            {% if metric.subtext %}
+              <div class="mel-metric-card__subtext" style="font-size: 0.875rem; color: #999;">
+                {{ metric.subtext }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   {# Quick actions #}
   {% if quick_links %}
     <section class="mel-dashboard-section" aria-labelledby="quick-actions-title">

@@ -64,6 +64,7 @@ final class VendorMetricsService implements VendorMetricsServiceInterface {
           : sprintf('%s', $subtext),
         'url' => '',
         'state' => '',
+        'provenance' => 'Completed ticket sales minus completed refunds for this store.',
       ],
       [
         'key' => 'tickets_sold',
@@ -72,6 +73,7 @@ final class VendorMetricsService implements VendorMetricsServiceInterface {
         'subtext' => $subtext,
         'url' => '',
         'state' => '',
+        'provenance' => 'Sum of paid ticket quantities from completed orders.',
       ],
       [
         'key' => 'confirmed_rsvps',
@@ -80,6 +82,7 @@ final class VendorMetricsService implements VendorMetricsServiceInterface {
         'subtext' => $subtext,
         'url' => '',
         'state' => '',
+        'provenance' => 'Count of confirmed RSVPs linked to your events.',
       ],
     ];
 

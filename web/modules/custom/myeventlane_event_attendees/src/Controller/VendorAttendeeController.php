@@ -329,6 +329,12 @@ final class VendorAttendeeController extends ControllerBase {
 
   /**
    * Exports attendees as CSV with optional email obfuscation.
+   *
+   * IMPORTANT:
+   * This export uses the attendee repository for unified data access.
+   * If you need to add revenue, tickets sold, or RSVP counts to this export,
+   * use VendorMetricsService to guarantee parity with the vendor dashboard.
+   * Do not reimplement metrics here.
    */
   public function export(NodeInterface $node): Response {
     $request = \Drupal::request();

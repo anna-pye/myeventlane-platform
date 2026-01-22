@@ -15,7 +15,19 @@
 #}
 <div{{ attributes.addClass('mel-card', icon ? 'mel-card--' ~ icon) }}>
   {% if title %}
-    <h3 class="mel-card-title">{{ title }}</h3>
+    <div class="mel-card-title-wrapper" style="display: flex; align-items: center; gap: 0.5rem;">
+      <h3 class="mel-card-title">{{ title }}</h3>
+      {% if provenance %}
+        <button
+          type="button"
+          class="mel-tooltip-trigger"
+          aria-label="How this metric is calculated"
+          title="{{ provenance|e }}"
+          style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit; cursor: help; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          ?
+        </button>
+      {% endif %}
+    </div>
   {% endif %}
 
   {% if value is not null %}

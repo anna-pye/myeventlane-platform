@@ -24,7 +24,13 @@ final class VendorRsvpExportController extends ControllerBase {
   }
 
   /**
+   * Exports RSVPs as CSV.
    *
+   * IMPORTANT:
+   * This export uses UserRsvpRepository for unified data access.
+   * If you need to add revenue, tickets sold, or aggregate counts to this export,
+   * use VendorMetricsService to guarantee parity with the vendor dashboard.
+   * Do not reimplement metrics here.
    */
   public function export(int $event): Response {
     $rows = $this->repo->getEventRsvps($event);
