@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_dashboard\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -65,12 +66,15 @@ final class VendorDashboardBuilder {
       'cache_tags' => array_values(array_unique($cache_tags)),
     ];
 
-    // Admin-only debug mode.
+    // Admin-only debug mode: requires ALL three conditions.
     $request = $this->requestStack->getCurrentRequest();
-    $debug_enabled = $request && (string) $request->query->get('debug') === '1';
+    $debug_query_param = $request && (string) $request->query->get('debug') === '1';
+    $debug_settings_flag = Settings::get('myeventlane_vendor_dashboard_debug', FALSE);
     $is_admin = $this->currentUser->id() === 1 || $this->currentUser->hasPermission('administer commerce_store');
 
-    if ($debug_enabled && $is_admin) {
+    $debug_enabled = $debug_query_param && $debug_settings_flag && $is_admin;
+
+    if ($debug_enabled) {
       $metrics_debug = $this->metrics->getDebugTotals($store, $range);
       $payload['debug'] = [
         'store_id' => (int) $store->id(),
@@ -86,7 +90,7 @@ final class VendorDashboardBuilder {
         'events_loaded' => (int) count($events['items'] ?? []),
       ];
 
-      // Log debug information.
+      // Log debug information (single line).
       $logger = $this->loggerFactory->get('myeventlane_vendor_dashboard');
       $logger->info('Dashboard debug: store_id=@sid, range=@key (@start → @end), gross=@gross_cents, refund=@refund_cents, net=@net_cents, tickets=@tickets, rsvps=@rsvps, events=@events', [
         '@sid' => (string) $payload['debug']['store_id'],
@@ -102,6 +106,7 @@ final class VendorDashboardBuilder {
       ]);
     }
     else {
+      // Do not add debug data if any condition fails.
       $payload['debug'] = NULL;
     }
 
