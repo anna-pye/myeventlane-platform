@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor_comms\Plugin\QueueWorker;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
@@ -40,6 +42,10 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    *   The recipient resolver.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     array $configuration,
@@ -49,6 +55,8 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
     private readonly MessagingManager $messagingManager,
     private readonly EventRecipientResolver $recipientResolver,
     private readonly LoggerInterface $logger,
+    private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -64,7 +72,9 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
       $container->get('entity_type.manager'),
       $container->get('myeventlane_messaging.manager'),
       $container->get('myeventlane_vendor_comms.recipient_resolver'),
-      $container->get('logger.factory')->get('myeventlane_vendor_comms')
+      $container->get('logger.factory')->get('myeventlane_vendor_comms'),
+      $container->get('database'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -84,7 +94,7 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
     }
 
     // Update status to sending.
-    \Drupal::database()->update('myeventlane_event_comms_log')
+    $this->database->update('myeventlane_event_comms_log')
       ->fields(['status' => 'sending'])
       ->condition('id', $logId)
       ->execute();
@@ -154,8 +164,8 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    * Marks log entry as completed.
    */
   private function markCompleted(int $logId, int $sentCount, int $failedCount): void {
-    $now = \Drupal::time()->getRequestTime();
-    \Drupal::database()->update('myeventlane_event_comms_log')
+    $now = $this->time->getRequestTime();
+    $this->database->update('myeventlane_event_comms_log')
       ->fields([
         'status' => 'completed',
         'sent_count' => $sentCount,
@@ -170,8 +180,8 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    * Marks log entry as failed.
    */
   private function markFailed(int $logId): void {
-    $now = \Drupal::time()->getRequestTime();
-    \Drupal::database()->update('myeventlane_event_comms_log')
+    $now = $this->time->getRequestTime();
+    $this->database->update('myeventlane_event_comms_log')
       ->fields([
         'status' => 'failed',
         'completed_at' => $now,
@@ -181,4 +191,3 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
   }
 
 }
-

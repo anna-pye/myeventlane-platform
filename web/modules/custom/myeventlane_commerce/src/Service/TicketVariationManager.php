@@ -7,6 +7,9 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
+/**
+ *
+ */
 final class TicketVariationManager {
 
   public function __construct(
@@ -18,7 +21,8 @@ final class TicketVariationManager {
    *
    * @param \Drupal\commerce_product\Entity\ProductInterface $product
    * @param string $sku
-   * @param array $values ['title' => string, 'status' => int, 'price' => \Drupal\commerce_price\Price]
+   * @param array $values
+   *   ['title' => string, 'status' => int, 'price' => \Drupal\commerce_price\Price].
    */
   public function getOrCreate(ProductInterface $product, string $sku, array $values = []) : ProductVariation {
     $storage = $this->etm->getStorage('commerce_product_variation');
@@ -30,10 +34,12 @@ final class TicketVariationManager {
         // Update product_id by updating the variation and adding to product.
         $v->set('product_id', $product->id());
         $v->save();
-        
+
         // Ensure variation is in product's variations collection.
         $variations = $product->getVariations();
-        if (!in_array($v->id(), array_map(function($var) { return $var->id(); }, $variations->toArray()))) {
+        if (!in_array($v->id(), array_map(function ($var) {
+          return $var->id();
+        }, $variations->toArray()))) {
           $variations[] = $v;
           $product->set('variations', $variations);
           $product->save();
@@ -56,13 +62,14 @@ final class TicketVariationManager {
     /** @var \Drupal\commerce_product\Entity\ProductVariation $v */
     $v = ProductVariation::create($data);
     $v->save();
-    
+
     // Add variation to product's variations collection.
     $variations = $product->getVariations();
     $variations[] = $v;
     $product->set('variations', $variations);
     $product->save();
-    
+
     return $v;
   }
+
 }

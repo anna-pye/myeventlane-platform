@@ -85,6 +85,87 @@
   }
 
   /**
+   * Enable/disable sidebar step buttons based on wizard progress.
+   */
+  function updateStepButtonAccessibility(context) {
+    const wizardSettings = (typeof drupalSettings !== 'undefined' && drupalSettings.myeventlaneEventWizard)
+      ? drupalSettings.myeventlaneEventWizard
+      : null;
+    
+    const buttons = context.querySelectorAll('.js-mel-stepper-button');
+    
+    // Find current step.
+    const currentStep = context.querySelector('.js-mel-stepper-button.is-active');
+    const currentStepId = currentStep 
+      ? (currentStep.getAttribute('data-step-target') || currentStep.getAttribute('data-wizard-step'))
+      : null;
+    
+    // Default: enable all buttons unless explicitly disabled.
+    buttons.forEach((button) => {
+      const targetStep = button.getAttribute('data-step-target') || button.getAttribute('data-wizard-step');
+      
+      // Always enable the current step.
+      if (targetStep === currentStepId) {
+        button.removeAttribute('aria-disabled');
+        button.classList.remove('is-disabled');
+        button.style.opacity = '';
+        button.style.cursor = '';
+        return;
+      }
+      
+      // If no wizard settings, enable all buttons (default state).
+      if (!wizardSettings) {
+        button.removeAttribute('aria-disabled');
+        button.classList.remove('is-disabled');
+        button.style.opacity = '';
+        button.style.cursor = '';
+        return;
+      }
+
+      const { wizard_started, highest_completed_index, steps } = wizardSettings;
+      
+      // If wizard hasn't started, disable all steps except the first one.
+      if (!wizard_started) {
+        const stepIndex = steps.indexOf(targetStep);
+        // Disable all steps except the first (index 0).
+        if (stepIndex > 0) {
+          button.setAttribute('aria-disabled', 'true');
+          button.classList.add('is-disabled');
+          // Don't use pointer-events: none as it blocks JavaScript handlers.
+          // Use opacity and cursor styling instead.
+          button.style.opacity = '0.5';
+          button.style.cursor = 'not-allowed';
+        } else {
+          // Enable first step.
+          button.removeAttribute('aria-disabled');
+          button.classList.remove('is-disabled');
+          button.style.opacity = '';
+          button.style.cursor = '';
+        }
+        return;
+      }
+
+      // Wizard has started: enable steps up to highest_completed_step + 1 (allow next step).
+      const stepIndex = steps.indexOf(targetStep);
+      
+      // Enable if step is at or before highest_completed_step + 1 (allow next step).
+      if (stepIndex <= highest_completed_index + 1) {
+        button.removeAttribute('aria-disabled');
+        button.classList.remove('is-disabled');
+        button.style.opacity = '';
+        button.style.cursor = '';
+      } else {
+        // Disable future steps.
+        button.setAttribute('aria-disabled', 'true');
+        button.classList.add('is-disabled');
+        // Don't use pointer-events: none as it blocks JavaScript handlers.
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
+      }
+    });
+  }
+
+  /**
    * Handle stepper button clicks (for EventWizardForm and EventFormAlter).
    */
   function initStepperButtons(context) {
@@ -96,38 +177,59 @@
       if (button.tagName !== 'BUTTON' && button.tagName !== 'INPUT') {
         const hiddenSubmit = button.querySelector('.js-mel-step-submit');
         if (hiddenSubmit) {
+          // Use capture phase to ensure we catch the event early.
           button.addEventListener('click', (e) => {
+            // Only block if explicitly disabled via aria-disabled attribute.
+            // Don't check pointer-events style as it might be set elsewhere.
+            if (button.getAttribute('aria-disabled') === 'true') {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             e.preventDefault();
+            e.stopPropagation();
+            // Trigger the hidden submit button.
             hiddenSubmit.click();
-          });
+          }, true); // Use capture phase
+          
           // Also handle keyboard navigation.
           button.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              if (button.getAttribute('aria-disabled') === 'true') {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+              }
               e.preventDefault();
+              e.stopPropagation();
               hiddenSubmit.click();
             }
           });
           return;
         }
       }
-    });
-    
-    buttons.forEach((button) => {
+      
+      // Fallback handler for buttons without hidden submit.
       button.addEventListener('click', (e) => {
+        // Only block if explicitly disabled via aria-disabled attribute.
+        if (button.getAttribute('aria-disabled') === 'true') {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        
         e.preventDefault();
         e.stopPropagation();
-        const targetStep = button.getAttribute('data-step-target');
+        const targetStep = button.getAttribute('data-step-target') || button.getAttribute('data-wizard-step');
         if (!targetStep) return;
 
         const form = button.closest('form');
         if (!form) return;
 
-        // For EventWizardForm: find the stepper button's hidden field and click the button itself.
-        // The button is already a submit button with gotoStep handler.
-        const buttonStepField = button.querySelector('input[name="wizard_step"]');
-        if (buttonStepField && buttonStepField.value === targetStep) {
-          // Button already has the correct step value, just click it.
-          button.click();
+        // Try to find hidden submit button for this step.
+        const hiddenSubmit = button.querySelector('.js-mel-step-submit');
+        if (hiddenSubmit) {
+          hiddenSubmit.click();
           return;
         }
         
@@ -135,11 +237,14 @@
         const stepField = form.querySelector('input[name="wizard_step"]');
         if (stepField) {
           stepField.value = targetStep;
-          // Find the button that matches this step and click it.
+          // Find the hidden submit button for this step and click it.
           const matchingButton = form.querySelector(`.js-mel-stepper-button[data-step-target="${targetStep}"]`);
           if (matchingButton) {
-            matchingButton.click();
-            return;
+            const matchingSubmit = matchingButton.querySelector('.js-mel-step-submit');
+            if (matchingSubmit) {
+              matchingSubmit.click();
+              return;
+            }
           }
         }
         // For EventFormAlter: use wizard_target_step mechanism.
@@ -153,8 +258,11 @@
             }
           }
         }
-      });
+      }, true); // Use capture phase
     });
+    
+    // Update button accessibility after handlers are attached.
+    updateStepButtonAccessibility(context);
   }
 
   /**
@@ -178,12 +286,20 @@
           form.querySelector('[data-wizard-step]')
         ) {
           // Delay allows AJAX-rendered steps to exist
-          setTimeout(() => initWizard(form), 50);
+          setTimeout(() => {
+            initWizard(form);
+          }, 50);
         }
       }
 
       // Initialize stepper buttons for both EventWizardForm and EventFormAlter.
+      // This will also update button accessibility.
       initStepperButtons(context);
+      
+      // Also update button accessibility after a short delay to ensure DOM is ready.
+      setTimeout(() => {
+        updateStepButtonAccessibility(context);
+      }, 100);
     },
   };
 

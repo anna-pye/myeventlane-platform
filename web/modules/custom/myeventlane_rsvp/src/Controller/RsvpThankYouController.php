@@ -12,18 +12,27 @@ use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+/**
+ *
+ */
 final class RsvpThankYouController extends ControllerBase {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManagerService,
   ) {}
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container): self {
     return new self(
       $container->get('entity_type.manager'),
     );
   }
 
+  /**
+   *
+   */
   public function page(RouteMatchInterface $route_match): array {
     // Adjust this if your route uses a different param name.
     $event_param = $route_match->getParameter('event');

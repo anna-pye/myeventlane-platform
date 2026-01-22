@@ -86,10 +86,10 @@ class DashboardEventLoader {
       }
 
       $events = $storage->loadMultiple($ids);
-      
+
       // Filter out events the user doesn't have access to (for unpublished events).
       if (!$admin) {
-        $events = array_filter($events, function(NodeInterface $event) use ($userId) {
+        $events = array_filter($events, function (NodeInterface $event) use ($userId) {
           // User owns the event, so they can see it regardless of status.
           return (int) $event->getOwnerId() === $userId;
         });

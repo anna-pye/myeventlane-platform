@@ -89,4 +89,3 @@ function myeventlane_donations_uninstall(): void {
     }
   }
 }
-

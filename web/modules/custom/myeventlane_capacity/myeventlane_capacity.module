@@ -7,6 +7,9 @@
 
 declare(strict_types=1);
 
+use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\NodeInterface;
 
@@ -34,7 +37,7 @@ function myeventlane_capacity_entity_delete(EntityInterface $entity): void {
 /**
  * Implements hook_form_alter().
  */
-function myeventlane_capacity_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+function myeventlane_capacity_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Add capacity validation to cart form.
   if ($form_id === 'commerce_cart_form') {
     $form['#validate'][] = 'myeventlane_capacity_cart_form_validate';
@@ -49,7 +52,7 @@ function myeventlane_capacity_form_alter(array &$form, \Drupal\Core\Form\FormSta
  * @param \Drupal\Core\Form\FormStateInterface $form_state
  *   The form state.
  */
-function myeventlane_capacity_cart_form_validate(array &$form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+function myeventlane_capacity_cart_form_validate(array &$form, FormStateInterface $form_state): void {
   if (!\Drupal::hasService('myeventlane_capacity.service')) {
     return;
   }
@@ -60,7 +63,7 @@ function myeventlane_capacity_cart_form_validate(array &$form, \Drupal\Core\Form
 
   // Get the cart order from form state.
   $cart = $form_state->get('cart');
-  if (!$cart instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+  if (!$cart instanceof OrderInterface) {
     return;
   }
 
@@ -98,7 +101,7 @@ function myeventlane_capacity_cart_form_validate(array &$form, \Drupal\Core\Form
     try {
       $capacity_service->assertCanBook($event_node, $requested_total);
     }
-    catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
+    catch (CapacityExceededException $e) {
       // Get remaining capacity for user-friendly message.
       $remaining = $capacity_service->getRemaining($event_node);
       if ($remaining !== NULL && $remaining > 0) {

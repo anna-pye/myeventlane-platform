@@ -10,6 +10,9 @@ use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
  */
 class EventAttendeeController extends ControllerBase {
 
+  /**
+   *
+   */
   public function view(EventAttendee $event_attendee) {
     return [
       '#theme' => 'item_list',

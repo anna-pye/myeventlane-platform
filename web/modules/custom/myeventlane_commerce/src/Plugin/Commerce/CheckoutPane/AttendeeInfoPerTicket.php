@@ -2,7 +2,6 @@
 
 namespace Drupal\myeventlane_commerce\Plugin\Commerce\CheckoutPane;
 
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneInterface;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
@@ -41,6 +40,13 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
   protected $questionMapper;
 
   /**
+   * The logger channel for myeventlane_commerce.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Factory create with checkout flow (Commerce RC/Drupal 11 compatible).
    *
    * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
@@ -67,6 +73,7 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
     /** @var static $instance */
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->questionMapper = $container->get('myeventlane_commerce.paragraph_question_mapper');
+    $instance->logger = $container->get('logger.factory')->get('myeventlane_commerce');
     return $instance;
   }
 
@@ -87,7 +94,7 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     // This pane is deprecated. Return empty form.
-    \Drupal::logger('myeventlane_commerce')->warning(
+    $this->logger->warning(
       'Deprecated AttendeeInfoPerTicket pane was accessed. This pane stores attendee data in JSON format and has been replaced by the paragraph-based system.'
     );
     return [];
@@ -105,7 +112,7 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form): void {
     // Log warning if this deprecated pane attempts to write data.
-    \Drupal::logger('myeventlane_commerce')->warning(
+    $this->logger->warning(
       'Deprecated AttendeeInfoPerTicket pane attempted to write to field_attendee_data. This is deprecated in favor of paragraph-based storage.'
     );
     // Do not write any data.
@@ -152,7 +159,7 @@ class AttendeeInfoPerTicket extends CheckoutPaneBase implements CheckoutPaneInte
    */
   protected function getAccessibilityOptions(): array {
     try {
-      $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+      $storage = $this->entityTypeManager->getStorage('taxonomy_term');
       $terms = $storage->loadByProperties(['vid' => 'accessibility']);
       $options = [];
       foreach ($terms as $term) {

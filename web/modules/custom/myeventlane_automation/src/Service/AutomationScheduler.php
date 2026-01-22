@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_automation\Service;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Psr\Log\LoggerInterface;
@@ -244,9 +243,8 @@ final class AutomationScheduler {
    * For now, we check on cron but ideally this would be event-driven.
    */
   private function scanWaitlistInvites(int $now): void {
-    // @todo: This should ideally be triggered when capacity changes (refund, cancel, etc).
+    // @todo This should ideally be triggered when capacity changes (refund, cancel, etc).
     // For now, we do a basic scan of live events with waitlist enabled.
-
     $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', 'event')
@@ -275,7 +273,7 @@ final class AutomationScheduler {
       }
 
       // Check capacity availability.
-      // @todo: Use capacity service to check if capacity is available.
+      // @todo Use capacity service to check if capacity is available.
       // For now, skip this automated scan and rely on event-driven triggers.
       // This will be handled when capacity changes occur.
     }

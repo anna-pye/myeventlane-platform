@@ -1,0 +1,12 @@
+name: 'MyEventLane Search'
+type: module
+description: 'Site-wide Search API integration with grouped results (Events, Vendors, Venues, Pages, Categories).'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - search_api:search_api
+  - search_api:search_api_db
+  - drupal:node
+  - drupal:taxonomy
+  - drupal:views
+  - commerce:commerce_store

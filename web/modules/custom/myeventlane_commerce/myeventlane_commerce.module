@@ -109,7 +109,7 @@ function _myeventlane_commerce_sync_event_variations(EntityInterface $entity): v
     if (empty($products)) {
       // Expected for new/draft events that haven't created products yet.
       // Don't log this as it's expected behavior - only log at debug level if needed for troubleshooting.
-      // \Drupal::logger('myeventlane_commerce')->debug('No products found for Event @id (expected for new/draft events)', ['@id' => $event_id]);
+      // \Drupal::logger('myeventlane_commerce')->debug('No products found for Event @id (expected for new/draft events)', ['@id' => $event_id]);.
       return;
     }
 

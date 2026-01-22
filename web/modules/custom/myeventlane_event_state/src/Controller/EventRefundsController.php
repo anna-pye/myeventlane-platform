@@ -88,7 +88,7 @@ final class EventRefundsController extends ControllerBase {
         '#url' => $order['actions_url'],
         '#attributes' => ['class' => ['button', 'button--small']],
       ];
-      
+
       $build['orders']['#rows'][] = [
         $order['order_id'],
         $order['customer'],
@@ -117,8 +117,19 @@ final class EventRefundsController extends ControllerBase {
 
       $processedOrders = [];
       foreach ($orderItems as $item) {
+        // Safely load the order entity to avoid getOrder() warnings.
+        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+          continue;
+        }
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager()
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {
             continue;
           }
@@ -134,7 +145,7 @@ final class EventRefundsController extends ControllerBase {
           $totalPrice = $order->getTotalPrice();
           $amount = $totalPrice ? $totalPrice->getNumber() : '0.00';
 
-          // @todo: Check refund status from refund request table.
+          // @todo Check refund status from refund request table.
           $refundStatus = 'Not requested';
 
           $refundUrl = Url::fromRoute('myeventlane_event_state.refund_request', [

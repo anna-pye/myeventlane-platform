@@ -1,0 +1,51 @@
+{#
+/**
+ * @file
+ * Grouped search results: Events, Vendors, Venues, Pages/Blog, Categories.
+ * Empty groups are hidden. Global empty state when q is present but no results.
+ */
+#}
+<div class="mel-search-results">
+  {% if empty %}
+    <p class="mel-search-results__empty" role="status">{{ 'Enter a search term to find events, vendors, venues, pages, and categories.'|t }}</p>
+  {% else %}
+    {% set total_items = 0 %}
+    {% for group in groups %}
+      {% set total_items = total_items + (group.items|length) %}
+    {% endfor %}
+
+    {% if total_items == 0 %}
+      <p class="mel-search-results__empty" role="status">{{ 'No results found for \'@query\'. Try a different keyword or browse categories.'|t({'@query': query}) }}</p>
+    {% else %}
+      {% for group_id, group in groups %}
+        {% if group.items|length > 0 %}
+          <section class="mel-search-results__group" aria-labelledby="mel-search-group-{{ group_id }}">
+            <h2 id="mel-search-group-{{ group_id }}" class="mel-search-results__group-title">{{ group.title }}</h2>
+            {% if group_id == 'events' %}
+              <div class="mel-event-grid">
+                {% for item in group.items %}
+                  {{ item.rendered }}
+                {% endfor %}
+              </div>
+            {% else %}
+              <ul class="mel-search-results__list">
+                {% for item in group.items %}
+                  <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% if group.items|length >= 5 %}
+              <p class="mel-search-results__see-more">
+                {% if group_id == 'events' or group_id == 'categories' %}
+                  <a href="{{ path('view.upcoming_events.page_events', {}, {'query': {'q': query}}) }}">{{ 'See more results'|t }}</a>
+                {% else %}
+                  <a href="{{ path('mel_search.view', {}, {'query': {'q': query}}) }}">{{ 'See more results'|t }}</a>
+                {% endif %}
+              </p>
+            {% endif %}
+          </section>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+</div>

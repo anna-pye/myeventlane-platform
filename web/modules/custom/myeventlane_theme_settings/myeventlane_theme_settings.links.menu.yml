@@ -1,0 +1,6 @@
+myeventlane_theme_settings.hero:
+  title: 'MyEventLane hero images'
+  description: 'Set default and per-page hero images for events, calendar, category, and search.'
+  parent: system.themes_page
+  route_name: myeventlane_theme_settings.hero
+  weight: 10

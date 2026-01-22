@@ -5,6 +5,9 @@ namespace Drupal\myeventlane_rsvp\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Twilio\Rest\Client;
 
+/**
+ *
+ */
 final class SmsManager {
 
   private bool $enabled;
@@ -12,7 +15,7 @@ final class SmsManager {
   private array $twilio;
 
   public function __construct(
-    ConfigFactoryInterface $config
+    ConfigFactoryInterface $config,
   ) {
     $c = $config->get('myeventlane_rsvp.sms_settings');
     $this->enabled = (bool) $c->get('enabled');
@@ -24,9 +27,16 @@ final class SmsManager {
     ];
   }
 
+  /**
+   *
+   */
   public function send(string $to, string $msg): bool {
-    if (!$this->enabled) return false;
-    if ($this->provider !== 'twilio') return false;
+    if (!$this->enabled) {
+      return FALSE;
+    }
+    if ($this->provider !== 'twilio') {
+      return FALSE;
+    }
 
     $client = new Client($this->twilio['sid'], $this->twilio['token']);
     $client->messages->create($to, [
@@ -34,6 +44,7 @@ final class SmsManager {
       'body' => $msg,
     ]);
 
-    return true;
+    return TRUE;
   }
+
 }

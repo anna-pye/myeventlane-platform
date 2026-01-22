@@ -357,4 +357,3 @@ final class CapacityEnforcementTest extends KernelTestBase {
   }
 
 }
-

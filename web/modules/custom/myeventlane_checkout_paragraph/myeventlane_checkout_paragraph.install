@@ -1,7 +1,18 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Adds field_event to commerce_product if it does not exist.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ *
  */
 function myeventlane_checkout_paragraph_update_9001() {
   $field_name = 'field_event';
@@ -14,7 +25,7 @@ function myeventlane_checkout_paragraph_update_9001() {
   }
 
   // Create field storage.
-  $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+  $field_storage = FieldStorageConfig::create([
     'field_name' => $field_name,
     'entity_type' => $entity_type,
     'type' => 'entity_reference',
@@ -26,7 +37,7 @@ function myeventlane_checkout_paragraph_update_9001() {
   $field_storage->save();
 
   // Create field instance on the 'default' product type.
-  $field_instance = \Drupal\field\Entity\FieldConfig::create([
+  $field_instance = FieldConfig::create([
     'field_name' => $field_name,
     'entity_type' => $entity_type,
     'bundle' => $bundle,
@@ -69,7 +80,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   }
 
   // Create field_checked_in storage.
-  $field_storage_checked = \Drupal\field\Entity\FieldStorageConfig::create([
+  $field_storage_checked = FieldStorageConfig::create([
     'field_name' => 'field_checked_in',
     'entity_type' => $entity_type,
     'type' => 'boolean',
@@ -82,7 +93,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_storage_checked->save();
 
   // Create field_checked_in instance.
-  $field_checked = \Drupal\field\Entity\FieldConfig::create([
+  $field_checked = FieldConfig::create([
     'field_name' => 'field_checked_in',
     'entity_type' => $entity_type,
     'bundle' => $bundle,
@@ -94,7 +105,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_checked->save();
 
   // Create field_checked_in_timestamp storage.
-  $field_storage_timestamp = \Drupal\field\Entity\FieldStorageConfig::create([
+  $field_storage_timestamp = FieldStorageConfig::create([
     'field_name' => 'field_checked_in_timestamp',
     'entity_type' => $entity_type,
     'type' => 'timestamp',
@@ -103,7 +114,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_storage_timestamp->save();
 
   // Create field_checked_in_timestamp instance.
-  $field_timestamp = \Drupal\field\Entity\FieldConfig::create([
+  $field_timestamp = FieldConfig::create([
     'field_name' => 'field_checked_in_timestamp',
     'entity_type' => $entity_type,
     'bundle' => $bundle,
@@ -114,7 +125,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_timestamp->save();
 
   // Create field_checked_in_by storage.
-  $field_storage_by = \Drupal\field\Entity\FieldStorageConfig::create([
+  $field_storage_by = FieldStorageConfig::create([
     'field_name' => 'field_checked_in_by',
     'entity_type' => $entity_type,
     'type' => 'entity_reference',
@@ -126,7 +137,7 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_storage_by->save();
 
   // Create field_checked_in_by instance.
-  $field_by = \Drupal\field\Entity\FieldConfig::create([
+  $field_by = FieldConfig::create([
     'field_name' => 'field_checked_in_by',
     'entity_type' => $entity_type,
     'bundle' => $bundle,

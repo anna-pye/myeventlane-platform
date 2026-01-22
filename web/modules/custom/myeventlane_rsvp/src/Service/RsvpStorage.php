@@ -3,8 +3,10 @@
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Datetime\DrupalDateTime;
 
+/**
+ *
+ */
 class RsvpStorage {
 
   protected Connection $db;
@@ -13,11 +15,17 @@ class RsvpStorage {
     $this->db = $db;
   }
 
+  /**
+   *
+   */
   public function add(array $data): int {
     $data['created'] = time();
     return $this->db->insert('myeventlane_rsvp')->fields($data)->execute();
   }
 
+  /**
+   *
+   */
   public function cancel(int $id): void {
     $this->db->update('myeventlane_rsvp')
       ->fields(['status' => 'cancelled'])
@@ -25,6 +33,9 @@ class RsvpStorage {
       ->execute();
   }
 
+  /**
+   *
+   */
   public function countByEvent(int $nid): int {
     return (int) $this->db->select('myeventlane_rsvp', 'r')
       ->condition('event_nid', $nid)
@@ -34,6 +45,9 @@ class RsvpStorage {
       ->fetchField();
   }
 
+  /**
+   *
+   */
   public function listForEvent(int $nid): array {
     return $this->db->select('myeventlane_rsvp', 'r')
       ->fields('r')
@@ -42,6 +56,9 @@ class RsvpStorage {
       ->fetchAllAssoc('id');
   }
 
+  /**
+   *
+   */
   public function dailyCounts(int $nid, int $days = 14): array {
     $results = $this->db->select('myeventlane_rsvp', 'r')
       ->fields('r', ['created'])

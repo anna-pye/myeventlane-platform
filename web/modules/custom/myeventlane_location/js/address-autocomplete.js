@@ -13,7 +13,7 @@
   'use strict';
 
   const SETTINGS = (drupalSettings && drupalSettings.myeventlaneLocation) ? drupalSettings.myeventlaneLocation : {};
-  const DEBUG = !!SETTINGS.debug;
+  const DEBUG = !!SETTINGS.debug || true; // Temporarily enable debug for diagnosis
 
   function log(...args) {
     if (DEBUG && window.console) console.log('[MEL Location]', ...args);
@@ -23,6 +23,11 @@
   }
   function error(...args) {
     if (window.console) console.error('[MEL Location]', ...args);
+  }
+  
+  // Always log critical initialization info
+  if (window.console && !SETTINGS.provider && !SETTINGS.debug) {
+    console.warn('[MEL Location] SETTINGS.provider is not set. Provider:', SETTINGS.provider, 'Full SETTINGS:', SETTINGS);
   }
 
   /**
@@ -40,33 +45,63 @@
   }
 
   /**
-   * Return the best "widget root" for field_location.
+   * Return the best "widget root" for field_location or field_venue_address.
    *
    * Priority:
-   * 1) Explicit wrapper: [data-mel-address="field_location"]
-   * 2) Drupal field wrapper: .field--name-field-location
-   * 3) Closest fieldset
-   * 4) Form fallback
+   * 1) Explicit wrapper: [data-mel-address="field_venue_address"] (PHASE 5: prefer venue address)
+   * 2) Explicit wrapper: [data-mel-address="field_location"]
+   * 3) Drupal field wrapper: .field--name-field-venue-address
+   * 4) Drupal field wrapper: .field--name-field-location
+   * 5) Closest fieldset
+   * 6) Form fallback
    */
   function getLocationWidgetRoot(form) {
     if (!form) return null;
 
-    let root = form.querySelector('[data-mel-address="field_location"]');
-    if (root) return root;
+    // PHASE 5: Prefer field_venue_address if it exists.
+    let root = form.querySelector('[data-mel-address="field_venue_address"]');
+    if (root) {
+      log('Found field_venue_address widget root by data-mel-address attribute');
+      return root;
+    }
+
+    root = form.querySelector('[data-mel-address="field_location"]');
+    if (root) {
+      log('Found field_location widget root by data-mel-address attribute');
+      return root;
+    }
+
+    root = form.querySelector('.field--name-field-venue-address');
+    if (root) {
+      log('Found field_venue_address widget root by class');
+      return root;
+    }
 
     root = form.querySelector('.field--name-field-location');
-    if (root) return root;
+    if (root) {
+      log('Found field_location widget root by class');
+      return root;
+    }
 
-    // Fieldset containing address inputs.
+    // Fieldset containing address inputs (prefer field_venue_address).
     const fieldsets = form.querySelectorAll('fieldset');
+    for (const fs of fieldsets) {
+      if (fs.querySelector('input[name*="field_venue_address"][name*="[address][address_line1]"]') ||
+          fs.querySelector('input[name*="field_venue_address"][name*="[address][locality]"]')) {
+        log('Found field_venue_address widget root in fieldset');
+        return fs;
+      }
+    }
     for (const fs of fieldsets) {
       if (fs.querySelector('input[name*="[address][address_line1]"]') ||
           fs.querySelector('input[name*="[address][locality]"]') ||
           fs.querySelector('input[name*="[address][postal_code]"]')) {
+        log('Found address widget root in fieldset');
         return fs;
       }
     }
 
+    log('Using form as widget root fallback');
     return form;
   }
 
@@ -107,9 +142,17 @@
 
   /**
    * Attempt to find address component field by name patterns within widget root.
+   * 
+   * @param {HTMLElement} widgetRoot - Root element to search within
+   * @param {string} componentName - Component name (e.g., 'address_line1', 'locality')
+   * @param {boolean} allowSelect - Whether to allow select elements
+   * @param {string} fieldPrefix - Optional field name prefix (e.g., 'field_venue_address')
    */
-  function findAddressComponent(widgetRoot, componentName, allowSelect = true) {
-    if (!widgetRoot) return null;
+  function findAddressComponent(widgetRoot, componentName, allowSelect = true, fieldPrefix = null) {
+    if (!widgetRoot) {
+      log('findAddressComponent: No widgetRoot provided');
+      return null;
+    }
 
     // Standard Drupal address naming:
     // ...[address][address_line1]
@@ -123,11 +166,40 @@
     if (!field && allowSelect) {
       field = widgetRoot.querySelector(`select${baseSelector}`);
     }
-    if (field) return field;
+    
+    // If fieldPrefix is specified, ensure the field name includes it.
+    if (field && fieldPrefix && !field.name.includes(fieldPrefix)) {
+      log('findAddressComponent: Field found but prefix mismatch', { fieldName: field.name, fieldPrefix });
+      field = null;
+    }
+    
+    if (field) {
+      log('findAddressComponent: Found field via baseSelector', { componentName, fieldName: field.name, fieldType: field.tagName });
+      return field;
+    }
 
     // Fallback patterns (some widgets differ slightly):
-    field = widgetRoot.querySelector(`input[name*="${componentName}"]`) ||
-            (allowSelect ? widgetRoot.querySelector(`select[name*="${componentName}"]`) : null);
+    const fallbackSelector = `[name*="${componentName}"]`;
+    field = widgetRoot.querySelector(`input${fallbackSelector}`);
+    
+    if (!field && allowSelect) {
+      field = widgetRoot.querySelector(`select${fallbackSelector}`);
+    }
+    
+    // If fieldPrefix is specified, ensure the field name includes it.
+    if (field && fieldPrefix && !field.name.includes(fieldPrefix)) {
+      log('findAddressComponent: Field found via fallback but prefix mismatch', { fieldName: field.name, fieldPrefix });
+      field = null;
+    }
+
+    if (field) {
+      log('findAddressComponent: Found field via fallbackSelector', { componentName, fieldName: field.name, fieldType: field.tagName });
+    } else {
+      log('findAddressComponent: Field NOT FOUND', { componentName, widgetRoot: widgetRoot.tagName, widgetRootClass: widgetRoot.className });
+      // Debug: List all inputs in widgetRoot
+      const allInputs = widgetRoot.querySelectorAll('input, select');
+      log('findAddressComponent: All inputs in widgetRoot:', Array.from(allInputs).map(el => ({ name: el.name, type: el.type || el.tagName })));
+    }
 
     return field || null;
   }
@@ -192,84 +264,212 @@
    */
   function normalizeAUState(value) {
     if (!value) return '';
-    const v = value.trim();
+    const v = String(value).trim();
 
     // Already a short code.
     const short = ['NSW','VIC','QLD','SA','WA','TAS','ACT','NT'];
     if (short.includes(v.toUpperCase())) return v.toUpperCase();
 
-    // Map common full names.
+    // Map common full names and variations.
     const map = {
       'new south wales': 'NSW',
+      'nsw': 'NSW',
       'victoria': 'VIC',
+      'vic': 'VIC',
       'queensland': 'QLD',
+      'qld': 'QLD',
       'south australia': 'SA',
+      'sa': 'SA',
       'western australia': 'WA',
+      'wa': 'WA',
       'tasmania': 'TAS',
+      'tas': 'TAS',
       'australian capital territory': 'ACT',
+      'act': 'ACT',
       'northern territory': 'NT',
+      'nt': 'NT',
     };
     const key = v.toLowerCase();
-    return map[key] || v;
+    const mapped = map[key];
+    if (mapped) {
+      log('Normalized state:', v, '->', mapped);
+      return mapped;
+    }
+    // Return original if no mapping found (might be a valid value)
+    log('State value not normalized:', v);
+    return v;
   }
 
   /**
    * Populate Drupal Address widget fields.
    */
   function populateAddressWidget(form, widgetRoot, components) {
-    if (!form || !widgetRoot || !components) return;
+    if (!form || !widgetRoot || !components) {
+      log('populateAddressWidget: Missing required params', { form: !!form, widgetRoot: !!widgetRoot, components: !!components });
+      return;
+    }
 
+    log('populateAddressWidget: Starting, widgetRoot:', widgetRoot, 'components:', components);
+    
     const country = findAddressComponent(widgetRoot, 'country_code', true);
     const state = findAddressComponent(widgetRoot, 'administrative_area', true);
     const suburb = findAddressComponent(widgetRoot, 'locality', false);
     const postcode = findAddressComponent(widgetRoot, 'postal_code', false);
     const line1 = findAddressComponent(widgetRoot, 'address_line1', false);
     const line2 = findAddressComponent(widgetRoot, 'address_line2', false);
+    
+    log('populateAddressWidget: Found fields', {
+      country: country ? country.name : 'NOT FOUND',
+      state: state ? state.name : 'NOT FOUND',
+      suburb: suburb ? suburb.name : 'NOT FOUND',
+      postcode: postcode ? postcode.name : 'NOT FOUND',
+      line1: line1 ? line1.name : 'NOT FOUND',
+      line2: line2 ? line2.name : 'NOT FOUND',
+    });
 
     // Country first (drives dynamic state list in many configs).
     // Default to AU if empty or not provided.
+    // IMPORTANT: Setting country may trigger AJAX refresh, so we need to wait for it.
     if (country) {
       const countryValue = components.country_code || 'AU';
-      setFieldValue(country, countryValue);
-    }
-
-    // line1
-    if (line1) setFieldValue(line1, components.address_line1 || '');
-
-    // line2 optional
-    if (line2 && components.address_line2) setFieldValue(line2, components.address_line2);
-
-    // suburb + postcode
-    if (suburb) setFieldValue(suburb, components.locality || '');
-    if (postcode) setFieldValue(postcode, components.postal_code || '');
-
-    // state: if select, prefer matching option.
-    if (state) {
-      const desired = normalizeAUState(components.administrative_area || '');
-      if (state.tagName === 'SELECT') {
-        // Try direct match, else match label.
-        let matched = false;
-        for (const opt of state.options) {
-          if (opt.value === desired || opt.text === desired) {
-            state.value = opt.value;
-            matched = true;
-            break;
+      const currentCountryValue = country.value || '';
+      
+      log('Setting country:', countryValue, 'on field:', country.name, 'current value:', currentCountryValue);
+      
+      // Only set country if it's different (to avoid unnecessary AJAX)
+      if (currentCountryValue !== countryValue) {
+        setFieldValue(country, countryValue);
+        log('Country value after set:', country.value);
+        
+        // Wait for AJAX to complete if country change triggers it
+        // Check if there's an AJAX wrapper that will refresh
+        const ajaxWrapper = widgetRoot.querySelector('[data-drupal-selector*="ajax"], .ajax-wrapper, [id*="ajax"]');
+        if (ajaxWrapper) {
+          log('Detected AJAX wrapper, waiting for AJAX to complete before setting other fields');
+          
+          // Listen for AJAX completion
+          const ajaxComplete = () => {
+            log('AJAX complete, now setting remaining address fields');
+            populateRemainingFields();
+          };
+          
+          // Use jQuery AJAX complete if available, otherwise use MutationObserver
+          if (window.jQuery) {
+            window.jQuery(document).one('ajaxComplete', ajaxComplete);
+            // Also set a timeout fallback
+            setTimeout(() => {
+              window.jQuery(document).off('ajaxComplete', ajaxComplete);
+              populateRemainingFields();
+            }, 2000);
+          } else {
+            // Fallback: use MutationObserver to detect when AJAX wrapper content changes
+            const observer = new MutationObserver((mutations) => {
+              log('AJAX wrapper content changed, setting remaining fields');
+              observer.disconnect();
+              setTimeout(populateRemainingFields, 100);
+            });
+            observer.observe(ajaxWrapper, { childList: true, subtree: true });
+            // Fallback timeout
+            setTimeout(() => {
+              observer.disconnect();
+              populateRemainingFields();
+            }, 2000);
           }
+          
+          return; // Exit early, remaining fields will be set after AJAX
         }
-        if (!matched && desired) {
-          for (const opt of state.options) {
-            if ((opt.text || '').toUpperCase().includes(desired.toUpperCase())) {
-              state.value = opt.value;
+      } else {
+        log('Country already set to', countryValue, ', skipping');
+      }
+    } else {
+      warn('Country field not found!');
+    }
+    
+    // If no AJAX was triggered, set remaining fields immediately
+    populateRemainingFields();
+    
+    function populateRemainingFields() {
+      // Re-find fields in case AJAX refreshed them
+      const refreshedLine1 = findAddressComponent(widgetRoot, 'address_line1', false);
+      const refreshedLine2 = findAddressComponent(widgetRoot, 'address_line2', false);
+      const refreshedSuburb = findAddressComponent(widgetRoot, 'locality', false);
+      const refreshedPostcode = findAddressComponent(widgetRoot, 'postal_code', false);
+      const refreshedState = findAddressComponent(widgetRoot, 'administrative_area', true);
+      
+      // line1
+      const fieldToUse = refreshedLine1 || line1;
+      if (fieldToUse) {
+        const line1Value = components.address_line1 || '';
+        log('Setting address_line1:', line1Value, 'on field:', fieldToUse.name);
+        setFieldValue(fieldToUse, line1Value);
+        log('Address_line1 value after set:', fieldToUse.value);
+      } else {
+        warn('Address line1 field not found!');
+      }
+
+      // line2 optional
+      const fieldToUse2 = refreshedLine2 || line2;
+      if (fieldToUse2 && components.address_line2) {
+        log('Setting address_line2:', components.address_line2, 'on field:', fieldToUse2.name);
+        setFieldValue(fieldToUse2, components.address_line2);
+      }
+
+      // suburb + postcode
+      const fieldToUseSuburb = refreshedSuburb || suburb;
+      if (fieldToUseSuburb) {
+        const suburbValue = components.locality || '';
+        log('Setting locality:', suburbValue, 'on field:', fieldToUseSuburb.name);
+        setFieldValue(fieldToUseSuburb, suburbValue);
+        log('Locality value after set:', fieldToUseSuburb.value);
+      } else {
+        warn('Locality field not found!');
+      }
+      
+      const fieldToUsePostcode = refreshedPostcode || postcode;
+      if (fieldToUsePostcode) {
+        const postcodeValue = components.postal_code || '';
+        log('Setting postal_code:', postcodeValue, 'on field:', fieldToUsePostcode.name);
+        setFieldValue(fieldToUsePostcode, postcodeValue);
+        log('Postal_code value after set:', fieldToUsePostcode.value);
+      } else {
+        warn('Postal_code field not found!');
+      }
+
+      // state: if select, prefer matching option.
+      const fieldToUseState = refreshedState || state;
+      if (fieldToUseState) {
+        const desired = normalizeAUState(components.administrative_area || '');
+        if (fieldToUseState.tagName === 'SELECT') {
+          // Try direct match, else match label.
+          let matched = false;
+          for (const opt of fieldToUseState.options) {
+            if (opt.value === desired || opt.text === desired) {
+              fieldToUseState.value = opt.value;
               matched = true;
+              log('State matched exactly:', opt.value);
               break;
             }
           }
+          if (!matched && desired) {
+            for (const opt of fieldToUseState.options) {
+              if ((opt.text || '').toUpperCase().includes(desired.toUpperCase())) {
+                fieldToUseState.value = opt.value;
+                matched = true;
+                log('State matched partially:', opt.value);
+                break;
+              }
+            }
+          }
+          if (matched) {
+            fieldToUseState.dispatchEvent(new Event('change', { bubbles: true }));
+            fieldToUseState.dispatchEvent(new Event('input', { bubbles: true }));
+          } else {
+            warn('State value not matched:', desired, 'Available options:', Array.from(fieldToUseState.options).map(o => o.value + '=' + o.text));
+          }
         }
-        state.dispatchEvent(new Event('change', { bubbles: true }));
-        state.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      else {
-        setFieldValue(state, desired);
+        else {
+          setFieldValue(fieldToUseState, desired);
+        }
       }
     }
 
@@ -299,6 +499,15 @@
     const field = findVenueNameField(form);
     if (!field) {
       log('Venue name field not found in form');
+      // Try to find it by name pattern as fallback
+      const fallbackField = form.querySelector('input[name*="venue_name"]');
+      if (fallbackField) {
+        log('Found venue name field via fallback:', fallbackField.name);
+        const clean = String(name).trim().split(',')[0].trim();
+        setFieldValue(fallbackField, clean);
+        log('Populated venue name via fallback:', clean);
+        return;
+      }
       return;
     }
 
@@ -307,8 +516,172 @@
     if (clean.includes(',')) {
       clean = clean.split(',')[0].trim();
     }
+    
+    log('Populating venue name:', clean, 'on field:', field.name || field.className);
     setFieldValue(field, clean);
+    log('Venue name value after set:', field.value);
+    
+    // Ensure Drupal recognizes this change by triggering formUpdated
+    if (window.jQuery) {
+      window.jQuery(form).trigger('formUpdated');
+      // Also trigger on the field specifically
+      window.jQuery(field).trigger('change').trigger('input');
+    }
+    
     log('Populated venue name:', clean);
+  }
+
+  /**
+   * Populate field_venue_address widget with address components.
+   * 
+   * @param {HTMLFormElement} form
+   * @param {Object} components - Address components object
+   */
+  function populateVenueAddress(form, components) {
+    if (!form || !components) return;
+
+    log('populateVenueAddress called with components:', components);
+
+    // First, try to find field_venue_address widget root using the same logic as getLocationWidgetRoot
+    // but specifically for field_venue_address
+    let widgetRoot = form.querySelector('[data-mel-address="field_venue_address"]');
+    
+    if (!widgetRoot) {
+      // Try finding by class
+      widgetRoot = form.querySelector('.field--name-field-venue-address');
+    }
+    
+    if (!widgetRoot) {
+      // Try finding by fieldset containing field_venue_address inputs
+      const fieldsets = form.querySelectorAll('fieldset');
+      for (const fs of fieldsets) {
+        if (fs.querySelector('input[name*="field_venue_address"][name*="[address][address_line1]"]') ||
+            fs.querySelector('input[name*="field_venue_address"][name*="[address][locality]"]')) {
+          widgetRoot = fs;
+          break;
+        }
+      }
+    }
+    
+    if (!widgetRoot) {
+      // Search for any input with field_venue_address in name to find the container
+      const venueAddressInputs = form.querySelectorAll('[name*="field_venue_address"]');
+      if (venueAddressInputs && venueAddressInputs.length > 0) {
+        const firstInput = venueAddressInputs[0];
+        widgetRoot = firstInput.closest('[data-mel-address="field_venue_address"]') ||
+                     firstInput.closest('.field--widget-address-default') ||
+                     firstInput.closest('.field--name-field-venue-address') ||
+                     firstInput.closest('[data-drupal-selector*="field-venue-address"]') ||
+                     firstInput.closest('.js-form-item-field-venue-address') ||
+                     firstInput.closest('.field--type-address');
+        
+        // If still not found, traverse up
+        if (!widgetRoot) {
+          let element = firstInput.parentElement;
+          let depth = 0;
+          while (element && element !== form && depth < 10) {
+            if (element.classList && (
+              element.classList.contains('field') ||
+              element.classList.contains('js-form-item') ||
+              element.getAttribute('data-drupal-selector')?.includes('field-venue-address')
+            )) {
+              widgetRoot = element;
+              break;
+            }
+            element = element.parentElement;
+            depth++;
+          }
+        }
+      }
+    }
+
+    if (widgetRoot) {
+      log('Found field_venue_address widget root, using populateAddressWidget');
+      // Use the standard populateAddressWidget function which handles all the logic
+      populateAddressWidget(form, widgetRoot, components);
+      return;
+    }
+
+    // Fallback: search entire form for field_venue_address inputs and populate directly
+    log('Widget root not found, using form-wide search for field_venue_address');
+    const allInputs = form.querySelectorAll('input, select');
+    let foundAny = false;
+    for (const input of allInputs) {
+      const name = input.name || '';
+      if (name.includes('field_venue_address') && name.includes('[address]')) {
+        foundAny = true;
+        if (name.includes('country_code')) {
+          setFieldValue(input, components.country_code || 'AU');
+          log('Set country_code via form-wide search:', components.country_code || 'AU');
+        } else if (name.includes('address_line1')) {
+          setFieldValue(input, components.address_line1 || '');
+          log('Set address_line1 via form-wide search:', components.address_line1 || '');
+        } else if (name.includes('address_line2') && components.address_line2) {
+          setFieldValue(input, components.address_line2);
+          log('Set address_line2 via form-wide search:', components.address_line2);
+        } else if (name.includes('locality')) {
+          setFieldValue(input, components.locality || '');
+          log('Set locality via form-wide search:', components.locality || '');
+        } else if (name.includes('postal_code')) {
+          setFieldValue(input, components.postal_code || '');
+          log('Set postal_code via form-wide search:', components.postal_code || '');
+        } else if (name.includes('administrative_area')) {
+          const desired = normalizeAUState(components.administrative_area || '');
+          if (input.tagName === 'SELECT') {
+            let matched = false;
+            // Try exact value match first
+            for (const opt of input.options) {
+              if (opt.value === desired || opt.text === desired) {
+                input.value = opt.value;
+                matched = true;
+                log('Set administrative_area via form-wide search (exact match):', opt.value);
+                break;
+              }
+            }
+            // Try case-insensitive partial match
+            if (!matched && desired) {
+              for (const opt of input.options) {
+                const optTextUpper = (opt.text || '').toUpperCase();
+                const optValueUpper = (opt.value || '').toUpperCase();
+                const desiredUpper = desired.toUpperCase();
+                if (optTextUpper.includes(desiredUpper) || optValueUpper.includes(desiredUpper) || 
+                    desiredUpper.includes(optTextUpper) || desiredUpper.includes(optValueUpper)) {
+                  input.value = opt.value;
+                  matched = true;
+                  log('Set administrative_area via form-wide search (partial match):', opt.value, 'for desired:', desired);
+                  break;
+                }
+              }
+            }
+            if (!matched) {
+              warn('Could not match administrative_area:', desired, 'Available:', Array.from(input.options).map(o => o.value + '=' + o.text).join(', '));
+            }
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          } else {
+            setFieldValue(input, desired);
+            log('Set administrative_area via form-wide search (text input):', desired);
+          }
+        }
+      }
+    }
+    
+    if (!foundAny) {
+      warn('No field_venue_address inputs found in form');
+    } else {
+      // Trigger form update
+      if (window.jQuery) {
+        window.jQuery(form).trigger('formUpdated');
+      }
+    }
+    
+    log('Populated field_venue_address:', {
+      address_line1: components.address_line1 || '',
+      locality: components.locality || '',
+      administrative_area: components.administrative_area || '',
+      postal_code: components.postal_code || '',
+      country_code: components.country_code || 'AU',
+    });
   }
 
   /**
@@ -409,10 +782,17 @@
     if (!place) return out;
 
     const comps = place.address_components || [];
+    let streetNumber = '';
+    let route = '';
+    
     for (const c of comps) {
       const types = c.types || [];
-      if (types.includes('street_number')) out.address_line1 = (c.long_name || '') + ' ' + out.address_line1;
-      if (types.includes('route')) out.address_line1 = (out.address_line1 || '') + (c.long_name || '');
+      if (types.includes('street_number')) {
+        streetNumber = c.long_name || '';
+      }
+      if (types.includes('route')) {
+        route = c.long_name || '';
+      }
       if (types.includes('subpremise')) out.address_line2 = c.long_name || '';
       if (types.includes('locality')) out.locality = c.long_name || '';
       if (types.includes('administrative_area_level_1')) out.administrative_area = c.short_name || c.long_name || '';
@@ -420,8 +800,18 @@
       if (types.includes('country')) out.country_code = c.short_name || 'AU';
     }
 
+    // Build address_line1 from street_number + route
+    if (streetNumber && route) {
+      out.address_line1 = streetNumber + ' ' + route;
+    } else if (route) {
+      out.address_line1 = route;
+    } else if (streetNumber) {
+      out.address_line1 = streetNumber;
+    }
+    
     out.address_line1 = String(out.address_line1 || '').trim();
     if (!out.address_line1 && place.formatted_address) {
+      // Fallback: use first part of formatted address
       out.address_line1 = String(place.formatted_address).split(',')[0].trim();
     }
 
@@ -450,6 +840,26 @@
         const autocomplete = new google.maps.places.Autocomplete(searchInput, {
           types: ['establishment', 'geocode'],
           componentRestrictions: { country: 'au' },
+          fields: ['place_id', 'name', 'formatted_address', 'geometry', 'address_components'],
+        });
+
+        // Trigger autocomplete suggestions on focus (before typing)
+        // This makes the dropdown appear when the field is focused
+        searchInput.addEventListener('focus', () => {
+          // If field is empty, trigger autocomplete by simulating a minimal input
+          if (!searchInput.value || searchInput.value.trim() === '') {
+            // Trigger a small input event to show suggestions
+            // Google Places Autocomplete will show suggestions based on location bias
+            const event = new Event('input', { bubbles: true });
+            searchInput.dispatchEvent(event);
+            // Also trigger keydown to ensure autocomplete activates
+            const keyEvent = new KeyboardEvent('keydown', { 
+              bubbles: true, 
+              key: 'ArrowDown',
+              code: 'ArrowDown'
+            });
+            searchInput.dispatchEvent(keyEvent);
+          }
         });
 
         autocomplete.addListener('place_changed', () => {
@@ -466,6 +876,8 @@
           populateAddressWidget(form, widgetRoot, comps);
           // Populate venue name from place.name (not comps.name, which may be empty).
           populateVenueName(form, place.name || comps.name || '');
+          // Populate field_venue_address with the same address components.
+          populateVenueAddress(form, comps);
           populateLatLng(form, widgetRoot, lat, lng);
           populatePlaceId(form, widgetRoot, place.place_id || '');
 
@@ -635,6 +1047,8 @@
                   populateAddressWidget(form, widgetRoot, comps);
                   // Populate venue name from place.name (not comps.name, which may be empty).
                   populateVenueName(form, p.name || comps.name || '');
+                  // Populate field_venue_address with the same address components.
+                  populateVenueAddress(form, comps);
                   if (lat !== null && lng !== null) {
                     populateLatLng(form, widgetRoot, lat, lng);
                   }
@@ -751,35 +1165,45 @@
    */
   Drupal.behaviors.myeventlaneLocationAutocomplete = {
     attach(context) {
+      log('Drupal.behaviors.myeventlaneLocationAutocomplete.attach called, context:', context);
+      log('SETTINGS:', SETTINGS);
+      
       // Target forms that contain our address search field OR field_location wrapper.
       const candidates = [];
 
       // If context itself is a form.
       if (context && context.tagName === 'FORM') {
         candidates.push(context);
+        log('Context is a form, added to candidates');
       } else if (context && context.querySelectorAll) {
         // Any forms containing our field.
         const forms = context.querySelectorAll('form');
+        log('Found', forms.length, 'forms in context');
         for (const f of forms) {
           // Quick filter: only those that look relevant.
-          if (
-            f.querySelector('.myeventlane-location-address-search') ||
-            f.querySelector('input[data-address-search="true"]') ||
-            f.querySelector('input[name*="field_location_address_search"]') ||
-            f.querySelector('[data-mel-address="field_location"]') ||
-            f.querySelector('.field--name-field-location') ||
-            f.querySelector('.myeventlane-venue-selection-widget')
-          ) {
+          const hasSearch = f.querySelector('.myeventlane-location-address-search');
+          const hasDataAttr = f.querySelector('[data-mel-address="field_location"]');
+          const hasFieldLocation = f.querySelector('.field--name-field-location');
+          const hasVenueWidget = f.querySelector('.myeventlane-venue-selection-widget');
+          
+          if (hasSearch || hasDataAttr || hasFieldLocation || hasVenueWidget) {
             candidates.push(f);
+            log('Found relevant form, has search:', !!hasSearch, 'has data-attr:', !!hasDataAttr, 'has field-location:', !!hasFieldLocation, 'has venue-widget:', !!hasVenueWidget);
           }
         }
       }
 
+      log('Total candidate forms:', candidates.length);
+
       // Run once per form per attach cycle.
       // Use a unique key per form to handle AJAX rebuilds properly.
       for (const form of once('mel-location-autocomplete', candidates, context)) {
+        log('Initializing autocomplete for form, ID:', form.id || 'no-id');
         // Small delay helps when wizard step is injected via AJAX.
-        setTimeout(() => initForForm(form), 50);
+        setTimeout(() => {
+          log('Calling initForForm after delay');
+          initForForm(form);
+        }, 50);
       }
     }
   };

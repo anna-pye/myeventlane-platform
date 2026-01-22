@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -20,6 +21,7 @@ final class CategoryAudienceService {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -35,7 +37,7 @@ final class CategoryAudienceService {
    */
   public function getCategoryBreakdown(?NodeInterface $event = NULL): array {
     try {
-      $userId = (int) \Drupal::currentUser()->id();
+      $userId = (int) $this->currentUser->id();
       $nodeStorage = $this->entityTypeManager->getStorage('node');
 
       // Get events to analyze.

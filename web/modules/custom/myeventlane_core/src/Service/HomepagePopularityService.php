@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -14,7 +13,7 @@ use Drupal\node\NodeInterface;
  *
  * Ranking logic: RSVP count + ticket sales + views (if available)
  * Excludes: boosted/promoted events
- * Time window: last 7 days of activity
+ * Time window: last 7 days of activity.
  */
 class HomepagePopularityService {
 
@@ -42,7 +41,7 @@ class HomepagePopularityService {
    */
   public function __construct(
     Connection $database,
-    EntityTypeManagerInterface $entity_type_manager
+    EntityTypeManagerInterface $entity_type_manager,
   ) {
     $this->database = $database;
     $this->entityTypeManager = $entity_type_manager;
@@ -77,7 +76,7 @@ class HomepagePopularityService {
       // Get ticket sales from last 7 days (completed orders).
       // Query order items directly and check via purchased entity.
       $ticket_counts = [];
-      
+
       try {
         $order_storage = $this->entityTypeManager->getStorage('commerce_order');
         $order_ids = $order_storage->getQuery()
@@ -85,7 +84,7 @@ class HomepagePopularityService {
           ->condition('state', 'completed')
           ->condition('completed', $week_ago, '>=')
           ->execute();
-        
+
         if (!empty($order_ids)) {
           $orders = $order_storage->loadMultiple($order_ids);
           foreach ($orders as $order) {

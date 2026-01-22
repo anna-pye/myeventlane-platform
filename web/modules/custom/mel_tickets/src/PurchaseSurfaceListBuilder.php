@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_tickets;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -41,7 +42,7 @@ final class PurchaseSurfaceListBuilder extends EntityListBuilder {
    */
   public function __construct(
     $entity_type,
-    \Drupal\Core\Entity\EntityStorageInterface $storage,
+    EntityStorageInterface $storage,
     DateFormatterInterface $date_formatter,
   ) {
     parent::__construct($entity_type, $storage);
@@ -110,11 +111,11 @@ final class PurchaseSurfaceListBuilder extends EntityListBuilder {
     $operations = parent::getDefaultOperations($entity);
     /** @var \Drupal\mel_tickets\Entity\PurchaseSurface $entity */
     $event_id = $entity->getEventId();
-    
+
     if (isset($operations['edit'])) {
       $operations['edit']['url'] = $entity->toUrl('edit-form', ['event' => $event_id]);
     }
-    
+
     if (isset($operations['delete'])) {
       $operations['delete']['url'] = $entity->toUrl('delete-form', ['event' => $event_id]);
     }

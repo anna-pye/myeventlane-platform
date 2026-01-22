@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -48,6 +49,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     'myeventlane_commerce.event_book',
     'myeventlane_rsvp.',
     'myeventlane_dashboard.customer',
+    'commerce_cart.',
+    'commerce_checkout.',
   ];
 
   /**
@@ -80,12 +83,15 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
    *   The current user.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   The logger factory.
    */
   public function __construct(
     private readonly DomainDetector $domainDetector,
     private readonly RouteMatchInterface $routeMatch,
     private readonly AccountProxyInterface $currentUser,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   /**
@@ -115,13 +121,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
 
-    // DIAGNOSTIC LOGGING: Track authentication state at kernel.request
+    // DIAGNOSTIC LOGGING: Track authentication state at kernel.request.
     $host = $request->getHost();
     $uid = $this->currentUser->id();
     $is_authenticated = $this->currentUser->isAuthenticated();
     $is_anonymous = $this->currentUser->isAnonymous();
-    
-    \Drupal::logger('vendor_domain_diagnostic')->debug('VendorDomainSubscriber::onRequest', [
+
+    $this->loggerFactory->get('vendor_domain_diagnostic')->debug('VendorDomainSubscriber::onRequest', [
       'host' => $host,
       'path' => $path,
       'route_name' => $route_name ?? 'NULL',
@@ -242,7 +248,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
         $node = $this->routeMatch->getParameter('node');
         if ($node && method_exists($node, 'bundle') && $node->bundle() === 'event') {
           // Check if user owns the event or is admin.
-          if ($this->currentUser->hasPermission('administer nodes') || 
+          if ($this->currentUser->hasPermission('administer nodes') ||
               (int) $node->getOwnerId() === (int) $this->currentUser->id()) {
             $wizard_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $node->id()])->toString();
             $event->setResponse(new TrustedRedirectResponse($wizard_url, 302));
@@ -362,6 +368,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       '/my-events',
       '/user/login',
       '/user/register',
+      '/cart',
+      '/checkout',
     ];
 
     foreach ($public_paths as $public_path) {

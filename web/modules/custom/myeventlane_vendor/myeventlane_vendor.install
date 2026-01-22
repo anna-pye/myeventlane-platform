@@ -5,6 +5,8 @@
  * Install, update, and uninstall functions for myeventlane_vendor module.
  */
 
+use Drupal\myeventlane_vendor\Entity\Vendor;
+
 /**
  * Implements hook_schema().
  */
@@ -122,7 +124,7 @@ function myeventlane_vendor_update_10004() {
   // Uninstall logo field if it exists (check config, not database).
   $field_storage_config_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
   $logo_field_storage = $field_storage_config_storage->load('myeventlane_vendor.field_logo_image');
-  
+
   if ($logo_field_storage) {
     try {
       // Delete field instances first.
@@ -131,11 +133,11 @@ function myeventlane_vendor_update_10004() {
         'field_name' => 'field_logo_image',
         'entity_type' => 'myeventlane_vendor',
       ]);
-      
+
       foreach ($field_configs as $field_config) {
         $field_config->delete();
       }
-      
+
       // Delete field storage.
       $logo_field_storage->delete();
     }
@@ -144,7 +146,7 @@ function myeventlane_vendor_update_10004() {
       \Drupal::logger('myeventlane_vendor')->warning('Could not delete logo field: @message', ['@message' => $e->getMessage()]);
     }
   }
-  
+
   // Also try to delete from config sync if it exists there.
   $config_factory = \Drupal::configFactory();
   try {
@@ -154,7 +156,7 @@ function myeventlane_vendor_update_10004() {
   catch (\Exception $e) {
     // Config might not exist - that's fine.
   }
-  
+
   return t('Removed logo field.');
 }
 
@@ -165,26 +167,26 @@ function myeventlane_vendor_update_10005() {
   // Update the entity type config to match the code definition.
   $config_factory = \Drupal::configFactory();
   $config = $config_factory->getEditable('core.entity_type.myeventlane_vendor');
-  
+
   // Add owner to entity_keys if missing.
   $entity_keys = $config->get('entity_keys') ?: [];
   if (!isset($entity_keys['owner'])) {
     $entity_keys['owner'] = 'uid';
     $config->set('entity_keys', $entity_keys);
   }
-  
+
   // Update links to match the entity class definition.
   $config->set('links.canonical', '/vendor/{myeventlane_vendor}');
   $config->set('links.collection', '/admin/structure/myeventlane/vendor');
   $config->set('links.add-form', '/admin/structure/myeventlane/vendor/add');
   $config->set('links.edit-form', '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/edit');
   $config->set('links.delete-form', '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/delete');
-  
+
   $config->save();
-  
+
   // Clear entity type cache.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   return t('Updated vendor entity type definition.');
 }
 
@@ -194,17 +196,17 @@ function myeventlane_vendor_update_10005() {
 function myeventlane_vendor_update_10006() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
-  $base_field_definitions = \Drupal\myeventlane_vendor\Entity\Vendor::baseFieldDefinitions($entity_type);
-  
+  $base_field_definitions = Vendor::baseFieldDefinitions($entity_type);
+
   // Install api_key_hash field if it doesn't exist.
   if (isset($base_field_definitions['api_key_hash'])) {
     $field_definition = $base_field_definitions['api_key_hash'];
-    
+
     // Check if field storage config exists.
     $field_storage = \Drupal::entityTypeManager()
       ->getStorage('field_storage_config')
       ->load('myeventlane_vendor.api_key_hash');
-    
+
     if (!$field_storage) {
       // Field doesn't exist, install it.
       $entity_definition_update_manager->installFieldStorageDefinition('api_key_hash', 'myeventlane_vendor', 'myeventlane_vendor', $field_definition);
@@ -212,7 +214,7 @@ function myeventlane_vendor_update_10006() {
     else {
       // Field exists - check if update is needed via change list.
       $change_list = $entity_definition_update_manager->getChangeList();
-      if (isset($change_list['field_storage']['myeventlane_vendor.api_key_hash']) && 
+      if (isset($change_list['field_storage']['myeventlane_vendor.api_key_hash']) &&
           $change_list['field_storage']['myeventlane_vendor.api_key_hash'] === 'update') {
         // Get the original definition and update.
         try {
@@ -227,7 +229,7 @@ function myeventlane_vendor_update_10006() {
       }
     }
   }
-  
+
   return t('Installed/updated api_key_hash field for vendor entity.');
 }
 
@@ -236,51 +238,51 @@ function myeventlane_vendor_update_10006() {
  */
 function myeventlane_vendor_update_10007() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
-  
+
   // Clear caches first to ensure we get the latest definition from code.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
   \Drupal::service('cache.discovery')->deleteAll();
-  
+
   // Check if entity type updates are needed.
   $change_list = $entity_definition_update_manager->getChangeList();
-  
+
   if (!empty($change_list['entity_type']['myeventlane_vendor'])) {
     // Get the entity type definition from the code (via the entity type manager).
     $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
-    
+
     if ($entity_type) {
       // Update the entity type definition.
       $entity_definition_update_manager->updateEntityType($entity_type);
     }
   }
-  
+
   // Clear caches again after update.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   return t('Updated vendor entity type definition.');
 }
 
 /**
  * Force update vendor entity type definition to match code.
- * 
+ *
  * This update hook ensures the entity type definition is properly synced
  * with the code definition, even if previous updates have run.
  */
 function myeventlane_vendor_update_10008() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
-  
+
   // Clear all caches to ensure we get the latest definition from code.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
   \Drupal::service('cache.discovery')->deleteAll();
-  
+
   // Check if updates are needed.
   if (!$entity_definition_update_manager->needsUpdates()) {
     return t('No entity definition updates needed.');
   }
-  
+
   // Get the list of changes needed.
   $change_list = $entity_definition_update_manager->getChangeList();
-  
+
   // Apply entity type updates if needed.
   if (!empty($change_list['entity_type']['myeventlane_vendor'])) {
     $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
@@ -288,16 +290,16 @@ function myeventlane_vendor_update_10008() {
       $entity_definition_update_manager->updateEntityType($entity_type);
     }
   }
-  
+
   // Clear caches again after update.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   return t('Updated vendor entity type definition.');
 }
 
 /**
  * Final update to sync vendor entity type definition.
- * 
+ *
  * If EntityDefinitionUpdateManager still shows differences after 10008,
  * this hook will force sync by rebuilding the entity type from code.
  */
@@ -306,26 +308,26 @@ function myeventlane_vendor_update_10009() {
   \Drupal::entityTypeManager()->clearCachedDefinitions();
   \Drupal::service('cache.discovery')->deleteAll();
   drupal_flush_all_caches();
-  
+
   // Force rebuild entity type definition from code.
   $entity_type_manager = \Drupal::entityTypeManager();
   $entity_type = $entity_type_manager->getDefinition('myeventlane_vendor', TRUE);
-  
+
   if (!$entity_type) {
     return t('Could not load vendor entity type definition.');
   }
-  
+
   // Use EntityDefinitionUpdateManager to apply any remaining updates.
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $change_list = $entity_definition_update_manager->getChangeList();
-  
+
   if (!empty($change_list['entity_type']['myeventlane_vendor'])) {
     $entity_definition_update_manager->updateEntityType($entity_type);
   }
-  
+
   // Clear caches one more time.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   return t('Synced vendor entity type definition from code.');
 }
 

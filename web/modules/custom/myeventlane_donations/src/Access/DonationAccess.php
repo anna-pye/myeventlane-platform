@@ -7,11 +7,22 @@ namespace Drupal\myeventlane_donations\Access;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 
 /**
  * Access control for donation routes.
  */
 final class DonationAccess {
+
+  /**
+   * Constructs DonationAccess.
+   *
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   *   The domain detector service.
+   */
+  public function __construct(
+    private readonly DomainDetector $domainDetector,
+  ) {}
 
   /**
    * Checks access for platform donation routes (vendor domain only).
@@ -24,23 +35,17 @@ final class DonationAccess {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
-  public static function platformAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+  public function platformAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     // Administrators always have access.
     if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
-      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-      if (!$domain_detector->isVendorDomain()) {
+      if (!$this->domainDetector->isVendorDomain()) {
         return AccessResult::forbidden('Platform donations are only available on the vendor domain.');
       }
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Get domain detector service.
-    // Note: Static access check methods cannot use dependency injection,
-    // so we retrieve the service directly.
-    $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-    
     // Must be on vendor domain.
-    if (!$domain_detector->isVendorDomain()) {
+    if (!$this->domainDetector->isVendorDomain()) {
       return AccessResult::forbidden('Platform donations are only available on the vendor domain.');
     }
 
@@ -68,23 +73,17 @@ final class DonationAccess {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
-  public static function vendorAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+  public function vendorAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     // Administrators always have access.
     if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
-      $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-      if (!$domain_detector->isVendorDomain()) {
+      if (!$this->domainDetector->isVendorDomain()) {
         return AccessResult::forbidden('Vendor donation pages are only available on the vendor domain.');
       }
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Get domain detector service.
-    // Note: Static access check methods cannot use dependency injection,
-    // so we retrieve the service directly.
-    $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
-    
     // Must be on vendor domain.
-    if (!$domain_detector->isVendorDomain()) {
+    if (!$this->domainDetector->isVendorDomain()) {
       return AccessResult::forbidden('Vendor donation pages are only available on the vendor domain.');
     }
 
@@ -102,4 +101,3 @@ final class DonationAccess {
   }
 
 }
-

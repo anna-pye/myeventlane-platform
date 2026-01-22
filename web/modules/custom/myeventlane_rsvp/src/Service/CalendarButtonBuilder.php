@@ -5,8 +5,14 @@ namespace Drupal\myeventlane_rsvp\Service;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
+/**
+ *
+ */
 final class CalendarButtonBuilder {
 
+  /**
+   *
+   */
   public function build(NodeInterface $event): array {
     $google = $this->googleUrl($event);
     $outlook = $this->outlookUrl($event);
@@ -35,6 +41,9 @@ final class CalendarButtonBuilder {
     ];
   }
 
+  /**
+   *
+   */
   private function googleUrl(NodeInterface $event): string {
     $title = rawurlencode($event->label());
     $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
@@ -47,6 +56,9 @@ final class CalendarButtonBuilder {
       "&text=$title&dates={$start}/{$end}&details=$details&location=$location";
   }
 
+  /**
+   *
+   */
   private function outlookUrl(NodeInterface $event): string {
     $title = rawurlencode($event->label());
     $start = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));

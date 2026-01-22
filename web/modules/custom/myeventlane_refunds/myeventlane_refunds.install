@@ -121,10 +121,3 @@ function myeventlane_refunds_uninstall(): void {
   // Optionally truncate the table instead of dropping it for audit purposes.
   // For now, we'll drop it.
 }
-
-
-
-
-
-
-

@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_venue\Form;
 
 use Drupal\Core\Entity\ContentEntityDeleteForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\myeventlane_venue\VenueStorage;
 
 /**
  * Provides a form for deleting Venue entities.
@@ -20,22 +19,22 @@ class VenueDeleteForm extends ContentEntityDeleteForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form = parent::buildForm($form, $form_state);
-    
+
     $venue = $this->getEntity();
     /** @var \Drupal\myeventlane_venue\VenueStorage $storage */
     $storage = $this->entityTypeManager->getStorage('myeventlane_venue');
-    
+
     // Check if venue is referenced by any events.
     if ($storage->venueIsReferenced((int) $venue->id())) {
       // Disable the delete button and show a message.
       $form['description']['#markup'] = $this->t(
         'This venue cannot be deleted because it is currently being used by one or more events. Please remove all references to this venue from events before deleting it.'
       );
-      
+
       if (isset($form['actions']['delete'])) {
         $form['actions']['delete']['#access'] = FALSE;
       }
-      
+
       // Add a cancel button.
       $form['actions']['cancel'] = [
         '#type' => 'link',
@@ -46,7 +45,7 @@ class VenueDeleteForm extends ContentEntityDeleteForm {
         ],
       ];
     }
-    
+
     return $form;
   }
 
@@ -57,7 +56,7 @@ class VenueDeleteForm extends ContentEntityDeleteForm {
     $venue = $this->getEntity();
     /** @var \Drupal\myeventlane_venue\VenueStorage $storage */
     $storage = $this->entityTypeManager->getStorage('myeventlane_venue');
-    
+
     // Double-check before deletion.
     if ($storage->venueIsReferenced((int) $venue->id())) {
       $this->messenger()->addError($this->t(
@@ -67,7 +66,7 @@ class VenueDeleteForm extends ContentEntityDeleteForm {
       $form_state->setRedirect('entity.myeventlane_venue.canonical', ['myeventlane_venue' => $venue->id()]);
       return;
     }
-    
+
     parent::submitForm($form, $form_state);
   }
 

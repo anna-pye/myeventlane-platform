@@ -280,4 +280,3 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
   }
 
 }
-

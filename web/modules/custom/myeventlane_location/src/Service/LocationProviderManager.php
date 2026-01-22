@@ -37,7 +37,7 @@ final class LocationProviderManager {
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
-    LoggerChannelFactoryInterface $logger_factory
+    LoggerChannelFactoryInterface $logger_factory,
   ) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('myeventlane_location');
@@ -168,4 +168,3 @@ final class LocationProviderManager {
   }
 
 }
-

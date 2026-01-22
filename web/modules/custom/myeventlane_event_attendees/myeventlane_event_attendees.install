@@ -5,6 +5,8 @@
  * Install, update and uninstall functions for the event attendees module.
  */
 
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+
 /**
  * Implements hook_install().
  *
@@ -23,8 +25,8 @@ function myeventlane_event_attendees_install() {
 function myeventlane_event_attendees_update_8002() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $entity_type = \Drupal::entityTypeManager()->getDefinition('event_attendee');
-  $base_field_definitions = \Drupal\myeventlane_event_attendees\Entity\EventAttendee::baseFieldDefinitions($entity_type);
-  
+  $base_field_definitions = EventAttendee::baseFieldDefinitions($entity_type);
+
   // Install promoted_at field if needed.
   if (isset($base_field_definitions['promoted_at'])) {
     $field_definition = $base_field_definitions['promoted_at'];
@@ -36,7 +38,7 @@ function myeventlane_event_attendees_update_8002() {
       $entity_definition_update_manager->installFieldStorageDefinition('promoted_at', 'event_attendee', 'myeventlane_event_attendees', $field_definition);
     }
   }
-  
+
   // Install accessibility_needs field if needed.
   if (isset($base_field_definitions['accessibility_needs'])) {
     $field_definition = $base_field_definitions['accessibility_needs'];
@@ -48,6 +50,6 @@ function myeventlane_event_attendees_update_8002() {
       $entity_definition_update_manager->installFieldStorageDefinition('accessibility_needs', 'event_attendee', 'myeventlane_event_attendees', $field_definition);
     }
   }
-  
+
   return t('Installed missing base fields for event_attendee entity.');
 }

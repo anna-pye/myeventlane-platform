@@ -5,8 +5,6 @@
  * Install, update, and uninstall functions for myeventlane_api module.
  */
 
-use Drupal\Core\Database\Database;
-
 /**
  * Implements hook_schema().
  */

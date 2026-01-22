@@ -4,7 +4,7 @@
  * @file
  * Script to create Phase 6 boost products with correct pricing.
  *
- * Run with: ddev drush scr web/modules/custom/myeventlane_boost/scripts/create_phase6_boost_products.php
+ * Run with: ddev drush scr web/modules/custom/myeventlane_boost/scripts/create_phase6_boost_products.php.
  */
 
 declare(strict_types=1);
@@ -63,7 +63,7 @@ else {
 // Create/update variations with Phase 6 pricing:
 // 7 days at $5/day = $35
 // 10 days at $4/day = $40
-// 30 days at $3/day = $90
+// 30 days at $3/day = $90.
 $defs = [
   ['days' => 7, 'amount' => '35.00', 'sku' => 'BOOST-7D', 'title' => '7 Day Boost'],
   ['days' => 10, 'amount' => '40.00', 'sku' => 'BOOST-10D', 'title' => '10 Day Boost'],
@@ -126,4 +126,3 @@ foreach ($variations as $v) {
   echo "    - {$v->label()} | SKU={$v->getSku()} | {$days} days | {$price_str} AUD\n";
 }
 echo "\nDone!\n";
-

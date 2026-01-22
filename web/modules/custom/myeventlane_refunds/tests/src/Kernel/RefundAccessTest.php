@@ -143,18 +143,10 @@ final class RefundAccessTest extends KernelTestBase {
       'title' => 'Donation',
     ]);
     // In a real test, set bundle to 'checkout_donation'.
-    // $donationItem->bundle = 'checkout_donation';
-
+    // $donationItem->bundle = 'checkout_donation';.
     $isDonation = $orderInspector->isDonationItem($donationItem);
     // This will be FALSE if bundle is not set correctly.
     $this->assertIsBool($isDonation);
   }
 
 }
-
-
-
-
-
-
-

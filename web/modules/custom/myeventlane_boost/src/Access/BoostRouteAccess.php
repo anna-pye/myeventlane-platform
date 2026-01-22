@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_boost\Access;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Access control for boost routes.
@@ -15,9 +17,22 @@ use Drupal\node\NodeInterface;
  * Enforces:
  * - Owner OR admin
  * - Event published = TRUE
- * - Vendor has Stripe connected
+ * - Vendor has Stripe connected.
  */
 final class BoostRouteAccess {
+
+  /**
+   * Constructs BoostRouteAccess.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
+   */
+  public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly LoggerInterface $logger,
+  ) {}
 
   /**
    * Checks access to boost route.
@@ -30,11 +45,11 @@ final class BoostRouteAccess {
    * @return \Drupal\Core\Access\AccessResult
    *   The access result.
    */
-  public static function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+  public function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     $node = $route_match->getParameter('node');
 
     if (!$node instanceof NodeInterface) {
-      \Drupal::logger('myeventlane_boost')->debug('Boost access denied: invalid node parameter');
+      $this->logger->debug('Boost access denied: invalid node parameter');
       return AccessResult::forbidden()->cachePerUser();
     }
 
@@ -45,7 +60,7 @@ final class BoostRouteAccess {
 
     // Must be owner.
     if ((int) $node->getOwnerId() !== (int) $account->id()) {
-      \Drupal::logger('myeventlane_boost')->debug('Boost access denied: user @uid is not owner of event @nid', [
+      $this->logger->debug('Boost access denied: user @uid is not owner of event @nid', [
         '@uid' => $account->id(),
         '@nid' => $node->id(),
       ]);
@@ -54,7 +69,7 @@ final class BoostRouteAccess {
 
     // Must be published.
     if (!$node->isPublished()) {
-      \Drupal::logger('myeventlane_boost')->debug('Boost access denied: event @nid is not published', [
+      $this->logger->debug('Boost access denied: event @nid is not published', [
         '@nid' => $node->id(),
       ]);
       return AccessResult::forbidden('Event must be published to boost.')
@@ -63,9 +78,9 @@ final class BoostRouteAccess {
     }
 
     // Must have Stripe connected.
-    $hasStripe = self::checkStripeConnection($account);
+    $hasStripe = $this->checkStripeConnection($account);
     if (!$hasStripe) {
-      \Drupal::logger('myeventlane_boost')->debug('Boost access denied: user @uid does not have Stripe connected', [
+      $this->logger->debug('Boost access denied: user @uid does not have Stripe connected', [
         '@uid' => $account->id(),
       ]);
       return AccessResult::forbidden('Stripe account must be connected to boost events.')
@@ -86,17 +101,15 @@ final class BoostRouteAccess {
    * @return bool
    *   TRUE if Stripe is connected, FALSE otherwise.
    */
-  private static function checkStripeConnection(AccountInterface $account): bool {
+  private function checkStripeConnection(AccountInterface $account): bool {
     $userId = (int) $account->id();
     if ($userId === 0) {
       return FALSE;
     }
 
     try {
-      $entityTypeManager = \Drupal::entityTypeManager();
-
       // Check commerce_store for Stripe account ID.
-      $storeStorage = $entityTypeManager->getStorage('commerce_store');
+      $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
       $storeIds = $storeStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('uid', $userId)
@@ -117,7 +130,7 @@ final class BoostRouteAccess {
       }
 
       // Fallback: check vendor entity.
-      $vendorStorage = $entityTypeManager->getStorage('myeventlane_vendor');
+      $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
       $vendorIds = $vendorStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('uid', $userId)
@@ -134,7 +147,7 @@ final class BoostRouteAccess {
     }
     catch (\Exception $e) {
       // Log error but don't break access check.
-      \Drupal::logger('myeventlane_boost')->warning('Error checking Stripe connection for user @uid: @message', [
+      $this->logger->warning('Error checking Stripe connection for user @uid: @message', [
         '@uid' => $userId,
         '@message' => $e->getMessage(),
       ]);

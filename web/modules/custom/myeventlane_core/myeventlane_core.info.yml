@@ -6,5 +6,6 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - commerce_cart
   - flag:flag
   - drupal:system

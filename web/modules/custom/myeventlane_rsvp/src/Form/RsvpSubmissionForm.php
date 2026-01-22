@@ -12,11 +12,17 @@ use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
  */
 final class RsvpSubmissionForm extends FormBase {
 
+  /**
+   *
+   */
   public function getFormId(): string {
     return 'myeventlane_rsvp_submission_form';
   }
 
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL): array {
+  /**
+   *
+   */
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
     if (!$node || $node->bundle() !== 'event') {
       return ['#markup' => $this->t('Invalid event.')];
     }
@@ -35,7 +41,7 @@ final class RsvpSubmissionForm extends FormBase {
       ];
     }
     else {
-      // Anonymous RSVP fields
+      // Anonymous RSVP fields.
       $form['anon_name'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Your name'),
@@ -67,10 +73,16 @@ final class RsvpSubmissionForm extends FormBase {
     return $form;
   }
 
+  /**
+   *
+   */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     // Nothing additional for now.
   }
 
+  /**
+   *
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $event_id = $form_state->getValue('event_id');
 

@@ -1,5 +1,8 @@
 services:
 
+  myeventlane_core.optional_service_resolver:
+    class: Drupal\myeventlane_core\Service\OptionalServiceResolver
+
   myeventlane_core.route_helper:
     class: Drupal\myeventlane_core\Service\RouteHelper
     arguments:
@@ -28,10 +31,17 @@ services:
       - '@renderer'
       - '@flag'
 
+  myeventlane_core.category_digest_cron:
+    class: Drupal\myeventlane_core\Service\CategoryDigestCron
+    arguments:
+      - '@myeventlane_core.category_digest_generator'
+      - '@queue'
+
   myeventlane_core.category_digest_queue:
     class: Drupal\myeventlane_core\Queue\CategoryDigestQueue
     arguments:
       - '@myeventlane_core.category_digest_generator'
+      - '@entity_type.manager'
     tags:
       - { name: queue_worker, queue_name: mel_category_digest, cron: 60 }
 
@@ -48,6 +58,7 @@ services:
       - '@current_route_match'
       - '@current_user'
       - '@config.factory'
+      - '@logger.factory'
     tags:
       - { name: event_subscriber }
 
@@ -69,6 +80,7 @@ services:
     class: Drupal\myeventlane_core\EventSubscriber\AdminDomainRedirectSubscriber
     arguments:
       - '@myeventlane_core.domain_detector'
+      - '@current_user'
     tags:
       - { name: event_subscriber }
 
@@ -89,6 +101,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@current_user'
+      - '@database'
 
   myeventlane_core.homepage_popularity:
     class: Drupal\myeventlane_core\Service\HomepagePopularityService
@@ -113,5 +126,18 @@ services:
 
   myeventlane_core.staging_security_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\StagingSecuritySubscriber
+    arguments: ['@config.factory']
     tags:
       - { name: event_subscriber }
+
+  myeventlane_core.cart_page_route_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\CartPageRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_core.entity_view_display_presave:
+    class: Drupal\myeventlane_core\Service\EntityViewDisplayPresave
+    arguments:
+      - '@entity_type.manager'
+      - '@cache_tags.invalidator'
+      - '@logger.factory'

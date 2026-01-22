@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_refunds\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
@@ -24,10 +25,13 @@ final class VendorOrdersController extends ControllerBase {
    *   The access resolver.
    * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
    *   The order inspector.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
+   *   The date formatter.
    */
   public function __construct(
     private readonly RefundAccessResolver $accessResolver,
     private readonly RefundOrderInspector $orderInspector,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {
   }
 
@@ -38,6 +42,7 @@ final class VendorOrdersController extends ControllerBase {
     return new static(
       $container->get('myeventlane_refunds.access_resolver'),
       $container->get('myeventlane_refunds.order_inspector'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -169,7 +174,7 @@ final class VendorOrdersController extends ControllerBase {
           $orders[] = [
             'order_id' => $orderId,
             'order_number' => $order->getOrderNumber() ?: '#' . $orderId,
-            'placed_date' => $order->getPlacedTime() ? \Drupal::service('date.formatter')->format($order->getPlacedTime(), 'short') : '',
+            'placed_date' => $order->getPlacedTime() ? $this->dateFormatter->format($order->getPlacedTime(), 'short') : '',
             'customer_name' => $customerName,
             'customer_email' => $maskedEmail,
             'ticket_qty' => $ticketQty,
@@ -195,4 +200,3 @@ final class VendorOrdersController extends ControllerBase {
   }
 
 }
-

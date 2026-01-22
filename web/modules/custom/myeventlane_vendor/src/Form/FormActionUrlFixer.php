@@ -42,14 +42,14 @@ class FormActionUrlFixer implements TrustedCallbackInterface {
         $element['#action'] = str_replace('/vendor/form_action_', '/form_action_', $element['#action']);
       }
     }
-    
+
     // Also check for form action in form attributes if present.
     if (isset($element['#attributes']['action']) && is_string($element['#attributes']['action'])) {
       if (str_contains($element['#attributes']['action'], '/vendor/form_action_')) {
         $element['#attributes']['action'] = str_replace('/vendor/form_action_', '/form_action_', $element['#attributes']['action']);
       }
     }
-    
+
     return $element;
   }
 

@@ -48,7 +48,7 @@ final class ImageFactory {
     int $width = 1200,
     int $height = 630,
     string $text = '',
-    string $directory = 'seed'
+    string $directory = 'seed',
   ): ?FileInterface {
     $public_path = 'public://' . $directory;
     if (!$this->fileSystem->prepareDirectory($public_path, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
@@ -109,7 +109,7 @@ final class ImageFactory {
       @unlink($temp_file);
       return NULL;
     }
-    
+
     if (!copy($temp_file, $destination)) {
       @unlink($temp_file);
       return NULL;
@@ -121,7 +121,8 @@ final class ImageFactory {
     $file = \Drupal::entityTypeManager()->getStorage('file')->create([
       'uri' => $uri,
       'uid' => 1,
-      'status' => 1, // FILE_STATUS_PERMANENT
+    // FILE_STATUS_PERMANENT.
+      'status' => 1,
       'filename' => $safe_filename . '.png',
     ]);
     $file->save();
@@ -130,4 +131,3 @@ final class ImageFactory {
   }
 
 }
-

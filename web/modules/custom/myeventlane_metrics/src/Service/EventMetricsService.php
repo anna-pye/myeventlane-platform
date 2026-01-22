@@ -107,7 +107,8 @@ final class EventMetricsService implements EventMetricsServiceInterface {
 
     $eventId = (int) $event->id();
     $totalAmount = 0.0;
-    $currencyCode = 'AUD'; // @todo: Get from event or config.
+    // @todo Get from event or config.
+    $currencyCode = 'AUD';
 
     try {
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
@@ -120,8 +121,19 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+          continue;
+        }
+        $order_id = $orderItem->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $orderItem->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {
             continue;
           }
@@ -177,8 +189,19 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+          continue;
+        }
+        $order_id = $orderItem->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $orderItem->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {
             continue;
           }

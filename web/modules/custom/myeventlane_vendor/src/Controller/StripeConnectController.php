@@ -128,7 +128,7 @@ final class StripeConnectController extends ControllerBase {
 
     $request = \Drupal::request();
     $destination = $request->query->get('destination');
-    
+
     $store = $this->getCurrentUserStore();
     if (!$store) {
       $this->messenger()->addError($this->t('No store found for your account. Please contact support.'));
@@ -196,12 +196,12 @@ final class StripeConnectController extends ControllerBase {
       // Create AccountLink for onboarding.
       $request = \Drupal::request();
       $destination = $request->query->get('destination');
-      
+
       // Determine return URL based on destination.
       // Use current request's scheme and host to ensure correct domain.
       $request = \Drupal::request();
       $baseUrl = $request->getSchemeAndHttpHost();
-      
+
       if ($destination && strpos($destination, '/vendor/onboard') !== FALSE) {
         // If coming from onboarding, return to onboarding stripe step.
         $callbackUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', [], [
@@ -214,7 +214,7 @@ final class StripeConnectController extends ControllerBase {
         $callbackUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', []);
         $returnUrl = $baseUrl . $callbackUrl->toString();
       }
-      
+
       $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
         'query' => $destination ? ['destination' => $destination] : [],
       ]);
@@ -251,7 +251,7 @@ final class StripeConnectController extends ControllerBase {
     }
 
     $destination = $request->query->get('destination');
-    
+
     $store = $this->getCurrentUserStore();
     if (!$store) {
       $this->messenger()->addError($this->t('No store found for your account.'));
@@ -336,7 +336,7 @@ final class StripeConnectController extends ControllerBase {
   public function manage(): RedirectResponse {
     $logger = $this->getLogger('myeventlane_vendor');
     $currentUser = $this->currentUser();
-    
+
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in to manage Stripe.');
     }
@@ -383,26 +383,26 @@ final class StripeConnectController extends ControllerBase {
         '@account_id' => $accountId,
         '@uid' => $currentUser->id(),
       ]);
-      
+
       $loginLink = $this->stripeService->createLoginLinkIfEligible($accountId);
-      
+
       // If login link is NULL, account is not eligible.
       if ($loginLink === NULL) {
         // Get eligibility details for logging.
         $eligibility = $this->stripeService->validateAccountDashboardEligibility($accountId);
         $reason = $eligibility['reason'] ?? 'Unknown reason';
-        
+
         // Log at NOTICE level (eligibility failures are expected for incomplete accounts).
         $logger->notice('Stripe manage: Account @account_id is not eligible for dashboard login link. Reason: @reason', [
           '@account_id' => $accountId,
           '@reason' => $reason,
         ]);
-        
+
         // Show clear UI message about incomplete onboarding.
         $this->messenger()->addWarning($this->t('Stripe onboarding incomplete. Your account is not yet ready for dashboard access. Please complete the Stripe onboarding process.'));
         return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
       }
-      
+
       if (empty($loginLink->url)) {
         // This is an unexpected error (link created but URL missing).
         $logger->error('Stripe manage: Login link created but URL is empty for account @account_id', [
@@ -415,7 +415,7 @@ final class StripeConnectController extends ControllerBase {
       $logger->info('Stripe manage: Successfully created login link for account @account_id', [
         '@account_id' => $accountId,
       ]);
-      
+
       // Redirect to Stripe dashboard.
       // External URL requires TrustedRedirectResponse.
       return new TrustedRedirectResponse($loginLink->url);
@@ -427,7 +427,7 @@ final class StripeConnectController extends ControllerBase {
         '@account_id' => $accountId,
         '@message' => $error_message,
       ]);
-      
+
       $this->messenger()->addError($this->t('Failed to open Stripe dashboard. Please try again or contact support.'));
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
     }

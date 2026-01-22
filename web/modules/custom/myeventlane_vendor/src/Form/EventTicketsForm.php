@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -141,7 +139,7 @@ final class EventTicketsForm extends FormBase {
         '#attributes' => ['class' => ['button', 'button--primary']],
       ],
     ];
-    
+
     // Attach AJAX library for modal.
     $form['#attached']['library'][] = 'core/drupal.ajax';
     $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
@@ -175,11 +173,11 @@ final class EventTicketsForm extends FormBase {
    */
   private function getTicketLabel(ParagraphInterface $paragraph): string {
     $mode = $paragraph->get('field_ticket_label_mode')->value ?? 'preset';
-    
+
     if ($mode === 'custom') {
       return $paragraph->get('field_ticket_label_custom')->value ?? 'Unnamed Ticket';
     }
-    
+
     return $paragraph->get('field_ticket_label_preset')->value ?? 'General Admission';
   }
 
@@ -268,30 +266,30 @@ final class EventTicketsForm extends FormBase {
     // Find which button was clicked.
     $triggering_element = $form_state->getTriggeringElement();
     $paragraph_id = $triggering_element['#paragraph_id'] ?? NULL;
-    
+
     if (!$paragraph_id) {
       return;
     }
-    
+
     // Load the paragraph.
     $paragraph = $this->getEntityTypeManager()->getStorage('paragraph')->load($paragraph_id);
     if (!$paragraph) {
       return;
     }
-    
+
     // Remove from event field.
     if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
       $ticket_types = $event->get('field_ticket_types')->getValue();
-      $ticket_types = array_filter($ticket_types, function($item) use ($paragraph_id) {
+      $ticket_types = array_filter($ticket_types, function ($item) use ($paragraph_id) {
         return ($item['target_id'] ?? NULL) != $paragraph_id;
       });
       $event->set('field_ticket_types', array_values($ticket_types));
       $event->save();
     }
-    
+
     // Delete the paragraph entity.
     $paragraph->delete();
-    
+
     $this->messenger()->addStatus($this->t('Ticket type deleted.'));
     $form_state->setRebuild();
   }

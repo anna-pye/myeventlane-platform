@@ -11,7 +11,6 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\Store;
-use Drupal\Core\Access\AccessResultInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -345,4 +344,3 @@ final class AttendeeParagraphAccessTest extends KernelTestBase {
   }
 
 }
-

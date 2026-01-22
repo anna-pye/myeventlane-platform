@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
  * This service ensures correct financial handling:
  * - Ticket revenue → transferred to vendor (minus platform fee)
  * - Donation revenue → retained by platform (not transferred to vendor)
- * - Application fees calculated only on ticket revenue
+ * - Application fees calculated only on ticket revenue.
  */
 final class StripeConnectPaymentService {
 
@@ -262,7 +262,7 @@ final class StripeConnectPaymentService {
    * STRIPE CONNECT MATH:
    * - Customer pays: total order amount (tickets + donations + fees + tax)
    * - Platform receives: application_fee_amount + donation revenue
-   * - Vendor receives: ticket revenue - application_fee_amount
+   * - Vendor receives: ticket revenue - application_fee_amount.
    *
    * Example:
    * - Tickets: $100.00

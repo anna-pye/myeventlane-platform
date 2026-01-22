@@ -45,7 +45,7 @@ final class EventDesignForm extends FormBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Hero/Banner Image'),
       ];
-      
+
       // Show current image as read-only preview.
       if (!$event->get('field_event_hero')->isEmpty()) {
         $form['hero']['preview'] = $event->get('field_event_hero')->view('default');
@@ -55,7 +55,7 @@ final class EventDesignForm extends FormBase {
           '#markup' => '<p>' . $this->t('No hero image set.') . '</p>',
         ];
       }
-      
+
       // Direct users to Event information step for image editing.
       $edit_url = Url::fromRoute('myeventlane_vendor.manage_event.edit', ['event' => $event->id()]);
       $form['hero']['edit_link'] = [
@@ -72,7 +72,7 @@ final class EventDesignForm extends FormBase {
         '#type' => 'fieldset',
         '#title' => $this->t('Event Logo'),
       ];
-      
+
       // Show current image as read-only preview.
       if (!$event->get('field_event_organizer_logo')->isEmpty()) {
         $form['logo']['preview'] = $event->get('field_event_organizer_logo')->view('default');
@@ -82,7 +82,7 @@ final class EventDesignForm extends FormBase {
           '#markup' => '<p>' . $this->t('No logo set.') . '</p>',
         ];
       }
-      
+
       // Direct users to Event information step for image editing.
       $edit_url = Url::fromRoute('myeventlane_vendor.manage_event.edit', ['event' => $event->id()]);
       $form['logo']['edit_link'] = [

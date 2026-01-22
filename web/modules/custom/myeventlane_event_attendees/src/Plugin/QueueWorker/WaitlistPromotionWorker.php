@@ -2,10 +2,11 @@
 
 namespace Drupal\myeventlane_event_attendees\Plugin\QueueWorker;
 
-use Drupal\Core\Queue\QueueWorkerBase;
-use Drupal\node\NodeInterface;
-use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -21,17 +22,33 @@ class WaitlistPromotionWorker extends QueueWorkerBase implements ContainerFactor
 
   protected AttendanceManager $manager;
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, AttendanceManager $manager) {
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Constructs WaitlistPromotionWorker.
+   */
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    AttendanceManager $manager,
+    EntityTypeManagerInterface $entityTypeManager,
+  ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->manager = $manager;
+    $this->entityTypeManager = $entityTypeManager;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('myeventlane_event_attendees.manager')
+      $container->get('myeventlane_event_attendees.manager'),
+      $container->get('entity_type.manager'),
     );
   }
 
@@ -42,12 +59,12 @@ class WaitlistPromotionWorker extends QueueWorkerBase implements ContainerFactor
    *   Contains: event_id, attendee_id.
    */
   public function processItem($data) {
-    $event = \Drupal::entityTypeManager()->getStorage('node')->load($data['event_id']);
+    $event = $this->entityTypeManager->getStorage('node')->load($data['event_id']);
     if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
       return;
     }
 
-    $storage = \Drupal::entityTypeManager()->getStorage('event_attendee');
+    $storage = $this->entityTypeManager->getStorage('event_attendee');
     $attendee = $storage->load($data['attendee_id']);
 
     if (!$attendee) {

@@ -12,7 +12,6 @@ use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\Store;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\myeventlane_checkout_paragraph\Service\CheckInTokenService;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\paragraphs\Entity\Paragraph;
@@ -345,4 +344,3 @@ final class CheckInTest extends KernelTestBase {
   }
 
 }
-

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_donations\Service;
 
+use Psr\Log\LoggerInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartSessionInterface;
@@ -34,6 +36,8 @@ final class RsvpDonationService {
    *   The cart session.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   The logger factory.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   *   The module handler.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -41,6 +45,7 @@ final class RsvpDonationService {
     private readonly CartManagerInterface $cartManager,
     private readonly CartSessionInterface $cartSession,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -49,7 +54,7 @@ final class RsvpDonationService {
    * @return \Psr\Log\LoggerInterface
    *   The logger.
    */
-  private function logger(): \Psr\Log\LoggerInterface {
+  private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_donations');
   }
 
@@ -103,7 +108,8 @@ final class RsvpDonationService {
       $order = $orderStorage->create([
         'type' => 'rsvp_donation',
         'store_id' => $store->id(),
-        'uid' => 0, // Anonymous for RSVP donations
+      // Anonymous for RSVP donations.
+        'uid' => 0,
         'state' => 'draft',
       ]);
       $order->save();
@@ -118,7 +124,7 @@ final class RsvpDonationService {
 
     // Create order item.
     $orderItem = $this->createDonationOrderItem($amount, $event, $submission);
-    
+
     // Use cart manager to add item (handles validation and recalculation).
     try {
       $this->cartManager->addOrderItem($order, $orderItem);
@@ -215,7 +221,7 @@ final class RsvpDonationService {
     $store = NULL;
 
     // First, try to find store via vendor entity (if vendor module is available).
-    if (\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
+    if ($this->moduleHandler->moduleExists('myeventlane_vendor')) {
       $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
       $vendors = $vendorStorage->getQuery()
         ->accessCheck(FALSE)
@@ -299,4 +305,3 @@ final class RsvpDonationService {
   }
 
 }
-

@@ -132,9 +132,10 @@ final class MyCategoriesController extends ControllerBase {
         'id' => $category->id(),
         'name' => $category->label(),
         'url' => $category->toUrl()->toString(),
-        'unfollow_url' => Url::fromRoute('flag.action_link_unflag', [
+        'unfollow_url' => Url::fromRoute('flag.action_link_unflag_nojs', [
           'flag' => 'follow_category',
           'entity_id' => $category->id(),
+          'view_mode' => 'default',
         ])->toString(),
         'new_events' => $newEvents,
         'new_events_count' => count($newEvents),
@@ -153,4 +154,3 @@ final class MyCategoriesController extends ControllerBase {
   }
 
 }
-

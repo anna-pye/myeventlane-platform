@@ -136,7 +136,6 @@ final class MyTicketsController extends ControllerBase {
   public function orderDetail(OrderInterface $commerce_order): array {
     // Access control: Commerce handles this via entity access.
     // If user doesn't have access, they'll get a 403.
-
     $orderData = $this->buildOrderData($commerce_order, TRUE);
 
     return [
@@ -278,4 +277,3 @@ final class MyTicketsController extends ControllerBase {
   }
 
 }
-

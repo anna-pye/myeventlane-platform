@@ -37,7 +37,7 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
    */
   public function supports(NodeInterface $event): bool {
     // Check if event supports paid tickets.
-    // @todo: Check event type field to determine if paid tickets are enabled.
+    // @todo Check event type field to determine if paid tickets are enabled.
     if (!$this->entityTypeManager->hasDefinition('event_attendee')) {
       return FALSE;
     }

@@ -4,12 +4,18 @@ namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
+/**
+ *
+ */
 final class RsvpPromotionManager {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $etm,
   ) {}
 
+  /**
+   *
+   */
   public function promoteNext(int $event_id): ?int {
     $storage = $this->etm->getStorage('rsvp_submission');
 
@@ -32,4 +38,5 @@ final class RsvpPromotionManager {
 
     return $id;
   }
+
 }

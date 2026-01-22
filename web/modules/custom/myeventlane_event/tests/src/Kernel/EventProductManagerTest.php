@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event\Kernel;
 
-use Drupal\commerce_product\Entity\Product;
-use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_store\Entity\Store;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -62,7 +61,7 @@ final class EventProductManagerTest extends KernelTestBase {
     }
 
     // Create a default store.
-    $store = \Drupal\commerce_store\Entity\Store::create([
+    $store = Store::create([
       'type' => 'default',
       'name' => 'Test Store',
       'mail' => 'test@example.com',
@@ -82,7 +81,8 @@ final class EventProductManagerTest extends KernelTestBase {
     $event = Node::create([
       'type' => 'event',
       'title' => 'Test Draft Event',
-      'status' => 0, // Unpublished
+    // Unpublished.
+      'status' => 0,
       'field_event_type' => 'rsvp',
     ]);
     $event->save();
@@ -106,7 +106,8 @@ final class EventProductManagerTest extends KernelTestBase {
     $event = Node::create([
       'type' => 'event',
       'title' => 'Test Published Event',
-      'status' => 1, // Published
+    // Published.
+      'status' => 1,
       'field_event_type' => 'rsvp',
     ]);
     $event->save();
@@ -118,7 +119,7 @@ final class EventProductManagerTest extends KernelTestBase {
     // Verify product was created and linked.
     $event = Node::load($event->id());
     $this->assertFalse($event->get('field_product_target')->isEmpty(), 'Event should have a linked product.');
-    
+
     $product = $event->get('field_product_target')->entity;
     $this->assertNotNull($product, 'Product should exist.');
     $this->assertEquals('Test Published Event - RSVP', $product->label(), 'Product title should match event.');
@@ -185,7 +186,6 @@ final class EventProductManagerTest extends KernelTestBase {
       'field_event_type' => 'rsvp',
     ]);
     // Do NOT save.
-
     // Attempt to sync (should fail).
     $result = $this->productManager->syncProducts($event, 'publish');
     $this->assertFalse($result, 'Sync should fail for new (unsaved) nodes.');

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_rsvp\Functional;
 
-use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\Entity\User;

@@ -12,4 +12,4 @@ services:
   # Waitlist notification service.
   myeventlane_event_attendees.waitlist_notification:
     class: Drupal\myeventlane_event_attendees\Service\WaitlistNotificationService
-    arguments: ['@plugin.manager.mail', '@renderer']
+    arguments: ['@plugin.manager.mail', '@renderer', '@language_manager']

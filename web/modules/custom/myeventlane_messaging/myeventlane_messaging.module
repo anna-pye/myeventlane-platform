@@ -56,7 +56,7 @@ function myeventlane_messaging_mail($key, &$message, $params) {
   }
 
   $message['subject'] = $params['subject'] ?? '(no subject)';
-  
+
   // PhpMail expects body to be an array, but HTML emails need string.
   // Set body as array for PhpMail compatibility, or as string for HTML mailers.
   $body_content = $params['html'] ?? $params['body'] ?? '';
@@ -67,13 +67,13 @@ function myeventlane_messaging_mail($key, &$message, $params) {
     // For HTML emails, set as array with single element to satisfy PhpMail.
     $message['body'] = [$body_content];
   }
-  
+
   // Ensure headers is an array.
   if (!isset($message['headers']) || !is_array($message['headers'])) {
     $message['headers'] = [];
   }
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
-  
+
   // Store HTML body separately for HTML mailers that need it.
   if (!empty($params['html'])) {
     $message['params']['html'] = $params['html'];
@@ -81,7 +81,7 @@ function myeventlane_messaging_mail($key, &$message, $params) {
 
   // Handle attachments.
   // Drupal's mail system supports attachments via $message['params']['attachments']
-  // Format: array of arrays with 'filecontent', 'filename', and optionally 'filemime'
+  // Format: array of arrays with 'filecontent', 'filename', and optionally 'filemime'.
   if (!empty($params['attachments']) && is_array($params['attachments'])) {
     if (!isset($message['params'])) {
       $message['params'] = [];

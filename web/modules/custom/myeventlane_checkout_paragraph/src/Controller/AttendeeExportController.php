@@ -84,7 +84,7 @@ final class AttendeeExportController extends ControllerBase implements Container
       // Get column headers from first attendee's export row.
       $firstRow = $attendees[0]->toExportRow();
       $headers = array_keys($firstRow);
-      
+
       // Map header keys to human-readable labels.
       $headerLabels = [
         'name' => $this->t('Name'),
@@ -128,16 +128,15 @@ final class AttendeeExportController extends ControllerBase implements Container
   /**
    * Queue export for async processing and notification.
    *
-   * @todo: Implement file-based export that generates a file first,
+   * @todo Implement file-based export that generates a file first,
    * then queues notification. Current implementation streams directly.
    * For now, this is a placeholder.
    */
   public function queueExport(NodeInterface $event): RedirectResponse {
-    // @todo: Generate export file, save to temporary storage,
+    // @todo Generate export file, save to temporary storage,
     // create secure download link, then call:
     // \Drupal::service('myeventlane_automation.export_notification')
     //   ->queueExportNotification($event, 'csv', $downloadUrl);
-
     $this->messengerService->addStatus($this->t('Export queued (implementation pending).'));
     return $this->redirect('<front>');
   }

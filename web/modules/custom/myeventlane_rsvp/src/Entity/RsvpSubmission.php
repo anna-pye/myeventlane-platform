@@ -2,6 +2,7 @@
 
 namespace Drupal\myeventlane_rsvp\Entity;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\user\EntityOwnerTrait;
@@ -423,7 +424,7 @@ class RsvpSubmission extends ContentEntityBase implements RsvpSubmissionInterfac
   /**
    * {@inheritdoc}
    */
-  public function preSave(\Drupal\Core\Entity\EntityStorageInterface $storage) {
+  public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
 
     // If 'name' is set but 'attendee_name' is not, sync them.

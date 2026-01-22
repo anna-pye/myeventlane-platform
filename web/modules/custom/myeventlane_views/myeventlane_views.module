@@ -5,6 +5,7 @@
  * MyEventLane Views module.
  */
 
+use Drupal\views\ViewExecutable;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -31,12 +32,12 @@ function myeventlane_views_twig_loader_alter(FilesystemLoader $loader): void {
  * Ensures null field values are converted to empty strings to prevent
  * Html::escape() errors when rendering Views fields.
  */
-function myeventlane_views_views_post_execute(\Drupal\views\ViewExecutable $view): void {
+function myeventlane_views_views_post_execute(ViewExecutable $view): void {
   foreach ($view->result as $index => $row) {
     foreach ($view->field as $field_id => $field) {
       if (isset($field->field_alias)) {
         $alias = $field->field_alias;
-        if (isset($row->{$alias}) && $row->{$alias} === null) {
+        if (isset($row->{$alias}) && $row->{$alias} === NULL) {
           $row->{$alias} = '';
         }
       }
@@ -50,12 +51,12 @@ function myeventlane_views_views_post_execute(\Drupal\views\ViewExecutable $view
  * Ensures null field values are converted to empty strings to prevent
  * Html::escape() errors when rendering Views fields.
  */
-function myeventlane_views_views_pre_render(\Drupal\views\ViewExecutable $view): void {
+function myeventlane_views_views_pre_render(ViewExecutable $view): void {
   foreach ($view->result as $index => $row) {
     foreach ($view->field as $field_id => $field) {
       if (isset($field->field_alias)) {
         $alias = $field->field_alias;
-        if (isset($row->{$alias}) && $row->{$alias} === null) {
+        if (isset($row->{$alias}) && $row->{$alias} === NULL) {
           $row->{$alias} = '';
         }
       }
@@ -71,13 +72,13 @@ function myeventlane_views_views_pre_render(\Drupal\views\ViewExecutable $view):
  */
 function myeventlane_views_preprocess_views_view_field(array &$variables): void {
   // Convert null output to empty string to prevent Html::escape() errors.
-  if ($variables['output'] === null) {
+  if ($variables['output'] === NULL) {
     $variables['output'] = '';
   }
   // Also check if output is a render array with null values.
   if (is_array($variables['output'])) {
     array_walk_recursive($variables['output'], function (&$value) {
-      if ($value === null) {
+      if ($value === NULL) {
         $value = '';
       }
     });

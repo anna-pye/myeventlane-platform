@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_refunds\Form;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
 use Drupal\myeventlane_vendor_comms\Service\EventRecipientResolver;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -28,11 +28,14 @@ final class VendorCancelEventForm extends FormBase {
    *   The recipient resolver.
    * @param \Drupal\myeventlane_messaging\Service\MessagingManager $messagingManager
    *   The messaging manager.
+   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
+   *   The queue factory.
    */
   public function __construct(
     private readonly RefundAccessResolver $accessResolver,
     private readonly EventRecipientResolver $recipientResolver,
     private readonly MessagingManager $messagingManager,
+    private readonly QueueFactory $queueFactory,
   ) {
   }
 
@@ -44,6 +47,7 @@ final class VendorCancelEventForm extends FormBase {
       $container->get('myeventlane_refunds.access_resolver'),
       $container->get('myeventlane_vendor_comms.recipient_resolver'),
       $container->get('myeventlane_messaging.manager'),
+      $container->get('queue'),
     );
   }
 
@@ -70,7 +74,7 @@ final class VendorCancelEventForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
     $form['#event'] = $node;
 
     $form['warning'] = [
@@ -167,7 +171,7 @@ final class VendorCancelEventForm extends FormBase {
 
     // If cancel and refund, queue refund jobs for all orders.
     if ($cancelAction === 'cancel_and_refund') {
-      $queue = \Drupal::service('queue')->get('event_cancel_refund_worker');
+      $queue = $this->queueFactory->get('event_cancel_refund_worker');
       $queue->createItem([
         'event_id' => $event->id(),
         'vendor_uid' => $this->currentUser()->id(),
@@ -179,4 +183,3 @@ final class VendorCancelEventForm extends FormBase {
   }
 
 }
-

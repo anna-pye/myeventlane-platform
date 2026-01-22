@@ -80,7 +80,7 @@ final class VendorExportApiController extends VendorApiBaseController {
 
     // Generate a job ID (in a real implementation, this would queue a job).
     // For now, return a placeholder job ID.
-    // TODO: Integrate with queue system to actually generate export.
+    // @todo Integrate with queue system to actually generate export.
     $job_id = 'export_' . $node->id() . '_' . time();
 
     return $this->responseFormatter->success([

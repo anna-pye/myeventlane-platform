@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_attendees\Service;
 
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Url;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\node\NodeInterface;
 
@@ -24,6 +24,7 @@ final class WaitlistNotificationService {
   public function __construct(
     private readonly MailManagerInterface $mailManager,
     private readonly RendererInterface $renderer,
+    private readonly LanguageManagerInterface $languageManager,
   ) {}
 
   /**
@@ -96,7 +97,7 @@ final class WaitlistNotificationService {
       'myeventlane_event_attendees',
       'waitlist_promotion',
       $email,
-      \Drupal::languageManager()->getDefaultLanguage()->getId(),
+      $this->languageManager->getDefaultLanguage()->getId(),
       $params
     );
 
@@ -104,21 +105,3 @@ final class WaitlistNotificationService {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

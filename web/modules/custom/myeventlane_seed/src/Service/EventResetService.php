@@ -75,10 +75,3 @@ final class EventResetService {
   }
 
 }
-
-
-
-
-
-
-

@@ -63,7 +63,7 @@ class IcsBundleGenerator {
       $lines[] = 'UID:' . $uid;
       $lines[] = 'SUMMARY:' . $this->escape($event['title']);
       $lines[] = 'DTSTART:' . gmdate('Ymd\THis\Z', strtotime($event['start']));
-      $lines[] = 'DTEND:'   . gmdate('Ymd\THis\Z', strtotime($event['end']));
+      $lines[] = 'DTEND:' . gmdate('Ymd\THis\Z', strtotime($event['end']));
       if (!empty($event['location'])) {
         $lines[] = 'LOCATION:' . $this->escape($event['location']);
       }
@@ -76,6 +76,9 @@ class IcsBundleGenerator {
     return implode("\r\n", $lines);
   }
 
+  /**
+   *
+   */
   protected function escape($text) {
     return str_replace(',', '\,', $text);
   }

@@ -8,7 +8,6 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\mel_tickets\Service\EventAccess;
 
 /**
  * Access control handler for Ticket Group entities.
@@ -20,7 +19,7 @@ final class TicketGroupAccessControlHandler extends EntityAccessControlHandler {
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
     /** @var \Drupal\mel_tickets\Entity\TicketGroup $entity */
-    
+
     // Admin permission grants full access.
     if ($account->hasPermission('administer all events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
@@ -52,7 +51,7 @@ final class TicketGroupAccessControlHandler extends EntityAccessControlHandler {
     if ($account->hasPermission('administer all events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
-    
+
     if ($account->hasPermission('manage own events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
     }

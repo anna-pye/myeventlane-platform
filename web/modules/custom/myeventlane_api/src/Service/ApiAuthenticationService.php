@@ -68,8 +68,7 @@ final class ApiAuthenticationService {
     // In practice, this could be optimized with a token->vendor lookup table
     // or by using a deterministic hash (like SHA-256) for lookup and
     // password_hash for storage. For now, we'll iterate.
-    // TODO: Optimize this for large vendor counts with a lookup table.
-
+    // @todo Optimize this for large vendor counts with a lookup table.
     $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
     $query = $storage->getQuery()
       ->accessCheck(FALSE)

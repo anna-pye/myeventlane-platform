@@ -1,0 +1,9 @@
+name: 'MyEventLane Theme Settings'
+type: module
+description: 'Admin UI for MyEventLane theme hero images and related settings. Theme consumes config via preprocess.'
+package: MyEventLane
+core_version_requirement: ^11
+
+dependencies:
+  - drupal:file
+  - drupal:image

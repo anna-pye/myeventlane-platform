@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Service;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\user\UserInterface;
@@ -33,19 +34,30 @@ class HomepageLocationService {
   protected AccountProxyInterface $currentUser;
 
   /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected Connection $database;
+
+  /**
    * Constructs a HomepageLocationService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    *   The current user.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
-    AccountProxyInterface $current_user
+    AccountProxyInterface $current_user,
+    Connection $database,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
+    $this->database = $database;
   }
 
   /**
@@ -140,8 +152,7 @@ class HomepageLocationService {
   protected function getLastEventLocation(int $user_id): ?array {
     try {
       // Try RSVP first.
-      $db = \Drupal::database();
-      $rsvp = $db->select('myeventlane_rsvp', 'r')
+      $rsvp = $this->database->select('myeventlane_rsvp', 'r')
         ->fields('r', ['event_nid'])
         ->condition('uid', $user_id)
         ->condition('status', 'active')
@@ -158,7 +169,7 @@ class HomepageLocationService {
       }
 
       // Try ticket purchases (via order items).
-      $query = $db->select('commerce_order_item', 'oi');
+      $query = $this->database->select('commerce_order_item', 'oi');
       $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
       $query->join('commerce_product_variation_field_data', 'pv', 'pv.variation_id = oi.purchased_entity');
       $query->join('commerce_product__field_event', 'pe', 'pe.entity_id = pv.product_id');

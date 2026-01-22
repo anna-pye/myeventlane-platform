@@ -177,7 +177,6 @@ final class EventReminderScheduler {
     }
   }
 
-
   /**
    * Generates a unique key for a reminder.
    *
@@ -223,4 +222,3 @@ final class EventReminderScheduler {
   }
 
 }
-

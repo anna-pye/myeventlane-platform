@@ -196,7 +196,8 @@ final class AttendanceWaitlistManager {
 
     // Calculate average wait time.
     $averageWaitTime = $promotedCount > 0
-      ? round($totalWaitTime / $promotedCount / 3600, 1) // Convert to hours
+    // Convert to hours.
+      ? round($totalWaitTime / $promotedCount / 3600, 1)
       : 0.0;
 
     return [

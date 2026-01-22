@@ -27,6 +27,41 @@ final class AddressAutocompleteWidget extends AddressDefaultWidget {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state): array {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
+    // Hide unused address subfields: organization, given_name, family_name.
+    // These fields are not needed for venue addresses.
+    $unused_fields = ['organization', 'given_name', 'family_name'];
+
+    // The address fields are in $element['address'] after parent::formElement().
+    if (isset($element['address']) && is_array($element['address'])) {
+      foreach ($unused_fields as $field_name) {
+        if (isset($element['address'][$field_name])) {
+          // Set access to FALSE and required to FALSE.
+          $element['address'][$field_name]['#access'] = FALSE;
+          $element['address'][$field_name]['#required'] = FALSE;
+          // Also set #printed to prevent rendering.
+          $element['address'][$field_name]['#printed'] = TRUE;
+          // Unset to completely remove from form processing.
+          unset($element['address'][$field_name]);
+        }
+      }
+    }
+
+    // Also check widget structure (some widgets nest differently)
+    if (isset($element['widget']) && is_array($element['widget'])) {
+      foreach ($element['widget'] as $widget_delta => &$widget_item) {
+        if (is_numeric($widget_delta) && isset($widget_item['address']) && is_array($widget_item['address'])) {
+          foreach ($unused_fields as $field_name) {
+            if (isset($widget_item['address'][$field_name])) {
+              $widget_item['address'][$field_name]['#access'] = FALSE;
+              $widget_item['address'][$field_name]['#required'] = FALSE;
+              $widget_item['address'][$field_name]['#printed'] = TRUE;
+              unset($widget_item['address'][$field_name]);
+            }
+          }
+        }
+      }
+    }
+
     // Add a search input for address autocomplete.
     $element['address_search'] = [
       '#type' => 'textfield',
@@ -94,28 +129,3 @@ final class AddressAutocompleteWidget extends AddressDefaultWidget {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -31,7 +31,7 @@ final class UserRsvpRepository {
   public function loadByUser(AccountInterface $account): array {
     return $this->connection->select('rsvp_submission', 'r')
       ->fields('r')
-      ->condition('uid', $account->id())
+      ->condition('user_id', $account->id())
       ->execute()
       ->fetchAllAssoc('id');
   }

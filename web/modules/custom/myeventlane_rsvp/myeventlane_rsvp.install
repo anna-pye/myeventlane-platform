@@ -1,4 +1,3 @@
-
 <?php
 
 /**
@@ -6,7 +5,8 @@
  * Install, update and uninstall hooks.
  */
 
-use Drupal\Core\Database\SchemaObjectExistsException;
+use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Implements hook_schema().
@@ -103,7 +103,7 @@ function myeventlane_rsvp_update_9001() {
 function myeventlane_rsvp_update_9002() {
   $schema = \Drupal::database()->schema();
   $table = 'myeventlane_rsvp';
-  
+
   if ($schema->tableExists($table) && !$schema->fieldExists($table, 'donation')) {
     $spec = [
       'type' => 'numeric',
@@ -133,7 +133,7 @@ function myeventlane_rsvp_update_9003() {
 
   foreach ($fields as $field_name => $info) {
     if (!\Drupal::entityTypeManager()->getStorage('field_storage_config')->load("rsvp_submission.$field_name")) {
-      $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+      $field_storage = FieldStorageConfig::create([
         'field_name' => $field_name,
         'entity_type' => 'rsvp_submission',
         'type' => $info['type'],
@@ -150,16 +150,16 @@ function myeventlane_rsvp_update_9003() {
  */
 function myeventlane_rsvp_update_9004() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
-  
+
   // Check if updates are needed.
   if (!$entity_definition_update_manager->needsUpdates()) {
     return t('No entity definition updates needed.');
   }
-  
+
   // Get the list of changes needed.
   $change_list = $entity_definition_update_manager->getChangeList();
   $updates_applied = FALSE;
-  
+
   // Apply entity type updates if needed.
   if (!empty($change_list['entity_type'])) {
     foreach ($change_list['entity_type'] as $entity_type_id => $change) {
@@ -170,16 +170,16 @@ function myeventlane_rsvp_update_9004() {
       }
     }
   }
-  
+
   // Apply base field definition updates if needed.
   if (!empty($change_list['field_storage'])) {
     $entity_type = \Drupal::entityTypeManager()->getDefinition('rsvp_submission');
-    $base_field_definitions = \Drupal\myeventlane_rsvp\Entity\RsvpSubmission::baseFieldDefinitions($entity_type);
-    
+    $base_field_definitions = RsvpSubmission::baseFieldDefinitions($entity_type);
+
     foreach ($change_list['field_storage'] as $field_storage_id => $change) {
       if (strpos($field_storage_id, 'rsvp_submission.') === 0) {
         $field_name = str_replace('rsvp_submission.', '', $field_storage_id);
-        
+
         // Only update if this is a base field defined in the entity class.
         if (isset($base_field_definitions[$field_name])) {
           $field_storage_definition = $base_field_definitions[$field_name];
@@ -189,11 +189,11 @@ function myeventlane_rsvp_update_9004() {
       }
     }
   }
-  
+
   if ($updates_applied) {
     return t('Applied entity definition updates for rsvp_submission.');
   }
-  
+
   return t('No entity definition updates needed.');
 }
 
@@ -203,8 +203,8 @@ function myeventlane_rsvp_update_9004() {
 function myeventlane_rsvp_update_9005() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $entity_type = \Drupal::entityTypeManager()->getDefinition('rsvp_submission');
-  $base_field_definitions = \Drupal\myeventlane_rsvp\Entity\RsvpSubmission::baseFieldDefinitions($entity_type);
-  
+  $base_field_definitions = RsvpSubmission::baseFieldDefinitions($entity_type);
+
   // List of fields that need to be installed.
   $fields_to_install = [
     'name',
@@ -218,7 +218,7 @@ function myeventlane_rsvp_update_9005() {
     'status',
     'event_id',
   ];
-  
+
   foreach ($fields_to_install as $field_name) {
     if (isset($base_field_definitions[$field_name])) {
       $field_definition = $base_field_definitions[$field_name];
@@ -237,13 +237,13 @@ function myeventlane_rsvp_update_9005() {
       }
     }
   }
-  
+
   return t('Installed/updated missing base fields for rsvp_submission entity.');
 }
 
 /**
  * Update RSVP status and event_id field definitions.
- * 
+ *
  * Since these are base fields, we need to update them through the entity
  * definition update manager. However, due to issues with the update method,
  * we mark these as needing manual review through the entity updates page.
@@ -251,18 +251,17 @@ function myeventlane_rsvp_update_9005() {
 function myeventlane_rsvp_update_9006() {
   // Clear the entity type cache so Drupal re-reads the definitions.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   // Note: The actual field definition updates (status max_length and event_id handler)
   // need to be applied through /admin/reports/status/entity-updates because
   // updateFieldStorageDefinition requires batch processing for base fields.
   // The entity definition update manager will detect the changes and apply them.
-  
   return t('Prepared RSVP field definitions for update. Please visit /admin/reports/status/entity-updates to apply the changes.');
 }
 
 /**
  * Update RSVP Submission status and event_id base field definitions.
- * 
+ *
  * Note: Base field definition updates for existing fields require batch processing
  * and must be applied through /admin/reports/status/entity-updates. This update
  * hook clears caches to ensure Drupal detects the definition changes.
@@ -270,12 +269,11 @@ function myeventlane_rsvp_update_9006() {
 function myeventlane_rsvp_update_9007() {
   // Clear entity type cache so Drupal re-reads the field definitions.
   \Drupal::entityTypeManager()->clearCachedDefinitions();
-  
+
   // The actual field definition updates (status max_length and event_id handler)
   // must be applied through /admin/reports/status/entity-updates because
   // updateFieldStorageDefinition() requires batch processing for base fields
   // that already exist in the database.
-  
   return t('Cleared entity definition cache. Please visit /admin/reports/status/entity-updates to apply RSVP field definition updates.');
 }
 
@@ -285,15 +283,15 @@ function myeventlane_rsvp_update_9007() {
 function myeventlane_rsvp_update_9008() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $entity_type = \Drupal::entityTypeManager()->getDefinition('rsvp_submission');
-  $base_field_definitions = \Drupal\myeventlane_rsvp\Entity\RsvpSubmission::baseFieldDefinitions($entity_type);
-  
+  $base_field_definitions = RsvpSubmission::baseFieldDefinitions($entity_type);
+
   $field_storage_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
-  
+
   // Update status field.
   if (isset($base_field_definitions['status'])) {
     $field_definition = $base_field_definitions['status'];
     $field_storage = $field_storage_storage->load('rsvp_submission.status');
-    
+
     if (!$field_storage) {
       // Field doesn't exist, install it.
       $entity_definition_update_manager->installFieldStorageDefinition('status', 'rsvp_submission', 'myeventlane_rsvp', $field_definition);
@@ -301,7 +299,7 @@ function myeventlane_rsvp_update_9008() {
     else {
       // Field exists - check if update is needed via change list.
       $change_list = $entity_definition_update_manager->getChangeList();
-      if (isset($change_list['field_storage']['rsvp_submission.status']) && 
+      if (isset($change_list['field_storage']['rsvp_submission.status']) &&
           $change_list['field_storage']['rsvp_submission.status'] === 'update') {
         // Get the original definition and update.
         try {
@@ -316,12 +314,12 @@ function myeventlane_rsvp_update_9008() {
       }
     }
   }
-  
+
   // Update event_id field.
   if (isset($base_field_definitions['event_id'])) {
     $field_definition = $base_field_definitions['event_id'];
     $field_storage = $field_storage_storage->load('rsvp_submission.event_id');
-    
+
     if (!$field_storage) {
       // Field doesn't exist, install it.
       $entity_definition_update_manager->installFieldStorageDefinition('event_id', 'rsvp_submission', 'myeventlane_rsvp', $field_definition);
@@ -329,7 +327,7 @@ function myeventlane_rsvp_update_9008() {
     else {
       // Field exists - check if update is needed via change list.
       $change_list = $entity_definition_update_manager->getChangeList();
-      if (isset($change_list['field_storage']['rsvp_submission.event_id']) && 
+      if (isset($change_list['field_storage']['rsvp_submission.event_id']) &&
           $change_list['field_storage']['rsvp_submission.event_id'] === 'update') {
         // Get the original definition and update.
         try {
@@ -344,6 +342,6 @@ function myeventlane_rsvp_update_9008() {
       }
     }
   }
-  
+
   return t('Updated RSVP Submission status and event_id field definitions.');
 }

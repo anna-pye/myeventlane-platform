@@ -9,12 +9,18 @@ use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ *
+ */
 final class RsvpForm extends FormBase {
 
   protected AttendanceManager $attendeeManager;
   protected AttendanceWaitlistManager $waitlistManager;
   protected NodeInterface $event;
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container) {
     $instance = new static();
     $instance->attendeeManager = $container->get('myeventlane_event_attendees.manager');
@@ -22,11 +28,17 @@ final class RsvpForm extends FormBase {
     return $instance;
   }
 
+  /**
+   *
+   */
   public function getFormId(): string {
     return 'myeventlane_event_attendees_rsvp_form';
   }
 
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL): array {
+  /**
+   *
+   */
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
     if (!$node || $node->bundle() !== 'event') {
       throw new \InvalidArgumentException('Event not provided.');
     }
@@ -59,6 +71,9 @@ final class RsvpForm extends FormBase {
     return $form;
   }
 
+  /**
+   *
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $capacity = (int) ($this->event->get('field_capacity')->value ?? 0);
 
@@ -80,4 +95,5 @@ final class RsvpForm extends FormBase {
       $this->messenger()->addStatus('Your RSVP is confirmed.');
     }
   }
+
 }

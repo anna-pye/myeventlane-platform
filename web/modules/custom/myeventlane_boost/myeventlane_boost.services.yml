@@ -30,3 +30,8 @@ services:
       - '@logger.channel.myeventlane_boost'
     tags:
       - { name: event_subscriber }
+
+  # Access check for boost routes.
+  myeventlane_boost.boost_route_access:
+    class: Drupal\myeventlane_boost\Access\BoostRouteAccess
+    arguments: ['@entity_type.manager', '@logger.channel.myeventlane_boost']

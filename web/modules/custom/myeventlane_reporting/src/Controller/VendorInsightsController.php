@@ -159,7 +159,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
         $totalTicketsSold += $type['sold'] ?? 0;
       }
 
-      // @todo: Get refund count from event state or commerce refunds.
+      // @todo Get refund count from event state or commerce refunds.
       // For now, stub with 0.
     }
 

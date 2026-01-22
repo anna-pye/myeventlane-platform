@@ -19,7 +19,7 @@ class CreateEventGatewayController extends ControllerBase {
    * Logic:
    * - Anonymous users → login with destination back to /create-event
    * - Logged-in users without vendor → /vendor/onboard (vendor setup)
-   * - Logged-in users with vendor → /vendor/dashboard
+   * - Logged-in users with vendor → /vendor/dashboard.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   A redirect response.
@@ -71,7 +71,7 @@ class CreateEventGatewayController extends ControllerBase {
    */
   private function getUserVendors(int $uid): array {
     $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    
+
     // Check vendors where user is the owner (uid field).
     $owner_ids = $storage->getQuery()
       ->accessCheck(TRUE)
@@ -89,11 +89,9 @@ class CreateEventGatewayController extends ControllerBase {
       $owner_ids ?: [],
       $users_ids ?: []
     );
-    
+
     // Convert string keys to integer values and ensure uniqueness.
     return array_values(array_unique(array_map('intval', $all_ids)));
   }
 
 }
-
-

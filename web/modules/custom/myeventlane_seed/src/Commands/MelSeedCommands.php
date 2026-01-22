@@ -75,7 +75,7 @@ final class MelSeedCommands extends DrushCommands {
    * - 2 vendor users (vendor2, vendor3)
    * - Vendor entities with stores
    * - 6 events total (2 ticketed + 1 RSVP per vendor)
-   * - Ticket products and variations
+   * - Ticket products and variations.
    */
   #[CLI\Command(name: 'mel:seed-demo', aliases: ['mel-seed-demo'])]
   #[CLI\Usage(name: 'drush mel:seed-demo', description: 'Resets events and seeds demo data.')]
@@ -128,7 +128,7 @@ final class MelSeedCommands extends DrushCommands {
    * - Their vendor entities
    * - Their stores
    * - Their events and products
-   * - RSVP submissions for their events
+   * - RSVP submissions for their events.
    *
    * Does NOT delete unrelated content.
    */

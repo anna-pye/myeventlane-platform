@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Form;
 
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
@@ -27,6 +28,8 @@ final class EventWizardForm extends FormBase {
 
   private const STATE_EVENT_ID = 'wizard_event_id';
 
+  private const TEMPSTORE_KEY = 'myeventlane_event_wizard_progress';
+
   private const STEPS = [
     'basics',
     'when_where',
@@ -37,6 +40,9 @@ final class EventWizardForm extends FormBase {
     'review',
   ];
 
+  /**
+   *
+   */
   public function getFormId(): string {
     return 'myeventlane_event_wizard';
   }
@@ -101,7 +107,7 @@ final class EventWizardForm extends FormBase {
   private function isEditMode(FormStateInterface $form_state): bool {
     $route_match = \Drupal::routeMatch();
     $node = $route_match->getParameter('node');
-    
+
     if ($node instanceof NodeInterface && $node->bundle() === 'event') {
       return TRUE;
     }
@@ -113,12 +119,12 @@ final class EventWizardForm extends FormBase {
       $loaded = $entity_type_manager
         ->getStorage('node')
         ->load((int) $stored_id);
-      
+
       if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
         // If event exists and was created before this session, it's edit mode.
         // We can't perfectly detect this, but if it's published or has a real title,
         // it's likely an edit.
-        if ($loaded->isPublished() || 
+        if ($loaded->isPublished() ||
             (strpos($loaded->label(), 'Untitled event (draft)') === FALSE)) {
           return TRUE;
         }
@@ -133,7 +139,7 @@ final class EventWizardForm extends FormBase {
    */
   private function assertEventOwnership(NodeInterface $event): void {
     $current_user = \Drupal::currentUser();
-    
+
     // Admins can edit any event.
     if ($current_user->hasPermission('administer nodes')) {
       return;
@@ -141,12 +147,15 @@ final class EventWizardForm extends FormBase {
 
     // Check if user owns the event.
     if ((int) $event->getOwnerId() !== (int) $current_user->id()) {
-      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException(
+      throw new AccessDeniedHttpException(
         $this->t('You do not have permission to edit this event.')
       );
     }
   }
 
+  /**
+   *
+   */
   private function currentStep(FormStateInterface $form_state): string {
     // If editing, default to review step unless explicitly set.
     if ($this->isEditMode($form_state)) {
@@ -159,16 +168,25 @@ final class EventWizardForm extends FormBase {
     return in_array($step, self::STEPS, TRUE) ? $step : 'basics';
   }
 
+  /**
+   *
+   */
   private function stepIndex(string $step): int {
     $idx = array_search($step, self::STEPS, TRUE);
     return $idx === FALSE ? 0 : (int) $idx;
   }
 
+  /**
+   *
+   */
   private function nextStep(string $step): string {
     $idx = $this->stepIndex($step);
     return self::STEPS[$idx + 1] ?? 'review';
   }
 
+  /**
+   *
+   */
   private function prevStep(string $step): string {
     $idx = $this->stepIndex($step);
     return self::STEPS[max(0, $idx - 1)];
@@ -199,7 +217,7 @@ final class EventWizardForm extends FormBase {
 
     // Fields that are optional and may not be on form display - don't log warnings for these.
     $optional_fields = ['field_venue', 'field_sales_start', 'field_sales_end'];
-    
+
     // CRITICAL: Ensure wizard.content exists before adding fields.
     if (!isset($form['wizard']['content'])) {
       $form['wizard']['content'] = [
@@ -207,7 +225,7 @@ final class EventWizardForm extends FormBase {
         '#tree' => TRUE,
       ];
     }
-    
+
     foreach ($field_names as $name) {
       if (isset($temp[$name])) {
         // Put fields in wizard.content temporarily - they'll be moved to card.body later.
@@ -216,7 +234,7 @@ final class EventWizardForm extends FormBase {
         if (!isset($form['wizard']['content'][$name]['#weight'])) {
           $form['wizard']['content'][$name]['#weight'] = 0;
         }
-        
+
         // Store event reference for later use in widget conversion.
         $form['wizard']['content'][$name]['#wizard_event'] = $event;
       }
@@ -233,14 +251,34 @@ final class EventWizardForm extends FormBase {
     }
   }
 
+  /**
+   *
+   */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent($form_state);
     $step = $this->currentStep($form_state);
+
+    // Get wizard progress for JavaScript.
+    $wizard_progress = $this->getWizardProgress($event);
+    $highest_completed_index = $wizard_progress['highest_completed_step'] !== NULL
+      ? $this->stepIndex($wizard_progress['highest_completed_step'])
+      : -1;
 
     // Attach vendor theme's event-form library (includes compiled SCSS with wizard styles).
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/event-form';
     // Also attach module's JS for wizard functionality.
     $form['#attached']['library'][] = 'myeventlane_event/event_wizard';
+
+    // Attach wizard progress data for JavaScript.
+    if (!isset($form['#attached']['drupalSettings'])) {
+      $form['#attached']['drupalSettings'] = [];
+    }
+    $form['#attached']['drupalSettings']['myeventlaneEventWizard'] = [
+      'wizard_started' => $wizard_progress['wizard_started'],
+      'highest_completed_step' => $wizard_progress['highest_completed_step'],
+      'highest_completed_index' => $highest_completed_index,
+      'steps' => self::STEPS,
+    ];
 
     // Attach address autocomplete library and settings for when_where step.
     if ($step === 'when_where') {
@@ -286,7 +324,6 @@ final class EventWizardForm extends FormBase {
         '#weight' => 0,
       ];
     }
-    
 
     // Layout container for sidebar + content.
     $form['wizard']['layout'] = [
@@ -317,7 +354,7 @@ final class EventWizardForm extends FormBase {
     foreach (self::STEPS as $step_id) {
       $is_active = ($step_id === $step);
       $step_label = $this->getStepLabel($step_id);
-      
+
       // Build button with number and label inside.
       // Use a container styled as button, with hidden submit button for form submission.
       $form['wizard']['layout']['sidebar']['nav_list'][$step_id] = [
@@ -412,9 +449,12 @@ final class EventWizardForm extends FormBase {
     $form['wizard']['layout']['content']['card']['body'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-card__body']],
-      '#weight' => 10, // Ensure it renders after header.
-      '#access' => TRUE, // CRITICAL: Ensure container is accessible.
-      '#printed' => FALSE, // Ensure it renders.
+    // Ensure it renders after header.
+      '#weight' => 10,
+    // CRITICAL: Ensure container is accessible.
+      '#access' => TRUE,
+    // Ensure it renders.
+      '#printed' => FALSE,
     ];
 
     // CRITICAL: Initialize wizard.content container BEFORE building fields.
@@ -425,7 +465,6 @@ final class EventWizardForm extends FormBase {
         '#tree' => TRUE,
       ];
     }
-    
 
     // Build step fields into wizard.content (they'll be moved to card.body after).
     switch ($step) {
@@ -480,7 +519,7 @@ final class EventWizardForm extends FormBase {
         unset($form['wizard']['content']);
       }
     }
-    
+
     // Ensure card body is always accessible for rendering.
     if (!isset($form['wizard']['layout']['content']['card']['body'])) {
       $form['wizard']['layout']['content']['card']['body'] = [
@@ -488,9 +527,7 @@ final class EventWizardForm extends FormBase {
         '#attributes' => ['class' => ['mel-card__body']],
       ];
     }
-    
-    
-    
+
     // Ensure wizard container itself is accessible and rendered.
     $form['wizard']['#access'] = TRUE;
     $form['wizard']['#printed'] = FALSE;
@@ -571,8 +608,23 @@ final class EventWizardForm extends FormBase {
         ],
       ];
 
-      // In edit mode, also show Save Draft button on any step.
-      if ($is_edit_mode && !$is_published) {
+      // Show Save Changes / Save Draft button on ALL steps (not just review).
+      if ($is_edit_mode) {
+        // Edit mode: show Save Changes (for published) or Save Draft (for drafts).
+        $form['wizard']['layout']['content']['actions']['save'] = [
+          '#type' => 'submit',
+          '#value' => $is_published ? $this->t('Save Changes') : $this->t('Save Draft'),
+          '#submit' => ['::saveEvent'],
+          '#limit_validation_errors' => [],
+          '#ajax' => [
+            'callback' => '::ajaxRefresh',
+            'wrapper' => 'event-wizard-wrapper',
+          ],
+          '#attributes' => ['class' => ['mel-btn--secondary']],
+        ];
+      }
+      else {
+        // Create mode: show Save Draft button on all steps.
         $form['wizard']['layout']['content']['actions']['save_draft'] = [
           '#type' => 'submit',
           '#value' => $this->t('Save Draft'),
@@ -600,6 +652,9 @@ final class EventWizardForm extends FormBase {
     return $form;
   }
 
+  /**
+   *
+   */
   private function stepHeading(string $step): string {
     return match ($step) {
       'basics' => (string) $this->t('Basics'),
@@ -613,6 +668,9 @@ final class EventWizardForm extends FormBase {
     };
   }
 
+  /**
+   *
+   */
   private function getStepLabel(string $step): string {
     return match ($step) {
       'basics' => (string) $this->t('Basics'),
@@ -626,6 +684,9 @@ final class EventWizardForm extends FormBase {
     };
   }
 
+  /**
+   *
+   */
   private function getStepHelpText(string $step): string {
     return match ($step) {
       'basics' => (string) $this->t('Tell us about your event. Give it a clear name and description so people know what to expect. You can change these details later if needed.'),
@@ -639,37 +700,47 @@ final class EventWizardForm extends FormBase {
     };
   }
 
-  /* ------------------------------------------------------------------------
+  /**
+   * ------------------------------------------------------------------------
    * STEP BUILDERS
-   * --------------------------------------------------------------------- */
-
+   * ---------------------------------------------------------------------
+   */
   private function buildBasics(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Render with the node form display widgets.
     // NOTE: Only title is in basics step now.
     // field_event_type has been moved to tickets_capacity step.
     $this->buildEntityWidgets($event, ['title', 'field_category'], $form, $form_state);
-    
+
     // Force field_category to use select widget (multiple select) instead of autocomplete.
     if (isset($form['wizard']['content']['field_category'])) {
       $this->convertTaxonomyToSelect($form['wizard']['content']['field_category'], TRUE);
     }
-    
+
     // Debug: Check if title field was created.
     if (!isset($form['wizard']['content']['title'])) {
       $available = isset($form['wizard']['content']) ? implode(', ', array_keys($form['wizard']['content'])) : 'wizard.content does not exist';
       $logger->error('FAILED: Title field NOT created in wizard.content. Available keys: @keys', [
         '@keys' => $available,
       ]);
-      
+
     }
   }
 
+  /**
+   *
+   */
   private function buildWhenWhere(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Build date fields.
     $this->buildEntityWidgets($event, [
       'field_event_start',
       'field_event_end',
+      'field_venue_address',
     ], $form, $form_state);
+
+    // Hide field_venue_name if it was built (we use custom venue_name field instead).
+    if (isset($form['wizard']['content']['field_venue_name'])) {
+      $form['wizard']['content']['field_venue_name']['#access'] = FALSE;
+    }
 
     // Set field weights for proper ordering:
     // 1. Event Start (weight: 0)
@@ -737,21 +808,120 @@ final class EventWizardForm extends FormBase {
         'class' => ['myeventlane-venue-name-field'],
       ],
       '#weight' => -5,
+      // Set explicit #parents so validation can find the value even if field is moved.
+      '#parents' => ['_venue_wrapper', 'venue_name'],
     ];
+
+    // PHASE 5: Move field_venue_address into wrapper (PRIMARY address field).
+    if (isset($form['wizard']['content']['field_venue_address'])) {
+      $form['wizard']['content']['_venue_wrapper']['field_venue_address'] = $form['wizard']['content']['field_venue_address'];
+      $form['wizard']['content']['_venue_wrapper']['field_venue_address']['#weight'] = 0;
+      // Ensure it's visible and accessible.
+      $form['wizard']['content']['_venue_wrapper']['field_venue_address']['#access'] = TRUE;
+
+      // Remove any search field from the widget (we have our own at the top).
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address_search'])) {
+        $form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address_search']['#access'] = FALSE;
+      }
+
+      // Hide unused address subfields: organization, given_name, family_name.
+      // Check multiple possible paths in the widget structure.
+      $unused_fields = ['organization', 'given_name', 'family_name'];
+
+      // Path 1: Standard widget structure.
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address'])) {
+        $address_widget = &$form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address'];
+        foreach ($unused_fields as $field_name) {
+          if (isset($address_widget[$field_name])) {
+            $address_widget[$field_name]['#access'] = FALSE;
+            $address_widget[$field_name]['#required'] = FALSE;
+            // Also try unsetting to ensure it's completely removed.
+            unset($address_widget[$field_name]);
+          }
+        }
+      }
+
+      // Path 2: Check if fields are at widget root level.
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0])) {
+        $widget = &$form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0];
+        foreach ($unused_fields as $field_name) {
+          if (isset($widget[$field_name])) {
+            $widget[$field_name]['#access'] = FALSE;
+            $widget[$field_name]['#required'] = FALSE;
+            unset($widget[$field_name]);
+          }
+        }
+      }
+
+      // Path 3: Recursively search and hide.
+      $this->hideUnusedAddressFieldsRecursive($form['wizard']['content']['_venue_wrapper']['field_venue_address']);
+
+      // Set default country to AU (for when JS populates it).
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address']['country_code'])) {
+        $country_element = &$form['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address']['country_code'];
+        if (isset($country_element['#options']) && isset($country_element['#options']['AU'])) {
+          if (!isset($country_element['#default_value']) || empty($country_element['#default_value'])) {
+            $country_element['#default_value'] = 'AU';
+          }
+        }
+      }
+
+      // Add data attribute to help JS find it.
+      if (!isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['#attributes'])) {
+        $form['wizard']['content']['_venue_wrapper']['field_venue_address']['#attributes'] = [];
+      }
+      if (!isset($form['wizard']['content']['_venue_wrapper']['field_venue_address']['#attributes']['data-mel-address'])) {
+        $form['wizard']['content']['_venue_wrapper']['field_venue_address']['#attributes']['data-mel-address'] = 'field_venue_address';
+      }
+
+      unset($form['wizard']['content']['field_venue_address']);
+    }
 
     // Move field_location widget into wrapper but HIDE IT COMPLETELY.
     // It's kept for backward compatibility and will be populated by JS, but not visible.
     if (isset($form['wizard']['content']['field_location'])) {
       $form['wizard']['content']['_venue_wrapper']['field_location'] = $form['wizard']['content']['field_location'];
-      $form['wizard']['content']['_venue_wrapper']['field_location']['#weight'] = 0;
+      $form['wizard']['content']['_venue_wrapper']['field_location']['#weight'] = 1;
       // HIDE THE ENTIRE field_location widget - it's only for data storage.
       $form['wizard']['content']['_venue_wrapper']['field_location']['#access'] = FALSE;
-      
+
       // Remove any search field from the widget (we have our own at the top).
       if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address_search'])) {
         $form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address_search']['#access'] = FALSE;
       }
-      
+
+      // Hide unused address subfields: organization, given_name, family_name.
+      // Check multiple possible paths in the widget structure.
+      $unused_fields = ['organization', 'given_name', 'family_name'];
+
+      // Path 1: Standard widget structure.
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address'])) {
+        $address_widget = &$form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address'];
+        foreach ($unused_fields as $field_name) {
+          if (isset($address_widget[$field_name])) {
+            $address_widget[$field_name]['#access'] = FALSE;
+            $address_widget[$field_name]['#required'] = FALSE;
+            // Also try unsetting to ensure it's completely removed.
+            unset($address_widget[$field_name]);
+          }
+        }
+      }
+
+      // Path 2: Check if fields are at widget root level.
+      if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0])) {
+        $widget = &$form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0];
+        foreach ($unused_fields as $field_name) {
+          if (isset($widget[$field_name])) {
+            $widget[$field_name]['#access'] = FALSE;
+            $widget[$field_name]['#required'] = FALSE;
+            unset($widget[$field_name]);
+          }
+        }
+      }
+
+      // Path 3: Recursively search and hide.
+      $this->hideUnusedAddressFieldsRecursive($form['wizard']['content']['_venue_wrapper']['field_location']);
+
       // Set default country to AU (for when JS populates it).
       if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address']['country_code'])) {
         $country_element = &$form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address']['country_code'];
@@ -761,7 +931,7 @@ final class EventWizardForm extends FormBase {
           }
         }
       }
-      
+
       // Hide lat/lng fields if they exist.
       if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['latitude'])) {
         $form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['latitude']['#access'] = FALSE;
@@ -769,7 +939,7 @@ final class EventWizardForm extends FormBase {
       if (isset($form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['longitude'])) {
         $form['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['longitude']['#access'] = FALSE;
       }
-      
+
       unset($form['wizard']['content']['field_location']);
     }
 
@@ -796,11 +966,17 @@ final class EventWizardForm extends FormBase {
     $form['#attached']['library'][] = 'myeventlane_venue/venue_selection';
   }
 
+  /**
+   *
+   */
   private function buildBranding(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Ensure field_event_image exists and is on form display.
     $this->buildEntityWidgets($event, ['field_event_image'], $form, $form_state);
   }
 
+  /**
+   *
+   */
   private function buildTicketsCapacity(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Build event type field first (this determines what other fields to show).
     $this->buildEntityWidgets($event, ['field_event_type'], $form, $form_state);
@@ -830,7 +1006,7 @@ final class EventWizardForm extends FormBase {
     else {
       // Ensure it has proper weight and AJAX.
       $form['wizard']['content']['field_event_type']['#weight'] = -10;
-      
+
       // Add AJAX to the actual select element (could be in widget[0][value] or widget[0]).
       if (isset($form['wizard']['content']['field_event_type']['widget'][0]['value'])) {
         $form['wizard']['content']['field_event_type']['widget'][0]['value']['#ajax'] = [
@@ -872,11 +1048,11 @@ final class EventWizardForm extends FormBase {
     }
 
     // Get current event type (from form state if changed, otherwise from entity).
-    $event_type = $form_state->getValue(['field_event_type', 0, 'value']) 
+    $event_type = $form_state->getValue(['field_event_type', 0, 'value'])
       ?? $form_state->getValue('field_event_type')
-      ?? $event->get('field_event_type')->value 
+      ?? $event->get('field_event_type')->value
       ?? 'rsvp';
-    
+
     // Handle both string and array values.
     if (is_array($event_type)) {
       $event_type = $event_type[0]['value'] ?? $event_type['value'] ?? 'rsvp';
@@ -933,15 +1109,15 @@ final class EventWizardForm extends FormBase {
     if ($event->hasField('field_sales_end')) {
       $sales_fields[] = 'field_sales_end';
     }
-    
+
     if (!empty($sales_fields)) {
       $this->buildEntityWidgets($event, $sales_fields, $form, $form_state);
       // Set weights and conditional visibility for sales fields.
       if (isset($form['wizard']['content']['field_sales_start'])) {
         $form['wizard']['content']['field_sales_start']['#weight'] = 3;
         $form['wizard']['content']['field_sales_start']['#required'] = FALSE;
-        $form['wizard']['content']['field_sales_start']['#description'] = 
-          $form['wizard']['content']['field_sales_start']['#description'] ?? 
+        $form['wizard']['content']['field_sales_start']['#description'] =
+          $form['wizard']['content']['field_sales_start']['#description'] ??
           $this->t('When ticket sales begin. Leave empty to start immediately.');
         // Show only for paid/both events.
         $form['wizard']['content']['field_sales_start']['#states'] = [
@@ -960,8 +1136,8 @@ final class EventWizardForm extends FormBase {
       if (isset($form['wizard']['content']['field_sales_end'])) {
         $form['wizard']['content']['field_sales_end']['#weight'] = 4;
         $form['wizard']['content']['field_sales_end']['#required'] = FALSE;
-        $form['wizard']['content']['field_sales_end']['#description'] = 
-          $form['wizard']['content']['field_sales_end']['#description'] ?? 
+        $form['wizard']['content']['field_sales_end']['#description'] =
+          $form['wizard']['content']['field_sales_end']['#description'] ??
           $this->t('When ticket sales end. Leave empty to sell until event starts.');
         // Show only for paid/both events.
         $form['wizard']['content']['field_sales_end']['#states'] = [
@@ -1013,7 +1189,7 @@ final class EventWizardForm extends FormBase {
         ];
         // Add description to help users understand this field.
         if (!isset($form['wizard']['content']['field_ticket_types']['#description'])) {
-          $form['wizard']['content']['field_ticket_types']['#description'] = 
+          $form['wizard']['content']['field_ticket_types']['#description'] =
             $this->t('Define ticket types for this event. Each ticket type will create a separate Commerce Product Variation. Only shown when Event Type is "Paid" or "Both".');
         }
       }
@@ -1022,7 +1198,7 @@ final class EventWizardForm extends FormBase {
     // Add info about ticket types management (conditionally shown).
     $tickets_url = NULL;
     try {
-      $tickets_url = \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event->id()]);
+      $tickets_url = Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event->id()]);
     }
     catch (\Exception) {
       // Route may not exist.
@@ -1088,28 +1264,48 @@ final class EventWizardForm extends FormBase {
     }
   }
 
+  /**
+   *
+   */
   private function buildContent(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Ensure body is on form display.
-    $this->buildEntityWidgets($event, ['body'], $form, $form_state);
+    $this->buildEntityWidgets($event, [
+      'body',
+      'field_event_intro',
+      'field_event_highlights',
+    ], $form, $form_state);
   }
 
+  /**
+   *
+   */
   private function buildPolicies(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     // Build policy and accessibility fields.
-    $policy_fields = ['field_refund_policy', 'field_accessibility', 'field_tags'];
-    
+    $policy_fields = [
+      'field_refund_policy',
+      'field_accessibility',
+      'field_age_restriction',
+      'field_contact_email',
+      'field_contact_phone',
+      'field_tags',
+    ];
+
     // Add cancellation policy if field exists.
     if ($event->hasField('field_cancellation_policy')) {
       $policy_fields[] = 'field_cancellation_policy';
     }
-    
+
     $this->buildEntityWidgets($event, $policy_fields, $form, $form_state);
-    
+
     // Force field_accessibility to use select widget (multiple select) instead of autocomplete.
     if (isset($form['wizard']['content']['field_accessibility'])) {
       $this->convertTaxonomyToSelect($form['wizard']['content']['field_accessibility'], TRUE);
     }
   }
 
+  /**
+   *
+   */
   private function buildReview(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     $url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()]);
     $link = Link::fromTextAndUrl($this->t('View draft preview'), $url)->toString();
@@ -1140,10 +1336,11 @@ final class EventWizardForm extends FormBase {
     ];
   }
 
-  /* ------------------------------------------------------------------------
+  /**
+   * ------------------------------------------------------------------------
    * VALIDATION + SUBMIT
-   * --------------------------------------------------------------------- */
-
+   * ---------------------------------------------------------------------
+   */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     // Validate only current step.
     $step = $this->currentStep($form_state);
@@ -1157,22 +1354,132 @@ final class EventWizardForm extends FormBase {
       }
     }
 
-    // Tickets & RSVP: validate event type is selected.
-    if ($step === 'tickets_capacity') {
-      $event_type_value = $form_state->getValue('field_event_type');
-      $event_type = is_array($event_type_value) 
-        ? ($event_type_value[0]['value'] ?? $event_type_value['value'] ?? '') 
-        : (string) $event_type_value;
-      
-      if (empty($event_type) || !in_array($event_type, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
-        $form_state->setErrorByName('field_event_type', $this->t('Please select an event type.'));
+    // PHASE 3: When & Where step validation.
+    if ($step === 'when_where') {
+      // field_event_start REQUIRED.
+      $start_value = $form_state->getValue(['field_event_start', 0, 'value']);
+      if (empty($start_value)) {
+        $form_state->setErrorByName('field_event_start', $this->t('Start time is required.'));
+      }
+
+      // field_event_end REQUIRED.
+      $end_value = $form_state->getValue(['field_event_end', 0, 'value']);
+      if (empty($end_value)) {
+        $form_state->setErrorByName('field_event_end', $this->t('End time is required.'));
+      }
+
+      // field_venue_name REQUIRED.
+      $venue_name_value = $form_state->getValue(['_venue_wrapper', 'venue_name']);
+      // Trim whitespace - empty() treats whitespace as empty, but we want to allow actual values.
+      if (is_string($venue_name_value)) {
+        $venue_name_value = trim($venue_name_value);
+      }
+      if (empty($venue_name_value)) {
+        // Also check if it's in the direct field.
+        $venue_name_direct = $form_state->getValue(['field_venue_name', 0, 'value']);
+        if (is_string($venue_name_direct)) {
+          $venue_name_direct = trim($venue_name_direct);
+        }
+        if (empty($venue_name_direct)) {
+          $form_state->setErrorByName('venue_name', $this->t('Venue name is required.'));
+        }
+      }
+
+      // field_venue_address REQUIRED (check if address components are filled).
+      $venue_address = $form_state->getValue(['field_venue_address', 0, 'address']);
+      $location_address = $form_state->getValue(['field_location', 0, 'address']);
+      $has_address = FALSE;
+
+      // Check field_venue_address first.
+      if (!empty($venue_address) && is_array($venue_address)) {
+        $line1 = $venue_address['address_line1'] ?? '';
+        $locality = $venue_address['locality'] ?? '';
+        $admin_area = $venue_address['administrative_area'] ?? '';
+        $country = $venue_address['country_code'] ?? '';
+
+        // Address is valid if we have at least address_line1 OR (locality AND administrative_area)
+        if (!empty(trim($line1))) {
+          $has_address = TRUE;
+        }
+        elseif ((!empty(trim($locality)) || !empty(trim($admin_area))) && !empty(trim($country))) {
+          // If we have locality/state and country, that's acceptable.
+          $has_address = TRUE;
+        }
+      }
+
+      // Fallback to field_location if field_venue_address not used.
+      if (!$has_address && !empty($location_address) && is_array($location_address)) {
+        $line1 = $location_address['address_line1'] ?? '';
+        $locality = $location_address['locality'] ?? '';
+        $admin_area = $location_address['administrative_area'] ?? '';
+        $country = $location_address['country_code'] ?? '';
+
+        if (!empty(trim($line1))) {
+          $has_address = TRUE;
+        }
+        elseif ((!empty(trim($locality)) || !empty(trim($admin_area))) && !empty(trim($country))) {
+          $has_address = TRUE;
+        }
+      }
+
+      if (!$has_address) {
+        $form_state->setErrorByName('field_venue_address', $this->t('Venue address is required. Please provide at least a street address or suburb and state.'));
       }
     }
 
-    // When & where: ensure required pieces are set if those widgets exist.
-    if ($step === 'when_where') {
-      // If the address widget is present, Drupal widget validation will run automatically.
-      // We can add a gentle guard for the search field only if you require it.
+    // PHASE 3: Content step validation.
+    if ($step === 'content') {
+      // field_event_intro REQUIRED.
+      $intro_value = $form_state->getValue(['field_event_intro', 0, 'value']);
+      if (empty(trim($intro_value ?? ''))) {
+        $form_state->setErrorByName('field_event_intro', $this->t('Event introduction is required.'));
+      }
+
+      // Body REQUIRED.
+      $body_value = $form_state->getValue(['body', 0, 'value']);
+      if (empty(trim($body_value ?? ''))) {
+        $form_state->setErrorByName('body', $this->t('Event description is required.'));
+      }
+    }
+
+    // PHASE 3: Policies & Accessibility step validation.
+    if ($step === 'policies_accessibility') {
+      // field_age_restriction REQUIRED.
+      $age_value = $form_state->getValue(['field_age_restriction', 0, 'value']);
+      if (empty($age_value)) {
+        $form_state->setErrorByName('field_age_restriction', $this->t('Age restriction is required.'));
+      }
+
+      // field_accessibility OPTIONAL (no validation).
+      // field_contact_email REQUIRED for paid events only.
+      $event = $this->getEvent($form_state);
+      $event_type = NULL;
+      if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+        $event_type = $event->get('field_event_type')->value;
+      }
+      // Also check form state in case it was just changed.
+      $event_type_value = $form_state->getValue(['field_event_type', 0, 'value']);
+      if (!empty($event_type_value)) {
+        $event_type = $event_type_value;
+      }
+      if (in_array($event_type, ['paid', 'both'], TRUE)) {
+        $email_value = $form_state->getValue(['field_contact_email', 0, 'value']);
+        if (empty(trim($email_value ?? ''))) {
+          $form_state->setErrorByName('field_contact_email', $this->t('Contact email is required for paid events.'));
+        }
+      }
+    }
+
+    // Tickets & RSVP: validate event type is selected.
+    if ($step === 'tickets_capacity') {
+      $event_type_value = $form_state->getValue('field_event_type');
+      $event_type = is_array($event_type_value)
+        ? ($event_type_value[0]['value'] ?? $event_type_value['value'] ?? '')
+        : (string) $event_type_value;
+
+      if (empty($event_type) || !in_array($event_type, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
+        $form_state->setErrorByName('field_event_type', $this->t('Please select an event type.'));
+      }
     }
   }
 
@@ -1241,6 +1548,9 @@ final class EventWizardForm extends FormBase {
     // Save draft every step to ensure nothing gets lost.
     $event->save();
 
+    // Track wizard progress in tempstore after first successful save.
+    $this->trackWizardProgress($event, $step);
+
     // Advance to next step.
     $form_state->set(self::STATE_STEP, $this->nextStep($step));
     $form_state->setRebuild(TRUE);
@@ -1289,6 +1599,10 @@ final class EventWizardForm extends FormBase {
     // Save without changing publish status.
     $event->save();
 
+    // Track wizard progress in tempstore after successful save.
+    $step = $this->currentStep($form_state);
+    $this->trackWizardProgress($event, $step);
+
     // Ensure ticket products exist for paid/both events.
     $this->ensureTicketProducts($event);
 
@@ -1301,10 +1615,25 @@ final class EventWizardForm extends FormBase {
   }
 
   /**
-   * Save as draft (for edit mode on non-review steps).
+   * Save as draft (for all steps, both create and edit mode).
    */
   public function saveDraft(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEvent($form_state);
+
+    // Preserve existing address and coordinates before extractFormValues
+    // (which might clear them if the widget is hidden).
+    $existing_address = NULL;
+    if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
+      $existing_address = $event->get('field_location')->first()->getValue();
+    }
+    $existing_lat = NULL;
+    $existing_lng = NULL;
+    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
+      $existing_lat = $event->get('field_location_latitude')->value;
+    }
+    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
+      $existing_lng = $event->get('field_location_longitude')->value;
+    }
 
     // Extract form values.
     $entity_type_manager = \Drupal::entityTypeManager();
@@ -1319,32 +1648,25 @@ final class EventWizardForm extends FormBase {
     // Save custom venue_name field if present.
     $this->saveVenueName($event, $form_state);
 
-    // Preserve existing address and coordinates.
-    $existing_address = NULL;
-    if (!$event->get('field_location')->isEmpty()) {
-      $existing_address = $event->get('field_location')->first()->getValue();
-    }
-    $existing_lat = NULL;
-    $existing_lng = NULL;
-    if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
-      $existing_lat = $event->get('field_location_latitude')->value;
-    }
-    if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
-      $existing_lng = $event->get('field_location_longitude')->value;
-    }
-
-    // Save location address if present.
+    // Save location address if present (or restore existing if not changed).
     $this->saveLocationAddress($event, $form_state, $existing_address);
 
-    // Save location coordinates if present.
+    // Save location coordinates if present (or restore existing if not changed).
     $this->saveLocationCoordinates($event, $form_state, $existing_lat, $existing_lng);
 
     // Ensure it's saved as draft.
     $event->setUnpublished();
     $event->save();
 
+    // Track wizard progress in tempstore after successful save.
+    $step = $this->currentStep($form_state);
+    $this->trackWizardProgress($event, $step);
+
+    // Ensure ticket products exist for paid/both events (even for drafts).
+    $this->ensureTicketProducts($event);
+
     $this->messenger()->addStatus($this->t('Draft saved.'));
-    
+
     // Stay on current step.
     $form_state->setRebuild(TRUE);
   }
@@ -1403,6 +1725,9 @@ final class EventWizardForm extends FormBase {
     $form_state->setRedirect('myeventlane_vendor.console.dashboard');
   }
 
+  /**
+   *
+   */
   public function backStep(array &$form, FormStateInterface $form_state): void {
     $step = $this->currentStep($form_state);
     $form_state->set(self::STATE_STEP, $this->prevStep($step));
@@ -1416,18 +1741,19 @@ final class EventWizardForm extends FormBase {
     // Get target step from the clicked button's data attribute via form state trigger.
     $triggering_element = $form_state->getTriggeringElement();
     $target_step = NULL;
-    
+
     if ($triggering_element && isset($triggering_element['#attributes']['data-step-target'])) {
       $target_step = $triggering_element['#attributes']['data-step-target'];
-    } elseif ($triggering_element && isset($triggering_element['#attributes']['data-wizard-step'])) {
+    }
+    elseif ($triggering_element && isset($triggering_element['#attributes']['data-wizard-step'])) {
       $target_step = $triggering_element['#attributes']['data-wizard-step'];
     }
-    
+
     // Fallback: check form values.
     if (!$target_step) {
       $target_step = (string) ($form_state->getValue('wizard_step') ?? '');
     }
-    
+
     if ($target_step !== '' && in_array($target_step, self::STEPS, TRUE)) {
       $form_state->set(self::STATE_STEP, $target_step);
     }
@@ -1458,7 +1784,7 @@ final class EventWizardForm extends FormBase {
     // Get field name and event.
     $field_name = $field_element['#field_name'] ?? NULL;
     $event = $field_element['#wizard_event'] ?? NULL;
-    
+
     if (!$field_name || !$event) {
       return;
     }
@@ -1474,7 +1800,7 @@ final class EventWizardForm extends FormBase {
 
     $handler_settings = $field_config->getSetting('handler_settings');
     $target_bundles = $handler_settings['target_bundles'] ?? [];
-    
+
     if (empty($target_bundles)) {
       return;
     }
@@ -1483,7 +1809,7 @@ final class EventWizardForm extends FormBase {
     $vocabulary = reset($target_bundles);
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
     $terms = $term_storage->loadTree($vocabulary, 0, NULL, TRUE);
-    
+
     $options = [];
     foreach ($terms as $term) {
       $options[$term->id()] = $term->getName();
@@ -1524,7 +1850,7 @@ final class EventWizardForm extends FormBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
    */
-  private function saveLocationAddress(NodeInterface $event, FormStateInterface $form_state, array $existing_address = NULL): void {
+  private function saveLocationAddress(NodeInterface $event, FormStateInterface $form_state, ?array $existing_address = NULL): void {
     // Check if field_location exists on the event.
     if (!$event->hasField('field_location')) {
       return;
@@ -1686,17 +2012,17 @@ final class EventWizardForm extends FormBase {
     // The field is in wizard.content._venue_wrapper.venue_name, but after form processing
     // it may be in different locations. Check multiple possible paths.
     $venue_name_value = NULL;
-    
+
     // Try the most likely path first (nested in _venue_wrapper).
     $value = $form_state->getValue(['_venue_wrapper', 'venue_name']);
     if ($value !== NULL && $value !== '') {
       $venue_name_value = is_array($value) ? ($value[0] ?? $value) : (string) $value;
     }
-    
+
     // Try alternative paths.
     if ($venue_name_value === NULL) {
       $all_values = $form_state->getValues();
-      
+
       // Check nested structure.
       if (isset($all_values['_venue_wrapper']['venue_name'])) {
         $value = $all_values['_venue_wrapper']['venue_name'];
@@ -1717,6 +2043,42 @@ final class EventWizardForm extends FormBase {
     // Save venue_name if we have a value.
     if ($venue_name_value !== NULL && $venue_name_value !== '') {
       $event->set('field_venue_name', trim($venue_name_value));
+    }
+  }
+
+  /**
+   * Recursively hide unused address subfields in form element.
+   *
+   * @param array &$element
+   *   Form element to process (passed by reference).
+   */
+  private function hideUnusedAddressFieldsRecursive(array &$element): void {
+    if (!is_array($element)) {
+      return;
+    }
+
+    $unused_fields = ['organization', 'given_name', 'family_name'];
+
+    foreach ($element as $key => &$value) {
+      // Skip metadata keys (those starting with #) - handle both string and integer keys.
+      if (is_string($key) && str_starts_with($key, '#')) {
+        continue;
+      }
+
+      // If this key is one of the unused fields, hide it.
+      if (in_array($key, $unused_fields, TRUE)) {
+        if (is_array($value)) {
+          $value['#access'] = FALSE;
+          $value['#required'] = FALSE;
+        }
+        // Optionally unset it completely
+        // unset($element[$key]);.
+      }
+
+      // Recursively process nested arrays.
+      if (is_array($value)) {
+        $this->hideUnusedAddressFieldsRecursive($value);
+      }
     }
   }
 
@@ -1754,6 +2116,80 @@ final class EventWizardForm extends FormBase {
       $ticket_manager = \Drupal::service('myeventlane_event.ticket_type_manager');
       $ticket_manager->syncTicketTypesToVariations($event);
     }
+  }
+
+  /**
+   * Tracks wizard progress in tempstore after successful save.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param string $completed_step
+   *   The step that was just completed.
+   */
+  private function trackWizardProgress(NodeInterface $event, string $completed_step): void {
+    if ($event->isNew()) {
+      return;
+    }
+
+    $tempstore = \Drupal::service('tempstore.private')->get(self::TEMPSTORE_KEY);
+    $event_id = (int) $event->id();
+
+    // Get current progress or initialize.
+    $progress = $tempstore->get((string) $event_id) ?? [
+      'wizard_started' => FALSE,
+      'highest_completed_step' => NULL,
+    ];
+
+    // Mark wizard as started on first save.
+    if (!$progress['wizard_started']) {
+      $progress['wizard_started'] = TRUE;
+    }
+
+    // Update highest completed step.
+    $completed_index = $this->stepIndex($completed_step);
+    $current_highest_index = $progress['highest_completed_step'] !== NULL
+      ? $this->stepIndex($progress['highest_completed_step'])
+      : -1;
+
+    if ($completed_index > $current_highest_index) {
+      $progress['highest_completed_step'] = $completed_step;
+    }
+
+    $tempstore->set((string) $event_id, $progress);
+  }
+
+  /**
+   * Gets wizard progress from tempstore.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return array
+   *   Array with 'wizard_started' (bool) and 'highest_completed_step' (string|null).
+   */
+  public function getWizardProgress(NodeInterface $event): array {
+    if ($event->isNew()) {
+      return [
+        'wizard_started' => FALSE,
+        'highest_completed_step' => NULL,
+      ];
+    }
+
+    $tempstore = \Drupal::service('tempstore.private')->get(self::TEMPSTORE_KEY);
+    $event_id = (string) $event->id();
+
+    $progress = $tempstore->get($event_id);
+
+    if ($progress === NULL) {
+      // If no progress in tempstore, check if event has been saved before.
+      // If event exists and is not new, wizard has started.
+      $progress = [
+        'wizard_started' => !$event->isNew(),
+        'highest_completed_step' => NULL,
+      ];
+    }
+
+    return $progress;
   }
 
 }

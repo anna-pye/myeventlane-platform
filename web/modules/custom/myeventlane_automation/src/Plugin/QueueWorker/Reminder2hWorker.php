@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_automation\Plugin\QueueWorker;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
@@ -36,6 +37,7 @@ final class Reminder2hWorker extends AutomationWorkerBase {
     protected readonly MessagingManager $messagingManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly AttendeeRepositoryResolver $attendeeRepositoryResolver,
+    protected readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $dispatchService, $auditLogger, $logger);
   }
@@ -54,6 +56,7 @@ final class Reminder2hWorker extends AutomationWorkerBase {
       $container->get('myeventlane_messaging.manager'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_attendee.repository_resolver'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -102,9 +105,9 @@ final class Reminder2hWorker extends AutomationWorkerBase {
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
       $startDate = $event->get('field_event_start')->date;
       if ($startDate) {
-        $context['event_start'] = \Drupal::service('date.formatter')->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
-        $context['event_start_date'] = \Drupal::service('date.formatter')->format($startDate->getTimestamp(), 'custom', 'F j, Y');
-        $context['event_start_time'] = \Drupal::service('date.formatter')->format($startDate->getTimestamp(), 'custom', 'g:ia T');
+        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
+        $context['event_start_date'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y');
+        $context['event_start_time'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'g:ia T');
       }
     }
 

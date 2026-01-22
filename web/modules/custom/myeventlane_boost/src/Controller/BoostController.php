@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Controller;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
@@ -14,7 +15,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -113,7 +113,7 @@ final class BoostController extends ControllerBase {
    * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
    *   The render array or redirect response.
    */
-  public function build(NodeInterface $node): array|\Symfony\Component\HttpFoundation\RedirectResponse {
+  public function build(NodeInterface $node): array|RedirectResponse {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }

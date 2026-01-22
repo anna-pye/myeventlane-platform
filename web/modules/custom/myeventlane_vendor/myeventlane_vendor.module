@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 declare(strict_types=1);
 
 /**
@@ -85,7 +89,7 @@ function myeventlane_vendor_entity_insert(EntityInterface $entity): void {
 function myeventlane_vendor_form_alter(
   array &$form,
   FormStateInterface $form_state,
-  string $form_id
+  string $form_id,
 ): void {
 
   // 🚫 Absolutely never alter authentication forms.
@@ -112,7 +116,7 @@ function myeventlane_vendor_form_alter(
  */
 function myeventlane_vendor_form_user_login_form_alter(
   array &$form,
-  FormStateInterface $form_state
+  FormStateInterface $form_state,
 ): void {
   $destination = \Drupal::request()->query->get('destination');
 
@@ -143,7 +147,7 @@ function myeventlane_vendor_form_user_login_form_alter(
  */
 function myeventlane_vendor_form_user_register_form_alter(
   array &$form,
-  FormStateInterface $form_state
+  FormStateInterface $form_state,
 ): void {
   $is_vendor = \Drupal::request()->query->get('vendor') === '1';
   $form_state->set('is_vendor_registration', $is_vendor);
@@ -159,7 +163,7 @@ function myeventlane_vendor_form_user_register_form_alter(
  */
 function _myeventlane_vendor_redirect_to_onboard(
   array $form,
-  FormStateInterface $form_state
+  FormStateInterface $form_state,
 ): void {
   if ($form_state->get('is_vendor_registration')) {
     $form_state->setRedirect('myeventlane_vendor.onboard.profile');
@@ -197,7 +201,7 @@ function myeventlane_vendor_page_attachments_alter(array &$attachments): void {
  */
 function _myeventlane_vendor_publish_event(
   array &$form,
-  FormStateInterface $form_state
+  FormStateInterface $form_state,
 ): void {
   $entity = $form_state->getFormObject()->getEntity();
 
@@ -213,7 +217,7 @@ function _myeventlane_vendor_publish_event(
  */
 function _myeventlane_vendor_save_draft(
   array &$form,
-  FormStateInterface $form_state
+  FormStateInterface $form_state,
 ): void {
   $entity = $form_state->getFormObject()->getEntity();
 

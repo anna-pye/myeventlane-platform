@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_donations\Service;
 
+use Psr\Log\LoggerInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -43,7 +44,7 @@ final class PlatformDonationService {
    * @return \Psr\Log\LoggerInterface
    *   The logger.
    */
-  private function logger(): \Psr\Log\LoggerInterface {
+  private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_donations');
   }
 
@@ -149,4 +150,3 @@ final class PlatformDonationService {
   }
 
 }
-

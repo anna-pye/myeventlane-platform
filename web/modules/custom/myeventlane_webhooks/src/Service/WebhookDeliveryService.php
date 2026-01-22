@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_webhooks\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\Core\Queue\QueueInterface;
 
 /**
  * Service for delivering webhooks to subscribers.
@@ -21,7 +21,8 @@ final class WebhookDeliveryService {
   /**
    * Retry delays (in seconds) for each attempt.
    */
-  public const RETRY_DELAYS = [60, 300, 900, 3600, 86400]; // 1min, 5min, 15min, 1hr, 24hr
+  // 1min, 5min, 15min, 1hr, 24hr
+  public const RETRY_DELAYS = [60, 300, 900, 3600, 86400];
 
   /**
    * Constructs WebhookDeliveryService.
@@ -30,6 +31,7 @@ final class WebhookDeliveryService {
     private readonly Connection $database,
     private readonly QueueFactory $queueFactory,
     private readonly WebhookSubscriptionService $subscriptionService,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -59,7 +61,7 @@ final class WebhookDeliveryService {
           'payload' => serialize($data),
           'status' => 'pending',
           'attempt_count' => 0,
-          'created' => \Drupal::time()->getRequestTime(),
+          'created' => $this->time->getRequestTime(),
         ])
         ->execute();
 
@@ -102,7 +104,7 @@ final class WebhookDeliveryService {
     $payload = [
       'event_id' => $delivery_data['event_id'] ?? NULL,
       'vendor_id' => $delivery_data['vendor_id'],
-      'timestamp' => \Drupal::time()->getRequestTime(),
+      'timestamp' => $this->time->getRequestTime(),
       'type' => $event_type,
       'data' => $data,
     ];
@@ -167,7 +169,7 @@ final class WebhookDeliveryService {
       CURLOPT_HTTPHEADER => [
         'Content-Type: application/json',
         'X-MyEventLane-Signature: ' . $signature,
-        'X-MyEventLane-Timestamp: ' . \Drupal::time()->getRequestTime(),
+        'X-MyEventLane-Timestamp: ' . $this->time->getRequestTime(),
       ],
       CURLOPT_TIMEOUT => 30,
       CURLOPT_CONNECTTIMEOUT => 10,
@@ -207,7 +209,7 @@ final class WebhookDeliveryService {
     ];
 
     if ($status === 'success') {
-      $fields['delivered_at'] = \Drupal::time()->getRequestTime();
+      $fields['delivered_at'] = $this->time->getRequestTime();
     }
 
     // Increment attempt count.
@@ -248,7 +250,7 @@ final class WebhookDeliveryService {
 
     // Calculate next retry time.
     $delay = self::RETRY_DELAYS[min($attempt_count, count(self::RETRY_DELAYS) - 1)];
-    $next_retry_at = \Drupal::time()->getRequestTime() + $delay;
+    $next_retry_at = $this->time->getRequestTime() + $delay;
 
     // Update delivery record.
     $this->database->update('myeventlane_webhook_deliveries')

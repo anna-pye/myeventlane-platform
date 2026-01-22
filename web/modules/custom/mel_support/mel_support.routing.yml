@@ -1,0 +1,52 @@
+mel_support.customer_tickets:
+  path: '/support/tickets'
+  defaults:
+    _controller: '\Drupal\mel_support\Controller\CustomerTicketController::list'
+    _title: 'My Support Tickets'
+  requirements:
+    _permission: 'mel support: view own tickets'
+    _user_is_logged_in: 'TRUE'
+
+mel_support.customer_ticket_create:
+  path: '/support/tickets/new'
+  defaults:
+    _form: '\Drupal\mel_support\Form\CustomerTicketCreateForm'
+    _title: 'Create Support Ticket'
+  requirements:
+    _permission: 'mel support: create ticket'
+    _user_is_logged_in: 'TRUE'
+
+mel_support.customer_ticket_view:
+  path: '/support/tickets/{mel_support_ticket}'
+  defaults:
+    _controller: '\Drupal\mel_support\Controller\CustomerTicketController::view'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+  requirements:
+    _permission: 'mel support: view own tickets'
+    _user_is_logged_in: 'TRUE'
+  options:
+    parameters:
+      mel_support_ticket:
+        type: entity:mel_support_ticket
+
+mel_support.vendor_dashboard_tickets:
+  path: '/vendor/dashboard/support/tickets'
+  defaults:
+    _controller: '\Drupal\mel_support\Controller\VendorSupportController::list'
+    _title: 'Support Tickets'
+  requirements:
+    _permission: 'mel support: vendor view tickets'
+    _user_is_logged_in: 'TRUE'
+
+mel_support.vendor_dashboard_ticket_view:
+  path: '/vendor/dashboard/support/tickets/{mel_support_ticket}'
+  defaults:
+    _controller: '\Drupal\mel_support\Controller\VendorSupportController::view'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+  requirements:
+    _permission: 'mel support: vendor view tickets'
+    _user_is_logged_in: 'TRUE'
+  options:
+    parameters:
+      mel_support_ticket:
+        type: entity:mel_support_ticket

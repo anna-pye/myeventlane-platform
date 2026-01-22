@@ -6,8 +6,8 @@ namespace Drupal\myeventlane_checkout_flow\Plugin\Commerce\CheckoutPane;
 
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
+use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\profile\Entity\ProfileInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -23,10 +23,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class BuyerDetailsPane extends CheckoutPaneBase {
 
   /**
+   * The email validator.
+   *
+   * @var \Drupal\Component\Utility\EmailValidatorInterface
+   */
+  private EmailValidatorInterface $emailValidator;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
-    return parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
+    $instance->emailValidator = $container->get('email.validator');
+    return $instance;
   }
 
   /**
@@ -102,7 +111,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
     if (empty($values['email'])) {
       $form_state->setError($pane_form['email'], $this->t('Email address is required.'));
     }
-    elseif (!\Drupal::service('email.validator')->isValid($values['email'])) {
+    elseif (!$this->emailValidator->isValid($values['email'])) {
       $form_state->setError($pane_form['email'], $this->t('Please enter a valid email address.'));
     }
 
@@ -158,4 +167,3 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
   }
 
 }
-

@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Ticket;
 
+use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
+/**
+ *
+ */
 final class TicketIssuer {
 
   public function __construct(
@@ -63,7 +67,7 @@ final class TicketIssuer {
           'purchased_entity' => $purchased_entity->id(),
           'ticket_type_config' => $ticket_type_paragraph ? $ticket_type_paragraph->id() : NULL,
           'purchaser_uid' => $order->getCustomerId(),
-          'status' => \Drupal\myeventlane_tickets\Entity\Ticket::STATUS_ISSUED_UNASSIGNED,
+          'status' => Ticket::STATUS_ISSUED_UNASSIGNED,
         ]);
         $ticket->save();
       }
@@ -80,11 +84,11 @@ final class TicketIssuer {
    *   The event node, or NULL if not found.
    */
   private function resolveEventFromOrderItem(OrderItemInterface $order_item) {
-    // TODO: Implement according to MyEventLane v2 data model.
+    // @todo Implement according to MyEventLane v2 data model.
     // Common patterns:
     // - variation has field_event reference
     // - product has field_event reference
-    // - order item has field_event reference
+    // - order item has field_event reference.
     $purchased_entity = $order_item->getPurchasedEntity();
     if ($purchased_entity && $purchased_entity->hasField('field_event') && !$purchased_entity->get('field_event')->isEmpty()) {
       return $purchased_entity->get('field_event')->entity;

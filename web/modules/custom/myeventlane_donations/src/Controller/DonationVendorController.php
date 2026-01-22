@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_donations\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_donations\Service\DonationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -66,10 +65,10 @@ final class DonationVendorController extends ControllerBase {
       foreach ($events as $event) {
         $eventId = (int) $event->id();
         $stats = $this->donationService->getEventDonationStats($eventId);
-        
+
         if ($stats['count'] > 0) {
           $donations = $this->getEventDonations($eventId);
-          
+
           $eventsData[] = [
             'event_id' => $eventId,
             'event_title' => $event->label(),
@@ -80,7 +79,7 @@ final class DonationVendorController extends ControllerBase {
             'donations' => $donations,
             'created' => $event->getCreatedTime(),
           ];
-          
+
           $totalDonations += $stats['total'];
           $totalCount += $stats['count'];
         }
@@ -115,7 +114,7 @@ final class DonationVendorController extends ControllerBase {
    */
   private function getEventDonations(int $eventId): array {
     $donations = [];
-    
+
     try {
       $orderStorage = $this->entityTypeManager()->getStorage('commerce_order');
       $orderItemStorage = $this->entityTypeManager()->getStorage('commerce_order_item');
@@ -130,23 +129,33 @@ final class DonationVendorController extends ControllerBase {
       if (!empty($orderItemIds)) {
         $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
         foreach ($orderItems as $orderItem) {
-          if ($orderItem->hasField('order_id') && !$orderItem->get('order_id')->isEmpty()) {
-            try {
-              $order = $orderItem->getOrder();
-              if ($order && $order->getState()->getId() === 'completed') {
-                $user = $order->getCustomer();
-                $donations[] = [
-                  'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),
-                  'amount' => (float) ($orderItem->getTotalPrice() ? $orderItem->getTotalPrice()->getNumber() : 0),
-                  'donor_name' => $user ? $user->getDisplayName() : 'Anonymous',
-                  'donor_email' => $user ? $user->getEmail() : '',
-                  'order_id' => $order->id(),
-                ];
-              }
+          if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+            continue;
+          }
+
+          // Safely load the order entity to avoid getOrder() warnings.
+          $order_id = $orderItem->get('order_id')->target_id;
+          if (!$order_id) {
+            continue;
+          }
+
+          try {
+            $order = $this->entityTypeManager()
+              ->getStorage('commerce_order')
+              ->load($order_id);
+            if ($order && $order->getState()->getId() === 'completed') {
+              $user = $order->getCustomer();
+              $donations[] = [
+                'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),
+                'amount' => (float) ($orderItem->getTotalPrice() ? $orderItem->getTotalPrice()->getNumber() : 0),
+                'donor_name' => $user ? $user->getDisplayName() : 'Anonymous',
+                'donor_email' => $user ? $user->getEmail() : '',
+                'order_id' => $order->id(),
+              ];
             }
-            catch (\Exception $e) {
-              continue;
-            }
+          }
+          catch (\Exception $e) {
+            continue;
           }
         }
       }
@@ -166,4 +175,3 @@ final class DonationVendorController extends ControllerBase {
   }
 
 }
-

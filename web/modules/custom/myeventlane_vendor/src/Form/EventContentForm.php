@@ -63,7 +63,7 @@ final class EventContentForm extends FormBase {
       $body_field = $event->get('body');
       $body_value = '';
       $body_format = 'basic_html';
-      
+
       // Access first item of FieldItemList.
       if (!$body_field->isEmpty() && isset($body_field[0])) {
         $body_value = $body_field[0]->value ?? '';
@@ -85,7 +85,6 @@ final class EventContentForm extends FormBase {
 
     // Additional content fields can be added here.
     // For example, if there are custom fields for FAQ, additional sections, etc.
-
     $form['actions'] = [
       '#type' => 'actions',
       'submit' => [

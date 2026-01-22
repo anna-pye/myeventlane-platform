@@ -2,6 +2,7 @@
 
 namespace Drupal\myeventlane_rsvp\Form;
 
+use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -9,7 +10,6 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Drupal\Core\Utility\Token;
 use Drupal\node\NodeInterface;
 use Egulias\EmailValidator\EmailValidator;
 use Psr\Log\LoggerInterface;
@@ -60,7 +60,7 @@ class RsvpPublicForm extends FormBase {
     RouteMatchInterface $route_match,
     LoggerInterface $logger,
     MessengerInterface $messenger,
-    EmailValidator $email_validator
+    EmailValidator $email_validator,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->routeMatch = $route_match;
@@ -112,7 +112,7 @@ class RsvpPublicForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $event = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $event = NULL): array {
     $event = $event ?: $this->getEventFromRoute();
     $event_id = $event instanceof NodeInterface ? $event->id() : NULL;
 
@@ -129,8 +129,8 @@ class RsvpPublicForm extends FormBase {
       $this->logger->warning('RSVP form built without event.');
       $form['error'] = [
         '#markup' => '<div class="mel-alert mel-alert--warning">' .
-          $this->t('We could not determine the event. Please try again.') .
-          '</div>',
+        $this->t('We could not determine the event. Please try again.') .
+        '</div>',
       ];
       return $form;
     }
@@ -138,8 +138,8 @@ class RsvpPublicForm extends FormBase {
     // Intro text.
     $form['intro'] = [
       '#markup' => '<p class="mel-rsvp-intro" style="margin-bottom: 1.5rem; color: #666;">' .
-        $this->t('Please enter your information to RSVP for this free event.') .
-        '</p>',
+      $this->t('Please enter your information to RSVP for this free event.') .
+      '</p>',
     ];
 
     $form['name'] = [
@@ -217,8 +217,8 @@ class RsvpPublicForm extends FormBase {
 
         $form['donation_section']['donation_intro'] = [
           '#markup' => '<p class="mel-donation-intro-text">' .
-            $this->t($donationConfig->get('attendee_copy') ?? 'Support this event organiser with an optional donation. Your contribution helps make this event possible.') .
-            '</p>',
+          $this->t($donationConfig->get('attendee_copy') ?? 'Support this event organiser with an optional donation. Your contribution helps make this event possible.') .
+          '</p>',
         ];
 
         $presets = $donationConfig->get('attendee_presets') ?? [5.00, 10.00, 25.00, 50.00];
@@ -298,8 +298,8 @@ class RsvpPublicForm extends FormBase {
 
         $form['donation_section']['donation_disabled'] = [
           '#markup' => '<p class="mel-donation-disabled-message">' .
-            $this->t('Donations are not available for this event at this time.') .
-            '</p>',
+          $this->t('Donations are not available for this event at this time.') .
+          '</p>',
         ];
 
         $form['donation'] = [
@@ -351,7 +351,7 @@ class RsvpPublicForm extends FormBase {
         $capacityService = \Drupal::service('myeventlane_capacity.service');
         $capacityService->assertCanBook($event, $guests);
       }
-      catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
+      catch (CapacityExceededException $e) {
         $form_state->setErrorByName('', $e->getMessage());
       }
     }
@@ -426,7 +426,8 @@ class RsvpPublicForm extends FormBase {
         'guests' => (int) ($values['guests'] ?? 1),
         'donation' => (float) $donationAmount,
         'status' => 'confirmed',
-        'user_id' => $this->currentUser()->id() ?: 0, // Set to 0 for anonymous users
+      // Set to 0 for anonymous users.
+        'user_id' => $this->currentUser()->id() ?: 0,
       ]);
 
       $submission->save();

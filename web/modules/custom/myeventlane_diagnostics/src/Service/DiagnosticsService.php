@@ -197,12 +197,12 @@ final class DiagnosticsService implements DiagnosticsServiceInterface {
       $vendor = $event->get('field_event_vendor')->entity;
       $currentUser = $this->currentUser->getAccount();
       $isAdmin = $currentUser->hasPermission('administer nodes');
-      
+
       if ($vendor && !$isAdmin) {
         // Check if current user owns this vendor.
         $vendorOwner = $vendor->getOwner();
         $userOwnsVendor = $vendorOwner && $vendorOwner->id() === $currentUser->id();
-        
+
         if (!$userOwnsVendor) {
           $items[] = [
             'key' => 'event_organisation',

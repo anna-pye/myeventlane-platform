@@ -31,13 +31,13 @@ final class CheckInTokenService {
     $timestamp = time();
     $secret = $this->getSecretKey();
 
-    // Create message: paragraph_id:timestamp
+    // Create message: paragraph_id:timestamp.
     $message = $paragraph_id . ':' . $timestamp;
 
     // Generate HMAC signature.
     $hmac = hash_hmac('sha256', $message, $secret, TRUE);
 
-    // Encode: paragraph_id:timestamp:hmac_base64
+    // Encode: paragraph_id:timestamp:hmac_base64.
     $token_data = $paragraph_id . ':' . $timestamp . ':' . base64_encode($hmac);
 
     // Base64 encode the entire token for URL safety.
@@ -65,7 +65,7 @@ final class CheckInTokenService {
         return NULL;
       }
 
-      // Split: paragraph_id:timestamp:hmac_base64
+      // Split: paragraph_id:timestamp:hmac_base64.
       $parts = explode(':', $token_data);
       if (count($parts) !== 3) {
         return NULL;
@@ -128,4 +128,3 @@ final class CheckInTokenService {
   }
 
 }
-

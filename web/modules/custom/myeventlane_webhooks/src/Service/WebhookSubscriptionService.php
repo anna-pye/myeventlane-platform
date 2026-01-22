@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_webhooks\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 
@@ -30,6 +31,7 @@ final class WebhookSubscriptionService {
    */
   public function __construct(
     private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -47,7 +49,7 @@ final class WebhookSubscriptionService {
    */
   public function createSubscription(Vendor $vendor, string $endpoint_url, array $event_types = []): int {
     $secret = $this->generateSecret();
-    $now = \Drupal::time()->getRequestTime();
+    $now = $this->time->getRequestTime();
 
     // Validate event types.
     $valid_types = array_intersect($event_types, self::EVENT_TYPES);
@@ -161,7 +163,7 @@ final class WebhookSubscriptionService {
       return FALSE;
     }
 
-    $fields['updated'] = \Drupal::time()->getRequestTime();
+    $fields['updated'] = $this->time->getRequestTime();
 
     $this->database->update('myeventlane_webhook_subscriptions')
       ->fields($fields)

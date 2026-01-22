@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\Form;
 
+use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
-use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -56,7 +55,7 @@ final class TicketSelectionForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL, ProductInterface $product = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL, ?ProductInterface $product = NULL): array {
     if (!$node || !$product) {
       return $form;
     }
@@ -85,7 +84,8 @@ final class TicketSelectionForm extends FormBase {
     $form['tickets'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-ticket-selection']],
-      '#tree' => TRUE, // Enable tree structure for nested form values.
+    // Enable tree structure for nested form values.
+      '#tree' => TRUE,
     ];
 
     // Event title header.
@@ -118,7 +118,8 @@ final class TicketSelectionForm extends FormBase {
           $label_mode = $paragraph->get('field_ticket_label_mode')->value ?? 'preset';
           if ($label_mode === 'custom') {
             $label = $paragraph->get('field_ticket_label_custom')->value ?? '';
-          } else {
+          }
+          else {
             $preset = $paragraph->get('field_ticket_label_preset')->value ?? '';
             $label = $preset_labels[$preset] ?? ucfirst(str_replace('_', ' ', $preset));
           }
@@ -204,8 +205,8 @@ final class TicketSelectionForm extends FormBase {
       if (!is_numeric($key)) {
         continue;
       }
-      
-      // The quantity should be in a nested array structure: tickets[$variation_id]['quantity']
+
+      // The quantity should be in a nested array structure: tickets[$variation_id]['quantity'].
       if (is_array($value) && isset($value['quantity'])) {
         $quantity = (int) $value['quantity'];
         if ($quantity > 0) {
@@ -232,7 +233,7 @@ final class TicketSelectionForm extends FormBase {
         $capacityService = \Drupal::service('myeventlane_capacity.service');
         $capacityService->assertCanBook($node, $total_quantity);
       }
-      catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
+      catch (CapacityExceededException $e) {
         $form_state->setError($form['actions']['submit'], $e->getMessage());
       }
     }
@@ -301,4 +302,3 @@ final class TicketSelectionForm extends FormBase {
   }
 
 }
-

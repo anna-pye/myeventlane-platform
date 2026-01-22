@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_donations\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Drupal\myeventlane_donations\Service\PlatformDonationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -42,7 +41,7 @@ final class DonationPlatformController extends ControllerBase {
    *   A render array or redirect.
    */
   public function donate(): array|RedirectResponse {
-    $form = \Drupal::formBuilder()->getForm('Drupal\myeventlane_donations\Form\DonationPlatformForm');
+    $form = $this->formBuilder()->getForm('Drupal\myeventlane_donations\Form\DonationPlatformForm');
 
     return [
       '#theme' => 'myeventlane_donation_platform',
@@ -91,4 +90,3 @@ final class DonationPlatformController extends ControllerBase {
   }
 
 }
-

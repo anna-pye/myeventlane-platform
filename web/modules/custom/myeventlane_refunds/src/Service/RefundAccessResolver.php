@@ -23,10 +23,13 @@ final class RefundAccessResolver {
    *   The vendor ownership resolver.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
+   *   The order inspector.
    */
   public function __construct(
     private readonly VendorOwnershipResolver $vendorOwnershipResolver,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly RefundOrderInspector $orderInspector,
   ) {}
 
   /**
@@ -80,8 +83,7 @@ final class RefundAccessResolver {
     }
 
     // Order must contain ticket items for this event.
-    $orderInspector = \Drupal::service('myeventlane_refunds.order_inspector');
-    $eventItems = $orderInspector->extractItemsForEvent($order, (int) $event->id());
+    $eventItems = $this->orderInspector->extractItemsForEvent($order, (int) $event->id());
     if (empty($eventItems)) {
       return FALSE;
     }
@@ -135,10 +137,3 @@ final class RefundAccessResolver {
   }
 
 }
-
-
-
-
-
-
-

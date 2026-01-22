@@ -38,7 +38,7 @@ final class DemoPurger {
    * - Their vendor entities
    * - Their stores
    * - Their events and products
-   * - RSVP submissions for their events
+   * - RSVP submissions for their events.
    *
    * @return array
    *   Purge statistics.
@@ -172,10 +172,3 @@ final class DemoPurger {
   }
 
 }
-
-
-
-
-
-
-

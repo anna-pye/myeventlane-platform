@@ -67,11 +67,12 @@ final class RsvpFormController extends ControllerBase {
     $nodeStorage = $this->entityTypeManager()->getStorage('node');
 
     foreach ($rsvps as $rsvp) {
-      $event = $nodeStorage->load($rsvp->event_id);
+      $nid = isset($rsvp->event_id) ? (int) $rsvp->event_id : 0;
+      $event = ($nid > 0) ? $nodeStorage->load($nid) : NULL;
       $rows[] = [
         'event' => $event ? $event->toLink()->toString() : $this->t('(Event deleted)'),
         'status' => ucfirst($rsvp->status ?? 'confirmed'),
-        'date' => date('M j, Y', $rsvp->created ?? time()),
+        'date' => date('M j, Y', (int) ($rsvp->created ?? time())),
       ];
     }
 

@@ -15,17 +15,26 @@ class RsvpPublicForm extends FormBase {
 
   protected AttendanceManager $attendanceManager;
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container): self {
     $instance = new static();
     $instance->attendanceManager = $container->get('myeventlane_event_attendees.manager');
     return $instance;
   }
 
+  /**
+   *
+   */
   public function getFormId(): string {
     return 'myeventlane_rsvp_public_form';
   }
 
-  public function buildForm(array $form, FormStateInterface $form_state, Node $event = NULL): array {
+  /**
+   *
+   */
+  public function buildForm(array $form, FormStateInterface $form_state, ?Node $event = NULL): array {
     if (!$event || $event->bundle() !== 'event') {
       $form['message'] = [
         '#markup' => 'Event not found.',
@@ -102,6 +111,9 @@ class RsvpPublicForm extends FormBase {
     return $form;
   }
 
+  /**
+   *
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $event_id = $form_state->getValue('event_id');
     $first = $form_state->getValue('first_name');

@@ -50,14 +50,14 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
     $this->assertStripeConnected();
     $tabs = $this->eventTabs($event, 'rsvps');
-    
+
     // Use new API: getStatsForEvent returns ['total' => int, 'recent' => int].
     $rsvpStats = $this->rsvpStatsService->getStatsForEvent((int) $event->id());
     $summary = [
       'total' => $rsvpStats['total'] ?? 0,
       'recent' => $rsvpStats['recent'] ?? 0,
     ];
-    
+
     // Daily series no longer available - use empty array.
     $series = [];
 
@@ -85,7 +85,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
       'header_actions' => count($rsvpList) > 0 ? [
         [
           'label' => 'Export CSV',
-          'url' => Url::fromRoute('myeventlane_rsvp.export', ['node' => $event->id()])->toString(),
+          'url' => Url::fromRoute('myeventlane_rsvp.export_csv', ['event' => $event->id()])->toString(),
           'class' => 'mel-btn--secondary',
         ],
       ] : [],

@@ -59,7 +59,8 @@ final class AttributeValueManager {
       $value = $storage->create([
         'attribute' => $attribute_id,
         'langcode' => $langcode,
-        'name' => $normalized,  // Translatable label field.
+      // Translatable label field.
+        'name' => $normalized,
         // No 'uuid' provided — let Drupal assign it.
       ]);
 
@@ -80,6 +81,9 @@ final class AttributeValueManager {
     }
   }
 
+  /**
+   *
+   */
   private function normalizeLabel(string $label): string {
     $label = trim(preg_replace('/\s+/', ' ', $label));
     return $label !== '' ? $label : 'Unnamed';
@@ -104,4 +108,5 @@ final class AttributeValueManager {
     }
     return NULL;
   }
+
 }

@@ -18,7 +18,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Includes:
  * - Branded HTML receipt email
  * - Calendar (.ics) attachments (one per event)
- * - Clear separation of tickets vs donations
+ * - Clear separation of tickets vs donations.
  */
 final class OrderPlacedSubscriber implements EventSubscriberInterface {
 

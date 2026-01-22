@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_api\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -22,14 +23,17 @@ final class RateLimiterService {
   /**
    * Default rate limits.
    */
-  public const DEFAULT_PUBLIC_LIMIT = 60; // per minute
-  public const DEFAULT_VENDOR_LIMIT = 1000; // per hour
+  // Per minute.
+  public const DEFAULT_PUBLIC_LIMIT = 60;
+  // Per hour.
+  public const DEFAULT_VENDOR_LIMIT = 1000;
 
   /**
    * Constructs RateLimiterService.
    */
   public function __construct(
     private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -51,7 +55,7 @@ final class RateLimiterService {
    *   - 'reset': int - Unix timestamp when limit resets.
    */
   public function checkLimit(Request $request, string $identifier, int $limit, int $period = self::PERIOD_MINUTE): array {
-    $now = \Drupal::time()->getRequestTime();
+    $now = $this->time->getRequestTime();
     $window_start = $now - $period;
 
     // Clean up old entries (older than the period).

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -173,7 +174,7 @@ final class VendorOnboardProfileController extends ControllerBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
    */
-  public function onboardFormSubmit(array $form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+  public function onboardFormSubmit(array $form, FormStateInterface $form_state): void {
     $vendor = $form_state->getFormObject()->getEntity();
     $currentUser = $this->currentUser();
 
@@ -217,20 +218,3 @@ final class VendorOnboardProfileController extends ControllerBase {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

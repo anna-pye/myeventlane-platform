@@ -75,7 +75,7 @@ class TicketCodeGenerator {
     $attempt = 0;
 
     do {
-      // Generate a secure random code: MEL-{timestamp}-{random}
+      // Generate a secure random code: MEL-{timestamp}-{random}.
       $code = 'MEL-' . time() . '-' . strtoupper(substr(bin2hex(random_bytes(8)), 0, 12));
       $attempt++;
 

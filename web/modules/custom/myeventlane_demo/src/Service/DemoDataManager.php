@@ -427,13 +427,13 @@ final class DemoDataManager {
    */
   private function getOrCreateVendorForUser(int $uid): ?object {
     $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-    
+
     // Try to find existing vendor owned by this user.
     $vendors = $vendorStorage->loadByProperties(['uid' => $uid]);
     if (!empty($vendors)) {
       return reset($vendors);
     }
-    
+
     // Try to find vendor where user is in field_vendor_users.
     $query = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
@@ -443,19 +443,19 @@ final class DemoDataManager {
     if (!empty($vendorIds)) {
       return $vendorStorage->load(reset($vendorIds));
     }
-    
+
     // Create a new vendor for this user.
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
     if (!$user) {
       return NULL;
     }
-    
+
     $vendor = $vendorStorage->create([
       'name' => $user->getDisplayName() . "'s Events",
       'uid' => $uid,
     ]);
     $vendor->save();
-    
+
     return $vendor;
   }
 

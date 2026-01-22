@@ -42,7 +42,7 @@ final class EventRefundRequestForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL, int $order = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL, ?int $order = NULL): array {
     $form['#node'] = $node;
     $form['#order'] = $order;
 
@@ -87,7 +87,7 @@ final class EventRefundRequestForm extends FormBase {
     $orderId = $form['#order'];
     $reason = $form_state->getValue('refund_reason');
 
-    // @todo: Create refund request record in database.
+    // @todo Create refund request record in database.
     // For now, log the request.
     \Drupal::logger('myeventlane_event_state')->notice('Refund request submitted for event @event, order @order', [
       '@event' => $node->id(),

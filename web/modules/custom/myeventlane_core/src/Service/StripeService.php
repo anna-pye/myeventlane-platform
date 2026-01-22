@@ -265,7 +265,7 @@ final class StripeService {
    * - Account exists (can be retrieved)
    * - Account is not deleted
    * - Account has details_submitted === true
-   * - Account has charges_enabled === true
+   * - Account has charges_enabled === true.
    *
    * @param string $accountId
    *   The Stripe Connect account ID (acct_xxx).
@@ -345,7 +345,7 @@ final class StripeService {
    * 1. Loads the Stripe account via API
    * 2. Validates the account exists, is not deleted, details_submitted is true,
    *    and charges_enabled is true
-   * 3. Only calls createLoginLink() if all checks pass
+   * 3. Only calls createLoginLink() if all checks pass.
    *
    * @param string $accountId
    *   The Stripe Connect account ID (acct_xxx).

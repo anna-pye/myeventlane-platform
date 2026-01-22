@@ -196,18 +196,3 @@ final class EventTypeService {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

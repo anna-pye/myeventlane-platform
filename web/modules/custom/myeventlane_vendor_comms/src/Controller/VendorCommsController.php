@@ -67,4 +67,3 @@ final class VendorCommsController extends ControllerBase {
   }
 
 }
-

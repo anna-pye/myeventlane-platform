@@ -19,6 +19,9 @@ final class TicketDownloadController extends ControllerBase {
     private readonly TicketPdfGenerator $pdfGenerator,
   ) {}
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container): self {
     return new self(
       $container->get('myeventlane_tickets.pdf'),
@@ -51,7 +54,7 @@ final class TicketDownloadController extends ControllerBase {
   /**
    * CANONICAL v2: Download ticket PDF by ticket code.
    *
-   * Route: /ticket/{ticket_code}/pdf
+   * Route: /ticket/{ticket_code}/pdf.
    */
   public function downloadByCode(string $ticket_code) {
     $storage = $this->entityTypeManager()->getStorage('myeventlane_ticket');

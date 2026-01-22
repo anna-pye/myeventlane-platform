@@ -9,6 +9,9 @@ use Drupal\views\EntityViewsData;
  */
 class EventAttendeeViewsData extends EntityViewsData {
 
+  /**
+   *
+   */
   public function getViewsData(): array {
     $data = parent::getViewsData();
 
@@ -22,7 +25,7 @@ class EventAttendeeViewsData extends EntityViewsData {
       'help' => t('Attendee records for events'),
     ];
 
-    // First Name
+    // First Name.
     $data['event_attendee']['first_name'] = [
       'title' => t('First name'),
       'help' => t('Attendee first name'),
@@ -31,7 +34,7 @@ class EventAttendeeViewsData extends EntityViewsData {
       ],
     ];
 
-    // Last Name
+    // Last Name.
     $data['event_attendee']['last_name'] = [
       'title' => t('Last name'),
       'help' => t('Attendee last name'),
@@ -40,7 +43,7 @@ class EventAttendeeViewsData extends EntityViewsData {
       ],
     ];
 
-    // Email
+    // Email.
     $data['event_attendee']['email'] = [
       'title' => t('Email'),
       'help' => t('Attendee email'),
@@ -49,7 +52,7 @@ class EventAttendeeViewsData extends EntityViewsData {
       ],
     ];
 
-    // Status
+    // Status.
     $data['event_attendee']['status'] = [
       'title' => t('Status'),
       'help' => t('confirmed / waitlisted / cancelled'),
@@ -61,7 +64,7 @@ class EventAttendeeViewsData extends EntityViewsData {
       ],
     ];
 
-    // Event reference
+    // Event reference.
     $data['event_attendee']['event_id'] = [
       'title' => t('Event ID'),
       'help' => t('Event node reference'),

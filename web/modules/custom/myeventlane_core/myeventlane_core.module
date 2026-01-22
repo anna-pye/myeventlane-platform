@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @file
  * Core services and utilities for MyEventLane platform.
@@ -9,7 +11,9 @@
  * - myeventlane_core.route_helper: Route lookup and URL generation helpers.
  */
 
-declare(strict_types=1);
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * Implements hook_theme().
@@ -59,24 +63,7 @@ function myeventlane_core_mail($key, &$message, $params): void {
  * Implements hook_cron().
  */
 function myeventlane_core_cron(): void {
-  // Send weekly category digests on Sundays.
-  // 0 = Sunday.
-  $dayOfWeek = (int) date('w');
-  if ($dayOfWeek !== 0) {
-    return;
-  }
-
-  $digestGenerator = \Drupal::service('myeventlane_core.category_digest_generator');
-  $userIds = $digestGenerator->getUsersWithFollowedCategories();
-
-  if (empty($userIds)) {
-    return;
-  }
-
-  $queue = \Drupal::service('queue')->get('mel_category_digest');
-  foreach ($userIds as $userId) {
-    $queue->createItem(['user_id' => $userId]);
-  }
+  \Drupal::service('myeventlane_core.category_digest_cron')->runSundayDigest();
 }
 
 /**
@@ -84,17 +71,45 @@ function myeventlane_core_cron(): void {
  *
  * Ensures administrators can access Commerce payment methods.
  */
-function myeventlane_core_entity_access(\Drupal\Core\Entity\EntityInterface $entity, string $operation, \Drupal\Core\Session\AccountInterface $account): \Drupal\Core\Access\AccessResult {
+function myeventlane_core_entity_access(EntityInterface $entity, string $operation, AccountInterface $account): AccessResult {
   // Only handle Commerce payment method entities.
   if ($entity->getEntityTypeId() !== 'commerce_payment_method') {
-    return \Drupal\Core\Access\AccessResult::neutral();
+    return AccessResult::neutral();
   }
 
   // Administrators (UID 1 or has 'administer site configuration') always have access.
   if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
-    return \Drupal\Core\Access\AccessResult::allowed()->cachePerPermissions();
+    return AccessResult::allowed()->cachePerPermissions();
   }
 
   // Let Commerce handle access for other users.
-  return \Drupal\Core\Access\AccessResult::neutral();
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_entity_presave().
+ *
+ * Fixes Layout Builder entity view display dependency calculation issue.
+ * Ensures view modes exist before saving to prevent null reference errors.
+ *
+ * This workaround fixes a core bug where calculateDependencies() calls
+ * getConfigDependencyName() on a null view mode entity.
+ */
+function myeventlane_core_entity_presave(EntityInterface $entity): void {
+  \Drupal::service('myeventlane_core.entity_view_display_presave')->presave($entity);
+}
+
+/**
+ * Implements hook_views_post_execute().
+ *
+ * Log commerce_cart_form result count for debugging empty cart table.
+ */
+function myeventlane_core_views_post_execute(\Drupal\views\ViewExecutable $view): void {
+  if ($view->id() !== 'commerce_cart_form') {
+    return;
+  }
+  \Drupal::logger('myeventlane_core')->info('commerce_cart_form: args=@args result_count=@c', [
+    '@args' => implode(',', array_map('strval', $view->args)),
+    '@c' => count($view->result),
+  ]);
 }

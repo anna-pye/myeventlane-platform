@@ -26,9 +26,9 @@ class VenueStorage extends SqlContentEntityStorage {
     $query->addField('nv', 'entity_id');
     $query->condition('nv.field_venue_target_id', $venue_id);
     $query->range(0, 1);
-    
+
     $result = $query->execute()->fetchField();
-    
+
     return !empty($result);
   }
 

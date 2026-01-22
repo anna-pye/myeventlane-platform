@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Plugin\QueueWorker;
 
+use Drupal\Component\Transliteration\TransliterationInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\EventReminderScheduler;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_rsvp\Service\IcsGenerator;
@@ -43,6 +46,10 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
    *   The ICS generator.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\Component\Transliteration\TransliterationInterface $transliteration
+   *   The transliteration service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
+   *   The date formatter.
    */
   public function __construct(
     array $configuration,
@@ -53,6 +60,8 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     private readonly EventReminderScheduler $scheduler,
     private readonly IcsGenerator $icsGenerator,
     private readonly LoggerInterface $logger,
+    private readonly TransliterationInterface $transliteration,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -69,7 +78,9 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       $container->get('myeventlane_messaging.manager'),
       $container->get('myeventlane_messaging.event_reminder_scheduler'),
       $container->get('myeventlane_rsvp.ics_generator'),
-      $container->get('logger.factory')->get('myeventlane_messaging')
+      $container->get('logger.factory')->get('myeventlane_messaging'),
+      $container->get('transliteration'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -137,7 +148,7 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     try {
       $icsContent = $this->icsGenerator->generate($event);
       if ($icsContent) {
-        $filename = 'event-' . $eventId . '-' . \Drupal::transliteration()->transliterate($event->label(), 'en', '_', 255) . '.ics';
+        $filename = 'event-' . $eventId . '-' . $this->transliteration->transliterate($event->label(), 'en', '_', 255) . '.ics';
         $attachments[] = [
           'filename' => $filename,
           'content' => $icsContent,
@@ -190,7 +201,7 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       'event' => $event,
       'event_title' => $event->label(),
       'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
-      'my_tickets_url' => \Drupal\Core\Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
+      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
       'timeframe' => $timeframe,
     ];
 
@@ -198,10 +209,9 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
       $startDate = $event->get('field_event_start')->date;
       if ($startDate) {
-        $dateFormatter = \Drupal::service('date.formatter');
-        $context['event_start'] = $dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
-        $context['event_start_date'] = $dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y');
-        $context['event_start_time'] = $dateFormatter->format($startDate->getTimestamp(), 'custom', 'g:ia T');
+        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
+        $context['event_start_date'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y');
+        $context['event_start_time'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'g:ia T');
       }
     }
 
@@ -236,4 +246,3 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
   }
 
 }
-

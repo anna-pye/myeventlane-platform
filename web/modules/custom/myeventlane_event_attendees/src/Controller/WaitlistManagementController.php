@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_event_attendees\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -66,8 +65,8 @@ final class WaitlistManagementController extends ControllerBase {
         'position' => $position++,
         'date_added' => $created ? date('M j, Y g:ia', (int) $created) : '',
         'status' => $attendee->getStatus(),
-        'promoted_at' => $attendee->get('promoted_at')->isEmpty() 
-          ? NULL 
+        'promoted_at' => $attendee->get('promoted_at')->isEmpty()
+          ? NULL
           : date('M j, Y g:ia', (int) $attendee->get('promoted_at')->value),
       ];
     }
@@ -104,7 +103,7 @@ final class WaitlistManagementController extends ControllerBase {
     // Build CSV content.
     $csv = [];
     $csv[] = ['Position', 'Name', 'Email', 'Date Added', 'Status'];
-    
+
     $position = 1;
     foreach ($waitlist as $attendee) {
       $created = $attendee->get('created')->value;

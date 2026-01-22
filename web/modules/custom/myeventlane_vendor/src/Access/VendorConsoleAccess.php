@@ -13,7 +13,7 @@ use Drupal\Core\Session\AccountInterface;
  *
  * Allows access for:
  * - Administrators (UID 1 or has 'administer site configuration')
- * - Users with 'access vendor console' permission
+ * - Users with 'access vendor console' permission.
  */
 final class VendorConsoleAccess {
 
@@ -33,8 +33,8 @@ final class VendorConsoleAccess {
     $route_name = $route_match->getRouteName();
     $request = \Drupal::request();
     $host = $request ? $request->getHost() : 'UNKNOWN';
-    
-    // DIAGNOSTIC LOGGING: Track access evaluation
+
+    // DIAGNOSTIC LOGGING: Track access evaluation.
     \Drupal::logger('vendor_access')->debug('VendorConsoleAccess::access called', [
       'route_name' => $route_name ?? 'NULL',
       'host' => $host,
@@ -44,7 +44,7 @@ final class VendorConsoleAccess {
       'has_admin_permission' => $account->hasPermission('administer site configuration') ? 'TRUE' : 'FALSE',
       'has_vendor_console_permission' => $account->hasPermission('access vendor console') ? 'TRUE' : 'FALSE',
     ]);
-    
+
     // Administrators always have access.
     if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
       \Drupal::logger('vendor_access')->debug('VendorConsoleAccess: ALLOWED for UID @uid (administrator)', ['@uid' => $account->id()]);
@@ -62,18 +62,3 @@ final class VendorConsoleAccess {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

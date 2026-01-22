@@ -14,7 +14,7 @@ use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
  * Provides common functionality for all ticket management pages:
  * - Event ownership assertion
  * - Tickets sub-navigation
- * - Vendor console page rendering
+ * - Vendor console page rendering.
  */
 abstract class VendorEventTicketsBaseController extends VendorConsoleBaseController {
 
@@ -40,7 +40,7 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
     array $body,
     string $title,
     string $active_key,
-    ?array $header_actions = NULL
+    ?array $header_actions = NULL,
   ): array {
     // Assert event ownership.
     $this->assertEventOwnership($event);

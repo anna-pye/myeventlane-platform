@@ -65,7 +65,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       'total_sales' => $vendorRevenue['gross'] ?? '$0.00',
       'total_fees' => $vendorRevenue['fees'] ?? '$0.00',
       'net_earnings' => $vendorRevenue['net'] ?? '$0.00',
-      'pending_payout' => '$0.00', // Would come from Stripe API.
+    // Would come from Stripe API.
+      'pending_payout' => '$0.00',
     ];
 
     // Get recent transactions from completed orders.
@@ -135,8 +136,16 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager()
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {
             continue;
           }

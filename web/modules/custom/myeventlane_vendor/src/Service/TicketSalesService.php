@@ -53,8 +53,16 @@ final class TicketSalesService {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $totalPrice = $item->getTotalPrice();
             if ($totalPrice) {
@@ -160,8 +168,16 @@ final class TicketSalesService {
             continue;
           }
 
+          // Safely load the order entity to avoid getOrder() warnings.
+          $order_id = $item->get('order_id')->target_id;
+          if (!$order_id) {
+            continue;
+          }
+
           try {
-            $order = $item->getOrder();
+            $order = $this->entityTypeManager
+              ->getStorage('commerce_order')
+              ->load($order_id);
             if ($order && $order->getState()->getId() === 'completed') {
               $sold += (int) $item->getQuantity();
               $totalPrice = $item->getTotalPrice();
@@ -232,8 +248,16 @@ final class TicketSalesService {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $completedTime = $order->getCompletedTime() ?? $order->getChangedTime();
             $date = date('Y-m-d', (int) $completedTime);
@@ -369,8 +393,16 @@ final class TicketSalesService {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $totalPrice = $item->getTotalPrice();
             if ($totalPrice) {
@@ -445,8 +477,16 @@ final class TicketSalesService {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $orderId = $order->id();
             if (!isset($processedOrders[$orderId])) {
@@ -513,8 +553,16 @@ final class TicketSalesService {
           continue;
         }
 
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager
+            ->getStorage('commerce_order')
+            ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $orderTime = $order->getCompletedTime() ?? $order->getChangedTime();
             if ($orderTime >= $startTimestamp && ($endTimestamp === NULL || $orderTime <= $endTimestamp)) {

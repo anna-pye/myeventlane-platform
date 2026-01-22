@@ -62,7 +62,7 @@ final class AutomationDispatchService {
     string $notificationType,
     string $recipientHash,
     ?int $scheduledFor = NULL,
-    ?array $metadata = NULL
+    ?array $metadata = NULL,
   ): int {
     $scheduledFor = $scheduledFor ?? $this->time->getRequestTime();
 

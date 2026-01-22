@@ -8,6 +8,12 @@ services:
     class: Drupal\myeventlane_rsvp\Service\RsvpMailer
     arguments: ['@plugin.manager.mail', '@config.factory']
 
+  myeventlane_rsvp.ics_controller:
+    class: Drupal\myeventlane_rsvp\Controller\IcsController
+    arguments: ['@myeventlane_rsvp.ics_generator']
+    tags:
+      - { name: controller.service_arguments }
+
   myeventlane_rsvp.ics_generator:
     class: Drupal\myeventlane_rsvp\Service\IcsGenerator
     arguments: ['@file_system']

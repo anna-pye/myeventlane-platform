@@ -1,3 +1,18 @@
+/**
+ * @file
+ * MyEventLane Event Map Display
+ * 
+ * This file handles map display only (rendering Google Maps for event locations).
+ * Address autocomplete and field population is handled by:
+ * - myeventlane_location/js/address-autocomplete.js (Google/Apple Maps autocomplete)
+ * 
+ * The autocomplete correctly maps:
+ * - street_number + route → address_line1
+ * - locality → locality
+ * - administrative_area_level_1 → administrative_area
+ * - country → country_code (ISO)
+ */
+
 (function (Drupal, once, drupalSettings) {
   'use strict';
 

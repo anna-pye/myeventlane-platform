@@ -5,6 +5,7 @@
  * Install, update and uninstall functions for MyEventLane Vendor Communications.
  */
 
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Database\Database;
 
 /**
@@ -126,7 +127,7 @@ function myeventlane_vendor_comms_uninstall(): void {
 function myeventlane_vendor_comms_update_9001(): void {
   $config_factory = \Drupal::configFactory();
   $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging');
-  
+
   $templates = [
     'vendor_event_update',
     'vendor_event_important_change',
@@ -136,14 +137,14 @@ function myeventlane_vendor_comms_update_9001(): void {
   foreach ($templates as $template_key) {
     $config_name = "myeventlane_messaging.template.{$template_key}";
     $config = $config_factory->getEditable($config_name);
-    
+
     // Only create if it doesn't exist.
     if ($config->isNew()) {
       $template_path = $module_path . "/config/install/{$config_name}.yml";
-      
+
       if (file_exists($template_path)) {
         // Use Drupal's YAML parser.
-        $template_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($template_path));
+        $template_data = Yaml::decode(file_get_contents($template_path));
         $config->setData($template_data)->save();
         \Drupal::logger('myeventlane_vendor_comms')->notice("Imported template: {$template_key}");
       }

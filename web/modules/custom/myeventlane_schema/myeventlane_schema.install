@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @file
  * Install, update, and uninstall hooks for MyEventLane Schema module.
@@ -9,9 +11,7 @@
  * YAML files, but this file handles any programmatic setup needed.
  */
 
-declare(strict_types=1);
-
-use Drupal\Core\Entity\EntityStorageException;
+use Drupal\Component\Serialization\Yaml;
 
 /**
  * Implements hook_install().
@@ -130,7 +130,7 @@ function myeventlane_schema_update_9001(): string {
   $config_name = 'field.storage.commerce_product_variation.field_event';
   $config_file = $config_path . '/' . $config_name . '.yml';
   if (file_exists($config_file)) {
-    $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+    $config_data = Yaml::decode(file_get_contents($config_file));
     \Drupal::configFactory()->getEditable($config_name)->setData($config_data)->save(TRUE);
   }
 
@@ -138,7 +138,7 @@ function myeventlane_schema_update_9001(): string {
   $config_name = 'field.field.commerce_product_variation.ticket_variation.field_event';
   $config_file = $config_path . '/' . $config_name . '.yml';
   if (file_exists($config_file)) {
-    $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+    $config_data = Yaml::decode(file_get_contents($config_file));
     \Drupal::configFactory()->getEditable($config_name)->setData($config_data)->save(TRUE);
   }
 
@@ -146,7 +146,7 @@ function myeventlane_schema_update_9001(): string {
   $config_name = 'field.field.commerce_product.ticket.field_event';
   $config_file = $config_path . '/' . $config_name . '.yml';
   if (file_exists($config_file)) {
-    $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+    $config_data = Yaml::decode(file_get_contents($config_file));
     \Drupal::configFactory()->getEditable($config_name)->setData($config_data)->save(TRUE);
   }
 
@@ -268,7 +268,7 @@ function myeventlane_schema_update_9002(): string {
 
   // Import field instances from config files.
   $config_path = \Drupal::service('extension.list.module')->getPath('myeventlane_schema') . '/config/install';
-  $yaml = \Drupal\Component\Serialization\Yaml::class;
+  $yaml = Yaml::class;
 
   // Import paragraph field instances.
   $paragraph_field_files = [

@@ -1,0 +1,5 @@
+services:
+  myeventlane_search.route_subscriber:
+    class: \Drupal\myeventlane_search\Routing\SearchRouteSubscriber
+    tags:
+      - { name: event_subscriber }

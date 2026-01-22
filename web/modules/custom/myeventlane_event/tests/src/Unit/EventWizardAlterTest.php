@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event\Unit;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Entity\EntityFormInterface;
+use Prophecy\Argument;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_event\Form\EventFormAlter;
 use Drupal\Tests\UnitTestCase;
@@ -40,14 +45,14 @@ final class EventWizardAlterTest extends UnitTestCase {
     $form_state = $this->prophesize(FormStateInterface::class);
     $form_state->getValue('wizard_target_step')->willReturn('');
     $form_state->get('mel_wizard_step')->willReturn('');
-    $form_state->set('mel_wizard_step', \Prophecy\Argument::any())->shouldBeCalled();
+    $form_state->set('mel_wizard_step', Argument::any())->shouldBeCalled();
     $form_state->setValue('wizard_target_step', '')->shouldBeCalled();
-    $form_state->getFormObject()->willReturn($this->prophesize(\Drupal\Core\Entity\EntityFormInterface::class)->reveal());
+    $form_state->getFormObject()->willReturn($this->prophesize(EntityFormInterface::class)->reveal());
 
     $alter = new EventFormAlter(
-      $this->prophesize(\Drupal\Core\Session\AccountProxyInterface::class)->reveal(),
-      $this->prophesize(\Drupal\Core\Routing\RouteMatchInterface::class)->reveal(),
-      $this->prophesize(\Drupal\Core\Entity\EntityTypeManagerInterface::class)->reveal()
+      $this->prophesize(AccountProxyInterface::class)->reveal(),
+      $this->prophesize(RouteMatchInterface::class)->reveal(),
+      $this->prophesize(EntityTypeManagerInterface::class)->reveal()
     );
 
     // Mock isEventForm and isVendorContext to return TRUE.
@@ -61,7 +66,6 @@ final class EventWizardAlterTest extends UnitTestCase {
     // For this test, we'll directly check the form structure after alteration.
     // Since we can't easily mock the private methods, we'll test the principle:
     // Wizard panels should use CSS classes (.is-hidden, .is-active) not #access.
-
     // Assert: If wizard panels exist, they should NOT have #access = FALSE.
     // This is a structural test - the actual implementation ensures panels
     // use CSS classes for visibility control.
@@ -73,7 +77,7 @@ final class EventWizardAlterTest extends UnitTestCase {
    */
   public function testWizardTargetStepCleared(): void {
     $form_state = $this->prophesize(FormStateInterface::class);
-    
+
     // Simulate getCurrentStep being called with a target step.
     $form_state->getValue('wizard_target_step')->willReturn('schedule');
     $form_state->get('mel_wizard_step')->willReturn('basics');

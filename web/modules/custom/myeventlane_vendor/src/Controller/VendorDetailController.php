@@ -36,7 +36,7 @@ final class VendorDetailController extends ControllerBase {
     // Public profile shows only: Name, Logo, Bio, and Events.
     $view_builder = $this->entityTypeManager()->getViewBuilder('myeventlane_vendor');
     $entity_build = $view_builder->view($myeventlane_vendor, 'full');
-    
+
     // Render fields manually based on vendor visibility preferences.
     // Always show: logo and bio (core profile fields).
     $content = [];
@@ -47,9 +47,9 @@ final class VendorDetailController extends ControllerBase {
     }
 
     // Conditionally show fields based on vendor visibility settings.
-    // Email
+    // Email.
     if ($myeventlane_vendor->hasField('field_email') && !$myeventlane_vendor->get('field_email')->isEmpty()) {
-      $show_email = $myeventlane_vendor->hasField('field_public_show_email') 
+      $show_email = $myeventlane_vendor->hasField('field_public_show_email')
         && !$myeventlane_vendor->get('field_public_show_email')->isEmpty()
         && (bool) $myeventlane_vendor->get('field_public_show_email')->value;
       if ($show_email) {
@@ -57,9 +57,9 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Phone
+    // Phone.
     if ($myeventlane_vendor->hasField('field_phone') && !$myeventlane_vendor->get('field_phone')->isEmpty()) {
-      $show_phone = $myeventlane_vendor->hasField('field_public_show_phone') 
+      $show_phone = $myeventlane_vendor->hasField('field_public_show_phone')
         && !$myeventlane_vendor->get('field_public_show_phone')->isEmpty()
         && (bool) $myeventlane_vendor->get('field_public_show_phone')->value;
       if ($show_phone) {
@@ -67,9 +67,9 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Address/Location
+    // Address/Location.
     if ($myeventlane_vendor->hasField('field_address') && !$myeventlane_vendor->get('field_address')->isEmpty()) {
-      $show_location = $myeventlane_vendor->hasField('field_public_show_location') 
+      $show_location = $myeventlane_vendor->hasField('field_public_show_location')
         && !$myeventlane_vendor->get('field_public_show_location')->isEmpty()
         && (bool) $myeventlane_vendor->get('field_public_show_location')->value;
       if ($show_location) {
@@ -89,7 +89,7 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Social Links
+    // Social Links.
     if ($myeventlane_vendor->hasField('field_social_links') && !$myeventlane_vendor->get('field_social_links')->isEmpty()) {
       $show_social = TRUE;
       if ($myeventlane_vendor->hasField('field_public_show_social_links')) {
@@ -101,7 +101,7 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Summary
+    // Summary.
     if ($myeventlane_vendor->hasField('field_summary') && !$myeventlane_vendor->get('field_summary')->isEmpty()) {
       $show_summary = TRUE;
       if ($myeventlane_vendor->hasField('field_public_show_summary')) {
@@ -113,7 +113,7 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Description
+    // Description.
     if ($myeventlane_vendor->hasField('field_description') && !$myeventlane_vendor->get('field_description')->isEmpty()) {
       $show_description = TRUE;
       if ($myeventlane_vendor->hasField('field_public_show_description')) {
@@ -125,7 +125,7 @@ final class VendorDetailController extends ControllerBase {
       }
     }
 
-    // Banner Image
+    // Banner Image.
     if ($myeventlane_vendor->hasField('field_banner_image') && !$myeventlane_vendor->get('field_banner_image')->isEmpty()) {
       $show_banner = TRUE;
       if ($myeventlane_vendor->hasField('field_public_show_banner')) {
@@ -136,11 +136,11 @@ final class VendorDetailController extends ControllerBase {
         $content['field_banner_image'] = $view_builder->viewField($myeventlane_vendor->get('field_banner_image'), 'full');
       }
     }
-    
+
     // Query and render upcoming events for this vendor.
     $vendor_id = (int) $myeventlane_vendor->id();
     $now = time();
-    
+
     $event_ids = $this->entityTypeManager()
       ->getStorage('node')
       ->getQuery()
@@ -157,7 +157,7 @@ final class VendorDetailController extends ControllerBase {
     if (!empty($event_ids)) {
       $events = $this->entityTypeManager()->getStorage('node')->loadMultiple($event_ids);
       $node_view_builder = $this->entityTypeManager()->getViewBuilder('node');
-      
+
       foreach ($events as $event) {
         $events_build[] = $node_view_builder->view($event, 'card');
       }
@@ -182,7 +182,7 @@ final class VendorDetailController extends ControllerBase {
         '#weight' => 100,
       ];
     }
-    
+
     // Build using our custom template.
     $renderer = \Drupal::service('renderer');
     $build = [
@@ -199,7 +199,7 @@ final class VendorDetailController extends ControllerBase {
         'max-age' => $myeventlane_vendor->getCacheMaxAge(),
       ],
     ];
-    
+
     return $build;
   }
 
@@ -253,8 +253,17 @@ final class VendorDetailController extends ControllerBase {
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
+
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_target_id = $item->get('order_id')->target_id;
+        if (!$order_target_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager()
+            ->getStorage('commerce_order')
+            ->load($order_target_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $order_id = $order->id();
             if (!isset($processed_orders[$order_id])) {
@@ -406,8 +415,17 @@ final class VendorDetailController extends ControllerBase {
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
+
+        // Safely load the order entity to avoid getOrder() warnings.
+        $order_target_id = $item->get('order_id')->target_id;
+        if (!$order_target_id) {
+          continue;
+        }
+
         try {
-          $order = $item->getOrder();
+          $order = $this->entityTypeManager()
+            ->getStorage('commerce_order')
+            ->load($order_target_id);
           if ($order && $order->getState()->getId() === 'completed') {
             $order_id = $order->id();
             if (!isset($processed_orders[$order_id])) {
@@ -478,18 +496,3 @@ final class VendorDetailController extends ControllerBase {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

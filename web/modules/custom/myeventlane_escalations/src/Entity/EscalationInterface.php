@@ -53,19 +53,3 @@ interface EscalationInterface extends ContentEntityInterface {
   public function setCustomer(UserInterface $account): EscalationInterface;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

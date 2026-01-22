@@ -1,0 +1,7 @@
+name: MyEventLane Front
+type: module
+description: Front page UI blocks for MyEventLane
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:views

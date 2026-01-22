@@ -5,7 +5,6 @@
  * Module file for MyEventLane Donations.
  */
 
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -68,7 +67,7 @@ function myeventlane_donations_entity_access(EntityInterface $entity, $operation
   // Allow access if:
   // 1. Order is in draft state (cart)
   // 2. User is anonymous (UID 0) and order belongs to anonymous (UID 0)
-  // 3. OR user owns the order
+  // 3. OR user owns the order.
   if ($order->getState()->getId() === 'draft') {
     $orderUid = (int) $order->getCustomerId();
     $accountUid = (int) $account->id();
@@ -91,4 +90,3 @@ function myeventlane_donations_entity_access(EntityInterface $entity, $operation
   // For non-draft orders, let Commerce handle access normally.
   return AccessResult::neutral();
 }
-

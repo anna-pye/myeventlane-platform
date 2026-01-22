@@ -1,0 +1,126 @@
+langcode: en
+id: mel_content
+name: 'MEL Content'
+description: 'Content index: event, article, page. Bundle selection configurable via datasource_settings.entity:node.bundles.selected.'
+read_only: false
+status: true
+server: myeventlane_db
+datasource_settings:
+  'entity:node':
+    bundles:
+      default: false
+      selected:
+        - event
+        - article
+        - page
+tracker_settings:
+  default:
+    indexing_order: fifo
+field_settings:
+  title:
+    label: Title
+    type: text
+    datasource_id: 'entity:node'
+    property_path: title
+  type:
+    label: 'Content type'
+    type: string
+    datasource_id: 'entity:node'
+    property_path: type
+  status:
+    label: 'Publishing status'
+    type: boolean
+    datasource_id: 'entity:node'
+    property_path: status
+    indexed_locked: true
+    type_locked: true
+  node_grants:
+    label: 'Node access information'
+    type: string
+    property_path: search_api_node_grants
+    indexed_locked: true
+    type_locked: true
+    hidden: true
+  body:
+    label: Body
+    type: text
+    datasource_id: 'entity:node'
+    property_path: body
+  field_venue_name:
+    label: 'Venue name'
+    type: text
+    datasource_id: 'entity:node'
+    property_path: field_venue_name
+  field_venue_address:
+    label: 'Venue address'
+    type: text
+    datasource_id: 'entity:node'
+    property_path: field_venue_address
+  field_category:
+    label: 'Category'
+    type: string
+    datasource_id: 'entity:node'
+    property_path: field_category
+  field_event_start:
+    label: 'Event start'
+    type: date
+    datasource_id: 'entity:node'
+    property_path: field_event_start
+  field_event_end:
+    label: 'Event end'
+    type: date
+    datasource_id: 'entity:node'
+    property_path: field_event_end
+  rendered_item:
+    label: 'Rendered item'
+    type: text
+    property_path: rendered_item
+    configuration:
+      roles:
+        - anonymous
+      view_mode:
+        entity:node:
+          event: teaser
+          article: teaser
+          page: teaser
+processor_settings:
+  add_url:
+    weights:
+      preprocess_index: -30
+  content_access:
+    weights:
+      preprocess_index: -6
+      preprocess_query: -4
+  entity_status:
+    weights:
+      preprocess_index: -10
+  html_filter:
+    weights:
+      preprocess_index: -3
+      preprocess_query: -6
+    fields:
+      - title
+      - body
+      - field_venue_name
+      - field_venue_address
+      - rendered_item
+  ignorecase:
+    weights:
+      preprocess_index: -5
+      preprocess_query: -8
+options:
+  cron_limit: 50
+  index_directly: false
+dependencies:
+  config:
+    - field.field.node.article.body
+    - field.field.node.event.body
+    - field.field.node.event.field_category
+    - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_venue_address
+    - field.field.node.event.field_venue_name
+    - field.field.node.page.body
+    - search_api.server.myeventlane_db
+  module:
+    - node

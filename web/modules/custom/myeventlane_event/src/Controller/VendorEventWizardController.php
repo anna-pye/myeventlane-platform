@@ -154,7 +154,7 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
     // For paid/both events, show link to ticket management instead of form.
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
       $tickets_url = Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event->id()]);
-      
+
       return $this->buildVendorPage('myeventlane_event_wizard_tickets', [
         'title' => $this->t('Create event: Tickets'),
         'event' => $event,
@@ -179,7 +179,7 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
     }
 
     $publish_url = Url::fromRoute('myeventlane_event.wizard.publish', ['event' => $event->id()]);
-    
+
     $build = $this->buildVendorPage('myeventlane_event_wizard_review', [
       'title' => $this->t('Review & Publish'),
       'event' => $event,
@@ -198,12 +198,12 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
     $this->assertEventOwnership($event);
 
     $event->setPublished();
-    
+
     // Mark setup as complete when successfully published via wizard.
     if ($event->hasField('field_event_setup_complete')) {
       $event->set('field_event_setup_complete', TRUE);
     }
-    
+
     $event->save();
 
     $this->getMessenger()->addStatus($this->t('Event "@title" has been published!', [
@@ -280,10 +280,10 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
     else {
       // Create submit button if it doesn't exist.
       $next_step = $this->getNextStep($step_id);
-      $submit_label = $next_step 
+      $submit_label = $next_step
         ? $this->t('Continue to @step →', ['@step' => $next_step['label']])
         : $this->t('Save');
-      
+
       $form['actions']['submit'] = [
         '#type' => 'submit',
         '#value' => $submit_label,
@@ -317,11 +317,11 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
   private function filterFormFields(array &$form, array $allowed_fields): void {
     // Always keep form structure elements.
     $structure_keys = ['#', 'actions', 'advanced', 'meta', 'path', 'revision_information', 'status', 'author', 'options', 'promote', 'sticky'];
-    
+
     foreach ($form as $key => &$element) {
       // Convert key to string for string operations.
       $key_string = (string) $key;
-      
+
       // Skip structure/metadata keys - these are always kept visible.
       if (str_starts_with($key_string, '#') || in_array($key, $structure_keys, TRUE)) {
         // Ensure actions are always accessible.
@@ -333,7 +333,7 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
 
       // Check if this is a field we want to keep.
       $is_allowed = in_array($key, $allowed_fields, TRUE);
-      
+
       // Also check for widget sub-elements (e.g., field_name widget).
       if (!$is_allowed && is_array($element)) {
         // Check if this element has a #field_name that matches allowed fields.
@@ -436,7 +436,91 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
   }
 
   /**
+   * Gets wizard progress from tempstore (shared with EventWizardForm).
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return array
+   *   Array with 'wizard_started' (bool) and 'highest_completed_step' (string|null).
+   */
+  private function getWizardProgress(NodeInterface $event): array {
+    if ($event->isNew()) {
+      return [
+        'wizard_started' => FALSE,
+        'highest_completed_step' => NULL,
+      ];
+    }
+
+    $tempstore = \Drupal::service('tempstore.private')->get('myeventlane_event_wizard_progress');
+    $event_id = (string) $event->id();
+
+    $progress = $tempstore->get($event_id);
+
+    if ($progress === NULL) {
+      // If no progress in tempstore, check if event has been saved before.
+      $progress = [
+        'wizard_started' => !$event->isNew(),
+        'highest_completed_step' => NULL,
+      ];
+    }
+
+    return $progress;
+  }
+
+  /**
+   * Checks if a step is accessible based on wizard progress.
+   *
+   * After first save, allows access to any completed step.
+   * Before first save, enforces linear progression.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param string $step_id
+   *   The step ID to check.
+   *
+   * @return bool
+   *   TRUE if step is accessible, FALSE otherwise.
+   */
+  private function isStepAccessibleByProgress(NodeInterface $event, string $step_id): bool {
+    $wizard_progress = $this->getWizardProgress($event);
+
+    // If wizard hasn't started, only allow first step.
+    if (!$wizard_progress['wizard_started']) {
+      $step_keys = array_keys(self::STEPS);
+      return $step_id === $step_keys[0];
+    }
+
+    // Wizard has started: check if this step is completed or before highest completed.
+    $step_keys = array_keys(self::STEPS);
+    $target_index = array_search($step_id, $step_keys, TRUE);
+
+    if ($target_index === FALSE) {
+      return FALSE;
+    }
+
+    // If we have a highest completed step, map it to controller step system.
+    // Note: EventWizardForm uses different step IDs, so we check step completion
+    // by validating required fields instead.
+    $highest_completed = $wizard_progress['highest_completed_step'];
+
+    // If no highest completed step tracked, fall back to field-based validation.
+    if ($highest_completed === NULL) {
+      // Check if this step's required fields are complete.
+      return $this->isStepComplete($event, $step_id);
+    }
+
+    // For now, allow access to any step if wizard has started.
+    // More granular control would require mapping EventWizardForm steps to controller steps.
+    // Since controller steps are different, we use field-based completion check.
+    return $this->isStepComplete($event, $step_id) || $target_index === 0;
+  }
+
+  /**
    * Asserts user can access a step (checks prerequisites).
+   *
+   * After first successful save, allows non-linear navigation to completed steps.
+   * Before first save, enforces linear progression.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|null
    *   Redirect response if step is not accessible, NULL otherwise.
@@ -447,25 +531,46 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
       return NULL;
     }
 
-    // Check previous steps are complete.
     $step_keys = array_keys(self::STEPS);
     $current_index = array_search($step_id, $step_keys, TRUE);
 
-    if ($current_index === FALSE || $current_index === 0) {
+    if ($current_index === FALSE) {
       return NULL;
     }
 
-    // Check all previous steps have required fields.
-    for ($i = 0; $i < $current_index; $i++) {
-      $prev_step_id = $step_keys[$i];
-      $prev_step = self::STEPS[$prev_step_id];
-      foreach ($prev_step['required'] as $field_name) {
-        if (!$event->hasField($field_name) || $event->get($field_name)->isEmpty()) {
-          // Redirect to first incomplete step.
-          $url = Url::fromRoute($prev_step['route'], ['event' => $event->id()]);
+    // First step is always accessible.
+    if ($current_index === 0) {
+      return NULL;
+    }
+
+    // Check if step is accessible based on wizard progress.
+    if (!$this->isStepAccessibleByProgress($event, $step_id)) {
+      // Find the first accessible step and redirect there.
+      $wizard_progress = $this->getWizardProgress($event);
+
+      if (!$wizard_progress['wizard_started']) {
+        // Wizard hasn't started: redirect to first step.
+        $first_step = $step_keys[0];
+        $first_step_def = self::STEPS[$first_step];
+        $url = Url::fromRoute($first_step_def['route'], ['event' => $event->id()]);
+        return new RedirectResponse($url->toString());
+      }
+
+      // Wizard has started: find the highest accessible step.
+      for ($i = $current_index - 1; $i >= 0; $i--) {
+        $check_step_id = $step_keys[$i];
+        if ($this->isStepAccessibleByProgress($event, $check_step_id)) {
+          $check_step = self::STEPS[$check_step_id];
+          $url = Url::fromRoute($check_step['route'], ['event' => $event->id()]);
           return new RedirectResponse($url->toString());
         }
       }
+
+      // Fallback: redirect to first step.
+      $first_step = $step_keys[0];
+      $first_step_def = self::STEPS[$first_step];
+      $url = Url::fromRoute($first_step_def['route'], ['event' => $event->id()]);
+      return new RedirectResponse($url->toString());
     }
 
     return NULL;
@@ -505,7 +610,7 @@ final class VendorEventWizardController extends VendorConsoleBaseController impl
       }
 
       $url_string = $url ? $url->toString() : NULL;
-      
+
       $navigation[] = [
         'id' => $step_id,
         'label' => $step['label'],

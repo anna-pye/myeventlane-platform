@@ -217,4 +217,3 @@ final class DonationPane extends CheckoutPaneBase {
   }
 
 }
-

@@ -1,0 +1,19 @@
+myeventlane_theme_settings.settings:
+  type: config_object
+  label: 'MyEventLane theme hero settings'
+  mapping:
+    hero_default:
+      type: integer
+      label: 'Default hero image (fid)'
+    hero_events:
+      type: integer
+      label: 'Events page hero image (fid)'
+    hero_calendar:
+      type: integer
+      label: 'Calendar page hero image (fid)'
+    hero_category:
+      type: integer
+      label: 'Category page hero image (fid)'
+    hero_search:
+      type: integer
+      label: 'Search page hero image (fid)'

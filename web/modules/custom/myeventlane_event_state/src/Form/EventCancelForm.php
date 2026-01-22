@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_state\Form;
 
+use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -42,7 +43,7 @@ final class EventCancelForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
     $form['#node'] = $node;
 
     $form['warning'] = [
@@ -175,14 +176,14 @@ function _myeventlane_event_state_notify_cancellation(NodeInterface $event, stri
 
       // Check idempotency.
       $recipientHash = $dispatchService->hashRecipient($email);
-      if ($dispatchService->isAlreadySent($eventId, \Drupal\myeventlane_automation\Service\AutomationDispatchService::TYPE_EVENT_CANCELLED, $recipientHash)) {
+      if ($dispatchService->isAlreadySent($eventId, AutomationDispatchService::TYPE_EVENT_CANCELLED, $recipientHash)) {
         continue;
       }
 
       // Create dispatch record.
       $dispatchId = $dispatchService->createDispatch(
         $eventId,
-        \Drupal\myeventlane_automation\Service\AutomationDispatchService::TYPE_EVENT_CANCELLED,
+        AutomationDispatchService::TYPE_EVENT_CANCELLED,
         $recipientHash,
         $now,
         ['cancel_reason' => $reason]

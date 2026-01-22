@@ -33,7 +33,7 @@ abstract class VendorConsoleBaseController {
    */
   protected function assertVendorAccess(): void {
     // Administrators always have access.
-    if ($this->currentUser->hasPermission('administer site configuration') || 
+    if ($this->currentUser->hasPermission('administer site configuration') ||
         $this->currentUser->id() === 1) {
       return;
     }
@@ -55,16 +55,16 @@ abstract class VendorConsoleBaseController {
   }
 
   /**
-    * Ensures the current user can manage the given event.
-    *
-    * This checks:
-    *  - vendor domain
-    *  - vendor console permission
-    *  - ownership via node owner OR linked vendor entity users
-    *
-    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-    *   When access is denied.
-    */
+   * Ensures the current user can manage the given event.
+   *
+   * This checks:
+   *  - vendor domain
+   *  - vendor console permission
+   *  - ownership via node owner OR linked vendor entity users.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   *   When access is denied.
+   */
   protected function assertEventOwnership(NodeInterface $event): void {
     $this->assertVendorAccess();
 

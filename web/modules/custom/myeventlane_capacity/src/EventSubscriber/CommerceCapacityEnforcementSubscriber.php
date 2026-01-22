@@ -226,6 +226,4 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
     }
   }
 
-
 }
-

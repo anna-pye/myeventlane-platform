@@ -272,10 +272,10 @@ final class AttendanceManager implements AttendanceManagerInterface {
       ->load(reset($ids));
 
     $attendee->setStatus(EventAttendee::STATUS_CONFIRMED);
-    
+
     // Track promotion timestamp.
     $attendee->set('promoted_at', \Drupal::time()->getRequestTime());
-    
+
     $attendee->save();
 
     // Send promotion notification if service is available.

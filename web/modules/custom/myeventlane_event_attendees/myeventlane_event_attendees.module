@@ -5,8 +5,6 @@
  * Module file for MyEventLane Event Attendees.
  */
 
-use Drupal\Core\Render\RendererInterface;
-
 /**
  * Implements hook_mail().
  */
@@ -82,22 +80,22 @@ function myeventlane_event_attendees_theme(array $existing, string $type, string
  */
 function myeventlane_event_attendees_preprocess_node(array &$variables): void {
   $node = $variables['node'];
-  
+
   // Only process event nodes in full view mode.
   if ($node->bundle() !== 'event' || $variables['view_mode'] !== 'full') {
     return;
   }
-  
+
   $currentUser = \Drupal::currentUser();
   if ($currentUser->isAnonymous()) {
     return;
   }
-  
+
   // Get waitlist position for current user.
   try {
     $waitlistManager = \Drupal::service('myeventlane_event_attendees.waitlist');
     $storage = \Drupal::entityTypeManager()->getStorage('event_attendee');
-    
+
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('event', $node->id())
@@ -105,12 +103,12 @@ function myeventlane_event_attendees_preprocess_node(array &$variables): void {
       ->condition('status', 'waitlist')
       ->range(0, 1)
       ->execute();
-    
+
     if (!empty($ids)) {
       $attendee = $storage->load(reset($ids));
       $position = $waitlistManager->getWaitlistPosition($attendee);
       $totalWaitlist = $waitlistManager->getWaitlistCount((int) $node->id());
-      
+
       $variables['waitlist_position'] = [
         'on_waitlist' => TRUE,
         'position' => $position,
@@ -134,9 +132,3 @@ function myeventlane_event_attendees_preprocess_node(array &$variables): void {
     $variables['waitlist_position'] = NULL;
   }
 }
-
-
-
-
-
-

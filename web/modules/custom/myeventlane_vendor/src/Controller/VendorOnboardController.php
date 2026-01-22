@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
-use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -61,7 +61,7 @@ class VendorOnboardController extends ControllerBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
    */
-  public function onboardFormSubmit(array $form, \Drupal\Core\Form\FormStateInterface $form_state): void {
+  public function onboardFormSubmit(array $form, FormStateInterface $form_state): void {
     $vendor = $form_state->getFormObject()->getEntity();
     $current_user = $this->currentUser();
 
@@ -90,7 +90,7 @@ class VendorOnboardController extends ControllerBase {
    */
   private function getUserVendors(int $uid): array {
     $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    
+
     // Check vendors where user is the owner (uid field).
     $owner_ids = $storage->getQuery()
       ->accessCheck(TRUE)
@@ -108,10 +108,9 @@ class VendorOnboardController extends ControllerBase {
       $owner_ids ?: [],
       $users_ids ?: []
     );
-    
+
     // Convert string keys to integer values and ensure uniqueness.
     return array_values(array_unique(array_map('intval', $all_ids)));
   }
 
 }
-

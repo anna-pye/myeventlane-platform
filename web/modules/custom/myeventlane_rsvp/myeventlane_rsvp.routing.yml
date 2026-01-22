@@ -53,7 +53,7 @@ myeventlane_rsvp.cancel_confirm:
 myeventlane_rsvp.ics_download:
   path: '/event/{node}/ics'
   defaults:
-    _controller: '\Drupal\myeventlane_rsvp\Controller\IcsController::download'
+    _controller: 'myeventlane_rsvp.ics_controller:download'
     _title: 'Download ICS'
   requirements:
     _entity_access: 'node.view'
@@ -80,6 +80,7 @@ myeventlane_rsvp.user_list:
     _title: 'My RSVPs'
   requirements:
     _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
   options:
     parameters:
       user:

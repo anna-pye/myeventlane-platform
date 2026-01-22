@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -123,7 +124,7 @@ final class VendorSettingsController extends VendorConsoleBaseController {
 
     // If form was submitted and redirected, the form might be empty.
     // Check if we have a redirect response.
-    if ($form instanceof \Symfony\Component\HttpFoundation\RedirectResponse) {
+    if ($form instanceof RedirectResponse) {
       return $form;
     }
 
@@ -145,4 +146,3 @@ final class VendorSettingsController extends VendorConsoleBaseController {
   }
 
 }
-

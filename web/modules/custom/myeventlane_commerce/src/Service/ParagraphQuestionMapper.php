@@ -4,8 +4,14 @@ namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\Core\Entity\EntityInterface;
 
+/**
+ *
+ */
 class ParagraphQuestionMapper {
 
+  /**
+   *
+   */
   public function buildElements(EntityInterface $event, array $defaults = []): array {
     $elements = [];
     if (!$event->hasField('field_attendee_questions')) {
@@ -68,12 +74,18 @@ class ParagraphQuestionMapper {
     return $elements;
   }
 
+  /**
+   *
+   */
   protected function explodeOptions(string $raw): array {
     $out = [];
     foreach (preg_split('/\r?\n/', trim($raw)) as $line) {
-      if ($line === '') continue;
+      if ($line === '') {
+        continue;
+      }
       $out[$line] = $line;
     }
     return $out;
   }
+
 }

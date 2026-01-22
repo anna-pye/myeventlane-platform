@@ -1,7 +1,7 @@
 services:
   myeventlane_webhooks.subscription_service:
     class: Drupal\myeventlane_webhooks\Service\WebhookSubscriptionService
-    arguments: ['@database']
+    arguments: ['@database', '@datetime.time']
 
   myeventlane_webhooks.delivery_service:
     class: Drupal\myeventlane_webhooks\Service\WebhookDeliveryService
@@ -9,6 +9,7 @@ services:
       - '@database'
       - '@queue'
       - '@myeventlane_webhooks.subscription_service'
+      - '@datetime.time'
 
   logger.channel.myeventlane_webhooks:
     parent: logger.channel_base

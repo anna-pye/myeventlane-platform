@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_tickets\Entity;
 
+use Drupal\node\NodeInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
@@ -239,7 +240,7 @@ final class PurchaseSurface extends ContentEntityBase implements EntityChangedIn
   /**
    * Gets the event node.
    */
-  public function getEvent(): ?\Drupal\node\NodeInterface {
+  public function getEvent(): ?NodeInterface {
     return $this->get('event')->entity;
   }
 

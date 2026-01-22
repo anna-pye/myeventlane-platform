@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_tickets\Controller;
 
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -113,9 +114,9 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function addTicketModal(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    
+
     $form = $this->formBuilder->getForm('Drupal\mel_tickets\Form\AddTicketModalForm', $event);
-    
+
     // The modal title is set in the form's header markup.
     // Drupal's dialog will use the route title as fallback.
     return $form;
@@ -126,24 +127,24 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function typesList(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('commerce_product');
-    
+
     // Query ticket products filtered by event.
     $query = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('type', 'ticket')
       ->condition('field_event', $event->id())
       ->sort('created', 'DESC');
-    
+
     $product_ids = $query->execute();
     $products = $product_ids ? $storage->loadMultiple($product_ids) : [];
-    
+
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-tickets-types-list']],
     ];
-    
+
     // Add "Add" button with AJAX modal.
     $add_url = Url::fromRoute('mel_tickets.add_ticket_modal', ['event' => $event->id()]);
     $content['add_button'] = [
@@ -157,10 +158,10 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       ],
       '#weight' => -10,
     ];
-    
+
     // Attach AJAX library.
     $content['#attached']['library'][] = 'core/drupal.dialog.ajax';
-    
+
     if (empty($products)) {
       $content['empty'] = [
         '#type' => 'container',
@@ -181,10 +182,10 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
         /** @var \Drupal\commerce_product\Entity\ProductInterface $product */
         $variations = $product->getVariations();
         $variation = !empty($variations) ? reset($variations) : NULL;
-        
+
         $price = 'Free';
         $stock = 'Unlimited';
-        
+
         if ($variation) {
           $price_obj = $variation->getPrice();
           if ($price_obj) {
@@ -193,55 +194,55 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
               $price = '$' . number_format($price_number, 2);
             }
           }
-          
+
           // Get stock if available.
           if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
             $stock_value = (int) $variation->get('field_stock')->value;
             $stock = $this->t('@count available', ['@count' => $stock_value]);
           }
         }
-        
+
         $card = [
           '#type' => 'container',
           '#attributes' => ['class' => ['mel-ticket-type-card']],
         ];
-        
+
         $card['name'] = [
           '#type' => 'markup',
           '#markup' => '<h3 class="mel-ticket-type-card__name">' . $this->t('@name', ['@name' => $product->label()]) . '</h3>',
         ];
-        
+
         $card['price'] = [
           '#type' => 'markup',
           '#markup' => '<div class="mel-ticket-type-card__price">' . $price . '</div>',
         ];
-        
+
         $card['stock'] = [
           '#type' => 'markup',
           '#markup' => '<div class="mel-ticket-type-card__stock">' . $stock . '</div>',
         ];
-        
+
         $card['actions'] = [
           '#type' => 'container',
           '#attributes' => ['class' => ['mel-ticket-type-card__actions']],
         ];
-        
+
         $card['actions']['edit'] = [
           '#type' => 'link',
           '#title' => $this->t('Edit'),
           '#url' => $product->toUrl('edit-form'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
         ];
-        
+
         $card['actions']['duplicate'] = [
           '#type' => 'markup',
           '#markup' => '<span class="mel-btn mel-btn--secondary mel-btn--disabled">' . $this->t('Duplicate') . ' <small>(' . $this->t('Coming soon') . ')</small></span>',
         ];
-        
+
         $content['grid'][] = $card;
       }
     }
-    
+
     return $this->buildTicketsPage($event, $content, (string) $this->t('Ticket types'), 'types');
   }
 
@@ -269,7 +270,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function groupsAdd(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_ticket_group');
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->formBuilder->getForm($entity, 'add');
@@ -282,14 +283,14 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function groupsEdit(NodeInterface $event, $mel_ticket_group): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_ticket_group');
     $entity = $storage->load($mel_ticket_group);
-    
+
     if (!$entity || (int) $entity->get('event')->target_id !== (int) $event->id()) {
-      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+      throw new NotFoundHttpException();
     }
-    
+
     $form = $this->formBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit ticket group'), 'groups');
@@ -300,7 +301,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function accessCodesAdd(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_access_code');
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->formBuilder->getForm($entity, 'add');
@@ -313,14 +314,14 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function accessCodesEdit(NodeInterface $event, $mel_access_code): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_access_code');
     $entity = $storage->load($mel_access_code);
-    
+
     if (!$entity || (int) $entity->get('event')->target_id !== (int) $event->id()) {
-      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+      throw new NotFoundHttpException();
     }
-    
+
     $form = $this->formBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit access code'), 'access_codes');
@@ -331,7 +332,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function widgetsAdd(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_purchase_surface');
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->formBuilder->getForm($entity, 'add');
@@ -344,14 +345,14 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
    */
   public function widgetsEdit(NodeInterface $event, $mel_purchase_surface): array {
     $this->assertEventOwnership($event);
-    
+
     $storage = $this->entityTypeManager->getStorage('mel_purchase_surface');
     $entity = $storage->load($mel_purchase_surface);
-    
+
     if (!$entity || (int) $entity->get('event')->target_id !== (int) $event->id()) {
-      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+      throw new NotFoundHttpException();
     }
-    
+
     $form = $this->formBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit widget'), 'widgets');

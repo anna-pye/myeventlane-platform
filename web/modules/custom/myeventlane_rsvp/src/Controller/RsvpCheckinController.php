@@ -9,13 +9,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Drupal\myeventlane_rsvp\Service\RsvpPdfGenerator;
 
+/**
+ *
+ */
 final class RsvpCheckinController extends ControllerBase {
 
   public function __construct(
     private readonly UserRsvpRepository $repo,
-    private readonly RsvpPdfGenerator $pdfGen
+    private readonly RsvpPdfGenerator $pdfGen,
   ) {}
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $c): self {
     return new self(
       $c->get('myeventlane_rsvp.user_rsvp_repository'),
@@ -23,6 +29,9 @@ final class RsvpCheckinController extends ControllerBase {
     );
   }
 
+  /**
+   *
+   */
   public function checkinPage(NodeInterface $event): array {
     $confirmed = $this->repo->getEventRsvpsByStatus($event->id(), 'confirmed');
     $waitlist = $this->repo->getEventRsvpsByStatus($event->id(), 'waitlist');
@@ -37,6 +46,9 @@ final class RsvpCheckinController extends ControllerBase {
     ];
   }
 
+  /**
+   *
+   */
   public function pdf(NodeInterface $event): Response {
     $confirmed = $this->repo->getEventRsvpsByStatus($event->id(), 'confirmed');
     $waitlist = $this->repo->getEventRsvpsByStatus($event->id(), 'waitlist');
@@ -51,10 +63,14 @@ final class RsvpCheckinController extends ControllerBase {
     return $this->pdfGen->generate($html, 'RSVP-CheckIn.pdf');
   }
 
+  /**
+   *
+   */
   public function getEventRsvpsByStatus(int $event_id, string $status): array {
-	  return array_filter(
-	    $this->getEventRsvps($event_id),
-	    fn($r) => strtolower($r['status']) === strtolower($status)
-	  );
-	}
+    return array_filter(
+        $this->getEventRsvps($event_id),
+        fn($r) => strtolower($r['status']) === strtolower($status)
+    );
+  }
+
 }

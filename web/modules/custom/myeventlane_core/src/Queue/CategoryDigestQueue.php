@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Queue;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\myeventlane_core\Service\CategoryDigestGenerator;
 use Drupal\user\UserInterface;
@@ -15,9 +16,15 @@ final class CategoryDigestQueue extends QueueWorkerBase {
 
   /**
    * Constructs a CategoryDigestQueue.
+   *
+   * @param \Drupal\myeventlane_core\Service\CategoryDigestGenerator $generator
+   *   The category digest generator.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
    */
   public function __construct(
     private readonly CategoryDigestGenerator $generator,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -28,7 +35,7 @@ final class CategoryDigestQueue extends QueueWorkerBase {
       return;
     }
 
-    $userStorage = \Drupal::entityTypeManager()->getStorage('user');
+    $userStorage = $this->entityTypeManager->getStorage('user');
     $user = $userStorage->load($data['user_id']);
 
     if (!$user instanceof UserInterface || $user->isBlocked()) {

@@ -118,4 +118,3 @@ final class LocationSettingsForm extends ConfigFormBase {
   }
 
 }
-

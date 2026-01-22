@@ -36,7 +36,7 @@ final class RsvpAttendeeRepository implements AttendeeRepositoryInterface {
    */
   public function supports(NodeInterface $event): bool {
     // Check if event supports RSVP.
-    // @todo: Check event type field to determine if RSVP is enabled.
+    // @todo Check event type field to determine if RSVP is enabled.
     // For now, always support RSVP events.
     if (!$this->entityTypeManager->hasDefinition('rsvp_submission')) {
       return FALSE;

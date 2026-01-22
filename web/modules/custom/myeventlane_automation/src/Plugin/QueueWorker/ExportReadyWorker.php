@@ -60,7 +60,8 @@ final class ExportReadyWorker extends AutomationWorkerBase {
   public function processItem($data): void {
     $dispatchId = $data['dispatch_id'] ?? NULL;
     $eventId = $data['event_id'] ?? NULL;
-    $exportType = $data['export_type'] ?? NULL; // 'csv' or 'ics'
+    // 'csv' or 'ics'
+    $exportType = $data['export_type'] ?? NULL;
     $fileUrl = $data['file_url'] ?? NULL;
 
     if (!$dispatchId || !$eventId || !$exportType || !$fileUrl) {

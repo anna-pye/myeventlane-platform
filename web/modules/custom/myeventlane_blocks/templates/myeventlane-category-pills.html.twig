@@ -1,21 +1,21 @@
 {#
 /**
  * @file
- * MyEventLane category pills block template - MEL v2 Sticker Wall style.
+ * MyEventLane category pills block template - Global MEL Category Pill System.
  *
  * Variables:
- * - categories: Array of items with keys: tid, label, color.
+ * - categories: Array of items with keys: tid, label, color, slug (added by preprocess).
  *
  * Note: Homepage template provides .mel-category-strip wrapper.
  */
 #}
 {% for c in categories %}
-  {% set category_slug = c.label|lower|replace({' ': '-', '&': 'and', '+': ''}) %}
+  {% set pill_mod = c.pill_color|default(c.slug)|default(c.label|lower|replace({' ': '-', '&': 'and', '+': ''}))|trim|lower|default('default') %}
   <a
-    href="/events/category/{{ c.tid }}"
-    class="mel-pill mel-pill--category mel-cat--{{ category_slug }}"
-    style="--pill-color: {{ c.color }}; background: var(--pill-color); color: #fff; position: static; top: auto; left: auto; transform: none; white-space: nowrap;"
+    href="{{ c.url|default(path('entity.taxonomy_term.canonical', {'taxonomy_term': c.tid})) }}"
+    class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}"
+    aria-label="{{ 'View events in'|t }} {{ c.label }}"
   >
-    <span class="mel-pill__text">{{ c.label }}</span>
+    {{ c.label }}
   </a>
 {% endfor %}

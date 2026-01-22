@@ -25,12 +25,18 @@ final class VendorSessionBootstrapSubscriber implements EventSubscriberInterface
     private readonly DomainDetector $domainDetector,
   ) {}
 
+  /**
+   *
+   */
   public static function getSubscribedEvents(): array {
     return [
       KernelEvents::REQUEST => ['onRequest', 5],
     ];
   }
 
+  /**
+   *
+   */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
       return;

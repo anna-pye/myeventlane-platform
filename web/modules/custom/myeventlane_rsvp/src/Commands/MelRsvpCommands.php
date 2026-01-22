@@ -5,10 +5,13 @@ namespace Drupal\myeventlane_rsvp\Commands;
 use Drush\Commands\DrushCommands;
 use Drupal\myeventlane_rsvp\Service\VendorDigestGenerator;
 
+/**
+ *
+ */
 final class MelRsvpCommands extends DrushCommands {
 
   public function __construct(
-    private readonly VendorDigestGenerator $gen
+    private readonly VendorDigestGenerator $gen,
   ) {}
 
   /**
@@ -21,4 +24,5 @@ final class MelRsvpCommands extends DrushCommands {
     $this->gen->sendDigest($uid);
     $this->io()->success("Digest sent.");
   }
+
 }

@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_dashboard\Controller;
 
+use Drupal\node\NodeInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_dashboard\Service\DashboardAccess;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
+use Drupal\myeventlane_dashboard\Service\VendorContextServiceInterface;
+use Drupal\myeventlane_dashboard\Service\VendorMetricsServiceInterface;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -31,6 +36,9 @@ final class VendorDashboardController extends ControllerBase {
     private readonly ?BoostManager $boostManager = NULL,
     private readonly ?AttendanceWaitlistManager $waitlistManager = NULL,
     private readonly ?StripeService $stripeService = NULL,
+    private readonly ?VendorContextServiceInterface $vendorContext = NULL,
+    private readonly ?VendorMetricsServiceInterface $vendorMetrics = NULL,
+    private readonly ?RequestStack $requestStack = NULL,
   ) {}
 
   /**
@@ -58,6 +66,20 @@ final class VendorDashboardController extends ControllerBase {
       $stripeService = NULL;
     }
 
+    try {
+      $vendorContext = $container->get('myeventlane_dashboard.vendor_context');
+    }
+    catch (\Exception) {
+      $vendorContext = NULL;
+    }
+
+    try {
+      $vendorMetrics = $container->get('myeventlane_dashboard.metrics');
+    }
+    catch (\Exception) {
+      $vendorMetrics = NULL;
+    }
+
     return new static(
       $container->get('myeventlane_dashboard.access'),
       $container->get('myeventlane_dashboard.event_loader'),
@@ -65,6 +87,9 @@ final class VendorDashboardController extends ControllerBase {
       $boostManager,
       $waitlistManager,
       $stripeService,
+      $vendorContext,
+      $vendorMetrics,
+      $container->get('request_stack'),
     );
   }
 
@@ -109,7 +134,7 @@ final class VendorDashboardController extends ControllerBase {
         ->condition('status', 'confirmed')
         ->count()
         ->execute();
-      
+
       $waitlistCount = (int) $rsvpStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('event_id', $eventId)
@@ -134,9 +159,17 @@ final class VendorDashboardController extends ControllerBase {
       if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
         continue;
       }
-      
+
+      // Safely load the order entity to avoid getOrder() warnings.
+      $order_id = $item->get('order_id')->target_id;
+      if (!$order_id) {
+        continue;
+      }
+
       try {
-        $order = $item->getOrder();
+        $order = $this->entityTypeManager()
+          ->getStorage('commerce_order')
+          ->load($order_id);
         // Only count revenue from completed orders.
         if ($order && $order->getState()->getId() === 'completed') {
           $totalPrice = $item->getTotalPrice();
@@ -176,19 +209,31 @@ final class VendorDashboardController extends ControllerBase {
     $attendeeExportUrl = NULL;
 
     try {
-      $rsvpViewUrl = Url::fromRoute('myeventlane_rsvp.vendor_view', ['event' => $eventId])->toString();
+      $rsvpViewUrl = Url::fromRoute('myeventlane_rsvp.vendor_event_rsvps', ['event' => $eventId])->toString();
+    }
+    catch (RouteNotFoundException) {
+      // Route may not exist if RSVP module is not enabled.
+    }
+
+    try {
       $rsvpExportUrl = Url::fromRoute('myeventlane_rsvp.export_csv', ['event' => $eventId])->toString();
     }
-    catch (\Exception) {
-      // Routes may not exist.
+    catch (RouteNotFoundException) {
+      // Route may not exist if RSVP module is not enabled.
     }
 
     try {
       $attendeeViewUrl = Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $eventId])->toString();
+    }
+    catch (RouteNotFoundException) {
+      // Route may not exist if attendee module is not enabled.
+    }
+
+    try {
       $attendeeExportUrl = Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $eventId])->toString();
     }
-    catch (\Exception) {
-      // Routes may not exist.
+    catch (RouteNotFoundException) {
+      // Route may not exist if attendee module is not enabled.
     }
 
     // Get waitlist analytics if service is available.
@@ -346,7 +391,7 @@ final class VendorDashboardController extends ControllerBase {
 
     // Get Stripe connection status.
     $stripeStatus = $this->getStripeStatus();
-    
+
     // Add Stripe Connect links to quick actions.
     if ($stripeStatus) {
       if (!$stripeStatus['connected'] && $stripeStatus['connect_url']) {
@@ -365,6 +410,55 @@ final class VendorDashboardController extends ControllerBase {
       }
     }
 
+    // Admin-only debug mode.
+    $debug_data = NULL;
+    $request = $this->requestStack?->getCurrentRequest();
+    $debug_enabled = $request && (string) $request->query->get('debug') === '1';
+    $is_admin = $currentUser->id() === 1 || $currentUser->hasPermission('administer commerce_store');
+
+    if ($debug_enabled && $is_admin && $this->vendorContext && $this->vendorMetrics) {
+      try {
+        $store = $this->vendorContext->getCurrentVendorStore();
+        $range = [
+          'start' => 0,
+          'end' => $this->time->getRequestTime(),
+          'key' => 'all_time',
+        ];
+        $metrics_debug = $this->vendorMetrics->getDebugTotals($store, $range);
+
+        $debug_data = [
+          'store_id' => (int) $store->id(),
+          'store_label' => (string) $store->label(),
+          'range_key' => (string) ($range['key'] ?? ''),
+          'range_start' => (int) ($range['start'] ?? 0),
+          'range_end' => (int) ($range['end'] ?? 0),
+          'gross_cents' => (int) $metrics_debug['gross_cents'],
+          'refund_cents' => (int) $metrics_debug['refund_cents'],
+          'net_cents' => (int) $metrics_debug['net_cents'],
+          'tickets_sold' => (int) $metrics_debug['tickets_sold'],
+          'confirmed_rsvps' => (int) $metrics_debug['confirmed_rsvps'],
+          'events_loaded' => (int) count($upcomingEvents) + count($pastEvents),
+        ];
+
+        // Log debug information.
+        \Drupal::logger('myeventlane_vendor_dashboard')->info('Dashboard debug: store_id=@sid, range=@key (@start → @end), gross=@gross_cents, refund=@refund_cents, net=@net_cents, tickets=@tickets, rsvps=@rsvps, events=@events', [
+          '@sid' => (string) $debug_data['store_id'],
+          '@key' => $debug_data['range_key'],
+          '@start' => (string) $debug_data['range_start'],
+          '@end' => (string) $debug_data['range_end'],
+          '@gross_cents' => (string) $debug_data['gross_cents'],
+          '@refund_cents' => (string) $debug_data['refund_cents'],
+          '@net_cents' => (string) $debug_data['net_cents'],
+          '@tickets' => (string) $debug_data['tickets_sold'],
+          '@rsvps' => (string) $debug_data['confirmed_rsvps'],
+          '@events' => (string) $debug_data['events_loaded'],
+        ]);
+      }
+      catch (\Exception $e) {
+        // Silently fail if debug cannot be generated.
+      }
+    }
+
     return [
       '#theme' => 'myeventlane_vendor_dashboard',
       '#upcoming_events' => $upcomingEvents,
@@ -374,6 +468,9 @@ final class VendorDashboardController extends ControllerBase {
       '#welcome_message' => $this->t('Welcome back, @name. Here is an overview of your events.', [
         '@name' => $currentUser->getDisplayName(),
       ]),
+      '#dashboard' => [
+        'debug' => $debug_data,
+      ],
       '#attached' => [
         'library' => ['myeventlane_dashboard/dashboard'],
       ],
@@ -501,14 +598,14 @@ final class VendorDashboardController extends ControllerBase {
     // createLoginLink() on accounts that aren't dashboard-eligible.
     $manageUrl = NULL;
     $dashboardEligible = FALSE;
-    
+
     if (!empty($accountId) && str_starts_with($accountId, 'acct_')) {
       // Check eligibility if StripeService is available.
       if ($this->stripeService) {
         try {
           $eligibility = $this->stripeService->validateAccountDashboardEligibility($accountId);
           $dashboardEligible = $eligibility['eligible'];
-          
+
           if (!$dashboardEligible) {
             // Account exists but is not eligible - don't show manage button.
             // Log at notice level (expected for incomplete accounts).
@@ -516,7 +613,7 @@ final class VendorDashboardController extends ControllerBase {
               '@account_id' => $accountId,
               '@reason' => $eligibility['reason'] ?? 'Unknown',
             ]);
-            
+
             // Update status message to indicate onboarding incomplete.
             if ($status === 'pending' || $status === 'unconnected') {
               $statusMessage = $this->t('Stripe onboarding incomplete. Complete onboarding to access dashboard.');
@@ -531,7 +628,7 @@ final class VendorDashboardController extends ControllerBase {
           ]);
         }
       }
-      
+
       // Only provide manage_url if account is eligible.
       if ($dashboardEligible) {
         $manageUrl = Url::fromRoute('myeventlane_vendor.stripe_manage')->toString();
@@ -559,7 +656,7 @@ final class VendorDashboardController extends ControllerBase {
    * @return array
    *   Array with 'is_boosted', 'expires_date', 'boost_url', 'can_boost', and button data.
    */
-  private function getBoostStatus(\Drupal\node\NodeInterface $event): array {
+  private function getBoostStatus(NodeInterface $event): array {
     if (!$this->boostManager) {
       $isPublished = $event->isPublished();
       return [

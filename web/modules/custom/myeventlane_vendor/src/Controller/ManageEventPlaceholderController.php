@@ -26,7 +26,7 @@ final class ManageEventPlaceholderController extends ManageEventControllerBase {
     $route = \Drupal::routeMatch()->getRouteObject();
     $step = $route_name;
     $title = '';
-    
+
     if ($route) {
       $defaults = $route->getDefaults();
       $title = $defaults['title'] ?? '';

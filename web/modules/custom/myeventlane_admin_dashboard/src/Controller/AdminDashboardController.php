@@ -429,7 +429,7 @@ final class AdminDashboardController extends ControllerBase {
 
         if (!empty($items)) {
           $first_item = reset($items);
-          
+
           // Try field_target_event first (direct link).
           if ($first_item->hasField('field_target_event') && !$first_item->get('field_target_event')->isEmpty()) {
             $event_id = $first_item->get('field_target_event')->target_id;
@@ -441,7 +441,7 @@ final class AdminDashboardController extends ControllerBase {
               $event_id = $variation->get('field_event')->target_id;
             }
           }
-          
+
           if ($event_id) {
             $event = $node_storage->load($event_id);
             if ($event) {
@@ -643,7 +643,7 @@ final class AdminDashboardController extends ControllerBase {
         if ($this->moduleHandler()->moduleExists('myeventlane_donations') && \Drupal::hasService('myeventlane_donations.service')) {
           try {
             $donationService = \Drupal::service('myeventlane_donations.service');
-            
+
             // Get all platform donations.
             $order_storage = $this->entityTypeManager()->getStorage('commerce_order');
             $platform_order_ids = $order_storage->getQuery()
@@ -651,7 +651,7 @@ final class AdminDashboardController extends ControllerBase {
               ->condition('type', 'platform_donation')
               ->condition('state', 'completed')
               ->execute();
-            
+
             if (!empty($platform_order_ids)) {
               $platform_orders = $order_storage->loadMultiple($platform_order_ids);
               foreach ($platform_orders as $order) {
@@ -662,14 +662,14 @@ final class AdminDashboardController extends ControllerBase {
                 }
               }
             }
-            
+
             // Get all RSVP donations.
             $rsvp_order_ids = $order_storage->getQuery()
               ->accessCheck(FALSE)
               ->condition('type', 'rsvp_donation')
               ->condition('state', 'completed')
               ->execute();
-            
+
             if (!empty($rsvp_order_ids)) {
               $rsvp_orders = $order_storage->loadMultiple($rsvp_order_ids);
               foreach ($rsvp_orders as $order) {
@@ -896,7 +896,7 @@ final class AdminDashboardController extends ControllerBase {
       $activity = [];
       foreach ($vendors as $vendor) {
         $vendor_id = $vendor->id();
-        
+
         // Count events per vendor.
         $event_count = (int) $this->entityTypeManager()
           ->getStorage('node')
@@ -955,7 +955,7 @@ final class AdminDashboardController extends ControllerBase {
 
       foreach ($events as $event) {
         $event_id = (int) $event->id();
-        
+
         // Get vendor info.
         $vendor_name = 'N/A';
         $vendor_id = NULL;
@@ -1097,7 +1097,7 @@ final class AdminDashboardController extends ControllerBase {
 
       foreach ($vendors as $vendor) {
         $vendor_id = $vendor->id();
-        
+
         // Get events for this vendor.
         $event_ids = $this->entityTypeManager()
           ->getStorage('node')
@@ -1239,7 +1239,7 @@ final class AdminDashboardController extends ControllerBase {
           if ($customer && $customer->id() > 0) {
             $uid = (int) $customer->id();
             $customer_ids[$uid] = TRUE;
-            
+
             $amount = $order->getTotalPrice() ? (float) $order->getTotalPrice()->getNumber() : 0.0;
             $customer_spend[$uid] = ($customer_spend[$uid] ?? 0) + $amount;
             $customer_orders[$uid] = ($customer_orders[$uid] ?? 0) + 1;
@@ -1293,7 +1293,7 @@ final class AdminDashboardController extends ControllerBase {
       }
 
       $escalation_storage = $this->entityTypeManager()->getStorage('escalation');
-      
+
       $total = (int) $escalation_storage->getQuery()
         ->accessCheck(FALSE)
         ->count()

@@ -114,4 +114,3 @@ final class LegalConsentPane extends CheckoutPaneBase {
   }
 
 }
-

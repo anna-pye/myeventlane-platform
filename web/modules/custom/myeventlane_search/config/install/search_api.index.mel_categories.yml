@@ -1,0 +1,44 @@
+langcode: en
+id: mel_categories
+name: 'MEL Categories'
+description: 'Taxonomy terms (categories vocabulary): name and description.'
+read_only: false
+status: true
+server: myeventlane_db
+datasource_settings:
+  'entity:taxonomy_term':
+    bundles:
+      default: false
+      selected:
+        - categories
+tracker_settings:
+  default:
+    indexing_order: fifo
+field_settings:
+  name:
+    label: Name
+    type: text
+    datasource_id: 'entity:taxonomy_term'
+    property_path: name
+  description:
+    label: Description
+    type: text
+    datasource_id: 'entity:taxonomy_term'
+    property_path: description
+processor_settings:
+  add_url:
+    weights:
+      preprocess_index: -30
+  ignorecase:
+    weights:
+      preprocess_index: -5
+      preprocess_query: -8
+options:
+  cron_limit: 50
+  index_directly: false
+dependencies:
+  config:
+    - search_api.server.myeventlane_db
+    - taxonomy.vocabulary.categories
+  module:
+    - taxonomy

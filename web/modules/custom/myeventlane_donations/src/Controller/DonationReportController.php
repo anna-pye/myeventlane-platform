@@ -9,7 +9,6 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_donations\Service\DonationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -312,31 +311,41 @@ final class DonationReportController extends ControllerBase {
       if (!empty($orderItemIds)) {
         $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
         foreach ($orderItems as $orderItem) {
-          if ($orderItem->hasField('order_id') && !$orderItem->get('order_id')->isEmpty()) {
-            try {
-              $order = $orderItem->getOrder();
-              if ($order) {
-                $event = NULL;
-                if ($orderItem->hasField('field_target_event') && !$orderItem->get('field_target_event')->isEmpty()) {
-                  $event = $orderItem->get('field_target_event')->entity;
-                }
+          if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+            continue;
+          }
 
-                $user = $order->getCustomer();
-                $donations[] = [
-                  'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),
-                  'amount' => (float) ($orderItem->getTotalPrice() ? $orderItem->getTotalPrice()->getNumber() : 0),
-                  'event' => $event ? $event->label() : 'Unknown',
-                  'vendor' => $event && $event->getOwner() ? $event->getOwner()->getDisplayName() : 'Unknown',
-                  'donor_name' => $user ? $user->getDisplayName() : 'Anonymous',
-                  'donor_email' => $user ? $user->getEmail() : '',
-                  'order_id' => $order->id(),
-                  'status' => $order->getState()->getLabel(),
-                ];
+          // Safely load the order entity to avoid getOrder() warnings.
+          $order_id = $orderItem->get('order_id')->target_id;
+          if (!$order_id) {
+            continue;
+          }
+
+          try {
+            $order = $this->entityTypeManager()
+              ->getStorage('commerce_order')
+              ->load($order_id);
+            if ($order) {
+              $event = NULL;
+              if ($orderItem->hasField('field_target_event') && !$orderItem->get('field_target_event')->isEmpty()) {
+                $event = $orderItem->get('field_target_event')->entity;
               }
+
+              $user = $order->getCustomer();
+              $donations[] = [
+                'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),
+                'amount' => (float) ($orderItem->getTotalPrice() ? $orderItem->getTotalPrice()->getNumber() : 0),
+                'event' => $event ? $event->label() : 'Unknown',
+                'vendor' => $event && $event->getOwner() ? $event->getOwner()->getDisplayName() : 'Unknown',
+                'donor_name' => $user ? $user->getDisplayName() : 'Anonymous',
+                'donor_email' => $user ? $user->getEmail() : '',
+                'order_id' => $order->id(),
+                'status' => $order->getState()->getLabel(),
+              ];
             }
-            catch (\Exception $e) {
-              continue;
-            }
+          }
+          catch (\Exception $e) {
+            continue;
           }
         }
       }
@@ -351,4 +360,3 @@ final class DonationReportController extends ControllerBase {
   }
 
 }
-

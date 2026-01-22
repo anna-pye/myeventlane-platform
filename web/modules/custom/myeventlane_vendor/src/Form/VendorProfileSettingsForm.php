@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
+use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -91,7 +92,7 @@ class VendorProfileSettingsForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, Vendor $vendor = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?Vendor $vendor = NULL): array {
     // Try to get vendor from form state first (for rebuilds).
     if (!$vendor) {
       $vendor = $form_state->get('vendor');
@@ -101,7 +102,7 @@ class VendorProfileSettingsForm extends FormBase {
         $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
       }
     }
-    
+
     // If still no vendor, try to load by ID from form state or form values.
     if (!$vendor) {
       $vendor_id = $form_state->get('vendor_id');
@@ -114,7 +115,7 @@ class VendorProfileSettingsForm extends FormBase {
         $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor_id);
       }
     }
-    
+
     // If still no vendor, try to get from current user.
     if (!$vendor) {
       $vendor = $this->getCurrentVendor();
@@ -124,7 +125,7 @@ class VendorProfileSettingsForm extends FormBase {
         $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
       }
     }
-    
+
     if (!$vendor) {
       $form['error'] = [
         '#markup' => '<p>' . $this->t('Vendor not found. Please contact support.') . '</p>',
@@ -509,7 +510,7 @@ class VendorProfileSettingsForm extends FormBase {
           $form['payment']['stripe_status'] = [
             '#type' => 'markup',
             '#markup' => '<p><strong>' . $this->t('Stripe Status:') . '</strong> '
-              . ($stripe_connected ? $this->t('Connected') : $this->t('Not Connected')) . '</p>',
+            . ($stripe_connected ? $this->t('Connected') : $this->t('Not Connected')) . '</p>',
           ];
 
           if ($stripe_connected && $store->hasField('field_stripe_dashboard_url') && !$store->get('field_stripe_dashboard_url')->isEmpty()) {
@@ -517,7 +518,7 @@ class VendorProfileSettingsForm extends FormBase {
             $form['payment']['stripe_dashboard'] = [
               '#type' => 'link',
               '#title' => $this->t('Open Stripe Dashboard'),
-              '#url' => \Drupal\Core\Url::fromUri($dashboard_url),
+              '#url' => Url::fromUri($dashboard_url),
               '#attributes' => ['target' => '_blank', 'rel' => 'noopener noreferrer'],
             ];
           }
@@ -671,7 +672,7 @@ class VendorProfileSettingsForm extends FormBase {
   public function addTeamMember(array &$form, FormStateInterface $form_state): void {
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
-    
+
     // If vendor not in form state, try to load it by ID.
     if (!$vendor) {
       $vendor_id = $form_state->get('vendor_id');
@@ -686,7 +687,7 @@ class VendorProfileSettingsForm extends FormBase {
         }
       }
     }
-    
+
     $user_id = $form_state->getValue(['team', 'add_member']);
 
     if (!$vendor) {
@@ -739,10 +740,10 @@ class VendorProfileSettingsForm extends FormBase {
     \Drupal::logger('myeventlane_vendor')->info('VendorProfileSettingsForm::submitForm called. Form ID: @form_id', [
       '@form_id' => $this->getFormId(),
     ]);
-    
+
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
-    
+
     // If vendor not in form state, try to load it by ID.
     if (!$vendor) {
       $vendor_id = $form_state->get('vendor_id');
@@ -758,7 +759,7 @@ class VendorProfileSettingsForm extends FormBase {
         }
       }
     }
-    
+
     // If still no vendor, try to get from current user as fallback.
     if (!$vendor) {
       $vendor = $this->getCurrentVendor();
@@ -767,7 +768,7 @@ class VendorProfileSettingsForm extends FormBase {
         $form_state->set('vendor_id', $vendor->id());
       }
     }
-    
+
     if (!$vendor) {
       \Drupal::logger('myeventlane_vendor')->error('Vendor not found during form submission. User ID: @uid, Vendor ID from form: @vendor_id', [
         '@uid' => $this->currentUser->id(),
@@ -812,7 +813,6 @@ class VendorProfileSettingsForm extends FormBase {
     }
 
     // Note: field_summary is already saved above, no need to save again here.
-
     // Save visual assets.
     if (isset($form['visual']['logo'])) {
       $logo_field = $form_state->getValue(['visual', 'logo_field_name']);
@@ -929,12 +929,12 @@ class VendorProfileSettingsForm extends FormBase {
     // permission to view the referenced entity, even though the reference is valid.
     $violations = $vendor->validate();
     $real_violations = [];
-    
+
     if ($violations->count() > 0) {
       foreach ($violations as $violation) {
         $property_path = $violation->getPropertyPath();
         $message = (string) $violation->getMessage();
-        
+
         // Skip "cannot be referenced" errors for field_vendor_users if the user exists.
         // This is an access check issue, not a validation issue.
         if (str_contains($property_path, 'field_vendor_users') && str_contains($message, 'cannot be referenced')) {
@@ -956,14 +956,14 @@ class VendorProfileSettingsForm extends FormBase {
             continue;
           }
         }
-        
+
         // This is a real validation error - collect it.
         $real_violations[] = $violation;
         $this->messenger()->addError($this->t('Validation error: @message', [
           '@message' => $message,
         ]));
       }
-      
+
       // Only rebuild if we have real validation errors.
       if (!empty($real_violations)) {
         \Drupal::logger('myeventlane_vendor')->warning('Vendor validation failed with @count real errors. Vendor ID: @vendor_id', [
@@ -981,7 +981,7 @@ class VendorProfileSettingsForm extends FormBase {
         '@vendor_id' => $vendor->id(),
         '@name' => $vendor->getName(),
       ]);
-      
+
       // Log field values being saved for debugging.
       $fields_to_log = [
         'name' => $vendor->getName(),
@@ -992,14 +992,14 @@ class VendorProfileSettingsForm extends FormBase {
       \Drupal::logger('myeventlane_vendor')->debug('Vendor field values before save: @fields', [
         '@fields' => print_r($fields_to_log, TRUE),
       ]);
-      
+
       // Save the vendor entity.
       // The preSave hook will handle entity reference validation.
       $vendor->save();
-      
+
       // Clear entity cache to ensure fresh data is displayed.
       $this->entityTypeManager->getStorage('myeventlane_vendor')->resetCache([$vendor->id()]);
-      
+
       // Reload vendor to verify save worked.
       $saved_vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor->id());
       if ($saved_vendor) {
@@ -1007,20 +1007,20 @@ class VendorProfileSettingsForm extends FormBase {
           '@name' => $saved_vendor->getName(),
         ]);
       }
-      
+
       // Invalidate cache tags for the vendor entity and any related views.
       $cache_tags = [
         'myeventlane_vendor:' . $vendor->id(),
         'myeventlane_vendor_list',
       ];
       \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
-      
+
       \Drupal::logger('myeventlane_vendor')->info('Vendor settings saved successfully. Vendor ID: @vendor_id', [
         '@vendor_id' => $vendor->id(),
       ]);
-      
+
       $this->messenger()->addStatus($this->t('Vendor settings saved successfully.'));
-      
+
       // Redirect back to settings page to prevent form resubmission.
       $form_state->setRedirect('myeventlane_vendor.console.settings');
     }

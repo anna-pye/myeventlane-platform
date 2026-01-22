@@ -18,6 +18,9 @@ final class EventAccess {
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
+  /**
+   *
+   */
   public function canManageEventTickets(NodeInterface $event): bool {
     // Admin override.
     if ($this->currentUser->hasPermission('administer all events tickets')) {

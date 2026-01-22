@@ -151,9 +151,3 @@ interface AttendanceManagerInterface {
   public function promoteFromWaitlist(int $eventId): ?EventAttendee;
 
 }
-
-
-
-
-
-

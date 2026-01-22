@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_attendees\Controller;
 
+use Drupal\Core\Url;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
@@ -112,7 +113,7 @@ final class VendorAttendeeController extends ControllerBase {
       'ticket' => [],
       'manual' => [],
     ];
-    
+
     $ticketTypeGroups = [];
 
     foreach ($attendees as $attendee) {
@@ -127,14 +128,14 @@ final class VendorAttendeeController extends ControllerBase {
           if ($purchasedEntity) {
             $variationId = $purchasedEntity->id();
             $variationTitle = $purchasedEntity->label();
-            
+
             // Extract ticket type from variation title (e.g., "Event Name – General" -> "General").
             $ticketType = $variationTitle;
             if (strpos($variationTitle, ' – ') !== FALSE) {
               $parts = explode(' – ', $variationTitle, 2);
               $ticketType = $parts[1] ?? $variationTitle;
             }
-            
+
             if (!isset($ticketTypeGroups[$variationId])) {
               $ticketTypeGroups[$variationId] = [
                 'title' => $ticketType,
@@ -163,7 +164,7 @@ final class VendorAttendeeController extends ControllerBase {
         '@capacity' => $availability['capacity'] > 0 ? $availability['capacity'] : $this->t('Unlimited'),
       ]),
     ];
-    
+
     if ($availability['remaining'] !== NULL) {
       $summaryItems[] = $this->t('Spots remaining: @remaining', ['@remaining' => $availability['remaining']]);
     }
@@ -179,18 +180,18 @@ final class VendorAttendeeController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['export-links']],
     ];
-    
+
     $build['summary']['export']['csv'] = [
       '#type' => 'link',
       '#title' => $this->t('Export to CSV'),
-      '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()]),
+      '#url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()]),
       '#attributes' => ['class' => ['button', 'button--primary']],
     ];
-    
+
     $build['summary']['export']['csv_obfuscated'] = [
       '#type' => 'link',
       '#title' => $this->t('Export to CSV (Obfuscated Emails)'),
-      '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()], ['query' => ['obfuscate' => '1']]),
+      '#url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()], ['query' => ['obfuscate' => '1']]),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -201,7 +202,7 @@ final class VendorAttendeeController extends ControllerBase {
         '#title' => $this->t('RSVP Attendees (@count)', ['@count' => count($grouped['rsvp'])]),
         '#open' => TRUE,
       ];
-      
+
       $rsvpRows = [];
       foreach ($grouped['rsvp'] as $attendee) {
         $rsvpRows[] = [
@@ -212,7 +213,7 @@ final class VendorAttendeeController extends ControllerBase {
           'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
         ];
       }
-      
+
       $build['rsvp_section']['table'] = [
         '#type' => 'table',
         '#header' => [
@@ -233,13 +234,13 @@ final class VendorAttendeeController extends ControllerBase {
         '#type' => 'container',
         '#attributes' => ['class' => ['ticket-attendees']],
       ];
-      
+
       $build['ticket_section']['title'] = [
         '#type' => 'html_tag',
         '#tag' => 'h3',
         '#value' => $this->t('Ticket Attendees (@count)', ['@count' => count($grouped['ticket'])]),
       ];
-      
+
       foreach ($ticketTypeGroups as $variationId => $group) {
         $build['ticket_section'][$variationId] = [
           '#type' => 'details',
@@ -249,7 +250,7 @@ final class VendorAttendeeController extends ControllerBase {
           ]),
           '#open' => TRUE,
         ];
-        
+
         $ticketRows = [];
         foreach ($group['attendees'] as $attendee) {
           $ticketRows[] = [
@@ -261,7 +262,7 @@ final class VendorAttendeeController extends ControllerBase {
             'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
           ];
         }
-        
+
         $build['ticket_section'][$variationId]['table'] = [
           '#type' => 'table',
           '#header' => [
@@ -285,7 +286,7 @@ final class VendorAttendeeController extends ControllerBase {
         '#title' => $this->t('Manual Entries (@count)', ['@count' => count($grouped['manual'])]),
         '#open' => FALSE,
       ];
-      
+
       $manualRows = [];
       foreach ($grouped['manual'] as $attendee) {
         $manualRows[] = [
@@ -296,7 +297,7 @@ final class VendorAttendeeController extends ControllerBase {
           'created' => $this->dateFormatter->format($attendee->get('created')->value, 'short'),
         ];
       }
-      
+
       $build['manual_section']['table'] = [
         '#type' => 'table',
         '#header' => [
@@ -332,7 +333,7 @@ final class VendorAttendeeController extends ControllerBase {
   public function export(NodeInterface $node): Response {
     $request = \Drupal::request();
     $obfuscateEmails = (bool) $request->query->get('obfuscate', FALSE);
-    
+
     // Use attendee repository for unified export.
     $repositoryResolver = \Drupal::service('myeventlane_attendee.repository_resolver');
     $repository = $repositoryResolver->getRepository($node);
@@ -360,7 +361,7 @@ final class VendorAttendeeController extends ControllerBase {
       // Data rows.
       foreach ($attendees as $attendee) {
         $row = $attendee->toExportRow();
-        
+
         // Obfuscate email if requested.
         $email = $row['email'];
         if ($obfuscateEmails && $email) {
@@ -424,9 +425,3 @@ final class VendorAttendeeController extends ControllerBase {
   }
 
 }
-
-
-
-
-
-

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_refunds\Form;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -29,11 +30,14 @@ final class VendorRefundForm extends FormBase {
    *   The order inspector.
    * @param \Drupal\myeventlane_refunds\Service\RefundProcessor $refundProcessor
    *   The refund processor.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
    */
   public function __construct(
     private readonly RefundAccessResolver $accessResolver,
     private readonly RefundOrderInspector $orderInspector,
     private readonly RefundProcessor $refundProcessor,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
   }
 
@@ -45,6 +49,7 @@ final class VendorRefundForm extends FormBase {
       $container->get('myeventlane_refunds.access_resolver'),
       $container->get('myeventlane_refunds.order_inspector'),
       $container->get('myeventlane_refunds.processor'),
+      $container->get('entity_type.manager'),
     );
   }
 
@@ -70,7 +75,7 @@ final class VendorRefundForm extends FormBase {
       return AccessResult::forbidden('Event parameter required.');
     }
 
-    $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
     $event = $nodeStorage->load($eventId);
     if (!$event instanceof NodeInterface) {
       return AccessResult::forbidden('Event not found.');
@@ -82,7 +87,7 @@ final class VendorRefundForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, OrderInterface $commerce_order = NULL, NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?OrderInterface $commerce_order = NULL, ?NodeInterface $node = NULL): array {
     $eventId = (int) ($_GET['event'] ?? ($node ? $node->id() : 0));
     if (!$eventId) {
       $form['error'] = [
@@ -92,7 +97,7 @@ final class VendorRefundForm extends FormBase {
       return $form;
     }
 
-    $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
     $event = $nodeStorage->load($eventId);
     if (!$event instanceof NodeInterface) {
       $form['error'] = [
@@ -277,10 +282,3 @@ final class VendorRefundForm extends FormBase {
   }
 
 }
-
-
-
-
-
-
-

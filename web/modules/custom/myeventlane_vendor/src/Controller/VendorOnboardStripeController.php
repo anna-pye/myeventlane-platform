@@ -6,13 +6,11 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Controller for vendor onboarding step 3: Stripe Connect.
@@ -260,20 +258,3 @@ final class VendorOnboardStripeController extends ControllerBase {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

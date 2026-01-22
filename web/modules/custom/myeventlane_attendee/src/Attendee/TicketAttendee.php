@@ -63,7 +63,7 @@ final class TicketAttendee implements AttendeeInterface {
    * {@inheritdoc}
    */
   public function getTicketLabel(): ?string {
-    // @todo: Extract ticket type from order item / product variation.
+    // @todo Extract ticket type from order item / product variation.
     // For now, return NULL as we don't have direct access to the order item.
     return NULL;
   }

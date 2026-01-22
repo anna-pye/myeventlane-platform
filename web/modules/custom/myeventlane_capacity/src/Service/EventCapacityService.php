@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_capacity\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
@@ -20,6 +21,7 @@ final class EventCapacityService implements EventCapacityServiceInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -106,9 +108,8 @@ final class EventCapacityService implements EventCapacityServiceInterface {
 
     // Fallback: check legacy myeventlane_rsvp table.
     try {
-      $db = \Drupal::database();
-      if ($db->schema()->tableExists('myeventlane_rsvp')) {
-        $count = (int) $db->select('myeventlane_rsvp', 'r')
+      if ($this->database->schema()->tableExists('myeventlane_rsvp')) {
+        $count = (int) $this->database->select('myeventlane_rsvp', 'r')
           ->condition('event_nid', $eventId)
           ->condition('status', 'active')
           ->countQuery()
@@ -126,6 +127,10 @@ final class EventCapacityService implements EventCapacityServiceInterface {
 
   /**
    * Counts paid tickets for an event.
+   *
+   * Uses order_id + load instead of OrderItem::getOrder() to avoid
+   * undefined $entity on EntityReferenceFieldItemList when the reference
+   * is not resolved (e.g. during OrderStorage::postLoad / OrderRefresh).
    */
   private function countPaidTickets(int $eventId): int {
     try {
@@ -134,10 +139,19 @@ final class EventCapacityService implements EventCapacityServiceInterface {
         'field_target_event' => $eventId,
       ]);
 
+      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
       $count = 0;
+
       foreach ($orderItems as $item) {
         try {
-          $order = $item->getOrder();
+          if ($item->get('order_id')->isEmpty()) {
+            continue;
+          }
+          $orderId = $item->get('order_id')->target_id;
+          if (!$orderId) {
+            continue;
+          }
+          $order = $orderStorage->load($orderId);
           if ($order && $order->getState()->getId() === 'completed') {
             $count += (int) $item->getQuantity();
           }

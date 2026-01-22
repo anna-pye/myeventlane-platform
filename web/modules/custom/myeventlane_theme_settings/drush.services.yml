@@ -1,0 +1,6 @@
+services:
+  myeventlane_theme_settings.commands:
+    class: Drupal\myeventlane_theme_settings\Commands\CategoryVisualsCommands
+    arguments: ['@entity_type.manager']
+    tags:
+      - { name: drush.command }

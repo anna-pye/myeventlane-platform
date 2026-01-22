@@ -9,10 +9,13 @@ use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+/**
+ *
+ */
 final class OrderPaidSubscriber implements EventSubscriberInterface {
 
   public function __construct(
-    private readonly TicketIssuer $issuer
+    private readonly TicketIssuer $issuer,
   ) {}
 
   /**

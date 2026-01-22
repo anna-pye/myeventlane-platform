@@ -7,8 +7,6 @@
 
 declare(strict_types=1);
 
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
-use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -89,4 +87,3 @@ function _myeventlane_location_create_coordinate_fields(): void {
   // We don't add them to the form display - they'll be added as hidden fields via form_alter.
   // This keeps them out of the visible form UI while still allowing them to be saved.
 }
-

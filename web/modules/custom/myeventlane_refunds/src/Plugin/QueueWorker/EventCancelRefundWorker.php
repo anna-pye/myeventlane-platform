@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_refunds\Plugin\QueueWorker;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
 use Drupal\myeventlane_refunds\Service\RefundProcessor;
@@ -46,6 +47,8 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
    *   The refund processor.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\Core\Queue\QueueFactory $queueFactory
+   *   The queue factory.
    */
   public function __construct(
     array $configuration,
@@ -55,6 +58,7 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
     private readonly RefundOrderInspector $orderInspector,
     private readonly RefundProcessor $refundProcessor,
     private readonly LoggerInterface $logger,
+    private readonly QueueFactory $queueFactory,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -71,6 +75,7 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
       $container->get('myeventlane_refunds.order_inspector'),
       $container->get('myeventlane_refunds.processor'),
       $container->get('logger.factory')->get('myeventlane_refunds'),
+      $container->get('queue'),
     );
   }
 
@@ -172,16 +177,9 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
 
     // If we processed a full batch, re-queue to continue processing.
     if (count($processedOrders) >= self::BATCH_SIZE) {
-      $queue = \Drupal::service('queue')->get('event_cancel_refund_worker');
+      $queue = $this->queueFactory->get('event_cancel_refund_worker');
       $queue->createItem($data);
     }
   }
 
 }
-
-
-
-
-
-
-

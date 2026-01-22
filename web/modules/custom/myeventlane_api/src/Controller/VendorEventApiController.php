@@ -9,7 +9,6 @@ use Drupal\myeventlane_api\Service\ApiAuthenticationService;
 use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\EventSerializer;
 use Drupal\myeventlane_api\Service\RateLimiterService;
-use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;

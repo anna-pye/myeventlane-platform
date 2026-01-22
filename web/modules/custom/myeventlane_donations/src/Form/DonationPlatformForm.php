@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_donations\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_donations\Service\PlatformDonationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -64,8 +63,8 @@ final class DonationPlatformForm extends FormBase {
 
     $form['intro'] = [
       '#markup' => '<div class="mel-donation-intro">' .
-        '<p class="mel-donation-intro__text">' . $this->t($config->get('platform_copy') ?? 'Support MyEventLane and help us continue building tools for event creators.') . '</p>' .
-        '</div>',
+      '<p class="mel-donation-intro__text">' . $this->t($config->get('platform_copy') ?? 'Support MyEventLane and help us continue building tools for event creators.') . '</p>' .
+      '</div>',
     ];
 
     $presets = $config->get('platform_presets') ?? [10.00, 25.00, 50.00, 100.00];
@@ -190,4 +189,3 @@ final class DonationPlatformForm extends FormBase {
   }
 
 }
-

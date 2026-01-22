@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_event_attendees\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
@@ -47,7 +46,7 @@ final class WaitlistSignupForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
     if (!$node || $node->bundle() !== 'event') {
       throw new \InvalidArgumentException('Event not provided.');
     }
@@ -66,13 +65,13 @@ final class WaitlistSignupForm extends FormBase {
     // Check if user is already on waitlist.
     $currentUser = $this->currentUser();
     $isAlreadyWaitlisted = FALSE;
-    
+
     if ($currentUser->isAuthenticated()) {
       $attendees = $this->attendanceManager->getAttendeesForEvent(
         (int) $node->id(),
         'waitlist'
       );
-      
+
       foreach ($attendees as $attendee) {
         if ($attendee->getUserId() && (int) $attendee->getUserId() === (int) $currentUser->id()) {
           $isAlreadyWaitlisted = TRUE;

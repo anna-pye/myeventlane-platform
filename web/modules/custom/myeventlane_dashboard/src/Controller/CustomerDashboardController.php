@@ -75,12 +75,12 @@ final class CustomerDashboardController extends ControllerBase {
     // Also check Commerce orders for this user.
     $orderStorage = $this->entityTypeManager()->getStorage('commerce_order');
     $orderIds = [];
-    
+
     if ($userId > 0 || $userEmail) {
       $orderQuery = $orderStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('state', 'completed');
-      
+
       if ($userId > 0) {
         $orderQuery->condition('uid', $userId);
       }
@@ -96,10 +96,10 @@ final class CustomerDashboardController extends ControllerBase {
           $orderQuery->condition('mail', $userEmail);
         }
       }
-      
+
       $orderIds = $orderQuery->execute();
     }
-    
+
     $orders = !empty($orderIds) ? $orderStorage->loadMultiple($orderIds) : [];
 
     // Build event data from attendees and orders.
@@ -181,7 +181,7 @@ final class CustomerDashboardController extends ControllerBase {
           ->condition('event', $eventId)
           ->condition('order_item', $orderItem->id())
           ->range(0, 1);
-        
+
         $attendeeIds = $attendeeQuery->execute();
         $ticketCode = '';
         if (!empty($attendeeIds)) {
@@ -249,4 +249,3 @@ final class CustomerDashboardController extends ControllerBase {
   }
 
 }
-

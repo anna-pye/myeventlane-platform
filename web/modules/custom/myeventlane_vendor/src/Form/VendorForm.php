@@ -25,7 +25,7 @@ class VendorForm extends ContentEntityForm {
     // This validation runs before preSave(), providing early feedback.
     if ($entity->isNew()) {
       $ownerId = $entity->getOwnerId();
-      
+
       // If owner is not set, it will be set in preSave() to current user.
       // Check for current user's existing vendor.
       if ($ownerId === NULL) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\EventSubscriber;
 
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -20,9 +21,12 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
    *
    * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector service.
+   * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
+   *   The current user.
    */
   public function __construct(
     private readonly DomainDetector $domainDetector,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -53,8 +57,7 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
     // Also handle front page route matches.
     if ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>') {
       // If user is anonymous, redirect to login first, then to dashboard.
-      $current_user = \Drupal::currentUser();
-      if ($current_user->isAnonymous()) {
+      if ($this->currentUser->isAnonymous()) {
         $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=/admin/myeventlane', 'admin');
         $response = new TrustedRedirectResponse($login_url, 302);
         $event->setResponse($response);

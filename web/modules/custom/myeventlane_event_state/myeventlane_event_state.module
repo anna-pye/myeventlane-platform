@@ -32,21 +32,21 @@ function myeventlane_event_state_entity_presave(EntityInterface $entity): void {
 /**
  * Implements hook_entity_insert().
  */
-function myeventlane_event_state_entity_insert(\Drupal\Core\Entity\EntityInterface $entity): void {
+function myeventlane_event_state_entity_insert(EntityInterface $entity): void {
   _myeventlane_event_state_resync_event($entity);
 }
 
 /**
  * Implements hook_entity_update().
  */
-function myeventlane_event_state_entity_update(\Drupal\Core\Entity\EntityInterface $entity): void {
+function myeventlane_event_state_entity_update(EntityInterface $entity): void {
   _myeventlane_event_state_resync_event($entity);
 }
 
 /**
  * Resyncs event state when related entities change.
  */
-function _myeventlane_event_state_resync_event(\Drupal\Core\Entity\EntityInterface $entity): void {
+function _myeventlane_event_state_resync_event(EntityInterface $entity): void {
   if (!\Drupal::hasService('myeventlane_event_state.resolver')) {
     return;
   }

@@ -54,7 +54,7 @@ function myeventlane_event_update_11001(): void {
  *
  * Commands:
  * - ddev drush updb -y
- * - ddev drush cr
+ * - ddev drush cr.
  *
  * Manual tests:
  * 1) Create event → Location step → choose address suggestion

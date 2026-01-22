@@ -229,4 +229,3 @@ final class DonationSettingsForm extends ConfigFormBase {
   }
 
 }
-

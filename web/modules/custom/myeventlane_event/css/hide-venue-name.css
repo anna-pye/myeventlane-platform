@@ -36,3 +36,22 @@
   display: none !important;
   visibility: hidden !important;
 }
+
+/* Hide unused address subfields: organization, given_name, family_name */
+/* These fields are hidden via form alter, but CSS provides fallback */
+.field--name-field-venue-address .address--organization,
+.field--name-field-venue-address .address--given-name,
+.field--name-field-venue-address .address--family-name,
+.field--name-field-location .address--organization,
+.field--name-field-location .address--given-name,
+.field--name-field-location .address--family-name,
+.form-item--name-organization,
+.form-item--name-given-name,
+.form-item--name-family-name {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

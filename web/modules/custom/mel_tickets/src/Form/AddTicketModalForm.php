@@ -12,7 +12,6 @@ use Drupal\Core\Ajax\RedirectCommand;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -136,7 +135,6 @@ final class AddTicketModalForm extends FormBase {
     // Note: Sales start/end dates are not available on Commerce variations
     // in the current schema. If needed, they would need to be added as fields
     // on ticket_variation bundle first.
-
     // Form actions.
     $form['actions'] = [
       '#type' => 'container',
@@ -225,10 +223,10 @@ final class AddTicketModalForm extends FormBase {
 
     // Create Commerce product variation of type "ticket_variation".
     $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
-    
+
     // Generate a unique SKU.
     $sku = 'TICKET-' . $event->id() . '-' . $product->id() . '-' . time();
-    
+
     $variation = $variation_storage->create([
       'type' => 'ticket_variation',
       'sku' => $sku,
@@ -283,7 +281,7 @@ final class AddTicketModalForm extends FormBase {
 
     // Close modal and redirect to ticket types page.
     $response->addCommand(new CloseModalDialogCommand());
-    
+
     // Redirect to ticket types list.
     $event = $form_state->get('event');
     $redirect_url = Url::fromRoute('mel_tickets.event_tickets_types', ['event' => $event->id()]);

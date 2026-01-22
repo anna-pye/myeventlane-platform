@@ -9,6 +9,7 @@ use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsStoredPaymentMethodsInterface;
 use Drupal\commerce_stripe\Plugin\Commerce\PaymentGateway\StripePaymentElement;
 use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides the Stripe Connect payment gateway.
@@ -33,13 +34,28 @@ use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
 class StripeConnect extends StripePaymentElement implements SupportsStoredPaymentMethodsInterface {
 
   /**
+   * The Stripe Connect payment service.
+   *
+   * @var \Drupal\myeventlane_commerce\Service\StripeConnectPaymentService
+   */
+  protected StripeConnectPaymentService $stripeConnectPayment;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+    $instance->stripeConnectPayment = $container->get('myeventlane_commerce.stripe_connect_payment');
+    return $instance;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL) {
     /** @var array $intent_attributes */
     // Get Connect parameters for this order.
-    $connectService = \Drupal::service('myeventlane_commerce.stripe_connect_payment');
-    $connectParams = $connectService->getConnectPaymentIntentParams($order);
+    $connectParams = $this->stripeConnectPayment->getConnectPaymentIntentParams($order);
 
     // Merge Connect parameters into intent attributes.
     if (!empty($connectParams)) {

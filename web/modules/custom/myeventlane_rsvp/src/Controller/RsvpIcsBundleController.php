@@ -21,6 +21,9 @@ class RsvpIcsBundleController extends ControllerBase {
     $this->icsBundleGenerator = $generator;
   }
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('myeventlane_rsvp.ics_bundle')

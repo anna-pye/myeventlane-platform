@@ -8,11 +8,29 @@
  * - upcoming_events: Array of upcoming event data.
  * - past_events: Array of past event data.
  * - quick_links: Array of quick action links.
+ * - dashboard: Dashboard data structure (includes debug if admin).
  */
 #}
 <div class="mel-dashboard-wrapper mel-dashboard-wrapper--vendor">
 
   <h1 class="mel-dashboard-title">{{ 'Vendor Dashboard'|t }}</h1>
+
+  {# Admin-only debug panel #}
+  {% if dashboard.debug %}
+    <div class="mel-card mel-card--debug" style="margin-bottom: 1rem;">
+      <strong>Dashboard debug (admin-only)</strong>
+      <ul class="mel-muted" style="margin: .5rem 0 0; padding-left: 1.25rem;">
+        <li>Store: {{ dashboard.debug.store_id }} — {{ dashboard.debug.store_label }}</li>
+        <li>Range: {{ dashboard.debug.range_key }} ({{ dashboard.debug.range_start }} → {{ dashboard.debug.range_end }})</li>
+        <li>Gross cents: {{ dashboard.debug.gross_cents }}</li>
+        <li>Refund cents: {{ dashboard.debug.refund_cents }}</li>
+        <li>Net cents: {{ dashboard.debug.net_cents }}</li>
+        <li>Tickets sold: {{ dashboard.debug.tickets_sold }}</li>
+        <li>Confirmed RSVPs: {{ dashboard.debug.confirmed_rsvps }}</li>
+        <li>Events loaded: {{ dashboard.debug.events_loaded }}</li>
+      </ul>
+    </div>
+  {% endif %}
 
   {# Stripe Connection Status Banner - Prominent at top #}
   {% if stripe_status %}
@@ -238,17 +256,17 @@
                       </div>
                     {% else %}
                       {% if event.boost_status.allowed %}
-                        <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost_status.label|t }}</a>
+                        <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost_status.label }}</a>
                       {% else %}
-                        <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost_status.label|t }}</span>
+                        <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost_status.label }}</span>
                       {% endif %}
                     {% endif %}
                   {% elseif event.boost %}
                     {# Support for new boost button structure from myeventlane_vendor controller #}
                     {% if event.boost.allowed %}
-                      <a href="{{ event.boost.url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost.label|t }}</a>
+                      <a href="{{ event.boost.url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost.label }}</a>
                     {% else %}
-                      <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost.label|t }}</span>
+                      <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost.label }}</span>
                     {% endif %}
                   {% endif %}
                 </td>

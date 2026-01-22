@@ -17,7 +17,7 @@ use Drupal\node\NodeInterface;
  * - RsvpStatsService: RSVP counts and summaries
  * - EventMetricsService: Attendee counts, capacity, check-ins
  * - BoostStatusService: Boost eligibility and status
- * - CategoryAudienceService: Geographic audience breakdown
+ * - CategoryAudienceService: Geographic audience breakdown.
  *
  * Handles unpublished events gracefully by returning safe defaults.
  */

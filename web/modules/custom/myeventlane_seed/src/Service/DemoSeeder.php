@@ -12,9 +12,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Image\ImageFactory as CoreImageFactory;
-use Drupal\file\FileInterface;
 use Drupal\myeventlane_seed\Util\ImageFactory;
-use Drupal\node\Entity\Node;
 use Drupal\user\Entity\User;
 
 /**
@@ -271,7 +269,8 @@ final class DemoSeeder {
     $daysAhead = 30 + ($eventNum * 15);
     $eventStart = clone $baseTime;
     $eventStart->modify("+{$daysAhead} days");
-    $eventStart->setTime(18, 0); // 6 PM
+    // 6 PM
+    $eventStart->setTime(18, 0);
 
     $eventEnd = clone $eventStart;
     $eventEnd->modify('+3 hours');
@@ -345,7 +344,8 @@ final class DemoSeeder {
     $daysAhead = 30 + ($eventNum * 15);
     $eventStart = clone $baseTime;
     $eventStart->modify("+{$daysAhead} days");
-    $eventStart->setTime(14, 0); // 2 PM
+    // 2 PM
+    $eventStart->setTime(14, 0);
 
     $eventEnd = clone $eventStart;
     $eventEnd->modify('+4 hours');
@@ -361,7 +361,6 @@ final class DemoSeeder {
 
     // RSVP events don't need products, but we can create a $0 product for consistency if needed.
     // For now, we'll leave product empty for RSVP events.
-
     return [
       'event_nid' => $nid,
       'type' => 'rsvp',
@@ -526,4 +525,3 @@ final class DemoSeeder {
   }
 
 }
-

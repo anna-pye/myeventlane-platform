@@ -96,7 +96,7 @@ final class DomainDetector {
    * @param string $path
    *   Internal path, with or without leading slash.
    * @param string $domain_type
-   *   vendor|admin|public|current
+   *   vendor|admin|public|current.
    *
    * @throws \RuntimeException
    *   When required domain configuration is missing.

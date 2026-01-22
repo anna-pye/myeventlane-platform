@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Commands;
 
+use Drupal\Core\Url;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -394,7 +395,7 @@ final class MessagingCommands extends DrushCommands {
       'event' => $event,
       'event_title' => $event->label(),
       'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
-      'my_tickets_url' => \Drupal\Core\Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
+      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
       'timeframe' => $timeframe,
     ];
 

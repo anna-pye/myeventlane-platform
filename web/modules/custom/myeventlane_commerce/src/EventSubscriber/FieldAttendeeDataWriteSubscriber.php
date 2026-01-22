@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\EventSubscriber;
 
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -45,7 +45,7 @@ final class FieldAttendeeDataWriteSubscriber implements EventSubscriberInterface
    */
   public function onOrderItemPreSave(GenericEvent $event): void {
     $order_item = $event->getSubject();
-    if (!$order_item instanceof \Drupal\commerce_order\Entity\OrderItemInterface) {
+    if (!$order_item instanceof OrderItemInterface) {
       return;
     }
 
@@ -107,4 +107,3 @@ final class FieldAttendeeDataWriteSubscriber implements EventSubscriberInterface
   }
 
 }
-

@@ -7,14 +7,16 @@ namespace Drupal\myeventlane_refunds\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_price\Price;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\Queue\QueueFactory;
-use Drupal\Core\Session\AccountProxyInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -39,6 +41,10 @@ final class RefundProcessor {
    *   The queue factory.
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -48,6 +54,8 @@ final class RefundProcessor {
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly QueueFactory $queueFactory,
     private readonly AccountProxyInterface $currentUser,
+    private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -58,16 +66,6 @@ final class RefundProcessor {
    */
   private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_refunds');
-  }
-
-  /**
-   * Gets the database connection.
-   *
-   * @return \Drupal\Core\Database\Connection
-   *   The database connection.
-   */
-  private function database() {
-    return \Drupal::database();
   }
 
   /**
@@ -151,7 +149,7 @@ final class RefundProcessor {
     $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
 
     // Create audit log entry.
-    $logId = $this->database()->insert('myeventlane_refund_log')
+    $logId = $this->database->insert('myeventlane_refund_log')
       ->fields([
         'order_id' => $order->id(),
         'event_id' => $event->id(),
@@ -163,7 +161,7 @@ final class RefundProcessor {
         'donation_refunded' => $donationRefunded,
         'status' => 'pending',
         'reason' => $refund_payload['reason'] ?? NULL,
-        'created' => \Drupal::time()->getRequestTime(),
+        'created' => $this->time->getRequestTime(),
       ])
       ->execute();
 
@@ -193,7 +191,7 @@ final class RefundProcessor {
    *   If processing fails.
    */
   public function processRefund(int $log_id): void {
-    $log = $this->database()->select('myeventlane_refund_log', 'r')
+    $log = $this->database->select('myeventlane_refund_log', 'r')
       ->fields('r')
       ->condition('id', $log_id)
       ->execute()
@@ -318,10 +316,10 @@ final class RefundProcessor {
     }
 
     // Mark refund as completed.
-    $this->database()->update('myeventlane_refund_log')
+    $this->database->update('myeventlane_refund_log')
       ->fields([
         'status' => 'completed',
-        'completed' => \Drupal::time()->getRequestTime(),
+        'completed' => $this->time->getRequestTime(),
         'stripe_refund_id' => $stripeRefundId,
       ])
       ->condition('id', $log_id)
@@ -348,11 +346,11 @@ final class RefundProcessor {
    *   The error message.
    */
   private function markRefundFailed(int $log_id, string $error_message): void {
-    $this->database()->update('myeventlane_refund_log')
+    $this->database->update('myeventlane_refund_log')
       ->fields([
         'status' => 'failed',
         'error_message' => $error_message,
-        'completed' => \Drupal::time()->getRequestTime(),
+        'completed' => $this->time->getRequestTime(),
       ])
       ->condition('id', $log_id)
       ->execute();
@@ -397,4 +395,3 @@ final class RefundProcessor {
   }
 
 }
-

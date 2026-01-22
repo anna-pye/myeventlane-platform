@@ -2,11 +2,15 @@
 
 namespace Drupal\myeventlane_rsvp\Entity;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ *
+ */
 class RsvpSubmissionListBuilder extends EntityListBuilder {
 
   /**
@@ -14,7 +18,7 @@ class RsvpSubmissionListBuilder extends EntityListBuilder {
    */
   public function __construct(
     $entity_type,
-    \Drupal\Core\Entity\EntityStorageInterface $storage,
+    EntityStorageInterface $storage,
     protected readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($entity_type, $storage);
@@ -31,6 +35,9 @@ class RsvpSubmissionListBuilder extends EntityListBuilder {
     );
   }
 
+  /**
+   *
+   */
   public function buildHeader(): array {
     $header['id'] = $this->t('ID');
     $header['event'] = $this->t('Event');
@@ -40,6 +47,9 @@ class RsvpSubmissionListBuilder extends EntityListBuilder {
     return $header + parent::buildHeader();
   }
 
+  /**
+   *
+   */
   public function buildRow(EntityInterface $entity): array {
     /** @var \Drupal\myeventlane_rsvp\Entity\RsvpSubmission $entity */
     $row['id'] = $entity->id();

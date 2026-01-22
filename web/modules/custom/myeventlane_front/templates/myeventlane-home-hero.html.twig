@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * Home hero block.
+ */
+#}
+
+<section class="mel-home-hero" aria-label="Find events">
+  <div class="mel-home-hero__art" aria-hidden="true">
+    <img
+      class="mel-home-hero__art-img"
+      src="{{ base_path ~ directory }}/images/mel/hero/purple-cityscape.png"
+      alt=""
+      loading="eager"
+    />
+  </div>
+
+  <div class="mel-home-hero__inner">
+    <h1 class="mel-home-hero__title">Find events near you</h1>
+
+    <form class="mel-home-hero__search" role="search" action="#" method="get">
+      <label class="visually-hidden" for="mel-home-search">Search events</label>
+      <input id="mel-home-search" name="q" type="search" placeholder="Search events" />
+      <button type="submit" aria-label="Search">
+        <span aria-hidden="true">🔍</span>
+      </button>
+    </form>
+
+    {% if pills %}
+      <div class="mel-home-hero__pills">
+        {{ pills }}
+      </div>
+    {% endif %}
+  </div>
+</section>

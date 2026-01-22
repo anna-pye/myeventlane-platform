@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\mel_tickets\Entity;
 
+use Drupal\node\NodeInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -266,7 +266,7 @@ final class AccessCode extends ContentEntityBase implements EntityChangedInterfa
   /**
    * Gets the event node.
    */
-  public function getEvent(): ?\Drupal\node\NodeInterface {
+  public function getEvent(): ?NodeInterface {
     return $this->get('event')->entity;
   }
 

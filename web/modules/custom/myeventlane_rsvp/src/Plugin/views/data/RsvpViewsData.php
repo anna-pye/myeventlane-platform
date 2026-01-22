@@ -9,6 +9,9 @@ use Drupal\views\EntityViewsData;
  */
 class RsvpViewsData extends EntityViewsData {
 
+  /**
+   *
+   */
   public function getViewsData() {
     $data = [];
 

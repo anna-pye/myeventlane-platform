@@ -5,8 +5,10 @@ namespace Drupal\myeventlane_rsvp\Service;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\node\NodeInterface;
 
+/**
+ *
+ */
 final class VendorDigestGenerator {
 
   public function __construct(
@@ -66,6 +68,9 @@ final class VendorDigestGenerator {
     );
   }
 
+  /**
+   *
+   */
   private function loadVendorEvents(int $uid): array {
     $nids = \Drupal::entityQuery('node')
       ->condition('type', 'event')
@@ -78,11 +83,17 @@ final class VendorDigestGenerator {
       : [];
   }
 
+  /**
+   *
+   */
   private function loadVendorEmail(int $uid): string {
     $user = $this->etm->getStorage('user')->load($uid);
     return $user?->getEmail() ?: '';
   }
 
+  /**
+   *
+   */
   private function countRsvps(int $nid): int {
     return \Drupal::entityQuery('rsvp_submission')
       ->condition('event_id', $nid)
@@ -91,6 +102,9 @@ final class VendorDigestGenerator {
       ->execute();
   }
 
+  /**
+   *
+   */
   private function countWaitlist(int $nid): int {
     return \Drupal::entityQuery('rsvp_submission')
       ->condition('event_id', $nid)
@@ -99,6 +113,9 @@ final class VendorDigestGenerator {
       ->execute();
   }
 
+  /**
+   *
+   */
   private function countTicketSales(int $nid): int {
     $query = \Drupal::database()->select('commerce_order_item', 'oi');
     $query->join('commerce_product_variation', 'pv', 'pv.variation_id = oi.purchased_entity');
@@ -106,4 +123,5 @@ final class VendorDigestGenerator {
     $query->condition('pv.field_event', $nid);
     return (int) $query->countQuery()->execute()->fetchField();
   }
+
 }

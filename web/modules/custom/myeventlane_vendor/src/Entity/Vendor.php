@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Entity;
 
+use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityChangedTrait;
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -105,7 +105,7 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
             '@uid' => $ownerId,
             '@existing_id' => reset($existingVendorIds),
           ]);
-          throw new \Drupal\Core\Entity\EntityStorageException(
+          throw new EntityStorageException(
             'A vendor entity already exists for this user. Each user can only have one vendor entity.'
           );
         }

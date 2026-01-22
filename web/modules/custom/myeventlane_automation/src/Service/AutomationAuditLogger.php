@@ -42,7 +42,7 @@ final class AutomationAuditLogger {
     string $action,
     ?string $notificationType = NULL,
     ?string $recipientHash = NULL,
-    ?array $metadata = NULL
+    ?array $metadata = NULL,
   ): int {
     $fields = [
       'event_id' => $eventId,

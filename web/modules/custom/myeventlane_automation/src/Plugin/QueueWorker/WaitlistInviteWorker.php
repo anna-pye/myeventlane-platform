@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_automation\Plugin\QueueWorker;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -36,6 +40,9 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
     protected readonly MessagingManager $messagingManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly AttendanceWaitlistManager $waitlistManager,
+    protected readonly TimeInterface $time,
+    protected readonly ConfigFactoryInterface $configFactory,
+    protected readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $dispatchService, $auditLogger, $logger);
   }
@@ -54,6 +61,9 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
       $container->get('myeventlane_messaging.manager'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_event_attendees.waitlist'),
+      $container->get('datetime.time'),
+      $container->get('config.factory'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -106,11 +116,11 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
     }
 
     // Generate time-limited invite link (2 hours).
-    // @todo: Implement secure token generation for waitlist invite links.
-    $expiresAt = \Drupal::time()->getRequestTime() + (2 * 3600);
-    $inviteToken = hash('sha256', $attendeeId . $eventId . $expiresAt . \Drupal::config('system.site')->get('uuid'));
+    // @todo Implement secure token generation for waitlist invite links.
+    $expiresAt = $this->time->getRequestTime() + (2 * 3600);
+    $inviteToken = hash('sha256', $attendeeId . $eventId . $expiresAt . $this->configFactory->get('system.site')->get('uuid'));
 
-    $inviteUrl = \Drupal\Core\Url::fromRoute('myeventlane_automation.waitlist_claim', [
+    $inviteUrl = Url::fromRoute('myeventlane_automation.waitlist_claim', [
       'event' => $eventId,
       'token' => $inviteToken,
     ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
@@ -120,13 +130,13 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
       'event_title' => $event->label(),
       'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
       'invite_url' => $inviteUrl,
-      'expires_at' => \Drupal::service('date.formatter')->format($expiresAt, 'custom', 'g:ia T'),
+      'expires_at' => $this->dateFormatter->format($expiresAt, 'custom', 'g:ia T'),
     ];
 
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
       $startDate = $event->get('field_event_start')->date;
       if ($startDate) {
-        $context['event_start'] = \Drupal::service('date.formatter')->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
+        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
       }
     }
 

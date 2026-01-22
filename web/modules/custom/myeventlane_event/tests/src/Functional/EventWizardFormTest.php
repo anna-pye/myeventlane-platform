@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event\Functional;
 
-use Drupal\Core\Url;
-use Drupal\node\Entity\Node;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\Entity\User;
 
@@ -74,7 +72,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     // Step 1: Basics - fill in title and event type.
     $this->assertSession()->fieldExists('title');
     $this->assertSession()->fieldExists('field_event_type');
-    
+
     $this->submitForm([
       'title' => 'Test Event',
       'field_event_type' => 'rsvp',
@@ -141,7 +139,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Fill in basics.
     $this->submitForm([
       'title' => 'Persistent Test Event',
@@ -163,13 +161,13 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Go to branding step.
     $this->assertSession()->pageTextContains('Branding');
-    
+
     // Go back.
     $this->submitForm([], 'Back');
 
     // Should be back on when & where, with values preserved.
     $this->assertSession()->fieldValueEquals('location[field_venue_name]', 'Persistent Venue');
-    
+
     // Go back again.
     $this->submitForm([], 'Back');
 
@@ -225,7 +223,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Fill in basics and save draft.
     $this->submitForm([
       'title' => 'Draft Event',
@@ -242,7 +240,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     $nodes = \Drupal::entityTypeManager()
       ->getStorage('node')
       ->loadByProperties(['title' => 'Draft Event']);
-    
+
     $this->assertNotEmpty($nodes, 'Event should be saved');
     $event = reset($nodes);
     $this->assertFalse($event->isPublished(), 'Event should be saved as draft');
@@ -256,7 +254,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Try to continue without title (should fail).
     $this->submitForm([
       'title' => '',
@@ -288,7 +286,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Fill in basics.
     $this->submitForm([
       'title' => 'Venue Test',
@@ -309,14 +307,18 @@ final class EventWizardFormTest extends BrowserTestBase {
     ], 'Continue');
 
     // Continue through remaining steps.
-    $this->submitForm([], 'Continue'); // Branding
-    $this->submitForm([], 'Continue'); // Tickets & Capacity
+    // Branding.
+    $this->submitForm([], 'Continue');
+    // Tickets & Capacity.
+    $this->submitForm([], 'Continue');
     $this->submitForm([
       'body[value]' => 'Test description',
-    ], 'Continue'); // Content
+    // Content.
+    ], 'Continue');
     $this->submitForm([
       'field_refund_policy' => '7_days',
-    ], 'Continue'); // Policies
+    // Policies.
+    ], 'Continue');
 
     // On review step, verify venue data is shown.
     $this->assertSession()->pageTextContains('Test Venue Name');
@@ -325,7 +327,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     $nodes = \Drupal::entityTypeManager()
       ->getStorage('node')
       ->loadByProperties(['title' => 'Venue Test']);
-    
+
     $this->assertNotEmpty($nodes, 'Event should be saved');
     $event = reset($nodes);
     $this->assertEquals('Test Venue Name', $event->get('field_venue_name')->value);
@@ -345,7 +347,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Fill in basics.
     $this->submitForm([
       'title' => 'Coordinates Test',
@@ -369,31 +371,35 @@ final class EventWizardFormTest extends BrowserTestBase {
     ], 'Continue');
 
     // Continue through remaining steps.
-    $this->submitForm([], 'Continue'); // Branding
-    $this->submitForm([], 'Continue'); // Tickets & Capacity
+    // Branding.
+    $this->submitForm([], 'Continue');
+    // Tickets & Capacity.
+    $this->submitForm([], 'Continue');
     $this->submitForm([
       'body[value]' => 'Test description',
-    ], 'Continue'); // Content
+    // Content.
+    ], 'Continue');
     $this->submitForm([
       'field_refund_policy' => '7_days',
-    ], 'Continue'); // Policies
+    // Policies.
+    ], 'Continue');
 
     // Verify coordinates were saved.
     $nodes = \Drupal::entityTypeManager()
       ->getStorage('node')
       ->loadByProperties(['title' => 'Coordinates Test']);
-    
+
     $this->assertNotEmpty($nodes, 'Event should be saved');
     $event = reset($nodes);
-    
+
     if ($event->hasField('field_location_latitude') && !$event->get('field_location_latitude')->isEmpty()) {
       $this->assertEquals('-33.8688', $event->get('field_location_latitude')->value);
     }
-    
+
     if ($event->hasField('field_location_longitude') && !$event->get('field_location_longitude')->isEmpty()) {
       $this->assertEquals('151.2093', $event->get('field_location_longitude')->value);
     }
-    
+
     if ($event->hasField('field_location_place_id') && !$event->get('field_location_place_id')->isEmpty()) {
       $this->assertEquals('ChIJP3Sa8ziYEmsRUKgyFmh9AQM', $event->get('field_location_place_id')->value);
     }
@@ -407,14 +413,14 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard and create a complete event.
     $this->drupalGet('/vendor/events/wizard');
-    
-    // Step 1: Basics
+
+    // Step 1: Basics.
     $this->submitForm([
       'title' => 'Rendered Event Test',
       'field_event_type' => 'rsvp',
     ], 'Continue');
 
-    // Step 2: When & Where
+    // Step 2: When & Where.
     $start_date = date('Y-m-d\TH:i:s', strtotime('+1 week'));
     $this->submitForm([
       'date_time[field_event_start]' => $start_date,
@@ -427,44 +433,44 @@ final class EventWizardFormTest extends BrowserTestBase {
       'location[field_location][country_code]' => 'AU',
     ], 'Continue');
 
-    // Step 3: Branding
+    // Step 3: Branding.
     $this->submitForm([], 'Continue');
 
-    // Step 4: Tickets & Capacity
+    // Step 4: Tickets & Capacity.
     $this->submitForm([
       'field_capacity' => '50',
     ], 'Continue');
 
-    // Step 5: Content
+    // Step 5: Content.
     $this->submitForm([
       'body[value]' => 'This event will be rendered on the event page.',
     ], 'Continue');
 
-    // Step 6: Policies
+    // Step 6: Policies.
     $this->submitForm([
       'field_refund_policy' => '7_days',
     ], 'Continue');
 
-    // Step 7: Review & Publish
+    // Step 7: Review & Publish.
     $this->submitForm([
       'publish_status' => '1',
     ], 'Publish Event');
 
     // Should redirect to event page.
     $this->assertSession()->statusCodeEquals(200);
-    
+
     // Find the event node.
     $nodes = \Drupal::entityTypeManager()
       ->getStorage('node')
       ->loadByProperties(['title' => 'Rendered Event Test']);
-    
+
     $this->assertNotEmpty($nodes, 'Event should be created');
     $event = reset($nodes);
-    
+
     // Visit the event page.
     $this->drupalGet('/node/' . $event->id());
     $this->assertSession()->statusCodeEquals(200);
-    
+
     // Verify event data is displayed.
     $this->assertSession()->pageTextContains('Rendered Event Test');
     $this->assertSession()->pageTextContains('Rendered Venue');
@@ -480,7 +486,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     // Navigate to wizard multiple times and perform various actions.
     $this->drupalGet('/vendor/events/wizard');
     $this->assertSession()->statusCodeEquals(200);
-    
+
     // Fill in basics.
     $this->submitForm([
       'title' => 'No Errors Test',
@@ -489,7 +495,7 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Go back.
     $this->submitForm([], 'Back');
-    
+
     // Fill in again and continue.
     $this->submitForm([
       'title' => 'No Errors Test',
@@ -499,7 +505,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     // Save draft.
     $this->submitForm([], 'Save Draft');
     $this->assertSession()->pageTextContains('Draft saved');
-    
+
     // Continue again.
     $start_date = date('Y-m-d\TH:i:s', strtotime('+1 week'));
     $this->submitForm([
@@ -529,13 +535,13 @@ final class EventWizardFormTest extends BrowserTestBase {
 
     // Navigate to wizard.
     $this->drupalGet('/vendor/events/wizard');
-    
+
     // Step 1: Basics - should only show basics fields.
     $this->assertSession()->fieldExists('title');
     $this->assertSession()->fieldExists('field_event_type');
     $this->assertSession()->fieldNotExists('date_time[field_event_start]');
     $this->assertSession()->fieldNotExists('field_capacity');
-    
+
     // Fill and continue.
     $this->submitForm([
       'title' => 'Relevant Fields Test',
@@ -547,7 +553,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     $this->assertSession()->fieldExists('location[location_mode]');
     $this->assertSession()->fieldNotExists('field_capacity');
     $this->assertSession()->fieldNotExists('body[value]');
-    
+
     // Fill and continue.
     $start_date = date('Y-m-d\TH:i:s', strtotime('+1 week'));
     $this->submitForm([
@@ -564,7 +570,7 @@ final class EventWizardFormTest extends BrowserTestBase {
     $this->assertSession()->fieldExists('field_event_image');
     $this->assertSession()->fieldNotExists('field_capacity');
     $this->assertSession()->fieldNotExists('body[value]');
-    
+
     // Continue.
     $this->submitForm([], 'Continue');
 

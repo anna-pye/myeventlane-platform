@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_views\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\OptionalServiceResolver;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,19 +24,41 @@ use Symfony\Component\HttpFoundation\Response;
 final class AttendeeCsvController extends ControllerBase {
 
   /**
+   * The logger channel factory for myeventlane_views.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   */
+  protected LoggerChannelFactoryInterface $viewsLoggerFactory;
+
+  /**
+   * The optional service resolver.
+   *
+   * @var \Drupal\myeventlane_core\Service\OptionalServiceResolver
+   */
+  protected OptionalServiceResolver $optionalServiceResolver;
+
+  /**
    * Constructs AttendeeCsvController.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $viewsLoggerFactory
+   *   The logger channel factory.
+   * @param \Drupal\myeventlane_core\Service\OptionalServiceResolver $optionalServiceResolver
+   *   The optional service resolver.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     AccountProxyInterface $currentUser,
+    LoggerChannelFactoryInterface $viewsLoggerFactory,
+    OptionalServiceResolver $optionalServiceResolver,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
+    $this->viewsLoggerFactory = $viewsLoggerFactory;
+    $this->optionalServiceResolver = $optionalServiceResolver;
   }
 
   /**
@@ -43,7 +67,9 @@ final class AttendeeCsvController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity_type.manager'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('logger.factory'),
+      $container->get('myeventlane_core.optional_service_resolver'),
     );
   }
 
@@ -59,16 +85,17 @@ final class AttendeeCsvController extends ControllerBase {
   public function handle(Request $request) {
     $download_title = $request->query->get('download_csv');
 
-    \Drupal::logger('myeventlane_views')->notice('Exporting CSV for event: @event', ['@event' => $download_title]);
+    $this->viewsLoggerFactory->get('myeventlane_views')->notice('Exporting CSV for event: @event', ['@event' => $download_title]);
 
     if ($download_title) {
       // Load paragraphs via entity storage (not Views).
       $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
-      $access_handler = $this->entityTypeManager->getAccessControlHandler('paragraph');
+      $access_handler = $this->entityTypeManager
+        ->getAccessControlHandler('paragraph');
 
       // Query attendee_answer paragraphs.
       // Note: We load entities directly and check access manually.
-      // We use accessCheck(FALSE) to load all paragraphs, then filter by access.
+      // We use accessCheck(FALSE) to load all, then filter by access.
       $query = $paragraph_storage->getQuery()
         ->accessCheck(FALSE)
         ->condition('type', 'attendee_answer')
@@ -81,12 +108,14 @@ final class AttendeeCsvController extends ControllerBase {
       $paragraph_ids = $query->execute();
 
       $rows = [];
-      $rows[] = ['First name', 'Last name', 'Email', 'Phone', 'Question', 'Answer', 'Checked in', 'Checked in time'];
+      $rows[] = [
+        'First name', 'Last name', 'Email', 'Phone',
+        'Question', 'Answer', 'Checked in', 'Checked in time',
+      ];
 
-      $access_resolver = NULL;
-      if (\Drupal::hasService('myeventlane_checkout_paragraph.access_resolver')) {
-        $access_resolver = \Drupal::service('myeventlane_checkout_paragraph.access_resolver');
-      }
+      $access_resolver = $this->optionalServiceResolver->get(
+        'myeventlane_checkout_paragraph.access_resolver'
+      );
 
       foreach ($paragraph_ids as $paragraph_id) {
         $paragraph = $paragraph_storage->load($paragraph_id);
@@ -125,7 +154,7 @@ final class AttendeeCsvController extends ControllerBase {
         if ($paragraph->hasField('field_checked_in') && !$paragraph->get('field_checked_in')->isEmpty()) {
           $checked_in_value = (bool) $paragraph->get('field_checked_in')->value;
           $checked_in = $checked_in_value ? 'Yes' : 'No';
-          
+
           if ($checked_in_value && $paragraph->hasField('field_checked_in_timestamp') && !$paragraph->get('field_checked_in_timestamp')->isEmpty()) {
             $timestamp = (int) $paragraph->get('field_checked_in_timestamp')->value;
             $checked_in_time = date('Y-m-d H:i:s', $timestamp);
@@ -153,11 +182,17 @@ final class AttendeeCsvController extends ControllerBase {
 
         // Add rows: one per question, or one row if no questions.
         if (empty($questions)) {
-          $rows[] = [$first_name, $last_name, $email, $phone, '', '', $checked_in, $checked_in_time];
+          $rows[] = [
+            $first_name, $last_name, $email, $phone,
+            '', '', $checked_in, $checked_in_time,
+          ];
         }
         else {
           foreach ($questions as $q) {
-            $rows[] = [$first_name, $last_name, $email, $phone, $q['label'], $q['answer'], $checked_in, $checked_in_time];
+            $rows[] = [
+              $first_name, $last_name, $email, $phone,
+              $q['label'], $q['answer'], $checked_in, $checked_in_time,
+            ];
           }
         }
       }
@@ -171,10 +206,15 @@ final class AttendeeCsvController extends ControllerBase {
       $content = stream_get_contents($csv);
       fclose($csv);
 
-      return new Response($content, 200, [
-        'Content-Type' => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-      ]);
+      $disposition = 'attachment; filename="' . $filename . '"';
+      return new Response(
+        $content,
+        200,
+        [
+          'Content-Type' => 'text/csv',
+          'Content-Disposition' => $disposition,
+        ]
+      );
     }
 
     // Fallback: render the normal View (for non-CSV requests).

@@ -1,0 +1,324 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the MyEventLane Core module.
+ */
+
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\node\Entity\NodeType;
+use Drupal\paragraphs\Entity\ParagraphsType;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+
+/**
+ * Install required modules for event field model.
+ */
+function myeventlane_core_update_9100(): void {
+  $modules = ['paragraphs', 'entity_reference_revisions', 'address', 'telephone'];
+  $installer = \Drupal::service('module_installer');
+  $missing = [];
+  foreach ($modules as $m) {
+    if (!\Drupal::moduleHandler()->moduleExists($m)) {
+      $missing[] = $m;
+    }
+  }
+  if ($missing) {
+    $installer->install($missing, TRUE);
+  }
+}
+
+/**
+ * Create Event page fields required for mockup parity.
+ */
+function myeventlane_core_update_9101(): void {
+  $type = NodeType::load('event');
+  if (!$type) {
+    throw new \RuntimeException("Content type 'event' not found. Aborting.");
+  }
+
+  $fields = [
+    'field_event_end' => [
+      'storage' => ['type' => 'datetime', 'settings' => ['datetime_type' => 'datetime']],
+      'instance' => ['label' => 'Event end', 'required' => FALSE],
+    ],
+    'field_venue_name' => [
+      'storage' => ['type' => 'string', 'settings' => ['max_length' => 255]],
+      'instance' => ['label' => 'Venue name', 'required' => FALSE],
+    ],
+    'field_venue_address' => [
+      'storage' => ['type' => 'address', 'settings' => []],
+      'instance' => ['label' => 'Venue address', 'required' => FALSE],
+    ],
+    'field_event_intro' => [
+      'storage' => ['type' => 'text_long', 'settings' => []],
+      'instance' => ['label' => 'Event intro', 'required' => FALSE],
+    ],
+    'field_refund_policy' => [
+      'storage' => [
+        'type' => 'list_string',
+        'settings' => [
+          'allowed_values' => [
+            'no_refunds' => 'No refunds',
+            'refund_24h' => 'Refunds up to 24 hours before',
+            'refund_7d' => 'Refunds up to 7 days before',
+            'case_by_case' => 'Refunds case-by-case',
+          ],
+        ],
+      ],
+      'instance' => ['label' => 'Refund policy', 'required' => FALSE],
+    ],
+    'field_age_restriction' => [
+      'storage' => [
+        'type' => 'list_string',
+        'settings' => [
+          'allowed_values' => [
+            'all_ages' => 'All ages',
+            'u18_with_guardian' => 'Under 18 with guardian',
+            '16_plus' => '16+',
+            '18_plus' => '18+',
+          ],
+        ],
+      ],
+      'instance' => ['label' => 'Age suitability', 'required' => FALSE],
+    ],
+    'field_contact_email' => [
+      'storage' => ['type' => 'email', 'settings' => []],
+      'instance' => ['label' => 'Contact email', 'required' => FALSE],
+    ],
+    'field_contact_phone' => [
+      'storage' => ['type' => 'telephone', 'settings' => []],
+      'instance' => ['label' => 'Contact phone', 'required' => FALSE],
+    ],
+  ];
+
+  foreach ($fields as $name => $def) {
+    if (!FieldStorageConfig::loadByName('node', $name)) {
+      FieldStorageConfig::create([
+        'field_name' => $name,
+        'entity_type' => 'node',
+        'type' => $def['storage']['type'],
+        'settings' => $def['storage']['settings'] ?? [],
+        'cardinality' => 1,
+      ])->save();
+    }
+
+    if (!FieldConfig::loadByName('node', 'event', $name)) {
+      FieldConfig::create([
+        'field_name' => $name,
+        'entity_type' => 'node',
+        'bundle' => 'event',
+        'label' => $def['instance']['label'],
+        'required' => $def['instance']['required'] ?? FALSE,
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Create event_highlight paragraph type with icon and text fields.
+ */
+function myeventlane_core_update_9102(): void {
+  if (!ParagraphsType::load('event_highlight')) {
+    ParagraphsType::create([
+      'id' => 'event_highlight',
+      'label' => 'Event highlight',
+      'description' => 'Icon + text highlight for event page.',
+    ])->save();
+  }
+
+  if (!FieldStorageConfig::loadByName('paragraph', 'field_highlight_icon')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_highlight_icon',
+      'entity_type' => 'paragraph',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => [
+          'music' => 'Music',
+          'star' => 'Star',
+          'clock' => 'Clock',
+          'food' => 'Food',
+          'info' => 'Info',
+          'access' => 'Accessibility',
+        ],
+      ],
+      'cardinality' => 1,
+    ])->save();
+  }
+  if (!FieldConfig::loadByName('paragraph', 'event_highlight', 'field_highlight_icon')) {
+    FieldConfig::create([
+      'field_name' => 'field_highlight_icon',
+      'entity_type' => 'paragraph',
+      'bundle' => 'event_highlight',
+      'label' => 'Icon',
+      'required' => FALSE,
+    ])->save();
+  }
+
+  if (!FieldStorageConfig::loadByName('paragraph', 'field_highlight_text')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_highlight_text',
+      'entity_type' => 'paragraph',
+      'type' => 'string_long',
+      'settings' => [],
+      'cardinality' => 1,
+    ])->save();
+  }
+  if (!FieldConfig::loadByName('paragraph', 'event_highlight', 'field_highlight_text')) {
+    FieldConfig::create([
+      'field_name' => 'field_highlight_text',
+      'entity_type' => 'paragraph',
+      'bundle' => 'event_highlight',
+      'label' => 'Text',
+      'required' => TRUE,
+    ])->save();
+  }
+}
+
+/**
+ * Attach field_event_highlights to Event content type.
+ */
+function myeventlane_core_update_9103(): void {
+  if (!FieldStorageConfig::loadByName('node', 'field_event_highlights')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_event_highlights',
+      'entity_type' => 'node',
+      'type' => 'entity_reference_revisions',
+      'settings' => ['target_type' => 'paragraph'],
+      'cardinality' => -1,
+    ])->save();
+  }
+  if (!FieldConfig::loadByName('node', 'event', 'field_event_highlights')) {
+    FieldConfig::create([
+      'field_name' => 'field_event_highlights',
+      'entity_type' => 'node',
+      'bundle' => 'event',
+      'label' => 'Highlights',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:paragraph',
+        'handler_settings' => [
+          'target_bundles' => ['event_highlight' => 'event_highlight'],
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Add accessibility term reference field to Event.
+ */
+function myeventlane_core_update_9104(): void {
+  // Verify accessibility vocabulary exists.
+  $vocab = \Drupal::entityTypeManager()
+    ->getStorage('taxonomy_vocabulary')
+    ->load('accessibility');
+
+  if (!$vocab) {
+    throw new \RuntimeException("Accessibility vocabulary not found. Cannot create field_accessibility. Please create the vocabulary first.");
+  }
+
+  $field_name = 'field_accessibility';
+
+  if (!FieldStorageConfig::loadByName('node', $field_name)) {
+    FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => ['target_type' => 'taxonomy_term'],
+      'cardinality' => -1,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'event', $field_name)) {
+    FieldConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'bundle' => 'event',
+      'label' => 'Accessibility',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:taxonomy_term',
+        'handler_settings' => [
+          'target_bundles' => [
+            'accessibility' => 'accessibility',
+          ],
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Place new fields onto the default Event form display.
+ */
+function myeventlane_core_update_9105(): void {
+  $display = EntityFormDisplay::load('node.event.default');
+  if (!$display) {
+    throw new \RuntimeException("Form display node.event.default not found.");
+  }
+
+  // Venue fields near top (weight 2-3).
+  $display->setComponent('field_venue_name', ['type' => 'string_textfield', 'weight' => 2]);
+  $display->setComponent('field_venue_address', ['type' => 'address_default', 'weight' => 3]);
+
+  // Event end date (weight 6, after event start).
+  $display->setComponent('field_event_end', ['type' => 'datetime_default', 'weight' => 6]);
+
+  // Intro + highlights near body (weight 10-11).
+  $display->setComponent('field_event_intro', ['type' => 'text_textarea', 'weight' => 10]);
+  $display->setComponent('field_event_highlights', [
+    'type' => 'paragraphs',
+    'weight' => 11,
+    'settings' => [
+      'title' => 'Highlight',
+      'title_plural' => 'Highlights',
+      'edit_mode' => 'open',
+      'add_mode' => 'button',
+      'form_display_mode' => 'default',
+      'default_paragraph_type' => 'event_highlight',
+    ],
+  ]);
+
+  // Policies + contact near bottom (weight 30-41).
+  $display->setComponent('field_refund_policy', ['type' => 'options_select', 'weight' => 30]);
+  $display->setComponent('field_age_restriction', ['type' => 'options_select', 'weight' => 31]);
+  $display->setComponent('field_accessibility', ['type' => 'options_buttons', 'weight' => 32]);
+  $display->setComponent('field_contact_email', ['type' => 'email_default', 'weight' => 40]);
+  $display->setComponent('field_contact_phone', ['type' => 'telephone_default', 'weight' => 41]);
+
+  $display->save();
+}
+
+/**
+ * Grant "view commerce_product" so cart form can render purchased_entity.
+ *
+ * The commerce_cart_form view uses entity_reference_entity_view for
+ * purchased_entity (product variation). Variation access follows the
+ * product; "view commerce_product" is the correct permission (Commerce
+ * grants it on install; this ensures it stays after role changes).
+ */
+function myeventlane_core_update_9106(): void {
+  $perm = 'view commerce_product';
+  foreach (['anonymous', 'authenticated'] as $rid) {
+    $role = \Drupal\user\Entity\Role::load($rid);
+    if ($role && !$role->hasPermission($perm)) {
+      $role->grantPermission($perm);
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Ensure "view commerce_product" for anon/auth (fix 9106 wrong perm name).
+ */
+function myeventlane_core_update_9107(): void {
+  $perm = 'view commerce_product';
+  foreach (['anonymous', 'authenticated'] as $rid) {
+    $role = \Drupal\user\Entity\Role::load($rid);
+    if ($role && !$role->hasPermission($perm)) {
+      $role->grantPermission($perm);
+      $role->save();
+    }
+  }
+}

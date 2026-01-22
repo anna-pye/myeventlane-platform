@@ -8,6 +8,7 @@ services:
     arguments:
       - '@myeventlane_checkout_flow.vendor_ownership_resolver'
       - '@entity_type.manager'
+      - '@myeventlane_refunds.order_inspector'
 
   myeventlane_refunds.processor:
     class: Drupal\myeventlane_refunds\Service\RefundProcessor
@@ -19,6 +20,8 @@ services:
       - '@logger.factory'
       - '@queue'
       - '@current_user'
+      - '@database'
+      - '@datetime.time'
 
 
 

@@ -5,7 +5,7 @@ myeventlane_boost.boost_page:
     _controller: '\Drupal\myeventlane_boost\Controller\BoostController::build'
     _title_callback: '\Drupal\myeventlane_boost\Controller\BoostController::title'
   requirements:
-    _custom_access: '\Drupal\myeventlane_boost\Access\BoostRouteAccess::access'
+    _custom_access: 'myeventlane_boost.boost_route_access:access'
     node: \d+
   options:
     parameters:

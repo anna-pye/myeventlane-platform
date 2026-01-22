@@ -77,7 +77,7 @@ final class BoostSelectForm extends FormBase {
       ->accessCheck(FALSE)
       ->sort('created', 'DESC')
       ->execute();
-    
+
     // If multiple products exist, prefer "Event Boost" or the most recent.
     if (count($pids) > 1) {
       $products = $productStorage->loadMultiple($pids);
@@ -130,12 +130,12 @@ final class BoostSelectForm extends FormBase {
 
         $days = (int) ($variation->get('field_boost_days')->value ?? 0);
         $price = $variation->getPrice();
-        
+
         // Skip variations without valid days or price.
         if ($days <= 0 || !$price) {
           continue;
         }
-        
+
         $priceStr = $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
 
         $options[$variation->id()] = $this->t('@days days — @price', [
@@ -191,7 +191,7 @@ final class BoostSelectForm extends FormBase {
         'required' => 'required',
       ],
     ];
-    
+
     // Add form class for JavaScript targeting.
     $form['#attributes']['class'][] = 'myeventlane-boost-select-form';
 
@@ -232,14 +232,14 @@ final class BoostSelectForm extends FormBase {
       $form_state->setErrorByName('choices', $this->t('Please select a boost option.'));
       return;
     }
-    
+
     // Verify the selected variation exists and is valid.
     $variationId = (int) $choices;
     if ($variationId <= 0) {
       $form_state->setErrorByName('choices', $this->t('Invalid boost option selected.'));
       return;
     }
-    
+
     $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variationId);
     if (!$variation || !$variation->isPublished()) {
       $form_state->setErrorByName('choices', $this->t('The selected boost option is no longer available.'));
@@ -252,7 +252,7 @@ final class BoostSelectForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     try {
       \Drupal::logger('myeventlane_boost')->notice('Boost form submission started');
-      
+
       $nid = (int) $form_state->getValue('event_nid');
       $variationId = (int) $form_state->getValue('choices');
 

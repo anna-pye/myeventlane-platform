@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Search – site-wide Search API grouped results.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_search_theme($existing, $type, $theme, $path): array {
+  return [
+    'myeventlane_search_results' => [
+      'variables' => [
+        'query' => '',
+        'groups' => [],
+        'empty' => TRUE,
+      ],
+      'template' => 'myeventlane-search-results',
+    ],
+  ];
+}

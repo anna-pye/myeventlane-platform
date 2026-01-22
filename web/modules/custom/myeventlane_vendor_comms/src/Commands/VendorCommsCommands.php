@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor_comms\Commands;
 
+use Drupal\Component\Serialization\Yaml;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -204,7 +205,7 @@ final class VendorCommsCommands extends DrushCommands {
   public function importTemplates(): void {
     $config_factory = \Drupal::configFactory();
     $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging');
-    
+
     $templates = [
       'vendor_event_update',
       'vendor_event_important_change',
@@ -215,13 +216,13 @@ final class VendorCommsCommands extends DrushCommands {
     foreach ($templates as $template_key) {
       $config_name = "myeventlane_messaging.template.{$template_key}";
       $config = $config_factory->getEditable($config_name);
-      
+
       // Only create if it doesn't exist.
       if ($config->isNew()) {
         $template_path = $module_path . "/config/install/{$config_name}.yml";
-        
+
         if (file_exists($template_path)) {
-          $template_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($template_path));
+          $template_data = Yaml::decode(file_get_contents($template_path));
           $config->setData($template_data)->save();
           $imported++;
           $this->logger()->success("Imported template: {$template_key}");
@@ -321,4 +322,3 @@ final class VendorCommsCommands extends DrushCommands {
   }
 
 }
-

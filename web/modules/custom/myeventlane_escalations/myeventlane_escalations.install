@@ -5,8 +5,6 @@
  * Install, update and uninstall functions for the myeventlane_escalations module.
  */
 
-use Drupal\Core\Database\Database;
-
 /**
  * Implements hook_schema().
  */
@@ -78,19 +76,3 @@ function myeventlane_escalations_schema(): array {
 
   return $schema;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

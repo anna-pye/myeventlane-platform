@@ -8,18 +8,27 @@ use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\node\NodeInterface;
 
+/**
+ *
+ */
 final class VendorEventRsvpController extends ControllerBase {
 
   public function __construct(
     private readonly UserRsvpRepository $repo,
   ) {}
 
+  /**
+   *
+   */
   public static function create(ContainerInterface $c): self {
     return new self(
       $c->get('myeventlane_rsvp.user_rsvp_repository'),
     );
   }
 
+  /**
+   *
+   */
   public function view(NodeInterface $event): array {
     $event_id = (int) $event->id();
 
@@ -51,4 +60,5 @@ final class VendorEventRsvpController extends ControllerBase {
       '#csv_url' => Url::fromRoute('myeventlane_rsvp.export_csv', ['event' => $event_id])->toString(),
     ];
   }
+
 }

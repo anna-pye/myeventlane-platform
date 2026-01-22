@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_tickets;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -41,7 +42,7 @@ final class AccessCodeListBuilder extends EntityListBuilder {
    */
   public function __construct(
     $entity_type,
-    \Drupal\Core\Entity\EntityStorageInterface $storage,
+    EntityStorageInterface $storage,
     DateFormatterInterface $date_formatter,
   ) {
     parent::__construct($entity_type, $storage);
@@ -97,7 +98,7 @@ final class AccessCodeListBuilder extends EntityListBuilder {
       ]
     );
     $row['status'] = $entity->get('status')->value;
-    
+
     $usage_count = (int) $entity->get('usage_count')->value;
     $usage_limit = $entity->get('usage_limit')->isEmpty() ? NULL : (int) $entity->get('usage_limit')->value;
     if ($usage_limit !== NULL) {
@@ -106,11 +107,11 @@ final class AccessCodeListBuilder extends EntityListBuilder {
     else {
       $row['usage'] = $this->t('@count (unlimited)', ['@count' => $usage_count]);
     }
-    
-    $row['expires'] = $entity->get('expires')->isEmpty() 
+
+    $row['expires'] = $entity->get('expires')->isEmpty()
       ? $this->t('Never')
       : $this->dateFormatter->format(strtotime($entity->get('expires')->value), 'short');
-    
+
     $row['created'] = $this->dateFormatter->format($entity->get('created')->value, 'short');
     return $row + parent::buildRow($entity);
   }
@@ -122,11 +123,11 @@ final class AccessCodeListBuilder extends EntityListBuilder {
     $operations = parent::getDefaultOperations($entity);
     /** @var \Drupal\mel_tickets\Entity\AccessCode $entity */
     $event_id = $entity->getEventId();
-    
+
     if (isset($operations['edit'])) {
       $operations['edit']['url'] = $entity->toUrl('edit-form', ['event' => $event_id]);
     }
-    
+
     if (isset($operations['delete'])) {
       $operations['delete']['url'] = $entity->toUrl('delete-form', ['event' => $event_id]);
     }

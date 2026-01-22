@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Simplified form for editing essential event information.
- * 
+ *
  * This form shows only the most essential fields in a clean, simple layout.
  * For complex fields like images and dates, users are directed to use
  * the standard Drupal edit form.
@@ -114,13 +114,13 @@ final class EventInformationForm extends FormBase {
           $start_time = $start_date->format('H:i');
         }
       }
-      
+
       $form['date_time']['field_event_start_date'] = [
         '#type' => 'date',
         '#title' => $this->t('Start Date'),
         '#default_value' => $start_date ? $start_date->format('Y-m-d') : '',
       ];
-      
+
       $form['date_time']['field_event_start_time'] = [
         '#type' => 'time',
         '#title' => $this->t('Start Time'),
@@ -138,13 +138,13 @@ final class EventInformationForm extends FormBase {
           $end_time = $end_date->format('H:i');
         }
       }
-      
+
       $form['date_time']['field_event_end_date'] = [
         '#type' => 'date',
         '#title' => $this->t('End Date'),
         '#default_value' => $end_date ? $end_date->format('Y-m-d') : '',
       ];
-      
+
       $form['date_time']['field_event_end_time'] = [
         '#type' => 'time',
         '#title' => $this->t('End Time'),
@@ -174,7 +174,6 @@ final class EventInformationForm extends FormBase {
     }
 
     // Location note removed to keep everything on this form.
-
     // Event Type section.
     $form['event_type'] = [
       '#type' => 'fieldset',

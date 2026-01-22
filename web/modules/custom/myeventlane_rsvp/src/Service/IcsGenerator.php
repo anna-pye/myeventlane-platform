@@ -4,8 +4,14 @@ namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\node\NodeInterface;
 
+/**
+ *
+ */
 final class IcsGenerator {
 
+  /**
+   *
+   */
   public function generate(NodeInterface $event): string {
     $title = $event->label();
     $start = $this->formatDate($event->get('field_event_start')->value);
@@ -35,10 +41,16 @@ final class IcsGenerator {
     return implode("\r\n", $lines);
   }
 
+  /**
+   *
+   */
   private function escape(string $value): string {
-    return preg_replace('/([,;])/','\\\$1', $value);
+    return preg_replace('/([,;])/', '\\\$1', $value);
   }
 
+  /**
+   *
+   */
   private function formatDate(string $date): string {
     return gmdate('Ymd\THis\Z', strtotime($date));
   }

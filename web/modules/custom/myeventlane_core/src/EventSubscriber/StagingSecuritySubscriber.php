@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -15,6 +16,16 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * when the site is detected as a staging environment.
  */
 final class StagingSecuritySubscriber implements EventSubscriberInterface {
+
+  /**
+   * Constructs StagingSecuritySubscriber.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory.
+   */
+  public function __construct(
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -38,8 +49,8 @@ final class StagingSecuritySubscriber implements EventSubscriberInterface {
     }
 
     // Check if staging environment is detected.
-    $is_staging = \Drupal::config('system.site')->get('staging_environment') ?? FALSE;
-    
+    $is_staging = $this->configFactory->get('system.site')->get('staging_environment') ?? FALSE;
+
     // Also check environment variable as fallback.
     if (!$is_staging) {
       $env_staging = getenv('STAGING_ENVIRONMENT');
@@ -66,14 +77,14 @@ final class StagingSecuritySubscriber implements EventSubscriberInterface {
 
     if ($is_staging) {
       $response = $event->getResponse();
-      
+
       // Add X-Robots-Tag header to prevent indexing and caching.
       // noindex: Don't index this page
       // nofollow: Don't follow links on this page
       // noarchive: Don't cache/archive this page
-      // nosnippet: Don't show snippets in search results
+      // nosnippet: Don't show snippets in search results.
       $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
-      
+
       // Also add Cache-Control to prevent caching by proxies/CDNs.
       $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
       $response->headers->set('Pragma', 'no-cache');
@@ -82,4 +93,3 @@ final class StagingSecuritySubscriber implements EventSubscriberInterface {
   }
 
 }
-

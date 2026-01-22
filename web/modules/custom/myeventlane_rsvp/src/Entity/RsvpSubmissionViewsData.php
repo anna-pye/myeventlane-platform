@@ -4,8 +4,14 @@ namespace Drupal\myeventlane_rsvp\Entity;
 
 use Drupal\views\EntityViewsData;
 
+/**
+ *
+ */
 class RsvpSubmissionViewsData extends EntityViewsData {
 
+  /**
+   *
+   */
   public function getViewsData(): array {
     $data = parent::getViewsData();
 
@@ -110,4 +116,5 @@ class RsvpSubmissionViewsData extends EntityViewsData {
 
     return $data;
   }
+
 }

@@ -1,0 +1,7 @@
+myeventlane_theme_settings.hero:
+  path: '/admin/appearance/myeventlane/hero-settings'
+  defaults:
+    _form: '\Drupal\myeventlane_theme_settings\Form\HeroSettingsForm'
+    _title: 'MyEventLane hero images'
+  requirements:
+    _permission: 'administer themes'

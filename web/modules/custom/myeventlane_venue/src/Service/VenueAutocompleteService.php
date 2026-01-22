@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_venue\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 
@@ -26,19 +27,28 @@ class VenueAutocompleteService {
   protected AccountProxyInterface $currentUser;
 
   /**
+   * The logger factory.
+   */
+  protected LoggerChannelFactoryInterface $loggerFactory;
+
+  /**
    * Constructs a VenueAutocompleteService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    *   The current user.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
+   *   The logger factory.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
+    LoggerChannelFactoryInterface $logger_factory,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
+    $this->loggerFactory = $logger_factory;
   }
 
   /**
@@ -121,7 +131,7 @@ class VenueAutocompleteService {
     array $address_data = [],
     ?float $latitude = NULL,
     ?float $longitude = NULL,
-    ?string $place_id = NULL
+    ?string $place_id = NULL,
   ) {
     $vendor = $this->getCurrentUserVendor();
     if (!$vendor) {
@@ -143,7 +153,7 @@ class VenueAutocompleteService {
       return $venue;
     }
     catch (\Exception $e) {
-      \Drupal::logger('myeventlane_venue')->error('Failed to create venue: @message', ['@message' => $e->getMessage()]);
+      $this->loggerFactory->get('myeventlane_venue')->error('Failed to create venue: @message', ['@message' => $e->getMessage()]);
       return NULL;
     }
   }

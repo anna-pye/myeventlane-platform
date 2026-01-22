@@ -19,7 +19,7 @@ final class EventTicketSettingsAccessControlHandler extends EntityAccessControlH
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
     /** @var \Drupal\mel_tickets\Entity\EventTicketSettings $entity */
-    
+
     // Admin permission grants full access.
     if ($account->hasPermission('administer all events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
@@ -49,7 +49,7 @@ final class EventTicketSettingsAccessControlHandler extends EntityAccessControlH
     if ($account->hasPermission('administer all events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
-    
+
     if ($account->hasPermission('manage own events tickets')) {
       return AccessResult::allowed()->cachePerPermissions();
     }

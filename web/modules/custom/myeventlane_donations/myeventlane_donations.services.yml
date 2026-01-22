@@ -9,5 +9,9 @@ services:
 
   myeventlane_donations.rsvp:
     class: Drupal\myeventlane_donations\Service\RsvpDonationService
-    arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@commerce_cart.cart_session', '@logger.factory']
+    arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@commerce_cart.cart_session', '@logger.factory', '@module_handler']
+
+  myeventlane_donations.donation_access:
+    class: Drupal\myeventlane_donations\Access\DonationAccess
+    arguments: ['@myeventlane_core.domain_detector']
 

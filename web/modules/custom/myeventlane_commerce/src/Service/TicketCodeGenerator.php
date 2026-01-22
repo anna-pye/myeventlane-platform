@@ -50,17 +50,24 @@ final class TicketCodeGenerator {
     return sprintf('%s — %s [%s]', $event_title, trim($label), $short);
   }
 
+  /**
+   *
+   */
   public function slugify(string $label) : string {
     $s = Unicode::strtolower($label);
     $s = preg_replace('/[^a-z0-9]+/u', '-', $s) ?: '';
     return trim($s, '-');
   }
 
+  /**
+   *
+   */
   private function getEventFromProduct(ProductInterface $product) : ?NodeInterface {
     if ($product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
       $target = $product->get('field_event')->entity;
-      return $target instanceof NodeInterface ? $target : null;
+      return $target instanceof NodeInterface ? $target : NULL;
     }
-    return null;
+    return NULL;
   }
+
 }

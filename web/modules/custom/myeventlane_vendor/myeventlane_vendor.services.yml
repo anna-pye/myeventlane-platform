@@ -1,4 +1,13 @@
 services:
+  myeventlane_vendor.vendor_theme_page_preprocess:
+    class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
+    arguments:
+      - '@current_user'
+      - '@current_route_match'
+      - '@request_stack'
+      - '@myeventlane_core.optional_service_resolver'
+      - '@string_translation'
+
   myeventlane_vendor.vendor_store_subscriber:
     class: Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber
     arguments: ['@entity_type.manager', '@logger.factory']
@@ -21,7 +30,7 @@ services:
 
   myeventlane_vendor.service.category_audience:
     class: Drupal\myeventlane_vendor\Service\CategoryAudienceService
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager', '@current_user']
 
   myeventlane_vendor.service.boost_status:
     class: Drupal\myeventlane_vendor\Service\BoostStatusService

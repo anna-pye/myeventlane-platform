@@ -51,7 +51,24 @@ final class AnalyticsDataService {
     // Group by date period.
     $grouped = [];
     foreach ($orderItems as $item) {
-      $order = $item->getOrder();
+      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+        continue;
+      }
+      $order_id = $item->get('order_id')->target_id;
+      if (!$order_id) {
+        continue;
+      }
+
+      try {
+        $order = $this->entityTypeManager
+          ->getStorage('commerce_order')
+          ->load($order_id);
+      }
+      catch (\Exception) {
+        continue;
+      }
+
       if (!$order || $order->getState()->getId() !== 'completed') {
         continue;
       }
@@ -107,7 +124,24 @@ final class AnalyticsDataService {
     $breakdown = [];
 
     foreach ($orderItems as $item) {
-      $order = $item->getOrder();
+      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+        continue;
+      }
+      $order_id = $item->get('order_id')->target_id;
+      if (!$order_id) {
+        continue;
+      }
+
+      try {
+        $order = $this->entityTypeManager
+          ->getStorage('commerce_order')
+          ->load($order_id);
+      }
+      catch (\Exception) {
+        continue;
+      }
+
       if (!$order || $order->getState()->getId() !== 'completed') {
         continue;
       }
@@ -173,7 +207,24 @@ final class AnalyticsDataService {
     $completed = 0;
 
     foreach ($allOrderItems as $item) {
-      $order = $item->getOrder();
+      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+        continue;
+      }
+      $order_id = $item->get('order_id')->target_id;
+      if (!$order_id) {
+        continue;
+      }
+
+      try {
+        $order = $this->entityTypeManager
+          ->getStorage('commerce_order')
+          ->load($order_id);
+      }
+      catch (\Exception) {
+        continue;
+      }
+
       if (!$order) {
         continue;
       }

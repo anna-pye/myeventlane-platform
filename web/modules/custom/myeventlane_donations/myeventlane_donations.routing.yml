@@ -17,7 +17,7 @@ myeventlane_donations.platform:
     _title: 'Support MyEventLane'
   requirements:
     _permission: 'access vendor console'
-    _custom_access: '\Drupal\myeventlane_donations\Access\DonationAccess::platformAccess'
+    _custom_access: 'myeventlane_donations.donation_access:platformAccess'
   options:
     _maintenance_access: FALSE
 
@@ -50,7 +50,7 @@ myeventlane_donations.vendor_list:
     _controller: '\Drupal\myeventlane_donations\Controller\DonationVendorController::list'
     _title: 'Donations received'
   requirements:
-    _custom_access: '\Drupal\myeventlane_donations\Access\DonationAccess::vendorAccess'
+    _custom_access: 'myeventlane_donations.donation_access:vendorAccess'
   options:
     _maintenance_access: FALSE
 

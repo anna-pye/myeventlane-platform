@@ -6,5 +6,6 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_event_attendees:myeventlane_event_attendees
   - drupal:views

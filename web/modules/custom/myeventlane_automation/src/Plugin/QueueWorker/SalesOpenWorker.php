@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_automation\Plugin\QueueWorker;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
@@ -36,6 +37,7 @@ final class SalesOpenWorker extends AutomationWorkerBase {
     protected readonly MessagingManager $messagingManager,
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly EventStateResolverInterface $stateResolver,
+    protected readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $dispatchService, $auditLogger, $logger);
   }
@@ -54,6 +56,7 @@ final class SalesOpenWorker extends AutomationWorkerBase {
       $container->get('myeventlane_messaging.manager'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_event_state.resolver'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -99,7 +102,7 @@ final class SalesOpenWorker extends AutomationWorkerBase {
 
     $salesStart = $this->stateResolver->getSalesStart($event);
     if ($salesStart) {
-      $context['sales_start'] = \Drupal::service('date.formatter')->format($salesStart, 'custom', 'F j, Y g:ia T');
+      $context['sales_start'] = $this->dateFormatter->format($salesStart, 'custom', 'F j, Y g:ia T');
     }
 
     // Send email.

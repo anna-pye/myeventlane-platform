@@ -5,7 +5,7 @@ services:
 
   myeventlane_api.rate_limiter:
     class: Drupal\myeventlane_api\Service\RateLimiterService
-    arguments: ['@database']
+    arguments: ['@database', '@datetime.time']
 
   myeventlane_api.response_formatter:
     class: Drupal\myeventlane_api\Service\ApiResponseFormatter

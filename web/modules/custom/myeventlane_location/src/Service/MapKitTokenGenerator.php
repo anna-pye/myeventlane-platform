@@ -42,7 +42,7 @@ final class MapKitTokenGenerator {
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
-    LoggerChannelFactoryInterface $logger_factory
+    LoggerChannelFactoryInterface $logger_factory,
   ) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('myeventlane_location');
@@ -106,13 +106,12 @@ final class MapKitTokenGenerator {
       return '';
     }
 
-    // TODO: Implement JWT signing.
+    // @todo Implement JWT signing.
     // For now, return empty string to indicate token generation is not yet implemented.
     // To implement:
     // 1. Add firebase/php-jwt to composer.json: composer require firebase/php-jwt
     // 2. Uncomment and adapt the example code in the docblock above.
     // 3. Ensure the private key is in PEM format and properly formatted.
-
     $this->logger->warning('MapKit token generation not yet implemented. Install firebase/php-jwt and implement JWT signing.');
     return '';
   }
@@ -144,28 +143,3 @@ final class MapKitTokenGenerator {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

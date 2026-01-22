@@ -60,9 +60,3 @@ class EventAttendeeAccessControlHandler extends EntityAccessControlHandler {
   }
 
 }
-
-
-
-
-
-

@@ -91,7 +91,7 @@ class VendorVenueController extends ControllerBase {
    */
   public function list(): array {
     $vendor = $this->getCurrentVendor();
-    
+
     if (!$vendor) {
       return [
         '#markup' => $this->t('You must be associated with a vendor to manage venues.'),

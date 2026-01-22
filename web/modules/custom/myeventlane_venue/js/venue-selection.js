@@ -18,8 +18,19 @@
    */
   Drupal.behaviors.myeventlaneVenueSelection = {
     attach: function (context, settings) {
+      // Use once() to ensure this only runs once per wrapper
       const wrapper = context.querySelector('.myeventlane-venue-selection-widget');
       if (!wrapper) {
+        // Debug: Check if context contains forms that might have the wrapper
+        if (context && context.querySelectorAll) {
+          const forms = context.querySelectorAll('form');
+          for (const form of forms) {
+            const testWrapper = form.querySelector('.myeventlane-venue-selection-widget');
+            if (testWrapper) {
+              console.log('[MEL Venue] Found wrapper in form:', form.id);
+            }
+          }
+        }
         return;
       }
 
@@ -33,7 +44,10 @@
       const mapPreview = wrapper.querySelector('.myeventlane-venue-map-preview');
       const autocompleteUrl = wrapper.getAttribute('data-venue-autocomplete-url') || '/venue/autocomplete';
 
+      console.log('[MEL Venue] Attach called, wrapper:', wrapper, 'venueSearch:', venueSearch, 'autocompleteUrl:', autocompleteUrl);
+
       if (!venueSearch) {
+        console.warn('[MEL Venue] No venueSearch input found in wrapper');
         return;
       }
 
@@ -144,37 +158,98 @@
      * Initialize saved venue autocomplete.
      */
     initSavedVenueAutocomplete: function (venueSearch, venueAutocomplete, autocompleteUrl) {
+      console.log('[MEL Venue] initSavedVenueAutocomplete called', {
+        venueSearch,
+        venueAutocomplete,
+        autocompleteUrl,
+        hasDrupalAutocomplete: typeof Drupal.autocomplete !== 'undefined',
+        hasDrupalJQuery: typeof Drupal.jQuery !== 'undefined',
+        hasJQuery: typeof window.jQuery !== 'undefined',
+      });
+
       // Use Drupal's autocomplete if available.
-      if (typeof Drupal.autocomplete !== 'undefined') {
-        $(venueSearch).autocomplete({
-          source: function (request, response) {
-            $.ajax({
-              url: autocompleteUrl,
-              data: { q: request.term },
-              dataType: 'json',
-              success: function (data) {
-                response(data.map(function (item) {
-                  return {
-                    label: item.label,
-                    value: item.value,
-                    venue_id: item.venue_id,
-                  };
-                }));
-              },
-            });
-          },
-          select: function (event, ui) {
-            if (ui.item.venue_id) {
-              // Set the venue autocomplete field value.
-              if (venueAutocomplete) {
-                venueAutocomplete.value = ui.item.venue_id;
-                $(venueAutocomplete).trigger('change');
+      // jQuery might not be ready immediately, so try both Drupal.jQuery and window.jQuery
+      // Also check if jQuery UI autocomplete is available
+      const tryInit = () => {
+        const $ = Drupal.jQuery || (typeof window !== 'undefined' && window.jQuery) || null;
+        if (!($ && $.fn && $.fn.autocomplete)) {
+          console.warn('[MEL Venue] jQuery or jQuery UI autocomplete not available yet. Retrying...', {
+            hasDrupalJQuery: typeof Drupal.jQuery !== 'undefined',
+            hasWindowJQuery: typeof window !== 'undefined' && typeof window.jQuery !== 'undefined',
+            hasAutocomplete: $ && $.fn && typeof $.fn.autocomplete !== 'undefined',
+          });
+          // Retry after a short delay if jQuery isn't ready yet
+          setTimeout(tryInit, 100);
+          return;
+        }
+        
+        console.log('[MEL Venue] Initializing Drupal autocomplete on', venueSearch, 'using jQuery:', $);
+        
+        // Check if Google Places autocomplete is already attached
+        // If so, we need to work with it, not replace it
+        const hasGoogleAutocomplete = venueSearch.dataset.melAutocompleteAttached === '1';
+        
+        if (hasGoogleAutocomplete) {
+          console.log('[MEL Venue] Google autocomplete already attached, will combine with saved venues');
+          // We'll need to combine both autocompletes - this is complex
+          // For now, let's just initialize Drupal autocomplete and see if they can coexist
+        }
+        
+        try {
+          $(venueSearch).autocomplete({
+            source: function (request, response) {
+              console.log('[MEL Venue] Saved venue autocomplete request:', request.term);
+              $.ajax({
+                url: autocompleteUrl,
+                data: { q: request.term },
+                dataType: 'json',
+                success: function (data) {
+                  console.log('[MEL Venue] Saved venue autocomplete response:', data);
+                  response(data.map(function (item) {
+                    return {
+                      label: item.label,
+                      value: item.value,
+                      venue_id: item.venue_id,
+                    };
+                  }));
+                },
+                error: function(xhr, status, error) {
+                  console.error('[MEL Venue] Saved venue autocomplete error:', error, xhr);
+                }
+              });
+            },
+            select: function (event, ui) {
+              console.log('[MEL Venue] Saved venue selected:', ui.item);
+              if (ui.item.venue_id) {
+                // Set the venue autocomplete field value.
+                if (venueAutocomplete) {
+                  venueAutocomplete.value = ui.item.venue_id;
+                  const $ = Drupal.jQuery;
+                  if ($) {
+                    $(venueAutocomplete).trigger('change');
+                  }
+                }
               }
+              return false;
+            },
+            minLength: 0, // Show suggestions even when field is empty (on focus)
+          });
+          
+          // Trigger autocomplete on focus to show saved venues
+          $(venueSearch).on('focus', function() {
+            if (!this.value || this.value.trim() === '') {
+              $(this).autocomplete('search', '');
             }
-            return false;
-          },
-        });
-      }
+          });
+          
+          console.log('[MEL Venue] Drupal autocomplete initialized successfully');
+        } catch (e) {
+          console.error('[MEL Venue] Error initializing Drupal autocomplete:', e);
+        }
+      };
+      
+      // Start trying to initialize - will retry if jQuery isn't ready
+      tryInit();
     },
 
     /**

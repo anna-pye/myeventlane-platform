@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_checkout_paragraph\Plugin\Commerce\CheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\paragraphs\Entity\Paragraph;
@@ -36,6 +37,13 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private LoggerChannelInterface $logger;
 
   /**
+   * The email validator.
+   *
+   * @var \Drupal\Component\Utility\EmailValidatorInterface
+   */
+  private EmailValidatorInterface $emailValidator;
+
+  /**
    * {@inheritdoc}
    */
   public function getCacheContexts(): array {
@@ -51,6 +59,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     /** @var static $instance */
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->logger = $container->get('logger.factory')->get('myeventlane_checkout');
+    $instance->emailValidator = $container->get('email.validator');
     return $instance;
   }
 
@@ -229,7 +238,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         if (empty($entry['field_email'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_email", $this->t('Email is required.'));
         }
-        elseif (!\Drupal::service('email.validator')->isValid($entry['field_email'])) {
+        elseif (!$this->emailValidator->isValid($entry['field_email'])) {
           $form_state->setErrorByName("{$this->getPluginId()}][order_items][$index][$delta][field_email", $this->t('Please enter a valid email address.'));
         }
         if (empty($entry['field_phone'])) {

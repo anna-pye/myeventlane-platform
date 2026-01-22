@@ -1,0 +1,14 @@
+mel_search.view:
+  path: /search
+  defaults:
+    _controller: '\Drupal\myeventlane_search\Controller\SearchController::build'
+    _title: 'Search'
+  requirements:
+    _access: 'TRUE'
+
+mel_search.autocomplete:
+  path: /search/autocomplete
+  defaults:
+    _controller: '\Drupal\myeventlane_search\Controller\SearchAutocompleteController::autocomplete'
+  requirements:
+    _access: 'TRUE'

@@ -107,7 +107,8 @@ final class ColorServiceTest extends TestCase {
     $fallback = $this->colorService->getFallbackColor();
     $this->assertIsString($fallback);
     $this->assertStringStartsWith('#', $fallback);
-    $this->assertEquals(7, strlen($fallback)); // #RRGGBB format
+    // #RRGGBB format
+    $this->assertEquals(7, strlen($fallback));
   }
 
 }

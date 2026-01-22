@@ -15,15 +15,25 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  */
 class RsvpCountItem extends FieldItemBase {
 
+  /**
+   *
+   */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     return [];
   }
 
+  /**
+   *
+   */
   public static function schema(FieldStorageDefinitionInterface $field_definition) {
     return [];
   }
 
+  /**
+   *
+   */
   public function isEmpty() {
     return TRUE;
   }
+
 }

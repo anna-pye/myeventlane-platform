@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_reporting\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
@@ -289,7 +288,7 @@ final class AdminReportsController extends ControllerBase {
    * Gets vendor statistics.
    */
   private function getVendorStats(): array {
-    // @todo: Implement vendor-level aggregations.
+    // @todo Implement vendor-level aggregations.
     return [];
   }
 
@@ -344,7 +343,7 @@ final class AdminReportsController extends ControllerBase {
         'subtitle' => 'Gross revenue',
         'icon' => 'dollar-sign',
       ],
-      // @todo: Add more finance metrics (refunds, net revenue, etc.).
+      // @todo Add more finance metrics (refunds, net revenue, etc.).
     ];
   }
 

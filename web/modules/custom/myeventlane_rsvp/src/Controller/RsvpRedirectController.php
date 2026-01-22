@@ -29,4 +29,3 @@ final class RsvpRedirectController extends ControllerBase {
   }
 
 }
-

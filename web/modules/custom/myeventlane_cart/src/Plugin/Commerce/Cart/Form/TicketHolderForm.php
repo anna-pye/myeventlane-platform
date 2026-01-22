@@ -5,7 +5,6 @@ namespace Drupal\myeventlane_cart\Plugin\Commerce\Cart\Form;
 use Drupal\commerce_cart\Plugin\Commerce\Cart\Form\CartFormInterface;
 use Drupal\commerce_cart\Plugin\Commerce\Cart\Form\CartFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 
 /**

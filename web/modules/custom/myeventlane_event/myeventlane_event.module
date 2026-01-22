@@ -1,7 +1,14 @@
 <?php
 
+/**
+ * @file
+ */
+
 declare(strict_types=1);
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\taxonomy\TermInterface;
@@ -66,7 +73,7 @@ function myeventlane_event_field_widget_form_alter(array &$element, FormStateInt
 
   $field_definition = $context['fieldDefinition'];
   $field_name = $field_definition->getName();
-  
+
   // Only process the datetime fields we care about.
   if (!in_array($field_name, ['field_ticket_sales_start', 'field_ticket_sales_end'], TRUE)) {
     return;
@@ -102,7 +109,7 @@ function myeventlane_event_field_widget_form_alter(array &$element, FormStateInt
  * Excludes coordinate fields from validation - they're auto-populated by JavaScript.
  * Also handles false validation errors for fields that are populated but in wizard structure.
  * This hook runs AFTER field widget validation, so we can clear coordinate field errors.
- * 
+ *
  * IMPORTANT: This must run with high priority to clear errors before they're displayed.
  * We use a very specific hook name to ensure it runs after widget validation.
  */
@@ -114,26 +121,26 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
     'field_event_lat',
     'field_event_lng',
   ];
-  
+
   // Get all current errors.
   $errors = $form_state->getErrors();
   if (empty($errors)) {
     return;
   }
-  
+
   // Log errors for debugging.
   \Drupal::logger('myeventlane_event')->debug('Validation errors found: @errors', [
     '@errors' => print_r(array_keys($errors), TRUE),
   ]);
-  
+
   // Check if any errors are for coordinate fields and collect non-coordinate errors.
   $has_coordinate_errors = FALSE;
   $other_errors = [];
-  
+
   // Also check for false validation errors on fields that might be in wizard structure.
   // These fields might have values but validation is failing because form values aren't extracted yet.
   $entity = $form_state->getFormObject()->getEntity();
-  
+
   foreach ($errors as $key => $error) {
     $is_coordinate_error = FALSE;
     foreach ($coordinate_fields as $field_name) {
@@ -146,7 +153,7 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
       // - field_location_latitude
       // - field_location_latitude[0][value]
       // - field_location_latitude][0][value (if brackets are encoded)
-      if (str_contains($key_lower, $field_lower) || 
+      if (str_contains($key_lower, $field_lower) ||
           str_contains($key, $field_name) ||
           preg_match('/' . preg_quote($field_name, '/') . '[\[\]]/', $key)) {
         $is_coordinate_error = TRUE;
@@ -158,40 +165,42 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
         break;
       }
     }
-    
+
     // Check for false validation errors on fields that might have values in the form.
     // This happens when fields are in wizard structure but form values aren't extracted yet.
     if (!$is_coordinate_error) {
       // Check if this is a required field error for a field that might be populated.
       // We'll check the form values directly to see if the field has a value.
       $field_has_value = FALSE;
-      
+
       // Check common field patterns in error keys.
       if (str_contains($key, 'field_event_start') || str_contains($key, 'event_start')) {
         // Check if datetime field has values in form.
         $form_values = $form_state->getValues();
-        if (isset($form_values['field_event_start'][0]['value']['date']) && 
+        if (isset($form_values['field_event_start'][0]['value']['date']) &&
             !empty($form_values['field_event_start'][0]['value']['date'])) {
           $field_has_value = TRUE;
         }
         // Also check wizard structure.
         if (!$field_has_value && isset($form['mel_wizard']['layout']['content']['step_basics']['section']['field_event_start'])) {
-          $field_has_value = TRUE; // Field exists in wizard, assume it might have value
+          // Field exists in wizard, assume it might have value.
+          $field_has_value = TRUE;
         }
       }
       elseif (str_contains($key, 'field_location') || str_contains($key, 'address_line1') || str_contains($key, 'street_address')) {
         // Check if address field has values in form.
         $form_values = $form_state->getValues();
-        if (isset($form_values['field_location'][0]['address']['address_line1']) && 
+        if (isset($form_values['field_location'][0]['address']['address_line1']) &&
             !empty($form_values['field_location'][0]['address']['address_line1'])) {
           $field_has_value = TRUE;
         }
         // Also check wizard structure.
         if (!$field_has_value && isset($form['mel_wizard']['layout']['content']['step_basics']['section']['field_location'])) {
-          $field_has_value = TRUE; // Field exists in wizard, assume it might have value
+          // Field exists in wizard, assume it might have value.
+          $field_has_value = TRUE;
         }
       }
-      
+
       // If field has a value but validation is still failing, it's likely a false error.
       // We'll keep the error for now but log it for debugging.
       if ($field_has_value) {
@@ -199,11 +208,11 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
           '@key' => $key,
         ]);
       }
-      
+
       $other_errors[$key] = $error;
     }
   }
-  
+
   // If we found coordinate field errors, clear all errors and re-add only non-coordinate errors.
   if ($has_coordinate_errors) {
     \Drupal::logger('myeventlane_event')->debug('Clearing @count coordinate errors, keeping @other_count other errors', [
@@ -222,7 +231,7 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
  */
 function myeventlane_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Ticket type paragraph conditional logic.
-  \Drupal\myeventlane_event\Form\TicketTypeFormAlter::alterForm($form, $form_state);
+  TicketTypeFormAlter::alterForm($form, $form_state);
 }
 
 /**
@@ -235,10 +244,9 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
   /** @var \Drupal\myeventlane_event\Form\EventFormAlter $alter */
   $alter = \Drupal::service('myeventlane_event.event_form_alter');
   $alter->alterForm($form, $form_state, $form_id);
-  
+
   // CRITICAL: Final safety check - ensure buttons ALWAYS exist and are visible.
   // This runs AFTER all other form alters to ensure nothing can remove our buttons.
-  
   // Ensure actions container exists and is visible.
   if (!isset($form['actions'])) {
     $form['actions'] = [
@@ -247,15 +255,15 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
     ];
   }
   $form['actions']['#access'] = TRUE;
-  
+
   // Ensure buttons exist - call this again to be absolutely sure.
   $alter->ensureActionButtons($form, $form_state);
-  
+
   // CRITICAL: Force buttons to exist and be visible - create if missing.
   $form_object = $form_state->getFormObject();
   $entity = $form_object->getEntity();
   $is_new = $entity->isNew();
-  
+
   // Ensure a "Save" button exists (for edit forms, this is the primary action).
   if (!isset($form['actions']['submit']) || (isset($form['actions']['submit']['#access']) && $form['actions']['submit']['#access'] === FALSE)) {
     $submit_handlers = [];
@@ -263,7 +271,7 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
       // For new events, publish on submit.
       $submit_handlers[] = ['\Drupal\myeventlane_event\Form\EventFormAlter', 'submitPublish'];
     }
-    if ($form_object instanceof \Drupal\Core\Entity\EntityFormInterface) {
+    if ($form_object instanceof EntityFormInterface) {
       $submit_handlers[] = [$form_object, 'save'];
     }
     if ($is_new) {
@@ -277,18 +285,19 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
       '#weight' => 10,
       '#attributes' => ['class' => ['button', 'button--primary']],
     ];
-  } else {
+  }
+  else {
     $form['actions']['submit']['#access'] = TRUE;
     // Update label for edit forms if it says "Publish event".
     if (!$is_new && isset($form['actions']['submit']['#value']) && $form['actions']['submit']['#value'] === t('Publish event')) {
       $form['actions']['submit']['#value'] = t('Save');
     }
   }
-  
+
   if (!isset($form['actions']['save_draft']) || (isset($form['actions']['save_draft']['#access']) && $form['actions']['save_draft']['#access'] === FALSE)) {
     $submit_handlers = [];
     $submit_handlers[] = ['\Drupal\myeventlane_event\Form\EventFormAlter', 'submitSaveDraft'];
-    if ($form_object instanceof \Drupal\Core\Entity\EntityFormInterface) {
+    if ($form_object instanceof EntityFormInterface) {
       $submit_handlers[] = [$form_object, 'save'];
     }
     $form['actions']['save_draft'] = [
@@ -299,10 +308,11 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
       '#weight' => 5,
       '#attributes' => ['class' => ['button']],
     ];
-  } else {
+  }
+  else {
     $form['actions']['save_draft']['#access'] = TRUE;
   }
-  
+
   // Ensure buttons have proper attributes.
   foreach (['submit', 'save_draft'] as $button_key) {
     if (isset($form['actions'][$button_key])) {
@@ -327,7 +337,7 @@ function myeventlane_event_preprocess_field(array &$variables): void {
   if (isset($variables['element']['#field_name']) && $variables['element']['#field_name'] === 'field_venue_name') {
     $current_user = \Drupal::currentUser();
     $is_admin = $current_user->hasPermission('administer nodes') || $current_user->hasPermission('bypass node access');
-    
+
     if (!$is_admin) {
       // Add class to wrapper attributes to hide the field.
       if (!isset($variables['attributes']['class'])) {
@@ -386,7 +396,7 @@ function myeventlane_event_entity_load(array $entities, string $entity_type): vo
  *
  * Prevents saving corrupted datetime field values in ticket type paragraphs.
  */
-function myeventlane_event_entity_presave(\Drupal\Core\Entity\EntityInterface $entity): void {
+function myeventlane_event_entity_presave(EntityInterface $entity): void {
   if ($entity->getEntityTypeId() !== 'paragraph' || $entity->bundle() !== 'ticket_type_config') {
     return;
   }

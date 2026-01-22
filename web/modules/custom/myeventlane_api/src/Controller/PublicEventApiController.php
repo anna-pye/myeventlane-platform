@@ -138,7 +138,6 @@ final class PublicEventApiController extends ControllerBase {
 
     // City/location filter (simplified - would need address field query).
     // Online filter (would need field to indicate online events).
-
     $event_ids = $query->execute();
     if (empty($event_ids)) {
       return $this->responseFormatter->paginated([], $page, $limit, 0);
@@ -155,9 +154,8 @@ final class PublicEventApiController extends ControllerBase {
         continue;
       }
 
-      // TODO: Add visibility check (public/unlisted/private) if field exists.
+      // @todo Add visibility check (public/unlisted/private) if field exists.
       // For now, assume all published events are public.
-
       $public_events[] = $event;
     }
 
@@ -231,8 +229,7 @@ final class PublicEventApiController extends ControllerBase {
       return $this->responseFormatter->error('NOT_FOUND', 'Event not found.', 404);
     }
 
-    // TODO: Add visibility check (public/unlisted/private).
-
+    // @todo Add visibility check (public/unlisted/private).
     try {
       $data = $this->eventSerializer->serializePublic($node);
       $response = $this->responseFormatter->success($data);

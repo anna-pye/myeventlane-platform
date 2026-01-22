@@ -170,4 +170,3 @@ final class AttendeeParagraphAccessResolver {
   }
 
 }
-

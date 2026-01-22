@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Implements hook_theme().
  */
 function myeventlane_rsvp_theme($existing, $type, $theme, $path) {

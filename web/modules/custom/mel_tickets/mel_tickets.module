@@ -4,5 +4,3 @@
  * @file
  * MyEventLane Tickets module.
  */
-
-use Drupal\Core\Routing\RouteMatchInterface;

@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * @file
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_front_theme($existing, $type, $theme, $path): array {
+  return [
+    'myeventlane_home_hero' => [
+      'variables' => [
+        'pills' => NULL,
+      ],
+      'template' => 'myeventlane-home-hero',
+      'path' => $path . '/templates',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function myeventlane_front_preprocess_myeventlane_home_hero(array &$variables): void {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $variables['directory'] = base_path() . $theme_path;
+}

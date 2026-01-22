@@ -2,6 +2,7 @@
 
 namespace Drupal\myeventlane_event_attendees;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -18,7 +19,7 @@ class EventAttendeeListBuilder extends EntityListBuilder {
    */
   public function __construct(
     $entity_type,
-    \Drupal\Core\Entity\EntityStorageInterface $storage,
+    EntityStorageInterface $storage,
     protected readonly DateFormatterInterface $dateFormatter,
   ) {
     parent::__construct($entity_type, $storage);

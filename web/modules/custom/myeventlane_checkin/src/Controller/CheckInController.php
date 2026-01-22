@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkin\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_checkin\Service\CheckInStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -153,7 +152,7 @@ final class CheckInController extends ControllerBase {
       return TRUE;
     }
 
-    // @todo: Check vendor staff roles.
+    // @todo Check vendor staff roles.
     // For now, only owner.
     return FALSE;
   }

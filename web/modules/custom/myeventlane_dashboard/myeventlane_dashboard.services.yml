@@ -6,3 +6,45 @@ services:
   myeventlane_dashboard.event_loader:
     class: Drupal\myeventlane_dashboard\Service\DashboardEventLoader
     arguments: ['@entity_type.manager', '@current_user']
+
+  myeventlane_dashboard.dashboard_builder:
+    class: Drupal\myeventlane_dashboard\Service\VendorDashboardBuilder
+    arguments:
+      - '@myeventlane_dashboard.vendor_context'
+      - '@myeventlane_dashboard.metrics'
+      - '@myeventlane_dashboard.events'
+      - '@myeventlane_dashboard.stripe'
+      - '@date.formatter'
+      - '@current_user'
+      - '@request_stack'
+      - '@logger.factory'
+
+  myeventlane_dashboard.vendor_context:
+    class: Drupal\myeventlane_dashboard\Service\VendorContextService
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@request_stack'
+
+  myeventlane_dashboard.metrics:
+    class: Drupal\myeventlane_dashboard\Service\VendorMetricsService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@commerce_price.currency_formatter'
+      - '@logger.factory'
+      - '@request_stack'
+
+  myeventlane_dashboard.events:
+    class: Drupal\myeventlane_dashboard\Service\VendorEventsService
+    arguments:
+      - '@entity_type.manager'
+      - '@date.formatter'
+      - '@myeventlane_dashboard.metrics'
+
+  myeventlane_dashboard.stripe:
+    class: Drupal\myeventlane_dashboard\Service\VendorStripeService
+    arguments:
+      - '@logger.factory'
+      - '@config.factory'
+      - '@entity_type.manager'

@@ -50,7 +50,7 @@ class HomepageOrganiserService {
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
-    CacheBackendInterface $cache
+    CacheBackendInterface $cache,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->cache = $cache;

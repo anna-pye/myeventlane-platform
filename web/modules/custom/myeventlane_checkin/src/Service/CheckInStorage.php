@@ -31,7 +31,7 @@ final class CheckInStorage implements CheckInStorageInterface {
     foreach ($attendees as $attendee) {
       $attendeeId = $attendee->getAttendeeId();
       $checkedInAt = $attendee->getCheckedInAt();
-      
+
       // Extract numeric ID from identifier (e.g., "rsvp:123" -> 123).
       $numericId = 0;
       $type = 'rsvp';
@@ -43,7 +43,7 @@ final class CheckInStorage implements CheckInStorageInterface {
         $numericId = (int) substr($attendeeId, 7);
         $type = 'ticket';
       }
-      
+
       $result[] = [
         'id' => $numericId,
         'identifier' => $attendeeId,
@@ -52,7 +52,8 @@ final class CheckInStorage implements CheckInStorageInterface {
         'email' => $attendee->getEmail(),
         'checked_in' => $attendee->isCheckedIn(),
         'checked_in_at' => $checkedInAt?->getTimestamp(),
-        'checked_in_by' => NULL, // @todo: Store actor ID if needed.
+      // @todo Store actor ID if needed.
+        'checked_in_by' => NULL,
       ];
     }
 

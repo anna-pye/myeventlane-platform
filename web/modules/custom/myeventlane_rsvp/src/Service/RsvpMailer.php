@@ -3,13 +3,14 @@
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Mail\MailManagerInterface;
-use Drupal\Core\Render\Markup;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
-use Drupal\myeventlane_rsvp\Service\RsvpStorage;
 use Drupal\Core\Config\ConfigFactoryInterface;
 
+/**
+ *
+ */
 class RsvpMailer {
 
   protected $mailManager;
@@ -34,7 +35,7 @@ class RsvpMailer {
       if (!$event) {
         $event = $submission->getEvent();
       }
-      
+
       if (!$event) {
         return;
       }
@@ -48,7 +49,7 @@ class RsvpMailer {
       if (!$event) {
         $event = Node::load($submission['event_nid'] ?? NULL);
       }
-      
+
       if (!$event) {
         return;
       }

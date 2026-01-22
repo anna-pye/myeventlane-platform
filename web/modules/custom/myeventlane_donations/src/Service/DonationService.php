@@ -55,23 +55,33 @@ final class DonationService {
       if (!empty($orderItemIds)) {
         $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
         foreach ($orderItems as $orderItem) {
-          if ($orderItem->hasField('order_id') && !$orderItem->get('order_id')->isEmpty()) {
-            try {
-              $order = $orderItem->getOrder();
-              if ($order && $order->getState()->getId() === 'completed') {
-                $totalPrice = $orderItem->getTotalPrice();
-                if ($totalPrice) {
-                  $total += (float) $totalPrice->getNumber();
-                  $count++;
-                }
+          if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+            continue;
+          }
+
+          // Safely load the order entity to avoid getOrder() warnings.
+          $order_id = $orderItem->get('order_id')->target_id;
+          if (!$order_id) {
+            continue;
+          }
+
+          try {
+            $order = $this->entityTypeManager
+              ->getStorage('commerce_order')
+              ->load($order_id);
+            if ($order && $order->getState()->getId() === 'completed') {
+              $totalPrice = $orderItem->getTotalPrice();
+              if ($totalPrice) {
+                $total += (float) $totalPrice->getNumber();
+                $count++;
               }
             }
-            catch (\Exception $e) {
-              $this->loggerFactory->get('myeventlane_donations')->warning('Failed to process donation order item: @message', [
-                '@message' => $e->getMessage(),
-              ]);
-              continue;
-            }
+          }
+          catch (\Exception $e) {
+            $this->loggerFactory->get('myeventlane_donations')->warning('Failed to process donation order item: @message', [
+              '@message' => $e->getMessage(),
+            ]);
+            continue;
           }
         }
       }
@@ -171,4 +181,3 @@ final class DonationService {
   }
 
 }
-

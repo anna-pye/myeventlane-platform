@@ -1,0 +1,38 @@
+langcode: en
+id: mel_vendors
+name: 'MEL Vendors'
+description: 'Vendors (Commerce Store) index: name.'
+read_only: false
+status: true
+server: myeventlane_db
+datasource_settings:
+  'entity:commerce_store':
+    bundles:
+      default: false
+      selected:
+        - online
+tracker_settings:
+  default:
+    indexing_order: fifo
+field_settings:
+  name:
+    label: Name
+    type: text
+    datasource_id: 'entity:commerce_store'
+    property_path: name
+processor_settings:
+  add_url:
+    weights:
+      preprocess_index: -30
+  ignorecase:
+    weights:
+      preprocess_index: -5
+      preprocess_query: -8
+options:
+  cron_limit: 50
+  index_directly: false
+dependencies:
+  config:
+    - search_api.server.myeventlane_db
+  module:
+    - commerce_store

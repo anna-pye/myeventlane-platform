@@ -493,12 +493,12 @@ class EventAttendee extends ContentEntityBase implements EntityChangedInterface,
   public static function getCurrentUserId(): array {
     $current_user = \Drupal::currentUser();
     $uid = $current_user->id();
-    
+
     // Return empty array for anonymous users (no default value).
     if ($uid === 0) {
       return [];
     }
-    
+
     return [['target_id' => $uid]];
   }
 
