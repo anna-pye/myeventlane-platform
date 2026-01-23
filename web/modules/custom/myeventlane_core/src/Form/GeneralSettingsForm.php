@@ -77,6 +77,23 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#size' => 5,
     ];
 
+    $form['payments'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Payments & fees'),
+      '#open' => TRUE,
+    ];
+
+    $form['payments']['platform_fee_percent'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Platform fee percentage'),
+      '#description' => $this->t('Percentage applied to ticket subtotals (excludes donations and Boost). For example, 5 applies a 5% platform fee. Set to 0 to disable.'),
+      '#default_value' => (string) ($config->get('platform_fee_percent') ?? 5),
+      '#min' => 0,
+      '#max' => 100,
+      '#step' => 0.5,
+      '#size' => 5,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -84,11 +101,16 @@ final class GeneralSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $v = $form_state->getValue(['payments', 'platform_fee_percent']);
+    $platform_fee_percent = is_numeric($v) ? (float) $v : 5;
+    $platform_fee_percent = max(0, min(100, $platform_fee_percent));
+
     $this->config('myeventlane_core.settings')
       ->set('site_name', $form_state->getValue('site_name'))
       ->set('support_email', $form_state->getValue('support_email'))
       ->set('default_timezone', $form_state->getValue('default_timezone'))
       ->set('default_currency', $form_state->getValue('default_currency'))
+      ->set('platform_fee_percent', $platform_fee_percent)
       ->save();
 
     parent::submitForm($form, $form_state);

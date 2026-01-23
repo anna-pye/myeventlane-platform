@@ -1,3 +1,4 @@
+platform_fee_percent: 5
 front_page:
   event_type: event
   category_vocab: categories

@@ -2,6 +2,9 @@ myeventlane_core.settings:
   type: config_object
   label: 'MyEventLane Core settings'
   mapping:
+    platform_fee_percent:
+      type: float
+      label: 'Platform fee percentage (0-100, e.g. 5 for 5%)'
     front_page:
       type: mapping
       label: 'Front page settings'

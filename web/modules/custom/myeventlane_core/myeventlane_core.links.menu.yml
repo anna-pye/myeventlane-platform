@@ -5,3 +5,20 @@ myeventlane_core.my_categories:
   route_name: myeventlane_core.my_categories
   menu_name: account
   weight: 10
+
+# Admin config: MyEventLane section (parent for General, Boost, Tickets, etc.).
+myeventlane_core.config:
+  title: 'MyEventLane'
+  description: 'Platform and module settings for MyEventLane.'
+  route_name: myeventlane_core.config
+  parent: system.admin_config
+  weight: 5
+
+# Admin config: General settings (platform name, support email, timezone,
+# currency, platform fee %). Appears under /admin/config/myeventlane.
+myeventlane_core.settings:
+  title: 'General settings'
+  description: 'Platform name, support email, timezone, currency, and platform fee percentage.'
+  route_name: myeventlane_core.settings
+  parent: myeventlane_core.config
+  weight: -10
