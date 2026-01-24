@@ -72,7 +72,7 @@ final class VendorOnboardProfileController extends ControllerBase {
     return [
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 2,
-      '#total_steps' => 5,
+      '#total_steps' => 6,
       '#step_title' => $this->t('Set up your organiser profile'),
       '#step_description' => $this->t('Tell people about your organisation. This information will appear on your public organiser page.'),
       '#content' => $form,

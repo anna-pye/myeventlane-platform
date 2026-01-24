@@ -1,16 +1,3 @@
-myeventlane_refunds.vendor_orders:
-  path: '/vendor/events/{node}/orders'
-  defaults:
-    _controller: '\Drupal\myeventlane_refunds\Controller\VendorOrdersController::list'
-    _title: 'Event Orders'
-  requirements:
-    _entity_access: 'node.view'
-    _custom_access: '\Drupal\myeventlane_refunds\Controller\VendorOrdersController::access'
-  options:
-    parameters:
-      node:
-        type: entity:node
-
 myeventlane_refunds.vendor_refund:
   path: '/vendor/orders/{commerce_order}/refund'
   defaults:

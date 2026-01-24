@@ -27,6 +27,7 @@ services:
       - '@entity_type.manager'
       - '@queue'
       - '@date.formatter'
+      - '@myeventlane_boost.manager'
 
   myeventlane_messaging.scheduler.cart:
     class: Drupal\myeventlane_messaging\Scheduler\CartAbandonedScheduler
@@ -61,5 +62,6 @@ services:
     class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_core.ticket_label_resolver'
     tags:
       - { name: event_subscriber }

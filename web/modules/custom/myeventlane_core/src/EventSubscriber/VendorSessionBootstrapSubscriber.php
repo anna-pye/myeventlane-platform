@@ -26,7 +26,7 @@ final class VendorSessionBootstrapSubscriber implements EventSubscriberInterface
   ) {}
 
   /**
-   *
+   * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
     return [
@@ -35,7 +35,10 @@ final class VendorSessionBootstrapSubscriber implements EventSubscriberInterface
   }
 
   /**
+   * Forces session initialization on vendor domain requests.
    *
+   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
+   *   The request event.
    */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {

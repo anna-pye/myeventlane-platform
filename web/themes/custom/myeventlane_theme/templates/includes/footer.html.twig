@@ -7,12 +7,14 @@
  * Supports footer menu blocks via page.footer.footer_menu.
  */
 #}
-{% set footer_attributes = create_attribute() %}
-{% set footer_attributes = footer_attributes.addClass('mel-footer', 'mel-footer--simple') %}
+{% set footer_attributes = create_attribute()
+  .addClass('mel-footer', 'mel-footer--simple', 'mel-site-footer', 'mel-site-footer--main')
+  .setAttribute('role', 'contentinfo')
+%}
 
 {# Main Footer #}
 <footer{{ footer_attributes }}>
-  <div class="mel-container">
+  <div class="mel-site-footer__inner mel-container">
     <div class="mel-footer-simple-inner">
 
       {# Brand & Tagline #}

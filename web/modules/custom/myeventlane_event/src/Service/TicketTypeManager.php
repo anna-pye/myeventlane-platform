@@ -194,8 +194,9 @@ final class TicketTypeManager {
     }
     $price = new Price($priceValue, $currency);
 
-    // Build variation title: "{Event Title} – {Ticket Label}".
-    $variationTitle = $event->label() . ' – ' . $label;
+    // Variation title MUST be the ticket type label only.
+    // (Do not prefix with event/product title.)
+    $variationTitle = $label;
 
     // Check if variation already exists via UUID mapping.
     $variation = NULL;
@@ -364,20 +365,8 @@ final class TicketTypeManager {
       $product->setTitle($eventTitle);
       $product->save();
 
-      // Also update variation titles to include new event title.
-      foreach ($product->getVariations() as $variation) {
-        $oldTitle = $variation->label();
-        // Extract the ticket label part (everything after " – ").
-        $parts = explode(' – ', $oldTitle, 2);
-        if (count($parts) === 2) {
-          $ticketLabel = $parts[1];
-          $variation->setTitle($eventTitle . ' – ' . $ticketLabel);
-          $variation->save();
-        }
-      }
-
       $this->loggerFactory->get('myeventlane_event')->notice(
-        'Updated product and variation titles to match event title "@title"',
+        'Updated product title to match event title "@title"',
         ['@title' => $eventTitle]
       );
     }

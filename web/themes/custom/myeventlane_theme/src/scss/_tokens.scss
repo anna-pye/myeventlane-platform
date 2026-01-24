@@ -32,6 +32,19 @@
 
   --mel-border: 2px solid rgba(41, 50, 65, 0.12);
   --mel-primary: var(--mel-coral);
+
+  // --- MyEventLane v2 header/footer tokens (extend only; do not remove above) ---
+  --mel-bg: var(--mel-paper);
+  --mel-surface: #ffffff;
+  --mel-surface-2: var(--mel-cream);
+  --mel-text: var(--mel-ink);
+  --mel-focus: var(--mel-blue);
+  --mel-radius-1: 8px;
+  --mel-shadow-1: var(--mel-shadow-rest);
+  --mel-shadow-2: var(--mel-shadow-hover);
+  --mel-max: 1320px;
+  --mel-header-bg: linear-gradient(90deg, var(--mel-peach), var(--mel-lilac));
+  --mel-footer-bg: var(--mel-paper);
 }
 
 .mel-container {

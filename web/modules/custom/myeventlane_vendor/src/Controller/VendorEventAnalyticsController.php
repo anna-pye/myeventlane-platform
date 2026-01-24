@@ -8,6 +8,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 
 /**
  * Event analytics controller.
@@ -19,7 +20,12 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
   /**
    * Constructs the controller.
    */
-  public function __construct(DomainDetector $domain_detector, AccountProxyInterface $current_user, private readonly MetricsAggregator $metricsAggregator) {
+  public function __construct(
+    DomainDetector $domain_detector,
+    AccountProxyInterface $current_user,
+    private readonly MetricsAggregator $metricsAggregator,
+    private readonly VendorEventTabsService $eventTabsService,
+  ) {
     parent::__construct($domain_detector, $current_user);
   }
 
@@ -28,7 +34,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
    */
   public function analytics(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    $tabs = $this->eventTabs($event, 'analytics');
+    $tabs = $this->eventTabsService->getTabs($event, 'analytics');
     $charts = $this->metricsAggregator->getEventCharts($event);
     $overview = $this->metricsAggregator->getEventOverview($event);
 
@@ -74,37 +80,6 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ]);
-  }
-
-  /**
-   * Builds event tabs for the console.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   * @param string $active
-   *   The key of the currently active tab.
-   *
-   * @return array
-   *   Array of tab definitions.
-   */
-  private function eventTabs(NodeInterface $event, string $active = 'analytics'): array {
-    $id = $event->id();
-
-    $tabs = [
-      ['label' => 'Overview', 'url' => "/vendor/events/{$id}/overview", 'key' => 'overview'],
-      ['label' => 'Tickets', 'url' => "/vendor/events/{$id}/tickets", 'key' => 'tickets'],
-      ['label' => 'Attendees', 'url' => "/vendor/events/{$id}/attendees", 'key' => 'attendees'],
-      ['label' => 'RSVPs', 'url' => "/vendor/events/{$id}/rsvps", 'key' => 'rsvps'],
-      ['label' => 'Analytics', 'url' => "/vendor/events/{$id}/analytics", 'key' => 'analytics'],
-      ['label' => 'Boost', 'url' => "/event/{$id}/boost", 'key' => 'boost'],
-      ['label' => 'Settings', 'url' => "/vendor/events/{$id}/settings", 'key' => 'settings'],
-    ];
-
-    foreach ($tabs as &$tab) {
-      $tab['active'] = ($tab['key'] === $active);
-    }
-
-    return $tabs;
   }
 
 }

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Plugin\Block;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Link;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -38,8 +38,8 @@ final class BoostCtaBlock extends BlockBase implements ContainerFactoryPluginInt
    *   The current route match.
    * @param \Drupal\Core\Session\AccountInterface $currentUser
    *   The current user.
-   * @param \Drupal\Component\Datetime\TimeInterface $time
-   *   The time service.
+   * @param \Drupal\myeventlane_boost\BoostManager $boostManager
+   *   The boost manager service.
    */
   public function __construct(
     array $configuration,
@@ -47,7 +47,7 @@ final class BoostCtaBlock extends BlockBase implements ContainerFactoryPluginInt
     $plugin_definition,
     private readonly RouteMatchInterface $routeMatch,
     private readonly AccountInterface $currentUser,
-    private readonly TimeInterface $time,
+    private readonly BoostManager $boostManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -67,7 +67,7 @@ final class BoostCtaBlock extends BlockBase implements ContainerFactoryPluginInt
       $plugin_definition,
       $container->get('current_route_match'),
       $container->get('current_user'),
-      $container->get('datetime.time'),
+      $container->get('myeventlane_boost.manager'),
     );
   }
 
@@ -89,20 +89,12 @@ final class BoostCtaBlock extends BlockBase implements ContainerFactoryPluginInt
       return [];
     }
 
-    $promoted = (bool) $node->get('field_promoted')->value;
-    $expiresVal = $node->get('field_promo_expires')->value ?? NULL;
-
-    $expiresTs = 0;
-    if ($expiresVal) {
-      try {
-        $expiresTs = (new \DateTimeImmutable($expiresVal, new \DateTimeZone('UTC')))->getTimestamp();
-      }
-      catch (\Exception) {
-        // Invalid date format.
-      }
-    }
-
-    $isBoosted = $promoted && ($expiresTs > $this->time->getRequestTime());
+    // Use canonical API to check boost status.
+    $boostStatus = $this->boostManager->getBoostStatusForEvent($node);
+    $isBoosted = $boostStatus['active'];
+    $expiresValue = $boostStatus['end_timestamp']
+      ? date('Y-m-d\TH:i:s', $boostStatus['end_timestamp'])
+      : NULL;
 
     $ctaLink = [];
     if (!$isBoosted) {
@@ -116,7 +108,7 @@ final class BoostCtaBlock extends BlockBase implements ContainerFactoryPluginInt
       '#theme' => 'boost_cta',
       '#event' => $node,
       '#is_boosted' => $isBoosted,
-      '#expires' => $expiresVal,
+      '#expires' => $expiresValue,
       '#cta' => $ctaLink,
       '#attached' => ['library' => ['myeventlane_boost/boost']],
       '#cache' => [

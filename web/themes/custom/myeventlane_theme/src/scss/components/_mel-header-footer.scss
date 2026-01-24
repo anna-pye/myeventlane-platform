@@ -1,0 +1,113 @@
+// ==========================================================================
+// MyEventLane v2 header/footer base (mobile-first)
+// ==========================================================================
+// Shared component styles for .mel-site-header and .mel-site-footer.
+// Coexists with existing _header.scss and _footer.scss; Twig uses these in Stage 2.
+// Uses CSS custom properties from _tokens.scss.
+
+// ---------------------------------------------------------------------------
+// Focus (WCAG)
+// ---------------------------------------------------------------------------
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--mel-focus);
+  outline-offset: 2px;
+  border-radius: var(--mel-radius-1);
+}
+
+// ---------------------------------------------------------------------------
+// Site header wrapper
+// ---------------------------------------------------------------------------
+
+.mel-site-header {
+  background: var(--mel-header-bg);
+  border-bottom: 1px solid var(--mel-border);
+  padding-inline: var(--mel-space-4);
+
+  a {
+    color: inherit;
+  }
+
+  @media (min-width: 768px) {
+    padding-inline: var(--mel-space-5);
+  }
+}
+
+// Main theme: avoid double horizontal padding; .mel-header-inner.mel-container is the spacing authority.
+.mel-site-header--main {
+  padding-inline: 0;
+}
+
+.mel-site-header__inner {
+  padding-inline: 0;
+}
+
+// Main theme footer: avoid double horizontal padding; .mel-site-footer__inner.mel-container is the spacing authority.
+.mel-site-footer--main {
+  padding-inline: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Site footer wrapper
+// ---------------------------------------------------------------------------
+
+.mel-site-footer {
+  background: var(--mel-footer-bg);
+  border-top: 1px solid var(--mel-border);
+  padding-inline: var(--mel-space-4);
+
+  a {
+    color: inherit;
+  }
+
+  @media (min-width: 768px) {
+    padding-inline: var(--mel-space-5);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Buttons (tap targets >= 44px)
+// ---------------------------------------------------------------------------
+
+.mel-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--mel-radius-3);
+  border: 1px solid var(--mel-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--mel-surface);
+  color: var(--mel-text);
+}
+
+.mel-btn--primary {
+  background: var(--mel-coral);
+  color: #fff;
+  border-color: transparent;
+}
+
+.mel-btn--secondary {
+  background: #fff;
+  color: var(--mel-text);
+}
+
+.mel-btn--ghost {
+  background: transparent;
+}
+
+// ---------------------------------------------------------------------------
+// Nav pills
+// ---------------------------------------------------------------------------
+
+.mel-pill {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: var(--mel-radius-pill, 999px);
+  border: 1px solid var(--mel-border);
+  background: rgba(255, 255, 255, 0.65);
+}

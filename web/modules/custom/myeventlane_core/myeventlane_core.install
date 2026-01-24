@@ -5,6 +5,7 @@
  * Install, update and uninstall functions for the MyEventLane Core module.
  */
 
+use Drupal\user\Entity\Role;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\node\Entity\NodeType;
@@ -301,7 +302,7 @@ function myeventlane_core_update_9105(): void {
 function myeventlane_core_update_9106(): void {
   $perm = 'view commerce_product';
   foreach (['anonymous', 'authenticated'] as $rid) {
-    $role = \Drupal\user\Entity\Role::load($rid);
+    $role = Role::load($rid);
     if ($role && !$role->hasPermission($perm)) {
       $role->grantPermission($perm);
       $role->save();
@@ -315,7 +316,7 @@ function myeventlane_core_update_9106(): void {
 function myeventlane_core_update_9107(): void {
   $perm = 'view commerce_product';
   foreach (['anonymous', 'authenticated'] as $rid) {
-    $role = \Drupal\user\Entity\Role::load($rid);
+    $role = Role::load($rid);
     if ($role && !$role->hasPermission($perm)) {
       $role->grantPermission($perm);
       $role->save();

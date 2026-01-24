@@ -9,7 +9,6 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -73,18 +72,20 @@ final class EventTicketsForm extends FormBase {
       $ticket_types = $event->get('field_ticket_types')->referencedEntities();
     }
 
-    // Build table header.
+    // Build table header. Use sequential keys for theme_table.
     $header = [
-      'name' => $this->t('Name'),
-      'price' => $this->t('Price'),
-      'capacity' => $this->t('Capacity'),
-      'status' => $this->t('Status'),
-      'operations' => $this->t('Actions'),
+      $this->t('Name'),
+      $this->t('Price'),
+      $this->t('Capacity'),
+      $this->t('Status'),
+      $this->t('Actions'),
     ];
 
-    // Build table rows.
+    // Build table rows. Use 'data' structure per theme_table preprocess so
+    // row attributes are not confused with cell content (avoids array-to-string
+    // in AttributeArray when column keys are passed as attribute names).
     $rows = [];
-    foreach ($ticket_types as $delta => $paragraph) {
+    foreach ($ticket_types as $paragraph) {
       if (!$paragraph instanceof ParagraphInterface) {
         continue;
       }
@@ -94,19 +95,23 @@ final class EventTicketsForm extends FormBase {
       $capacity = $paragraph->get('field_ticket_capacity')->value ?? 0;
       $status = $capacity > 0 ? $this->t('Active') : $this->t('Inactive');
 
-      $rows[$delta] = [
-        'name' => ['#markup' => $label],
-        'price' => ['#markup' => '$' . number_format((float) $price, 2)],
-        'capacity' => ['#markup' => (string) $capacity],
-        'status' => ['#markup' => $status],
-        'operations' => [
-          'delete' => [
-            '#type' => 'submit',
-            '#value' => $this->t('Delete'),
-            '#submit' => ['::deleteTicket'],
-            '#name' => 'delete_ticket_' . $paragraph->id(),
-            '#paragraph_id' => $paragraph->id(),
-            '#attributes' => ['class' => ['button', 'button--small', 'button--danger']],
+      $rows[] = [
+        'data' => [
+          ['data' => ['#markup' => $label]],
+          ['data' => ['#markup' => '$' . number_format((float) $price, 2)]],
+          ['data' => ['#markup' => (string) $capacity]],
+          ['data' => ['#markup' => $status]],
+          [
+            'data' => [
+              'delete' => [
+                '#type' => 'submit',
+                '#value' => $this->t('Delete'),
+                '#submit' => ['::deleteTicket'],
+                '#name' => 'delete_ticket_' . $paragraph->id(),
+                '#paragraph_id' => $paragraph->id(),
+                '#attributes' => ['class' => ['button', 'button--small', 'button--danger']],
+              ],
+            ],
           ],
         ],
       ];
@@ -123,15 +128,17 @@ final class EventTicketsForm extends FormBase {
     $form['actions'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-ticket-actions']],
-      'add_ticket' => [
-        '#type' => 'link',
-        '#title' => '+ ' . $this->t('Add ticket type'),
-        '#url' => Url::fromRoute('mel_tickets.add_ticket_modal', ['event' => $event->id()]),
-        '#attributes' => [
-          'class' => ['button', 'button--primary', 'use-ajax'],
-          'data-dialog-type' => 'modal',
-          'data-dialog-options' => json_encode(['width' => 'medium']),
-        ],
+      'add_paid' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Add paid ticket'),
+        '#submit' => ['::addPaidTicket'],
+        '#attributes' => ['class' => ['button', 'button--primary']],
+      ],
+      'add_free' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Add free ticket'),
+        '#submit' => ['::addFreeTicket'],
+        '#attributes' => ['class' => ['button']],
       ],
       'save' => [
         '#type' => 'submit',
@@ -139,10 +146,6 @@ final class EventTicketsForm extends FormBase {
         '#attributes' => ['class' => ['button', 'button--primary']],
       ],
     ];
-
-    // Attach AJAX library for modal.
-    $form['#attached']['library'][] = 'core/drupal.ajax';
-    $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
 
     // Calculate total capacity.
     $total_capacity = 0;

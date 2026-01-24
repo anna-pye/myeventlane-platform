@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -31,6 +32,7 @@ final class VendorCheckInController extends ControllerBase {
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     AccountProxyInterface $currentUser,
+    private readonly TicketLabelResolver $ticketLabelResolver,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -42,7 +44,8 @@ final class VendorCheckInController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('entity_type.manager'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('myeventlane_core.ticket_label_resolver')
     );
   }
 
@@ -352,6 +355,9 @@ final class VendorCheckInController extends ControllerBase {
       if (!$orderItem instanceof OrderItemInterface) {
         continue;
       }
+      if ($orderItem->bundle() === 'boost') {
+        continue;
+      }
 
       // Get order.
       try {
@@ -364,8 +370,8 @@ final class VendorCheckInController extends ControllerBase {
         continue;
       }
 
-      // Get ticket type.
-      $ticketType = $orderItem->getTitle();
+      // Ticket type: product variation label, not order item title.
+      $ticketType = $this->ticketLabelResolver->getTicketLabel($orderItem);
 
       // Get attendees from paragraphs.
       if ($orderItem->hasField('field_ticket_holder') && !$orderItem->get('field_ticket_holder')->isEmpty()) {

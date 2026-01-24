@@ -358,7 +358,7 @@ final class VendorAttendeeController extends ControllerBase {
         'Name',
         'Email',
         'Source',
-        'Ticket Type',
+        'Product variation',
         'Ticket Code',
         'Checked In',
         'Checked In At',

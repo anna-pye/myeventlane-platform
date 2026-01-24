@@ -21,9 +21,6 @@ import './mel-card-media.js';
 // Import card carousel (Swiper) for Recommended Events
 import './card-carousel.js';
 
-// Import cart debug instrumentation (DEBUG MODE ONLY)
-import './cart-debug.js';
-
 /**
  * Initialize theme functionality.
  * Wrapped in Drupal behavior to ensure it doesn't interfere with Commerce payment JS.

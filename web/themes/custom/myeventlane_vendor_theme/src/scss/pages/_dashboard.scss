@@ -3,6 +3,7 @@
  * Dashboard page styles for MyEventLane Vendor Theme.
  */
 
+@use "sass:color";
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/typography' as *;
@@ -484,13 +485,13 @@
   &--info {
     background: $info-light;
     border-left-color: $info;
-    color: darken($info, 10%);
+    color: color.adjust($info, $lightness: -10%);
   }
 
   &--warning {
     background: $warning-light;
     border-left-color: $warning;
-    color: darken($warning, 10%);
+    color: color.adjust($warning, $lightness: -10%);
   }
 }
 

@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Vendor KPI summary strip (STAGE A2).
+ * Renders only when vendor_kpis is defined. No math in Twig.
+ */
+#}
+{% if vendor_kpis is defined %}
+<section class="mel-kpi-strip" aria-label="{{ 'Vendor performance summary'|t }}">
+  <ul class="mel-kpi-strip__list">
+    {% for kpi in vendor_kpis %}
+      <li class="mel-kpi">
+        <div class="mel-kpi__value">{{ kpi.value }}</div>
+        <div class="mel-kpi__label">{{ kpi.label }}</div>
+        <div class="mel-kpi__sub">{{ kpi.sub }}</div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

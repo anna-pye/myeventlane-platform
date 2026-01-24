@@ -1,0 +1,10 @@
+services:
+  logger.channel.myeventlane_stripe:
+    parent: logger.channel_base
+    arguments: ['myeventlane_stripe']
+
+  myeventlane_stripe.vendor_stripe:
+    class: Drupal\myeventlane_stripe\Service\VendorStripeService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_stripe'

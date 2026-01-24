@@ -121,6 +121,11 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($orderItem)) {
+          continue;
+        }
+
         // Safely load the order entity to avoid getOrder() warnings.
         if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
           continue;
@@ -189,6 +194,11 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($orderItem)) {
+          continue;
+        }
+
         // Safely load the order entity to avoid getOrder() warnings.
         if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
           continue;
@@ -207,26 +217,40 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           }
 
           $purchasedEntity = $orderItem->getPurchasedEntity();
-          $label = $purchasedEntity ? $purchasedEntity->label() : 'Unknown';
+          if (!$purchasedEntity) {
+            continue;
+          }
+
+          // Get variation title and extract ticket type part.
+          $variationTitle = $purchasedEntity->label();
+          // Extract ticket type from variation title (e.g., "Event Name – General" -> "General").
+          $label = $variationTitle;
+          if (strpos($variationTitle, ' – ') !== FALSE) {
+            $parts = explode(' – ', $variationTitle, 2);
+            $label = $parts[1] ?? $variationTitle;
+          }
+
           $quantity = (int) $orderItem->getQuantity();
           $totalPrice = $orderItem->getTotalPrice();
+
+          // Get stock/available from variation.
+          $stock = 'Unlimited';
+          if ($purchasedEntity->hasField('field_stock') && !$purchasedEntity->get('field_stock')->isEmpty()) {
+            $stock = (int) $purchasedEntity->get('field_stock')->value;
+          }
 
           if (!isset($breakdown[$label])) {
             $breakdown[$label] = [
               'label' => $label,
               'sold' => 0,
-              'revenue' => NULL,
+              'revenue_raw' => 0.0,
+              'stock' => $stock,
             ];
           }
 
           $breakdown[$label]['sold'] += $quantity;
           if ($totalPrice) {
-            if ($breakdown[$label]['revenue'] === NULL) {
-              $breakdown[$label]['revenue'] = $totalPrice;
-            }
-            else {
-              $breakdown[$label]['revenue'] = $breakdown[$label]['revenue']->add($totalPrice);
-            }
+            $breakdown[$label]['revenue_raw'] += (float) $totalPrice->getNumber();
           }
         }
         catch (\Exception $e) {
@@ -238,9 +262,22 @@ final class EventMetricsService implements EventMetricsServiceInterface {
       // Commerce not available or error.
     }
 
-    $result = array_values($breakdown);
-    $this->cache->set($cacheKey, $result, $this->time->getRequestTime() + 300, $this->getCacheTags($event));
-    return $result;
+    // Format breakdown for template (add available and formatted revenue).
+    $formatted = [];
+    foreach ($breakdown as $item) {
+      $available = is_int($item['stock']) ? max(0, $item['stock'] - $item['sold']) : $item['stock'];
+      $revenueFormatted = '$' . number_format($item['revenue_raw'], 2);
+
+      $formatted[] = [
+        'label' => $item['label'],
+        'sold' => $item['sold'],
+        'available' => $available,
+        'revenue' => $revenueFormatted,
+      ];
+    }
+
+    $this->cache->set($cacheKey, $formatted, $this->time->getRequestTime() + 300, $this->getCacheTags($event));
+    return $formatted;
   }
 
   /**
@@ -301,6 +338,38 @@ final class EventMetricsService implements EventMetricsServiceInterface {
    */
   private function getCacheKeyById(int $eventId, string $metric): string {
     return "myeventlane_metrics:{$eventId}:{$metric}";
+  }
+
+  /**
+   * Checks if an order item is a Boost purchase.
+   *
+   * Boost purchases are admin revenue and must be excluded from vendor metrics.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
+   *   The order item.
+   *
+   * @return bool
+   *   TRUE if the item is a Boost purchase, FALSE otherwise.
+   */
+  private function isBoostItem(OrderItemInterface $item): bool {
+    // Boost order items have bundle 'boost'.
+    if ($item->bundle() === 'boost') {
+      return TRUE;
+    }
+
+    // Also check the purchased entity's product/variation type.
+    $purchasedEntity = $item->getPurchasedEntity();
+    if ($purchasedEntity) {
+      $product = $purchasedEntity->getProduct();
+      if ($product && $product->bundle() === 'boost_upgrade') {
+        return TRUE;
+      }
+      if ($purchasedEntity->bundle() === 'boost_duration') {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**

@@ -33,3 +33,18 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_core.stripe'
       - '@logger.channel.myeventlane_commerce'
+
+  myeventlane_commerce.platform_fee_order_processor:
+    class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor
+    arguments:
+      - '@config.factory'
+      - '@commerce_price.rounder'
+    tags:
+      - { name: commerce_order.order_processor, priority: 55 }
+
+  myeventlane_commerce.platform_fee_order_presave_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\PlatformFeeOrderPresaveSubscriber
+    arguments:
+      - '@commerce_order.order_refresh'
+    tags:
+      - { name: event_subscriber }

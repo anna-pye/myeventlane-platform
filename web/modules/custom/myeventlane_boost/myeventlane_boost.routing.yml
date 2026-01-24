@@ -26,6 +26,17 @@ myeventlane_boost.bridge_add_to_cart:
       node:
         type: entity:node
 
+# Public PDF guide: Boost performance summary.
+myeventlane_boost.performance_guide_pdf:
+  path: '/boost-performance-guide.pdf'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\BoostPerformanceGuidePdfController::download'
+    _title: 'Boost Performance Summary'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
 # Admin settings page.
 myeventlane_boost.settings:
   path: '/admin/config/myeventlane/boost'

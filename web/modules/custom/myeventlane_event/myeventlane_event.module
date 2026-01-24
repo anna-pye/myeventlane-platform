@@ -471,4 +471,16 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   if ($lat !== NULL && $lng !== NULL) {
     $variables['#attached']['library'][] = 'myeventlane_location/event_map';
   }
+
+  // CTA and state: mutual exclusivity (paid | rsvp | none). Logic in service only.
+  $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
+  $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
+
+  $variables['mel_event_state'] = $stateResolver->resolveState($node);
+  $variables['cta_type'] = $ctaResolver->getCtaType($node);
+  $variables['event_cta'] = $ctaResolver->getResolvedCta($node);
+  $variables['mel_is_bookable'] = $ctaResolver->isBookable($node);
+
+  $salesStart = $stateResolver->getSalesStart($node);
+  $variables['mel_sales_start_formatted'] = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
 }

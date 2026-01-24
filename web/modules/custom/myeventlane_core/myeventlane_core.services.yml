@@ -30,6 +30,7 @@ services:
       - '@plugin.manager.mail'
       - '@renderer'
       - '@flag'
+      - '@myeventlane_boost.manager'
 
   myeventlane_core.category_digest_cron:
     class: Drupal\myeventlane_core\Service\CategoryDigestCron
@@ -108,6 +109,7 @@ services:
     arguments:
       - '@database'
       - '@entity_type.manager'
+      - '@myeventlane_boost.manager'
 
   myeventlane_core.homepage_organiser:
     class: Drupal\myeventlane_core\Service\HomepageOrganiserService
@@ -141,3 +143,6 @@ services:
       - '@entity_type.manager'
       - '@cache_tags.invalidator'
       - '@logger.factory'
+
+  myeventlane_core.ticket_label_resolver:
+    class: Drupal\myeventlane_core\Service\TicketLabelResolver

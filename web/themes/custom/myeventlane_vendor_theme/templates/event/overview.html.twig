@@ -1,6 +1,6 @@
 {#
   Event overview pane.
-  Variables: event, overview (sales/rsvps/audience/boost/tickets), charts.
+  Variables: event, overview (sales/rsvps/audience/boost/tickets), charts, boost_help.
 #}
 <div class="mel-grid mel-grid--2">
   <div class="mel-card">
@@ -90,38 +90,322 @@
   </div>
 </div>
 
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Boost placements'|t }}</div>
-    {% if event %}
-      {# Only show boost link if user has access - access is checked by route #}
-      {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
-      <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
-        <span class="mel-btn__icon">⚡</span>
-        {{ 'Boost this event'|t }}
-      </a>
-    {% endif %}
-  </div>
-  <div class="mel-list">
-    {% for boost in overview.boost %}
-      <div class="mel-list__item">
-        <div>{{ boost.label }}</div>
-        <div class="mel-badge mel-badge--{{ boost.status|lower }}">{{ boost.status }}</div>
-        {% if boost.ends %}
-          <div class="mel-text--muted">{{ 'Ends'|t }}: {{ boost.ends }}</div>
+{# Boost metrics section #}
+{% set boost_metrics = overview.boost_metrics|default(null) %}
+{% set boost_tooltips = boost_help.tooltips|default({}) %}
+{% if boost_metrics %}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Boost summary'|t }}</div>
+      {% if event %}
+        {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
+        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
+          <span class="mel-btn__icon">⚡</span>
+          {{ 'Boost this event'|t }}
+        </a>
+      {% endif %}
+    </div>
+    <div class="mel-card__body">
+      <div class="mel-grid mel-grid--3">
+        <div class="mel-stat">
+          <div class="mel-stat__label">{{ 'Boost spend'|t }}</div>
+          <div class="mel-stat__value">{{ boost_metrics.spend }}</div>
+        </div>
+        <div class="mel-stat">
+          <div class="mel-stat__label">
+            {{ 'Impressions'|t }}
+            {% if boost_tooltips.impressions is defined %}
+              {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                id: 'boost-tooltip-impressions-summary',
+                aria_label: 'What are impressions?',
+                text: boost_tooltips.impressions
+              } only %}
+            {% endif %}
+          </div>
+          <div class="mel-stat__value">{{ boost_metrics.impressions|number_format(0) }}</div>
+        </div>
+        <div class="mel-stat">
+          <div class="mel-stat__label">
+            {{ 'Clicks'|t }}
+            {% if boost_tooltips.clicks is defined %}
+              {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                id: 'boost-tooltip-clicks-summary',
+                aria_label: 'What are clicks?',
+                text: boost_tooltips.clicks
+              } only %}
+            {% endif %}
+          </div>
+          <div class="mel-stat__value">{{ boost_metrics.clicks|number_format(0) }}</div>
+        </div>
+        <div class="mel-stat">
+          <div class="mel-stat__label">
+            {{ 'CTR'|t }}
+            {% if boost_tooltips.ctr is defined %}
+              {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                id: 'boost-tooltip-ctr-summary',
+                aria_label: 'What is CTR?',
+                text: boost_tooltips.ctr
+              } only %}
+            {% endif %}
+          </div>
+          <div class="mel-stat__value">{{ ((boost_metrics.ctr|default(0)) * 100)|number_format(2) }}%</div>
+        </div>
+        <div class="mel-stat">
+          <div class="mel-stat__label">{{ 'Cost per click'|t }}</div>
+          <div class="mel-stat__value">{{ boost_metrics.cost_per_click|default('—') }}</div>
+        </div>
+        {% if overview.cta_type|default('') == 'paid' and boost_metrics.sales_during_period %}
+          <div class="mel-stat">
+            <div class="mel-stat__label">
+              {{ 'Sales during boost period'|t }}
+              {% if boost_tooltips.sales_during_boost is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-sales-during',
+                  aria_label: 'What are sales during boost period?',
+                  text: boost_tooltips.sales_during_boost
+                } only %}
+              {% endif %}
+            </div>
+            <div class="mel-stat__value">{{ boost_metrics.sales_during_period.revenue }}</div>
+            <div class="mel-stat__sublabel">{{ boost_metrics.sales_during_period.count }} {{ 'orders'|t }}</div>
+          </div>
+        {% endif %}
+        {% if overview.cta_type|default('') == 'paid' and boost_metrics.orders_following_click is not null %}
+          <div class="mel-stat">
+            <div class="mel-stat__label">
+              {{ 'Orders following a Boost click (within 24h)'|t }}
+              {% if boost_tooltips.orders_following_click_24h is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-orders-following-click',
+                  aria_label: 'What are orders following click (24h)?',
+                  text: boost_tooltips.orders_following_click_24h
+                } only %}
+              {% endif %}
+            </div>
+            <div class="mel-stat__value">{{ boost_metrics.orders_following_click.revenue }}</div>
+            <div class="mel-stat__sublabel">{{ boost_metrics.orders_following_click.count }} {{ 'orders'|t }}</div>
+          </div>
         {% endif %}
       </div>
-    {% else %}
+      {% if event %}
+        <p class="mel-export-link">
+          <a class="mel-pill" href="{{ path('myeventlane_vendor.console.boost_event_export', { event: event.id }) }}">{{ 'Export Boost performance (CSV)'|t }}</a>
+          {% if boost_help.pdf_url is defined and boost_help.pdf_url %}
+            <a class="mel-pill" href="{{ boost_help.pdf_url }}">{{ 'Boost performance guide (PDF)'|t }}</a>
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if boost_metrics.chart_data or (boost_metrics.placement_comparison|length > 0) or (boost_metrics.recommendations|length > 0) %}
+    <div class="mel-card mel-card--collapse">
+      <details class="mel-details">
+        <summary class="mel-details__summary">{{ 'Performance over time'|t }}</summary>
+        <div class="mel-details__body">
+          {% if boost_metrics.chart_data %}
+            <div class="mel-grid mel-grid--2">
+              <div class="mel-chart-wrap">
+                <h4 class="mel-chart-title">{{ 'Impressions vs Clicks'|t }}</h4>
+                <canvas data-chart-id="boost-impressions-clicks"></canvas>
+              </div>
+              <div class="mel-chart-wrap">
+                <h4 class="mel-chart-title">{{ 'CTR by placement'|t }}</h4>
+                <canvas data-chart-id="boost-ctr-placement"></canvas>
+              </div>
+            </div>
+          {% endif %}
+          {% if boost_metrics.placement_comparison|length > 0 %}
+            <div class="mel-table-wrap">
+              <h4>{{ 'Placement comparison'|t }}</h4>
+              <div class="mel-table">
+                <div class="mel-table__head">
+                  <div>{{ 'Placement'|t }}</div>
+                  <div>
+                    {{ 'Impressions'|t }}
+                    {% if boost_tooltips.impressions is defined %}
+                      {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                        id: 'boost-tooltip-impressions-compare',
+                        aria_label: 'What are impressions?',
+                        text: boost_tooltips.impressions
+                      } only %}
+                    {% endif %}
+                  </div>
+                  <div>
+                    {{ 'Clicks'|t }}
+                    {% if boost_tooltips.clicks is defined %}
+                      {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                        id: 'boost-tooltip-clicks-compare',
+                        aria_label: 'What are clicks?',
+                        text: boost_tooltips.clicks
+                      } only %}
+                    {% endif %}
+                  </div>
+                  <div>
+                    {{ 'CTR'|t }}
+                    {% if boost_tooltips.ctr is defined %}
+                      {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                        id: 'boost-tooltip-ctr-compare',
+                        aria_label: 'What is CTR?',
+                        text: boost_tooltips.ctr
+                      } only %}
+                    {% endif %}
+                  </div>
+                  <div>{{ 'Avg clicks/day'|t }}</div>
+                </div>
+                <div class="mel-table__body">
+                  {% for row in boost_metrics.placement_comparison %}
+                    <div class="mel-table__row">
+                      <div>{{ row.placement }}</div>
+                      <div>{{ row.impressions|number_format(0) }}</div>
+                      <div>{{ row.clicks|number_format(0) }}</div>
+                      <div>{{ ((row.ctr|default(0)) * 100)|number_format(2) }}%</div>
+                      <div>{{ row.avg_clicks_per_day|default(0) }}</div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if boost_metrics.recommendations|length > 0 %}
+            <div class="mel-recommendations">
+              <h4>{{ 'Recommendations'|t }}</h4>
+              <ul class="mel-list">
+                {% for rec in boost_metrics.recommendations %}
+                  <li>{{ rec }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  {% endif %}
+
+  {# Boost placements table #}
+  {% if boost_metrics.placements|length > 0 %}
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <div class="mel-card__title">
+          {{ 'Boost placements'|t }}
+          {% if boost_tooltips.boost_performance_section is defined %}
+            {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+              id: 'boost-tooltip-performance-section',
+              aria_label: 'Boost performance',
+              text: boost_tooltips.boost_performance_section
+            } only %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="mel-card__body">
+        <div class="mel-table">
+          <div class="mel-table__head">
+            <div>
+              {{ 'Placement'|t }}
+              {% if boost_tooltips.boost_placement is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-placement-header',
+                  aria_label: 'What is boost placement?',
+                  text: boost_tooltips.boost_placement
+                } only %}
+              {% endif %}
+            </div>
+            <div>
+              {{ 'Status'|t }}
+              {% if boost_tooltips.status is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-status-header',
+                  aria_label: 'What is status?',
+                  text: boost_tooltips.status
+                } only %}
+              {% endif %}
+            </div>
+            <div>{{ 'Date range'|t }}</div>
+            <div>{{ 'Budget'|t }}</div>
+            <div>
+              {{ 'Spend to date'|t }}
+              {% if boost_tooltips.spend is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-spend-header',
+                  aria_label: 'What is spend?',
+                  text: boost_tooltips.spend
+                } only %}
+              {% endif %}
+            </div>
+            <div>
+              {{ 'Impressions'|t }}
+              {% if boost_tooltips.impressions is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-impressions-header',
+                  aria_label: 'What are impressions?',
+                  text: boost_tooltips.impressions
+                } only %}
+              {% endif %}
+            </div>
+            <div>
+              {{ 'Clicks'|t }}
+              {% if boost_tooltips.clicks is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-clicks-header',
+                  aria_label: 'What are clicks?',
+                  text: boost_tooltips.clicks
+                } only %}
+              {% endif %}
+            </div>
+            <div>
+              {{ 'CTR'|t }}
+              {% if boost_tooltips.ctr is defined %}
+                {% include '@myeventlane_vendor_theme/components/tooltip.html.twig' with {
+                  id: 'boost-tooltip-ctr-header',
+                  aria_label: 'What is CTR?',
+                  text: boost_tooltips.ctr
+                } only %}
+              {% endif %}
+            </div>
+            <div>{{ 'Actions'|t }}</div>
+          </div>
+          <div class="mel-table__body">
+            {% for placement in boost_metrics.placements %}
+              <div class="mel-table__row">
+                <div>{{ placement.placement }}</div>
+                <div>
+                  <span class="mel-badge mel-badge--{{ placement.status|lower == 'active' ? 'success' : (placement.status|lower == 'refunded' ? 'error' : 'neutral') }}">
+                    {{ placement.status }}
+                  </span>
+                </div>
+                <div>{{ placement.date_range }}</div>
+                <div>{{ placement.budget }}</div>
+                <div>{{ placement.spend_to_date }}</div>
+                <div>{{ placement.impressions|number_format(0) }}</div>
+                <div>{{ placement.clicks|number_format(0) }}</div>
+                <div>{{ ((placement.ctr|default(0)) * 100)|number_format(2) }}%</div>
+                <div>
+                  <a href="#" class="mel-link">{{ 'View'|t }}</a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% else %}
+  {# No boost metrics - show empty state #}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Boost placements'|t }}</div>
+      {% if event %}
+        {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
+        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
+          <span class="mel-btn__icon">⚡</span>
+          {{ 'Boost this event'|t }}
+        </a>
+      {% endif %}
+    </div>
+    <div class="mel-card__body">
       <div class="mel-empty">
-        <p>{{ 'No active boost placements.'|t }}</p>
-        {% if event %}
-          {# Only show boost link if user has access - access is checked by route #}
-          {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
-          <a href="{{ boost_url }}" class="mel-btn mel-btn--primary">
-            {{ 'Boost this event now'|t }}
-          </a>
-        {% endif %}
+        <p>{{ 'Boost placements will appear here once configured.'|t }}</p>
       </div>
-    {% endfor %}
+    </div>
   </div>
-</div>
+{% endif %}

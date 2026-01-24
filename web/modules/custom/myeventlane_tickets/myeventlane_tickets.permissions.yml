@@ -4,6 +4,15 @@ administer myeventlane tickets:
   description: 'Configure ticket PDF generation and download settings.'
   restrict access: TRUE
 
+manage own events tickets:
+  title: 'Manage tickets for own events'
+  description: 'Create and manage ticket products, groups, access codes and settings for events the user owns.'
+
+administer all events tickets:
+  title: 'Administer tickets for all events'
+  description: 'Full access to manage tickets for any event.'
+  restrict access: true
+
 
 
 

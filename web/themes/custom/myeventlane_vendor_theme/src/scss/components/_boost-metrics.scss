@@ -1,0 +1,104 @@
+/**
+ * @file
+ * Boost metrics component styles for MyEventLane Vendor Theme.
+ *
+ * Styles for Boost analytics display in Event Overview.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+
+// ============================================================================
+// STATS GRID (mel-stats)
+// ============================================================================
+
+.mel-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: $spacing-5;
+  padding: $spacing-5;
+}
+
+// ============================================================================
+// STAT (mel-stat)
+// ============================================================================
+
+.mel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-stat__label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-1;
+}
+
+.mel-stat__value {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  line-height: 1.2;
+}
+
+.mel-stat__sublabel {
+  font-size: $font-size-xs;
+  color: $text-muted;
+  margin-top: -$spacing-1;
+}
+
+// ============================================================================
+// Phase 2: Performance over time (collapsible)
+// ============================================================================
+
+.mel-details {
+  border: 1px solid $border-color-light;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.mel-details__summary {
+  padding: $spacing-4;
+  font-weight: $font-weight-semibold;
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.mel-details__body {
+  padding: 0 $spacing-4 $spacing-4;
+  border-top: 1px solid $border-color-light;
+}
+
+.mel-chart-wrap {
+  padding: $spacing-4 0;
+}
+
+.mel-chart-title {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  margin: 0 0 $spacing-3;
+}
+
+.mel-recommendations {
+  margin-top: $spacing-4;
+
+  h4 {
+    margin: 0 0 $spacing-2;
+    font-size: $font-size-base;
+  }
+
+  .mel-list {
+    margin: 0;
+    padding-left: $spacing-5;
+  }
+}

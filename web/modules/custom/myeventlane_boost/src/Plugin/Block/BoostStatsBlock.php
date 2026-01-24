@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Plugin\Block;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Block\BlockBase;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -30,17 +29,14 @@ final class BoostStatsBlock extends BlockBase implements ContainerFactoryPluginI
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager.
-   * @param \Drupal\Component\Datetime\TimeInterface $time
-   *   The time service.
+   * @param \Drupal\myeventlane_boost\BoostManager $boostManager
+   *   The boost manager service.
    */
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly TimeInterface $time,
+    private readonly BoostManager $boostManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -58,8 +54,7 @@ final class BoostStatsBlock extends BlockBase implements ContainerFactoryPluginI
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('datetime.time'),
+      $container->get('myeventlane_boost.manager'),
     );
   }
 
@@ -67,41 +62,28 @@ final class BoostStatsBlock extends BlockBase implements ContainerFactoryPluginI
    * {@inheritdoc}
    */
   public function build(): array {
-    $now = $this->time->getRequestTime();
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-    $soonIso = gmdate('Y-m-d\TH:i:s', $now + (48 * 3600));
+    // Get active boosted events (all stores, no access check for stats).
+    $activeIds = $this->boostManager->getActiveBoostedEventIdsForStore(NULL, [
+      'access_check' => FALSE,
+    ]);
+    $active = count($activeIds);
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-
-    $active = $nodeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_promoted', 1)
-      ->condition('field_promo_expires', $nowIso, '>')
-      ->count()
-      ->execute();
-
-    $expiring = $nodeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_promoted', 1)
-      ->condition('field_promo_expires', $nowIso, '>')
-      ->condition('field_promo_expires', $soonIso, '<=')
-      ->count()
-      ->execute();
+    // Get expiring boosts (within 48 hours) using canonical API.
+    $expiringIds = $this->boostManager->getExpiringBoostedEventIdsForStore(NULL, 48 * 3600, [
+      'access_check' => FALSE,
+    ]);
+    $expiringCount = count($expiringIds);
 
     return [
       '#theme' => 'item_list',
       '#items' => [
         $this->t('Active boosts: @n', ['@n' => $active]),
-        $this->t('Expiring ≤ 48h: @n', ['@n' => $expiring]),
+        $this->t('Expiring ≤ 48h: @n', ['@n' => $expiringCount]),
       ],
       '#cache' => [
         'max_age' => 300,
         'contexts' => ['user.permissions'],
-        'tags' => ['node_list:event'],
+        'tags' => ['node_list:event', 'myeventlane_boost:stats'],
       ],
     ];
   }

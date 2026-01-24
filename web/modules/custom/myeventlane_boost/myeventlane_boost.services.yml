@@ -4,6 +4,18 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_boost']
 
+  # Centralised help copy (tooltips, PDF, onboarding, FAQ).
+  myeventlane_boost.help_content:
+    class: Drupal\myeventlane_boost\Service\BoostHelpContent
+
+  # Public, one-page PDF guide generator.
+  myeventlane_boost.performance_guide_pdf:
+    class: Drupal\myeventlane_boost\Service\BoostPerformanceGuidePdfGenerator
+    arguments:
+      - '@renderer'
+      - '@myeventlane_boost.help_content'
+      - '@logger.channel.myeventlane_boost'
+
   # Main boost manager service.
   myeventlane_boost.manager:
     class: Drupal\myeventlane_boost\BoostManager
@@ -35,3 +47,46 @@ services:
   myeventlane_boost.boost_route_access:
     class: Drupal\myeventlane_boost\Access\BoostRouteAccess
     arguments: ['@entity_type.manager', '@logger.channel.myeventlane_boost']
+
+  # Boost metrics service.
+  myeventlane_boost.metrics:
+    class: Drupal\myeventlane_boost\Service\BoostMetricsService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@myeventlane_boost.manager'
+      - '@datetime.time'
+      - '@string_translation'
+
+  # Boost impression tracker.
+  myeventlane_boost.impression_tracker:
+    class: Drupal\myeventlane_boost\Service\BoostImpressionTracker
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_boost'
+
+  # Boost click tracker.
+  myeventlane_boost.click_tracker:
+    class: Drupal\myeventlane_boost\Service\BoostClickTracker
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_boost'
+
+  # Click tracking event subscriber.
+  myeventlane_boost.click_tracking_subscriber:
+    class: Drupal\myeventlane_boost\EventSubscriber\BoostClickTrackingSubscriber
+    arguments:
+      - '@myeventlane_boost.click_tracker'
+    tags:
+      - { name: event_subscriber }
+
+  # Daily rollup (Phase 2): log -> daily aggregates.
+  myeventlane_boost.daily_rollup:
+    class: Drupal\myeventlane_boost\Service\BoostDailyRollupService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_boost'

@@ -21,12 +21,44 @@
     </div>
 
     {% if form['#order_items']|length > 0 %}
-      {{ form.header }}
-      {{ form.output }}
-
-      {% for key, item in form if key matches '/^edit_quantity/' %}
-        {# Individual cart items are rendered by commerce #}
-      {% endfor %}
+      {# Group items by event for better UX and accessibility #}
+      {% if grouped_items is defined and grouped_items|length > 0 %}
+        {# Render event groups with headings #}
+        {% for event_id, group in grouped_items %}
+          <section class="mel-cart-event-group" data-event-id="{{ event_id }}">
+            <h2 class="mel-cart-event-title">
+              {{ group.event.label() }}
+            </h2>
+            {% if group.event.hasField('field_event_start') and not group.event.get('field_event_start').isEmpty() %}
+              <div class="mel-cart-event-meta">
+                <span class="mel-cart-event-date">
+                  {{ group.event.get('field_event_start').value|date('F j, Y') }}
+                </span>
+                {% if group.event.hasField('field_location') and not group.event.get('field_location').isEmpty() %}
+                  <span class="mel-cart-event-location" aria-label="{{ 'Location'|t }}">
+                    {{ group.event.get('field_location').value }}
+                  </span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </section>
+        {% endfor %}
+        
+        {# Items without event (shouldn't happen, but handle gracefully) #}
+        {% if items_without_event is defined and items_without_event|length > 0 %}
+          <section class="mel-cart-event-group">
+            <h2 class="mel-cart-event-title">
+              {{ 'Other Items'|t }}
+            </h2>
+          </section>
+        {% endif %}
+      {% endif %}
+      
+      {# Render Commerce's table (items are grouped visually via CSS based on event data) #}
+      <div class="mel-cart-items-table"{% if item_event_map is defined %} data-item-event-map="{{ item_event_map|json_encode }}"{% endif %}>
+        {{ form.header }}
+        {{ form.output }}
+      </div>
     {% else %}
       <div class="mel-cart-empty">
         <div class="mel-cart-empty-icon">🛒</div>

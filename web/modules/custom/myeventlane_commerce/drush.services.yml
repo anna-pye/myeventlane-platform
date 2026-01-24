@@ -1,0 +1,8 @@
+services:
+  myeventlane_commerce.commands:
+    class: Drupal\myeventlane_commerce\Commands\CommerceCommands
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.platform_fee_order_processor'
+    tags:
+      - { name: drush.command }

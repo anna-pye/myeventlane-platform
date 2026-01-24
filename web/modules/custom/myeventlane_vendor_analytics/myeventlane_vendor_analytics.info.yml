@@ -1,0 +1,11 @@
+name: 'MyEventLane Vendor Analytics'
+type: module
+description: 'Vendor KPI aggregation service for MyEventLane. Provides store-scoped net revenue, orders, tickets sold, and RSVPs (no UI, no Views, no Conversion).'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - commerce:commerce_order
+  - commerce:commerce_store
+  - drupal:user

@@ -4,13 +4,25 @@
  * Template for vendor onboarding step pages.
  *
  * Available variables:
- * - step_number: Current step number (1-5)
- * - total_steps: Total number of steps (5)
+ * - step_number: Current step number (1-6)
+ * - total_steps: Total number of steps (6)
  * - step_title: Title for this step
  * - step_description: Description text for this step
  * - content: Render array for step content
  */
 #}
+{% set back_route = null %}
+{% if step_number == 2 %}
+  {% set back_route = 'myeventlane_vendor.onboard.account' %}
+{% elseif step_number == 3 %}
+  {% set back_route = 'myeventlane_vendor.onboard.profile' %}
+{% elseif step_number == 4 %}
+  {% set back_route = 'myeventlane_vendor.onboard.stripe' %}
+{% elseif step_number == 5 %}
+  {% set back_route = 'myeventlane_vendor.onboard.first_event' %}
+{% elseif step_number == 6 %}
+  {% set back_route = 'myeventlane_vendor.onboard.boost' %}
+{% endif %}
 <div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
   <div class="mel-container mel-container--onboard">
     
@@ -40,9 +52,9 @@
     </div>
 
     {# Navigation (if needed) #}
-    {% if step_number > 1 %}
+    {% if back_route %}
       <div class="mel-onboard-nav">
-        <a href="{{ path('myeventlane_vendor.onboard.profile') }}" class="mel-btn mel-btn-ghost">
+        <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">
           {{ 'Back'|t }}
         </a>
       </div>

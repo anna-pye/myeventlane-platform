@@ -10,6 +10,7 @@ use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,6 +28,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     AccountProxyInterface $current_user,
     private readonly RsvpStatsService $rsvpStatsService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly VendorEventTabsService $eventTabsService,
   ) {
     parent::__construct($domain_detector, $current_user);
   }
@@ -40,6 +42,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
       $container->get('current_user'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_vendor.service.event_tabs'),
     );
   }
 
@@ -49,7 +52,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
   public function rsvps(NodeInterface $event): array {
     $this->assertEventOwnership($event);
     $this->assertStripeConnected();
-    $tabs = $this->eventTabs($event, 'rsvps');
+    $tabs = $this->eventTabsService->getTabs($event, 'rsvps');
 
     // Use new API: getStatsForEvent returns ['total' => int, 'recent' => int].
     $rsvpStats = $this->rsvpStatsService->getStatsForEvent((int) $event->id());
@@ -135,37 +138,6 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     }
 
     return $rsvps;
-  }
-
-  /**
-   * Builds event tabs for the console.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   * @param string $active
-   *   The key of the currently active tab.
-   *
-   * @return array
-   *   Array of tab definitions.
-   */
-  private function eventTabs(NodeInterface $event, string $active = 'rsvps'): array {
-    $id = $event->id();
-
-    $tabs = [
-      ['label' => 'Overview', 'url' => "/vendor/events/{$id}/overview", 'key' => 'overview'],
-      ['label' => 'Tickets', 'url' => "/vendor/events/{$id}/tickets", 'key' => 'tickets'],
-      ['label' => 'Attendees', 'url' => "/vendor/events/{$id}/attendees", 'key' => 'attendees'],
-      ['label' => 'RSVPs', 'url' => "/vendor/events/{$id}/rsvps", 'key' => 'rsvps'],
-      ['label' => 'Analytics', 'url' => "/vendor/events/{$id}/analytics", 'key' => 'analytics'],
-      ['label' => 'Boost', 'url' => "/event/{$id}/boost", 'key' => 'boost'],
-      ['label' => 'Settings', 'url' => "/vendor/events/{$id}/settings", 'key' => 'settings'],
-    ];
-
-    foreach ($tabs as &$tab) {
-      $tab['active'] = ($tab['key'] === $active);
-    }
-
-    return $tabs;
   }
 
 }

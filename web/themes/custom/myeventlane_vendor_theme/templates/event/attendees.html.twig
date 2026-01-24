@@ -1,6 +1,7 @@
 {#
   Event attendees pane.
-  Variables: event, attendees, summary.
+  Variables: event, attendees, summary, is_tickets_enabled.
+  Tabs are rendered by layout/console-page above the body.
 #}
 <div class="mel-grid mel-grid--4">
   <div class="mel-card mel-card--stat">
@@ -44,24 +45,50 @@
   </div>
   
   {% if attendees|length > 0 %}
-    <div class="mel-table mel-table--striped">
+    <div class="mel-table mel-table--striped mel-table--cols-{{ is_tickets_enabled|default(true) ? '10' : '8' }}">
       <div class="mel-table__head">
         <div>{{ 'Name'|t }}</div>
         <div>{{ 'Email'|t }}</div>
+        <div>{{ 'Phone'|t }}</div>
         <div>{{ 'Source'|t }}</div>
+        {% if is_tickets_enabled|default(true) %}
+          <div>{{ 'Product variation'|t }}</div>
+          <div>{{ 'Order'|t }}</div>
+        {% endif %}
+        <div>{{ 'Additional data'|t }}</div>
         <div>{{ 'Status'|t }}</div>
         <div>{{ 'Ticket code'|t }}</div>
         <div>{{ 'Checked in'|t }}</div>
       </div>
       <div class="mel-table__body" id="attendee-list">
         {% for attendee in attendees %}
-          <div class="mel-table__row" data-name="{{ attendee.name|lower }}" data-email="{{ attendee.email|lower }}">
-            <div class="mel-text--bold">{{ attendee.name }}</div>
-            <div>{{ attendee.email }}</div>
+          <div class="mel-table__row" data-name="{{ attendee.name|lower }}" data-email="{{ attendee.email|lower }}" data-phone="{{ attendee.phone|lower }}">
+            <div class="mel-text--bold">{{ attendee.name|default('—') }}</div>
+            <div>{{ attendee.email|default('—') }}</div>
+            <div>{{ attendee.phone|default('—') }}</div>
             <div>
               <span class="mel-badge mel-badge--{{ attendee.source|lower }}">
                 {{ attendee.source }}
               </span>
+            </div>
+            {% if is_tickets_enabled|default(true) %}
+              <div>{{ attendee.ticket_type|default('—') }}</div>
+              <div>
+                {% if attendee.order_link %}
+                  <a href="{{ attendee.order_link.url }}" class="mel-link">{{ attendee.order_link.label }}</a>
+                {% else %}
+                  <span class="mel-text--muted">—</span>
+                {% endif %}
+              </div>
+            {% endif %}
+            <div class="mel-text--sm">
+              {% if attendee.extra_data is not empty %}
+                {% for label, value in attendee.extra_data %}
+                  {{ label }}: {{ value }}{% if not loop.last %}; {% endif %}
+                {% endfor %}
+              {% else %}
+                <span class="mel-text--muted">—</span>
+              {% endif %}
             </div>
             <div>
               <span class="mel-badge mel-badge--{{ attendee.status|lower }}">
@@ -111,7 +138,8 @@
         rows.forEach(function(row) {
           const name = row.dataset.name || '';
           const email = row.dataset.email || '';
-          const matches = name.includes(query) || email.includes(query);
+          const phone = row.dataset.phone || '';
+          const matches = name.includes(query) || email.includes(query) || phone.includes(query);
           row.style.display = matches ? '' : 'none';
         });
       });

@@ -9,10 +9,7 @@
 
 {{ attach_library('myeventlane_theme/global-styling') }}
 
-{% set header_attributes = create_attribute()
-  .addClass('mel-header')
-  .setAttribute('role', 'banner')
-%}
+{% set header_attributes = create_attribute().addClass('mel-header') %}
 
 {% set account_menu_id = 'mel-account-menu' %}
 {% set account_toggle_id = 'mel-account-toggle' %}
@@ -21,7 +18,9 @@
 {# Hidden checkbox for CSS-only mobile menu - before header for sibling selectors #}
 <input type="checkbox" id="mel-nav-toggle-checkbox" class="mel-nav-toggle-checkbox" aria-hidden="true">
 
-<header{{ header_attributes }}>
+<header class="mel-site-header mel-site-header--main" role="banner">
+  <div class="mel-site-header__inner mel-container">
+    <div{{ header_attributes }}>
   <div class="mel-header-inner mel-container">
     {# Logo #}
     <div class="mel-header-left">
@@ -31,7 +30,7 @@
     </div>
 
     {# Desktop Navigation #}
-    <nav class="mel-nav-desktop" aria-label="{{ 'Main navigation'|t }}">
+    <nav class="mel-nav-desktop" aria-label="{{ 'Primary'|t }}">
       {% if page.header.main_menu %}
         {{ page.header.main_menu }}
       {% else %}
@@ -197,6 +196,8 @@
         <li><a href="/create-event" class="mel-btn-mobile-accent">{{ 'Create Event'|t }}</a></li>
       </ul>
     </nav>
+  </div>
+    </div>
   </div>
 </header>
 

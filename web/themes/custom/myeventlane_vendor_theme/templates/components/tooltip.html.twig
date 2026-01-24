@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Accessible tooltip component (required markup).
+ *
+ * Variables:
+ * - id: string (unique DOM id for tooltip)
+ * - aria_label: string (e.g. "What are impressions?")
+ * - text: string (tooltip body text; should be 1–2 sentences)
+ */
+#}
+<span class="mel-tooltip-wrap">
+  <button
+    type="button"
+    class="mel-tooltip__trigger"
+    aria-describedby="{{ id }}"
+    aria-label="{{ aria_label }}"
+  >
+    <span aria-hidden="true">ⓘ</span>
+  </button>
+
+  <div
+    id="{{ id }}"
+    role="tooltip"
+    class="mel-tooltip"
+    hidden
+  >
+    {{ text }}
+  </div>
+</span>
+

@@ -1,0 +1,236 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the myeventlane_boost module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_boost_schema(): array {
+  $schema = [];
+
+  $schema['myeventlane_boost_stats'] = [
+    'description' => 'Tracks Boost impressions, clicks, and performance metrics.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key: unique record ID.',
+      ],
+      'boost_order_item_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Foreign key: Commerce order item ID (bundle: boost).',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Foreign key: Event node ID.',
+      ],
+      'placement' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Placement identifier (e.g., homepage_discover, category_music).',
+      ],
+      'impressions' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Total impressions for this boost/placement combination.',
+      ],
+      'clicks' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Total clicks for this boost/placement combination.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when record was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when record was last updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'boost_order_item_id' => ['boost_order_item_id'],
+      'event_id' => ['event_id'],
+      'placement' => ['placement'],
+      'boost_placement' => ['boost_order_item_id', 'placement'],
+    ],
+  ];
+
+  $schema['myeventlane_boost_stats_daily'] = [
+    'description' => 'Daily rollups of Boost impressions and clicks (Phase 2).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'boost_order_item_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order item ID (bundle: boost).',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'placement' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Placement key (e.g. homepage_discover, category_music).',
+      ],
+      'date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+        'description' => 'Date YYYY-MM-DD (UTC).',
+      ],
+      'impressions' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'clicks' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when record was created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'boost_placement_date' => ['boost_order_item_id', 'placement', 'date'],
+    ],
+    'indexes' => [
+      'event_id' => ['event_id'],
+      'date' => ['date'],
+    ],
+  ];
+
+  $schema['myeventlane_boost_stats_log'] = [
+    'description' => 'Log of individual Boost impressions/clicks for daily rollup.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'boost_order_item_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'placement' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'kind' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'description' => 'impression or click',
+      ],
+      'occurred_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'occurred_at' => ['occurred_at'],
+      'boost_placement' => ['boost_order_item_id', 'placement'],
+    ],
+  ];
+
+  $schema['myeventlane_boost_click_log'] = [
+    'description' => 'Click timestamps for "orders following boost click within 24h" attribution.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'boost_order_item_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'placement' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'clicked_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_clicked' => ['event_id', 'clicked_at'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Create Phase 2 tables: myeventlane_boost_stats_daily, myeventlane_boost_stats_log.
+ */
+function myeventlane_boost_update_10001(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_boost_schema();
+  if (!$schema->tableExists('myeventlane_boost_stats_daily')) {
+    $schema->createTable('myeventlane_boost_stats_daily', $full['myeventlane_boost_stats_daily']);
+  }
+  if (!$schema->tableExists('myeventlane_boost_stats_log')) {
+    $schema->createTable('myeventlane_boost_stats_log', $full['myeventlane_boost_stats_log']);
+  }
+  if (!$schema->tableExists('myeventlane_boost_click_log')) {
+    $schema->createTable('myeventlane_boost_click_log', $full['myeventlane_boost_click_log']);
+  }
+}

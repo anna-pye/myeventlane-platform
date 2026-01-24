@@ -89,7 +89,7 @@ final class AttendeeExportController extends ControllerBase implements Container
       $headerLabels = [
         'name' => $this->t('Name'),
         'email' => $this->t('Email'),
-        'ticket_type' => $this->t('Ticket Type'),
+        'ticket_type' => $this->t('Product variation'),
         'checked_in' => $this->t('Checked In'),
         'checked_in_at' => $this->t('Checked In At'),
         'source' => $this->t('Source'),

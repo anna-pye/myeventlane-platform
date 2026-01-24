@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -25,6 +26,7 @@ final class MyTicketsController extends ControllerBase {
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
+    private readonly TicketLabelResolver $ticketLabelResolver,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -34,7 +36,8 @@ final class MyTicketsController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('myeventlane_core.ticket_label_resolver')
     );
   }
 
@@ -98,7 +101,6 @@ final class MyTicketsController extends ControllerBase {
     $orders = !empty($orderIds) ? $orderStorage->loadMultiple($orderIds) : [];
 
     // Group orders by upcoming vs past events.
-    $now = time();
     $upcomingOrders = [];
     $pastOrders = [];
 
@@ -178,15 +180,20 @@ final class MyTicketsController extends ControllerBase {
         continue;
       }
 
+      // Boost is an admin product; exclude from My Tickets.
+      if ($bundle === 'boost') {
+        continue;
+      }
+
       // Extract event from order item.
       $event = NULL;
       if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
         $event = $item->get('field_target_event')->entity;
       }
 
-      // Build ticket item data.
+      // Build ticket item data. Use product variation label as ticket name.
       $ticketItem = [
-        'title' => $item->getTitle(),
+        'title' => $this->ticketLabelResolver->getTicketLabel($item),
         'quantity' => (int) $item->getQuantity(),
         'price' => $item->getTotalPrice() ? $item->getTotalPrice()->getNumber() : 0.0,
         'attendees' => [],

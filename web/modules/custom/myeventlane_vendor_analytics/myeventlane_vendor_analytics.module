@@ -1,0 +1,6 @@
+<?php
+
+/**
+ * @file
+ * Vendor KPI aggregation. No hooks required for STAGE A1.
+ */

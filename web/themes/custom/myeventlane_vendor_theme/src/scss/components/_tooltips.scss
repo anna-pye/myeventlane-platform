@@ -1,0 +1,67 @@
+/**
+ * @file
+ * Accessible tooltip component (WCAG-friendly).
+ *
+ * Markup contract:
+ * - Trigger: .mel-tooltip__trigger (button) with aria-describedby="id"
+ * - Tooltip: .mel-tooltip (role="tooltip") with [hidden]
+ *
+ * This component is designed to be used inline next to labels and headers.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+
+.mel-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  vertical-align: middle;
+}
+
+.mel-tooltip__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid $border-color-dark;
+  background: $bg-primary;
+  color: $text-secondary;
+  cursor: help;
+  line-height: 1;
+  font-size: $font-size-sm;
+
+  &:hover {
+    background: $gray-50;
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+.mel-tooltip {
+  position: absolute;
+  top: calc(100% + #{$spacing-2});
+  left: 0;
+  z-index: 200;
+  max-width: 17.5rem; // ~280px
+  padding: $spacing-3 $spacing-4;
+  border-radius: $radius-md;
+  background: $ml-vendor-navy;
+  color: $text-inverse;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  box-shadow: $shadow-lg;
+  pointer-events: none; // never traps focus/mouse
+}
+

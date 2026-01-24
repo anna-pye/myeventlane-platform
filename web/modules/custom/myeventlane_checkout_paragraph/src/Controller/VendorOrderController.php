@@ -11,6 +11,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -25,6 +26,7 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
    */
   public function __construct(
     private readonly MessengerInterface $messengerService,
+    private readonly TicketLabelResolver $ticketLabelResolver,
   ) {}
 
   /**
@@ -33,6 +35,7 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('messenger'),
+      $container->get('myeventlane_core.ticket_label_resolver'),
     );
   }
 
@@ -132,10 +135,11 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
           if (!$holder instanceof ParagraphInterface) {
             continue;
           }
+          $item_label = $this->ticketLabelResolver->getTicketLabel($item);
           $rows[] = [
             'event_title' => $event_title,
             'event_id' => $event_id,
-            'item_label' => $item->label(),
+            'item_label' => $item_label,
             'first_name' => $holder->hasField('field_first_name') ? $holder->get('field_first_name')->value : '',
             'last_name' => $holder->hasField('field_last_name') ? $holder->get('field_last_name')->value : '',
             'email' => $holder->hasField('field_email') ? $holder->get('field_email')->value : '',

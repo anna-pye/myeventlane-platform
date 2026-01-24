@@ -64,11 +64,7 @@
       {% if mel_event_state != 'cancelled' and mel_event_state != 'ended' %}
         <div class="event-hero__cta">
           {% include '@myeventlane_theme/event/_event-cta.html.twig' with {
-            node: node,
-            content: content,
-            mel_event_state: mel_event_state,
-            mel_sales_start_formatted: mel_sales_start_formatted|default(null),
-            mel_all_ctas: mel_all_ctas|default({})
+            event_cta: event_cta|default(null)
           } only %}
         </div>
       {% endif %}
@@ -138,11 +134,7 @@
         <div class="event-sidebar__section">
           <div class="event-cta">
             {% include '@myeventlane_theme/event/_event-cta.html.twig' with {
-              node: node,
-              content: content,
-              mel_event_state: mel_event_state,
-              mel_sales_start_formatted: mel_sales_start_formatted|default(null),
-              mel_all_ctas: mel_all_ctas|default({})
+              event_cta: event_cta|default(null)
             } only %}
           </div>
         </div>
@@ -275,11 +267,7 @@
   {% if mel_event_state != 'cancelled' and mel_event_state != 'ended' and mel_is_bookable|default(false) %}
     <div class="event-cta-mobile-sticky">
       {% include '@myeventlane_theme/event/_event-cta.html.twig' with {
-        node: node,
-        content: content,
-        mel_event_state: mel_event_state,
-        mel_sales_start_formatted: mel_sales_start_formatted|default(null),
-        mel_all_ctas: mel_all_ctas|default({})
+        event_cta: event_cta|default(null)
       } only %}
     </div>
   {% endif %}

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_checkout_flow\Plugin\Commerce\CheckoutPane;
 
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
+use Drupal\commerce_order\OrderRefreshInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,11 +31,19 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
   private CurrencyFormatter $currencyFormatter;
 
   /**
+   * The order refresh service.
+   *
+   * @var \Drupal\commerce_order\OrderRefreshInterface
+   */
+  private OrderRefreshInterface $orderRefresh;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->currencyFormatter = $container->get('commerce_price.currency_formatter');
+    $instance->orderRefresh = $container->get('commerce_order.order_refresh');
     return $instance;
   }
 
@@ -59,6 +68,14 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $order = $this->order;
+
+    // Ensure order is refreshed so platform fee and other adjustments are
+    // applied. Commerce only refreshes when refresh_frequency has elapsed;
+    // we run it here so the fee always appears in the order summary.
+    if ($order->getState()->getId() === 'draft') {
+      $this->orderRefresh->refresh($order);
+      $order->recalculateTotalPrice();
+    }
 
     // Calculate breakdown.
     $subtotal = $this->calculateSubtotal($order);

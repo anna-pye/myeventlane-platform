@@ -33,3 +33,9 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+
+  myeventlane_event.cta_resolver:
+    class: Drupal\myeventlane_event\Service\EventCtaResolver
+    arguments:
+      - '@myeventlane_event.event_mode_manager'
+      - '@myeventlane_event_state.resolver'

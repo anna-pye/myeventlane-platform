@@ -14,6 +14,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\node\NodeInterface;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
 
 /**
  * Helper: find the quantity number element in ATC form (various widget shapes).
@@ -445,4 +447,33 @@ function myeventlane_commerce_checkout_form_submit_safety_check(array &$form, Fo
       }
     }
   }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Excludes Boost items from cart and checkout order summary views.
+ * Ensures checkout summary matches cart (both exclude Boost from display).
+ * Boost is admin revenue only and must not appear in vendor/customer-facing summaries.
+ */
+function myeventlane_commerce_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  // Filter cart and checkout order summary views.
+  $summary_views = [
+    'commerce_cart_form',
+    'commerce_checkout_order_summary',
+    'ticket_order_summary',
+  ];
+
+  if (!in_array($view->id(), $summary_views, TRUE)) {
+    return;
+  }
+
+  // Ensure we have the order_items relationship.
+  if (!isset($view->relationship['order_items'])) {
+    return;
+  }
+
+  // Add condition to exclude Boost order items (bundle = 'boost').
+  $order_items_alias = $view->relationship['order_items']->alias;
+  $query->addWhere(0, $order_items_alias . '.type', 'boost', '!=');
 }

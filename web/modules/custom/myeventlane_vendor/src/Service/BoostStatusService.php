@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
-use Drupal\Component\Datetime\TimeInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 
 /**
  * Service for boost status information.
  *
  * Provides structured boost status data with eligibility checks.
+ * Uses BoostManager as the canonical source of truth.
  */
 final class BoostStatusService {
 
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly TimeInterface $time,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
@@ -50,7 +49,7 @@ final class BoostStatusService {
     }
 
     try {
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
       $event = $nodeStorage->load($event_nid);
 
       if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
@@ -75,32 +74,20 @@ final class BoostStatusService {
         ];
       }
 
-      // Check if boost is currently active.
-      $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
-      $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
-      $isActive = FALSE;
-
-      if ($promoted && $expiresValue) {
-        try {
-          $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-          $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
-          $isActive = $expires > $now;
-        }
-        catch (\Exception $e) {
-          // Invalid date format.
-          $isActive = FALSE;
-        }
-      }
+      // Use canonical API to get boost status.
+      $boostStatus = $this->boostManager->getBoostStatusForEvent($event);
 
       // Event is eligible if published.
       // Additional eligibility checks (e.g., Stripe connection) should be
       // handled at the route access level.
       return [
         'eligible' => TRUE,
-        'active' => $isActive,
+        'active' => $boostStatus['active'],
         'reason' => NULL,
         'types' => $this->getAvailableBoostTypes(),
-        'expires' => $expiresValue,
+        'expires' => $boostStatus['end_timestamp']
+          ? date('Y-m-d\TH:i:s', $boostStatus['end_timestamp'])
+          : NULL,
       ];
     }
     catch (\Exception $e) {

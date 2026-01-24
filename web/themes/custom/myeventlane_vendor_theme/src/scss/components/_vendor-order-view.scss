@@ -1,0 +1,144 @@
+/**
+ * @file
+ * Vendor Order Detail (STAGE 2). Humanitix-inspired, read-only.
+ * Reuses tokens; cards, spacing, dividers; clean hierarchy.
+ */
+
+.mel-order-view {
+  max-width: 42rem;
+}
+
+.mel-order-view__back {
+  margin: 0 0 var(--mel-space-4);
+}
+
+.mel-order-view__link-back {
+  margin: 0;
+}
+
+.mel-link--back {
+  font-size: 0.9375rem;
+  color: var(--mel-muted);
+}
+
+.mel-link--back:hover {
+  color: var(--mel-text);
+}
+
+.mel-order-view__header {
+  margin-bottom: var(--mel-space-4);
+}
+
+.mel-order-view__title {
+  margin: 0 0 var(--mel-space-1);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mel-text);
+}
+
+.mel-order-view__header .mel-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--mel-space-2);
+}
+
+.mel-order-view__date {
+  font-size: 0.875rem;
+  color: var(--mel-muted);
+}
+
+.mel-order-view__card {
+  margin-bottom: var(--mel-space-4);
+}
+
+.mel-order-view__dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--mel-space-1) var(--mel-space-4);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.mel-order-view__dl dt {
+  color: var(--mel-muted);
+  font-weight: 400;
+}
+
+.mel-order-view__dl dd {
+  margin: 0;
+  text-align: right;
+}
+
+.mel-order-view__payment {
+  max-width: 18rem;
+}
+
+.mel-order-view__total-dt {
+  font-weight: 600;
+  color: var(--mel-text);
+  padding-top: var(--mel-space-2);
+  border-top: 1px solid var(--mel-border);
+  margin-top: var(--mel-space-1);
+}
+
+.mel-order-view__total-dd {
+  font-weight: 600;
+  padding-top: var(--mel-space-2);
+  border-top: 1px solid var(--mel-border);
+  margin-top: var(--mel-space-1);
+  text-align: right;
+}
+
+.mel-order-view__attendees {
+  margin-top: var(--mel-space-5);
+  padding-top: var(--mel-space-4);
+  border-top: 1px solid var(--mel-border);
+}
+
+.mel-order-view__section-title {
+  margin: 0 0 var(--mel-space-3);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--mel-text);
+}
+
+.mel-order-view__attendee-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-3);
+}
+
+.mel-order-view__attendee-card .mel-card__body {
+  padding: var(--mel-space-3);
+}
+
+.mel-order-view__attendee-card .mel-order-view__dl {
+  margin-bottom: var(--mel-space-2);
+}
+
+.mel-order-view__link-back {
+  margin: 0;
+  padding-top: var(--mel-space-2);
+  border-top: 1px solid var(--mel-border);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .mel-order-view__dl {
+    grid-template-columns: 10rem 1fr;
+  }
+
+  .mel-order-view__dl dd {
+    text-align: left;
+  }
+
+  .mel-order-view__payment dd {
+    text-align: right;
+  }
+
+  .mel-order-view__total-dd {
+    text-align: right;
+  }
+}

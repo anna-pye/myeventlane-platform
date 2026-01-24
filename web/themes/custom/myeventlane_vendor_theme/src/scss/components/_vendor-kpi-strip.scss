@@ -1,0 +1,47 @@
+/**
+ * @file
+ * Vendor KPI summary strip (STAGE A2). Mobile-first.
+ */
+
+.mel-kpi-strip {
+  margin-bottom: var(--mel-space-5);
+}
+
+.mel-kpi-strip__list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(160px, 1fr);
+  gap: var(--mel-space-3);
+  overflow-x: auto;
+  padding-bottom: var(--mel-space-2);
+}
+
+.mel-kpi {
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-2);
+  padding: var(--mel-space-3);
+}
+
+.mel-kpi__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.mel-kpi__label {
+  font-size: 0.875rem;
+  color: var(--mel-muted);
+}
+
+.mel-kpi__sub {
+  font-size: 0.75rem;
+  color: var(--mel-muted);
+}
+
+@media (min-width: 1024px) {
+  .mel-kpi-strip__list {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-flow: unset;
+    overflow-x: unset;
+  }
+}

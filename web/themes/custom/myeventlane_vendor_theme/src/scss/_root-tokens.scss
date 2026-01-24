@@ -1,0 +1,41 @@
+/**
+ * @file
+ * MyEventLane v2 CSS custom properties for vendor theme.
+ * Scoped to .mel-vendor-theme to avoid leaking into other themes.
+ *
+ * Values mapped from:
+ * - tokens/_colors.scss (ml-vendor-bg, ml-vendor-card, ml-vendor-border, etc.)
+ * - tokens/_spacing.scss (spacing-1..8)
+ * - tokens/_shadows.scss (shadow-sm, shadow-md)
+ * - tokens/_radii.scss (radius-md, etc.)
+ */
+
+.mel-vendor-theme {
+  --mel-bg: #F7F8FA;
+  --mel-surface: #ffffff;
+  --mel-surface-2: #F3F4F6;
+  --mel-text: #1A1A1A;
+  --mel-muted: #6B7280;
+  --mel-border: 1px solid #E6E6E6;
+  --mel-focus: #2563EB;
+  --mel-coral: #FF8A8A;
+
+  --mel-radius-1: 8px;
+  --mel-radius-2: 14px;
+  --mel-radius-3: 20px;
+  --mel-radius-pill: 999px;
+
+  --mel-shadow-1: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --mel-shadow-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  --mel-space-1: 4px;
+  --mel-space-2: 8px;
+  --mel-space-3: 12px;
+  --mel-space-4: 16px;
+  --mel-space-5: 24px;
+  --mel-space-6: 32px;
+
+  --mel-max: 1320px;
+  --mel-header-bg: var(--mel-surface);
+  --mel-footer-bg: var(--mel-surface);
+}

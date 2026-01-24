@@ -3,18 +3,107 @@
  * Console-specific component styles for MyEventLane Vendor Theme.
  *
  * Additional utility classes and overrides for vendor console.
+ * Aligned with VENDOR_DASHBOARD_QA and design tokens: 8px spacing,
+ * subtle shadows, 44px touch targets, 1px borders.
  */
 
 @use '../tokens/colors' as *;
 @use '../tokens/shadows' as *;
 @use '../tokens/spacing' as *;
-@use '../tokens/shadows' as *;
 @use '../tokens/typography' as *;
-@use '../tokens/shadows' as *;
 @use '../tokens/radii' as *;
-@use '../tokens/shadows' as *;
 @use '../tokens/breakpoints' as *;
-@use '../tokens/shadows' as *;
+
+// ============================================================================
+// CONSOLE PAGE LAYOUT (mel-console)
+// ============================================================================
+
+.mel-console {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+.mel-console__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+}
+
+.mel-console__title {
+  @include page-title;
+  margin: 0;
+}
+
+.mel-console__actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+}
+
+.mel-console__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: $spacing-6;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid $border-color;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+}
+
+.mel-console__tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: $spacing-3 $spacing-4;
+  font-size: $font-size-label;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  position: relative;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: $text-primary;
+  }
+
+  &.is-active,
+  &[aria-selected="true"] {
+    color: $primary;
+    background: transparent;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $primary;
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: $shadow-focus;
+  }
+}
+
+.mel-console__body {
+  // Main content area; spacing from grid/cards handles gap.
+}
 
 // ============================================================================
 // PAGE TITLE STYLES
@@ -131,46 +220,6 @@
   &:hover {
     opacity: 1;
   }
-}
-
-// ============================================================================
-// TOOLTIP
-// ============================================================================
-
-.mel-tooltip {
-  position: relative;
-}
-
-.mel-tooltip__content {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: $spacing-2 $spacing-3;
-  background: $ml-vendor-navy;
-  color: $text-inverse;
-  font-size: $font-size-sm;
-  border-radius: $radius-md;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s, visibility 0.15s;
-  z-index: 100;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: $ml-vendor-navy;
-  }
-}
-
-.mel-tooltip:hover .mel-tooltip__content {
-  opacity: 1;
-  visibility: visible;
 }
 
 // ============================================================================

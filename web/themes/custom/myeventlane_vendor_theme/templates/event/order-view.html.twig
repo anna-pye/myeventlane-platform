@@ -1,0 +1,120 @@
+{#
+  Order detail (Humanitix-style). Read-only.
+  Variables: event, order_number, back_url, purchaser, payment, tickets, attendees, order_view_url.
+#}
+<div class="mel-order-view">
+  {# 1. Back link #}
+  <p class="mel-order-view__back">
+    <a href="{{ back_url }}" class="mel-link mel-link--back">{{ '← Back to orders'|t }}</a>
+  </p>
+
+  {# 2. Order header card #}
+  <div class="mel-card mel-order-view__header">
+    <div class="mel-card__header mel-card__header--no-border">
+      <div>
+        <h2 class="mel-order-view__title">{{ 'Order'|t }} {{ order_number }}</h2>
+        <span class="mel-badge mel-badge--{{ purchaser.order_status|lower }}">{{ purchaser.order_status }}</span>
+      </div>
+      <div class="mel-order-view__date">{{ purchaser.order_date }}</div>
+    </div>
+  </div>
+
+  {# 3. Purchaser summary card #}
+  <div class="mel-card mel-order-view__card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Purchaser'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <dl class="mel-order-view__dl">
+        <dt>{{ 'Name'|t }}</dt>
+        <dd>{{ purchaser.purchaser_name }}</dd>
+        <dt>{{ 'Email'|t }}</dt>
+        <dd>{{ purchaser.purchaser_email }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  {# 4. Payment summary (subtotal, fees, refunds, total) #}
+  <div class="mel-card mel-order-view__card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Payment summary'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <dl class="mel-order-view__dl mel-order-view__payment">
+        <dt>{{ 'Subtotal'|t }}</dt>
+        <dd>{{ payment.subtotal }}</dd>
+        <dt>{{ 'Fees'|t }}</dt>
+        <dd>{{ payment.fees }}</dd>
+        <dt>{{ 'Refunds'|t }}</dt>
+        <dd>{{ payment.refunds }}</dd>
+        <dt class="mel-order-view__total-dt">{{ 'Total'|t }}</dt>
+        <dd class="mel-order-view__total-dd">{{ payment.total }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  {# 5. Tickets summary card #}
+  <div class="mel-card mel-order-view__card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Tickets'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      {% if tickets|length > 0 %}
+        <div class="mel-table mel-table--striped">
+          <div class="mel-table__head">
+            <div>{{ 'Ticket'|t }}</div>
+            <div>{{ 'Unit price'|t }}</div>
+            <div>{{ 'Qty'|t }}</div>
+            <div>{{ 'Line total'|t }}</div>
+          </div>
+          <div class="mel-table__body">
+            {% for row in tickets %}
+              <div class="mel-table__row">
+                <div>{{ row.ticket_name }}</div>
+                <div>{{ row.unit_price }}</div>
+                <div>{{ row.quantity }}</div>
+                <div>{{ row.line_total }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="mel-text--muted">{{ 'No ticket lines for this event.'|t }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# 6. Attendees list (cards) #}
+  <div class="mel-order-view__attendees">
+    <h3 class="mel-order-view__section-title">{{ 'Attendees'|t }}</h3>
+    {% if attendees|length > 0 %}
+      <div class="mel-order-view__attendee-list">
+        {% for a in attendees %}
+          <div class="mel-card mel-order-view__attendee-card">
+            <div class="mel-card__body">
+              <dl class="mel-order-view__dl">
+                <dt>{{ 'First name'|t }}</dt>
+                <dd>{{ a.first_name }}</dd>
+                <dt>{{ 'Last name'|t }}</dt>
+                <dd>{{ a.last_name }}</dd>
+                <dt>{{ 'Email'|t }}</dt>
+                <dd>{{ a.email }}</dd>
+                <dt>{{ 'Product variation'|t }}</dt>
+                <dd>{{ a.ticket_type }}</dd>
+                {% for q in a.custom_questions %}
+                  <dt>{{ q.label }}</dt>
+                  <dd>{{ q.value }}</dd>
+                {% endfor %}
+              </dl>
+              <p class="mel-order-view__link-back">
+                <a href="{{ a.order_view_url }}" class="mel-link">{{ 'View order'|t }}</a>
+              </p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mel-text--muted">{{ 'No attendee data for this event’s tickets.'|t }}</p>
+    {% endif %}
+  </div>
+</div>

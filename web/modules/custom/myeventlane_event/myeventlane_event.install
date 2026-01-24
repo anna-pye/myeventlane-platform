@@ -50,6 +50,235 @@ function myeventlane_event_update_11001(): void {
 }
 
 /**
+ * Disables Commerce's auto-generated titles for ticket variations.
+ *
+ * MyEventLane requires `commerce_product_variation.title` to be the ticket type
+ * label (e.g. "Full Price", "Special People"), not the parent product title.
+ *
+ * When `generateTitle` is TRUE on the variation type, Commerce will overwrite
+ * any manually-set variation title with a generated value (typically the
+ * product title), which causes the Vendor → Event → Tickets breakdown to show
+ * the event name for every row.
+ */
+function myeventlane_event_update_11002(): void {
+  $config_name = 'commerce_product.commerce_product_variation_type.ticket_variation';
+  $config = \Drupal::configFactory()->getEditable($config_name);
+  if (!$config) {
+    \Drupal::logger('myeventlane_event')->error('Missing config: @name', ['@name' => $config_name]);
+    return;
+  }
+
+  $current = (bool) $config->get('generateTitle');
+  if ($current === FALSE) {
+    return;
+  }
+
+  $config->set('generateTitle', FALSE)->save();
+  \Drupal::logger('myeventlane_event')->notice('Set @name generateTitle=FALSE for ticket variations.', ['@name' => $config_name]);
+}
+
+/**
+ * Re-syncs ticket variation titles for all existing paid/both events.
+ *
+ * This applies the "variation title = ticket type label" fix to all existing
+ * events by re-running the canonical sync that maps ticket type paragraphs to
+ * Commerce variations (via `field_ticket_variation_uuid`).
+ *
+ * This update is batched via $sandbox to avoid timeouts on large datasets.
+ */
+function myeventlane_event_update_11003(array &$sandbox): void {
+  $logger = \Drupal::logger('myeventlane_event');
+
+  if (!isset($sandbox['event_ids'])) {
+    $query = \Drupal::entityQuery('node')
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->condition('field_event_type', ['paid', 'both'], 'IN')
+      ->condition('field_ticket_types.target_id', NULL, 'IS NOT NULL');
+
+    $sandbox['event_ids'] = array_values($query->execute());
+    $sandbox['total'] = count($sandbox['event_ids']);
+    $sandbox['processed'] = 0;
+    $sandbox['failures'] = 0;
+
+    if ($sandbox['total'] === 0) {
+      $sandbox['#finished'] = 1;
+      return;
+    }
+  }
+
+  $batch_size = 10;
+  $ids = array_slice($sandbox['event_ids'], $sandbox['processed'], $batch_size);
+  if (empty($ids)) {
+    $sandbox['#finished'] = 1;
+    return;
+  }
+
+  /** @var \Drupal\node\NodeStorageInterface $storage */
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  /** @var \Drupal\myeventlane_event\Service\TicketTypeManager $ticket_manager */
+  $ticket_manager = \Drupal::service('myeventlane_event.ticket_type_manager');
+
+  foreach ($storage->loadMultiple($ids) as $event) {
+    try {
+      $ticket_manager->syncTicketTypesToVariations($event);
+    }
+    catch (\Throwable $e) {
+      $sandbox['failures']++;
+      $logger->error(
+        'Ticket variation resync failed for event @eid: @message',
+        ['@eid' => $event->id(), '@message' => $e->getMessage()]
+      );
+    }
+  }
+
+  $sandbox['processed'] += count($ids);
+  $sandbox['#finished'] = min(1, $sandbox['processed'] / $sandbox['total']);
+
+  if ($sandbox['#finished'] >= 1) {
+    if (!empty($sandbox['failures'])) {
+      $logger->warning(
+        'Ticket variation resync completed for @total events with @failures failures. See logs for details.',
+        ['@total' => $sandbox['total'], '@failures' => $sandbox['failures']]
+      );
+    }
+    else {
+      $logger->notice(
+        'Ticket variation resync completed for @total events.',
+        ['@total' => $sandbox['total']]
+      );
+    }
+  }
+}
+
+/**
+ * Applies a deterministic fallback title to legacy ticket variations.
+ *
+ * Some historic/demo flows created ticket variations without ticket-type
+ * paragraph configuration (`field_ticket_types`). In those cases, variation
+ * titles were often identical to the parent product title, which is not useful
+ * for "one row per variation" reporting.
+ *
+ * This update changes ONLY variations where:
+ * - variation type is `ticket_variation`, AND
+ * - variation title equals product title.
+ *
+ * New title format:
+ * - Free Ticket (for zero-priced variations)
+ * - Ticket – {formatted price}
+ *
+ * If multiple variations in the same product would end up with the same title,
+ * a stable suffix "(#VID)" is added to keep them distinguishable.
+ */
+function myeventlane_event_update_11004(array &$sandbox): void {
+  $logger = \Drupal::logger('myeventlane_event');
+
+  if (!isset($sandbox['variation_ids'])) {
+    $db = \Drupal::database();
+    $sandbox['variation_ids'] = $db->query(
+      "SELECT pv.variation_id
+       FROM {commerce_product_variation_field_data} pv
+       INNER JOIN {commerce_product_field_data} p
+         ON p.product_id = pv.product_id AND p.langcode = pv.langcode
+       WHERE pv.type = :type
+         AND pv.title = p.title",
+      [':type' => 'ticket_variation']
+    )->fetchCol();
+
+    $sandbox['total'] = count($sandbox['variation_ids']);
+    $sandbox['processed'] = 0;
+    $sandbox['updated'] = 0;
+
+    if ($sandbox['total'] === 0) {
+      $sandbox['#finished'] = 1;
+      return;
+    }
+  }
+
+  $batch_size = 25;
+  $ids = array_slice($sandbox['variation_ids'], $sandbox['processed'], $batch_size);
+  if (empty($ids)) {
+    $sandbox['#finished'] = 1;
+    return;
+  }
+
+  /** @var \Drupal\commerce_product\ProductVariationStorageInterface $storage */
+  $storage = \Drupal::entityTypeManager()->getStorage('commerce_product_variation');
+  $variations = $storage->loadMultiple($ids);
+
+  $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
+
+  // Group by product to detect duplicates within the same product.
+  $by_product = [];
+  foreach ($variations as $variation) {
+    $product_id = method_exists($variation, 'getProductId') ? (int) $variation->getProductId() : 0;
+    $by_product[$product_id][] = $variation;
+  }
+
+  foreach ($by_product as $product_id => $product_variations) {
+    // Stable order for duplicate suffixes.
+    usort($product_variations, static function ($a, $b): int {
+      return (int) $a->id() <=> (int) $b->id();
+    });
+
+    $base_titles = [];
+    foreach ($product_variations as $variation) {
+      $base_title = 'Ticket';
+
+      if (method_exists($variation, 'getPrice') && $variation->getPrice()) {
+        $price = $variation->getPrice();
+        $number = $price->getNumber();
+        $currency = $price->getCurrencyCode();
+
+        if ((float) $number === 0.0) {
+          $base_title = 'Free Ticket';
+        }
+        else {
+          // Currency formatter may include markup depending on locale.
+          $formatted = strip_tags((string) $currency_formatter->format($number, $currency));
+          $formatted = trim($formatted);
+          if ($formatted !== '') {
+            $base_title = 'Ticket – ' . $formatted;
+          }
+          else {
+            $base_title = 'Ticket – ' . $currency . ' ' . $number;
+          }
+        }
+      }
+
+      $base_titles[(int) $variation->id()] = $base_title;
+    }
+
+    // Count duplicates for this product.
+    $counts = array_count_values($base_titles);
+
+    foreach ($product_variations as $variation) {
+      $vid = (int) $variation->id();
+      $new_title = $base_titles[$vid] ?? 'Ticket';
+
+      if (($counts[$new_title] ?? 0) > 1) {
+        $new_title .= ' (#' . $vid . ')';
+      }
+
+      // Only update when title still equals the product title (as per query).
+      $variation->setTitle($new_title);
+      $variation->save();
+      $sandbox['updated']++;
+    }
+  }
+
+  $sandbox['processed'] += count($ids);
+  $sandbox['#finished'] = min(1, $sandbox['processed'] / $sandbox['total']);
+
+  if ($sandbox['#finished'] >= 1) {
+    $logger->notice(
+      'Fallback ticket variation title update completed. Updated @updated variations.',
+      ['@updated' => $sandbox['updated']]
+    );
+  }
+}
+
+/**
  * Testing checklist (for reference):
  *
  * Commands:

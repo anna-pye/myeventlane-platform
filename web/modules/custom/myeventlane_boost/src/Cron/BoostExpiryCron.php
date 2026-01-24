@@ -8,12 +8,15 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Cron handler to expire boosted events and notify vendors.
+ *
+ * Uses canonical BoostManager to find expired boosts.
  */
 final class BoostExpiryCron implements ContainerInjectionInterface {
 
@@ -28,12 +31,15 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
    *   The logger.
    * @param \Drupal\Core\Mail\MailManagerInterface $mailManager
    *   The mail manager.
+   * @param \Drupal\myeventlane_boost\BoostManager $boostManager
+   *   The boost manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
     private readonly MailManagerInterface $mailManager,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
@@ -45,32 +51,28 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       $container->get('datetime.time'),
       $container->get('logger.channel.myeventlane_boost'),
       $container->get('plugin.manager.mail'),
+      $container->get('myeventlane_boost.manager'),
     );
   }
 
   /**
    * Process expired boosts.
+   *
+   * Uses canonical BoostManager to find expired boosts, then clears them.
    */
   public function process(): void {
-    $now = $this->time->getRequestTime();
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-
-    $nids = $nodeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('field_promoted', 1)
-      ->exists('field_promo_expires')
-      ->condition('field_promo_expires', $nowIso, '<=')
-      ->range(0, 500)
-      ->execute();
+    // Use canonical API to get expired boosted events.
+    $nids = $this->boostManager->getExpiredBoostedEventIdsForStore(NULL, [
+      'access_check' => FALSE,
+      'limit' => 500,
+    ]);
 
     if (empty($nids)) {
       return;
     }
 
     /** @var \Drupal\node\NodeInterface[] $nodes */
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
     $nodes = $nodeStorage->loadMultiple($nids);
     $count = 0;
 

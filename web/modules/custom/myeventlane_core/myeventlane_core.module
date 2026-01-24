@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * @file
  * Core services and utilities for MyEventLane platform.
@@ -11,6 +9,9 @@ declare(strict_types=1);
  * - myeventlane_core.route_helper: Route lookup and URL generation helpers.
  */
 
+declare(strict_types=1);
+
+use Drupal\views\ViewExecutable;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -104,7 +105,7 @@ function myeventlane_core_entity_presave(EntityInterface $entity): void {
  *
  * Log commerce_cart_form result count for debugging empty cart table.
  */
-function myeventlane_core_views_post_execute(\Drupal\views\ViewExecutable $view): void {
+function myeventlane_core_views_post_execute(ViewExecutable $view): void {
   if ($view->id() !== 'commerce_cart_form') {
     return;
   }

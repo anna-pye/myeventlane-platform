@@ -16,6 +16,7 @@
 @use 'tokens/breakpoints';
 @use 'tokens/shadows';
 @use 'tokens/radii';
+@use './root-tokens';
 
 // ============================================================================
 // BASE STYLES
@@ -43,6 +44,7 @@
 @use 'components/cards';
 @use 'components/tables';
 @use 'components/tabs';
+@use 'components/tooltips';
 @use 'components/forms' as form-components;
 @use 'components/kpi-cards';
 @use 'components/charts';
@@ -59,7 +61,13 @@
 @use 'components/event-table';
 @use 'components/account-summary';
 @use 'components/quick-actions';
+@use 'components/vendor-alert';
+@use 'components/vendor-kpi-strip';
+@use 'components/vendor-event-performance';
+@use 'components/vendor-order-view';
+@use 'components/boost-metrics';
 @use 'components/footer';
+@use 'components/mel-header-footer';
 
 // ============================================================================
 // PAGE-SPECIFIC STYLES

@@ -217,6 +217,14 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
       '#attached' => $form['#attached'] ?? [],
     ];
   }
+
+  // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
+  // Exposes $page['vendor_alert'] when an alert applies. Only ONE alert at a time.
+  // If no alert applies, vendor_alert is not set.
+  $vendor_alert = _myeventlane_vendor_theme_get_vendor_alert($current_user);
+  if ($vendor_alert !== NULL) {
+    $variables['page']['vendor_alert'] = $vendor_alert;
+  }
 }
 
 /**
@@ -329,6 +337,7 @@ function myeventlane_vendor_theme_theme(): array {
         'quick_actions' => [],
         'upcoming_count' => 0,
         'show_welcome' => FALSE,
+        'vendor_kpis' => NULL,
       ],
       'template' => 'dashboard/dashboard',
     ],
@@ -357,11 +366,34 @@ function myeventlane_vendor_theme_theme(): array {
       ],
       'template' => 'event/overview',
     ],
+    'myeventlane_vendor_event_orders' => [
+      'variables' => [
+        'event' => NULL,
+        'orders' => [],
+        'totals' => NULL,
+      ],
+      'template' => 'event/orders',
+    ],
+    'myeventlane_vendor_event_order_view' => [
+      'variables' => [
+        'event' => NULL,
+        'order_number' => '',
+        'back_url' => '',
+        'purchaser' => [],
+        'payment' => [],
+        'tickets' => [],
+        'attendees' => [],
+        'order_view_url' => '',
+      ],
+      'template' => 'event/order-view',
+    ],
     'myeventlane_vendor_event_attendees' => [
       'variables' => [
         'event' => NULL,
         'attendees' => [],
         'summary' => [],
+        'tabs' => [],
+        'is_tickets_enabled' => TRUE,
       ],
       'template' => 'event/attendees',
     ],
@@ -446,6 +478,8 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.events' => 'events',
     'myeventlane_vendor.console.events_add' => 'events',
     'myeventlane_vendor.console.event_overview' => 'events',
+    'myeventlane_vendor.console.event_orders' => 'events',
+    'myeventlane_vendor.console.event_order_view' => 'events',
     'myeventlane_vendor.console.event_tickets' => 'events',
     'myeventlane_vendor.console.event_attendees' => 'events',
     'myeventlane_vendor.console.event_rsvps' => 'events',
@@ -467,5 +501,326 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
   ];
 
   return $mapping[$route_name] ?? 'dashboard';
+}
+
+/**
+ * Get the commerce store for the current user (vendor resolution).
+ *
+ * Uses myeventlane_checkout_flow.vendor_ownership_resolver if available,
+ * otherwise resolves via myeventlane_vendor (uid or field_vendor_users) and
+ * field_vendor_store, or commerce_store by uid.
+ *
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   The user account.
+ *
+ * @return \Drupal\commerce_store\Entity\StoreInterface|null
+ *   The store, or NULL if not found.
+ */
+function _myeventlane_vendor_theme_get_store_for_account(\Drupal\Core\Session\AccountInterface $account): ?\Drupal\commerce_store\Entity\StoreInterface {
+  if (\Drupal::hasService('myeventlane_checkout_flow.vendor_ownership_resolver')) {
+    $resolver = \Drupal::service('myeventlane_checkout_flow.vendor_ownership_resolver');
+    $store = $resolver->getStoreForUser($account);
+    if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+      return $store;
+    }
+  }
+
+  try {
+    $uid = (int) $account->id();
+    $etm = \Drupal::entityTypeManager();
+
+    if ($etm->getDefinition('myeventlane_vendor', FALSE)) {
+      $vendor_storage = $etm->getStorage('myeventlane_vendor');
+      $ids = $vendor_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $uid)
+        ->range(0, 1)
+        ->execute();
+      if (empty($ids)) {
+        $ids = $vendor_storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('field_vendor_users', $uid)
+          ->range(0, 1)
+          ->execute();
+      }
+      if (!empty($ids)) {
+        $vendor = $vendor_storage->load(reset($ids));
+        if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+          $store = $vendor->get('field_vendor_store')->entity;
+          if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+            return $store;
+          }
+        }
+      }
+    }
+
+    $stores = $etm->getStorage('commerce_store')->loadByProperties(['uid' => $uid]);
+    return !empty($stores) ? reset($stores) : NULL;
+  }
+  catch (\Exception $e) {
+    return NULL;
+  }
+}
+
+/**
+ * Alert: Event sold out (any published event at capacity).
+ *
+ * @param int $uid
+ *   Vendor user ID.
+ *
+ * @return array{type: string, message: string, cta: array{label: string, url: string}}|null
+ */
+function _myeventlane_vendor_theme_alert_event_sold_out(int $uid): ?array {
+  if ($uid <= 0 || !\Drupal::hasService('myeventlane_capacity.service')) {
+    return NULL;
+  }
+  try {
+    $etm = \Drupal::entityTypeManager();
+    $ids = $etm->getStorage('node')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->condition('uid', $uid)
+      ->condition('status', 1)
+      ->range(0, 50)
+      ->execute();
+    if (empty($ids)) {
+      return NULL;
+    }
+    $capacity = \Drupal::service('myeventlane_capacity.service');
+    foreach (array_slice($ids, 0, 20) as $nid) {
+      $node = $etm->getStorage('node')->load($nid);
+      if ($node && $capacity->isSoldOut($node)) {
+        return [
+          'type' => 'info',
+          'message' => t('One of your events is now sold out.'),
+          'cta' => ['label' => t('View events'), 'url' => '/vendor/events'],
+        ];
+      }
+    }
+  }
+  catch (\Exception $e) {
+    // Silently skip.
+  }
+  return NULL;
+}
+
+/**
+ * Alert: Boost expiring in ≤ 7 days.
+ *
+ * @param int $uid
+ *   Vendor user ID.
+ *
+ * @return array{type: string, message: string, cta: array{label: string, url: string}}|null
+ */
+function _myeventlane_vendor_theme_alert_boost_expiring(int $uid): ?array {
+  if ($uid <= 0) {
+    return NULL;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_boost')) {
+    return NULL;
+  }
+  try {
+    $now = \Drupal::time()->getRequestTime();
+    $cutoff = $now + (7 * 86400);
+    $now_str = date('Y-m-d\TH:i:s', $now);
+    $cutoff_str = date('Y-m-d\TH:i:s', $cutoff);
+    $etm = \Drupal::entityTypeManager();
+    $ids = $etm->getStorage('node')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->condition('uid', $uid)
+      ->condition('field_promoted', 1)
+      ->condition('field_promo_expires', $now_str, '>=')
+      ->condition('field_promo_expires', $cutoff_str, '<=')
+      ->range(0, 1)
+      ->execute();
+    if (!empty($ids)) {
+      return [
+        'type' => 'warning',
+        'message' => t('Your event promotion expires soon.'),
+        'cta' => ['label' => t('Manage promotion'), 'url' => '/vendor/boost'],
+      ];
+    }
+  }
+  catch (\Exception $e) {
+    // Silently skip (e.g. fields missing).
+  }
+  return NULL;
+}
+
+/**
+ * Alert: New order received (session-only; no persistence).
+ *
+ * @param int $uid
+ *   Vendor user ID.
+ *
+ * @return array{type: string, message: string, cta: array{label: string, url: string}}|null
+ */
+function _myeventlane_vendor_theme_alert_new_order(int $uid): ?array {
+  if ($uid <= 0) {
+    return NULL;
+  }
+  try {
+    $request = \Drupal::requestStack()->getCurrentRequest();
+    $session = $request ? $request->getSession() : NULL;
+    if (!$session) {
+      return NULL;
+    }
+    $max = _myeventlane_vendor_theme_get_max_completed_order_id_for_user($uid);
+    $last = $session->get('mel_vendor_alert_last_seen_order_id');
+    if ($last === NULL) {
+      $session->set('mel_vendor_alert_last_seen_order_id', $max);
+      return NULL;
+    }
+    if ($max > (int) $last) {
+      $session->set('mel_vendor_alert_last_seen_order_id', $max);
+      return [
+        'type' => 'info',
+        'message' => t('You\'ve received a new ticket order.'),
+        'cta' => ['label' => t('View orders'), 'url' => '/vendor/orders'],
+      ];
+    }
+  }
+  catch (\Exception $e) {
+    // Silently skip.
+  }
+  return NULL;
+}
+
+/**
+ * Get max completed order ID for orders containing items for the user's events.
+ */
+function _myeventlane_vendor_theme_get_max_completed_order_id_for_user(int $uid): int {
+  try {
+    $etm = \Drupal::entityTypeManager();
+    $eids = $etm->getStorage('node')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->condition('uid', $uid)
+      ->range(0, 100)
+      ->execute();
+    if (empty($eids)) {
+      return 0;
+    }
+    $oi_ids = $etm->getStorage('commerce_order_item')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_target_event', array_values($eids), 'IN')
+      ->range(0, 500)
+      ->execute();
+    if (empty($oi_ids)) {
+      return 0;
+    }
+    $items = $etm->getStorage('commerce_order_item')->loadMultiple($oi_ids);
+    $order_ids = [];
+    foreach ($items as $it) {
+      if (!$it->get('order_id')->isEmpty()) {
+        $order_ids[] = $it->get('order_id')->target_id;
+      }
+    }
+    $order_ids = array_values(array_unique(array_filter($order_ids)));
+    if (empty($order_ids)) {
+      return 0;
+    }
+    $completed = $etm->getStorage('commerce_order')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('id', $order_ids, 'IN')
+      ->condition('state', 'completed')
+      ->sort('id', 'DESC')
+      ->range(0, 1)
+      ->execute();
+    return !empty($completed) ? (int) reset($completed) : 0;
+  }
+  catch (\Exception $e) {
+    return 0;
+  }
+}
+
+/**
+ * Build vendor_alert array for the Vendor Alert Strip.
+ *
+ * Priority (locked): (1) payouts disabled; (2) account missing; (3) recent
+ * payout; (4) boost expiring; (5) event sold out; (6) new order; (7) else info.
+ *
+ * @param \Drupal\Core\Session\AccountInterface $current_user
+ *   The current user.
+ *
+ * @return array{type: string, message: string, cta: array{label: string, url: string}|null}|null
+ *   The alert array, or NULL when not authenticated (no alert).
+ */
+function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\AccountInterface $current_user): ?array {
+  if (!$current_user->isAuthenticated()) {
+    return NULL;
+  }
+
+  $store = _myeventlane_vendor_theme_get_store_for_account($current_user);
+  $uid = (int) $current_user->id();
+
+  // 1) Stripe payouts disabled → error
+  $payouts_enabled = TRUE;
+  if ($store && $store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()) {
+    $payouts_enabled = (bool) $store->get('field_stripe_payouts_enabled')->value;
+  }
+  if (!$payouts_enabled) {
+    return [
+      'type' => 'error',
+      'message' => t('Payouts are disabled for your Stripe account. Enable them in Stripe to receive funds.'),
+      'cta' => ['label' => t('View Payouts'), 'url' => '/vendor/payouts'],
+    ];
+  }
+
+  // 2) No Stripe account ID → warning
+  $account_id = '';
+  if ($store && $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+    $account_id = trim((string) $store->get('field_stripe_account_id')->value);
+  }
+  if ($account_id === '') {
+    return [
+      'type' => 'warning',
+      'message' => t('Connect your Stripe account to receive payouts.'),
+      'cta' => ['label' => t('Connect Stripe'), 'url' => '/vendor/payouts'],
+    ];
+  }
+
+  // 3) Payout recently completed → success (Stripe-backed via service)
+  if ($store && \Drupal::hasService('myeventlane_stripe.vendor_stripe')) {
+    $vendor_stripe = \Drupal::service('myeventlane_stripe.vendor_stripe');
+    $payout = $vendor_stripe->hasRecentPayout($store, 3);
+    if ($payout !== NULL) {
+      $amount = $payout['currency'] === 'AUD' ? '$' . $payout['amount'] : $payout['amount'] . ' ' . $payout['currency'];
+      return [
+        'type' => 'success',
+        'message' => t('Your payout of @amount was sent on @date.', [
+          '@amount' => $amount,
+          '@date' => $payout['date']->format('M j, Y'),
+        ]),
+        'cta' => NULL,
+      ];
+    }
+  }
+
+  // 4) Boost expiring (≤ 7 days)
+  $alert = _myeventlane_vendor_theme_alert_boost_expiring($uid);
+  if ($alert !== NULL) {
+    return $alert;
+  }
+
+  // 5) Event sold out
+  $alert = _myeventlane_vendor_theme_alert_event_sold_out($uid);
+  if ($alert !== NULL) {
+    return $alert;
+  }
+
+  // 6) New order received (session-only)
+  $alert = _myeventlane_vendor_theme_alert_new_order($uid);
+  if ($alert !== NULL) {
+    return $alert;
+  }
+
+  // 7) Else → info (next payout)
+  return [
+    'type' => 'info',
+    'message' => t('View your payout schedule and balance in Payouts.'),
+    'cta' => ['label' => t('View Payouts'), 'url' => '/vendor/payouts'],
+  ];
 }
 

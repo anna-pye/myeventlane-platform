@@ -9,6 +9,7 @@ use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\flag\FlagServiceInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\taxonomy\TermInterface;
 use Drupal\user\UserInterface;
 
@@ -25,6 +26,7 @@ final class CategoryDigestGenerator {
     private readonly MailManagerInterface $mailManager,
     private readonly RendererInterface $renderer,
     private readonly FlagServiceInterface $flagService,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
@@ -135,18 +137,8 @@ final class CategoryDigestGenerator {
         $venue = $event->get('field_venue_name')->value;
       }
 
-      $isBoosted = FALSE;
-      if ($event->hasField('field_promoted') && (bool) $event->get('field_promoted')->value) {
-        if ($event->hasField('field_promo_expires') && !$event->get('field_promo_expires')->isEmpty()) {
-          try {
-            $expires = strtotime($event->get('field_promo_expires')->value);
-            $isBoosted = $expires > $now;
-          }
-          catch (\Exception) {
-            // Ignore date parsing errors.
-          }
-        }
-      }
+      // Use canonical API to check boost status.
+      $isBoosted = $this->boostManager->isBoosted($event);
 
       $eventsByCategory[$categoryId]['events'][] = [
         'id' => $event->id(),

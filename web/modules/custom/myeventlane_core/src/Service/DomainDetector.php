@@ -18,9 +18,28 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class DomainDetector {
 
+  /**
+   * The request stack service.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
   private readonly RequestStack $requestStack;
+
+  /**
+   * The config factory service.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
   private readonly ConfigFactoryInterface $configFactory;
 
+  /**
+   * Constructs a DomainDetector.
+   *
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory service.
+   */
   public function __construct(
     RequestStack $request_stack,
     ConfigFactoryInterface $config_factory,

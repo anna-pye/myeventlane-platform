@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * FAQ partial for Boost help.
+ *
+ * Variables:
+ * - faqs: array keyed by category ('vendors', 'customers')
+ */
+#}
+<section class="mel-boost-faq" aria-label="{{ 'Boost FAQs'|t }}">
+  {% if faqs.vendors is defined and faqs.vendors|length > 0 %}
+    <h3>{{ 'Vendors'|t }}</h3>
+    <div class="mel-boost-faq__group">
+      {% for item in faqs.vendors %}
+        <details class="mel-boost-faq__item">
+          <summary class="mel-boost-faq__q">{{ item.question }}</summary>
+          {% if item.answer %}
+            <div class="mel-boost-faq__a">
+              <p>{{ item.answer }}</p>
+            </div>
+          {% endif %}
+        </details>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if faqs.customers is defined and faqs.customers|length > 0 %}
+    <h3>{{ 'Customers'|t }}</h3>
+    <div class="mel-boost-faq__group">
+      {% for item in faqs.customers %}
+        <details class="mel-boost-faq__item">
+          <summary class="mel-boost-faq__q">{{ item.question }}</summary>
+          {% if item.answer %}
+            <div class="mel-boost-faq__a">
+              <p>{{ item.answer }}</p>
+            </div>
+          {% endif %}
+        </details>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+

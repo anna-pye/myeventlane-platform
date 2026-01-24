@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\myeventlane_boost\Service\BoostMetricsService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
 
@@ -17,6 +18,7 @@ use Drupal\node\NodeInterface;
  * - RsvpStatsService: RSVP counts and summaries
  * - EventMetricsService: Attendee counts, capacity, check-ins
  * - BoostStatusService: Boost eligibility and status
+ * - BoostMetricsService: Boost performance metrics (impressions, clicks, spend)
  * - CategoryAudienceService: Geographic audience breakdown.
  *
  * Handles unpublished events gracefully by returning safe defaults.
@@ -32,6 +34,7 @@ final class MetricsAggregator {
     private readonly CategoryAudienceService $categoryAudienceService,
     private readonly BoostStatusService $boostStatusService,
     private readonly EventMetricsServiceInterface $eventMetricsService,
+    private readonly BoostMetricsService $boostMetricsService,
   ) {}
 
   /**
@@ -194,6 +197,22 @@ final class MetricsAggregator {
       ];
     }
 
+    // Orchestrate call to BoostMetricsService for boost performance metrics.
+    try {
+      $boostMetrics = $this->boostMetricsService->getEventBoostMetrics($event);
+    }
+    catch (\Exception $e) {
+      $boostMetrics = [
+        'spend' => '$0.00',
+        'impressions' => 0,
+        'clicks' => 0,
+        'ctr' => 0.0,
+        'cost_per_click' => NULL,
+        'sales_during_period' => NULL,
+        'placements' => [],
+      ];
+    }
+
     // Orchestrate call to CategoryAudienceService for audience data.
     try {
       $audience = $this->categoryAudienceService->getGeoBreakdown($event);
@@ -229,6 +248,7 @@ final class MetricsAggregator {
       'rsvps' => $rsvpSummary,
       'audience' => $audience,
       'boost' => $boost,
+      'boost_metrics' => $boostMetrics,
       'tickets' => $ticketBreakdown,
     ];
   }

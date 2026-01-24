@@ -22,7 +22,7 @@ services:
   # Trending score service.
   myeventlane_analytics.trending_score:
     class: Drupal\myeventlane_analytics\Service\TrendingScoreService
-    arguments: ['@database', '@datetime.time', '@entity_type.manager']
+    arguments: ['@database', '@datetime.time', '@entity_type.manager', '@myeventlane_boost.manager']
 
   # Logger channel for analytics module.
   logger.channel.myeventlane_analytics:

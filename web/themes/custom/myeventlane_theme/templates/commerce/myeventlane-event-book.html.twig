@@ -57,10 +57,10 @@
                   label: 'Tickets',
                   size: 'md',
                 } only %}
-              {% elseif event_mode == 'both' %}
+              {% elseif event_mode == 'external' %}
                 {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
-                  type: 'both',
-                  label: 'RSVP & Tickets',
+                  type: 'external',
+                  label: 'External',
                   size: 'md',
                 } only %}
               {% endif %}
@@ -134,8 +134,6 @@
             {{ 'RSVP for this Event'|t }}
           {% elseif event_mode == 'paid' %}
             {{ 'Buy Tickets'|t }}
-          {% elseif event_mode == 'both' %}
-            {{ 'Register or Buy Tickets'|t }}
           {% elseif event_mode == 'external' %}
             {{ 'Get Tickets'|t }}
           {% else %}
@@ -159,7 +157,7 @@
         {% endif %}
 
         {# Tickets Available Badge for Paid #}
-        {% if event_mode == 'paid' or event_mode == 'both' %}
+        {% if event_mode == 'paid' %}
           <div class="mel-tickets-badge" style="
             background: linear-gradient(135deg, #ff6f61 0%, #e85a4d 100%);
             color: white;

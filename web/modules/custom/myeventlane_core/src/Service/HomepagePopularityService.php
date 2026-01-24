@@ -6,13 +6,14 @@ namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 
 /**
  * Service for calculating event popularity rankings.
  *
  * Ranking logic: RSVP count + ticket sales + views (if available)
- * Excludes: boosted/promoted events
+ * Excludes: actively boosted/promoted events (uses canonical BoostManager)
  * Time window: last 7 days of activity.
  */
 class HomepagePopularityService {
@@ -32,19 +33,30 @@ class HomepagePopularityService {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * The boost manager.
+   *
+   * @var \Drupal\myeventlane_boost\BoostManager|null
+   */
+  protected ?BoostManager $boostManager;
+
+  /**
    * Constructs a HomepagePopularityService.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Drupal\myeventlane_boost\BoostManager|null $boost_manager
+   *   The boost manager (optional, for checking boost status).
    */
   public function __construct(
     Connection $database,
     EntityTypeManagerInterface $entity_type_manager,
+    ?BoostManager $boost_manager = NULL,
   ) {
     $this->database = $database;
     $this->entityTypeManager = $entity_type_manager;
+    $this->boostManager = $boost_manager;
   }
 
   /**
@@ -171,6 +183,9 @@ class HomepagePopularityService {
   /**
    * Checks if an event is valid for popularity ranking.
    *
+   * Uses canonical BoostManager to check boost status, ensuring expired
+   * boosts are not excluded (bug fix).
+   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
@@ -188,11 +203,21 @@ class HomepagePopularityService {
       return FALSE;
     }
 
-    // Exclude promoted/boosted events.
-    if ($event->hasField('field_promoted') && !$event->get('field_promoted')->isEmpty()) {
-      $promoted = $event->get('field_promoted')->value;
-      if ($promoted) {
+    // Exclude actively boosted events (not expired).
+    // Use canonical BoostManager to properly check expiry.
+    if ($this->boostManager) {
+      if ($this->boostManager->isBoosted($event)) {
         return FALSE;
+      }
+    }
+    else {
+      // Fallback if BoostManager not available: check field directly.
+      // This is less accurate (doesn't check expiry) but prevents fatal errors.
+      if ($event->hasField('field_promoted') && !$event->get('field_promoted')->isEmpty()) {
+        $promoted = $event->get('field_promoted')->value;
+        if ($promoted) {
+          return FALSE;
+        }
       }
     }
 

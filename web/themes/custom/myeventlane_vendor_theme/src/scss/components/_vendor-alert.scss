@@ -1,0 +1,108 @@
+/**
+ * @file
+ * Vendor Alert Strip — Stripe/payout status banner.
+ * Mobile-first; state tints via --success|--warning|--error|--info.
+ */
+
+.mel-vendor-alert {
+  width: 100%;
+  margin-bottom: var(--mel-space-4);
+}
+
+.mel-vendor-alert__inner {
+  display: flex;
+  gap: var(--mel-space-3);
+  padding: var(--mel-space-3);
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-2);
+  background: var(--mel-surface-2);
+}
+
+.mel-vendor-alert__icon {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+}
+
+.mel-vendor-alert__icon::before {
+  display: block;
+  text-align: center;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.mel-vendor-alert__content {
+  flex: 1 1 auto;
+}
+
+.mel-vendor-alert__message {
+  margin: 0 0 var(--mel-space-2) 0;
+  font-weight: 600;
+}
+
+.mel-vendor-alert__dismiss {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--mel-muted);
+}
+
+// -----------------------------------------------------------------------------
+// State modifiers (soft tints on __inner)
+// -----------------------------------------------------------------------------
+
+.mel-vendor-alert--success .mel-vendor-alert__inner {
+  background: rgba(0, 160, 120, 0.08);
+  border-color: rgba(0, 160, 120, 0.25);
+}
+
+.mel-vendor-alert--success .mel-vendor-alert__icon::before {
+  content: "✓";
+}
+
+.mel-vendor-alert--warning .mel-vendor-alert__inner {
+  background: rgba(245, 170, 0, 0.1);
+  border-color: rgba(245, 170, 0, 0.35);
+}
+
+.mel-vendor-alert--warning .mel-vendor-alert__icon::before {
+  content: "⚠";
+}
+
+.mel-vendor-alert--error .mel-vendor-alert__inner {
+  background: rgba(200, 40, 40, 0.1);
+  border-color: rgba(200, 40, 40, 0.35);
+}
+
+.mel-vendor-alert--error .mel-vendor-alert__icon::before {
+  content: "⛔";
+}
+
+.mel-vendor-alert--info .mel-vendor-alert__inner {
+  background: rgba(0, 120, 200, 0.08);
+  border-color: rgba(0, 120, 200, 0.25);
+}
+
+.mel-vendor-alert--info .mel-vendor-alert__icon::before {
+  content: "ℹ";
+}
+
+// -----------------------------------------------------------------------------
+// Responsive: tablet+ inline layout
+// -----------------------------------------------------------------------------
+
+@media (min-width: 768px) {
+  .mel-vendor-alert__inner {
+    align-items: center;
+  }
+
+  .mel-vendor-alert__message {
+    margin-bottom: 0;
+  }
+}

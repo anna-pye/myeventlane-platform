@@ -1,54 +1,26 @@
 {#
-  Event CTA section
-  Single source of truth for CTA based on event state
+  Event CTA section.
+  Display only. Single resolved CTA from controller/service (cta_type + event_cta).
+  No logic in Twig.
 #}
+{% set cta = event_cta|default({ cta_type: 'none', label: '', url: null, disabled: true, helper: null }) %}
 <div class="event-cta">
-  {% set state = mel_event_state|default('draft') %}
-  
-  {% if state == 'scheduled' %}
-    {# Scheduled: Show when sales open #}
-    {% if mel_sales_start_formatted %}
-      <button class="button button--primary event-cta__button" disabled>
-        Sales open on {{ mel_sales_start_formatted }}
+  {% if cta.label %}
+    {% if cta.disabled %}
+      <button class="button button--primary event-cta__button" disabled aria-disabled="true">
+        {{ cta.label }}
       </button>
-    {% else %}
-      <button class="button button--primary event-cta__button" disabled>
-        Sales opening soon
-      </button>
-    {% endif %}
-    
-  {% elseif state == 'live' %}
-    {# Live: Show RSVP or Buy Tickets based on mode #}
-    {% if mel_all_ctas.rsvp is defined %}
-      <a href="{{ path('myeventlane_commerce.event_book', {'node': node.id}) }}" class="button button--primary event-cta__button">
-        RSVP Now
-      </a>
-    {% elseif mel_all_ctas.tickets is defined %}
-      <a href="{{ path('myeventlane_commerce.event_book', {'node': node.id}) }}" class="button button--primary event-cta__button">
-        Buy Tickets
-      </a>
-    {% elseif content.mel_ticket_cta is defined and content.mel_ticket_cta %}
-      <div class="event-cta__button-wrapper">
-        {{ content.mel_ticket_cta }}
-      </div>
-    {% endif %}
-    
-  {% elseif state == 'sold_out' %}
-    {# Sold out: Show waitlist if available #}
-    {% if mel_all_ctas.waitlist is defined %}
-      <a href="{{ path('myeventlane_event_attendees.waitlist_signup', {'node': node.id}) }}" class="button button--secondary event-cta__button">
-        Join Waitlist
+    {% elseif cta.url %}
+      <a href="{{ cta.url }}" class="button button--primary event-cta__button">
+        {{ cta.label }}
       </a>
     {% else %}
-      <button class="button button--secondary event-cta__button" disabled>
-        Sold Out
+      <button class="button button--primary event-cta__button" disabled aria-disabled="true">
+        {{ cta.label }}
       </button>
     {% endif %}
-    
-  {% elseif state == 'cancelled' or state == 'ended' %}
-    {# Cancelled/Ended: No CTA #}
-    
-  {% else %}
-    {# Draft or other: No CTA #}
+    {% if cta.helper %}
+      <p class="event-cta__helper">{{ cta.helper }}</p>
+    {% endif %}
   {% endif %}
 </div>

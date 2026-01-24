@@ -1,0 +1,151 @@
+{#
+/**
+ * @file
+ * One-page sponsor-friendly Boost performance PDF guide.
+ *
+ * Variables:
+ * - content: Structured content from BoostHelpContent::getPdfGuideContent()
+ * - tooltips: Inline tooltip copy from BoostHelpContent::getInlineTooltipCopy()
+ */
+#}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ content.title }}</title>
+    <style>
+      /* Dompdf-friendly, single-page layout */
+      body {
+        font-family: DejaVu Sans, Arial, sans-serif;
+        font-size: 10.5px;
+        line-height: 1.35;
+        color: #111827;
+        margin: 18px;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 10px 0;
+        padding: 0 0 8px 0;
+        border-bottom: 1px solid #E5E7EB;
+      }
+      h2 {
+        font-size: 12px;
+        margin: 14px 0 6px 0;
+      }
+      p {
+        margin: 0 0 6px 0;
+      }
+      .cols {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .col {
+        vertical-align: top;
+        width: 50%;
+        padding-right: 10px;
+      }
+      .col:last-child {
+        padding-right: 0;
+        padding-left: 10px;
+      }
+      ul {
+        margin: 0 0 8px 18px;
+        padding: 0;
+      }
+      li { margin: 0 0 4px 0; }
+      .def {
+        margin: 0 0 8px 0;
+      }
+      .def dt {
+        font-weight: 700;
+        margin: 0 0 2px 0;
+      }
+      .def dd {
+        margin: 0 0 6px 0;
+        padding: 0;
+      }
+      .muted {
+        color: #4B5563;
+      }
+      .hr {
+        height: 1px;
+        background: #E5E7EB;
+        margin: 10px 0 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>{{ content.title }}</h1>
+
+    <table class="cols">
+      <tr>
+        <td class="col">
+          <h2>What this shows</h2>
+          {% for line in content.what_this_shows %}
+            {% if line == '' %}
+              <p>&nbsp;</p>
+            {% else %}
+              <p>{{ line }}</p>
+            {% endif %}
+          {% endfor %}
+
+          <h2>Important notes</h2>
+          <ul>
+            {% for note in content.important_notes %}
+              <li>{{ note }}</li>
+            {% endfor %}
+          </ul>
+
+          <p class="muted"><strong>Need help?</strong> {{ content.need_help[0] }}</p>
+          <ul>
+            {% for item in content.need_help|slice(1) %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </td>
+
+        <td class="col">
+          <h2>Metric definitions</h2>
+          <dl class="def">
+            <dt>Event title</dt>
+            <dd>{{ tooltips.event_title }}</dd>
+
+            <dt>Event ID (vendor dashboard export only)</dt>
+            <dd>{{ tooltips.event_id }}</dd>
+
+            <dt>Boost placement</dt>
+            <dd>{{ tooltips.boost_placement }}</dd>
+
+            <dt>Status</dt>
+            <dd>{{ tooltips.status }}</dd>
+
+            <dt>Start date</dt>
+            <dd>{{ tooltips.start_date }}</dd>
+
+            <dt>End date</dt>
+            <dd>{{ tooltips.end_date }}</dd>
+
+            <dt>Spend</dt>
+            <dd>{{ tooltips.spend }}</dd>
+
+            <dt>Impressions</dt>
+            <dd>{{ tooltips.impressions }}</dd>
+
+            <dt>Clicks</dt>
+            <dd>{{ tooltips.clicks }}</dd>
+
+            <dt>CTR</dt>
+            <dd>{{ tooltips.ctr }}</dd>
+
+            <dt>Sales during boost period (paid events only)</dt>
+            <dd>{{ tooltips.sales_during_boost }}</dd>
+
+            <dt>Orders following click (24h) (paid events only)</dt>
+            <dd>{{ tooltips.orders_following_click_24h }}</dd>
+          </dl>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+

@@ -28,11 +28,17 @@
   {# Event Summary #}
   {% set events = [] %}
   {% set ticket_items = [] %}
-  {% set donation_total = 0 %}
+  {% set donation_total = 0.0 %}
   
   {% for item in order_entity.getItems() %}
     {% if item.bundle() == 'checkout_donation' or item.bundle() == 'platform_donation' or item.bundle() == 'rsvp_donation' %}
-      {% set donation_total = donation_total + item.getTotalPrice().getNumber() %}
+      {# Calculate donation total using correct method: check for NULL before calling getNumber() #}
+      {% set item_price = item.getTotalPrice() %}
+      {% if item_price %}
+        {% set donation_total = donation_total + item_price.getNumber() %}
+      {% endif %}
+    {% elseif item.bundle() == 'boost' %}
+      {# Boost is an admin product; do not show in confirmation. #}
     {% else %}
       {% set ticket_items = ticket_items|merge([item]) %}
       {% if item.hasField('field_target_event') and not item.get('field_target_event').isEmpty() %}
@@ -97,7 +103,8 @@
               <div class="mel-checkout-order-item">
                 <div class="mel-checkout-order-item-info">
                   <div class="mel-checkout-order-item-title">
-                    {{ item.getTitle() }}
+                    {% set pe = item.getPurchasedEntity() %}
+                    {{ pe ? pe.label() : item.getTitle() }}
                   </div>
                   <div class="mel-checkout-order-item-variant">
                     Quantity: {{ item.getQuantity()|number_format(0) }}
@@ -139,7 +146,7 @@
         <div class="mel-card-body">
           <h3 class="mel-donation-title">💝 Your Donation</h3>
           <p class="mel-donation-amount">
-            <strong>Donation Amount:</strong> {{ donation_total|commerce_price_format }}
+            <strong>Donation Amount:</strong> ${{ donation_total|number_format(2) }}
           </p>
           <p class="mel-donation-note">
             Thank you for your generous donation! Your contribution helps support our platform and events.
@@ -161,12 +168,103 @@
     </div>
   </div>
 
+  {# What Happens Next #}
+  <div class="mel-confirmation-what-next mel-mt-6">
+    <div class="mel-card">
+      <div class="mel-card-body">
+        <h2 class="mel-confirmation-section-title">{{ 'What happens next'|t }}</h2>
+        
+        <div class="mel-what-next-list">
+          {# Confirmation Email #}
+          <div class="mel-what-next-item">
+            <h3 class="mel-what-next-item-title">{{ '📧 Confirmation Email'|t }}</h3>
+            <p class="mel-what-next-item-text">
+              {{ 'You\'ll receive a confirmation email shortly at <strong>@email</strong> with your tickets, event details, and calendar file.'|t({'@email': order_entity.getEmail})|raw }}
+            </p>
+            <p class="mel-what-next-item-note">
+              {{ 'If you don\'t see it, please check your spam or junk folder.'|t }}
+            </p>
+          </div>
+
+          {# Your Tickets #}
+          <div class="mel-what-next-item">
+            <h3 class="mel-what-next-item-title">{{ '🎫 Your Tickets'|t }}</h3>
+            {% if order_entity.getCustomerId() %}
+              <p class="mel-what-next-item-text">
+                {{ 'Your tickets are available in your account. You can view and download them anytime.'|t }}
+              </p>
+            {% else %}
+              <p class="mel-what-next-item-text">
+                {{ 'Your tickets were sent to your email address. You can also access them using your order number: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber})|raw }}
+              </p>
+            {% endif %}
+          </div>
+
+          {# Event Details #}
+          {% if events|length > 0 %}
+            <div class="mel-what-next-item">
+              <h3 class="mel-what-next-item-title">{{ '📅 Event Details'|t }}</h3>
+              <p class="mel-what-next-item-text">
+                {{ 'All event details (date, time, location) are included in your confirmation email and can be downloaded as a calendar file (.ics) for easy access.'|t }}
+              </p>
+            </div>
+          {% endif %}
+
+          {# Need Help? #}
+          <div class="mel-what-next-item">
+            <h3 class="mel-what-next-item-title">{{ '❓ Need Help?'|t }}</h3>
+            {% set vendor_email = null %}
+            {% if events|length > 0 %}
+              {% for event in events %}
+                {% if event.hasField('field_event_vendor') and not event.get('field_event_vendor').isEmpty() %}
+                  {% set vendor = event.get('field_event_vendor').entity %}
+                  {% if vendor and vendor.hasField('field_email') and not vendor.get('field_email').isEmpty() and vendor.hasField('field_public_show_email') and vendor.get('field_public_show_email').value %}
+                    {% set vendor_email = vendor.get('field_email').value %}
+                    {% break %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            
+            {% if vendor_email %}
+              <p class="mel-what-next-item-text">
+                {{ 'If you have questions about this event, please contact the event organiser at <a href="mailto:@email">@email</a>.'|t({'@email': vendor_email})|raw }}
+              </p>
+            {% else %}
+              <p class="mel-what-next-item-text">
+                {{ 'If you have questions about your order or need assistance, please contact MyEventLane support.'|t }}
+              </p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   {# Actions #}
   <div class="mel-confirmation-actions mel-mt-6">
-    <a href="{{ url('entity.commerce_order.user_view', {'commerce_order': order_entity.id()}) }}" 
-       class="mel-btn mel-btn-primary">
-      View My Tickets
-    </a>
+    {% if order_entity.getCustomerId() %}
+      {# Logged-in users: show "View My Tickets" link #}
+      <a href="{{ url('entity.commerce_order.user_view', {'commerce_order': order_entity.id()}) }}" 
+         class="mel-btn mel-btn-primary">
+        View My Tickets
+      </a>
+    {% else %}
+      {# Guest users: show clear messaging instead of broken link #}
+      <div class="mel-guest-message mel-card">
+        <div class="mel-card-body">
+          <p class="mel-guest-message-text">
+            {{ 'You don\'t need an account to attend.'|t }}
+          </p>
+          <p class="mel-guest-message-text">
+            {{ 'Your tickets and event details have been sent to your email.'|t }}
+          </p>
+          <p class="mel-guest-message-text">
+            {{ 'Please keep your order number handy if you need help: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber})|raw }}
+          </p>
+        </div>
+      </div>
+    {% endif %}
     <a href="{{ url('view.events.page_1') }}" 
        class="mel-btn mel-btn-ghost">
       Browse More Events

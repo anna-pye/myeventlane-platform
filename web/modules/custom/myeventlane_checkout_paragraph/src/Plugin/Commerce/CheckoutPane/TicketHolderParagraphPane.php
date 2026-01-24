@@ -8,8 +8,10 @@ use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Component\Utility\EmailValidatorInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\paragraphs\Entity\Paragraph;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -44,6 +46,13 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private EmailValidatorInterface $emailValidator;
 
   /**
+   * The ticket label resolver.
+   *
+   * @var \Drupal\myeventlane_core\Service\TicketLabelResolver
+   */
+  private TicketLabelResolver $ticketLabelResolver;
+
+  /**
    * {@inheritdoc}
    */
   public function getCacheContexts(): array {
@@ -60,6 +69,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->logger = $container->get('logger.factory')->get('myeventlane_checkout');
     $instance->emailValidator = $container->get('email.validator');
+    $instance->ticketLabelResolver = $container->get('myeventlane_core.ticket_label_resolver');
     return $instance;
   }
 
@@ -90,9 +100,10 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $holders = $order_item->get('field_ticket_holder')->referencedEntities();
       $templates = $this->getExtraQuestionTemplates($order_item);
 
+      $ticket_label = $this->ticketLabelResolver->getTicketLabel($order_item);
       $pane_form['order_items'][$index] = [
         '#type' => 'fieldset',
-        '#title' => $this->t('Ticket Holder Information for: @title', ['@title' => $order_item->label()]),
+        '#title' => $this->t('Ticket Holder Information for: @title', ['@title' => $ticket_label]),
         '#tree' => TRUE,
       ];
 
@@ -399,8 +410,58 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    *   List of template paragraphs.
    */
   private function getExtraQuestionTemplates(OrderItemInterface $order_item): array {
-    $event = $order_item->getPurchasedEntity()?->get('field_event')->entity ?? NULL;
-    return $event?->get('field_attendee_questions')->referencedEntities() ?? [];
+    $event = NULL;
+
+    // Preferred: order item points directly to the event.
+    // (MyEventLane uses field_target_event in many flows.)
+    if ($order_item->hasField('field_target_event') && !$order_item->get('field_target_event')->isEmpty()) {
+      $event = $order_item->get('field_target_event')->entity;
+    }
+
+    $purchased_entity = $order_item->getPurchasedEntity();
+
+    // Back-compat: some setups store field_event on the purchased entity itself.
+    if (
+      !$event
+      && $purchased_entity instanceof FieldableEntityInterface
+      && $purchased_entity->hasField('field_event')
+      && !$purchased_entity->get('field_event')->isEmpty()
+    ) {
+      $event = $purchased_entity->get('field_event')->entity;
+    }
+
+    // Common: field_event is stored on the parent product, not on the variation.
+    if (!$event && $purchased_entity && method_exists($purchased_entity, 'getProduct')) {
+      $product = $purchased_entity->getProduct();
+      if (
+        $product instanceof FieldableEntityInterface
+        && $product->hasField('field_event')
+        && !$product->get('field_event')->isEmpty()
+      ) {
+        $event = $product->get('field_event')->entity;
+      }
+    }
+
+    if (!$event) {
+      $this->logger->warning(
+        'Unable to resolve event for order item @id when building attendee questions. Purchased entity type: @type.',
+        [
+          '@id' => $order_item->id(),
+          '@type' => $purchased_entity ? $purchased_entity->getEntityTypeId() : 'none',
+        ]
+      );
+      return [];
+    }
+
+    if (!$event instanceof FieldableEntityInterface || !$event->hasField('field_attendee_questions')) {
+      $this->logger->warning(
+        'Event entity for order item @id does not have field_attendee_questions; skipping extra questions.',
+        ['@id' => $order_item->id()]
+      );
+      return [];
+    }
+
+    return $event->get('field_attendee_questions')->referencedEntities();
   }
 
 }

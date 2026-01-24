@@ -52,8 +52,19 @@
         </svg>
         {{ 'View Analytics'|t }}
       </a>
+      {% if has_boost and boost_export_url %}
+        <a class="mel-pill" href="{{ boost_export_url }}">{{ 'Export Boost performance'|t }}</a>
+        <a class="mel-pill" href="{{ path('myeventlane_boost.performance_guide_pdf') }}">{{ 'Boost performance guide (PDF)'|t }}</a>
+      {% endif %}
     </div>
   </div>
+
+  {# KPI summary strip (STAGE A2): below vendor alert, above main content #}
+  {% if vendor_kpis is defined %}
+    {% include '@myeventlane_vendor_theme/components/vendor-kpi-strip.html.twig' with {
+      vendor_kpis: vendor_kpis
+    } %}
+  {% endif %}
 
   {# Welcome Banner (for new vendors with no events) #}
   {% if show_welcome %}
@@ -209,126 +220,10 @@
           <a class="mel-link" href="/vendor/events">{{ 'View All'|t }} →</a>
         </div>
         <div class="mel-card__body mel-card__body--flush">
-          {% if events %}
-            <table class="mel-events-table">
-              <thead>
-                <tr>
-                  <th>{{ 'Event'|t }}</th>
-                  <th>{{ 'Date'|t }}</th>
-                  <th>{{ 'Tickets'|t }}</th>
-                  <th>{{ 'RSVPs'|t }}</th>
-                  <th>{{ 'Revenue'|t }}</th>
-                  <th>{{ 'Status'|t }}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {# Best performing event first #}
-                {% if best_event %}
-                  <tr class="mel-events-table__row mel-events-table__row--featured">
-                    <td class="mel-events-table__cell--event">
-                      <div class="mel-events-table__event-info">
-                        <span class="mel-events-table__best-badge">★ Best Performer</span>
-                        <a href="{{ best_event.manage_url }}" class="mel-events-table__title">{{ best_event.title }}</a>
-                        {% if best_event.venue %}<span class="mel-events-table__venue">{{ best_event.venue }}</span>{% endif %}
-                      </div>
-                    </td>
-                    <td data-label="{{ 'Date'|t }}">{{ best_event.date }}</td>
-                    <td data-label="{{ 'Tickets'|t }}"><strong>{{ best_event.tickets_sold }}</strong></td>
-                    <td data-label="{{ 'RSVPs'|t }}">
-                      <strong>{{ best_event.rsvp.total|default(0) }}</strong>
-                      {% if best_event.rsvp.recent > 0 %}
-                        <span class="mel-events-table__rsvp-today" title="{{ 'RSVPs last 7 days'|t }}">+{{ best_event.rsvp.recent }}</span>
-                      {% endif %}
-                    </td>
-                    <td data-label="{{ 'Revenue'|t }}"><strong>{{ best_event.revenue_formatted }}</strong></td>
-                    <td data-label="{{ 'Status'|t }}">
-                      <span class="mel-badge mel-badge--{{ best_event.status }}">{{ best_event.status_label }}</span>
-                      {% if best_event.boost.is_boosted %}
-                        <span class="mel-badge mel-badge--boost" title="{{ 'Boost active'|t }}">⚡ {{ 'Boosted'|t }}</span>
-                      {% endif %}
-                    </td>
-                    <td data-label="">
-                      <div class="mel-events-table__actions">
-                        <a href="{{ best_event.manage_url }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Manage'|t }}</a>
-                        <a href="{{ best_event.analytics_url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'Analytics'|t }}</a>
-                        {% if best_event.boost.allowed and best_event.boost.url %}
-                          <a href="{{ best_event.boost.url }}" class="mel-btn mel-btn--sm mel-btn--primary">
-                            {% if best_event.boost.is_boosted %}{{ 'Manage boost'|t }}{% else %}{{ 'Boost event'|t }}{% endif %}
-                          </a>
-                        {% elseif best_event.boost.message %}
-                          <span class="mel-note mel-note--warning">
-                            <span class="mel-note__text">{{ best_event.boost.message }}</span>
-                          </span>
-                        {% endif %}
-                      </div>
-                    </td>
-                  </tr>
-                {% endif %}
-                {# Other events #}
-                {% for event in events|slice(0, 5) %}
-                  {% if not best_event or event.id != best_event.id %}
-                    <tr class="mel-events-table__row">
-                      <td class="mel-events-table__cell--event">
-                        <div class="mel-events-table__event-info">
-                          <a href="{{ event.manage_url }}" class="mel-events-table__title">{{ event.title }}</a>
-                          {% if event.venue %}<span class="mel-events-table__venue">{{ event.venue }}</span>{% endif %}
-                        </div>
-                      </td>
-                      <td data-label="{{ 'Date'|t }}">{{ event.date }}</td>
-                      <td data-label="{{ 'Tickets'|t }}">
-                        {{ event.tickets_sold }}
-                        {% if event.waitlist.current_waitlist > 0 %}
-                          <span class="mel-events-table__waitlist" title="{{ 'Waitlist: @count'|t({'@count': event.waitlist.current_waitlist}) }}">
-                            ({{ event.waitlist.current_waitlist }} {{ 'waitlist'|t }})
-                          </span>
-                        {% endif %}
-                      </td>
-                      <td data-label="{{ 'RSVPs'|t }}">
-                        {{ event.rsvp.total|default(0) }}
-                        {% if event.rsvp.recent > 0 %}
-                          <span class="mel-events-table__rsvp-today" title="{{ 'RSVPs last 7 days'|t }}">+{{ event.rsvp.recent }}</span>
-                        {% endif %}
-                      </td>
-                      <td data-label="{{ 'Revenue'|t }}">{{ event.revenue_formatted }}</td>
-                      <td data-label="{{ 'Status'|t }}">
-                        <span class="mel-badge mel-badge--{{ event.status }}">{{ event.status_label }}</span>
-                        {% if event.boost.is_boosted %}
-                          <span class="mel-badge mel-badge--boost" title="{{ 'Boost active'|t }}">⚡ {{ 'Boosted'|t }}</span>
-                        {% endif %}
-                      </td>
-                      <td data-label="">
-                        <div class="mel-events-table__actions">
-                          <a href="{{ event.manage_url }}" class="mel-btn mel-btn--sm">{{ 'Manage'|t }}</a>
-                          <a href="{{ event.analytics_url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'Analytics'|t }}</a>
-                          {% if event.boost.allowed and event.boost.url %}
-                            <a href="{{ event.boost.url }}" class="mel-btn mel-btn--sm mel-btn--primary">
-                              {% if event.boost.is_boosted %}{{ 'Manage boost'|t }}{% else %}{{ 'Boost event'|t }}{% endif %}
-                            </a>
-                          {% elseif event.boost.message %}
-                            <span class="mel-note mel-note--warning">
-                              <span class="mel-note__text">{{ event.boost.message }}</span>
-                            </span>
-                          {% endif %}
-                          {% if event.waitlist.current_waitlist > 0 %}
-                            <a href="{{ event.waitlist_url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'Waitlist'|t }} ({{ event.waitlist.current_waitlist }})</a>
-                          {% endif %}
-                        </div>
-                      </td>
-                    </tr>
-                  {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <div class="mel-empty-state mel-empty-state--compact">
-              <svg class="mel-empty-state__icon mel-empty-state__icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
-              <a href="/vendor/events/create" class="mel-btn mel-btn--primary">{{ 'Create Event'|t }}</a>
-            </div>
-          {% endif %}
+          {# STAGE B: Event Performance List (replaces table). Below KPI strip, above secondary. #}
+          {% include '@myeventlane_vendor_theme/components/vendor-event-performance.html.twig' with {
+            events: events|default([])
+          } %}
         </div>
       </div>
     </div>

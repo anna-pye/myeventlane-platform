@@ -359,6 +359,29 @@ a.mel-table__row,
   }
 }
 
+.mel-table--cols-8 {
+  .mel-table__head,
+  .mel-table__row {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+.mel-table--cols-10 {
+  .mel-table__head,
+  .mel-table__row {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+.mel-table__footer {
+  border-top: 2px solid var(--mel-border, #e2e8f0);
+  background: var(--mel-bg-subtle, #f8fafc);
+
+  .mel-table__row {
+    font-weight: $font-weight-semibold;
+  }
+}
+
 // Responsive: stack on mobile
 @include respond-down(md) {
   .mel-table {

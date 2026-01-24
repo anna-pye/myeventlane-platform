@@ -14,6 +14,8 @@ use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
+use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -46,6 +48,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected BoostStatusService $boostStatus;
 
   /**
+   * Vendor KPI service (STAGE A2).
+   */
+  protected VendorKpiService $vendorKpiService;
+
+  /**
+   * Capacity service (STAGE B, optional).
+   */
+  protected ?EventCapacityServiceInterface $capacityService;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -55,12 +67,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     EntityTypeManagerInterface $entity_type_manager,
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
+    VendorKpiService $vendor_kpi_service,
+    ?EventCapacityServiceInterface $capacity_service = NULL,
   ) {
     parent::__construct($domain_detector, $current_user);
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
     $this->boostStatus = $boost_status;
     $this->ticketSales = $ticket_sales;
+    $this->vendorKpiService = $vendor_kpi_service;
+    $this->capacityService = $capacity_service;
   }
 
   /**
@@ -74,6 +90,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('entity_type.manager'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
+      $container->get('myeventlane_vendor_analytics.vendor_kpi'),
+      $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
     );
   }
 
@@ -115,6 +133,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Check if new vendor (show welcome banner).
     $showWelcome = empty($userEvents);
 
+    // Boost export: visible only if vendor has at least one Boost.
+    $publishedEventIds = $this->getPublishedUserEvents($userId);
+    $hasBoost = $this->vendorHasAnyBoost($publishedEventIds);
+    $boostExportUrl = $hasBoost ? Url::fromRoute('myeventlane_vendor.console.boost_vendor_export')->toString() : NULL;
+
     // Chart data for JavaScript.
     $chartData = $this->buildChartData($userId, $userEvents);
 
@@ -127,8 +150,26 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $stripeStatusFormatted['status_message'] = $this->t('Your Stripe account is connected and ready to receive payments.');
     }
 
-    // Use vendor theme template format (matches myeventlane_vendor_theme).
-    return $this->buildVendorPage('myeventlane_vendor_dashboard', [
+    // STAGE A2: KPI strip. Resolve store from vendor; call VendorKpiService; omit if no store.
+    $vendorKpis = NULL;
+    $store = NULL;
+    if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+    }
+    if ($store) {
+      $range = $this->vendorKpiService->getDefaultRangeLast30Days();
+      $kpi = $this->vendorKpiService->getKpisForStore($store, $range['start'], $range['end'], 'AUD');
+      $currency = $kpi['currency'] ?? 'AUD';
+      $revenueFormatted = $this->formatCurrencyCents((int) $kpi['revenue_net_cents'], $currency);
+      $vendorKpis = [
+        ['label' => $this->t('Revenue'), 'value' => $revenueFormatted, 'sub' => $this->t('Last 30 days')],
+        ['label' => $this->t('Orders'), 'value' => (int) $kpi['orders_count'], 'sub' => $this->t('Completed')],
+        ['label' => $this->t('Tickets sold'), 'value' => (int) $kpi['tickets_sold'], 'sub' => $this->t('Paid tickets')],
+        ['label' => $this->t('RSVPs'), 'value' => (int) $kpi['rsvps_confirmed'], 'sub' => $this->t('Confirmed')],
+      ];
+    }
+
+    $pageVars = [
       'vendor' => $vendor,
       'vendor_edit_url' => $vendorEditUrl,
       'kpis' => $kpis,
@@ -141,6 +182,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'quick_actions' => $quickActions,
       'upcoming_count' => $upcomingCount,
       'show_welcome' => $showWelcome,
+      'has_boost' => $hasBoost,
+      'boost_export_url' => $boostExportUrl,
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/global-styling',
@@ -149,7 +192,27 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'vendorCharts' => $chartData,
         ],
       ],
-    ]);
+    ];
+    if ($vendorKpis !== NULL) {
+      $pageVars['vendor_kpis'] = $vendorKpis;
+    }
+
+    return $this->buildVendorPage('myeventlane_vendor_dashboard', $pageVars);
+  }
+
+  /**
+   * Formats cents as currency (PHP only; do not format in Twig).
+   *
+   * Uses NumberFormatter when available, else number_format with $ prefix.
+   */
+  private function formatCurrencyCents(int $cents, string $currency = 'AUD'): string {
+    $amount = $cents / 100;
+    if (extension_loaded('intl') && class_exists(\NumberFormatter::class)) {
+      $fmt = new \NumberFormatter('en_AU', \NumberFormatter::CURRENCY);
+      $formatted = $fmt->formatCurrency($amount, $currency);
+      return $formatted !== FALSE ? $formatted : '$' . number_format($amount, 2);
+    }
+    return '$' . number_format($amount, 2);
   }
 
   /**
@@ -212,6 +275,36 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
     catch (\Exception $e) {
       return [];
+    }
+  }
+
+  /**
+   * Checks whether any of the given events have at least one Boost order item.
+   *
+   * @param array $eventIds
+   *   Event node IDs.
+   *
+   * @return bool
+   *   TRUE if any event has a Boost order item.
+   */
+  private function vendorHasAnyBoost(array $eventIds): bool {
+    if (empty($eventIds)) {
+      return FALSE;
+    }
+
+    try {
+      $count = $this->entityTypeManager
+        ->getStorage('commerce_order_item')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'boost')
+        ->condition('field_target_event', $eventIds, 'IN')
+        ->count()
+        ->execute();
+      return (int) $count > 0;
+    }
+    catch (\Exception $e) {
+      return FALSE;
     }
   }
 
@@ -498,6 +591,57 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         // Service may fail, use default 0.
       }
 
+      // STAGE B: Capacity, % filled, sold-out (EventCapacityService, optional).
+      $capacity = NULL;
+      $pctFilled = NULL;
+      $isSoldOut = FALSE;
+      if ($this->capacityService) {
+        try {
+          $capacity = $this->capacityService->getCapacityTotal($node);
+          $isSoldOut = $this->capacityService->isSoldOut($node);
+          if ($capacity !== NULL && $capacity > 0) {
+            $filled = $ticketsSold + $rsvps;
+            $pctFilled = (float) round($filled / $capacity * 100, 1);
+          }
+        }
+        catch (\Exception $e) {
+          // Capacity service may fail; leave capacity/pct_filled null, is_sold_out false.
+        }
+      }
+      // Bar width for progress (0–100); no math in Twig.
+      $barWidth = NULL;
+      if ($pctFilled !== NULL) {
+        $barWidth = min(100.0, $pctFilled);
+      }
+
+      // STAGE B: Status badge. Sold out overrides; else Draft, Upcoming, Past.
+      $statusBadge = 'draft';
+      if ($isSoldOut) {
+        $statusBadge = 'sold-out';
+      }
+      elseif ($node->isPublished()) {
+        $statusBadge = $startTimestamp > time() ? 'upcoming' : 'past';
+      }
+      $statusBadgeLabels = [
+        'sold-out' => 'Sold out',
+        'draft' => 'Draft',
+        'upcoming' => 'Upcoming',
+        'past' => 'Past',
+      ];
+      $statusBadgeLabel = $this->t($statusBadgeLabels[$statusBadge] ?? $statusBadge);
+      $filledCount = $ticketsSold + $rsvps;
+
+      // STAGE B: Export CSV URL (attendees), if route exists.
+      $exportCsvUrl = NULL;
+      try {
+        $exportCsvUrl = Url::fromRoute('myeventlane_event_attendees.vendor_export', [
+          'node' => $eventId,
+        ])->toString();
+      }
+      catch (\Exception $e) {
+        // Route or module may not exist.
+      }
+
       // Get waitlist analytics.
       $waitlistAnalytics = $this->getEventWaitlistAnalytics($eventId);
 
@@ -543,10 +687,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'start_timestamp' => $startTimestamp,
         'status' => $status,
         'status_label' => $statusLabel,
+        'status_badge' => $statusBadge,
+        'status_badge_label' => $statusBadgeLabel,
+        'filled_count' => $filledCount,
         'revenue' => $revenue,
         'revenue_formatted' => '$' . number_format($revenue, 0),
         'tickets_sold' => $ticketsSold,
         'rsvps' => $rsvps,
+        'capacity' => $capacity,
+        'pct_filled' => $pctFilled,
+        'bar_width' => $barWidth,
+        'is_sold_out' => $isSoldOut,
+        'export_csv_url' => $exportCsvUrl,
         'waitlist' => $waitlistAnalytics,
         'rsvp' => $stats,
         'boost' => $boost,

@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\BoostManager;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -31,12 +32,15 @@ final class BoostExpiryReminderCron implements ContainerInjectionInterface {
    *   The logger.
    * @param \Drupal\Core\Mail\MailManagerInterface $mailManager
    *   The mail manager.
+   * @param \Drupal\myeventlane_boost\BoostManager $boostManager
+   *   The boost manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
     private readonly MailManagerInterface $mailManager,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
@@ -48,36 +52,27 @@ final class BoostExpiryReminderCron implements ContainerInjectionInterface {
       $container->get('datetime.time'),
       $container->get('logger.channel.myeventlane_boost'),
       $container->get('plugin.manager.mail'),
+      $container->get('myeventlane_boost.manager'),
     );
   }
 
   /**
    * Process expiry reminders.
+   *
+   * Uses canonical BoostManager to find events expiring within 24 hours.
    */
   public function process(): void {
-    $now = $this->time->getRequestTime();
-    $in24Hours = $now + (24 * 3600);
-
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-    $in24Iso = gmdate('Y-m-d\TH:i:s', $in24Hours);
-
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-
-    $nids = $nodeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('type', 'event')
-      ->condition('field_promoted', 1)
-      ->exists('field_promo_expires')
-      ->condition('field_promo_expires', $nowIso, '>')
-      ->condition('field_promo_expires', $in24Iso, '<=')
-      ->range(0, 200)
-      ->execute();
+    // Use canonical API to get events expiring within 24 hours.
+    $nids = $this->boostManager->getExpiringBoostedEventIdsForStore(NULL, 24 * 3600, [
+      'access_check' => FALSE,
+    ]);
 
     if (empty($nids)) {
       return;
     }
 
     /** @var \Drupal\node\NodeInterface[] $nodes */
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
     $nodes = $nodeStorage->loadMultiple($nids);
     $count = 0;
 

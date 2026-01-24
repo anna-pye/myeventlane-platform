@@ -7,9 +7,10 @@ namespace Drupal\myeventlane_analytics\Service;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_boost\BoostManager;
 
 /**
- *
+ * Service for calculating trending scores for events.
  */
 final class TrendingScoreService {
 
@@ -17,10 +18,19 @@ final class TrendingScoreService {
     protected Connection $database,
     protected TimeInterface $time,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected ?BoostManager $boostManager = NULL,
   ) {}
 
   /**
+   * Calculates trending score for an event.
    *
+   * Uses canonical BoostManager to check boost status.
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   *
+   * @return int
+   *   Trending score (recent RSVPs * 2 + boost bonus if active).
    */
   public function score(int $event_nid): int {
     $week_ago = $this->time->getRequestTime() - (7 * 86400);
@@ -32,28 +42,19 @@ final class TrendingScoreService {
       ->execute()
       ->fetchField();
 
-    // Check if event is boosted via node fields.
+    // Check if event is actively boosted using canonical API.
     $boosted = FALSE;
-    try {
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $event = $nodeStorage->load($event_nid);
-      if ($event && $event->bundle() === 'event') {
-        $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
-        $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
-
-        if ($promoted && $expiresValue) {
-          try {
-            $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-            $boosted = $expires->getTimestamp() > $this->time->getRequestTime();
-          }
-          catch (\Exception) {
-            // Invalid date.
-          }
+    if ($this->boostManager) {
+      try {
+        $nodeStorage = $this->entityTypeManager->getStorage('node');
+        $event = $nodeStorage->load($event_nid);
+        if ($event && $event->bundle() === 'event') {
+          $boosted = $this->boostManager->isBoosted($event);
         }
       }
-    }
-    catch (\Exception) {
-      // Entity manager not available.
+      catch (\Exception) {
+        // Entity manager not available or load failed.
+      }
     }
 
     return ($recent * 2) + ($boosted ? 10 : 0);

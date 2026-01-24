@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_dashboard\Service;
 
+use Stripe\StripeClient;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -81,7 +82,7 @@ final class VendorStripeService implements VendorStripeServiceInterface {
 
     try {
       /** @var \Stripe\StripeClient $client */
-      $client = new \Stripe\StripeClient($secret);
+      $client = new StripeClient($secret);
 
       // Available balance for connected account.
       // Stripe returns amounts in cents.
@@ -122,7 +123,7 @@ final class VendorStripeService implements VendorStripeServiceInterface {
    * Matches myeventlane_core.stripe service logic:
    * - Try 'mel_stripe' gateway first
    * - Fallback to 'stripe' gateway
-   * - Config key: 'secret_key' in gateway plugin configuration
+   * - Config key: 'secret_key' in gateway plugin configuration.
    */
   private function resolveStripeSecretKey(): string {
     // Try mel_stripe gateway first (preferred).

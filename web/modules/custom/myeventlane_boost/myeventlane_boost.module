@@ -38,6 +38,21 @@ function myeventlane_boost_theme(): array {
       'template' => 'boost-event-page',
       'path' => $module_path . '/templates',
     ],
+    'boost_performance_guide_pdf' => [
+      'variables' => [
+        'content' => [],
+        'tooltips' => [],
+      ],
+      'template' => 'boost-performance-guide-pdf',
+      'path' => $module_path . '/templates',
+    ],
+    'boost_faq' => [
+      'variables' => [
+        'faqs' => [],
+      ],
+      'template' => 'boost-faq',
+      'path' => $module_path . '/templates',
+    ],
   ];
 }
 
@@ -125,4 +140,7 @@ function myeventlane_boost_cron(): void {
   \Drupal::service('class_resolver')
     ->getInstanceFromDefinition(BoostExpiryReminderCron::class)
     ->process();
+
+  // Nightly rollup: log -> daily aggregates (Phase 2).
+  \Drupal::service('myeventlane_boost.daily_rollup')->run();
 }

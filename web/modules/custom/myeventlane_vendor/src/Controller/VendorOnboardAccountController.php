@@ -47,7 +47,7 @@ final class VendorOnboardAccountController extends ControllerBase {
     return [
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 1,
-      '#total_steps' => 5,
+      '#total_steps' => 6,
       '#step_title' => $this->t('Create your organiser account'),
       '#step_description' => $this->t('To create and manage events, you need an organiser account. Sign in if you already have one, or create a new account below.'),
       '#content' => [

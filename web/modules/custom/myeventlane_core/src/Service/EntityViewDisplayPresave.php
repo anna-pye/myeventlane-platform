@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Service;
 
+use Psr\Log\LoggerInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -23,7 +24,7 @@ final class EntityViewDisplayPresave {
    *
    * @var \Psr\Log\LoggerInterface
    */
-  private \Psr\Log\LoggerInterface $logger;
+  private LoggerInterface $logger;
 
   /**
    * Constructs an EntityViewDisplayPresave.

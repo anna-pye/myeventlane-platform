@@ -7,6 +7,7 @@ lifecycle: stable
 
 dependencies:
   - myeventlane_core:myeventlane_core
+  - myeventlane_event:myeventlane_event
   - drupal:field
   - drupal:text
   - drupal:image
@@ -14,6 +15,8 @@ dependencies:
   - drupal:user
   - drupal:field_ui
   - commerce:commerce_store
+  - myeventlane_vendor_analytics:myeventlane_vendor_analytics
 
 optional_dependencies:
   - pathauto:pathauto
+  - myeventlane_capacity:myeventlane_capacity

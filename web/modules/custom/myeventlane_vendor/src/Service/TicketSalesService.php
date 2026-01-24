@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\NodeInterface;
 
@@ -11,6 +12,7 @@ use Drupal\node\NodeInterface;
  * Ticket sales data provider for vendor console.
  *
  * Queries real Commerce order data for accurate sales metrics.
+ * Excludes Boost purchases (admin revenue only).
  */
 final class TicketSalesService {
 
@@ -20,6 +22,38 @@ final class TicketSalesService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
+
+  /**
+   * Checks if an order item is a Boost purchase.
+   *
+   * Boost purchases are admin revenue and must be excluded from vendor metrics.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
+   *   The order item.
+   *
+   * @return bool
+   *   TRUE if the item is a Boost purchase, FALSE otherwise.
+   */
+  private function isBoostItem(OrderItemInterface $item): bool {
+    // Boost order items have bundle 'boost'.
+    if ($item->bundle() === 'boost') {
+      return TRUE;
+    }
+
+    // Also check the purchased entity's product/variation type.
+    $purchasedEntity = $item->getPurchasedEntity();
+    if ($purchasedEntity) {
+      $product = $purchasedEntity->getProduct();
+      if ($product && $product->bundle() === 'boost_upgrade') {
+        return TRUE;
+      }
+      if ($purchasedEntity->bundle() === 'boost_duration') {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
 
   /**
    * Returns a sales summary for an event.
@@ -49,6 +83,15 @@ final class TicketSalesService {
       ]);
 
       foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
+
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
@@ -112,24 +155,24 @@ final class TicketSalesService {
   /**
    * Returns ticket type breakdown for an event.
    *
-   * Counts: Completed orders only (order state='completed').
-   * Excludes: Draft/cancelled/refunded orders.
-   * Tables: commerce_order_item, commerce_order, product variation.
-   * NOTE: Does not check if event is published - caller should filter drafts.
+   * Aggregates by product variation from completed order items.
+   * Groups by: oi.purchased_entity (variation ID)
+   * Sums: oi.quantity, oi.total_price__number
+   * Filters: o.state = 'completed', field_target_event = eventId.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
    * @return array
-   *   Array of ticket types, each with: label, price (formatted), sold (int),
-   *   available (int|string), revenue (formatted), revenue_raw (float).
+   *   Array of ticket types, each with: label (variation title), price (formatted),
+   *   sold (int), available (int|string), revenue (formatted), revenue_raw (float).
    *   Returns empty array if no product or on error.
    */
   public function getTicketBreakdown(NodeInterface $event): array {
     $eventId = (int) $event->id();
     $breakdown = [];
 
-    // Get the linked product.
+    // Get the linked product for variation metadata (price, stock, title).
     if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
       return [];
     }
@@ -140,66 +183,125 @@ final class TicketSalesService {
     }
 
     try {
-      $variations = $product->getVariations();
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      $variationStorage = $this->entityTypeManager->getStorage('commerce_product_variation');
+      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
 
-      foreach ($variations as $variation) {
-        $variationId = $variation->id();
-        $title = $variation->getTitle();
-        $price = $variation->getPrice();
-        $priceNumber = $price ? (float) $price->getNumber() : 0;
+      // Query order items for this event (base query).
+      $orderItems = $orderItemStorage->loadByProperties([
+        'field_target_event' => $eventId,
+      ]);
 
-        // Get stock if available.
-        $stock = 'Unlimited';
-        if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
-          $stock = (int) $variation->get('field_stock')->value;
+      // Group by variation ID and aggregate.
+      // Key: variation_id, Value: ['sold' => int, 'revenue' => float, 'variation' => entity].
+      $variationAggregates = [];
+
+      foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
         }
 
-        // Query order items for this variation.
-        $sold = 0;
-        $revenue = 0.0;
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
 
-        $orderItems = $orderItemStorage->loadByProperties([
-          'purchased_entity' => $variationId,
-        ]);
+        // Get purchased entity (variation).
+        $purchasedEntity = $item->getPurchasedEntity();
+        if (!$purchasedEntity) {
+          continue;
+        }
 
-        foreach ($orderItems as $item) {
-          if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-            continue;
-          }
+        $variationId = $purchasedEntity->id();
 
-          // Safely load the order entity to avoid getOrder() warnings.
-          $order_id = $item->get('order_id')->target_id;
-          if (!$order_id) {
-            continue;
-          }
+        // Verify order is completed.
+        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+          continue;
+        }
 
-          try {
-            $order = $this->entityTypeManager
-              ->getStorage('commerce_order')
-              ->load($order_id);
-            if ($order && $order->getState()->getId() === 'completed') {
-              $sold += (int) $item->getQuantity();
-              $totalPrice = $item->getTotalPrice();
-              if ($totalPrice) {
-                $revenue += (float) $totalPrice->getNumber();
-              }
-            }
-          }
-          catch (\Exception) {
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
+        try {
+          $order = $orderStorage->load($order_id);
+          if (!$order || $order->getState()->getId() !== 'completed') {
             continue;
           }
         }
+        catch (\Exception) {
+          continue;
+        }
 
-        $available = is_int($stock) ? max(0, $stock - $sold) : $stock;
+        // Initialize variation aggregate if not seen.
+        if (!isset($variationAggregates[$variationId])) {
+          // Load variation to get title, price, stock.
+          $variation = $variationStorage->load($variationId);
+          if (!$variation) {
+            continue;
+          }
+
+          // Exclude Boost variations.
+          if ($variation->bundle() === 'boost_duration') {
+            continue;
+          }
+
+          // Verify variation belongs to the event's product.
+          $variationProduct = $variation->getProduct();
+          if (!$variationProduct || $variationProduct->id() !== $product->id()) {
+            continue;
+          }
+
+          // Get variation title from title field directly.
+          $variationTitle = '';
+          if ($variation->hasField('title') && !$variation->get('title')->isEmpty()) {
+            $variationTitle = $variation->get('title')->value;
+          }
+
+          // Fallback to label() if title field is empty.
+          if (empty($variationTitle)) {
+            $variationTitle = $variation->label();
+          }
+
+          $price = $variation->getPrice();
+          $priceNumber = $price ? (float) $price->getNumber() : 0.0;
+
+          // Get stock if available.
+          $stock = 'Unlimited';
+          if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
+            $stock = (int) $variation->get('field_stock')->value;
+          }
+
+          $variationAggregates[$variationId] = [
+            'variation_id' => $variationId,
+            'title' => $variationTitle,
+            'price' => $priceNumber,
+            'stock' => $stock,
+            'sold' => 0,
+            'revenue' => 0.0,
+          ];
+        }
+
+        // Aggregate: SUM(quantity), SUM(total_price__number).
+        $variationAggregates[$variationId]['sold'] += (int) $item->getQuantity();
+        $totalPrice = $item->getTotalPrice();
+        if ($totalPrice) {
+          $variationAggregates[$variationId]['revenue'] += (float) $totalPrice->getNumber();
+        }
+      }
+
+      // Convert to final breakdown format.
+      foreach ($variationAggregates as $data) {
+        $available = is_int($data['stock']) ? max(0, $data['stock'] - $data['sold']) : $data['stock'];
 
         $breakdown[] = [
-          'label' => $title,
-          'price' => '$' . number_format($priceNumber, 2),
-          'sold' => $sold,
+          'label' => $data['title'],
+          'price' => '$' . number_format($data['price'], 2),
+          'sold' => $data['sold'],
           'available' => $available,
-          'revenue' => '$' . number_format($revenue, 2),
-          'revenue_raw' => $revenue,
+          'revenue' => '$' . number_format($data['revenue'], 2),
+          'revenue_raw' => $data['revenue'],
         ];
       }
     }
@@ -244,6 +346,15 @@ final class TicketSalesService {
       ]);
 
       foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
+
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
@@ -317,6 +428,11 @@ final class TicketSalesService {
       $hasUnlimited = FALSE;
 
       foreach ($variations as $variation) {
+        // Exclude Boost variations (admin revenue only).
+        if ($variation->bundle() === 'boost_duration') {
+          continue;
+        }
+
         if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
           $total += (int) $variation->get('field_stock')->value;
         }
@@ -389,6 +505,15 @@ final class TicketSalesService {
       ]);
 
       foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
+
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
@@ -473,6 +598,15 @@ final class TicketSalesService {
 
       $processedOrders = [];
       foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
+
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
@@ -549,6 +683,15 @@ final class TicketSalesService {
 
       $totalRevenue = 0.0;
       foreach ($orderItems as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+
+        // Exclude Boost purchases (admin revenue only).
+        if ($this->isBoostItem($item)) {
+          continue;
+        }
+
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }

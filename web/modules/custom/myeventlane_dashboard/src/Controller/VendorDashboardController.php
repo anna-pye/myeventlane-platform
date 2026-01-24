@@ -650,6 +650,9 @@ final class VendorDashboardController extends ControllerBase {
   /**
    * Gets Boost status for an event.
    *
+   * Uses canonical BoostManager::getBoostStatusForEvent() to avoid duplicating
+   * boost logic.
+   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
@@ -670,36 +673,16 @@ final class VendorDashboardController extends ControllerBase {
       ];
     }
 
-    $isBoosted = $this->boostManager->isBoosted($event);
-    $expiresDate = NULL;
+    // Use canonical API to get complete boost status.
+    $boostStatus = $this->boostManager->getBoostStatusForEvent($event);
+    $isBoosted = $boostStatus['active'];
+    $isExpired = $boostStatus['expired'];
     $isPublished = $event->isPublished();
 
-    if ($isBoosted && $event->hasField('field_promo_expires') && !$event->get('field_promo_expires')->isEmpty()) {
-      $expiresValue = $event->get('field_promo_expires')->value;
-      if ($expiresValue) {
-        try {
-          $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-          $expiresDate = $expires->format('M j, Y');
-        }
-        catch (\Exception) {
-          // Invalid date.
-        }
-      }
-    }
-
-    // Check if event is expired (boost ended).
-    $isExpired = FALSE;
-    if ($event->hasField('field_promoted') && (bool) $event->get('field_promoted')->value) {
-      if ($expiresValue = $event->get('field_promo_expires')->value ?? NULL) {
-        try {
-          $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-          $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
-          $isExpired = $expires <= $now;
-        }
-        catch (\Exception) {
-          // Invalid date.
-        }
-      }
+    // Format expiry date if available.
+    $expiresDate = NULL;
+    if ($boostStatus['end_timestamp']) {
+      $expiresDate = date('M j, Y', $boostStatus['end_timestamp']);
     }
 
     return [

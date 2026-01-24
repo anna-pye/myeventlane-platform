@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
+use Drupal\myeventlane_boost\BoostManager;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,33 +26,29 @@ final class BoostReminderScheduler {
     private readonly EntityTypeManagerInterface $etm,
     private readonly QueueFactory $queue,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
    * Scans for boosted events nearing expiry and queues reminder emails.
+   *
+   * Uses canonical BoostManager to find events expiring within 24 hours.
    */
   public function scan(): void {
-    $now = $this->time->getRequestTime();
-    $upper = $now + 86400;
+    // Use canonical API to get events expiring within 24 hours.
+    $nids = $this->boostManager->getExpiringBoostedEventIdsForStore(NULL, 24 * 3600, [
+      'access_check' => FALSE,
+    ]);
 
-    // Query events where promo is active and ends within 24h.
-    $storage = $this->etm->getStorage('node');
-    $query = $storage->getQuery()
-      ->condition('status', 1)
-      ->condition('type', 'event')
-      ->condition('field_promoted', 1)
-      ->condition('field_promo_expires', gmdate('Y-m-d\\TH:i:s', $now), '>')
-      ->condition('field_promo_expires', gmdate('Y-m-d\\TH:i:s', $upper), '<=')
-      ->accessCheck(FALSE);
-
-    $nids = $query->execute();
     if (empty($nids)) {
       $this->logger->notice('Boost reminder scan: no candidates in next 24h.');
       return;
     }
 
     /** @var \Drupal\node\NodeInterface[] $nodes */
+    $storage = $this->etm->getStorage('node');
     $nodes = $storage->loadMultiple($nids);
+
     foreach ($nodes as $node) {
       $nid = (int) $node->id();
       $owner = $node->getOwner();
@@ -62,8 +59,9 @@ final class BoostReminderScheduler {
         continue;
       }
 
-      $expires = (string) $node->get('field_promo_expires')->value;
-      $expiresTs = $expires ? strtotime($expires . ' UTC') : NULL;
+      // Get expiry date from boost status for consistent formatting.
+      $boostStatus = $this->boostManager->getBoostStatusForEvent($node);
+      $expiresTs = $boostStatus['end_timestamp'];
 
       $extendUrl = Url::fromUri('internal:/boost/' . $nid, ['absolute' => TRUE])->toString();
 

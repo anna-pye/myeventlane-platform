@@ -3,6 +3,7 @@
  * Event form component styles (shared between pages).
  */
 
+@use "sass:color";
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/typography' as *;
@@ -422,7 +423,7 @@
       top: 0;
       bottom: 0;
       width: 5px;
-      background: linear-gradient(180deg, $wizard-coral 0%, lighten($wizard-coral, 10%) 100%);
+      background: linear-gradient(180deg, $wizard-coral 0%, color.adjust($wizard-coral, $lightness: 10%) 100%);
       border-radius: $radius-lg 0 0 $radius-lg;
       box-shadow: 2px 0 8px rgba($wizard-coral, 0.4);
       z-index: 1;
@@ -513,7 +514,7 @@
       top: 0 !important;
       bottom: 0 !important;
       width: 5px !important;
-      background: linear-gradient(180deg, $wizard-coral 0%, lighten($wizard-coral, 10%) 100%) !important;
+      background: linear-gradient(180deg, $wizard-coral 0%, color.adjust($wizard-coral, $lightness: 10%) 100%) !important;
       border-radius: $radius-lg 0 0 $radius-lg !important;
       box-shadow: 2px 0 8px rgba($wizard-coral, 0.4) !important;
       z-index: 1 !important;
@@ -579,14 +580,14 @@
   .mel-wizard__step.is-active &,
   .mel-vendor-wizard__step.is-active &,
   button.is-active & {
-    background: linear-gradient(135deg, $wizard-coral 0%, lighten($wizard-coral, 8%) 100%) !important;
+    background: linear-gradient(135deg, $wizard-coral 0%, color.adjust($wizard-coral, $lightness: 8%) 100%) !important;
     color: $text-inverse !important;
     box-shadow: 
       0 4px 12px rgba($wizard-coral, 0.4),
       0 0 0 3px rgba($wizard-coral, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
     transform: scale(1.15) rotate(5deg);
-    border-color: lighten($wizard-coral, 15%) !important;
+    border-color: color.adjust($wizard-coral, $lightness: 15%) !important;
     animation: melPulse 2s ease-in-out infinite;
   }
 

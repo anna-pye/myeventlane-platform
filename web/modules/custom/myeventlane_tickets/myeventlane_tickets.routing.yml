@@ -27,3 +27,176 @@ myeventlane_tickets.download_pdf_by_code:
     _title: 'Download Ticket PDF'
   requirements:
     _permission: 'access content'
+
+# Vendor tickets workspace routes.
+myeventlane_tickets.event_tickets_overview:
+  path: '/vendor/events/{event}/tickets'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::overview'
+    _title: 'Tickets'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_types:
+  path: '/vendor/events/{event}/tickets/types'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::typesList'
+    _title: 'Ticket types'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_settings:
+  path: '/vendor/events/{event}/tickets/settings'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::settings'
+    _title: 'Ticket settings'
+  options:
+    parameters:
+      event:
+        type: entity:node
+
+myeventlane_tickets.event_tickets_groups:
+  path: '/vendor/events/{event}/tickets/groups'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventTicketGroupsController::list'
+    _title: 'Ticket groups'
+  requirements:
+    _permission: 'manage own events tickets'
+  options:
+    parameters:
+      event:
+        type: entity:node
+
+myeventlane_tickets.event_tickets_groups_add:
+  path: '/vendor/events/{event}/tickets/groups/add'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::groupsAdd'
+    _title: 'Add ticket group'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_groups_edit:
+  path: '/vendor/events/{event}/tickets/groups/{mel_ticket_group}/edit'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::groupsEdit'
+    _title: 'Edit ticket group'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_access_codes:
+  path: '/vendor/events/{event}/tickets/access-codes'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventAccessCodesController::list'
+    _title: 'Access codes'
+  requirements:
+    _permission: 'manage own events tickets'
+  options:
+    parameters:
+      event:
+        type: entity:node
+
+myeventlane_tickets.event_tickets_access_codes_add:
+  path: '/vendor/events/{event}/tickets/access-codes/add'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::accessCodesAdd'
+    _title: 'Add access code'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_access_codes_edit:
+  path: '/vendor/events/{event}/tickets/access-codes/{mel_access_code}/edit'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::accessCodesEdit'
+    _title: 'Edit access code'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_widgets:
+  path: '/vendor/events/{event}/tickets/widgets'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventWidgetsController::list'
+    _title: 'Embedded widgets'
+  requirements:
+    _permission: 'manage own events tickets'
+  options:
+    parameters:
+      event:
+        type: entity:node
+
+myeventlane_tickets.event_tickets_widgets_add:
+  path: '/vendor/events/{event}/tickets/widgets/add'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::widgetsAdd'
+    _title: 'Add widget'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.event_tickets_widgets_edit:
+  path: '/vendor/events/{event}/tickets/widgets/{mel_purchase_surface}/edit'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::widgetsEdit'
+    _title: 'Edit widget'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.add_ticket_modal:
+  path: '/vendor/events/{event}/tickets/types/add-modal'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::addTicketModal'
+    _title: 'Add ticket type'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event

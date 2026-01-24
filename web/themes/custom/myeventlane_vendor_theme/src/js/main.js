@@ -6,12 +6,76 @@
  * - Mobile sidebar navigation toggle
  * - Help sidebar drawer (mobile)
  * - Dashboard charts initialization (Chart.js)
+ * - Accessible tooltips (Boost help)
  * - Event form tab switching
  * - Dropdown menus
+ * - Vendor alert dismiss (sessionStorage)
  */
+
+import './vendor-alert';
 
 (function (Drupal, once) {
   'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Tooltip state (shared across page)
+  // ---------------------------------------------------------------------------
+
+  /** @type {HTMLElement|null} */
+  let openTooltipTrigger = null;
+  /** @type {HTMLElement|null} */
+  let openTooltipEl = null;
+
+  /**
+   * Gets the tooltip element associated with a trigger.
+   *
+   * @param {HTMLElement} trigger
+   * @return {HTMLElement|null}
+   */
+  const getTooltipEl = (trigger) => {
+    const id = trigger.getAttribute('aria-describedby');
+    if (!id) {
+      return null;
+    }
+    const tooltip = document.getElementById(id);
+    return tooltip instanceof HTMLElement ? tooltip : null;
+  };
+
+  /**
+   * Closes the currently open tooltip (if any).
+   */
+  const closeOpenTooltip = () => {
+    if (openTooltipEl) {
+      openTooltipEl.hidden = true;
+    }
+    if (openTooltipTrigger) {
+      openTooltipTrigger.setAttribute('aria-expanded', 'false');
+    }
+    openTooltipEl = null;
+    openTooltipTrigger = null;
+  };
+
+  /**
+   * Opens the tooltip for the given trigger (and closes any other).
+   *
+   * @param {HTMLElement} trigger
+   */
+  const openTooltipFor = (trigger) => {
+    const tooltip = getTooltipEl(trigger);
+    if (!tooltip) {
+      return;
+    }
+
+    // If a different tooltip is open, close it first.
+    if (openTooltipTrigger && openTooltipTrigger !== trigger) {
+      closeOpenTooltip();
+    }
+
+    tooltip.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    openTooltipEl = tooltip;
+    openTooltipTrigger = trigger;
+  };
 
   /**
    * Mobile sidebar navigation toggle.
@@ -174,6 +238,62 @@
             })) || []
           },
           options
+        });
+      });
+    }
+  };
+
+  /**
+   * Accessible tooltips (ARIA-describedby, role=tooltip).
+   *
+   * Behaviour:
+   * - Open on hover and focus
+   * - Close on blur and Escape
+   * - Never traps focus (tooltip is not focusable)
+   * - Ensures only one tooltip is open at a time
+   */
+  Drupal.behaviors.melTooltips = {
+    attach: function (context) {
+      const triggers = once('mel-tooltip-trigger', '.mel-tooltip__trigger', context);
+
+      triggers.forEach((trigger) => {
+        // Defensive: tooltips are buttons, but support any element.
+        if (!(trigger instanceof HTMLElement)) {
+          return;
+        }
+
+        // Ensure a sane default state.
+        trigger.setAttribute('aria-expanded', trigger.getAttribute('aria-expanded') || 'false');
+
+        trigger.addEventListener('mouseenter', () => {
+          openTooltipFor(trigger);
+        });
+
+        trigger.addEventListener('mouseleave', () => {
+          // If the trigger still has keyboard focus, keep tooltip visible.
+          if (document.activeElement === trigger) {
+            return;
+          }
+          if (openTooltipTrigger === trigger) {
+            closeOpenTooltip();
+          }
+        });
+
+        trigger.addEventListener('focus', () => {
+          openTooltipFor(trigger);
+        });
+
+        trigger.addEventListener('blur', () => {
+          if (openTooltipTrigger === trigger) {
+            closeOpenTooltip();
+          }
+        });
+
+        trigger.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            // Close tooltip but keep focus on trigger.
+            closeOpenTooltip();
+          }
         });
       });
     }

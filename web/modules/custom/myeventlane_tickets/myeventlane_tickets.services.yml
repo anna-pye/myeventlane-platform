@@ -1,18 +1,32 @@
 services:
-  myeventlane_tickets.code:
+  myeventlane_tickets.ticket_code_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketCodeGenerator
-    arguments: ['@entity_type.manager', '@uuid']
+    arguments: ['@uuid']
 
-  myeventlane_tickets.pdf:
+  myeventlane_tickets.ticket_pdf_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator
-    arguments: ['@renderer']
+    arguments: ['@renderer', '@file_system', '@logger.channel.myeventlane_tickets']
 
-  myeventlane_tickets.issuer:
+  myeventlane_tickets.ticket_issuer:
     class: Drupal\myeventlane_tickets\Ticket\TicketIssuer
-    arguments: ['@entity_type.manager', '@myeventlane_tickets.code', '@logger.factory']
+    arguments: [
+      '@entity_type.manager',
+      '@myeventlane_tickets.ticket_code_generator',
+      '@myeventlane_tickets.ticket_pdf_generator',
+      '@logger.channel.myeventlane_tickets'
+    ]
 
-  myeventlane_tickets.order_paid_subscriber:
-    class: Drupal\myeventlane_tickets\EventSubscriber\OrderPaidSubscriber
-    arguments: ['@myeventlane_tickets.issuer']
+  myeventlane_tickets.event_access:
+    class: Drupal\myeventlane_tickets\Service\EventAccess
+    arguments: ['@current_user', '@entity_type.manager']
+
+  myeventlane_tickets.access.event_tickets:
+    class: Drupal\myeventlane_tickets\Access\EventTicketsAccess
+    arguments: ['@myeventlane_tickets.event_access']
     tags:
-      - { name: event_subscriber }
+      - { name: access_check }
+
+  logger.channel.myeventlane_tickets:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['myeventlane_tickets']

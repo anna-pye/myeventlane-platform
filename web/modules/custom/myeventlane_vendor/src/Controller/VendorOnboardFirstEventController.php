@@ -84,8 +84,8 @@ final class VendorOnboardFirstEventController extends ControllerBase {
 
       $content['continue'] = [
         '#type' => 'link',
-        '#title' => $this->t('Continue to dashboard'),
-        '#url' => Url::fromRoute('myeventlane_vendor.onboard.complete'),
+        '#title' => $this->t('Continue'),
+        '#url' => Url::fromRoute('myeventlane_vendor.onboard.boost'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-secondary'],
         ],
@@ -134,7 +134,7 @@ final class VendorOnboardFirstEventController extends ControllerBase {
       $content['skip'] = [
         '#type' => 'link',
         '#title' => $this->t('Skip for now'),
-        '#url' => Url::fromRoute('myeventlane_vendor.onboard.complete'),
+        '#url' => Url::fromRoute('myeventlane_vendor.onboard.boost'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-secondary'],
         ],
@@ -154,7 +154,7 @@ final class VendorOnboardFirstEventController extends ControllerBase {
     return [
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 4,
-      '#total_steps' => 5,
+      '#total_steps' => 6,
       '#step_title' => $this->t('Create your first event'),
       '#step_description' => $this->t('Let\'s get your first event set up. You can always come back to edit it later.'),
       '#content' => $content,

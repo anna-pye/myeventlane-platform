@@ -66,6 +66,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     'user.register',
     'user.pass',
     'user.reset',
+    'myeventlane_boost.performance_guide_pdf',
     'entity.myeventlane_vendor.canonical',
     'myeventlane_vendor.public_list',
     'myeventlane_vendor.organisers',

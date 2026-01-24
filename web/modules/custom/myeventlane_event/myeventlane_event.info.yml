@@ -10,6 +10,7 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_schema:myeventlane_schema
   - myeventlane_event_attendees:myeventlane_event_attendees
+  - myeventlane_event_state:myeventlane_event_state
   - myeventlane_location:myeventlane_location
   - drupal:node
   - drupal:commerce_product

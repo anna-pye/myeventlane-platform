@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_messaging\EventSubscriber;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
@@ -32,6 +33,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TicketLabelResolver $ticketLabelResolver,
   ) {}
 
   /**
@@ -133,8 +135,8 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $event_ids = [];
 
     foreach ($order->getItems() as $item) {
-      // Skip donation items.
-      if ($this->isDonationItem($item)) {
+      // Skip donation and Boost (admin product) items.
+      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
         continue;
       }
 
@@ -166,9 +168,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $ticket_items = [];
 
     foreach ($order->getItems() as $item) {
-      if (!$this->isDonationItem($item)) {
-        $ticket_items[] = $item;
+      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
+        continue;
       }
+      $ticket_items[] = $item;
     }
 
     return $ticket_items;
@@ -291,7 +294,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
       $price = $item->getTotalPrice();
       $formatted[] = [
-        'title' => $item->getTitle(),
+        'title' => $this->ticketLabelResolver->getTicketLabel($item),
         'quantity' => (int) $item->getQuantity(),
         'price' => $price ? $this->formatPrice((float) $price->getNumber()) : '$0.00',
         'attendees' => $attendees,

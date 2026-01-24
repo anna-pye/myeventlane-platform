@@ -67,33 +67,20 @@
 @use 'components/buttons';
 @use 'components/cards';
 @use 'components/chips';
-@use 'components/mel-category-pills';
-@use 'components/mel-lane-cards';
-@use 'components/mel-mascot';
+@use 'components/category-pills';
 @use 'components/alerts';
 @use 'components/tables';
 @use 'components/header';
-@use 'components/cta-bar';
+@use 'components/mel-header-footer';
 @use 'components/hero';
 @use 'components/home-hero';
-@use 'components/pills';
-@use 'components/mel-hero-illustration';
-@use 'components/mel-lane-animate';
 @use 'components/event-grid';
-@use 'components/event-cards';
-@use 'components/micro-interactions';
-@use 'components/event-spotlight';
-@use 'components/spotlight';
 @use 'components/vibe-mixer';
 @use 'components/featured-carousel';
-@use 'components/featured-rail';
-@use 'components/home-carousel';
 @use 'components/event-page';
 @use 'components/event-full' as event_full_component;
 @use 'components/event-node';
 @use 'components/event' as event-component;
-@use 'components/event-hero';
-@use 'components/category-hero';
 @use 'components/event-grid-festival';
 @use 'components/event-hero-festival';
 @use 'components/event-sidebar-festival';
@@ -104,7 +91,6 @@
 @use 'components/rsvp';
 @use 'components/cart';
 @use 'components/checkout';
-@use 'components/checkout-complete';
 @use 'components/search-form';
 @use 'components/footer';
 @use 'components/vendor-detail';
@@ -114,9 +100,6 @@
 @use 'components/ticket-types';
 @use 'components/diagnostics';
 @use 'components/vendor-profile';
-@use 'components/cards-featured';
-@use 'components/cards-discover';
-@use 'components/cards-recommended';
 @use 'components/card-carousel/card-carousel';
 
 // ---------------------------------------------------------------------------
@@ -127,7 +110,6 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/event';
-@use 'pages/event-full' as event_full_page;
 @use 'pages/event-form';
 @use 'pages/dashboard';
 @use 'pages/user';
@@ -135,8 +117,6 @@
 @use 'pages/vendor-form';
 @use 'pages/search';
 @use 'pages/profile';
-@use 'pages/calendar';
-@use 'pages/events';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities

@@ -1,0 +1,181 @@
+/**
+ * @file
+ * Vendor Event Performance List (STAGE B). Mobile-first.
+ *
+ * - Sold out: strong, friendly (reuse sold-out sensibility)
+ * - Nearly full (≥80%): subtle warning
+ * - Past: muted
+ */
+
+.mel-event-perf {
+  margin-bottom: var(--mel-space-5);
+}
+
+.mel-event-perf__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-3);
+}
+
+.mel-event-perf__item {
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-2);
+  padding: var(--mel-space-3);
+}
+
+.mel-event-perf__item--past {
+  opacity: 0.85;
+}
+
+.mel-event-perf__item--past .mel-event-perf__title,
+.mel-event-perf__item--past .mel-event-perf__metrics {
+  color: var(--mel-muted);
+}
+
+.mel-event-perf__item--sold-out {
+  border-color: var(--mel-coral);
+  background: rgba(255, 138, 138, 0.06);
+}
+
+.mel-event-perf__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mel-space-2);
+  margin-bottom: var(--mel-space-2);
+}
+
+.mel-event-perf__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mel-text);
+  text-decoration: none;
+}
+
+.mel-event-perf__title:hover {
+  text-decoration: underline;
+}
+
+// Status badges used in this component (sold-out, upcoming; draft/past in _badges)
+.mel-badge--sold-out {
+  color: #b91c1c;
+  background: #fee2e2;
+  font-weight: 600;
+}
+
+.mel-badge--upcoming {
+  color: #0d9488;
+  background: #ccfbf1;
+}
+
+.mel-event-perf__bar-wrap {
+  margin-bottom: var(--mel-space-2);
+}
+
+.mel-event-perf__bar {
+  height: 8px;
+  background: var(--mel-surface-2, #f3f4f6);
+  border-radius: var(--mel-radius-pill, 999px);
+  overflow: hidden;
+  margin-bottom: var(--mel-space-1);
+}
+
+.mel-event-perf__bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--mel-focus, #2563eb);
+  transition: width 0.2s ease;
+}
+
+.mel-event-perf__bar-fill--nearly-full {
+  background: #f59e0b;
+}
+
+.mel-event-perf__bar-fill--sold-out {
+  background: var(--mel-coral);
+}
+
+.mel-event-perf__bar-label {
+  font-size: 0.75rem;
+  color: var(--mel-muted);
+}
+
+.mel-event-perf__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-space-2) var(--mel-space-4);
+  margin-bottom: var(--mel-space-2);
+  font-size: 0.875rem;
+}
+
+.mel-event-perf__metric {
+  color: var(--mel-text);
+}
+
+.mel-event-perf__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-space-2);
+}
+
+.mel-event-perf__action {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--mel-focus);
+  text-decoration: none;
+}
+
+.mel-event-perf__action:hover {
+  text-decoration: underline;
+}
+
+// Desktop: grid, progress bar inline in left column, actions right-aligned
+@media (min-width: 1024px) {
+  .mel-event-perf__item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: var(--mel-space-2) var(--mel-space-4);
+    align-items: center;
+  }
+
+  .mel-event-perf__head {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+  }
+
+  .mel-event-perf__bar-wrap {
+    grid-column: 1;
+    grid-row: 2;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--mel-space-3);
+  }
+
+  .mel-event-perf__bar {
+    flex: 0 1 120px;
+    margin-bottom: 0;
+  }
+
+  .mel-event-perf__metrics {
+    grid-column: 1;
+    grid-row: 3;
+    margin-bottom: 0;
+  }
+
+  .mel-event-perf__actions {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    justify-self: end;
+    align-self: center;
+    margin-bottom: 0;
+  }
+}

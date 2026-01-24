@@ -11,7 +11,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Controller for vendor onboarding step 5: Completion and dashboard intro.
+ * Controller for vendor onboarding step 6: Completion and dashboard intro.
  */
 final class VendorOnboardCompleteController extends ControllerBase {
 
@@ -23,7 +23,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
   }
 
   /**
-   * Step 5: Onboarding complete - dashboard introduction.
+   * Step 6: Onboarding complete - dashboard introduction.
    *
    * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
    *   Render array or redirect.
@@ -130,8 +130,8 @@ final class VendorOnboardCompleteController extends ControllerBase {
 
     return [
       '#theme' => 'vendor_onboard_step',
-      '#step_number' => 5,
-      '#total_steps' => 5,
+      '#step_number' => 6,
+      '#total_steps' => 6,
       '#step_title' => $this->t('You\'re all set!'),
       '#step_description' => $this->t('Your organiser account is ready. Start creating events and managing your business.'),
       '#content' => $content,

@@ -1,0 +1,13 @@
+services:
+  logger.channel.myeventlane_vendor_analytics:
+    parent: logger.channel_base
+    arguments: ['myeventlane_vendor_analytics']
+
+  myeventlane_vendor_analytics.vendor_kpi:
+    class: Drupal\myeventlane_vendor_analytics\Service\VendorKpiService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_vendor_analytics'

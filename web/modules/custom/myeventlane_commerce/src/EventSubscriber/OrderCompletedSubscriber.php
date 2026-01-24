@@ -75,6 +75,11 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
   private function processOrderItem(object $orderItem, object $order): void {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
 
+    // Exclude Boost: it is an admin product, not a vendor event attendee.
+    if (method_exists($orderItem, 'bundle') && $orderItem->bundle() === 'boost') {
+      return;
+    }
+
     // Get event from order item.
     if (!$orderItem->hasField('field_target_event') || $orderItem->get('field_target_event')->isEmpty()) {
       // Fallback: try to get event from product variation.

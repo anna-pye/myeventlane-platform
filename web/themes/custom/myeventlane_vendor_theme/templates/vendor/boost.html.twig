@@ -11,6 +11,10 @@
   </div>
 </div>
 
+<p class="mel-export-link">
+  <a class="mel-pill" href="{{ path('myeventlane_boost.performance_guide_pdf') }}">{{ 'Boost performance guide (PDF)'|t }}</a>
+</p>
+
 {% if campaigns|length > 0 %}
   <div class="mel-card">
     <div class="mel-card__header">
@@ -82,6 +86,14 @@
         {% endfor %}
       </div>
     </div>
+  {% elseif no_store %}
+    <div class="mel-empty">
+      <div class="mel-empty__icon">🏪</div>
+      <div class="mel-empty__title">{{ 'Store not configured'|t }}</div>
+      <div class="mel-empty__description">
+        {{ 'You need to set up your Commerce store before you can boost events. Please contact support or complete your vendor profile setup.'|t }}
+      </div>
+    </div>
   {% else %}
     <div class="mel-empty">
       <div class="mel-empty__icon">🎉</div>
@@ -126,4 +138,18 @@
     </div>
   </div>
 </div>
+
+{% if boost_faq is defined %}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Boost FAQs'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      {{ {
+        '#theme': 'boost_faq',
+        '#faqs': boost_faq
+      } }}
+    </div>
+  </div>
+{% endif %}
 

@@ -8,27 +8,36 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Book page: renders the booking form based on event type.
+ * Book page: renders the booking form based on CTA type.
  *
- * This controller handles the unified booking experience for:
- * - RSVP (free) events: Shows RsvpPublicForm.
- * - Paid events: Shows TicketSelectionForm or Commerce add-to-cart.
- * - Both events: Shows combined options.
+ * Mutual exclusivity: paid (tickets only), rsvp (RSVP only), or none.
+ * No combined RSVP + Paid UI. Logic in controller; Twig display only.
  */
 final class BookController extends ControllerBase {
 
   /**
    * Constructs BookController.
+   *
+   * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
+   *   The file URL generator.
+   * @param \Drupal\myeventlane_event\Service\EventModeManager $modeManager
+   *   The event mode manager.
+   * @param \Drupal\myeventlane_event\Service\EventCtaResolver $ctaResolver
+   *   The CTA resolver (paid | rsvp | none).
+   * @param \Drupal\Core\Form\FormBuilderInterface $formBuilderService
+   *   The form builder.
    */
   public function __construct(
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly EventModeManager $modeManager,
+    private readonly EventCtaResolver $ctaResolver,
     private readonly FormBuilderInterface $formBuilderService,
   ) {}
 
@@ -39,6 +48,7 @@ final class BookController extends ControllerBase {
     return new static(
       $container->get('file_url_generator'),
       $container->get('myeventlane_event.event_mode_manager'),
+      $container->get('myeventlane_event.cta_resolver'),
       $container->get('form_builder'),
     );
   }
@@ -53,18 +63,16 @@ final class BookController extends ControllerBase {
    *   Render array.
    */
   public function book(NodeInterface $node): array {
-    // Only for Event nodes.
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
 
-    // Get event date text.
     $eventDateText = '';
     if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
       $startDate = $node->get('field_event_start')->value;
       if ($startDate) {
         try {
-          $date = new \DateTime($startDate);
+          $date = new \DateTimeImmutable($startDate);
           $eventDateText = $date->format('l, F j, Y');
         }
         catch (\Exception) {
@@ -73,7 +81,6 @@ final class BookController extends ControllerBase {
       }
     }
 
-    // Get venue text.
     $venueText = '';
     if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
       $venueText = $node->get('field_venue_name')->value;
@@ -85,12 +92,12 @@ final class BookController extends ControllerBase {
       }
     }
 
-    // Determine event mode using the unified mode manager.
-    $eventMode = $this->modeManager->getEffectiveMode($node);
-    $isRsvp = in_array($eventMode, [EventModeManager::MODE_RSVP, EventModeManager::MODE_BOTH], TRUE);
-    $isPaid = in_array($eventMode, [EventModeManager::MODE_PAID, EventModeManager::MODE_BOTH], TRUE);
+    $mode = $this->modeManager->getEffectiveMode($node);
+    $ctaType = $this->ctaResolver->getCtaType($node);
 
-    // Build base render array.
+    $isRsvp = $ctaType === EventCtaResolver::CTA_RSVP;
+    $isPaid = $ctaType === EventCtaResolver::CTA_PAID;
+
     $build = [
       '#theme' => 'myeventlane_event_book',
       '#title' => $node->label(),
@@ -101,7 +108,8 @@ final class BookController extends ControllerBase {
       '#rsvp_form' => [],
       '#is_rsvp' => $isRsvp,
       '#is_paid' => $isPaid,
-      '#event_mode' => $eventMode,
+      '#cta_type' => $ctaType,
+      '#event_mode' => $ctaType,
       '#event' => $node,
       '#cache' => [
         'contexts' => ['route', 'user.roles', 'url.query_args'],
@@ -109,7 +117,6 @@ final class BookController extends ControllerBase {
       ],
     ];
 
-    // Optional hero image URL.
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
       $file = $node->get('field_event_image')->entity;
       if ($file) {
@@ -117,29 +124,24 @@ final class BookController extends ControllerBase {
       }
     }
 
-    // Handle different booking modes.
-    switch ($eventMode) {
-      case EventModeManager::MODE_RSVP:
-        $build['#matrix_form'] = $this->buildRsvpOnlyForm($node);
-        break;
+    if ($mode === EventModeManager::MODE_EXTERNAL) {
+      $build['#matrix_form'] = $this->buildExternalRedirect($node);
+      $build['#event_mode'] = 'external';
+      return $build;
+    }
 
-      case EventModeManager::MODE_PAID:
+    switch ($ctaType) {
+      case EventCtaResolver::CTA_PAID:
         $build['#matrix_form'] = $this->buildPaidForm($node);
         break;
 
-      case EventModeManager::MODE_BOTH:
-        // For "both" mode, show the paid form (which includes RSVP option).
-        $build['#matrix_form'] = $this->buildBothForm($node);
-        break;
-
-      case EventModeManager::MODE_EXTERNAL:
-        // External events redirect to the external URL.
-        $build['#matrix_form'] = $this->buildExternalRedirect($node);
+      case EventCtaResolver::CTA_RSVP:
+        $build['#matrix_form'] = $this->buildRsvpOnlyForm($node);
         break;
 
       default:
-        // No booking configured.
         $build['#matrix_form'] = $this->buildComingSoon();
+        $build['#event_mode'] = 'none';
         break;
     }
 
@@ -147,10 +149,7 @@ final class BookController extends ControllerBase {
   }
 
   /**
-   * Builds the RSVP-only form for free events.
-   *
-   * Uses the public RSVP form from myeventlane_rsvp module directly.
-   * This does NOT require a Commerce product to be linked.
+   * Builds the RSVP-only form.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -159,7 +158,6 @@ final class BookController extends ControllerBase {
    *   Form render array.
    */
   private function buildRsvpOnlyForm(NodeInterface $event): array {
-    // Check if the event has a linked Commerce product with $0 variation.
     $hasProduct = $event->hasField('field_product_target')
       && !$event->get('field_product_target')->isEmpty();
 
@@ -169,10 +167,7 @@ final class BookController extends ControllerBase {
         $variation = $product->getDefaultVariation();
         if ($variation) {
           $price = $variation->getPrice();
-          $isFree = $price && ((float) $price->getNumber() === 0.0);
-
-          if ($isFree) {
-            // Use the Commerce-integrated RSVP form.
+          if ($price && (float) $price->getNumber() === 0.0) {
             return $this->formBuilderService->getForm(
               'Drupal\myeventlane_commerce\Form\RsvpBookingForm',
               $product->id(),
@@ -184,8 +179,6 @@ final class BookController extends ControllerBase {
       }
     }
 
-    // Fallback: Use the standalone RSVP form from myeventlane_rsvp module.
-    // This works even without a Commerce product linked.
     return $this->formBuilderService->getForm(
       'Drupal\myeventlane_rsvp\Form\RsvpPublicForm',
       $event
@@ -193,7 +186,7 @@ final class BookController extends ControllerBase {
   }
 
   /**
-   * Builds the paid ticket selection form.
+   * Builds the paid ticket form.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -223,39 +216,11 @@ final class BookController extends ControllerBase {
       ];
     }
 
-    // Use the custom ticket selection form.
     return $this->formBuilderService->getForm(
       'Drupal\myeventlane_commerce\Form\TicketSelectionForm',
       $event,
       $product
     );
-  }
-
-  /**
-   * Builds the combined RSVP + Paid form.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Form render array.
-   */
-  private function buildBothForm(NodeInterface $event): array {
-    // For "both" mode, show the ticket selection form which handles
-    // both free ($0) and paid variations.
-    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
-      $product = $event->get('field_product_target')->entity;
-      if ($product && $product->isPublished()) {
-        return $this->formBuilderService->getForm(
-          'Drupal\myeventlane_commerce\Form\TicketSelectionForm',
-          $event,
-          $product
-        );
-      }
-    }
-
-    // Fallback: show RSVP form if no product configured.
-    return $this->buildRsvpOnlyForm($event);
   }
 
   /**

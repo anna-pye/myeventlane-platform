@@ -1,7 +1,0 @@
-add_ticket_modal:
-  css:
-    theme:
-      css/add_ticket_modal.css: {}
-  dependencies:
-    - core/drupal.dialog.ajax
-    - myeventlane_vendor_theme/modal

@@ -121,7 +121,7 @@ final class VendorMetricsService implements VendorMetricsServiceInterface {
    * - amount_cents: refund amount in cents
    * - status: 'completed' for successful refunds
    * - created: timestamp when refund was requested
-   * - Filtered by store via order join
+   * - Filtered by store via order join.
    */
   private function getRefundedAmountCents(int $store_id, int $start, int $end): int {
     $q = $this->database->select('myeventlane_refund_log', 'r');
@@ -142,7 +142,7 @@ final class VendorMetricsService implements VendorMetricsServiceInterface {
    *
    * Paid line item rule:
    * - Order item unit_price > 0 (AUD)
-   * - Sum quantities
+   * - Sum quantities.
    */
   private function getTicketsSoldCount(int $store_id, int $start, int $end): int {
     // Join order items to orders.

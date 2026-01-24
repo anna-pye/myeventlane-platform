@@ -266,6 +266,21 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
 }
 
+.mel-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.65);
+  color: inherit;
+  text-decoration: none;
+}
+.mel-pill:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+
 .mel-empty { color: #475569; font-size: 14px; }
 
 .mel-btn, .button, .button--primary, .button--secondary {
@@ -289,7 +304,8 @@ a:hover { text-decoration: underline; }
 }
 
 .mel-console {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 .mel-console__header {
@@ -299,18 +315,35 @@ a:hover { text-decoration: underline; }
 }
 .mel-console__tabs {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+  border-bottom: 1px solid #e6e6e6;
+  overflow-x: auto;
 }
 .mel-console__tab {
-  padding: 8px 12px;
-  border-radius: 10px;
-  color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 12px 16px;
+  color: #637185;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mel-console__tab:hover {
+  color: #1a1a1a;
 }
 .mel-console__tab.is-active {
-  background: #2563eb;
-  color: #fff;
+  color: #2563eb;
+  background: transparent;
+  border-bottom: 2px solid #2563eb;
+  margin-bottom: -1px;
 }
 
 /* Event create form tabs */

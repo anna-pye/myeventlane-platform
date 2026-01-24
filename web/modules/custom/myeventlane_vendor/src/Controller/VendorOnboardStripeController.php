@@ -176,7 +176,7 @@ final class VendorOnboardStripeController extends ControllerBase {
     return [
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 3,
-      '#total_steps' => 5,
+      '#total_steps' => 6,
       '#step_title' => $this->t('Set up payments'),
       '#step_description' => $this->t('Connect your Stripe account to accept payments for your events. This process takes about 5 minutes.'),
       '#content' => $content,

@@ -1088,3 +1088,61 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
 
   $variables['image_src'] = $image_url;
 }
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_cart_form template.
+ *
+ * Groups cart items by event for better UX and accessibility.
+ * Adds event information to form for template rendering.
+ */
+function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): void {
+  $form = $variables['form'];
+  
+  // Only process if we have order items.
+  if (empty($form['#order_items']) || !is_array($form['#order_items'])) {
+    return;
+  }
+  
+  $order_items = $form['#order_items'];
+  $grouped_items = [];
+  $items_without_event = [];
+  $item_event_map = [];
+  
+  // Group items by event and create mapping.
+  foreach ($order_items as $order_item) {
+    $item_id = (int) $order_item->id();
+    
+    if (!$order_item->hasField('field_target_event') || $order_item->get('field_target_event')->isEmpty()) {
+      // Items without event go to a separate group.
+      $items_without_event[] = $order_item;
+      $item_event_map[$item_id] = NULL;
+      continue;
+    }
+    
+    $event = $order_item->get('field_target_event')->entity;
+    if (!$event) {
+      $items_without_event[] = $order_item;
+      $item_event_map[$item_id] = NULL;
+      continue;
+    }
+    
+    $event_id = (int) $event->id();
+    $item_event_map[$item_id] = $event_id;
+    
+    if (!isset($grouped_items[$event_id])) {
+      $grouped_items[$event_id] = [
+        'event' => $event,
+        'items' => [],
+        'item_ids' => [],
+      ];
+    }
+    
+    $grouped_items[$event_id]['items'][] = $order_item;
+    $grouped_items[$event_id]['item_ids'][] = $item_id;
+  }
+  
+  // Add grouped items to variables for template.
+  $variables['grouped_items'] = $grouped_items;
+  $variables['items_without_event'] = $items_without_event;
+  $variables['item_event_map'] = $item_event_map;
+}

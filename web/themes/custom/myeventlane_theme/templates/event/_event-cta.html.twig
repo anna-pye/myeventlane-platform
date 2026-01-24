@@ -1,40 +1,18 @@
 {#
-/**
- * @file
- * Event CTA (Call to Action) button.
- *
- * Renders the appropriate CTA based on event_cta variable:
- * - Uses canonical event_cta variable (preferred)
- * - Falls back to mel_cta_* variables for backward compatibility
- */
+  Event CTA (call-to-action) button.
+  Display only. Single resolved CTA from service (cta_type + event_cta).
+  No secondary CTA; mutual exclusivity (paid | rsvp | none).
 #}
-{% set cta = event_cta|default({
-  label: mel_cta_label|default(''),
-  url: mel_cta_url|default(null),
-  disabled: (mel_cta_state|default('disabled') == 'disabled'),
-  helper: mel_cta_helper|default(null)
-}) %}
-
+{% set cta = event_cta|default({ cta_type: 'none', label: '', url: null, disabled: true, helper: null }) %}
 {% if cta.label %}
   {% if cta.disabled %}
-    <button class="mel-btn mel-btn-primary" disabled aria-disabled="true">
-      {{ cta.label }}
-    </button>
+    <button class="mel-btn mel-btn-primary" disabled aria-disabled="true">{{ cta.label }}</button>
   {% elseif cta.url %}
     <a class="mel-btn mel-btn-primary" href="{{ cta.url }}">{{ cta.label }}</a>
   {% else %}
-    <button class="mel-btn mel-btn-primary" disabled aria-disabled="true">
-      {{ cta.label }}
-    </button>
+    <button class="mel-btn mel-btn-primary" disabled aria-disabled="true">{{ cta.label }}</button>
   {% endif %}
   {% if cta.helper %}
     <p class="mel-helper">{{ cta.helper }}</p>
   {% endif %}
-{% endif %}
-
-{# Secondary CTA for "both" mode (RSVP when tickets are primary) #}
-{% if event_cta_secondary and event_cta_secondary.url %}
-  <a class="mel-btn mel-btn-secondary" href="{{ event_cta_secondary.url }}" style="margin-top: 0.75rem; display: block;">
-    {{ event_cta_secondary.label }}
-  </a>
 {% endif %}

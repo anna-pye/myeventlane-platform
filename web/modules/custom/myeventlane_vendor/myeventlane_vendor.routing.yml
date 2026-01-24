@@ -188,6 +188,17 @@ myeventlane_vendor.onboard.first_event:
   options:
     _maintenance_access: FALSE
 
+myeventlane_vendor.onboard.boost:
+  path: '/vendor/onboard/boost'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardBoostController::boost'
+    _title: 'Promote your event with Boost'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
 myeventlane_vendor.onboard.complete:
   path: '/vendor/onboard/complete'
   defaults:
@@ -223,6 +234,14 @@ myeventlane_vendor.console.dashboard:
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
 
+myeventlane_vendor.console.boost_vendor_export:
+  path: '/vendor/dashboard/boost/export'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.boost_vendor_export:export'
+    _title: 'Export Boost performance'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
 myeventlane_vendor.console.events:
   path: '/vendor/events'
   defaults:
@@ -253,6 +272,54 @@ myeventlane_vendor.console.event_overview:
         type: entity:node
         bundle:
           - event
+
+myeventlane_vendor.console.boost_event_export:
+  path: '/vendor/events/{event}/boost/export'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.boost_event_export:export'
+    _title: 'Export Boost performance'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_orders:
+  path: '/vendor/events/{event}/orders'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_orders:orders'
+    _title: 'Event orders'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.console.event_order_view:
+  path: '/vendor/events/{event}/orders/{order}'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_event_order_view:view'
+    _title: 'Order detail'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+    order: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+      order:
+        type: entity:commerce_order
 
 myeventlane_vendor.console.event_tickets:
   path: '/vendor/events/{event}/tickets'

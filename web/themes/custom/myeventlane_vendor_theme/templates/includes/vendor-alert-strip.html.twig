@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Vendor Alert Strip — single alert banner for Stripe/payout status.
+ * Renders only when vendor_alert is passed and defined.
+ */
+#}
+{% if vendor_alert is defined %}
+  <div class="mel-vendor-alert mel-vendor-alert--{{ vendor_alert.type }}" data-alert-type="{{ vendor_alert.type }}" role="status">
+    <div class="mel-vendor-alert__inner">
+      <div class="mel-vendor-alert__icon" aria-hidden="true"></div>
+
+      <div class="mel-vendor-alert__content">
+        <p class="mel-vendor-alert__message">
+          {{ vendor_alert.message }}
+        </p>
+
+        {% if vendor_alert.cta %}
+          <a href="{{ vendor_alert.cta.url }}" class="mel-btn mel-btn--secondary">
+            {{ vendor_alert.cta.label }}
+          </a>
+        {% endif %}
+      </div>
+
+      <button
+        type="button"
+        class="mel-vendor-alert__dismiss"
+        aria-label="{{ 'Dismiss alert'|t }}"
+      >
+        ×
+      </button>
+    </div>
+  </div>
+{% endif %}

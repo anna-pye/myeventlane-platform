@@ -8,6 +8,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\flag\FlagServiceInterface;
+use Drupal\myeventlane_boost\BoostManager;
 use Drupal\taxonomy\TermInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -22,6 +23,7 @@ final class MyCategoriesController extends ControllerBase {
   public function __construct(
     private readonly FlagServiceInterface $flagService,
     private readonly TimeInterface $time,
+    private readonly BoostManager $boostManager,
   ) {}
 
   /**
@@ -31,6 +33,7 @@ final class MyCategoriesController extends ControllerBase {
     return new static(
       $container->get('flag'),
       $container->get('datetime.time'),
+      $container->get('myeventlane_boost.manager'),
     );
   }
 
@@ -122,7 +125,7 @@ final class MyCategoriesController extends ControllerBase {
               ? $event->get('field_venue_name')->value
               : '',
             'ics_url' => Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()])->toString(),
-            'is_boosted' => $event->hasField('field_promoted') && (bool) $event->get('field_promoted')->value,
+            'is_boosted' => $this->boostManager->isBoosted($event),
           ];
         }
       }

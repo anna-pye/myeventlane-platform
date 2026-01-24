@@ -1,0 +1,53 @@
+{#
+/**
+ * @file
+ * Vendor Event Performance List (STAGE B).
+ *
+ * Compact cards: title, status, capacity bar, metrics, actions.
+ * No business logic or math in Twig.
+ *
+ * Variables:
+ * - events: Array of event data (capacity, pct_filled, bar_width, is_sold_out,
+ *   status_badge, tickets_sold, rsvps, revenue_formatted, manage_url, edit_url,
+ *   export_csv_url).
+ */
+#}
+{% if events is defined and events|length > 0 %}
+<section class="mel-event-perf" aria-label="{{ 'Event performance'|t }}">
+  <ul class="mel-event-perf__list">
+    {% for event in events %}
+      <li class="mel-event-perf__item {% if event.status_badge == 'past' %}mel-event-perf__item--past{% endif %} {% if event.is_sold_out %}mel-event-perf__item--sold-out{% endif %}">
+        <div class="mel-event-perf__head">
+          <a href="{{ event.manage_url }}" class="mel-event-perf__title">{{ event.title }}</a>
+          <span class="mel-badge mel-badge--{{ event.status_badge }}">{{ event.status_badge_label }}</span>
+        </div>
+        {% if event.bar_width is defined and event.bar_width is not null %}
+          <div class="mel-event-perf__bar-wrap">
+            <div class="mel-event-perf__bar" role="presentation">
+              <span class="mel-event-perf__bar-fill {% if event.is_sold_out %}mel-event-perf__bar-fill--sold-out{% elseif (event.pct_filled|default(0)) >= 80 %}mel-event-perf__bar-fill--nearly-full{% endif %}" style="width: {{ event.bar_width }}%"></span>
+            </div>
+            <span class="mel-event-perf__bar-label">{{ event.filled_count|default(0) }} / {{ event.capacity }}{% if event.pct_filled is defined and event.pct_filled is not null %} ({{ event.pct_filled }}%){% endif %}</span>
+          </div>
+        {% endif %}
+        <div class="mel-event-perf__metrics">
+          <span class="mel-event-perf__metric">{{ 'Tickets'|t }}: {{ event.tickets_sold|default(0) }}</span>
+          <span class="mel-event-perf__metric">{{ 'RSVPs'|t }}: {{ event.rsvps|default(0) }}</span>
+          <span class="mel-event-perf__metric">{{ 'Revenue'|t }}: {{ event.revenue_formatted|default('$0') }}</span>
+        </div>
+        <div class="mel-event-perf__actions">
+          <a href="{{ event.manage_url }}" class="mel-event-perf__action">{{ 'View'|t }}</a>
+          <a href="{{ event.edit_url }}" class="mel-event-perf__action">{{ 'Edit'|t }}</a>
+          {% if event.export_csv_url is defined and event.export_csv_url %}
+            <a href="{{ event.export_csv_url }}" class="mel-event-perf__action" download>{{ 'Export CSV'|t }}</a>
+          {% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% else %}
+  <div class="mel-empty-state mel-empty-state--compact">
+    <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
+    <a href="/vendor/events/create" class="mel-btn mel-btn--primary">{{ 'Create Event'|t }}</a>
+  </div>
+{% endif %}

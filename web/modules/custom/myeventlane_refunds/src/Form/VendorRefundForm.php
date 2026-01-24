@@ -210,7 +210,7 @@ final class VendorRefundForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => Url::fromRoute('myeventlane_refunds.vendor_orders', ['node' => $eventId]),
+      '#url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $eventId]),
       '#attributes' => ['class' => ['button']],
     ];
 
@@ -271,7 +271,7 @@ final class VendorRefundForm extends FormBase {
     try {
       $logId = $this->refundProcessor->requestRefund($order, $event, $account, $refundPayload);
       $this->messenger()->addStatus($this->t('Refund request submitted successfully. Refund ID: @log_id', ['@log_id' => $logId]));
-      $form_state->setRedirect('myeventlane_refunds.vendor_orders', ['node' => $event->id()]);
+      $form_state->setRedirect('myeventlane_vendor.console.event_orders', ['event' => $event->id()]);
     }
     catch (\Exception $e) {
       $this->messenger()->addError($this->t('Failed to submit refund request: @message', ['@message' => $e->getMessage()]));

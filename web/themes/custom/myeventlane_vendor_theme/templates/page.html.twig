@@ -29,6 +29,12 @@
       {{ header|raw }}
     </header>
 
+    {% if page.vendor_alert is defined %}
+      {% include '@myeventlane_vendor_theme/includes/vendor-alert-strip.html.twig' with {
+        vendor_alert: page.vendor_alert
+      } %}
+    {% endif %}
+
     {# Main Content #}
     <main class="mel-vendor-shell__content" role="main">
       {# Messages #}

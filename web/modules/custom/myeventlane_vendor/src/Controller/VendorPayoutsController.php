@@ -143,7 +143,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         }
 
         try {
-          $order = $this->entityTypeManager()
+          $order = $this->entityTypeManager
             ->getStorage('commerce_order')
             ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {

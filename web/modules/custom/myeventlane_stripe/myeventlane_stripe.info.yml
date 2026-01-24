@@ -1,0 +1,8 @@
+name: MyEventLane Stripe
+type: module
+description: 'Stripe-backed services for payouts and Connect (vendor alert, etc.).'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:commerce
+  - drupal:commerce_payment
