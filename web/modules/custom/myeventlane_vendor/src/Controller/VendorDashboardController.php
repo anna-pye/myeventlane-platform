@@ -679,6 +679,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'message' => !$isPublished ? 'Publish this event to enable boosting.' : ($boostData['reason'] ?? NULL),
       ];
 
+      // Boost wizard entrypoint (Step 1), per event.
+      $boostWizardUrl = NULL;
+      if ($isPublished && $isEligible) {
+        $boostWizardUrl = Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $eventId])->toString();
+      }
+
       $events[] = [
         'id' => $eventId,
         'title' => $node->label(),
@@ -702,6 +708,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'waitlist' => $waitlistAnalytics,
         'rsvp' => $stats,
         'boost' => $boost,
+        'boost_wizard_url' => $boostWizardUrl,
         'view_url' => $node->toUrl()->toString(),
         // Use wizard route for editing (vendors never see default node edit form).
         'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eventId])->toString(),

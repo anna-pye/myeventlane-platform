@@ -53,6 +53,16 @@ function myeventlane_boost_theme(): array {
       'template' => 'boost-faq',
       'path' => $module_path . '/templates',
     ],
+    'myeventlane_boost_wizard_stepper' => [
+      'variables' => [
+        'event_id' => NULL,
+        'event_title' => NULL,
+        'content' => NULL,
+        'attributes' => NULL,
+      ],
+      'template' => 'wizard/wizard-stepper',
+      'path' => $module_path . '/templates',
+    ],
   ];
 }
 

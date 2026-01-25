@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Boost wizard stepper (placeholder scaffold).
+ *
+ * Variables:
+ * - event_id: The event node ID.
+ * - event_title: The event title.
+ * - content: Optional render array content (e.g. current step form).
+ * - attributes: HTML attributes for wrapper.
+ */
+#}
+
+<div{{ attributes.addClass('mel-boost-wizard') }}>
+  <div class="mel-boost-wizard__header">
+    <h1 class="mel-boost-wizard__title">
+      {{ 'Boost wizard'|t }}: {{ event_title }}
+    </h1>
+  </div>
+
+  <div class="mel-boost-wizard__stepper" role="region" aria-label="{{ 'Boost wizard stepper'|t }}">
+    {% if content %}
+      {{ content }}
+    {% else %}
+      <p>{{ 'Boost wizard coming soon'|t }}</p>
+    {% endif %}
+  </div>
+</div>
+

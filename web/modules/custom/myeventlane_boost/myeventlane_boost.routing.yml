@@ -12,6 +12,102 @@ myeventlane_boost.boost_page:
       node:
         type: entity:node
 
+# Vendor Boost configuration wizard (placeholder scaffold).
+myeventlane_boost.vendor_boost_wizard:
+  path: '/vendor/events/{event}/boost/wizard'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::wizard'
+    _title: 'Boost wizard'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Boost Wizard - Step 1 (Form API): Choose placement.
+myeventlane_boost.wizard.step1:
+  path: '/vendor/events/{event}/boost/wizard/step-1'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step1'
+    _title: 'Choose Boost Placement'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Boost Wizard - Step 2 (Form API): Choose budget.
+myeventlane_boost.vendor_boost_wizard_step2:
+  path: '/vendor/events/{event}/boost/wizard/step-2'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step2'
+    _title: 'Choose Boost Budget'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Boost Wizard - Step 3 (Form API): Choose dates.
+myeventlane_boost.vendor_boost_wizard_step3:
+  path: '/vendor/events/{event}/boost/wizard/step-3'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step3'
+    _title: 'Choose Boost Dates'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Boost Wizard - Step 4 (Form API): Preview & confirm.
+myeventlane_boost.wizard.step4:
+  path: '/vendor/events/{event}/boost/wizard/step-4'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step4'
+    _title: 'Preview & Confirm'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Boost Wizard - Step 5: Submission complete.
+myeventlane_boost.wizard.step5:
+  path: '/vendor/events/{event}/boost/wizard/step-5'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step5'
+    _title: 'Pay for Boost'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 # Bridge route: add boost variation to cart (redirects to checkout flow).
 myeventlane_boost.bridge_add_to_cart:
   path: '/boost/bridge/{node}'
