@@ -43,8 +43,34 @@ final class MessagingCommands extends DrushCommands {
         $queue->deleteItem($item);
       }
       catch (\Throwable $e) {
-        $queue->releaseItem($item);
-        throw $e;
+        $data = is_array($item->data) ? $item->data : [];
+        $attempt = (int) ($data['attempt'] ?? 0);
+        $attempt++;
+        $data['attempt'] = $attempt;
+        $data['last_error'] = $e->getMessage();
+
+        // Align with runtime safeguard caps to avoid infinite reprocessing.
+        $max_attempts = 5;
+        if ($attempt >= $max_attempts) {
+          $queue->deleteItem($item);
+          $this->logger()->error(sprintf(
+            'Messaging queue item dropped after %d attempts: %s',
+            $attempt,
+            $e->getMessage()
+          ));
+          continue;
+        }
+
+        // Replace the current item with an incremented-attempt requeue.
+        $queue->deleteItem($item);
+        $queue->createItem($data);
+        $this->logger()->warning(sprintf(
+          'Messaging queue item failed; requeued for retry (%d/%d): %s',
+          $attempt,
+          $max_attempts,
+          $e->getMessage()
+        ));
+        continue;
       }
     }
 

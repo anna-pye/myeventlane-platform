@@ -14,6 +14,11 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 class RsvpCancelController extends ControllerBase {
 
   /**
+   * The queue name for vendor digest.
+   */
+  private const QUEUE_NAME = 'mel_rsvp_vendor_digest';
+
+  /**
    * Queue factory.
    *
    * @var \Drupal\Core\Queue\QueueFactory
@@ -40,11 +45,18 @@ class RsvpCancelController extends ControllerBase {
    * Process RSVP cancellation.
    */
   public function cancel($myeventlane_rsvp_submission): RedirectResponse {
+    $submissionId = is_numeric($myeventlane_rsvp_submission) ? (int) $myeventlane_rsvp_submission : NULL;
+
     // Add an item to the digest queue.
-    $queue = $this->queueFactory->get('mel_rsvp_vendor_digest');
+    $queue = $this->queueFactory->get(self::QUEUE_NAME);
     $queue->createItem([
       'action' => 'rsvp_cancelled',
       'id' => $myeventlane_rsvp_submission,
+    ]);
+
+    $this->getLogger('myeventlane_rsvp')->info('RSVP cancellation queued for vendor digest.', [
+      'queue_name' => self::QUEUE_NAME,
+      'submission_id' => $submissionId,
     ]);
 
     // Messenger via ControllerBase method.

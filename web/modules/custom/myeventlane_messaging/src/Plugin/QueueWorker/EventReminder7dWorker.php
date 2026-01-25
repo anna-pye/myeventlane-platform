@@ -28,6 +28,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   /**
+   * The queue name for this worker.
+   */
+  private const QUEUE_NAME = 'event_reminder_7d';
+
+  /**
    * Constructs EventReminder7dWorker.
    *
    * @param array $configuration
@@ -93,7 +98,11 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     $reminderType = $data['reminder_type'] ?? 'reminder_7d';
 
     if (!$orderId || !$eventId) {
-      $this->logger->error('EventReminder7dWorker: Missing required data');
+      $this->logger->error('EventReminder7dWorker: Missing required data', [
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => is_numeric($orderId) ? (int) $orderId : NULL,
+        'event_id' => is_numeric($eventId) ? (int) $eventId : NULL,
+      ]);
       return;
     }
 
@@ -101,7 +110,12 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
     $order = $orderStorage->load($orderId);
     if (!$order) {
-      $this->logger->error('EventReminder7dWorker: Order @id not found', ['@id' => $orderId]);
+      $this->logger->error('EventReminder7dWorker: Order @id not found', [
+        '@id' => $orderId,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
+      ]);
       return;
     }
 
@@ -111,6 +125,9 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       $this->logger->info('EventReminder7dWorker: Skipping order @id with state @state', [
         '@id' => $orderId,
         '@state' => $orderState,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
       ]);
       return;
     }
@@ -119,7 +136,12 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     $nodeStorage = $this->entityTypeManager->getStorage('node');
     $event = $nodeStorage->load($eventId);
     if (!$event) {
-      $this->logger->error('EventReminder7dWorker: Event @id not found', ['@id' => $eventId]);
+      $this->logger->error('EventReminder7dWorker: Event @id not found', [
+        '@id' => $eventId,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
+      ]);
       return;
     }
 
@@ -129,6 +151,9 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       $this->logger->info('EventReminder7dWorker: Reminder already sent for order @order_id, event @event_id', [
         '@order_id' => $orderId,
         '@event_id' => $eventId,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
       ]);
       return;
     }
@@ -136,7 +161,12 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     // Get order email.
     $orderEmail = $order->getEmail();
     if (empty($orderEmail)) {
-      $this->logger->warning('EventReminder7dWorker: Order @id has no email', ['@id' => $orderId]);
+      $this->logger->warning('EventReminder7dWorker: Order @id has no email', [
+        '@id' => $orderId,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
+      ]);
       return;
     }
 
@@ -157,7 +187,12 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       }
     }
     catch (\Exception $e) {
-      $this->logger->warning('EventReminder7dWorker: Failed to generate ICS: @message', ['@message' => $e->getMessage()]);
+      $this->logger->warning('EventReminder7dWorker: Failed to generate ICS: @message', [
+        '@message' => $e->getMessage(),
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
+      ]);
     }
 
     // Send email.
@@ -174,10 +209,18 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
         '@order_id' => $orderId,
         '@event_id' => $eventId,
         '@email' => $orderEmail,
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
       ]);
     }
     catch (\Exception $e) {
-      $this->logger->error('EventReminder7dWorker: Failed to send reminder: @message', ['@message' => $e->getMessage()]);
+      $this->logger->error('EventReminder7dWorker: Failed to send reminder: @message', [
+        '@message' => $e->getMessage(),
+        'queue_name' => self::QUEUE_NAME,
+        'order_id' => (int) $orderId,
+        'event_id' => (int) $eventId,
+      ]);
     }
   }
 

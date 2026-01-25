@@ -126,7 +126,9 @@ class RsvpPublicForm extends FormBase {
     ];
 
     if (!$event_id) {
-      $this->logger->warning('RSVP form built without event.');
+      $this->logger->warning('RSVP form built without event.', [
+        'event_id' => NULL,
+      ]);
       $form['error'] = [
         '#markup' => '<div class="mel-alert mel-alert--warning">' .
         $this->t('We could not determine the event. Please try again.') .
@@ -134,13 +136,6 @@ class RsvpPublicForm extends FormBase {
       ];
       return $form;
     }
-
-    // Intro text.
-    $form['intro'] = [
-      '#markup' => '<p class="mel-rsvp-intro" style="margin-bottom: 1.5rem; color: #666;">' .
-      $this->t('Please enter your information to RSVP for this free event.') .
-      '</p>',
-    ];
 
     $form['name'] = [
       '#type' => 'textfield',
@@ -320,7 +315,7 @@ class RsvpPublicForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('RSVP Now'),
+      '#value' => $this->t('Reserve'),
       '#button_type' => 'primary',
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg', 'mel-btn-block'],
@@ -336,7 +331,7 @@ class RsvpPublicForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     $guests = (int) $form_state->getValue('guests');
     if ($guests < 1) {
-      $form_state->setErrorByName('guests', $this->t('Please RSVP for at least one guest.'));
+      $form_state->setErrorByName('guests', $this->t('Please reserve for at least one guest.'));
     }
 
     $email = $form_state->getValue('email');
@@ -397,7 +392,10 @@ class RsvpPublicForm extends FormBase {
     $event_id = $values['event_id'] ?? NULL;
 
     if (!$event_id) {
-      $this->logger->error('RSVP submission missing event_id.');
+      $this->logger->error('RSVP submission missing event_id.', [
+        'event_id' => NULL,
+        'submission_id' => NULL,
+      ]);
       $this->messengerService->addError($this->t('Event not found. Please try again.'));
       return;
     }
@@ -405,10 +403,17 @@ class RsvpPublicForm extends FormBase {
     $event = $this->entityTypeManager->getStorage('node')->load($event_id);
 
     if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
-      $this->logger->error('Invalid event ID @id.', ['@id' => $event_id]);
+      $this->logger->error('Invalid event ID @id.', [
+        '@id' => $event_id,
+        'event_id' => is_numeric($event_id) ? (int) $event_id : NULL,
+        'submission_id' => NULL,
+      ]);
       $this->messengerService->addError($this->t('Event not found. Please try again.'));
       return;
     }
+
+    $eventId = (int) $event->id();
+    $submissionId = NULL;
 
     try {
       $storage = $this->entityTypeManager->getStorage('rsvp_submission');
@@ -431,6 +436,7 @@ class RsvpPublicForm extends FormBase {
       ]);
 
       $submission->save();
+      $submissionId = (int) $submission->id();
 
       // Process donation payment if amount > 0.
       if ($donationAmount > 0) {
@@ -449,16 +455,21 @@ class RsvpPublicForm extends FormBase {
             else {
               // Order creation returned NULL - log the reason.
               $this->logger->warning('RSVP donation order creation returned NULL for event @event_id, submission @submission_id, amount @amount', [
-                '@event_id' => $event->id(),
-                '@submission_id' => $submission->id(),
+                '@event_id' => $eventId,
+                '@submission_id' => $submissionId,
                 '@amount' => $donationAmount,
+                'event_id' => $eventId,
+                'submission_id' => $submissionId,
               ]);
-              $this->messengerService->addWarning($this->t('Your RSVP was saved, but we could not process your donation. Please contact support.'));
+              $this->messengerService->addWarning($this->t('Reserved, but we could not process your donation. Please contact support.'));
             }
           }
           else {
-            $this->logger->error('RSVP donation service not available');
-            $this->messengerService->addWarning($this->t('Your RSVP was saved, but we could not process your donation. Please contact support.'));
+            $this->logger->error('RSVP donation service not available', [
+              'event_id' => $eventId,
+              'submission_id' => $submissionId,
+            ]);
+            $this->messengerService->addWarning($this->t('Reserved, but we could not process your donation. Please contact support.'));
           }
         }
         catch (\Exception $e) {
@@ -466,21 +477,27 @@ class RsvpPublicForm extends FormBase {
           $this->logger->error('Failed to process RSVP donation: @message', [
             '@message' => $e->getMessage(),
             '@trace' => $e->getTraceAsString(),
+            'event_id' => $eventId,
+            'submission_id' => $submissionId,
           ]);
-          $this->messengerService->addWarning($this->t('Your RSVP was saved, but we could not process your donation. Please contact support.'));
+          $this->messengerService->addWarning($this->t('Reserved, but we could not process your donation. Please contact support.'));
         }
       }
 
-      $this->logger->notice('RSVP created for event @event by @name (@email)', [
-        '@event' => $event->label(),
+      $this->logger->info('RSVP created for event @event_id by @name (@email)', [
+        '@event_id' => $eventId,
         '@name' => $values['name'],
         '@email' => $values['email'],
+        'event_id' => $eventId,
+        'submission_id' => $submissionId,
       ]);
     }
     catch (\Throwable $e) {
       $this->logger->error('RSVP save failed for event @id: @m', [
-        '@id' => $event->id(),
+        '@id' => $eventId,
         '@m' => $e->getMessage(),
+        'event_id' => $eventId,
+        'submission_id' => $submissionId,
       ]);
       $this->messengerService->addError($this->t('We could not save your RSVP. Please try again.'));
       return;
@@ -511,6 +528,8 @@ class RsvpPublicForm extends FormBase {
           // Log but don't fail RSVP if attendance manager is unavailable.
           $this->logger->warning('Could not save accessibility needs for RSVP: @message', [
             '@message' => $e->getMessage(),
+            'event_id' => $eventId,
+            'submission_id' => $submissionId,
           ]);
         }
       }
@@ -526,11 +545,13 @@ class RsvpPublicForm extends FormBase {
     catch (\Exception $e) {
       $this->logger->warning('Could not send RSVP confirmation email: @message', [
         '@message' => $e->getMessage(),
+        'event_id' => $eventId,
+        'submission_id' => $submissionId,
       ]);
     }
 
     $this->messengerService->addStatus(
-      $this->t('Your RSVP has been confirmed for @event. You will receive a confirmation email shortly.', [
+      $this->t('Reserved for @event. You will receive an email shortly.', [
         '@event' => $event->label(),
       ])
     );

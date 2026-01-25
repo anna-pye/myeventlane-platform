@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_messaging\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -34,6 +36,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
   /**
@@ -57,6 +60,8 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    $orderId = (int) $order->id();
+
     $mail = $order->getEmail();
     if (!$mail) {
       $customer = $order->getCustomer();
@@ -66,7 +71,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     if (!$mail) {
       \Drupal::logger('myeventlane_messaging')->warning(
         'Order @order_id placed but no email address found for receipt.',
-        ['@order_id' => $order->id()]
+        [
+          '@order_id' => $orderId,
+          'order_id' => $orderId,
+        ]
       );
       return;
     }
@@ -79,11 +87,19 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $ticket_items = $this->extractTicketItems($order);
     $donation_total = $this->calculateDonationTotal($order);
 
+    $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
+
     // Build email context.
     $context = [
       'first_name' => $first_name,
       'order_number' => $order->label(),
-      'order_url' => $order->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
+      'order_id' => $orderId,
+      // Customer-facing "My Tickets" order detail (not admin order view).
+      'order_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+        'commerce_order' => $orderId,
+      ], [
+        'absolute' => TRUE,
+      ])->toString(TRUE)->getGeneratedUrl(),
       'order_email' => $mail,
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
@@ -91,6 +107,9 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
     ];
+    if ($primaryEventId !== NULL) {
+      $context['event_id'] = $primaryEventId;
+    }
 
     // Generate ICS attachments.
     $attachments = $this->generateIcsAttachments($events);
@@ -105,8 +124,11 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       \Drupal::logger('myeventlane_messaging')->info(
         'Order receipt queued for order @order_id to @email',
         [
-          '@order_id' => $order->id(),
+          '@order_id' => $orderId,
           '@email' => $mail,
+          'order_id' => $orderId,
+          'event_id' => $primaryEventId,
+          'message_type' => 'order_receipt',
         ]
       );
     }
@@ -114,8 +136,11 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       \Drupal::logger('myeventlane_messaging')->error(
         'Failed to queue order receipt for order @order_id: @message',
         [
-          '@order_id' => $order->id(),
+          '@order_id' => $orderId,
           '@message' => $e->getMessage(),
+          'order_id' => $orderId,
+          'event_id' => $primaryEventId,
+          'message_type' => 'order_receipt',
         ]
       );
     }
@@ -232,6 +257,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       $end_date = NULL;
       $start_time = NULL;
       $end_time = NULL;
+      $image_url = NULL;
 
       if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
         $start_timestamp = strtotime($event->get('field_event_start')->value);
@@ -245,19 +271,76 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
         $end_time = date('g:i A', $end_timestamp);
       }
 
+      if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
+        $file = $event->get('field_event_image')->entity;
+        if ($file) {
+          $image_url = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+        }
+      }
+
+      $location = NULL;
+      if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
+        $address_field = $event->get('field_location')->first();
+        if ($address_field) {
+          $location = $this->formatAddressFieldValue($address_field->getValue());
+        }
+      }
+
       $formatted[] = [
         'title' => $event->label(),
+        'image_url' => $image_url,
         'start_date' => $start_date,
         'end_date' => $end_date,
         'start_time' => $start_time,
         'end_time' => $end_time,
-        'location' => $event->hasField('field_location') && !$event->get('field_location')->isEmpty()
-          ? $event->get('field_location')->value
+        'venue_name' => $event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()
+          ? $event->get('field_venue_name')->value
+          : NULL,
+        'location' => $location,
+        'contact_email' => $event->hasField('field_contact_email') && !$event->get('field_contact_email')->isEmpty()
+          ? $event->get('field_contact_email')->value
+          : NULL,
+        'contact_phone' => $event->hasField('field_contact_phone') && !$event->get('field_contact_phone')->isEmpty()
+          ? $event->get('field_contact_phone')->value
+          : NULL,
+        'accessibility_contact' => $event->hasField('field_accessibility_contact') && !$event->get('field_accessibility_contact')->isEmpty()
+          ? $event->get('field_accessibility_contact')->value
           : NULL,
       ];
     }
 
     return $formatted;
+  }
+
+  /**
+   * Formats an Address field value to a single-line string.
+   *
+   * @param array $address
+   *   Address field value array.
+   *
+   * @return string|null
+   *   Formatted string, or NULL when empty.
+   */
+  private function formatAddressFieldValue(array $address): ?string {
+    $parts = [];
+    if (!empty($address['address_line1'])) {
+      $parts[] = $address['address_line1'];
+    }
+    if (!empty($address['address_line2'])) {
+      $parts[] = $address['address_line2'];
+    }
+    if (!empty($address['locality'])) {
+      $parts[] = $address['locality'];
+    }
+    if (!empty($address['administrative_area'])) {
+      $parts[] = $address['administrative_area'];
+    }
+    if (!empty($address['postal_code'])) {
+      $parts[] = $address['postal_code'];
+    }
+
+    $value = trim(implode(', ', $parts));
+    return $value !== '' ? $value : NULL;
   }
 
   /**
@@ -339,6 +422,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
           [
             '@event_id' => $event->id(),
             '@message' => $e->getMessage(),
+            'event_id' => (int) $event->id(),
           ]
         );
       }

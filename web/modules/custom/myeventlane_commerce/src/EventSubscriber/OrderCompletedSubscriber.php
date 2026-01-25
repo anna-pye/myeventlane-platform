@@ -50,8 +50,11 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     $order = $event->getEntity();
     $logger = $this->loggerFactory->get('myeventlane_commerce');
 
-    $logger->notice('Processing order @order_id after placement.', [
+    $orderId = (int) $order->id();
+
+    $logger->info('Processing order @order_id after placement.', [
       '@order_id' => $order->id(),
+      'order_id' => $orderId,
     ]);
 
     // Process each order item.
@@ -59,8 +62,9 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
       $this->processOrderItem($orderItem, $order);
     }
 
-    $logger->notice('Completed processing for order @order_id.', [
+    $logger->info('Completed processing for order @order_id.', [
       '@order_id' => $order->id(),
+      'order_id' => $orderId,
     ]);
   }
 
@@ -74,6 +78,8 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
    */
   private function processOrderItem(object $orderItem, object $order): void {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
+    $orderId = method_exists($order, 'id') ? (int) $order->id() : NULL;
+    $orderItemId = method_exists($orderItem, 'id') ? (int) $orderItem->id() : NULL;
 
     // Exclude Boost: it is an admin product, not a vendor event attendee.
     if (method_exists($orderItem, 'bundle') && $orderItem->bundle() === 'boost') {
@@ -90,6 +96,9 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
       else {
         $logger->warning('Order item @id has no event reference. Skipping.', [
           '@id' => $orderItem->id(),
+          'order_id' => $orderId,
+          'event_id' => NULL,
+          'order_item_id' => $orderItemId,
         ]);
         return;
       }
@@ -102,6 +111,9 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     if (!$orderItem->hasField('field_ticket_holder') || $orderItem->get('field_ticket_holder')->isEmpty()) {
       $logger->warning('Order item @id has no ticket holder info. Skipping.', [
         '@id' => $orderItem->id(),
+        'order_id' => $orderId,
+        'event_id' => $eventId,
+        'order_item_id' => $orderItemId,
       ]);
       return;
     }
@@ -159,6 +171,8 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
    */
   private function createAttendeeRecord(object $holder, int $eventId, object $order, object $orderItem, bool $isRsvp, string $variationTitle, array $accessibilityNeeds = []): void {
     $logger = $this->loggerFactory->get('myeventlane_commerce');
+    $orderId = method_exists($order, 'id') ? (int) $order->id() : NULL;
+    $orderItemId = method_exists($orderItem, 'id') ? (int) $orderItem->id() : NULL;
 
     // Extract ticket holder data from paragraph.
     $firstName = $holder->get('field_first_name')->value ?? '';
@@ -231,10 +245,13 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
 
       $attendee->save();
 
-      $logger->notice('Created attendee record for @name (@email) - Event @event_id', [
+      $logger->info('Created attendee record for @name (@email) - Event @event_id', [
         '@name' => $fullName,
         '@email' => $storedEmail,
         '@event_id' => $eventId,
+        'event_id' => $eventId,
+        'order_id' => $orderId,
+        'order_item_id' => $orderItemId,
       ]);
 
       // Generate ticket PDF.
@@ -246,6 +263,9 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
     catch (\Exception $e) {
       $logger->error('Failed to create attendee record: @message', [
         '@message' => $e->getMessage(),
+        'event_id' => $eventId,
+        'order_id' => $orderId,
+        'order_item_id' => $orderItemId,
       ]);
     }
   }
@@ -293,13 +313,15 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
       $pdfService = \Drupal::service('myeventlane_tickets.pdf');
       // Call service to generate PDF (actual implementation in myeventlane_tickets).
       // For now, just log intent.
-      $logger->notice('Ticket PDF generation called for code @code', [
+      $logger->info('Ticket PDF generation called for code @code', [
         '@code' => $ticketCode,
+        'event_id' => $eventId,
       ]);
     }
     catch (\Exception $e) {
       $logger->error('Ticket PDF generation failed: @message', [
         '@message' => $e->getMessage(),
+        'event_id' => $eventId,
       ]);
     }
   }
@@ -328,22 +350,25 @@ final class OrderCompletedSubscriber implements EventSubscriberInterface {
       // Apple Wallet.
       if (\Drupal::hasService('myeventlane_wallet.pk_pass')) {
         $pkPassService = \Drupal::service('myeventlane_wallet.pk_pass');
-        $logger->notice('Apple Wallet pass generation called for code @code', [
+        $logger->info('Apple Wallet pass generation called for code @code', [
           '@code' => $ticketCode,
+          'event_id' => $eventId,
         ]);
       }
 
       // Google Wallet.
       if (\Drupal::hasService('myeventlane_wallet.google_wallet')) {
         $googleWalletService = \Drupal::service('myeventlane_wallet.google_wallet');
-        $logger->notice('Google Wallet pass generation called for code @code', [
+        $logger->info('Google Wallet pass generation called for code @code', [
           '@code' => $ticketCode,
+          'event_id' => $eventId,
         ]);
       }
     }
     catch (\Exception $e) {
       $logger->error('Wallet pass generation failed: @message', [
         '@message' => $e->getMessage(),
+        'event_id' => $eventId,
       ]);
     }
   }

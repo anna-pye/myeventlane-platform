@@ -245,6 +245,12 @@ final class WebhookDeliveryService {
         ->fields(['status' => 'failed'])
         ->condition('id', $delivery_id)
         ->execute();
+
+      \Drupal::logger('myeventlane_webhooks')->error('Webhook delivery failed permanently after @attempt attempts.', [
+        '@attempt' => $attempt_count,
+        'queue_name' => 'myeventlane_webhook_delivery',
+        'event_id' => $delivery_data['event_id'] ?? NULL,
+      ]);
       return;
     }
 

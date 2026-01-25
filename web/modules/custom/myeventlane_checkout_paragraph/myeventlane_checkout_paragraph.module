@@ -39,6 +39,16 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
   $order = $access_resolver->getParentOrder($entity);
   if (!$order) {
     // If we can't resolve the order, deny access (safety first).
+    \Drupal::logger('myeventlane_checkout')->error(
+      'Access denied: attendee_answer paragraph @pid has no resolvable parent order.',
+      [
+        '@pid' => $entity->id(),
+        'order_id' => NULL,
+        'event_id' => NULL,
+        'user_id' => (int) $account->id(),
+        'operation' => $operation,
+      ]
+    );
     return AccessResult::forbidden()->addCacheableDependency($entity);
   }
 
@@ -49,6 +59,7 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
   // Check vendor access: vendor must own the event.
   $is_vendor = FALSE;
   $event = $access_resolver->getEvent($entity);
+  $event_id = $event ? (int) $event->id() : NULL;
   if ($event) {
     $vendor_resolver = \Drupal::service('myeventlane_checkout_flow.vendor_ownership_resolver');
     $store = $vendor_resolver->getStoreForUser($account);
@@ -56,6 +67,8 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
       $is_vendor = $vendor_resolver->vendorOwnsEvent($store, $event);
     }
   }
+
+  $order_id = (int) $order->id();
 
   // Determine access based on operation.
   switch ($operation) {
@@ -67,6 +80,17 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
           ->addCacheableDependency($entity)
           ->addCacheableDependency($order);
       }
+      \Drupal::logger('myeventlane_checkout')->warning(
+        'Access denied: attendee_answer paragraph @pid view not permitted for user @uid.',
+        [
+          '@pid' => $entity->id(),
+          '@uid' => (int) $account->id(),
+          'order_id' => $order_id,
+          'event_id' => $event_id,
+          'user_id' => (int) $account->id(),
+          'operation' => $operation,
+        ]
+      );
       return AccessResult::forbidden()
         ->cachePerUser()
         ->addCacheableDependency($entity)
@@ -77,6 +101,18 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
       // Check if order is locked (placed or later).
       if ($access_resolver->isOrderLocked($order)) {
         // Order is locked - deny update/delete for everyone except admin.
+        \Drupal::logger('myeventlane_checkout')->warning(
+          'Access denied: attendee_answer paragraph @pid @op blocked because order @order_id is locked.',
+          [
+            '@pid' => $entity->id(),
+            '@op' => $operation,
+            '@order_id' => $order_id,
+            'order_id' => $order_id,
+            'event_id' => $event_id,
+            'user_id' => (int) $account->id(),
+            'operation' => $operation,
+          ]
+        );
         return AccessResult::forbidden('Attendee data cannot be modified after order placement.')
           ->cachePerUser()
           ->addCacheableDependency($entity)
@@ -92,6 +128,18 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
       }
 
       // Vendors cannot update/delete attendee data (even for their events).
+      \Drupal::logger('myeventlane_checkout')->warning(
+        'Access denied: attendee_answer paragraph @pid @op not permitted for user @uid.',
+        [
+          '@pid' => $entity->id(),
+          '@op' => $operation,
+          '@uid' => (int) $account->id(),
+          'order_id' => $order_id,
+          'event_id' => $event_id,
+          'user_id' => (int) $account->id(),
+          'operation' => $operation,
+        ]
+      );
       return AccessResult::forbidden('Vendors cannot modify attendee data.')
         ->cachePerUser()
         ->addCacheableDependency($entity)

@@ -118,7 +118,14 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
     // Generate time-limited invite link (2 hours).
     // @todo Implement secure token generation for waitlist invite links.
     $expiresAt = $this->time->getRequestTime() + (2 * 3600);
-    $inviteToken = hash('sha256', $attendeeId . $eventId . $expiresAt . $this->configFactory->get('system.site')->get('uuid'));
+    $siteUuid = (string) ($this->configFactory->get('system.site')->get('uuid') ?? '');
+    if ($siteUuid === '') {
+      // Defensive check: keep existing behaviour (still generate token) but log loudly.
+      $this->logger->error('WaitlistInviteWorker: system.site UUID is missing; invite token entropy reduced.', [
+        'event_id' => (int) $eventId,
+      ]);
+    }
+    $inviteToken = hash('sha256', $attendeeId . $eventId . $expiresAt . $siteUuid);
 
     $inviteUrl = Url::fromRoute('myeventlane_automation.waitlist_claim', [
       'event' => $eventId,

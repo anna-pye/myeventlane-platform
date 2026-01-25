@@ -3,3 +3,16 @@ services:
     class: Drupal\myeventlane_messaging\Commands\MessagingCommands
     tags:
       - { name: drush.command }
+
+  myeventlane_messaging.health_commands:
+    class: Drupal\myeventlane_messaging\Commands\HealthCommands
+    arguments:
+      - '@config.factory'
+      - '@config.storage'
+      - '@config.storage.sync'
+      - '@plugin.manager.queue_worker'
+      - '@queue'
+      - '@twig'
+      - '@module_handler'
+    tags:
+      - { name: drush.command }
