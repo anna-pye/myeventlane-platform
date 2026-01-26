@@ -264,12 +264,143 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
    */
   public function getRefundAmount(AnalyticsQuery $query): array {
     $effective_store_ids = $this->scopeResolver->resolveEffectiveStoreIds($query);
+    $metric = AnalyticsQueryGuard::METRIC_REFUND_AMOUNT;
+
+    // Guard assertions (strict order per Phase 7 requirements).
+    $this->guard->assertValidQueryForMoneyMetric($query, $metric);
     $this->guard->assertScopeRules($query, $effective_store_ids);
-    $this->guard->assertOrderItemAnchoringRequired(AnalyticsQueryGuard::METRIC_REFUND_AMOUNT);
-    $this->guard->assertValidQueryForMoneyMetric($query, AnalyticsQueryGuard::METRIC_REFUND_AMOUNT);
+    $this->guard->assertNoSemanticMixing($metric);
+    $this->guard->assertNoCurrencyMixing($query);
+    $this->guard->assertOrderItemAnchoringRequired($metric);
+
+    $connection = Database::getConnection();
+
+    // Fail-closed if required schema is missing (prevents silent leakage).
+    $required_tables = [
+      'myeventlane_refund_log',
+      'commerce_order',
+      'commerce_order_item',
+      'commerce_order_item__field_target_event',
+      'node__field_event_store',
+    ];
+    foreach ($required_tables as $table) {
+      if (!$connection->schema()->tableExists($table)) {
+        throw new InvariantViolationException(sprintf('Required analytics table missing: %s', $table));
+      }
+    }
+
+    $start = (int) $query->start_ts;
+    $end = (int) $query->end_ts;
+
+    // Currency is required for money metrics and validated by the guard.
+    $currency = (string) $query->currency;
+    $currency_lower = strtolower($currency);
+
+    // Build a unique set of (order_id, event_id) pairs that exist on ANY
+    // order item with field_target_event.
+    $any_items = $connection->select('commerce_order_item', 'oi_any');
+    $any_items->join('commerce_order_item__field_target_event', 'lnk_any', 'lnk_any.entity_id = oi_any.order_item_id');
+    $any_items->addField('oi_any', 'order_id', 'order_id');
+    $any_items->addField('lnk_any', 'field_target_event_target_id', 'event_id');
+    $any_items->distinct();
+
+    // Build a unique set of (order_id, event_id) pairs for QUALIFYING ticket
+    // order items (paid, non-boost).
+    $ticket_items = $connection->select('commerce_order_item', 'oi');
+    $ticket_items->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $ticket_items->addField('oi', 'order_id', 'order_id');
+    $ticket_items->addField('lnk', 'field_target_event_target_id', 'event_id');
+    $ticket_items->condition('oi.unit_price__number', '0', '>');
+    $ticket_items->condition('oi.type', 'boost', '<>');
+    $ticket_items->distinct();
+
+    // Fail-closed if there are completed refund rows in scope that cannot be
+    // linked to ANY order item for the given (order_id, event_id).
+    $unlinked = $connection->select('myeventlane_refund_log', 'r');
+    $unlinked->join('commerce_order', 'o', 'o.order_id = r.order_id');
+    $unlinked->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
+    $unlinked->leftJoin($any_items, 'any', 'any.order_id = r.order_id AND any.event_id = r.event_id');
+    $unlinked->addExpression('COUNT(r.id)', 'cnt');
+    $unlinked->condition('r.status', 'completed');
+    $unlinked->condition('r.amount_cents', 0, '>');
+    $unlinked->condition('o.state', 'completed');
+    $unlinked->condition('o.placed', $start, '>=');
+    $unlinked->condition('o.placed', $end, '<=');
+    $unlinked->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
+    $unlinked->isNull('any.order_id');
+    $unlinked_count = (int) $unlinked->execute()->fetchField();
+    if ($unlinked_count > 0) {
+      throw new InvariantViolationException('Refund rows exist without valid order-item linkage.');
+    }
+
+    // Fail-closed if any includable refund rows exist in the scope/window with a
+    // currency other than the requested currency (prevents accidental mixing).
+    $currency_mismatch = $connection->select('myeventlane_refund_log', 'r');
+    $currency_mismatch->join('commerce_order', 'o', 'o.order_id = r.order_id');
+    $currency_mismatch->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
+    $currency_mismatch->join($ticket_items, 't', 't.order_id = r.order_id AND t.event_id = r.event_id');
+    $currency_mismatch->addExpression('COUNT(r.id)', 'cnt');
+    $currency_mismatch->condition('r.status', 'completed');
+    $currency_mismatch->condition('r.amount_cents', 0, '>');
+    $currency_mismatch->condition('o.state', 'completed');
+    $currency_mismatch->condition('o.placed', $start, '>=');
+    $currency_mismatch->condition('o.placed', $end, '<=');
+    $currency_mismatch->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
+    $currency_mismatch->where('r.currency IS NULL OR LOWER(r.currency) <> :currency', [
+      ':currency' => $currency_lower,
+    ]);
+    $currency_mismatch_count = (int) $currency_mismatch->execute()->fetchField();
+    if ($currency_mismatch_count > 0) {
+      throw new InvariantViolationException('Currency mismatch detected for refund amount query.');
+    }
+
+    // Refund Amount (locked definition):
+    // - Sum completed refund amounts (positive cents)
+    // - Completed orders only
+    // - Event-linked refunds only (validated via ANY + ticket linkage)
+    // - Allocate by order-item -> event -> store (event store field)
+    // - Single currency per call
+    // - Grouped by store_id + event_id + currency
+    $q = $connection->select('myeventlane_refund_log', 'r');
+    $q->join('commerce_order', 'o', 'o.order_id = r.order_id');
+    $q->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
+    $q->join($ticket_items, 't', 't.order_id = r.order_id AND t.event_id = r.event_id');
+
+    $q->addField('nes', 'field_event_store_target_id', 'store_id');
+    $q->addField('r', 'event_id', 'event_id');
+    $q->addExpression('COALESCE(SUM(r.amount_cents), 0)', 'amount_cents');
+
+    $q->condition('r.status', 'completed');
+    $q->condition('r.amount_cents', 0, '>');
+    $q->condition('o.state', 'completed');
+    $q->condition('o.placed', $start, '>=');
+    $q->condition('o.placed', $end, '<=');
+    $q->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
+    $q->where('LOWER(r.currency) = :currency', [':currency' => $currency_lower]);
+
+    $q->groupBy('nes.field_event_store_target_id');
+    $q->groupBy('r.event_id');
 
     /** @var list<\Drupal\myeventlane_analytics\Phase7\Value\MoneyByStoreEventCurrencyRow> $rows */
     $rows = [];
+    foreach ($q->execute() as $row) {
+      $store_id = (int) ($row->store_id ?? 0);
+      $event_id = (int) ($row->event_id ?? 0);
+      $amount_cents = (int) ($row->amount_cents ?? 0);
+
+      if ($store_id <= 0 || $event_id <= 0) {
+        throw new InvariantViolationException('Invalid aggregation key for Refund Amount.');
+      }
+
+      $rows[] = new MoneyByStoreEventCurrencyRow(
+        store_id: $store_id,
+        event_id: $event_id,
+        currency: $currency,
+        amount_cents: $amount_cents,
+        integrity_flags: [],
+      );
+    }
+
     return $rows;
   }
 
