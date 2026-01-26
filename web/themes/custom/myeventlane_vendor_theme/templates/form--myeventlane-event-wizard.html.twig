@@ -2,13 +2,38 @@
   EventWizardForm template.
   Renders the wizard structure built by EventWizardForm::buildForm().
 
-  Uses form/event-wizard-form.html.twig to wrap the form with header, body, and
-  mobile sticky footer (actions). Drupal's form preprocessing moves form elements
-  into the 'children' variable. The wizard structure is included in children.
+  Provides:
+  - Wizard header with step title and optional helper text
+  - Form body (unchanged, includes wizard structure)
+  - Mobile sticky footer for actions (handled via SCSS)
+
+  Variables:
+  - element: The form render array
+  - children: Rendered form content (includes wizard structure and actions)
 #}
-<form{{ attributes.addClass('mel-event-form-page') }}>
-  {% include 'form/event-wizard-form.html.twig' with {
-    element: element,
-    children: children,
-  } %}
+{% set steps = element['#wizard_steps'] ?? [] %}
+{% set current_step = steps|filter(s => s.is_current ?? false)|first %}
+{% set step_title = current_step ? current_step.label : 'Event wizard'|t %}
+{% set step_help = null %}
+{% if element.wizard is defined %}
+  {% set help_val = element.wizard['layout']['content']['card']['header']['help']['#value'] ?? '' %}
+  {% if (help_val|trim) != '' %}
+    {% set step_help = help_val %}
+  {% endif %}
+{% endif %}
+
+<form{{ attributes.addClass('mel-event-form-page', 'mel-wizard-form') }}>
+  <div class="mel-wizard-form-wrap">
+    <header class="mel-wizard-form-header" role="banner">
+      <h1 class="mel-wizard-form-header__title">{{ step_title }}</h1>
+      {% if step_help %}
+        <p class="mel-wizard-form-header__help">{{ step_help }}</p>
+      {% endif %}
+    </header>
+
+    <div class="mel-wizard-form-body">
+      {# Status messages appear here (prepended by AJAX) #}
+      {{ children }}
+    </div>
+  </div>
 </form>
