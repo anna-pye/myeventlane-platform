@@ -1,0 +1,174 @@
+/**
+ * @file
+ * Vendor Event Wizard form wrapper styles (Phase 4 A5).
+ *
+ * Mobile-first. Header, body, sticky footer CTA. Clear spacing, visible focus
+ * states. No absolute-positioning hacks. Desktop centred and calm; mobile CTA
+ * always reachable. No overlap with messages/errors.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+
+// ============================================================================
+// WRAPPER (mobile-first)
+// ============================================================================
+
+.mel-wizard-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+  width: 100%;
+  max-width: 100%;
+
+  @include respond-to(md) {
+    gap: $spacing-6;
+    max-width: $layout-content-max-width;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: $spacing-4;
+    padding-right: $spacing-4;
+  }
+}
+
+// ============================================================================
+// WIZARD HEADER
+// ============================================================================
+
+.mel-wizard-form-header {
+  flex-shrink: 0;
+  padding-bottom: $spacing-2;
+
+  @include respond-to(md) {
+    padding-bottom: $spacing-4;
+  }
+}
+
+.mel-wizard-form-header__title {
+  @include section-title;
+  margin: 0 0 $spacing-2 0;
+  color: $text-primary;
+  line-height: $line-height-tight;
+
+  @include respond-to(md) {
+    font-size: $font-size-xl;
+    margin-bottom: $spacing-3;
+  }
+}
+
+.mel-wizard-form-header__help {
+  @include small-text;
+  margin: 0;
+  color: $text-secondary;
+  line-height: $line-height-normal;
+  max-width: 42rem;
+}
+
+// ============================================================================
+// FORM BODY
+// ============================================================================
+
+.mel-wizard-form-body {
+  flex: 1;
+  min-width: 0;
+
+  @include respond-down(md) {
+    padding-bottom: 5.5rem;
+  }
+}
+
+.mel-wizard-form-body .form-item--error-message {
+  margin-top: $spacing-2;
+}
+
+.mel-wizard-form-body .messages {
+  margin-bottom: $spacing-4;
+}
+
+// ============================================================================
+// ACTIONS / STICKY FOOTER (mobile)
+// ============================================================================
+
+.mel-wizard-form-body .mel-wizard__actions,
+.mel-wizard-form-body .mel-vendor-wizard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-3;
+  margin-top: $spacing-6;
+  padding-top: $spacing-4;
+  border-top: 1px solid $border-color-light;
+
+  @include respond-down(md) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    margin: 0;
+    padding: $spacing-4 $spacing-4;
+    padding-bottom: max($spacing-4, env(safe-area-inset-bottom));
+    background: $bg-primary;
+    border-top: 1px solid $border-color;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: $spacing-4;
+  }
+
+  @include respond-to(md) {
+    border-top-color: $border-color-light;
+  }
+}
+
+.mel-wizard-form-body .mel-wizard__actions input[type="submit"],
+.mel-wizard-form-body .mel-vendor-wizard__actions input[type="submit"] {
+  margin: 0;
+}
+
+.mel-wizard-form-body .mel-wizard__actions .mel-btn--secondary,
+.mel-wizard-form-body .mel-vendor-wizard__actions .mel-btn--secondary,
+.mel-wizard-form-body .mel-wizard__actions input[type="submit"]:not(.mel-btn--primary):not([class*="primary"]),
+.mel-wizard-form-body .mel-vendor-wizard__actions input[type="submit"]:not(.mel-btn--primary):not([class*="primary"]) {
+  @include respond-down(md) {
+    background: transparent;
+    border-color: transparent;
+    color: $primary;
+    padding: $spacing-2 $spacing-3;
+    min-height: auto;
+
+    &:hover {
+      background: $bg-secondary;
+      border-color: transparent;
+      color: $primary-dark;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary;
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+  }
+}
+
+.mel-wizard-form-body .mel-wizard__actions .mel-btn--primary,
+.mel-wizard-form-body .mel-vendor-wizard__actions .mel-btn--primary,
+.mel-wizard-form-body .mel-wizard__actions input[type="submit"].mel-btn--primary,
+.mel-wizard-form-body .mel-vendor-wizard__actions input[type="submit"].mel-btn--primary {
+  @include respond-down(md) {
+    order: 1;
+  }
+}
+
+.mel-wizard-form-body .mel-wizard__actions input[type="submit"],
+.mel-wizard-form-body .mel-vendor-wizard__actions input[type="submit"] {
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+    box-shadow: $shadow-focus;
+  }
+}

@@ -1,12 +1,14 @@
 {#
   EventWizardForm template.
   Renders the wizard structure built by EventWizardForm::buildForm().
-  
-  Note: Drupal's form template preprocessing moves form elements into the 'children' variable.
-  The wizard structure built in EventWizardForm::buildForm() is included in children.
+
+  Uses form/event-wizard-form.html.twig to wrap the form with header, body, and
+  mobile sticky footer (actions). Drupal's form preprocessing moves form elements
+  into the 'children' variable. The wizard structure is included in children.
 #}
 <form{{ attributes.addClass('mel-event-form-page') }}>
-  {# Render all form elements including the wizard structure #}
-  {{ children }}
-
+  {% include 'form/event-wizard-form.html.twig' with {
+    element: element,
+    children: children,
+  } %}
 </form>

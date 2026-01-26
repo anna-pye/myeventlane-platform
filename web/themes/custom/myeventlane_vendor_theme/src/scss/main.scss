@@ -68,6 +68,10 @@
 @use 'components/boost-metrics';
 @use 'components/footer';
 @use 'components/mel-header-footer';
+@use 'components/wizard-sidebar';
+@use 'components/vendor-wizard-sidebar';
+@use 'components/wizard';
+@use 'components/onboarding-panel';
 
 // ============================================================================
 // PAGE-SPECIFIC STYLES
