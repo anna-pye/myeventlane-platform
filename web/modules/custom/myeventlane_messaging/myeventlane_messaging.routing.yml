@@ -2,7 +2,7 @@
 myeventlane_messaging.unsubscribe:
   path: '/email/unsubscribe/{uid}/{ts}/{h}'
   defaults:
-    _controller: '\Drupal\myeventlane_messaging\Controller\UnsubscribeController::unsubscribe'
+    _controller: 'myeventlane_messaging.unsubscribe_controller:unsubscribe'
     _title: 'Email preferences'
   requirements:
     _permission: 'access content'

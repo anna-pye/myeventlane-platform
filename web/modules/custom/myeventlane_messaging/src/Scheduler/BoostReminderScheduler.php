@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -27,6 +28,7 @@ final class BoostReminderScheduler {
     private readonly QueueFactory $queue,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly BoostManager $boostManager,
+    private readonly MessagingManager $messagingManager,
   ) {}
 
   /**
@@ -75,7 +77,7 @@ final class BoostReminderScheduler {
         $ctx['expires_at'] = $this->dateFormatter->format($expiresTs, 'custom', 'j M Y, g:ia T');
       }
 
-      \Drupal::service('myeventlane_messaging.manager')->queue('boost_reminder', $to, $ctx);
+      $this->messagingManager->queue('boost_reminder', $to, $ctx);
     }
 
     $this->logger->info('Boost reminder scan queued @count messages.', ['@count' => count($nids)]);

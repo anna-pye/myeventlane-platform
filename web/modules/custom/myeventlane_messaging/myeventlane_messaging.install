@@ -1,0 +1,176 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall hooks for MyEventLane Messaging.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_messaging_schema() {
+  $schema['myeventlane_message'] = [
+    'description' => 'Stores message records for idempotent send and delivery logging.',
+    'fields' => [
+      'id' => [
+        'type' => 'varchar',
+        'length' => 36,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'UUID primary key.',
+      ],
+      'template' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Template key (e.g. order_receipt, event_reminder_24h).',
+      ],
+      'channel' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'email',
+        'description' => 'Delivery channel (email, etc.).',
+      ],
+      'recipient' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Recipient email or address.',
+      ],
+      'langcode' => [
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => 'en',
+        'description' => 'Language code.',
+      ],
+      'context' => [
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Serialized context array.',
+      ],
+      'context_hash' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Deterministic hash for idempotency (template + recipient + context).',
+      ],
+      'scheduled_for' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when message was scheduled.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'queued',
+        'description' => 'queued, sent, failed, suppressed.',
+      ],
+      'attempts' => [
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of send attempts.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when record was created.',
+      ],
+      'sent' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when message was sent (0 if not sent).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'context_hash_recipient_template' => ['context_hash', 'recipient', 'template'],
+      'status_created' => ['status', 'created'],
+    ],
+  ];
+
+  $schema['myeventlane_message_preference'] = [
+    'description' => 'Stores messaging preferences (marketing/operational opt-out).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'recipient' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Recipient identifier (email or uid as string).',
+      ],
+      'recipient_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'email',
+        'description' => 'email or uid.',
+      ],
+      'marketing_opt_out' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '1 if opted out of marketing.',
+      ],
+      'operational_reminder_opt_out' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '1 if opted out of operational reminders (e.g. event reminders).',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last update.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'recipient_type_recipient' => ['recipient_type', 'recipient'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Create myeventlane_message and myeventlane_message_preference tables.
+ */
+function myeventlane_messaging_update_10001(): void {
+  $schema = myeventlane_messaging_schema();
+  $db = \Drupal::database();
+
+  if (!$db->schema()->tableExists('myeventlane_message')) {
+    $db->schema()->createTable('myeventlane_message', $schema['myeventlane_message']);
+  }
+
+  if (!$db->schema()->tableExists('myeventlane_message_preference')) {
+    $db->schema()->createTable('myeventlane_message_preference', $schema['myeventlane_message_preference']);
+  }
+}

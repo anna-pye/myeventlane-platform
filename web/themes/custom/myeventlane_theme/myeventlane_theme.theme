@@ -1081,7 +1081,7 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
 
   // 3. Hard fallback.
   if (!$image_url) {
-    $theme_path = drupal_get_path('theme', 'myeventlane_theme');
+    $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
     $fallback_path = $theme_path . '/images/mel/placeholders/mel-placeholder-default.png';
     $image_url = '/' . $fallback_path;
   }

@@ -117,10 +117,19 @@ final class MessagingSettingsForm extends ConfigFormBase {
     $form['queue']['batch_size'] = [
       '#type' => 'number',
       '#title' => $this->t('Queue batch size'),
-      '#description' => $this->t('Number of messages to process per cron run.'),
+      '#description' => $this->t('Number of messages to process per cron run (legacy).'),
       '#default_value' => $config->get('batch_size') ?? 50,
       '#min' => 1,
       '#max' => 500,
+    ];
+
+    $form['queue']['max_messages_per_run'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Max messages per cron run'),
+      '#description' => $this->t('Rate-limit cap: maximum messages processed per cron run.'),
+      '#default_value' => $config->get('max_messages_per_run') ?? 200,
+      '#min' => 1,
+      '#max' => 2000,
     ];
 
     return parent::buildForm($form, $form_state);
@@ -139,6 +148,7 @@ final class MessagingSettingsForm extends ConfigFormBase {
       ->set('cart_abandoned_enabled', $form_state->getValue('cart_abandoned_enabled'))
       ->set('cart_abandoned_hours', $form_state->getValue('cart_abandoned_hours'))
       ->set('batch_size', $form_state->getValue('batch_size'))
+      ->set('max_messages_per_run', $form_state->getValue('max_messages_per_run'))
       ->save();
 
     parent::submitForm($form, $form_state);

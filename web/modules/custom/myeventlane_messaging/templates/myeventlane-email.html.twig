@@ -4,7 +4,7 @@
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">
         <tr>
           <td style="padding:16px 20px;border-bottom:1px solid #f4f4f4;">
-            <div style="font-weight:700;font-size:16px;color:#293241;">MyEventLane</div>
+            <div style="font-weight:700;font-size:16px;color:#293241;">{{ context.from_name|default('MyEventLane') }}</div>
           </td>
         </tr>
         <tr>
@@ -14,7 +14,7 @@
         </tr>
         <tr>
           <td style="padding:12px 20px;border-top:1px solid #f4f4f4;font-size:12px;color:#888;">
-            You’re receiving this because you interacted with MyEventLane.{% if context.unsubscribe_url %} <a href="{{ context.unsubscribe_url }}" style="color:#6e7ef2;">Unsubscribe</a>{% endif %}
+            {{ context.footer_text|default("You're receiving this because you interacted with MyEventLane.") }}{% if context.unsubscribe_url %} <a href="{{ context.unsubscribe_url }}" style="color:#6e7ef2;">Unsubscribe</a>{% endif %}
           </td>
         </tr>
       </table>

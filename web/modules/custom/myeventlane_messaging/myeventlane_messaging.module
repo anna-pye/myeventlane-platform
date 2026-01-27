@@ -11,6 +11,7 @@ declare(strict_types=1);
  * Implements hook_cron().
  */
 function myeventlane_messaging_cron(): void {
+  \Drupal::state()->set('myeventlane_messaging.cron_run_count', 0);
   \Drupal::service('myeventlane_messaging.scheduler.boost')->scan();
   \Drupal::service('myeventlane_messaging.scheduler.cart')->scan();
   \Drupal::service('myeventlane_messaging.scheduler.event')->scan();
@@ -73,6 +74,16 @@ function myeventlane_messaging_mail($key, &$message, $params) {
     $message['headers'] = [];
   }
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
+
+  if (!empty($params['reply_to'])) {
+    $message['headers']['Reply-To'] = $params['reply_to'];
+  }
+  if (!empty($params['from_name']) && !empty($params['from_email'])) {
+    $message['headers']['From'] = $params['from_name'] . ' <' . $params['from_email'] . '>';
+  }
+  elseif (!empty($params['from_email'])) {
+    $message['headers']['From'] = $params['from_email'];
+  }
 
   // Store HTML body separately for HTML mailers that need it.
   if (!empty($params['html'])) {
