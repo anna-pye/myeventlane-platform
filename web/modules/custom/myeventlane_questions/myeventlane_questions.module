@@ -1,0 +1,170 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Questions module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
+
+/**
+ * Implements hook_entity_access().
+ */
+function myeventlane_questions_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $op, \Drupal\Core\Session\AccountInterface $account) {
+  if ($entity instanceof VendorQuestionInterface) {
+    // Admin has full access.
+    if ($account->hasPermission('administer site configuration')) {
+      return AccessResult::allowed()->cachePerPermissions();
+    }
+
+    // For view/update/delete, check store ownership.
+    if (in_array($op, ['view', 'update', 'delete'], TRUE)) {
+      $store = $entity->get('field_store')->entity;
+      if (!$store) {
+        return AccessResult::forbidden('Question has no store assigned.')->cachePerPermissions();
+      }
+
+      // Get vendor for current user.
+      $vendor_storage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+      $vendor_ids = $vendor_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $account->id())
+        ->range(0, 1)
+        ->execute();
+
+      if (empty($vendor_ids)) {
+        return AccessResult::forbidden('User has no vendor.')->cachePerPermissions();
+      }
+
+      $vendor = $vendor_storage->load(reset($vendor_ids));
+      if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+        return AccessResult::forbidden('Vendor has no store.')->cachePerPermissions();
+      }
+
+      $vendor_store = $vendor->get('field_vendor_store')->entity;
+      if ($vendor_store && $vendor_store->id() === $store->id()) {
+        return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($entity);
+      }
+
+      return AccessResult::forbidden('Question belongs to a different store.')->cachePerPermissions();
+    }
+
+    // For create, check permission.
+    if ($op === 'create') {
+      return AccessResult::allowedIfHasPermission($account, 'manage vendor question library')->cachePerPermissions();
+    }
+  }
+
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function myeventlane_questions_vendor_question_access(\Drupal\Core\Entity\EntityInterface $entity, $op, \Drupal\Core\Session\AccountInterface $account) {
+  return myeventlane_questions_entity_access($entity, $op, $account);
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * Adds "Save to library" checkbox to paragraph inline forms for attendee questions.
+ */
+function myeventlane_questions_field_widget_form_alter(array &$element, \Drupal\Core\Form\FormStateInterface $form_state, array $context): void {
+  // Only process field_attendee_questions field.
+  if (!isset($context['fieldDefinition']) || $context['fieldDefinition']->getName() !== 'field_attendee_questions') {
+    return;
+  }
+
+  // Process each widget item (paragraph).
+  foreach ($element as $delta => &$widget) {
+    if (!is_numeric($delta) || !isset($widget['#paragraph_type']) || $widget['#paragraph_type'] !== 'attendee_extra_field') {
+      continue;
+    }
+
+    // Add "Save to library" checkbox to inline form.
+    if (isset($widget['inline_entity_form'])) {
+      $inline_form = &$widget['inline_entity_form'];
+      
+      // Add checkbox after the form fields.
+      $inline_form['save_to_library'] = [
+        '#type' => 'checkbox',
+        '#title' => t('Save this question to my library'),
+        '#description' => t('This question will be saved to your question library for reuse in other events.'),
+        '#weight' => 100,
+        '#default_value' => FALSE,
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Creates VendorQuestion when a paragraph is saved with "save_to_library" flag.
+ */
+function myeventlane_questions_entity_insert(\Drupal\Core\Entity\EntityInterface $entity): void {
+  // Only process attendee_extra_field paragraphs.
+  if ($entity->getEntityTypeId() !== 'paragraph' || $entity->bundle() !== 'attendee_extra_field') {
+    return;
+  }
+
+  // Check if this paragraph was created with "save to library" flag.
+  // We check a temporary property set during form submission.
+  if (!isset($entity->save_to_library) || !$entity->save_to_library) {
+    return;
+  }
+
+  // Get current user's vendor and store.
+  $current_user = \Drupal::currentUser();
+  if (!$current_user->isAuthenticated()) {
+    return;
+  }
+
+  $vendor_storage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+  $vendor_ids = $vendor_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('uid', $current_user->id())
+    ->range(0, 1)
+    ->execute();
+
+  if (empty($vendor_ids)) {
+    return;
+  }
+
+  $vendor = $vendor_storage->load(reset($vendor_ids));
+  if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+    return;
+  }
+
+  $store = $vendor->get('field_vendor_store')->entity;
+  if (!$store) {
+    return;
+  }
+
+  // Create VendorQuestion from paragraph data.
+  $question_storage = \Drupal::entityTypeManager()->getStorage('vendor_question');
+  /** @var \Drupal\myeventlane_questions\Entity\VendorQuestionInterface $vendor_question */
+  $vendor_question = $question_storage->create([
+    'label' => $entity->get('field_question_label')->value ?? '',
+    'field_question_type' => $entity->get('field_question_type')->value ?? 'textfield',
+    'field_options' => $entity->get('field_question_options')->value ?? '',
+    'field_help_text' => $entity->hasField('field_question_help') ? ($entity->get('field_question_help')->value ?? '') : '',
+    'field_required' => $entity->get('field_question_required')->value ?? FALSE,
+    'field_store' => $store,
+    'status' => TRUE,
+  ]);
+
+  try {
+    $vendor_question->save();
+    \Drupal::messenger()->addStatus(t('Question saved to your library.'));
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_questions')->error('Failed to save question to library: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+}

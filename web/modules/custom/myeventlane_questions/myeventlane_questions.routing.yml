@@ -1,0 +1,41 @@
+myeventlane_questions.library:
+  path: '/vendor/questions'
+  defaults:
+    _controller: '\Drupal\myeventlane_questions\Controller\VendorQuestionLibraryController::library'
+    _title: 'Question Library'
+  requirements:
+    _permission: 'view vendor question library'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_questions.add:
+  path: '/vendor/questions/add'
+  defaults:
+    _entity_form: 'vendor_question.add'
+    _title: 'Add Question'
+  requirements:
+    _permission: 'manage vendor question library'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_questions.edit:
+  path: '/vendor/questions/{vendor_question}/edit'
+  defaults:
+    _entity_form: 'vendor_question.edit'
+    _title: 'Edit Question'
+  requirements:
+    _permission: 'manage vendor question library'
+    _entity_access: 'vendor_question.update'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_questions.delete:
+  path: '/vendor/questions/{vendor_question}/delete'
+  defaults:
+    _entity_form: 'vendor_question.delete'
+    _title: 'Delete Question'
+  requirements:
+    _permission: 'manage vendor question library'
+    _entity_access: 'vendor_question.delete'
+  options:
+    _maintenance_access: FALSE

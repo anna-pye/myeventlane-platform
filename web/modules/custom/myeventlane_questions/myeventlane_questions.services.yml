@@ -1,0 +1,4 @@
+services:
+  myeventlane_questions.template_cloner:
+    class: Drupal\myeventlane_questions\Service\QuestionTemplateCloner
+    arguments: ['@entity_type.manager']

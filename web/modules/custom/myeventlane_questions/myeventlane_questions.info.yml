@@ -1,0 +1,15 @@
+name: 'MyEventLane Questions'
+type: module
+description: 'Store-based vendor question library for reusable attendee questions.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - myeventlane_core:myeventlane_core
+  - myeventlane_vendor:myeventlane_vendor
+  - drupal:commerce
+  - drupal:commerce_store
+  - drupal:user
+  - drupal:field
+  - paragraphs:paragraphs

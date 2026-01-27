@@ -1,0 +1,9 @@
+manage vendor question library:
+  title: 'Manage vendor question library'
+  description: 'Create, edit, and delete questions in the vendor question library.'
+  restrict access: true
+
+view vendor question library:
+  title: 'View vendor question library'
+  description: 'View questions in the vendor question library.'
+  restrict access: true
