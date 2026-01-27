@@ -1,45 +1,70 @@
+############################################
 # OS
+############################################
 .DS_Store
 
+############################################
 # Composer
+############################################
 /vendor/
 
-# Node/Vite
+############################################
+# Node / Vite
+############################################
 /node_modules/
 /dist/
 /build/
 /.npm-cache/
+web/themes/custom/**/node_modules/
 
-# Drupal core and contrib (managed by Composer)
+############################################
+# Drupal core & contrib (Composer-managed)
+############################################
 web/core/
-/web/modules/contrib/
-/web/themes/contrib/
+web/modules/contrib/
+web/themes/contrib/
 
-# Drupal files
-/web/sites/*/files/
-/web/sites/*/private/
+############################################
+# Drupal files (generated content)
+############################################
+web/sites/*/files/
+web/sites/*/private/
 
-# Drupal sensitive configuration files
-/web/sites/*/*settings*.php
-/web/sites/*/*services*.yml
+############################################
+# Drupal sensitive configuration
+############################################
+web/sites/*/*settings*.php
+web/sites/*/*services*.yml
 
-# Database dumps (contain sensitive data)
+############################################
+# Database dumps & backups (sensitive)
+############################################
 *.sql
 *.sql.gz
+backup*
+backups/
+all_config_dump.sql
 
+############################################
 # DDEV
-/.ddev/.tmp
-/.ddev/.downloads
+############################################
+.ddev/.tmp
+.ddev/.downloads
 
-# IDEs
+############################################
+# IDEs & editors
+############################################
 .idea/
-/.vscode/
+.vscode/
 *.swp
 
-# Environment variables and secrets
+############################################
+# Environment variables & secrets
+############################################
 .env
 .env.*
 !.env.example
+
 *.pem
 *.key
 *.p12
@@ -47,16 +72,17 @@ web/core/
 *.crt
 *.cer
 *.der
+
 id_rsa
 id_ed25519
 id_dsa
 *.pub
+
 secrets.yml
 secrets.yaml
 *.secret
 .secret
 
-# Credentials and API keys
 credentials.json
 credentials.yml
 api-keys.*
@@ -66,47 +92,36 @@ settings.local.*
 *.local.php
 *.local.yml
 
-# Backup files that might contain secrets
-*.bak
-*.backup
-*.old
-*~
-
-# Log files (may contain sensitive info)
+############################################
+# Logs
+############################################
 *.log
 logs/
 
-HEAD
-# Local development scripts (nested paths)
+############################################
+# Local development & scratch
+############################################
 web/modules/custom/**/scripts/local/
-
-# Zip files (build artifacts, backups)
-*.zip
-!web/themes/contrib/**/*.zip
-!web/modules/contrib/**/*.zip
-
-# Cursor IDE
-.cursor/
-
-# Local scratch/temporary areas
 web/modules/custom/**/scratch/
 web/modules/custom/**/tmp/
 web/themes/custom/**/scratch/
 web/themes/custom/**/tmp/
 
-# Drupal private files and config overrides
-web/sites/*/files/
-web/sites/*/private/
-main
+############################################
+# Archives & local junk
+############################################
+*.zip
+OneDrive/
+vendor.bak
 
-# Backups & dumps
-*.sql
-*.sql.gz
-backup*
-backups/
-all_config_dump.sql
+############################################
+# Cursor IDE
+############################################
+.cursor/
 
-# Audit / phase docs
+############################################
+# Historical audit / phase docs (deprecated)
+############################################
 PHASE*.md
 *_AUDIT_*.md
 *_SUMMARY.md
@@ -114,7 +129,3 @@ FINAL_*.md
 DEBUG_*.md
 IMPLEMENTATION_*.md
 TEST_RESULTS.md
-
-# Local archives
-OneDrive/
-vendor.bak
