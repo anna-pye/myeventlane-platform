@@ -3,6 +3,8 @@
 **Date:** 2025-01-27  
 **Status:** Analysis Complete, Implementation Starting
 
+> **Note:** Before starting development, review `CURSOR_GIT_RULES.md` for Git safety guidelines and repository workflow rules.
+
 ---
 
 ## Current State Analysis
