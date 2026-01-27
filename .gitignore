@@ -98,3 +98,23 @@ web/themes/custom/**/tmp/
 web/sites/*/files/
 web/sites/*/private/
 main
+
+# Backups & dumps
+*.sql
+*.sql.gz
+backup*
+backups/
+all_config_dump.sql
+
+# Audit / phase docs
+PHASE*.md
+*_AUDIT_*.md
+*_SUMMARY.md
+FINAL_*.md
+DEBUG_*.md
+IMPLEMENTATION_*.md
+TEST_RESULTS.md
+
+# Local archives
+OneDrive/
+vendor.bak
