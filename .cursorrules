@@ -173,3 +173,24 @@ If any instruction would violate these rules:
 
 ## Mandatory Safety Checks
 Before suggesting Git commands, Cursor MUST verify:
+
+pwd
+git status
+git branch
+
+If `pwd` is not `/Users/anna/myeventlane`:
+**STOP.**
+
+---
+
+## Cleanup Rules
+- Do not auto-remove Git worktrees
+- Explain consequences before destructive commands
+- Never recreate worktrees implicitly
+
+---
+
+## Priority
+**Repository safety > correctness > speed > automation**
+
+If uncertain: **ASK.**
