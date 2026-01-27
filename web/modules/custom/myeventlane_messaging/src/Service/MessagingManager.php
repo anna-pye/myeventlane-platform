@@ -285,6 +285,7 @@ final class MessagingManager {
     }
 
     $provider = $this->deliveryProviderManager->getProvider(NULL, $ctx);
+    $providerId = $provider->id();
     $params = [
       'to' => $to,
       'subject' => $subject,
@@ -304,28 +305,43 @@ final class MessagingManager {
     }
 
     $sent = $provider->send($params);
+    $providerMessageId = NULL;
+
+    // Try to get provider message ID if provider supports it.
+    if ($sent && method_exists($provider, 'getLastMessageId')) {
+      $providerMessageId = $provider->getLastMessageId();
+    }
 
     $this->messageStorage->incrementAttempts($messageId);
+    $updateFields = [
+      'provider' => $providerId,
+    ];
+    if ($providerMessageId) {
+      $updateFields['provider_message_id'] = $providerMessageId;
+    }
+
     if ($sent) {
-      $this->messageStorage->update($messageId, [
-        'status' => 'sent',
-        'sent' => (int) time(),
-      ]);
-      $this->logger->info('Sent message @type to @to. message_id=@id', [
+      $updateFields['status'] = 'sent';
+      $updateFields['sent'] = (int) time();
+      $this->messageStorage->update($messageId, $updateFields);
+      $this->logger->info('Sent message @type to @to. message_id=@id provider=@provider', [
         '@type' => $type,
         '@to' => $to,
         '@id' => $messageId,
+        '@provider' => $providerId,
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
         'order_id' => $orderId,
       ]);
     }
     else {
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
-      $this->logger->error('Failed sending message @type to @to. message_id=@id', [
+      $updateFields['status'] = 'failed';
+      $this->messageStorage->update($messageId, $updateFields);
+      $this->logger->error('Failed sending message @type to @to. message_id=@id provider=@provider', [
         '@type' => $type,
         '@to' => $to,
         '@id' => $messageId,
+        '@provider' => $providerId,
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
         'order_id' => $orderId,

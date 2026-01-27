@@ -4,6 +4,18 @@ administer myeventlane messaging:
   description: 'Configure email templates, sender settings, and notification timing.'
   restrict access: TRUE
 
+# Template administration permission.
+administer myeventlane messaging templates:
+  title: 'Administer messaging templates'
+  description: 'Edit, preview, and test email templates.'
+  restrict access: TRUE
+
+# Vendor permission for sending notifications.
+send attendee notifications:
+  title: 'Send attendee notifications'
+  description: 'Send email notifications to event attendees.'
+  restrict access: TRUE
+
 
 
 

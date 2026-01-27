@@ -97,11 +97,24 @@ function myeventlane_messaging_schema() {
         'default' => 0,
         'description' => 'Unix timestamp when message was sent (0 if not sent).',
       ],
+      'provider' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'Delivery provider ID (e.g. drupal_mail, postmark).',
+      ],
+      'provider_message_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Provider-specific message ID for tracking.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
       'context_hash_recipient_template' => ['context_hash', 'recipient', 'template'],
       'status_created' => ['status', 'created'],
+      'provider_message_id' => ['provider_message_id'],
     ],
   ];
 
@@ -156,6 +169,64 @@ function myeventlane_messaging_schema() {
     ],
   ];
 
+  $schema['myeventlane_message_audit'] = [
+    'description' => 'Audit log for vendor-triggered message sends.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID who triggered the send.',
+      ],
+      'event_nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Event node ID.',
+      ],
+      'template' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Template key used.',
+      ],
+      'note' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Optional vendor note.',
+      ],
+      'recipient_count' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of recipients notified.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when audit record was created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid_event' => ['uid', 'event_nid'],
+      'created' => ['created'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -172,5 +243,45 @@ function myeventlane_messaging_update_10001(): void {
 
   if (!$db->schema()->tableExists('myeventlane_message_preference')) {
     $db->schema()->createTable('myeventlane_message_preference', $schema['myeventlane_message_preference']);
+  }
+}
+
+/**
+ * Create myeventlane_message_audit table.
+ */
+function myeventlane_messaging_update_10002(): void {
+  $schema = myeventlane_messaging_schema();
+  $db = \Drupal::database();
+
+  if (!$db->schema()->tableExists('myeventlane_message_audit')) {
+    $db->schema()->createTable('myeventlane_message_audit', $schema['myeventlane_message_audit']);
+  }
+}
+
+/**
+ * Add provider tracking fields to myeventlane_message table.
+ */
+function myeventlane_messaging_update_10003(): void {
+  $db = \Drupal::database();
+  $schema = $db->schema();
+
+  if ($schema->tableExists('myeventlane_message')) {
+    if (!$schema->fieldExists('myeventlane_message', 'provider')) {
+      $schema->addField('myeventlane_message', 'provider', [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'Delivery provider ID (e.g. drupal_mail, postmark).',
+      ]);
+    }
+    if (!$schema->fieldExists('myeventlane_message', 'provider_message_id')) {
+      $schema->addField('myeventlane_message', 'provider_message_id', [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Provider-specific message ID for tracking.',
+      ]);
+      $schema->addIndex('myeventlane_message', 'provider_message_id', ['provider_message_id']);
+    }
   }
 }

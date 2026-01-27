@@ -132,6 +132,39 @@ final class MessagingSettingsForm extends ConfigFormBase {
       '#max' => 2000,
     ];
 
+    $form['postmark'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Postmark settings'),
+      '#open' => FALSE,
+    ];
+
+    $form['postmark']['postmark_server_token'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Postmark server token'),
+      '#description' => $this->t('Postmark API server token for transactional emails.'),
+      '#default_value' => $config->get('postmark.server_token') ?? '',
+      '#maxlength' => 255,
+    ];
+
+    $form['postmark']['postmark_webhook_secret'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Postmark webhook secret'),
+      '#description' => $this->t('Shared secret for validating Postmark webhooks.'),
+      '#default_value' => $config->get('postmark.webhook_secret') ?? '',
+      '#maxlength' => 255,
+    ];
+
+    $form['postmark']['default_provider'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Default delivery provider'),
+      '#description' => $this->t('Default provider for sending emails.'),
+      '#options' => [
+        'drupal_mail' => $this->t('Drupal Mail'),
+        'postmark' => $this->t('Postmark'),
+      ],
+      '#default_value' => $config->get('default_provider') ?? 'drupal_mail',
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -149,6 +182,9 @@ final class MessagingSettingsForm extends ConfigFormBase {
       ->set('cart_abandoned_hours', $form_state->getValue('cart_abandoned_hours'))
       ->set('batch_size', $form_state->getValue('batch_size'))
       ->set('max_messages_per_run', $form_state->getValue('max_messages_per_run'))
+      ->set('postmark.server_token', $form_state->getValue('postmark_server_token'))
+      ->set('postmark.webhook_secret', $form_state->getValue('postmark_webhook_secret'))
+      ->set('default_provider', $form_state->getValue('default_provider'))
       ->save();
 
     parent::submitForm($form, $form_state);
