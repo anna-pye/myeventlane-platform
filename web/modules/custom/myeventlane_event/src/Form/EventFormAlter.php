@@ -527,6 +527,7 @@ final class EventFormAlter {
    * @return array<string, array{label: string, fields: string[]}>
    */
   private function buildStepsFromForm(array $form): array {
+    // Only include fields that exist on the Event bundle. Phantom names removed.
     $candidates = [
       'basics' => [
         'label' => 'Basics',
@@ -541,33 +542,23 @@ final class EventFormAlter {
       'schedule' => [
         'label' => 'Schedule',
         'fields' => [
-          'field_event_date',
           'field_event_start',
-          'field_event_end_date',
           'field_event_end',
-          'field_event_recurring',
         ],
       ],
       'location' => [
         'label' => 'Location',
         'fields' => [
-          'field_event_location_mode',
-          'field_event_location',
           'field_location',
           // Note: field_venue_name is hidden for vendors via hideAdminFields()
-          'field_event_online_url',
         ],
       ],
       'tickets' => [
         'label' => 'Tickets',
         'fields' => [
-          'field_event_mode',
-          'field_event_ticket_types',
           'field_ticket_types',
-          'field_event_capacity',
           'field_capacity',
           'field_waitlist_capacity',
-          'field_event_external_url',
           'field_external_url',
           'field_product_target',
           'field_collect_per_ticket',
@@ -576,17 +567,12 @@ final class EventFormAlter {
       'design' => [
         'label' => 'Design',
         'fields' => [
-          'field_event_theme',
-          'field_event_primary_color',
-          'field_event_secondary_color',
           'field_accessibility',
-          'field_tags',
         ],
       ],
       'questions' => [
         'label' => 'Questions',
         'fields' => [
-          'field_event_questions',
           'field_attendee_questions',
         ],
       ],
