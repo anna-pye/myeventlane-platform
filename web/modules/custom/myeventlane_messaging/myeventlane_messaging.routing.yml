@@ -2,7 +2,7 @@
 myeventlane_messaging.unsubscribe:
   path: '/email/unsubscribe/{uid}/{ts}/{h}'
   defaults:
-    _controller: '\Drupal\myeventlane_messaging\Controller\UnsubscribeController::unsubscribe'
+    _controller: 'myeventlane_messaging.unsubscribe_controller:unsubscribe'
     _title: 'Email preferences'
   requirements:
     _permission: 'access content'
@@ -17,3 +17,90 @@ myeventlane_messaging.settings:
     _permission: 'administer myeventlane messaging'
   options:
     _admin_route: TRUE
+
+# Template list page.
+myeventlane_messaging.templates:
+  path: '/admin/myeventlane/messaging/templates'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\TemplateListController::list'
+    _title: 'Email templates'
+  requirements:
+    _permission: 'administer myeventlane messaging templates'
+  options:
+    _admin_route: TRUE
+
+# Template edit form.
+myeventlane_messaging.template_edit:
+  path: '/admin/myeventlane/messaging/templates/{template}'
+  defaults:
+    _form: '\Drupal\myeventlane_messaging\Form\TemplateEditForm'
+    _title: 'Edit template'
+  requirements:
+    _permission: 'administer myeventlane messaging templates'
+    template: '[a-z0-9_]+'
+  options:
+    _admin_route: TRUE
+
+# Template preview.
+myeventlane_messaging.template_preview:
+  path: '/admin/myeventlane/messaging/templates/{template}/preview'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\TemplatePreviewController::preview'
+    _title: 'Preview template'
+  requirements:
+    _permission: 'administer myeventlane messaging templates'
+    template: '[a-z0-9_]+'
+  options:
+    _admin_route: TRUE
+
+# Template test send.
+myeventlane_messaging.template_test:
+  path: '/admin/myeventlane/messaging/templates/{template}/test'
+  defaults:
+    _form: '\Drupal\myeventlane_messaging\Form\TemplateTestForm'
+    _title: 'Send test email'
+  requirements:
+    _permission: 'administer myeventlane messaging templates'
+    template: '[a-z0-9_]+'
+  options:
+    _admin_route: TRUE
+
+# Message log.
+myeventlane_messaging.log:
+  path: '/admin/myeventlane/messaging/log'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\MessageLogController::log'
+    _title: 'Message log'
+  requirements:
+    _permission: 'administer myeventlane messaging templates'
+  options:
+    _admin_route: TRUE
+
+# Vendor notify attendees.
+myeventlane_messaging.vendor_notify:
+  path: '/vendor/events/{event}/notify'
+  defaults:
+    _form: '\Drupal\myeventlane_messaging\Form\VendorNotifyForm'
+    _title: 'Notify attendees'
+  requirements:
+    _permission: 'send attendee notifications'
+    event: \d+
+  options:
+    _admin_route: FALSE
+
+# Postmark webhooks.
+myeventlane_messaging.webhook.postmark.delivery:
+  path: '/messaging/webhook/postmark/delivery'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\PostmarkWebhookController::delivery'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
+myeventlane_messaging.webhook.postmark.bounce:
+  path: '/messaging/webhook/postmark/bounce'
+  defaults:
+    _controller: '\Drupal\myeventlane_messaging\Controller\PostmarkWebhookController::bounce'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]

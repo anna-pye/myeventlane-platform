@@ -10,9 +10,11 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -32,11 +34,21 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\myeventlane_core\Service\TicketLabelResolver $ticketLabelResolver
+   *   The ticket label resolver.
+   * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
+   *   The file URL generator.
+   * @param \Drupal\myeventlane_messaging\Service\MessagingManager $messagingManager
+   *   The messaging manager.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketLabelResolver $ticketLabelResolver,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly MessagingManager $messagingManager,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -69,7 +81,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     }
 
     if (!$mail) {
-      \Drupal::logger('myeventlane_messaging')->warning(
+      $this->logger->warning(
         'Order @order_id placed but no email address found for receipt.',
         [
           '@order_id' => $orderId,
@@ -116,12 +128,12 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
     // Queue email with attachments.
     try {
-      \Drupal::service('myeventlane_messaging.manager')->queue('order_receipt', $mail, $context, [
+      $this->messagingManager->queue('order_receipt', $mail, $context, [
         'langcode' => $order->language()->getId(),
         'attachments' => $attachments,
       ]);
 
-      \Drupal::logger('myeventlane_messaging')->info(
+      $this->logger->info(
         'Order receipt queued for order @order_id to @email',
         [
           '@order_id' => $orderId,
@@ -133,7 +145,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       );
     }
     catch (\Exception $e) {
-      \Drupal::logger('myeventlane_messaging')->error(
+      $this->logger->error(
         'Failed to queue order receipt for order @order_id: @message',
         [
           '@order_id' => $orderId,
@@ -417,7 +429,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
         ];
       }
       catch (\Exception $e) {
-        \Drupal::logger('myeventlane_messaging')->error(
+        $this->logger->error(
           'Failed to generate ICS for event @event_id: @message',
           [
             '@event_id' => $event->id(),

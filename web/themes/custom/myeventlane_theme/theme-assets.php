@@ -15,7 +15,7 @@
  *   The resolved asset path.
  */
 function myeventlane_theme_asset($filename) {
-  $theme_path = drupal_get_path('theme', 'myeventlane_theme');
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
   $manifest = $theme_path . '/dist/assets.json';
 
   if (!file_exists($manifest)) {

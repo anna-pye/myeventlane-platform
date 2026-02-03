@@ -9,15 +9,56 @@ services:
       - '@twig'
       - '@renderer'
 
+  myeventlane_messaging.message_storage:
+    class: Drupal\myeventlane_messaging\Service\MessageStorage
+    arguments:
+      - '@database'
+
+  myeventlane_messaging.message_preference_storage:
+    class: Drupal\myeventlane_messaging\Service\MessagePreferenceStorage
+    arguments:
+      - '@database'
+
+  myeventlane_messaging.delivery.drupal_mail:
+    class: Drupal\myeventlane_messaging\Service\Delivery\DrupalMailProvider
+    arguments:
+      - '@plugin.manager.mail'
+
+  myeventlane_messaging.delivery.postmark:
+    class: Drupal\myeventlane_messaging\Service\Delivery\PostmarkDeliveryProvider
+    arguments:
+      - '@http_client_factory'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_messaging'
+
+  myeventlane_messaging.delivery_provider_manager:
+    class: Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager
+    arguments:
+      - '@myeventlane_messaging.delivery.drupal_mail'
+      - '@?myeventlane_messaging.delivery.postmark'
+      - '@config.factory'
+
+  myeventlane_messaging.vendor_brand_resolver:
+    class: Drupal\myeventlane_messaging\Service\VendorBrandResolver
+    arguments:
+      - '@config.factory'
+
+  myeventlane_messaging.utm_linker:
+    class: Drupal\myeventlane_messaging\Service\UtmLinker
+
   myeventlane_messaging.manager:
     class: Drupal\myeventlane_messaging\Service\MessagingManager
     arguments:
       - '@config.factory'
-      - '@plugin.manager.mail'
       - '@language_manager'
       - '@queue'
       - '@logger.channel.myeventlane_messaging'
       - '@myeventlane_messaging.message_renderer'
+      - '@myeventlane_messaging.message_storage'
+      - '@myeventlane_messaging.message_preference_storage'
+      - '@myeventlane_messaging.delivery_provider_manager'
+      - '@myeventlane_messaging.utm_linker'
+      - '@myeventlane_messaging.vendor_brand_resolver'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
@@ -28,6 +69,7 @@ services:
       - '@queue'
       - '@date.formatter'
       - '@myeventlane_boost.manager'
+      - '@myeventlane_messaging.manager'
 
   myeventlane_messaging.scheduler.cart:
     class: Drupal\myeventlane_messaging\Scheduler\CartAbandonedScheduler
@@ -57,11 +99,29 @@ services:
       - '@queue'
       - '@datetime.time'
       - '@logger.channel.myeventlane_messaging'
+      - '@myeventlane_messaging.manager'
+      - '@date.formatter'
+      - '@?myeventlane_rsvp.ics_generator'
+
+  myeventlane_messaging.unsubscribe_controller:
+    class: Drupal\myeventlane_messaging\Controller\UnsubscribeController
+    arguments:
+      - '@myeventlane_messaging.message_preference_storage'
+      - '@config.factory'
+      - '@datetime.time'
 
   myeventlane_messaging.order_placed_subscriber:
     class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_core.ticket_label_resolver'
+      - '@file_url_generator'
+      - '@myeventlane_messaging.manager'
+      - '@logger.channel.myeventlane_messaging'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_messaging.attendee_recipient_resolver:
+    class: Drupal\myeventlane_messaging\Service\AttendeeRecipientResolver
+    arguments:
+      - '@entity_type.manager'

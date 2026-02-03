@@ -1,12 +1,84 @@
 # Schema for MyEventLane Messaging module configuration.
-# This file defines the structure of config objects used by this module.
 
-# If the module defines any config objects, add them here.
-# Example:
-# myeventlane_messaging.settings:
-#   type: config_object
-#   label: 'MyEventLane Messaging settings'
-#   mapping:
-#     example_setting:
-#       type: string
-#       label: 'Example setting'
+myeventlane_messaging.settings:
+  type: config_object
+  label: 'MyEventLane Messaging settings'
+  mapping:
+    from_name:
+      type: string
+      label: 'From name'
+    from_email:
+      type: email
+      label: 'From email'
+    reply_to:
+      type: email
+      label: 'Reply-to email'
+    event_reminder_enabled:
+      type: boolean
+      label: 'Event reminders enabled'
+    event_reminder_hours:
+      type: integer
+      label: 'Event reminder hours before'
+    cart_abandoned_enabled:
+      type: boolean
+      label: 'Cart abandoned reminders enabled'
+    cart_abandoned_hours:
+      type: integer
+      label: 'Cart abandoned hours after'
+    batch_size:
+      type: integer
+      label: 'Queue batch size'
+    max_messages_per_run:
+      type: integer
+      label: 'Max messages per cron run'
+    default_provider:
+      type: string
+      label: 'Default delivery provider'
+    postmark:
+      type: mapping
+      label: 'Postmark settings'
+      mapping:
+        server_token:
+          type: string
+          label: 'Postmark server token'
+        webhook_secret:
+          type: string
+          label: 'Postmark webhook secret'
+
+# Template configs: myeventlane_messaging.template.*
+myeventlane_messaging.template.*:
+  type: config_object
+  label: 'Messaging template'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Template enabled'
+    subject:
+      type: string
+      label: 'Subject line (Twig)'
+    body:
+      type: string
+      label: 'Body HTML (Twig, legacy)'
+    body_html:
+      type: string
+      label: 'Body HTML (Twig)'
+    utm:
+      type: mapping
+      label: 'UTM parameters'
+      mapping:
+        enable:
+          type: boolean
+          label: 'UTM enabled'
+        params:
+          type: mapping
+          label: 'UTM params'
+          mapping:
+            utm_source:
+              type: string
+              label: 'utm_source'
+            utm_medium:
+              type: string
+              label: 'utm_medium'
+            utm_campaign:
+              type: string
+              label: 'utm_campaign'

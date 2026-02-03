@@ -64,7 +64,7 @@ final class MessageRenderer {
    */
   public function renderHtmlBody(Config $conf, array $context = []): string {
     $inner = '';
-    $body_tpl = (string) ($conf->get('body_html') ?? '');
+    $body_tpl = (string) ($conf->get('body_html') ?? $conf->get('body') ?? '');
 
     if ($body_tpl !== '') {
       try {

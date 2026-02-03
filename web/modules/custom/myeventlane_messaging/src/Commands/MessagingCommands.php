@@ -97,6 +97,27 @@ final class MessagingCommands extends DrushCommands {
   }
 
   /**
+   * Queues a test message (canonical command name).
+   *
+   * @param string $template
+   *   The template key (e.g. order_receipt, boost_reminder).
+   * @param string $email
+   *   The recipient email.
+   *
+   * @command myeventlane:messaging:test
+   * @aliases mel-msg-test-template
+   * @usage drush myeventlane:messaging:test order_receipt you@example.com
+   */
+  public function messagingTest(string $template, string $email): void {
+    \Drupal::service('myeventlane_messaging.manager')->queue($template, $email, [
+      'first_name' => 'Test',
+      'order_number' => 'TEST-001',
+      'event_name' => 'Test Event',
+    ]);
+    $this->logger()->success("Queued test message for template {$template} to {$email}. Run drush mel:msg-run to send.");
+  }
+
+  /**
    * Scans for events needing reminders and enqueues reminder jobs.
    *
    * @command mel:reminder-scan
