@@ -1,0 +1,382 @@
+// ==========================================================================
+// Auth Pages (Login, Register, Password Reset)
+// ==========================================================================
+// MyEventLane branding for Gin Login screens. Scoped to .user-form-page
+// (Gin Login page template) so non-auth pages are not affected.
+// Desktop: 2-column split (form left, wallpaper right). Mobile: single
+// column, wallpaper hidden. Uses theme tokens from src/scss/tokens.
+// Attached only on user.login, user.register, user.pass.
+
+@use '../src/scss/tokens/colors';
+@use '../src/scss/tokens/typography';
+@use '../src/scss/tokens/spacing';
+@use '../src/scss/tokens/radii';
+@use '../src/scss/tokens/shadows';
+@use '../src/scss/tokens/breakpoints';
+
+$mel-auth-focus-outline: 3px solid colors.$mel-color-secondary;
+$mel-auth-focus-offset: 2px;
+$mel-auth-break-mobile: 900px;
+
+// ---------------------------------------------------------------------------
+// Top-level scope: Gin Login user-form-page markup only
+// ---------------------------------------------------------------------------
+
+.user-form-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  @media (max-width: $mel-auth-break-mobile) {
+    grid-template-columns: 1fr;
+  }
+
+  // Left panel: form column.
+  &__user-form {
+    display: flex;
+    flex-direction: column;
+    background: colors.$mel-color-bg;
+
+    // Header/logo row: padding, no border.
+    header.content-header {
+      background: transparent;
+      border: 0;
+      padding: spacing.mel-space(3) spacing.mel-space(3) 0;
+
+      .layout-container {
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0;
+      }
+
+      .toolbar-logo img,
+      .gin-login__logo img {
+        height: 36px;
+        width: auto;
+        display: block;
+      }
+    }
+
+    // Main content container: max-width behaviour.
+    .layout-container {
+      width: 100%;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: spacing.mel-space(3);
+
+      @media (max-width: $mel-auth-break-mobile) {
+        padding: spacing.mel-space(3) spacing.mel-space(2);
+      }
+    }
+  }
+
+  // Right wallpaper panel.
+  &__wallpaper {
+    position: relative;
+    background: colors.$mel-color-bg;
+
+    @media (max-width: $mel-auth-break-mobile) {
+      display: none;
+    }
+
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 245, 236, 0) 0%,
+        rgba(255, 245, 236, 0.35) 100%
+      );
+      pointer-events: none;
+    }
+  }
+
+  // Page title: MEL typography.
+  &__page-title {
+    font-family: typography.$mel-font-family;
+    font-size: typography.mel-font-size(2xl);
+    line-height: 1.15;
+    margin: spacing.mel-space(2) 0 spacing.mel-space(3);
+    color: colors.$mel-color-navy;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  // Card-like form container.
+  .page-content {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: shadows.$mel-shadow-lg;
+    padding: spacing.mel-space(6);
+
+    @media (max-width: $mel-auth-break-mobile) {
+      padding: spacing.mel-space(4) spacing.mel-space(3);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // MEL form styles nested under .user-form-page (no !important)
+  // -------------------------------------------------------------------------
+
+  .mel-auth-form-wrapper,
+  .mel-auth-form {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .mel-auth-form-wrapper .form-item,
+  .mel-auth-form .form-item {
+    margin-bottom: 20px;
+  }
+
+  .mel-auth-form-wrapper .form-item label,
+  .mel-auth-form .form-item label {
+    display: block;
+    margin-bottom: spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-auth-form-wrapper input[type="text"],
+  .mel-auth-form-wrapper input[type="email"],
+  .mel-auth-form-wrapper input[type="password"],
+  .mel-auth-form input[type="text"],
+  .mel-auth-form input[type="email"],
+  .mel-auth-form input[type="password"] {
+    width: 100%;
+    min-height: 44px;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    border: 2px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-md;
+    font-size: typography.mel-font-size(base);
+    font-family: typography.$mel-font-family;
+    color: colors.$mel-color-text;
+    background: colors.$mel-color-surface;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &::placeholder {
+      color: colors.$mel-color-text-light;
+    }
+
+    &:hover {
+      border-color: colors.$mel-color-border-strong;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: colors.$mel-color-secondary;
+      box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.2);
+    }
+
+    &:focus-visible {
+      outline: $mel-auth-focus-outline;
+      outline-offset: $mel-auth-focus-offset;
+      border-color: colors.$mel-color-secondary;
+    }
+
+    &.error {
+      border-color: colors.$mel-color-error;
+
+      &:focus,
+      &:focus-visible {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+      }
+    }
+  }
+
+  .mel-auth-form-wrapper .form-item .description,
+  .mel-auth-form .form-item .description {
+    margin-top: spacing.mel-space(2);
+    font-size: typography.mel-font-size(xs);
+    color: colors.$mel-color-text-muted;
+  }
+
+  // Account type radios (registration).
+  .mel-auth-form-wrapper .mel-auth-account-type .form-radios,
+  .mel-auth-form-wrapper .form-item-account-type-choice .form-radios,
+  .mel-auth-form .mel-auth-account-type .form-radios,
+  .mel-auth-form .form-item-account-type-choice .form-radios {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .mel-auth-form-wrapper .mel-auth-account-type .form-type-radio label,
+  .mel-auth-form-wrapper .form-item-account-type-choice .form-type-radio label,
+  .mel-auth-form .mel-auth-account-type .form-type-radio label,
+  .mel-auth-form .form-item-account-type-choice .form-type-radio label {
+    font-weight: typography.$mel-font-regular;
+    cursor: pointer;
+  }
+
+  .mel-auth-form-wrapper .mel-auth-account-type .form-type-radio input,
+  .mel-auth-form-wrapper .form-item-account-type-choice .form-type-radio input,
+  .mel-auth-form .mel-auth-account-type .form-type-radio input,
+  .mel-auth-form .form-item-account-type-choice .form-type-radio input {
+    accent-color: colors.$mel-color-primary;
+    margin-right: spacing.mel-space(2);
+  }
+
+  // Form actions: primary button coral pill.
+  .mel-auth-form-wrapper .form-actions,
+  .mel-auth-form-wrapper .mel-auth-actions,
+  .mel-auth-form .form-actions,
+  .mel-auth-form .mel-auth-actions {
+    margin-top: spacing.mel-space(6);
+    display: flex;
+    gap: spacing.mel-space(3);
+    align-items: center;
+
+    @media (max-width: $mel-auth-break-mobile) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .mel-auth-form-wrapper .button--primary,
+  .mel-auth-form-wrapper .form-submit,
+  .mel-auth-form-wrapper input[type="submit"].mel-auth-submit,
+  .mel-auth-form .button--primary,
+  .mel-auth-form .form-submit,
+  .mel-auth-form input[type="submit"].mel-auth-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 52px;
+    padding: spacing.mel-space(3) spacing.mel-space(6);
+    font-family: typography.$mel-font-family;
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-bold;
+    line-height: 1;
+    text-decoration: none;
+    border: none;
+    border-radius: radii.$mel-radius-pill;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    background-color: colors.$mel-color-secondary;
+    color: colors.$mel-color-on-primary;
+
+    @media (min-width: $mel-auth-break-mobile + 1px) {
+      width: auto;
+      min-width: 12rem;
+    }
+
+    &:hover {
+      background-color: colors.$mel-color-secondary-hover;
+    }
+
+    &:active {
+      background-color: colors.$mel-color-secondary-active;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      outline: $mel-auth-focus-outline;
+      outline-offset: $mel-auth-focus-offset;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  // Links: purple; accessible focus.
+  .mel-auth-form-wrapper a,
+  .mel-auth-form a {
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+    font-weight: typography.$mel-font-medium;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: $mel-auth-focus-outline;
+      outline-offset: $mel-auth-focus-offset;
+    }
+  }
+
+  // Error summary: 16px radius, soft red.
+  .mel-auth-form-wrapper .messages--error,
+  .mel-auth-form-wrapper .form-item--error-message,
+  .mel-auth-form-wrapper .error-summary,
+  .mel-auth-form .messages--error,
+  .mel-auth-form .form-item--error-message,
+  .mel-auth-form .error-summary {
+    margin-bottom: 20px;
+    padding: spacing.mel-space(4);
+    background: colors.$mel-color-error-bg;
+    border: 2px solid colors.$mel-color-error;
+    border-radius: 16px;
+    color: colors.$mel-color-error;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-medium;
+  }
+
+  .mel-auth-form-wrapper .messages--error h2,
+  .mel-auth-form .messages--error h2 {
+    font-size: typography.mel-font-size(base);
+    font-weight: typography.$mel-font-bold;
+    margin: 0 0 spacing.mel-space(2) 0;
+  }
+
+  .mel-auth-form-wrapper .form-item.form-item--error-message,
+  .mel-auth-form .form-item.form-item--error-message {
+    margin-top: spacing.mel-space(2);
+  }
+
+  // Password wrapper: Show/Hide toggle (44px tap target).
+  .mel-auth-password-wrapper {
+    position: relative;
+  }
+
+  .mel-auth-password-wrapper .mel-auth-password-toggle {
+    position: absolute;
+    right: spacing.mel-space(2);
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 44px;
+    min-height: 44px;
+    padding: spacing.mel-space(2) spacing.mel-space(3);
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-medium;
+    color: colors.$mel-color-primary;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: radii.$mel-radius-sm;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: $mel-auth-focus-outline;
+      outline-offset: $mel-auth-focus-offset;
+    }
+  }
+
+  .mel-auth-password-input {
+    padding-right: 5rem;
+  }
+}
