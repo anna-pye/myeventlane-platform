@@ -1,0 +1,372 @@
+.user-form-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 900px) {
+  .user-form-page {
+    grid-template-columns: 1fr;
+  }
+}
+.user-form-page__user-form {
+  display: flex;
+  flex-direction: column;
+  background: #faf7fb;
+}
+.user-form-page__user-form header.content-header {
+  background: transparent;
+  border: 0;
+  padding: 1.5rem 1.5rem 0;
+}
+.user-form-page__user-form header.content-header .layout-container {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+}
+.user-form-page__user-form header.content-header .toolbar-logo img,
+.user-form-page__user-form header.content-header .gin-login__logo img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+.user-form-page__user-form .layout-container {
+  width: 100%;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem;
+}
+@media (max-width: 900px) {
+  .user-form-page__user-form .layout-container {
+    padding: 1.5rem 1rem;
+  }
+}
+.user-form-page__wallpaper {
+  position: relative;
+  background: #faf7fb;
+}
+@media (max-width: 900px) {
+  .user-form-page__wallpaper {
+    display: none;
+  }
+}
+.user-form-page__wallpaper img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.user-form-page__wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 245, 236, 0) 0%, rgba(255, 245, 236, 0.35) 100%);
+  pointer-events: none;
+}
+.user-form-page__page-title {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.875rem;
+  line-height: 1.15;
+  margin: 1rem 0 1.5rem;
+  color: #293241;
+  font-weight: 700;
+}
+.user-form-page .page-content {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 3rem;
+}
+@media (max-width: 900px) {
+  .user-form-page .page-content {
+    padding: 2rem 1.5rem;
+  }
+}
+.user-form-page .mel-auth-form-wrapper,
+.user-form-page .mel-auth-form {
+  max-width: 100%;
+  width: 100%;
+}
+.user-form-page .mel-auth-form-wrapper .form-item,
+.user-form-page .mel-auth-form .form-item {
+  margin-bottom: 20px;
+}
+.user-form-page .mel-auth-form-wrapper .form-item label,
+.user-form-page .mel-auth-form .form-item label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #293241;
+}
+.user-form-page .mel-auth-form-wrapper input[type=text],
+.user-form-page .mel-auth-form-wrapper input[type=email],
+.user-form-page .mel-auth-form-wrapper input[type=password],
+.user-form-page .mel-auth-form input[type=text],
+.user-form-page .mel-auth-form input[type=email],
+.user-form-page .mel-auth-form input[type=password] {
+  width: 100%;
+  min-height: 44px;
+  padding: 1.5rem 2rem;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #293241;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.user-form-page .mel-auth-form-wrapper input[type=text]::placeholder,
+.user-form-page .mel-auth-form-wrapper input[type=email]::placeholder,
+.user-form-page .mel-auth-form-wrapper input[type=password]::placeholder,
+.user-form-page .mel-auth-form input[type=text]::placeholder,
+.user-form-page .mel-auth-form input[type=email]::placeholder,
+.user-form-page .mel-auth-form input[type=password]::placeholder {
+  color: #8888a0;
+}
+.user-form-page .mel-auth-form-wrapper input[type=text]:hover,
+.user-form-page .mel-auth-form-wrapper input[type=email]:hover,
+.user-form-page .mel-auth-form-wrapper input[type=password]:hover,
+.user-form-page .mel-auth-form input[type=text]:hover,
+.user-form-page .mel-auth-form input[type=email]:hover,
+.user-form-page .mel-auth-form input[type=password]:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.user-form-page .mel-auth-form-wrapper input[type=text]:focus,
+.user-form-page .mel-auth-form-wrapper input[type=email]:focus,
+.user-form-page .mel-auth-form-wrapper input[type=password]:focus,
+.user-form-page .mel-auth-form input[type=text]:focus,
+.user-form-page .mel-auth-form input[type=email]:focus,
+.user-form-page .mel-auth-form input[type=password]:focus {
+  outline: none;
+  border-color: #f26d5b;
+  box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.2);
+}
+.user-form-page .mel-auth-form-wrapper input[type=text]:focus-visible,
+.user-form-page .mel-auth-form-wrapper input[type=email]:focus-visible,
+.user-form-page .mel-auth-form-wrapper input[type=password]:focus-visible,
+.user-form-page .mel-auth-form input[type=text]:focus-visible,
+.user-form-page .mel-auth-form input[type=email]:focus-visible,
+.user-form-page .mel-auth-form input[type=password]:focus-visible {
+  outline: 3px solid #f26d5b;
+  outline-offset: 2px;
+  border-color: #f26d5b;
+}
+.user-form-page .mel-auth-form-wrapper input[type=text].error,
+.user-form-page .mel-auth-form-wrapper input[type=email].error,
+.user-form-page .mel-auth-form-wrapper input[type=password].error,
+.user-form-page .mel-auth-form input[type=text].error,
+.user-form-page .mel-auth-form input[type=email].error,
+.user-form-page .mel-auth-form input[type=password].error {
+  border-color: #ef4444;
+}
+.user-form-page .mel-auth-form-wrapper input[type=text].error:focus, .user-form-page .mel-auth-form-wrapper input[type=text].error:focus-visible,
+.user-form-page .mel-auth-form-wrapper input[type=email].error:focus,
+.user-form-page .mel-auth-form-wrapper input[type=email].error:focus-visible,
+.user-form-page .mel-auth-form-wrapper input[type=password].error:focus,
+.user-form-page .mel-auth-form-wrapper input[type=password].error:focus-visible,
+.user-form-page .mel-auth-form input[type=text].error:focus,
+.user-form-page .mel-auth-form input[type=text].error:focus-visible,
+.user-form-page .mel-auth-form input[type=email].error:focus,
+.user-form-page .mel-auth-form input[type=email].error:focus-visible,
+.user-form-page .mel-auth-form input[type=password].error:focus,
+.user-form-page .mel-auth-form input[type=password].error:focus-visible {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+.user-form-page .mel-auth-form-wrapper .form-item .description,
+.user-form-page .mel-auth-form .form-item .description {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: #5c5c6f;
+}
+.user-form-page .mel-auth-form-wrapper .mel-auth-account-type .form-radios,
+.user-form-page .mel-auth-form-wrapper .form-item-account-type-choice .form-radios,
+.user-form-page .mel-auth-form .mel-auth-account-type .form-radios,
+.user-form-page .mel-auth-form .form-item-account-type-choice .form-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.user-form-page .mel-auth-form-wrapper .mel-auth-account-type .form-type-radio label,
+.user-form-page .mel-auth-form-wrapper .form-item-account-type-choice .form-type-radio label,
+.user-form-page .mel-auth-form .mel-auth-account-type .form-type-radio label,
+.user-form-page .mel-auth-form .form-item-account-type-choice .form-type-radio label {
+  font-weight: 400;
+  cursor: pointer;
+}
+.user-form-page .mel-auth-form-wrapper .mel-auth-account-type .form-type-radio input,
+.user-form-page .mel-auth-form-wrapper .form-item-account-type-choice .form-type-radio input,
+.user-form-page .mel-auth-form .mel-auth-account-type .form-type-radio input,
+.user-form-page .mel-auth-form .form-item-account-type-choice .form-type-radio input {
+  accent-color: #6c7ef2;
+  margin-right: 1rem;
+}
+.user-form-page .mel-auth-form-wrapper .form-actions,
+.user-form-page .mel-auth-form-wrapper .mel-auth-actions,
+.user-form-page .mel-auth-form .form-actions,
+.user-form-page .mel-auth-form .mel-auth-actions {
+  margin-top: 3rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .user-form-page .mel-auth-form-wrapper .form-actions,
+  .user-form-page .mel-auth-form-wrapper .mel-auth-actions,
+  .user-form-page .mel-auth-form .form-actions,
+  .user-form-page .mel-auth-form .mel-auth-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.user-form-page .mel-auth-form-wrapper .button--primary,
+.user-form-page .mel-auth-form-wrapper .form-submit,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit,
+.user-form-page .mel-auth-form .button--primary,
+.user-form-page .mel-auth-form .form-submit,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 1.5rem 3rem;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  background-color: #f26d5b;
+  color: #ffffff;
+}
+@media (min-width: 901px) {
+  .user-form-page .mel-auth-form-wrapper .button--primary,
+  .user-form-page .mel-auth-form-wrapper .form-submit,
+  .user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit,
+  .user-form-page .mel-auth-form .button--primary,
+  .user-form-page .mel-auth-form .form-submit,
+  .user-form-page .mel-auth-form input[type=submit].mel-auth-submit {
+    width: auto;
+    min-width: 12rem;
+  }
+}
+.user-form-page .mel-auth-form-wrapper .button--primary:hover,
+.user-form-page .mel-auth-form-wrapper .form-submit:hover,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit:hover,
+.user-form-page .mel-auth-form .button--primary:hover,
+.user-form-page .mel-auth-form .form-submit:hover,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit:hover {
+  background-color: #e85a4d;
+}
+.user-form-page .mel-auth-form-wrapper .button--primary:active,
+.user-form-page .mel-auth-form-wrapper .form-submit:active,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit:active,
+.user-form-page .mel-auth-form .button--primary:active,
+.user-form-page .mel-auth-form .form-submit:active,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit:active {
+  background-color: #d14a3d;
+}
+.user-form-page .mel-auth-form-wrapper .button--primary:focus,
+.user-form-page .mel-auth-form-wrapper .form-submit:focus,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit:focus,
+.user-form-page .mel-auth-form .button--primary:focus,
+.user-form-page .mel-auth-form .form-submit:focus,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit:focus {
+  outline: none;
+}
+.user-form-page .mel-auth-form-wrapper .button--primary:focus-visible,
+.user-form-page .mel-auth-form-wrapper .form-submit:focus-visible,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit:focus-visible,
+.user-form-page .mel-auth-form .button--primary:focus-visible,
+.user-form-page .mel-auth-form .form-submit:focus-visible,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit:focus-visible {
+  outline: 3px solid #f26d5b;
+  outline-offset: 2px;
+}
+.user-form-page .mel-auth-form-wrapper .button--primary:disabled,
+.user-form-page .mel-auth-form-wrapper .form-submit:disabled,
+.user-form-page .mel-auth-form-wrapper input[type=submit].mel-auth-submit:disabled,
+.user-form-page .mel-auth-form .button--primary:disabled,
+.user-form-page .mel-auth-form .form-submit:disabled,
+.user-form-page .mel-auth-form input[type=submit].mel-auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.user-form-page .mel-auth-form-wrapper a,
+.user-form-page .mel-auth-form a {
+  color: #6c7ef2;
+  text-decoration: none;
+  font-weight: 500;
+}
+.user-form-page .mel-auth-form-wrapper a:hover,
+.user-form-page .mel-auth-form a:hover {
+  text-decoration: underline;
+}
+.user-form-page .mel-auth-form-wrapper a:focus-visible,
+.user-form-page .mel-auth-form a:focus-visible {
+  outline: 3px solid #f26d5b;
+  outline-offset: 2px;
+}
+.user-form-page .mel-auth-form-wrapper .messages--error,
+.user-form-page .mel-auth-form-wrapper .form-item--error-message,
+.user-form-page .mel-auth-form-wrapper .error-summary,
+.user-form-page .mel-auth-form .messages--error,
+.user-form-page .mel-auth-form .form-item--error-message,
+.user-form-page .mel-auth-form .error-summary {
+  margin-bottom: 20px;
+  padding: 2rem;
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 16px;
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.user-form-page .mel-auth-form-wrapper .messages--error h2,
+.user-form-page .mel-auth-form .messages--error h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+}
+.user-form-page .mel-auth-form-wrapper .form-item.form-item--error-message,
+.user-form-page .mel-auth-form .form-item.form-item--error-message {
+  margin-top: 1rem;
+}
+.user-form-page .mel-auth-password-wrapper {
+  position: relative;
+}
+.user-form-page .mel-auth-password-wrapper .mel-auth-password-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6c7ef2;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.user-form-page .mel-auth-password-wrapper .mel-auth-password-toggle:hover {
+  text-decoration: underline;
+}
+.user-form-page .mel-auth-password-wrapper .mel-auth-password-toggle:focus-visible {
+  outline: 3px solid #f26d5b;
+  outline-offset: 2px;
+}
+.user-form-page .mel-auth-password-input {
+  padding-right: 5rem;
+}
