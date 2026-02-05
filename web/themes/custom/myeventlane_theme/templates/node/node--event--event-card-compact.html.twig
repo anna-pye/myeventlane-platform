@@ -6,6 +6,12 @@
 {% set url = url('entity.node.canonical', {'node': node.id}) %}
 {% set thumb = content.field_event_image is defined ? content.field_event_image : null %}
 
+{# Promoted / Boosted flag (data already managed by Boost system). #}
+{% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
+
+{# Phase 8 — PAST state hook (ended + archived). #}
+{% set is_past = mel_event_state is defined and mel_event_state in ['ended', 'archived'] %}
+
 {# Category: first category term #}
 {% set category_label = '' %}
 {% set category_color_class = '' %}
@@ -57,4 +63,4 @@
   thumb: thumb
 } %}
 
-{% include '@myeventlane_theme/components/event-card/event-card-compact.twig' with { item: item } only %}
+{% include '@myeventlane_theme/components/event-card/event-card-compact.twig' with { item: item, is_promoted: is_promoted, is_past: is_past } only %}

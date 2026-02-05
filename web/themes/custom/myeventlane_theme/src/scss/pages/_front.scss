@@ -20,10 +20,10 @@
 .mel-home-events {
   // Additional spacing for homepage event sections
   .mel-section {
-    margin-bottom: spacing.mel-space(8);
+    margin-bottom: spacing.mel-space(7);
 
     @include breakpoints.mel-break(md) {
-      margin-bottom: spacing.mel-space(10);
+      margin-bottom: spacing.mel-space(9);
     }
   }
 
@@ -38,7 +38,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-featured-events {
-  margin-bottom: spacing.mel-space(8);
+  margin-bottom: spacing.mel-space(6);
 
   h2 {
     font-size: typography.mel-font-size(2xl);
@@ -81,11 +81,11 @@
 .mel-featured-events-carousel {
   display: flex;
   flex-direction: column;
-  gap: spacing.mel-space(4);
+  gap: spacing.mel-space(3);
 
   @include breakpoints.mel-break(md) {
     flex-direction: row;
-    gap: spacing.mel-space(6);
+    gap: spacing.mel-space(5);
     align-items: flex-start;
   }
 }
@@ -131,7 +131,7 @@
 // Carousel track (scrollable container)
 .mel-featured-events-carousel__track {
   display: flex;
-  gap: spacing.mel-space(4);
+  gap: spacing.mel-space(3);
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
@@ -439,6 +439,16 @@
   margin-top: 0;
   border-top: 1px solid colors.$mel-color-border;
   background: colors.$mel-color-surface;
+}
+
+// ---------------------------------------------------------------------------
+// Listing Pages (Events, Category) - Bottom Gap
+// ---------------------------------------------------------------------------
+// Match the gap between hero and cards (32px) with spacing before footer.
+
+.mel-page--events .mel-main,
+.mel-page--category .mel-main {
+  padding-bottom: spacing.mel-space(4);
 }
 
 // ---------------------------------------------------------------------------

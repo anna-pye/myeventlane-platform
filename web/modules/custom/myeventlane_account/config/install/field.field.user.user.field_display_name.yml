@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_display_name
+  module:
+    - user
+id: user.user.field_display_name
+field_name: field_display_name
+entity_type: user
+bundle: user
+label: 'Display name'
+description: 'This is the name shown on your account and in public interactions. It can be your name, nickname, or any name you''re comfortable using.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

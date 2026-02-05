@@ -1,0 +1,689 @@
+// ============================================================================
+// Wizard Step Card (Step 1 Basics UI Cleanup)
+// ============================================================================
+// MEL-branded shell and card for wizard steps.
+// - .mel-wizard-step-shell (centered container)
+// - .mel-wizard-step-card (card frame, step modifier: --basics, etc.)
+// - Form hierarchy, CKEditor restraint, CTA clarity.
+// Scoped to wizard step forms only; no logic changes.
+// ============================================================================
+
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/typography';
+
+// ---------------------------------------------------------------------------
+// Wizard-scoped styling only (avoid impacting Gin elsewhere).
+// ---------------------------------------------------------------------------
+
+.mel-event-wizard {
+  // -------------------------------------------------------------------------
+  // PHASE IV — Stepper & content balance (layout grid, sticky nav)
+  // -------------------------------------------------------------------------
+  .mel-event-wizard__layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 32px;
+  }
+
+  .mel-event-wizard__nav {
+    position: sticky;
+    top: 96px;
+  }
+
+  // -------------------------------------------------------------------------
+  // Reduce full-page width dominance
+  // -------------------------------------------------------------------------
+  .mel-event-wizard__main {
+    max-width: 900px;
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 3 — Wizard-level outer card (Create an event + menu)
+  // -------------------------------------------------------------------------
+  .mel-wizard-frame {
+    background: #f9fafb;
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .mel-wizard-frame__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .mel-wizard-frame__title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .mel-wizard-frame__menu {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 2 — Section sub-cards (structural wrappers; semantic, reusable)
+  // -------------------------------------------------------------------------
+  .mel-wizard-frame__content {
+    display: grid;
+    gap: 24px;
+  }
+
+  .mel-wizard-sections {
+    display: grid;
+    gap: 24px;
+  }
+
+  .mel-wizard-section {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #eef2f7;
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE III — Section headers (visual rhythm; CSS-only)
+  // -------------------------------------------------------------------------
+  .mel-wizard-section::before {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    margin-bottom: 12px;
+  }
+
+  .mel-wizard-section--basics::before {
+    content: 'Event details';
+  }
+
+  .mel-wizard-section--category::before {
+    content: 'Category';
+  }
+
+  .mel-wizard-section--image::before {
+    content: 'Event image';
+  }
+
+  // -------------------------------------------------------------------------
+  // Shell + card layout (centered, calm, product-like)
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-step-shell {
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+
+    @media (max-width: 480px) {
+      padding-top: 16px;
+    }
+  }
+
+  .mel-wizard-step-card {
+    width: 100%;
+    max-width: 760px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    padding: 32px;
+
+    @media (max-width: 768px) {
+      padding: 24px 16px;
+    }
+
+    // G1: Horizontal overflow (critical for mobile).
+    overflow-x: hidden;
+
+    input,
+    textarea,
+    select {
+      max-width: 100%;
+    }
+
+    // G2: Touch target size (WCAG ≥44px for buttons).
+    button,
+    .button {
+      min-height: 44px;
+    }
+
+    input[type='radio'],
+    input[type='checkbox'] {
+      min-width: 20px;
+      min-height: 20px;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 1 — Neutralise Gin admin form styling (wizard-only)
+  // -------------------------------------------------------------------------
+
+  .form-item label {
+    font-weight: 600;
+    font-size: 15px;
+    color: #111;
+    margin-bottom: 6px;
+  }
+
+  .form-item .description {
+    font-size: 13px;
+    color: #6b7280;
+  }
+
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background-color: #fff;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--mel-primary, #f26d5b);
+    box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.15);
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 4 — Wizard stepper polish (navigation clarity)
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  .mel-wizard-steps__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  .mel-wizard-steps__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .mel-wizard-steps__label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mel-wizard-steps__number {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e5e7eb;
+    font-weight: 700;
+  }
+
+  .mel-wizard-steps__item.is-current .mel-wizard-steps__number {
+    background: var(--mel-primary, #f26d5b);
+    color: #fff;
+  }
+
+  .mel-wizard-steps__item.is-complete .mel-wizard-steps__number {
+    background: #16a34a;
+    color: #fff;
+  }
+
+  // -------------------------------------------------------------------------
+  // PHASE 5 — Product-style page header (not admin)
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-step-card__header {
+    margin-bottom: 24px;
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 15px;
+      color: #6b7280;
+      max-width: 60ch;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Form hierarchy: section cards are structural (.mel-wizard-section);
+  // no field-by-field @extend.
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-step-card {
+    .form-item {
+      margin-bottom: 24px;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // CKEditor: event summary feel (restraint, not CMS)
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-step-card {
+    .ck-editor__top {
+      border-radius: 8px 8px 0 0;
+    }
+
+    .ck-editor__editable {
+      min-height: 160px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // CTA clarity (primary action stands out)
+  // -------------------------------------------------------------------------
+
+  .mel-wizard-step-card .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 40px;
+  }
+
+  .mel-wizard-step-card .button--primary {
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 999px;
+  }
+
+  // ==========================================================================
+  // Step 1: Basics — mobile title, editor, image density
+  // ==========================================================================
+
+  .mel-wizard-step-card--basics {
+    input[type='text'] {
+      font-size: 18px;
+      padding: 12px;
+    }
+
+    .form-item--field-event-image {
+      padding: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .ck-editor__editable {
+        min-height: 140px;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Step 2: When & Where — human narrative, scheduling tone (CSS only)
+  // ==========================================================================
+
+  .mel-wizard-step-card--when_where {
+    // PHASE 2 — Visual section headers (CSS-only, no markup).
+    .form-item--field-event-start::before {
+      content: 'When';
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .form-item--field-location::before {
+      content: 'Where';
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    // PHASE 3 — De-technicalise date & time inputs.
+    input[type='date'],
+    input[type='time'],
+    input[type='datetime-local'] {
+      font-size: 16px;
+      padding: 14px 16px;
+      background-color: #fafafa;
+    }
+
+    .form-item--field-event-start,
+    .form-item--field-event-end {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 14px;
+    }
+  }
+
+  // ==========================================================================
+  // Step 3: Tickets — RSVP vs Paid as choice, secondary fields stepped back
+  // ==========================================================================
+  // No markup or logic changes; CSS only.
+  // ==========================================================================
+
+  .mel-wizard-step-card--tickets {
+    // Event type (RSVP vs Paid) feels like a choice, not config.
+    .form-item--field-event-type {
+      margin-bottom: 32px;
+    }
+
+    .form-item--field-event-type .form-radios {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-item--field-event-type .form-radio {
+      display: block;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    // De-emphasise conditional complexity: "Choose first. Details later."
+    .form-item:not(.form-item--field-event-type) {
+      margin-top: 24px;
+    }
+
+    // Group Free/Paid follow-ups (visual break).
+    .form-item--field-capacity,
+    .form-item--field-waitlist-capacity,
+    .form-item--field-product-target,
+    .form-item--field-ticket-types {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    // Reassurance: help text readable and non-technical.
+    .description {
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      select {
+        font-size: 16px;
+        padding: 12px;
+      }
+
+      .form-item {
+        margin-top: 20px;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Step 4: Details — visual sections, long-form readability, accessibility tone
+  // ==========================================================================
+  // No markup or logic changes; CSS only.
+  // ==========================================================================
+
+  .mel-wizard-step-card--details {
+    .form-item {
+      margin-bottom: 24px;
+    }
+
+    // Accessibility-related fields: visual section break.
+    .form-item--field-accessibility,
+    .form-item--field-accessibility-contact,
+    .form-item--field-accessibility-directions,
+    .form-item--field-accessibility-entry,
+    .form-item--field-accessibility-parking {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    // Policy-related fields: visual section break.
+    .form-item--field-age-policy,
+    .form-item--field-refund-policy {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #eee;
+    }
+
+    // Long-form readability (text-heavy step).
+    textarea {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    // Accessibility tone: supported, welcomed, not "extra admin".
+    .form-item--field-accessibility {
+      background: #fafafa;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 480px) {
+      textarea {
+        min-height: 120px;
+      }
+
+      .form-item--field-accessibility {
+        padding: 12px;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Review step: pre-publish confidence checklist (visual only)
+  // ==========================================================================
+
+  .mel-wizard-step-card--review {
+    .mel-wizard-review__confidence-checklist {
+      margin-top: 24px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #ecfdf3;
+      border: 1px solid #b7f7c9;
+      border-radius: 14px;
+    }
+
+    .mel-wizard-review__confidence-title {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f3d22;
+    }
+
+    .mel-wizard-review__confidence-description {
+      margin: 0;
+      font-size: 14px;
+      color: #2d5a3c;
+    }
+
+    .mel-wizard-review__confidence-list {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mel-wizard-review__confidence-item {
+      position: relative;
+      padding-left: 30px;
+      font-size: 14px;
+      color: #0f3d22;
+    }
+
+    .mel-wizard-review__confidence-item::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 0.15em;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      line-height: 1;
+      background: #16a34a;
+      color: #fff;
+    }
+  }
+
+  // ==========================================================================
+  // Mobile-first (≤480px) — global CTA + Review step
+  // ==========================================================================
+  // Primary viewport: 360–430px (iPhone / Pixel). No horizontal scroll,
+  // thumb-reachable CTAs.
+  // ==========================================================================
+
+  // -------------------------------------------------------------------------
+  // PHASE V — Mobile density polish
+  // -------------------------------------------------------------------------
+  @media (max-width: 480px) {
+    .mel-wizard-frame {
+      padding: 16px;
+    }
+
+    .mel-wizard-section {
+      padding: 16px;
+    }
+
+    .mel-wizard-section::before {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .mel-event-wizard__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .mel-event-wizard__nav {
+      position: static;
+    }
+
+    .mel-wizard-step-card .form-actions {
+      justify-content: stretch;
+    }
+
+    .mel-wizard-step-card .button--primary {
+      width: 100%;
+    }
+
+    // Review step: scanability, warnings tone, Publish CTA reachability.
+    .mel-wizard-step-card--review {
+      .mel-review-section__label {
+        display: block;
+      }
+
+      .mel-wizard-review__warnings,
+      .messages--warning {
+        padding: 12px;
+      }
+
+      .button--primary {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Wizard success screen (post-publish)
+// ============================================================================
+
+.mel-event-wizard-success {
+  padding: 32px 16px;
+}
+
+.mel-event-wizard-success__container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.mel-event-wizard-success__content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  padding: 32px;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 24px 16px;
+  }
+}
+
+.mel-event-wizard-success__title {
+  margin: 0 0 10px;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.mel-event-wizard-success__description {
+  margin: 0 auto;
+  max-width: 56ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #444;
+}
+
+.mel-event-wizard-success__actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mel-event-wizard-success__next {
+  margin-top: 28px;
+  text-align: left;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.mel-event-wizard-success__next-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+}
+
+.mel-event-wizard-success__next-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #333;
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .mel-event-wizard-success__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-event-wizard-success__actions .mel-btn {
+    width: 100%;
+  }
+}

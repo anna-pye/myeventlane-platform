@@ -2,47 +2,20 @@
 /**
  * @file
  * Recommended events unformatted template (block_1).
- * Renders event cards in a Swiper carousel: 2 cards on tablet/desktop, ~1.1 on mobile.
+ * Renders event cards in the canonical 4-across grid.
+ *
+ * IMPORTANT:
+ * - This display is intended to be embedded in the homepage region output.
+ * - Use the canonical `.mel-event-grid` wrapper (defined in components/_event-grid.scss).
+ * - Do not output section headers or wrapper shells here (homepage template owns layout).
+ * - When there are 0 rows, output nothing so the homepage section can collapse.
  */
 #}
 
-{% set classes = [
-  'view',
-  'view-' ~ id|clean_class,
-  'view-display-id-' ~ display_id|clean_class,
-  'mel-home-section',
-  'mel-home-section--recommended',
-] %}
-
-<div class="mel-recommended-context">
-  <header class="mel-section-head">
-    <h2 class="mel-section-head__title">{{ "What's on next"|t }}</h2>
-    <p class="mel-section-head__hint">
-      {{ "See what's coming up on MyEventLane."|t }}
-    </p>
-  </header>
-
-  <div{{ attributes.addClass(classes) }}>
-    {% if title %}
-      {{ title }}
-    {% endif %}
-
-    {% if rows %}
-      {% set items = [] %}
-      {% for row in rows %}
-        {% set item = row.content %}
-        {% set items = items|merge([item]) %}
-      {% endfor %}
-      {% include '@myeventlane_theme/components/card-carousel/card-carousel.twig' with {
-        items: items,
-        carousel_id: 'recommended-events-carousel',
-      } %}
-    {% else %}
-      <p class="mel-muted">
-        {{ 'More recommendations coming soon.'|t }}
-      </p>
-    {% endif %}
-
-    {{ pager }}
+{% if rows %}
+  <div class="mel-event-grid" aria-label="{{ 'Recommended events'|t }}">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
   </div>
-</div>
+{% endif %}

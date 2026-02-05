@@ -40,7 +40,15 @@
   <div class="mel-card__header">
     <div class="mel-card__title">{{ 'Attendee list'|t }}</div>
     <div class="mel-card__actions">
-      <input type="text" class="mel-input mel-input--sm" placeholder="{{ 'Search attendees...'|t }}" id="attendee-search">
+      <label class="visually-hidden" for="attendee-search">{{ 'Search attendees'|t }}</label>
+      <input
+        type="search"
+        class="mel-input mel-input--sm"
+        placeholder="{{ 'Search attendees…'|t }}"
+        id="attendee-search"
+        data-mel-table-search
+        data-mel-table-search-rows="#attendee-list .mel-table__row"
+      >
     </div>
   </div>
   
@@ -123,27 +131,3 @@
     </div>
   {% endif %}
 </div>
-
-<script>
-  // Simple client-side search
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('attendee-search');
-    const attendeeList = document.getElementById('attendee-list');
-    
-    if (searchInput && attendeeList) {
-      searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase();
-        const rows = attendeeList.querySelectorAll('.mel-table__row');
-        
-        rows.forEach(function(row) {
-          const name = row.dataset.name || '';
-          const email = row.dataset.email || '';
-          const phone = row.dataset.phone || '';
-          const matches = name.includes(query) || email.includes(query) || phone.includes(query);
-          row.style.display = matches ? '' : 'none';
-        });
-      });
-    }
-  });
-</script>
-

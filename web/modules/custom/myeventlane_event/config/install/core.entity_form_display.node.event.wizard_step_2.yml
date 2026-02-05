@@ -1,0 +1,48 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_location
+    - field.field.node.event.field_venue_name
+    - core.entity_form_mode.node.wizard_step_2
+    - node.type.event
+  module:
+    - address
+    - datetime
+    - myeventlane_location
+id: node.event.wizard_step_2
+targetEntityType: node
+bundle: event
+mode: wizard_step_2
+content:
+  field_event_start:
+    type: datetime_default
+    weight: 0
+    region: content
+    settings: {}
+    third_party_settings: {}
+  field_event_end:
+    type: datetime_default
+    weight: 1
+    region: content
+    settings: {}
+    third_party_settings: {}
+  field_location:
+    type: myeventlane_location_address_autocomplete
+    weight: 2
+    region: content
+    settings: {}
+    third_party_settings: {}
+  field_venue_name:
+    type: string_textfield
+    weight: 3
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {}
+hidden:
+  revision: true
+  revision_log: true

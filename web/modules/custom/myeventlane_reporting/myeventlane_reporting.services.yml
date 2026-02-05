@@ -1,13 +1,13 @@
 services:
   myeventlane_reporting.vendor_insights:
     class: Drupal\myeventlane_reporting\Controller\VendorInsightsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
     tags:
       - { name: controller.service_arguments }
 
   myeventlane_reporting.event_insights:
     class: Drupal\myeventlane_reporting\Controller\EventInsightsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
     tags:
       - { name: controller.service_arguments }
 
@@ -19,12 +19,12 @@ services:
 
   myeventlane_reporting.chart_data:
     class: Drupal\myeventlane_reporting\Controller\ChartDataController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_vendor.service.ticket_sales', '@myeventlane_vendor.service.rsvp_stats']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_vendor.service.ticket_sales', '@myeventlane_vendor.service.rsvp_stats']
     tags:
       - { name: controller.service_arguments }
 
   myeventlane_reporting.export_centre:
     class: Drupal\myeventlane_reporting\Controller\ExportCentreController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@entity_type.manager', '@database', '@myeventlane_automation.audit_logger', '@myeventlane_automation.dispatch']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@database', '@myeventlane_automation.audit_logger', '@myeventlane_automation.dispatch']
     tags:
       - { name: controller.service_arguments }

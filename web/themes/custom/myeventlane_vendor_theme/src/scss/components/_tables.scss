@@ -99,6 +99,51 @@
   }
 }
 
+// Phase 9 — PAST (ended + archived)
+// Semantic hook: `.mel-card--past` is added by vendor templates when
+// mel_event_state ∈ { ended, archived }.
+//
+// Rules:
+// - Calm, settled tone (still readable/clickable).
+// - No hover highlight.
+// - No CTA emphasis.
+// - Promoted takes precedence.
+.mel-table__row.mel-card--past:not(.mel-card--promoted),
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted) {
+  opacity: 0.85;
+}
+
+// Phase 11 — Lifecycle-aware analytics framing (Past).
+// Present badges and KPI-like indicators as historical (neutral) rather than urgent.
+.mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-badge,
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-badge {
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.mel-table__row.mel-card--past:not(.mel-card--promoted):hover,
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted):hover {
+  background: $bg-primary;
+}
+
+.mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta,
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta {
+  background-color: $bg-primary;
+  border-color: $border-color;
+  color: $text-primary;
+}
+
+.mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta:hover,
+.mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta:focus,
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta:hover,
+.mel-table .mel-table__row.mel-card--past:not(.mel-card--promoted) .mel-btn--cta:focus {
+  background-color: $bg-secondary;
+  border-color: $border-color-dark;
+  color: $text-primary;
+}
+
 // Clickable row
 a.mel-table__row,
 .mel-table__row--clickable {

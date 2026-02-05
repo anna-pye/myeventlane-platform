@@ -7,15 +7,309 @@
 
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 use Drupal\node\NodeInterface;
 use Drupal\file\Entity\File;
 
 /**
+ * Implements hook_theme().
+ */
+function myeventlane_theme_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'site_header' => [
+      'variables' => [
+        'branding' => [],
+        'primary_menu' => [],
+        'organiser_context' => [],
+        'cart' => [],
+        'user_menu' => [],
+        'mobile_drawer' => [],
+        'is_checkout' => FALSE,
+      ],
+      'template' => 'components/site-header/site-header',
+    ],
+    'mobile_drawer' => [
+      'variables' => [
+        'drawer_menu' => [],
+        'drawer_organiser' => [],
+      ],
+      'template' => 'components/mobile-drawer/mobile-drawer',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_site_header().
+ *
+ * Populates site header variables: branding, primary_menu, organiser_context,
+ * cart, user_menu, mobile_drawer, is_checkout.
+ */
+function myeventlane_theme_preprocess_site_header(array &$variables): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  $variables['is_checkout'] = strpos((string) $route, 'commerce_checkout') === 0;
+
+  $extension_list = \Drupal::service('extension.list.theme');
+  $theme_path = $extension_list->getPath('myeventlane_theme');
+  $base_path = base_path();
+
+  // Branding: logo link.
+  $logo_path = $base_path . $theme_path . '/images/logo.svg';
+  $variables['branding'] = [
+    '#type' => 'link',
+    '#title' => [
+      '#type' => 'html_tag',
+      '#tag' => 'img',
+      '#attributes' => [
+        'src' => $logo_path,
+        'alt' => t('Home'),
+        'width' => 32,
+        'height' => 32,
+        'class' => ['site-header__logo'],
+      ],
+    ],
+    '#url' => Url::fromRoute('<front>'),
+    '#attributes' => ['class' => ['site-header__brand-link']],
+  ];
+
+  // Primary menu.
+  $block_manager = \Drupal::service('plugin.manager.block');
+  try {
+    $main_menu = $block_manager->createInstance('system_menu_block:main', []);
+    if ($main_menu->access(\Drupal::currentUser())) {
+      $build = $main_menu->build();
+      $variables['primary_menu'] = !empty($build) ? $build : [];
+    }
+    else {
+      $variables['primary_menu'] = [];
+    }
+  }
+  catch (\Exception $e) {
+    $variables['primary_menu'] = [];
+  }
+
+  // Organiser context block.
+  // When user has organiser role, organiser links (Dashboard, My events, etc.)
+  // are injected into the account dropdown via hook_preprocess_menu__account.
+  // We hide organiser_context in the header to avoid duplication.
+  try {
+    $organiser_block = $block_manager->createInstance('myeventlane_organiser_context', []);
+    if ($organiser_block->access(\Drupal::currentUser())) {
+      $build = $organiser_block->build();
+      if (\Drupal::currentUser()->hasPermission('access vendor console') && !empty($build)) {
+        $variables['organiser_context'] = [];
+      }
+      else {
+        $variables['organiser_context'] = !empty($build) ? $build : [];
+      }
+    }
+    else {
+      $variables['organiser_context'] = [];
+    }
+  }
+  catch (\Exception $e) {
+    $variables['organiser_context'] = [];
+  }
+
+  // Cart block.
+  try {
+    $cart_block = $block_manager->createInstance('commerce_cart', []);
+    if ($cart_block->access(\Drupal::currentUser())) {
+      $build = $cart_block->build();
+      $variables['cart'] = !empty($build) ? $build : [];
+    }
+    else {
+      $variables['cart'] = [];
+    }
+  }
+  catch (\Exception $e) {
+    $variables['cart'] = [];
+  }
+
+  // User menu.
+  try {
+    $account_menu = $block_manager->createInstance('system_menu_block:account', []);
+    if ($account_menu->access(\Drupal::currentUser())) {
+      $build = $account_menu->build();
+      $variables['user_menu'] = !empty($build) ? $build : [];
+    }
+    else {
+      $variables['user_menu'] = [];
+    }
+  }
+  catch (\Exception $e) {
+    $variables['user_menu'] = [];
+  }
+
+  // Mobile drawer (only when not checkout).
+  if (!$variables['is_checkout']) {
+    $variables['mobile_drawer'] = [
+      '#theme' => 'mobile_drawer',
+      '#drawer_menu' => $variables['primary_menu'],
+      '#drawer_organiser' => $variables['organiser_context'],
+    ];
+  }
+  else {
+    $variables['mobile_drawer'] = [];
+  }
+}
+
+/**
+ * Implements hook_preprocess_menu__account().
+ *
+ * Injects organiser links (Dashboard, My events, Create event, Settings) into
+ * the account dropdown when the user has access to the vendor console.
+ */
+function myeventlane_theme_preprocess_menu__account(array &$variables): void {
+  if (!\Drupal::currentUser()->hasPermission('access vendor console')) {
+    return;
+  }
+
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
+    return;
+  }
+
+  $organiser_links = [
+    ['title' => t('Dashboard'), 'route' => 'myeventlane_vendor.console.dashboard'],
+    ['title' => t('My events'), 'route' => 'myeventlane_vendor.console.events'],
+    ['title' => t('Create event'), 'route' => 'myeventlane_vendor.console.create_event'],
+    ['title' => t('Settings'), 'route' => 'myeventlane_vendor.console.settings'],
+  ];
+
+  $injected = [];
+  foreach ($organiser_links as $link) {
+    try {
+      $url = Url::fromRoute($link['route']);
+      if ($url->access()) {
+        $injected[] = [
+          'title' => $link['title'],
+          'url' => $url,
+          'attributes' => new Attribute(['class' => ['mel-account-menu-item']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      // Route may not exist.
+    }
+  }
+
+  if (!empty($injected) && !empty($variables['items'])) {
+    $items = $variables['items'];
+    $first = array_shift($items);
+    $variables['items'] = array_merge([$first], $injected, $items);
+  }
+}
+
+/**
+ * Implements hook_preprocess_mobile_drawer().
+ *
+ * Ensures drawer_menu and drawer_organiser are render arrays.
+ */
+function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
+  $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
+  $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
+}
+
+/**
  * Implements hook_preprocess_html().
  */
-function myeventlane_theme_preprocess_html(array &$variables) {
-  // Add any HTML-level preprocessing here if needed.
+function myeventlane_theme_preprocess_html(array &$variables): void {
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match ? $route_match->getRouteName() : '';
+
+  if (is_string($route_name) && $route_name !== '') {
+    // Scope all Commerce cart/checkout styling.
+    if (str_starts_with($route_name, 'commerce_cart.') || str_starts_with($route_name, 'commerce_checkout.')) {
+      $variables['attributes']['class'][] = 'mel-commerce';
+    }
+
+    if (str_starts_with($route_name, 'commerce_cart.')) {
+      $variables['attributes']['class'][] = 'mel-commerce-cart';
+    }
+
+    if (str_starts_with($route_name, 'commerce_checkout.')) {
+      $variables['attributes']['class'][] = 'mel-commerce-checkout';
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Theme-level attachments only (no inline <script>/<style> in Twig).
+ */
+function myeventlane_theme_page_attachments(array &$page): void {
+  // Font: Inter via Google Fonts (CSS link tag).
+  // NOTE: This is intentionally attached as html_head, not inline CSS.
+  $page['#attached']['html_head'][] = [
+    [
+      '#tag' => 'link',
+      '#attributes' => [
+        'href' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+        'rel' => 'stylesheet',
+      ],
+    ],
+    'myeventlane_theme_inter_font',
+  ];
+
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $path = \Drupal::request()->getPathInfo();
+  $path = $path !== NULL ? trim($path, '/') : '';
+
+  // Attach auth_pages only on login, register, and password reset.
+  // Route-based (core and Gin Login) plus path fallback for aliases/custom routes.
+  $is_auth_route = in_array($route_name, ['user.login', 'user.register', 'user.pass'], TRUE);
+  $is_auth_path = str_starts_with($path, 'user/login') || str_starts_with($path, 'user/register') || str_starts_with($path, 'user/password');
+  if ($is_auth_route || $is_auth_path) {
+    $page['#attached']['library'][] = 'myeventlane_theme/auth_pages';
+  }
+
+  // Attach event full library on event canonical pages (defensive).
+  if ($route_name === 'entity.node.canonical') {
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+      $page['#attached']['library'][] = 'myeventlane_theme/myeventlane_event_full';
+    }
+  }
+
+  // Checkout only: ensure Stripe.js is available when Commerce Stripe is enabled.
+  // Single canonical path: commerce_stripe/stripe library. No duplicate script injection.
+  if (strpos((string) $route_name, 'commerce_checkout') === 0 && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
+    $page['#attached']['library'][] = 'commerce_stripe/stripe';
+  }
+
+  // Export category color map to JavaScript via drupalSettings.
+  if (\Drupal::hasService('myeventlane_shared.color_service')) {
+    try {
+      $color_service = \Drupal::service('myeventlane_shared.color_service');
+      $color_map = $color_service->getCategoryColors();
+      $page['#attached']['drupalSettings']['myeventlane'] = [
+        'categoryColors' => $color_map,
+      ];
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->warning('Could not load ColorService: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  // Attach MyEventLane toast library only on Commerce pages.
+  $route_for_commerce = \Drupal::routeMatch()->getRouteName() ?? '';
+  $path_for_commerce = \Drupal::request()->getPathInfo() ?? '';
+  $is_commerce =
+    str_starts_with((string) $route_for_commerce, 'commerce_') ||
+    str_starts_with($path_for_commerce, '/cart') ||
+    str_starts_with($path_for_commerce, '/checkout');
+  if ($is_commerce) {
+    $page['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
+  }
 }
 
 /**
@@ -46,6 +340,51 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   }
 
   $variables['mel_vendor_settings_route_exists'] = $route_exists;
+
+  // mel_header_categories for listing pages (events, search, category).
+  $route = \Drupal::routeMatch()->getRouteName();
+  $listing_routes = [
+    'view.upcoming_events.page_events',
+    'view.upcoming_events.page_category',
+    'mel_search.view',
+  ];
+  if (in_array($route, $listing_routes, TRUE) && empty($variables['mel_header_categories'])) {
+    $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    $terms = $term_storage->loadByProperties(['vid' => 'categories']);
+    $categories = [];
+    foreach ($terms as $term) {
+      $slug = _myeventlane_theme_get_category_slug($term);
+      $categories[] = [
+        'tid' => $term->id(),
+        'name' => $term->label(),
+        'label' => $term->label(),
+        'url' => '/events/category/' . $term->id(),
+        'slug' => $slug,
+      ];
+    }
+    $variables['mel_header_categories'] = $categories;
+  }
+
+  // Hero image for listing pages (category, search, events).
+  // Prefer Page Visuals Manager (myeventlane_page_visuals) when available.
+  if (isset($variables['page_visual']['image_url']) && $variables['page_visual']['image_url']) {
+    $variables['mel_hero_image_url'] = $variables['page_visual']['image_url'];
+    $variables['mel_hero_image_url_mobile'] = $variables['page_visual']['image_url_mobile'] ?? NULL;
+    $variables['mel_hero_hide_on_mobile'] = $variables['page_visual']['hide_on_mobile'] ?? FALSE;
+  }
+  elseif (empty($variables['mel_hero_image_url'])) {
+    $variables['mel_hero_image_url'] = _myeventlane_theme_get_listing_hero_url($route);
+    $variables['mel_hero_image_url_mobile'] = NULL;
+    $variables['mel_hero_hide_on_mobile'] = FALSE;
+  }
+
+  // Site header: compact global header (desktop + mobile).
+  $variables['site_header'] = [
+    '#theme' => 'site_header',
+    '#attached' => [
+      'library' => ['myeventlane_theme/account-dropdown'],
+    ],
+  ];
   
   // Ensure header region blocks are available even if region template isn't used.
   // Initialize header array if not set.
@@ -119,7 +458,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
     
     $variables['event_categories'] = $categories;
-    
+
+    // Hero popular_tags: { name, url } for taxonomy terms.
+    $popular_tags = [];
+    foreach ($categories as $c) {
+      $popular_tags[] = [
+        'name' => $c['name'],
+        'url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => $c['tid']])->toString(),
+      ];
+    }
+    $variables['popular_tags'] = $popular_tags;
+
     // Add calendar data for mini calendar
     $variables['calendar'] = _myeventlane_theme_get_calendar_data();
   }
@@ -181,35 +530,51 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $hero_mobile_url = $hero_desktop_url;
     }
     
-    // Fallback: If category banner doesn't exist, use journey hero (rare case).
+    // Fallback: If category banner doesn't exist, use journey hero, then mel-hero-home.
     if (!$hero_desktop_url) {
       $journey_desktop_relative = $theme_path . '/images/mel/hero/mel-hero-journey-desktop.png';
       $journey_desktop_path = DRUPAL_ROOT . '/' . $journey_desktop_relative;
       $journey_mobile_relative = $theme_path . '/images/mel/hero/mel-hero-journey-mobile.png';
       $journey_mobile_path = DRUPAL_ROOT . '/' . $journey_mobile_relative;
-      
+      $home_relative = $theme_path . '/images/mel/hero/mel-hero-home.png';
+      $home_path = DRUPAL_ROOT . '/' . $home_relative;
+
       if (file_exists($journey_desktop_path)) {
         $hero_desktop_url = $base_url . $journey_desktop_relative;
+      }
+      elseif (file_exists($home_path)) {
+        $hero_desktop_url = $base_url . $home_relative;
       }
       if (file_exists($journey_mobile_path)) {
         $hero_mobile_url = $base_url . $journey_mobile_relative;
       }
+      elseif ($hero_desktop_url) {
+        $hero_mobile_url = $hero_desktop_url;
+      }
     }
   }
   
-  // Homepage: ALWAYS use journey hero images.
+  // Homepage: Use journey hero images, fallback to mel-hero-home.png.
   // Homepage never uses category banners.
   if ($is_front_page) {
     $journey_desktop_relative = $theme_path . '/images/mel/hero/mel-hero-journey-desktop.png';
     $journey_desktop_path = DRUPAL_ROOT . '/' . $journey_desktop_relative;
     $journey_mobile_relative = $theme_path . '/images/mel/hero/mel-hero-journey-mobile.png';
     $journey_mobile_path = DRUPAL_ROOT . '/' . $journey_mobile_relative;
-    
+    $home_relative = $theme_path . '/images/mel/hero/mel-hero-home.png';
+    $home_path = DRUPAL_ROOT . '/' . $home_relative;
+
     if (file_exists($journey_desktop_path)) {
       $hero_desktop_url = $base_url . $journey_desktop_relative;
     }
+    elseif (file_exists($home_path)) {
+      $hero_desktop_url = $base_url . $home_relative;
+    }
     if (file_exists($journey_mobile_path)) {
       $hero_mobile_url = $base_url . $journey_mobile_relative;
+    }
+    elseif ($hero_desktop_url) {
+      $hero_mobile_url = $hero_desktop_url;
     }
   }
   
@@ -386,68 +751,88 @@ function myeventlane_theme_library_info_alter(array &$libraries, string $extensi
     return;
   }
 
-  // Ensure our library exists before altering it.
-  if (!isset($libraries['global-styling'])) {
+  $manifest = _myeventlane_theme_vite_manifest();
+  if (!$manifest) {
     return;
   }
 
-  $css_path = _myeventlane_theme_manifest_css();
-  if (!$css_path) {
-    // Gracefully fallback to whatever the .libraries.yml defines.
-    return;
+  // Global bundle (main) entry: src/js/main.js → css + js.
+  if (isset($libraries['global-styling'])) {
+    $main = $manifest['js/main.js'] ?? NULL;
+    if (is_array($main)) {
+      // CSS.
+      if (!empty($main['css'][0]) && is_string($main['css'][0])) {
+        $css = ltrim($main['css'][0], '/');
+        $libraries['global-styling']['css']['theme'] = [
+          "dist/{$css}" => [],
+        ];
+      }
+      // JS.
+      if (!empty($main['file']) && is_string($main['file'])) {
+        $js = ltrim($main['file'], '/');
+        $libraries['global-styling']['js'] = [
+          "dist/{$js}" => [],
+        ];
+      }
+    }
   }
 
-  // Replace the existing CSS with only the hashed Vite output.
-  $libraries['global-styling']['css']['theme'] = [
-    $css_path => [],
-  ];
+  // Front CSS entry: src/scss/front.scss → dist/css/front.css (or hashed).
+  if (isset($libraries['front']['css']['theme']) || isset($libraries['mel-listing-header']['css']['theme'])) {
+    $front = $manifest['scss/front.scss'] ?? NULL;
+    if (is_array($front) && !empty($front['file']) && is_string($front['file'])) {
+      $css = ltrim($front['file'], '/');
+      if (isset($libraries['front']['css']['theme'])) {
+        $libraries['front']['css']['theme'] = [
+          "dist/{$css}" => [],
+        ];
+      }
+      if (isset($libraries['mel-listing-header']['css']['theme'])) {
+        $libraries['mel-listing-header']['css']['theme'] = [
+          "dist/{$css}" => [],
+        ];
+      }
+    }
+  }
+
+  // Account dropdown entry (legacy): src/js/account-dropdown.js.
+  if (isset($libraries['account-dropdown'])) {
+    $entry = $manifest['js/account-dropdown.js'] ?? NULL;
+    if (is_array($entry) && !empty($entry['file']) && is_string($entry['file'])) {
+      $js = ltrim($entry['file'], '/');
+      $libraries['account-dropdown']['js'] = [
+        "dist/{$js}" => [],
+      ];
+    }
+  }
 }
 
 /**
- * Reads the Vite manifest and returns the primary CSS file.
+ * Loads Vite manifest.json as an array.
  *
- * @return string|null
- *   Relative path to the CSS file (e.g. 'dist/assets/main.ABC123.css'),
- *   or NULL if the manifest or asset cannot be read.
+ * @return array|null
+ *   The decoded manifest, or NULL if missing/invalid.
  */
-function _myeventlane_theme_manifest_css(): ?string {
+function _myeventlane_theme_vite_manifest(): ?array {
   static $cached = NULL;
-
-  // Return cached value if already processed.
   if ($cached !== NULL) {
     return $cached;
   }
 
-  // Load the theme path.
   $theme_handler = \Drupal::service('extension.list.theme');
   $relative_theme_path = $theme_handler->getPath('myeventlane_theme');
-
-  // Vite manifest path.
   $manifest_path = DRUPAL_ROOT . '/' . $relative_theme_path . '/dist/.vite/manifest.json';
-  if (!file_exists($manifest_path)) {
+  if (!is_file($manifest_path)) {
     return $cached = NULL;
   }
 
-  $json = file_get_contents($manifest_path);
+  $json = @file_get_contents($manifest_path);
   if (!$json) {
     return $cached = NULL;
   }
 
   $manifest = json_decode($json, TRUE);
-  if (!is_array($manifest)) {
-    return $cached = NULL;
-  }
-
-  // Vite default entry: js/main.js → CSS array.
-  if (empty($manifest['js/main.js']['css'][0])) {
-    return $cached = NULL;
-  }
-
-  // Build theme-relative path.
-  $css = $manifest['js/main.js']['css'][0];
-  $css = ltrim($css, '/');
-
-  return $cached = "dist/{$css}";
+  return $cached = is_array($manifest) ? $manifest : NULL;
 }
 
 /**
@@ -487,7 +872,8 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     // 1. Compute event image URL if it exists.
     $event_image_url = NULL;
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
-      $image_entity = $node->get('field_event_image')->entity;
+      $event_files = $node->get('field_event_image')->referencedEntities();
+      $image_entity = !empty($event_files) ? reset($event_files) : NULL;
       if ($image_entity) {
         $uri = $image_entity->getFileUri();
         $event_image_url = $file_url_generator->generateAbsoluteString($uri);
@@ -500,6 +886,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $category_slug = 'default';
     $category_label = NULL;
     $category_url = NULL;
+    $category_term = NULL;
     if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
       $category_field = $node->get('field_category');
       // For multi-value fields, use referencedEntities() and get first one
@@ -523,20 +910,28 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
     $variables['mel_category_label'] = $category_label;
     $variables['mel_category_url'] = $category_url;
 
-    // 3. Build placeholder URL: {theme}/images/mel/placeholders/mel-placeholder-{slug}.png
-    // Check if placeholder file exists, otherwise fallback to default
+    // 3. Build placeholder URL: {theme}/images/mel/placeholders/mel-placeholder-{slug}.png or .svg
+    // Check if placeholder file exists, otherwise fallback to default; support .svg when .png missing
     $placeholder_filename = 'mel-placeholder-' . $category_slug . '.png';
     $placeholder_relative_path = $theme_path . '/images/mel/placeholders/' . $placeholder_filename;
     $placeholder_file_path = DRUPAL_ROOT . '/' . $placeholder_relative_path;
-    
-    // If category-specific placeholder doesn't exist, use default
+
+    if (!file_exists($placeholder_file_path)) {
+      $placeholder_filename = 'mel-placeholder-' . $category_slug . '.svg';
+      $placeholder_relative_path = $theme_path . '/images/mel/placeholders/' . $placeholder_filename;
+      $placeholder_file_path = DRUPAL_ROOT . '/' . $placeholder_relative_path;
+    }
     if (!file_exists($placeholder_file_path)) {
       $placeholder_filename = 'mel-placeholder-default.png';
       $placeholder_relative_path = $theme_path . '/images/mel/placeholders/' . $placeholder_filename;
       $placeholder_file_path = DRUPAL_ROOT . '/' . $placeholder_relative_path;
     }
-    
-    // Only set placeholder URL if file actually exists (cache-safe check)
+    if (!file_exists($placeholder_file_path)) {
+      $placeholder_filename = 'mel-placeholder-default.svg';
+      $placeholder_relative_path = $theme_path . '/images/mel/placeholders/' . $placeholder_filename;
+      $placeholder_file_path = DRUPAL_ROOT . '/' . $placeholder_relative_path;
+    }
+
     $placeholder_url = NULL;
     if (file_exists($placeholder_file_path)) {
       $placeholder_url = $base_path . $placeholder_relative_path;
@@ -606,6 +1001,43 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         }
       }
       $variables['mel_card_where'] = $where_text;
+
+      // card_* variables for event-card and teaser templates (they use card_* not mel_*).
+      $variables['card_url'] = $variables['mel_card_url'];
+      $variables['card_title'] = $node->label();
+      $variables['card_image_url'] = $variables['mel_card_image_url'];
+      $variables['card_image_alt'] = $node->label();
+      $variables['card_time_range'] = $when_text;
+      $variables['card_location'] = $where_text;
+      $variables['card_price_label'] = $variables['mel_card_badge_text'] ?? '';
+
+      $card_type = 'none';
+      if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+        $et = $node->get('field_event_type')->value;
+        if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
+          $card_type = $et === 'external' ? 'paid' : $et;
+        }
+      }
+      $variables['card_type'] = $card_type;
+
+      if ($category_label !== NULL && $category_url !== NULL) {
+        $variables['card_category'] = ['label' => $category_label, 'url' => $category_url];
+      }
+      else {
+        $variables['card_category'] = NULL;
+      }
+
+      $card_day = NULL;
+      $card_month = NULL;
+      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+        $start_value = $node->get('field_event_start')->value;
+        if ($start_value && ($ts = strtotime($start_value))) {
+          $card_day = (string) (int) date('j', $ts);
+          $card_month = date('M', $ts);
+        }
+      }
+      $variables['card_day'] = $card_day;
+      $variables['card_month'] = $card_month;
 
       // Add cache contexts/tags
       if (!isset($variables['#cache']['contexts'])) {
@@ -741,24 +1173,46 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
     
     $variables['mel_category_slug'] = $category_slug;
     
-    // Build banner URL if slug exists and file exists.
+    // Banner URL: prefer term's field_category_image (uploaded in term edit form).
     $banner_url = NULL;
-    if ($category_slug) {
+    if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+      $term_files = $term->get('field_category_image')->referencedEntities();
+      $file = !empty($term_files) ? reset($term_files) : NULL;
+      if ($file) {
+        $file_url_generator = \Drupal::service('file_url_generator');
+        $banner_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
+      }
+    }
+    // Fallback: Page Visuals Manager (route entity.taxonomy_term.canonical or view.upcoming_events.page_category).
+    if (!$banner_url && \Drupal::hasService('myeventlane.page_visual_resolver')) {
+      $resolver = \Drupal::service('myeventlane.page_visual_resolver');
+      $page_visual = $resolver->resolveForRoute(\Drupal::routeMatch());
+      if ($page_visual !== NULL && !empty($page_visual['image_url'])) {
+        $banner_url = $page_visual['image_url'];
+        $variables['mel_hero_image_url_mobile'] = $page_visual['image_url_mobile'] ?? NULL;
+        $variables['mel_hero_hide_on_mobile'] = $page_visual['hide_on_mobile'] ?? FALSE;
+      }
+    }
+    // Fallback: theme file images/mel/categories/mel-category-{slug}.png
+    if (!$banner_url && $category_slug) {
       $extension_list = \Drupal::service('extension.list.theme');
       $theme_path = $extension_list->getPath('myeventlane_theme');
-      $banner_relative_path = $theme_path . '/images/mel/categories/mel-category-' . $category_slug . '.png';
-      $banner_file_path = DRUPAL_ROOT . '/' . $banner_relative_path;
-      
-      // Check if file exists before generating URL.
-      if (file_exists($banner_file_path)) {
-        // For theme files, use base_path() to generate URL.
-        // Note: file_url_generator is designed for managed file entities (public://, private:// URIs).
-        // Theme files are not managed files, so base_path() is the standard Drupal approach.
+      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
+      $file_slug = $slug_map[$category_slug] ?? $category_slug;
+      $banner_relative_path = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
+      if (file_exists(DRUPAL_ROOT . '/' . $banner_relative_path)) {
         $banner_url = base_path() . $banner_relative_path;
       }
     }
     
     $variables['mel_category_banner_url'] = $banner_url;
+    $variables['mel_hero_image_url'] = $banner_url;
+    if (empty($variables['mel_hero_image_url_mobile'])) {
+      $variables['mel_hero_image_url_mobile'] = NULL;
+    }
+    if (!isset($variables['mel_hero_hide_on_mobile'])) {
+      $variables['mel_hero_hide_on_mobile'] = FALSE;
+    }
     
     // Load all categories with slugs for header pills.
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
@@ -787,6 +1241,12 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
  */
 function myeventlane_theme_preprocess_views_view(array &$variables): void {
   $view = $variables['view'];
+
+  // Ensure directory is available for empty state images.
+  if (!isset($variables['directory'])) {
+    $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+    $variables['directory'] = base_path() . $theme_path;
+  }
   
   // Only process views on taxonomy term pages.
   $route_match = \Drupal::routeMatch();
@@ -867,6 +1327,96 @@ function _myeventlane_theme_get_category_slug(?TermInterface $term): string {
   }
   
   return !empty($slug) ? $slug : 'default';
+}
+
+/**
+ * Returns hero image URL for listing pages (category, search, events).
+ *
+ * @param string|null $route
+ *   The current route name.
+ *
+ * @return string|null
+ *   Absolute URL to hero image, or NULL if none.
+ */
+function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
+  $extension_list = \Drupal::service('extension.list.theme');
+  $theme_path = $extension_list->getPath('myeventlane_theme');
+  $base_path = base_path();
+
+  // Category page: prefer term's field_category_image, else theme file.
+  if ($route === 'view.upcoming_events.page_category') {
+    $tid = \Drupal::routeMatch()->getParameter('arg_0');
+    if ($tid) {
+      $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
+      if ($term && $term->bundle() === 'categories') {
+        if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+          $cat_files = $term->get('field_category_image')->referencedEntities();
+          $file = !empty($cat_files) ? reset($cat_files) : NULL;
+          if ($file) {
+            $file_url_generator = \Drupal::service('file_url_generator');
+            return $file_url_generator->generateAbsoluteString($file->getFileUri());
+          }
+        }
+        $slug = _myeventlane_theme_get_category_slug($term);
+        $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
+        $file_slug = $slug_map[$slug] ?? $slug;
+        $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
+        if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+          return $base_path . $rel;
+        }
+      }
+    }
+  }
+
+  // Search page: images/mel/hero/mel-hero-search.png
+  if ($route === 'mel_search.view') {
+    $rel = $theme_path . '/images/mel/hero/mel-hero-search.png';
+    if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+      return $base_path . $rel;
+    }
+  }
+
+  // Events page: images/mel/hero/mel-hero-events.png
+  if ($route === 'view.upcoming_events.page_events') {
+    $rel = $theme_path . '/images/mel/hero/mel-hero-events.png';
+    if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+      return $base_path . $rel;
+    }
+  }
+
+  // Taxonomy term canonical: prefer term's field_category_image, else theme file.
+  if ($route === 'entity.taxonomy_term.canonical') {
+    $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+    if ($term && $term->bundle() === 'categories') {
+      if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+        $canon_files = $term->get('field_category_image')->referencedEntities();
+        $file = !empty($canon_files) ? reset($canon_files) : NULL;
+        if ($file) {
+          $file_url_generator = \Drupal::service('file_url_generator');
+          return $file_url_generator->generateAbsoluteString($file->getFileUri());
+        }
+      }
+      $slug = _myeventlane_theme_get_category_slug($term);
+      $slug_map = ['lgbtqi' => 'lgbtqia', 'food-drink' => 'food'];
+      $file_slug = $slug_map[$slug] ?? $slug;
+      $rel = $theme_path . '/images/mel/categories/mel-category-' . $file_slug . '.png';
+      if (file_exists(DRUPAL_ROOT . '/' . $rel)) {
+        return $base_path . $rel;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Implements hook_preprocess_myeventlane_search_results().
+ */
+function myeventlane_theme_preprocess_myeventlane_search_results(array &$variables): void {
+  if (!isset($variables['directory'])) {
+    $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+    $variables['directory'] = base_path() . $theme_path;
+  }
 }
 
 /**
@@ -1058,7 +1608,8 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
 
   // 1. Event image field.
   if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
-    $file = $node->get('field_event_image')->entity;
+    $files = $node->get('field_event_image')->referencedEntities();
+    $file = !empty($files) ? reset($files) : NULL;
     if ($file instanceof File) {
       $image_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
     }
@@ -1071,7 +1622,8 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     if (!empty($referenced_entities)) {
       $term = reset($referenced_entities);
       if ($term && $term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-        $file = $term->get('field_category_image')->entity;
+        $category_files = $term->get('field_category_image')->referencedEntities();
+        $file = !empty($category_files) ? reset($category_files) : NULL;
         if ($file instanceof File) {
           $image_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
         }
@@ -1079,14 +1631,142 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     }
   }
 
-  // 3. Hard fallback.
+  // 3. Hard fallback only when placeholder file exists (use base_path for subdir installs).
   if (!$image_url) {
     $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
-    $fallback_path = $theme_path . '/images/mel/placeholders/mel-placeholder-default.png';
-    $image_url = '/' . $fallback_path;
+    foreach (['mel-placeholder-default.png', 'mel-placeholder-default.svg'] as $f) {
+      $fallback_rel = $theme_path . '/images/mel/placeholders/' . $f;
+      $fallback_path = DRUPAL_ROOT . '/' . $fallback_rel;
+      if (file_exists($fallback_path)) {
+        $image_url = base_path() . $fallback_rel;
+        break;
+      }
+    }
   }
 
   $variables['image_src'] = $image_url;
+  $variables['mel_has_hero_image'] = (bool) $image_url;
+
+  // Location: mel_venue, mel_address for event detail templates.
+  $venue = NULL;
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $venue = trim($node->get('field_venue_name')->value);
+  }
+  // Fallback: venue name from referenced field_venue entity when field_venue_name is empty.
+  if (!$venue && $node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue_entity = $node->get('field_venue')->entity;
+    if ($venue_entity && method_exists($venue_entity, 'getName')) {
+      $venue = trim($venue_entity->getName());
+    }
+  }
+  $variables['mel_venue'] = $venue ?: NULL;
+
+  // Address: use getValue() array so locality/address_line1 are reliable.
+  $address_parts = [];
+  $variables['mel_suburb'] = NULL;
+  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $loc = $node->get('field_location')->first();
+    if ($loc && method_exists($loc, 'getValue')) {
+      $raw = $loc->getValue();
+      if (is_array($raw)) {
+        $order = ['address_line1', 'address_line2', 'locality', 'administrative_area', 'postal_code', 'country_code'];
+        foreach ($order as $key) {
+          if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
+            $address_parts[] = trim((string) $raw[$key]);
+            if ($key === 'locality') {
+              $variables['mel_suburb'] = trim((string) $raw[$key]);
+            }
+          }
+        }
+        // Fallback: if no ordered parts, use any non-empty address key so we never drop data.
+        if (empty($address_parts)) {
+          $address_keys = [
+            'address_line1', 'address_line2', 'locality', 'dependent_locality',
+            'administrative_area', 'postal_code', 'sorting_code', 'organization',
+          ];
+          foreach ($address_keys as $key) {
+            if (!empty($raw[$key]) && trim((string) $raw[$key]) !== '') {
+              $address_parts[] = trim((string) $raw[$key]);
+              if ($key === 'locality') {
+                $variables['mel_suburb'] = trim((string) $raw[$key]);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  $variables['mel_address'] = !empty($address_parts) ? implode(', ', $address_parts) : NULL;
+
+  // Category label/slug for hero badge and Event Info card (first category term).
+  $variables['mel_category_label'] = NULL;
+  $variables['mel_category_slug'] = 'default';
+  if ($node->hasField('field_category') && !$node->get('field_category')->isEmpty()) {
+    $refs = $node->get('field_category')->referencedEntities();
+    if (!empty($refs)) {
+      $term = reset($refs);
+      if ($term instanceof \Drupal\taxonomy\Entity\Term) {
+        $variables['mel_category_label'] = $term->label();
+        $variables['mel_category_slug'] = function_exists('_myeventlane_theme_get_category_slug')
+          ? _myeventlane_theme_get_category_slug($term)
+          : str_replace([' ', '&', '+'], ['-', 'and', ''], strtolower($term->label()));
+      }
+    }
+  }
+
+  // Refund policy label (render-only variable; keep mapping out of Twig).
+  $variables['mel_refund_policy_text'] = NULL;
+  if ($node->hasField('field_refund_policy') && !$node->get('field_refund_policy')->isEmpty()) {
+    $refund_key = (string) $node->get('field_refund_policy')->value;
+    $refund_map = [
+      'none_specified' => new TranslatableMarkup('No specified policy on refunds'),
+      '1_day' => new TranslatableMarkup('Refunds are available up to 1 day prior to the event'),
+      '7_days' => new TranslatableMarkup('Refunds are available up to 7 days prior to the event'),
+      '14_days' => new TranslatableMarkup('Refunds are available up to 14 days prior to the event'),
+      '30_days' => new TranslatableMarkup('Refunds are available up to 30 days prior to the event'),
+      'no_refunds' => new TranslatableMarkup('No refunds'),
+    ];
+    $variables['mel_refund_policy_text'] = $refund_map[$refund_key] ?? NULL;
+  }
+
+  // Age policy (render-only variables; keep mapping out of Twig).
+  $variables['mel_age_policy_key'] = NULL;
+  $variables['mel_age_policy_label'] = NULL;
+  $variables['mel_age_policy_note'] = NULL;
+  if ($node->hasField('field_age_policy') && !$node->get('field_age_policy')->isEmpty()) {
+    $age_key = (string) $node->get('field_age_policy')->value;
+    $variables['mel_age_policy_key'] = $age_key;
+    $age_map = [
+      'all_ages' => new TranslatableMarkup('All ages'),
+      '18_plus' => new TranslatableMarkup('18+'),
+      '16_plus' => new TranslatableMarkup('16+'),
+      'under_18_with_guardian' => new TranslatableMarkup('Under 18 with a guardian'),
+      'custom' => new TranslatableMarkup('See details'),
+    ];
+    $variables['mel_age_policy_label'] = $age_map[$age_key] ?? NULL;
+
+    if ($node->hasField('field_age_policy_note') && !$node->get('field_age_policy_note')->isEmpty()) {
+      $note = (string) $node->get('field_age_policy_note')->value;
+      $variables['mel_age_policy_note'] = $note !== '' ? $note : NULL;
+    }
+  }
+
+  // Canonical geo resolution (single point): mel_lat, mel_lng, mel_geo_source.
+  /** @var \Drupal\myeventlane_event\Service\EventGeoResolver $geo_resolver */
+  $geo_resolver = \Drupal::service('myeventlane_event.geo_resolver');
+  $geo = $geo_resolver->resolve($node);
+
+  $variables['mel_lat'] = $geo['lat'] ?? NULL;
+  $variables['mel_lng'] = $geo['lng'] ?? NULL;
+  $variables['mel_geo_source'] = $geo['source'] ?? 'none';
+
+  // Ensure map JS has canonical coords available via drupalSettings.
+  // Provider settings are attached by myeventlane_location; we only ensure event coords are correct.
+  $variables['#attached']['drupalSettings']['myeventlaneLocationEvent'] = [
+    'latitude' => $variables['mel_lat'],
+    'longitude' => $variables['mel_lng'],
+    'title' => $node->label(),
+  ];
 }
 
 /**
@@ -1145,4 +1825,52 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $variables['grouped_items'] = $grouped_items;
   $variables['items_without_event'] = $items_without_event;
   $variables['item_event_map'] = $item_event_map;
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_cart_empty_page.
+ *
+ * Adds theme directory for empty cart image path.
+ */
+function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables): void {
+  $extension_list = \Drupal::service('extension.list.theme');
+  $theme_path = $extension_list->getPath('myeventlane_theme');
+  $variables['directory'] = $theme_path;
+}
+
+/**
+ * Implements hook_preprocess_mimemail_message().
+ *
+ * Injects logo_path for MEL-styled email wrapper (core/contrib emails).
+ * Uses theme logo setting or fallback to theme default logo.
+ */
+function myeventlane_theme_preprocess_mimemail_message(array &$variables): void {
+  $theme_settings = \Drupal::service(\Drupal\Core\Extension\ThemeSettingsProvider::class);
+  $default_theme = \Drupal::config('system.theme')->get('default');
+  $theme_logo = $theme_settings->getSetting('logo.url', $default_theme);
+
+  if ($theme_logo !== NULL && $theme_logo !== '') {
+    $variables['logo_path'] = $theme_logo;
+    return;
+  }
+
+  $extension_list = \Drupal::service('extension.list.theme');
+  $theme_path = $extension_list->getPath($default_theme ?: 'myeventlane_theme');
+  $base_url = \Drupal::request()->getSchemeAndHttpHost() . \Drupal::request()->getBasePath();
+  $variables['logo_path'] = rtrim($base_url, '/') . '/' . $theme_path . '/images/logo.svg';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for status_messages.
+ *
+ * Adds is_commerce_route for toast vs banner display.
+ */
+function myeventlane_theme_preprocess_status_messages(array &$variables): void {
+  $route = \Drupal::routeMatch()->getRouteName() ?? '';
+  $path = \Drupal::request()->getPathInfo() ?? '';
+
+  $variables['is_commerce_route'] =
+    str_starts_with((string) $route, 'commerce_') ||
+    str_starts_with($path, '/cart') ||
+    str_starts_with($path, '/checkout');
 }

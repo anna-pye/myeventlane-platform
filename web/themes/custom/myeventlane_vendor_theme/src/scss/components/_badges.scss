@@ -85,6 +85,12 @@
   font-weight: $font-weight-semibold;
 }
 
+// Series template (recurring events)
+.mel-badge--series {
+  color: $info;
+  background: $info-light;
+}
+
 // ============================================================================
 // BADGE SIZES
 // ============================================================================

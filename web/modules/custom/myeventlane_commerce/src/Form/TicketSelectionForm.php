@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Form;
 
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_price\CurrencyFormatter;
@@ -20,6 +21,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * This form displays all ticket variations for an event and allows
  * customers to select quantities for each ticket type.
+ *
+ * INVARIANT:
+ * Ticket capacity MUST be enforced here (validateForm assertCanBook, sold-out UI).
+ * Do not rely on node edit form validation or UI state.
+ * This protects Ticket UX (Phase 3A).
  */
 final class TicketSelectionForm extends FormBase {
 
@@ -31,6 +37,7 @@ final class TicketSelectionForm extends FormBase {
     private readonly CartProviderInterface $cartProvider,
     private readonly CartManagerInterface $cartManager,
     private readonly CurrencyFormatter $currencyFormatter,
+    private readonly ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
   /**
@@ -41,7 +48,10 @@ final class TicketSelectionForm extends FormBase {
       $container->get('entity_type.manager'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('commerce_cart.cart_manager'),
-      $container->get('commerce_price.currency_formatter')
+      $container->get('commerce_price.currency_formatter'),
+      $container->has('myeventlane_capacity.service')
+        ? $container->get('myeventlane_capacity.service')
+        : NULL,
     );
   }
 
@@ -63,6 +73,18 @@ final class TicketSelectionForm extends FormBase {
     // Store node and product for submit handler.
     $form['#node'] = $node;
     $form['#product'] = $product;
+
+    // When event is sold out, show message instead of matrix.
+    if ($this->capacityService && $this->capacityService->isSoldOut($node)) {
+      $form['sold_out'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
+        'message' => [
+          '#markup' => '<p>' . $this->t('This event is sold out.') . '</p>',
+        ],
+      ];
+      return $form;
+    }
 
     // Get all published variations.
     $variations = $product->getVariations();
@@ -95,6 +117,20 @@ final class TicketSelectionForm extends FormBase {
       '#value' => $node->label(),
       '#attributes' => ['class' => ['mel-event-title']],
     ];
+
+    // Show remaining count when capacity is limited.
+    if ($this->capacityService) {
+      $remaining = $this->capacityService->getRemaining($node);
+      if ($remaining !== NULL && $remaining <= 10) {
+        $form['tickets']['remaining'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Only @count ticket(s) remaining.', ['@count' => $remaining]),
+          '#attributes' => ['class' => ['mel-ticket-remaining', 'mel-text--muted']],
+          '#weight' => -5,
+        ];
+      }
+    }
 
     // Get ticket type labels from paragraphs.
     $ticket_type_labels = [];
@@ -228,13 +264,16 @@ final class TicketSelectionForm extends FormBase {
 
     // Check capacity.
     $node = $form['#node'];
-    if ($node && \Drupal::hasService('myeventlane_capacity.service')) {
+    if ($node && $this->capacityService) {
       try {
-        $capacityService = \Drupal::service('myeventlane_capacity.service');
-        $capacityService->assertCanBook($node, $total_quantity);
+        $this->capacityService->assertCanBook($node, $total_quantity);
       }
       catch (CapacityExceededException $e) {
-        $form_state->setError($form['actions']['submit'], $e->getMessage());
+        $remaining = $this->capacityService->getRemaining($node);
+        $message = $remaining !== NULL && $remaining > 0
+          ? $this->t('Only @remaining ticket(s) remaining. Please adjust your quantity.', ['@remaining' => $remaining])
+          : $this->t('This event is sold out.');
+        $form_state->setError($form['actions']['submit'], $message);
       }
     }
   }

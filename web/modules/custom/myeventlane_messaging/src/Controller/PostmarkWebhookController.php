@@ -149,9 +149,8 @@ final class PostmarkWebhookController extends ControllerBase {
     $secret = $config->get('postmark.webhook_secret');
 
     if (empty($secret)) {
-      // If no secret configured, allow (for development).
-      // In production, this should be required.
-      return TRUE;
+      $this->getLogger('myeventlane_messaging')->warning('Postmark webhook rejected: postmark.webhook_secret is not configured. Configure it in Messaging settings to accept webhooks.');
+      return FALSE;
     }
 
     // Postmark webhooks can include signature validation.

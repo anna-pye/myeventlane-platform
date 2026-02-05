@@ -55,16 +55,18 @@
                   {% endif %}
                 </td>
                 <td>
-                  <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
-                  {% if event.order_item_id %}
-                    <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                  {% endif %}
-                  {% if event.ics_url %}
-                    <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
-                  {% endif %}
-                  {% if event.ticket_code %}
-                    <span class="mel-ticket-code" title="{{ 'Ticket Code'|t }}: {{ event.ticket_code }}">{{ event.ticket_code }}</span>
-                  {% endif %}
+                  <div class="mel-table-actions">
+                    <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
+                    {% if event.order_item_id %}
+                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
+                    {% endif %}
+                    {% if event.ics_url %}
+                      <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
+                    {% endif %}
+                    {% if event.ticket_code %}
+                      <span class="mel-ticket-code" title="{{ 'Ticket Code'|t }}: {{ event.ticket_code }}">{{ event.ticket_code }}</span>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
             {% endfor %}
@@ -117,13 +119,15 @@
                     {% endif %}
                   </td>
                   <td>
-                    <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
-                    {% if event.order_item_id %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
-                    {% endif %}
-                    {% if event.ics_url %}
-                      <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
-                    {% endif %}
+                    <div class="mel-table-actions">
+                      <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View Event'|t }}</a>
+                      {% if event.order_item_id %}
+                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn-small">{{ 'View Ticket'|t }}</a>
+                      {% endif %}
+                      {% if event.ics_url %}
+                        <a href="{{ event.ics_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Add to Calendar'|t }}</a>
+                      {% endif %}
+                    </div>
                   </td>
                 </tr>
               {% endfor %}

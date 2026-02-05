@@ -1,0 +1,72 @@
+/**
+ * Vendor onboarding panel - mobile-first, pastel, rounded card, clear CTA.
+ */
+
+.mel-dashboard-invite {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.03);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mel-onboarding-panel {
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    margin-bottom: 2rem;
+  }
+}
+
+.mel-onboarding-panel__inner {
+  background: linear-gradient(135deg, #fef7f0 0%, #f5edf8 100%);
+  border: 1px solid rgba(147, 112, 219, 0.2);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  @media (min-width: 768px) {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.mel-onboarding-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.mel-onboarding-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+
+  @media (min-width: 768px) {
+    font-size: 1.125rem;
+  }
+}
+
+.mel-onboarding-panel__stage {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.mel-onboarding-panel__body {
+  margin-top: 0.5rem;
+}
+
+.mel-onboarding-panel__cta {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}

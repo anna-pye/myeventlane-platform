@@ -88,7 +88,7 @@
   .mel-home__discover,
   .mel-home__rows,
   .mel-home__cta {
-    padding: 22px 0;
+    padding: 18px 0;
   }
   
   .mel-section-head {
@@ -96,7 +96,7 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 14px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   
   .mel-section-head__title {
@@ -196,7 +196,7 @@
   --------------------------------------------------------- */
   
   .mel-row {
-    margin-bottom: 18px;
+    margin-bottom: 14px;
   }
   
   /* Mobile: horizontal scroll
@@ -204,13 +204,13 @@
   */
   .mel-row__scroller {
     display: grid !important;
-    gap: 12px !important;
+    gap: 10px !important;
   
     /* Mobile behaviour */
     grid-auto-flow: column;
     grid-auto-columns: minmax(260px, 1fr);
     overflow-x: auto;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
     
     /* Remove ANY wrapper divs that break the grid - make them invisible to grid */

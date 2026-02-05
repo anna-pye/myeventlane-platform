@@ -1,0 +1,55 @@
+{#
+/**
+ * @component Site Header
+ *
+ * Variables (render arrays or markup):
+ * - branding
+ * - primary_menu
+ * - organiser_context
+ * - cart
+ * - user_menu
+ * - mobile_drawer (rendered component)
+ *
+ * Flags:
+ * - is_checkout (bool) If true, show simplified header.
+ */
+#}
+
+<header class="site-header" role="banner">
+  <div class="site-header__inner">
+
+    <div class="site-header__left">
+      {% if not is_checkout %}
+        <div class="site-header__burger">
+          {{ mobile_drawer }}
+        </div>
+      {% endif %}
+      <div class="site-header__brand">
+        {{ branding }}
+      </div>
+
+      {% if not is_checkout %}
+        <nav class="site-header__nav" aria-label="Primary">
+          {{ primary_menu }}
+        </nav>
+      {% endif %}
+    </div>
+
+    <div class="site-header__right">
+      {% if not is_checkout %}
+        <div class="site-header__organiser">
+          {{ organiser_context }}
+        </div>
+      {% endif %}
+
+      <div class="site-header__cart">
+        {{ cart }}
+      </div>
+
+      <div class="site-header__user">
+        {{ user_menu }}
+      </div>
+    </div>
+
+  </div>
+</header>

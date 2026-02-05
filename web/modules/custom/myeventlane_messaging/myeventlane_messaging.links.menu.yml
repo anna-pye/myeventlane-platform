@@ -6,21 +6,6 @@ myeventlane_messaging.settings:
   parent: myeventlane_core.config
   weight: 15
 
-# Template management menu links.
-myeventlane_messaging.templates:
-  title: 'Templates'
-  description: 'Manage email templates.'
-  route_name: myeventlane_messaging.templates
-  parent: myeventlane_messaging.settings
-  weight: 10
-
-myeventlane_messaging.log:
-  title: 'Message log'
-  description: 'View message delivery log.'
-  route_name: myeventlane_messaging.log
-  parent: myeventlane_messaging.settings
-  weight: 20
-
 
 
 

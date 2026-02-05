@@ -1,0 +1,11 @@
+# Schema for myeventlane_account config.
+myeventlane_account.reviews:
+  type: config_object
+  label: 'Reviews settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Reviews feature enabled'
+    window_days:
+      type: integer
+      label: 'Review eligibility window (days after event end)'

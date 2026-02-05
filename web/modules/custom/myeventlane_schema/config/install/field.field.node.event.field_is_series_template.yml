@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_is_series_template
+    - node.type.event
+id: node.event.field_is_series_template
+field_name: field_is_series_template
+entity_type: node
+bundle: event
+label: 'Series template'
+description: 'Mark this event as a recurring series template. When enabled, you can define an RRULE and generate instance events.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'This is a series template'
+  off_label: 'Single event'
+field_type: boolean

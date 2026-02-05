@@ -1,0 +1,97 @@
+.mel-toasts {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 16px;
+  z-index: 9999;
+  display: grid;
+  gap: 8px;
+}
+
+.mel-toast {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 12px;
+  border-radius: 16px;
+  background: #fef5ec;
+  border: 1px solid rgba(242, 109, 91, 0.25);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.mel-toast__icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(242, 109, 91, 0.12);
+}
+
+.mel-toast__title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mel-toast__text {
+  font-size: 14px;
+  line-height: 1.25;
+  opacity: 0.9;
+}
+
+.mel-toast__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mel-toast__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  line-height: 1;
+}
+
+.mel-toast.is-leaving {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.mel-banners {
+  margin: 12px 0;
+  display: grid;
+  gap: 10px;
+}
+
+.mel-banner {
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+
+.mel-banner__inner {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.mel-banner--warning {
+  background: #fff6df;
+  border-color: rgba(245, 192, 76, 0.55);
+}
+
+.mel-banner--error {
+  background: #ffe9e6;
+  border-color: rgba(242, 109, 91, 0.65);
+}
+
+.mel-banner__text {
+  font-size: 14px;
+  line-height: 1.35;
+}

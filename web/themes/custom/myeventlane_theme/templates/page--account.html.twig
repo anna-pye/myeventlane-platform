@@ -1,0 +1,67 @@
+{#
+/**
+ * @file
+ * Page template for customer account pages (My Tickets, My Events, order detail).
+ *
+ * Wraps content in the account layout with left sidebar navigation.
+ * Variables from myeventlane_account_preprocess_page__account:
+ * - account_links: Array of nav links (title, url, active).
+ * - logo_url: URL to MEL logo.
+ * - avatar_url: URL to user picture.
+ * - avatar_initials: Fallback initials.
+ * - display_name: User display name.
+ */
+#}
+
+{% extends "page.html.twig" %}
+
+{% block content %}
+  <div class="mel-my-account">
+    <div class="mel-my-account__layout">
+      {# Left sidebar - same as Dashboard / Past Events #}
+      <nav class="mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
+        <div class="mel-my-account__nav-card">
+          <ul class="mel-my-account__nav-list">
+            {% for link in account_links %}
+              <li class="mel-my-account__nav-item">
+                <a href="{{ link.url }}" class="mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
+                   {% if link.active %}aria-current="page"{% endif %}>
+                  {{ link.title }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </nav>
+
+      {# Main content - div to avoid nested main (page.html.twig already has main) #}
+      <div class="mel-my-account__main">
+        {# Header row: logo, welcome, avatar #}
+        <header class="mel-my-account__header">
+          <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
+            {% if logo_url %}
+              <img src="{{ logo_url }}" alt="" width="32" height="32" />
+            {% else %}
+              <span class="mel-my-account__logo-text">MyEventLane</span>
+            {% endif %}
+          </a>
+          <h1 class="mel-my-account__welcome">
+            {{ 'Welcome, @name!'|t({'@name': display_name}) }}
+          </h1>
+          <div class="mel-my-account__avatar" aria-hidden="true">
+            {% if avatar_url %}
+              <img src="{{ avatar_url }}" alt="" width="44" height="44" />
+            {% else %}
+              <span class="mel-my-account__avatar-initials">{{ avatar_initials }}</span>
+            {% endif %}
+          </div>
+        </header>
+
+        {# Page content (My Tickets, My Events, or order detail) #}
+        <div class="mel-my-account__content">
+          {{ page.content }}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

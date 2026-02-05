@@ -27,7 +27,7 @@
 
   {# Brand / Logo #}
   <div class="mel-sidebar__brand">
-    <a href="/vendor/dashboard" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
+    <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
       <span class="mel-sidebar__logo-mark">M</span>
       <span class="mel-sidebar__logo-text">MyEventLane</span>
     </a>
@@ -39,14 +39,14 @@
     
     {# Primary nav items #}
     {% set nav_items = [
-      { path: '/vendor/dashboard', label: 'Dashboard'|t, key: 'dashboard', icon: 'dashboard' },
-      { path: '/vendor/events', label: 'Events'|t, key: 'events', icon: 'events' },
-      { path: '/vendor/analytics', label: 'Analytics'|t, key: 'analytics', icon: 'analytics' },
+      { route: 'myeventlane_vendor.console.dashboard', label: 'Dashboard'|t, key: 'dashboard', icon: 'dashboard' },
+      { route: 'myeventlane_vendor.console.events', label: 'Events'|t, key: 'events', icon: 'events' },
+      { route: 'myeventlane_analytics.dashboard', label: 'Analytics'|t, key: 'analytics', icon: 'analytics' },
     ] %}
     
     {% for item in nav_items %}
       <li class="mel-sidebar__item">
-        <a href="{{ item.path }}"
+        <a href="{{ path(item.route) }}"
            class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
            {% if active == item.key %}aria-current="page"{% endif %}>
           <span class="mel-sidebar__link-icon" aria-hidden="true">
@@ -69,21 +69,36 @@
       </li>
     {% endfor %}
     
+    {# Event Wizard steps (when on wizard create/edit) #}
+    {% if page.wizard_steps is defined and page.wizard_steps|length > 0 %}
+      <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
+      <li class="mel-sidebar__section-label">{{ 'Create event'|t }}</li>
+      {% for step in page.wizard_steps %}
+        <li class="mel-sidebar__item">
+          <a href="{{ step.url }}"
+             class="mel-sidebar__link mel-sidebar__link--wizard is-wizard-step{% if step.is_active %} is-active{% endif %}"
+             {% if step.is_active %}aria-current="step"{% endif %}>
+            <span class="mel-sidebar__link-label">{{ step.label }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    {% endif %}
+
     {# Section divider #}
     <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
     <li class="mel-sidebar__section-label">{{ 'Management'|t }}</li>
     
     {# Management items - using actual routes from routing.yml #}
     {% set mgmt_items = [
-      { path: '/vendor/audience', label: 'Audience'|t, key: 'audience', icon: 'users' },
-      { path: '/vendor/donations', label: 'Donations'|t, key: 'donations', icon: 'heart' },
-      { path: '/vendor/payouts', label: 'Payouts'|t, key: 'payouts', icon: 'dollar' },
-      { path: '/vendor/finance/bas', label: 'BAS Report'|t, key: 'bas', icon: 'document' },
+      { route: 'myeventlane_vendor.console.audience', label: 'Audience'|t, key: 'audience', icon: 'users' },
+      { route: 'myeventlane_donations.vendor_list', label: 'Donations'|t, key: 'donations', icon: 'heart' },
+      { route: 'myeventlane_vendor.console.payouts', label: 'Payouts'|t, key: 'payouts', icon: 'dollar' },
+      { route: 'myeventlane_finance.vendor_bas', label: 'BAS Report'|t, key: 'bas', icon: 'document' },
     ] %}
     
     {% for item in mgmt_items %}
       <li class="mel-sidebar__item">
-        <a href="{{ item.path }}"
+        <a href="{{ path(item.route) }}"
            class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
            {% if active == item.key %}aria-current="page"{% endif %}>
           <span class="mel-sidebar__link-icon" aria-hidden="true">
@@ -116,12 +131,12 @@
     
     {# Growth items - using actual routes from routing.yml #}
     {% set growth_items = [
-      { path: '/vendor/boost', label: 'Boost'|t, key: 'boost', icon: 'zap' },
+      { route: 'myeventlane_vendor.console.boost', label: 'Boost'|t, key: 'boost', icon: 'zap' },
     ] %}
     
     {% for item in growth_items %}
       <li class="mel-sidebar__item">
-        <a href="{{ item.path }}"
+        <a href="{{ path(item.route) }}"
            class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
            {% if active == item.key %}aria-current="page"{% endif %}>
           <span class="mel-sidebar__link-icon" aria-hidden="true">
@@ -140,7 +155,7 @@
     <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
     
     <li class="mel-sidebar__item">
-      <a href="/vendor/settings"
+      <a href="{{ path('myeventlane_vendor.console.settings') }}"
          class="mel-sidebar__link{% if active == 'settings' %} is-active{% endif %}">
         <span class="mel-sidebar__link-icon" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

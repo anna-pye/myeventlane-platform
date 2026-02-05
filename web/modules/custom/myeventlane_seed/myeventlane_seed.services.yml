@@ -5,7 +5,7 @@ services:
   
   myeventlane_seed.demo_seeder:
     class: Drupal\myeventlane_seed\Service\DemoSeeder
-    arguments: ['@entity_type.manager', '@logger.factory', '@current_user', '@file_system', '@image.factory', '@myeventlane_seed.image_factory']
+    arguments: ['@entity_type.manager', '@logger.factory', '@current_user', '@myeventlane_onboarding.manager', '@file_system', '@image.factory', '@myeventlane_seed.image_factory']
   
   myeventlane_seed.demo_purger:
     class: Drupal\myeventlane_seed\Service\DemoPurger

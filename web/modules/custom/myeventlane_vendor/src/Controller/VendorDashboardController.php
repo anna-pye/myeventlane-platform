@@ -6,9 +6,11 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
@@ -16,6 +18,7 @@ use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
+use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -58,25 +61,40 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected ?EventCapacityServiceInterface $capacityService;
 
   /**
+   * The onboarding manager.
+   */
+  protected OnboardingManager $onboardingManager;
+
+  /**
+   * The event state resolver.
+   */
+  protected EventStateResolverInterface $eventStateResolver;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
-    ?EventCapacityServiceInterface $capacity_service = NULL,
+    ?EventCapacityServiceInterface $capacity_service,
+    OnboardingManager $onboarding_manager,
+    EventStateResolverInterface $event_state_resolver,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
     $this->boostStatus = $boost_status;
     $this->ticketSales = $ticket_sales;
     $this->vendorKpiService = $vendor_kpi_service;
     $this->capacityService = $capacity_service;
+    $this->onboardingManager = $onboarding_manager;
+    $this->eventStateResolver = $event_state_resolver;
   }
 
   /**
@@ -86,12 +104,15 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
+      $container->get('myeventlane_onboarding.manager'),
+      $container->get('myeventlane_event_state.resolver'),
     );
   }
 
@@ -187,6 +208,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/global-styling',
+          'myeventlane_vendor_theme/dashboard',
         ],
         'drupalSettings' => [
           'vendorCharts' => $chartData,
@@ -195,6 +217,35 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ];
     if ($vendorKpis !== NULL) {
       $pageVars['vendor_kpis'] = $vendorKpis;
+    }
+
+    // Onboarding panel: only when vendor exists and not yet invite-ready.
+    // Hide when completed OR when all Ask steps done (invite-ready).
+    $pageVars['onboarding_panel'] = NULL;
+    if ($vendor && $vendor->id()) {
+      try {
+        $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+        if ($user instanceof UserInterface) {
+          $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+          $this->onboardingManager->refreshFlags($state);
+          $show_panel = !$this->onboardingManager->isCompleted($state)
+            && !$this->onboardingManager->isInviteReady($state);
+          if ($show_panel) {
+            $next_route = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
+            $resume_url = $next_route
+              ? Url::fromRoute($next_route)->toString()
+              : Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+            $pageVars['onboarding_panel'] = [
+              '#theme' => 'vendor_dashboard_onboarding_panel',
+              '#onboarding_incomplete' => TRUE,
+              '#resume_url' => $resume_url,
+            ];
+          }
+        }
+      }
+      catch (\Throwable $e) {
+        $this->getLogger('myeventlane_vendor')->warning('Onboarding panel failed on dashboard: @m', ['@m' => $e->getMessage()]);
+      }
     }
 
     return $this->buildVendorPage('myeventlane_vendor_dashboard', $pageVars);
@@ -568,6 +619,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         }
       }
 
+      // Authoritative lifecycle state for semantic theming.
+      $eventState = $this->eventStateResolver->resolveState($node);
+
       // Get revenue and ticket counts using services (avoids duplicate calculations).
       $salesSummary = [];
       try {
@@ -679,15 +733,21 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'message' => !$isPublished ? 'Publish this event to enable boosting.' : ($boostData['reason'] ?? NULL),
       ];
 
-      // Boost wizard entrypoint (Step 1), per event.
+      // Boost wizard entrypoint (Step 1), per event. Only if user has boost
+      // permission, event is published, and event meets eligibility.
       $boostWizardUrl = NULL;
-      if ($isPublished && $isEligible) {
+      if ($isPublished && $isEligible && $this->currentUser->hasPermission('purchase boost for events')) {
         $boostWizardUrl = Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $eventId])->toString();
       }
+
+      $isSeriesTemplate = $node->hasField('field_is_series_template')
+        && !$node->get('field_is_series_template')->isEmpty()
+        && (bool) $node->get('field_is_series_template')->value;
 
       $events[] = [
         'id' => $eventId,
         'title' => $node->label(),
+        'is_series_template' => $isSeriesTemplate,
         'venue' => $venue,
         'date' => $startDate,
         'start_timestamp' => $startTimestamp,
@@ -695,6 +755,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'status_label' => $statusLabel,
         'status_badge' => $statusBadge,
         'status_badge_label' => $statusBadgeLabel,
+        'mel_event_state' => $eventState,
         'filled_count' => $filledCount,
         'revenue' => $revenue,
         'revenue_formatted' => '$' . number_format($revenue, 0),
@@ -717,6 +778,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'analytics_url' => '/vendor/analytics/event/' . $eventId,
         'attendees_url' => '/vendor/events/' . $eventId . '/attendees',
         'waitlist_url' => '/vendor/event/' . $eventId . '/waitlist',
+        'series_url' => $isSeriesTemplate ? Url::fromRoute('myeventlane_vendor.manage_event.series', ['event' => $eventId])->toString() : NULL,
       ];
     }
 

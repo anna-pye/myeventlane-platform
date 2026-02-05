@@ -1,0 +1,13 @@
+.mel-onboarding__progress ol {
+  display: flex;
+  gap: .5rem;
+
+  li {
+    flex: 1;
+    height: 4px;
+    background: #eee;
+
+    &.is-complete { background: #6bcf9b; }
+    &.is-current { background: #6b9cff; }
+  }
+}

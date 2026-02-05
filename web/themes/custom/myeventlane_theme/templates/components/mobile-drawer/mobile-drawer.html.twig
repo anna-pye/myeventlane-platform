@@ -1,0 +1,29 @@
+{#
+/**
+ * @component Mobile Drawer
+ *
+ * Variables:
+ * - drawer_menu (primary links)
+ * - drawer_organiser (organiser links/context)
+ */
+#}
+
+<details class="mobile-drawer">
+  <summary class="mobile-drawer__toggle" aria-label="Open menu">
+    <span class="mobile-drawer__icon" aria-hidden="true">☰</span>
+    <span class="mobile-drawer__label">Menu</span>
+  </summary>
+
+  <div class="mobile-drawer__panel" role="dialog" aria-label="Site menu">
+    <div class="mobile-drawer__section">
+      {{ drawer_menu }}
+    </div>
+
+    {% if drawer_organiser %}
+      <div class="mobile-drawer__divider" aria-hidden="true"></div>
+      <div class="mobile-drawer__section">
+        {{ drawer_organiser }}
+      </div>
+    {% endif %}
+  </div>
+</details>

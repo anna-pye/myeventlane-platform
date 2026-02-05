@@ -3,7 +3,7 @@
  * @file
  * Template for post-publish success screen.
  *
- * MEL Funky Design: celebratory, clear next steps.
+ * MEL Design: celebratory, calm, clear next steps.
  *
  * Variables:
  * - title: Page title
@@ -14,37 +14,35 @@
  */
 #}
 <div class="mel-event-wizard-success">
-  <div class="mel-event-wizard-success__content">
-    <div class="mel-event-wizard-success__icon">🎉</div>
-    
-    <h1 class="mel-event-wizard-success__title">{{ 'Your event is live!'|t }}</h1>
-    
-    <p class="mel-event-wizard-success__description">
-      {{ 'Great work! "@title" has been published and is now visible to attendees. Share it far and wide!'|t({'@title': event.label()}) }}
-    </p>
+  <div class="mel-event-wizard-success__container">
+    <div class="mel-event-wizard-success__content">
+      <h1 class="mel-event-wizard-success__title">{{ 'Your event is live 🎉'|t }}</h1>
 
-    <div class="mel-event-wizard-success__actions">
-      <a href="{{ event_url }}" class="mel-btn mel-btn--primary mel-btn--large" target="_blank">
-        👀 {{ 'View event'|t }}
-      </a>
-      
-      <a href="{{ tickets_url }}" class="mel-btn mel-btn--secondary">
-        🎟️ {{ 'Manage tickets'|t }}
-      </a>
-      
-      <a href="{{ create_url }}" class="mel-btn mel-btn--secondary">
-        ➕ {{ 'Create another event'|t }}
-      </a>
-    </div>
+      <p class="mel-event-wizard-success__description">
+        {{ '"@title" is now published and visible to attendees. You can share it now, or head back to your dashboard — everything can be edited anytime.'|t({'@title': event.label()}) }}
+      </p>
 
-    <div class="mel-event-wizard-success__tips">
-      <h2 class="mel-event-wizard-success__tips-title">{{ 'What\'s next?'|t }}</h2>
-      <ul class="mel-event-wizard-success__tips-list">
-        <li>{{ 'Share your event link on social media and with your community'|t }}</li>
-        <li>{{ 'Set up ticket types and pricing if you haven\'t already'|t }}</li>
-        <li>{{ 'Monitor RSVPs and ticket sales from your dashboard'|t }}</li>
-        <li>{{ 'Send reminders to attendees closer to the event date'|t }}</li>
-      </ul>
+      <div class="mel-event-wizard-success__actions" role="group" aria-label="{{ 'Next actions'|t }}">
+        <a href="{{ event_url }}" class="mel-btn mel-btn--primary mel-btn--large" target="_blank" rel="noopener noreferrer">
+          {{ 'View your event'|t }}
+        </a>
+
+        {% set dashboard_url_safe = dashboard_url|default('') %}
+        {% if dashboard_url_safe %}
+          <a href="{{ dashboard_url_safe }}" class="mel-btn mel-btn--secondary mel-btn--large">
+            {{ 'Go to dashboard'|t }}
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="mel-event-wizard-success__next">
+        <h2 class="mel-event-wizard-success__next-title">{{ 'Next steps'|t }}</h2>
+        <ul class="mel-event-wizard-success__next-list">
+          <li>{{ 'Share your event'|t }}</li>
+          <li>{{ 'Check RSVPs / ticket sales'|t }}</li>
+          <li>{{ 'Edit details anytime'|t }}</li>
+        </ul>
+      </div>
     </div>
   </div>
 </div>

@@ -15,7 +15,14 @@
     {% endfor %}
 
     {% if total_items == 0 %}
-      <p class="mel-search-results__empty" role="status">{{ 'No results found for \'@query\'. Try a different keyword or browse categories.'|t({'@query': query}) }}</p>
+      <div class="mel-empty-state mel-empty-state--listing mel-search-empty">
+        <div class="mel-empty-state__image">
+          <img src="{{ directory|default('') }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        <h3 class="mel-empty-state__title">{{ 'No results found'|t }}</h3>
+        <p class="mel-empty-state__text">{{ 'No results found for \'@query\'. Try a different keyword or browse categories.'|t({'@query': query}) }}</p>
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
+      </div>
     {% else %}
       {% for group_id, group in groups %}
         {% if group.items|length > 0 %}

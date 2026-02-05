@@ -113,7 +113,7 @@
     
     {% if stripe_manage_url %}
       <div class="mel-card__footer">
-        <a href="{{ stripe_manage_url }}" class="mel-btn mel-btn--primary" target="_blank" rel="noopener">
+        <a href="{{ stripe_manage_url }}" class="mel-btn mel-btn--cta" target="_blank" rel="noopener">
           {{ 'Manage payouts in Stripe'|t }}
         </a>
       </div>
@@ -125,7 +125,7 @@
           <div class="mel-alert__description">
             {{ 'Connect your Stripe account to receive payouts for ticket sales.'|t }}
           </div>
-          <a href="/vendor/stripe/connect" class="mel-btn mel-btn--primary mel-btn--sm">
+          <a href="{{ path('myeventlane_vendor.stripe_connect') }}" class="mel-btn mel-btn--cta mel-btn--sm">
             {{ 'Connect Stripe'|t }}
           </a>
         </div>

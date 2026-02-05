@@ -13,6 +13,19 @@
 @use '../tokens/breakpoints' as *;
 
 // ============================================================================
+// EVENT WIZARD PAGE (Basics, When & Where, Tickets, etc.)
+// Standardized width: max-w-4xl (67.5rem / 1080px) for all wizard steps.
+// ============================================================================
+
+.page--vendor-event-wizard {
+  .mel-event-wizard .mel-event-wizard__main,
+  .mel-event-wizard .mel-wizard-frame,
+  .mel-event-wizard .mel-wizard-step-card {
+    max-width: 67.5rem;
+  }
+}
+
+// ============================================================================
 // EVENT FORM PAGE LAYOUT
 // ============================================================================
 

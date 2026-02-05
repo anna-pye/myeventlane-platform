@@ -1,0 +1,330 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Auth: branded login/register/password forms and account type.
+ *
+ * Keeps Gin Login; curates user forms and attaches MEL styling.
+ * No role assignment on registration; account type stored in field_mel_account_type.
+ * New users get field_mel_account_type set in hook_user_presave (form or default).
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function myeventlane_auth_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id === 'user_login_form') {
+    _myeventlane_auth_alter_login_form($form, $form_state);
+  }
+  if ($form_id === 'user_register_form') {
+    _myeventlane_auth_alter_register_form($form, $form_state);
+  }
+  if ($form_id === 'user_pass') {
+    _myeventlane_auth_alter_pass_form($form, $form_state);
+  }
+}
+
+/**
+ * Alters the user login form.
+ */
+function _myeventlane_auth_alter_login_form(array &$form, FormStateInterface $form_state): void {
+  $form['#attributes']['class'][] = 'mel-auth-form';
+  $form['#attributes']['class'][] = 'mel-auth-form-wrapper';
+  $form['#attributes']['class'][] = 'mel-form--login';
+
+  if (isset($form['name']['#title'])) {
+    $form['name']['#title'] = t('Email or username');
+  }
+  if (!isset($form['name']['#description']) || $form['name']['#description'] === '') {
+    $form['name']['#description'] = t('Use the email you signed up with.');
+  }
+  if (isset($form['pass']['#title'])) {
+    $form['pass']['#title'] = t('Password');
+  }
+  if (isset($form['pass']['#description'])) {
+    $form['pass']['#description'] = t('Enter your password. Use "Show" to reveal it.');
+  }
+
+  $form['actions']['submit']['#value'] = t('Log in');
+  $form['actions']['submit']['#attributes']['class'][] = 'mel-auth-submit';
+
+  if (isset($form['pass'])) {
+    $form['pass']['#attributes']['class'][] = 'mel-auth-password-input';
+    if (isset($form['pass']['#wrapper_attributes'])) {
+      $form['pass']['#wrapper_attributes']['class'][] = 'mel-auth-password-wrapper';
+    }
+    else {
+      $form['pass']['#wrapper_attributes'] = ['class' => ['mel-auth-password-wrapper']];
+    }
+  }
+}
+
+/**
+ * Alters the user registration form.
+ */
+function _myeventlane_auth_alter_register_form(array &$form, FormStateInterface $form_state): void {
+  $form['#attributes']['class'][] = 'mel-auth-form';
+  $form['#attributes']['class'][] = 'mel-auth-form-wrapper';
+  $form['#attributes']['class'][] = 'mel-form--register';
+
+  $hide = [
+    'user_picture',
+    'contact',
+    'timezone',
+    'path',
+    'language',
+    'language_select',
+  ];
+  foreach ($hide as $key) {
+    if (isset($form[$key])) {
+      $form[$key]['#access'] = FALSE;
+    }
+  }
+
+  if (isset($form['name'])) {
+    $form['name']['#access'] = FALSE;
+    $form['name']['#required'] = FALSE;
+  }
+
+  if (isset($form['mail']['#title'])) {
+    $form['mail']['#title'] = t('Email address');
+  }
+  if (isset($form['mail']['#description'])) {
+    $form['mail']['#description'] = t('We’ll use this to sign you in and send event updates.');
+  }
+
+  $form['account_type_choice'] = [
+    '#type' => 'radios',
+    '#title' => t('Account type'),
+    '#options' => [
+      'customer' => t("I'm attending events"),
+      'organiser' => t("I'm running events"),
+    ],
+    '#default_value' => 'customer',
+    '#required' => TRUE,
+    '#weight' => 1,
+    '#attributes' => ['class' => ['mel-auth-account-type']],
+  ];
+
+  $form['actions']['submit']['#value'] = t('Create account');
+  $form['actions']['submit']['#attributes']['class'][] = 'mel-auth-submit';
+
+  $form['#validate'][] = 'myeventlane_auth_register_validate';
+  $form['#submit'] = array_merge(
+    ['myeventlane_auth_register_submit_username'],
+    $form['#submit'] ?? [],
+    ['myeventlane_auth_register_submit_account_type']
+  );
+}
+
+/**
+ * Validation callback: ensure email is present for registration.
+ */
+function myeventlane_auth_register_validate(array &$form, FormStateInterface $form_state): void {
+  $mail = $form_state->getValue('mail');
+  if (empty($mail) || !is_string($mail)) {
+    return;
+  }
+  // Username generation moved to submit to avoid validation side effects.
+}
+
+/**
+ * Submit callback (runs first): set generated username for entity build.
+ */
+function myeventlane_auth_register_submit_username(array &$form, FormStateInterface $form_state): void {
+  $mail = $form_state->getValue('mail');
+  $name = $form_state->getValue('name');
+  if (!empty($name) || empty($mail) || !is_string($mail)) {
+    return;
+  }
+  $username = _myeventlane_auth_username_from_email($mail);
+  if ($username !== '') {
+    $form_state->setValue('name', $username);
+  }
+}
+
+/**
+ * Submit callback: store account type for presave (static + state).
+ */
+function myeventlane_auth_register_submit_account_type(array &$form, FormStateInterface $form_state): void {
+  $value = $form_state->getValue('account_type_choice');
+  $form_state->set('mel_account_type', $value);
+  if (in_array($value, ['customer', 'organiser'], TRUE)) {
+    myeventlane_auth_set_pending_account_type($value);
+  }
+}
+
+/**
+ * Alters the password reset request form.
+ */
+function _myeventlane_auth_alter_pass_form(array &$form, FormStateInterface $form_state): void {
+  $form['#attributes']['class'][] = 'mel-auth-form';
+  $form['#attributes']['class'][] = 'mel-auth-form-wrapper';
+  $form['#attributes']['class'][] = 'mel-form--password';
+
+  if (isset($form['name']['#title'])) {
+    $form['name']['#title'] = t('Email or username');
+  }
+  if (isset($form['name']['#description'])) {
+    $form['name']['#description'] = t('Enter the email or username for your account. We’ll send you a link to reset your password.');
+  }
+
+  $form['actions']['submit']['#value'] = t('Send reset link');
+  $form['actions']['submit']['#attributes']['class'][] = 'mel-auth-submit';
+}
+
+/**
+ * Generates a unique username from an email address.
+ *
+ * Edge cases: empty local-part -> user- + short random; base 32 chars;
+ * final max 60 chars; uniqueness loop capped at 999 then random fallback.
+ * Uses entity query for existence check.
+ *
+ * @param string $mail
+ *   Email address.
+ *
+ * @return string
+ *   Sanitised, unique username (max 60 chars).
+ */
+function _myeventlane_auth_username_from_email(string $mail): string {
+  $local = strstr($mail, '@', TRUE);
+  if ($local === FALSE || $local === '') {
+    return _myeventlane_auth_username_random();
+  }
+  $local = strtolower($local);
+  $local = preg_replace('/[^a-z0-9._-]/', '-', $local);
+  $local = preg_replace('/-+/', '-', $local);
+  $local = trim($local, '-');
+  $base = mb_substr($local, 0, 32);
+  if ($base === '') {
+    return _myeventlane_auth_username_random();
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('user');
+  $name = $base;
+  $suffix = 0;
+  $max_attempts = 999;
+
+  while ($suffix < $max_attempts) {
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('name', $name)
+      ->range(0, 1)
+      ->execute();
+    if (empty($ids)) {
+      return $name;
+    }
+    $suffix++;
+    $tail = '-' . $suffix;
+    $name = mb_substr($base, 0, 32 - mb_strlen($tail)) . $tail;
+    $name = mb_substr($name, 0, 60);
+  }
+
+  return _myeventlane_auth_username_random();
+}
+
+/**
+ * Generates a unique username with random suffix (fallback).
+ *
+ * @return string
+ *   Username like user-a1b2c3d4 (max 60 chars).
+ */
+function _myeventlane_auth_username_random(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('user');
+  $suffix = substr(bin2hex(random_bytes(4)), 0, 8);
+  $base = 'user-' . $suffix;
+  $name = $base;
+  $attempts = 0;
+  while ($attempts < 100) {
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('name', $name)
+      ->range(0, 1)
+      ->execute();
+    if (empty($ids)) {
+      return mb_substr($name, 0, 60);
+    }
+    $name = 'user-' . substr(bin2hex(random_bytes(4)), 0, 8);
+    $attempts++;
+  }
+  return mb_substr($base . '-' . time(), 0, 60);
+}
+
+/**
+ * Stores the chosen account type for the next user presave (static + state).
+ *
+ * @param string $value
+ *   Either 'customer' or 'organiser'.
+ */
+function myeventlane_auth_set_pending_account_type(string $value): void {
+  _myeventlane_auth_pending_static($value);
+  \Drupal::state()->set('myeventlane_auth.pending_account_type', $value);
+}
+
+/**
+ * Returns and clears the pending account type (static first, then state).
+ *
+ * @return string|null
+ *   'customer', 'organiser', or NULL.
+ */
+function myeventlane_auth_get_pending_account_type(): ?string {
+  $value = _myeventlane_auth_pending_static();
+  if ($value !== NULL) {
+    \Drupal::state()->delete('myeventlane_auth.pending_account_type');
+    return $value;
+  }
+  $state = \Drupal::state();
+  $value = $state->get('myeventlane_auth.pending_account_type');
+  $state->delete('myeventlane_auth.pending_account_type');
+  return in_array($value, ['customer', 'organiser'], TRUE) ? $value : NULL;
+}
+
+/**
+ * Internal: single static cache for pending account type (same request).
+ *
+ * @param string|null $set
+ *   When provided, sets the static and returns NULL. When omitted, gets and clears.
+ *
+ * @return string|null
+ *   When getting: 'customer', 'organiser', or NULL.
+ */
+function _myeventlane_auth_pending_static(?string $set = NULL): ?string {
+  static $pending = NULL;
+  if ($set !== NULL) {
+    $pending = in_array($set, ['customer', 'organiser'], TRUE) ? $set : NULL;
+    return NULL;
+  }
+  $value = $pending;
+  $pending = NULL;
+  return in_array($value, ['customer', 'organiser'], TRUE) ? $value : NULL;
+}
+
+/**
+ * Implements hook_user_presave().
+ *
+ * Sets field_mel_account_type on new users. Never overrides an explicit value.
+ * Sources: existing field value, then pending (form), then default 'customer'.
+ * Ensures programmatically created users get a default when form is bypassed.
+ */
+function myeventlane_auth_user_presave(\Drupal\user\UserInterface $user): void {
+  if (!$user->isNew()) {
+    return;
+  }
+  if (!$user->hasField('field_mel_account_type')) {
+    return;
+  }
+  $field = $user->get('field_mel_account_type');
+  if (!$field->isEmpty()) {
+    $value = $field->value;
+    if (in_array($value, ['customer', 'organiser'], TRUE)) {
+      return;
+    }
+  }
+  $value = myeventlane_auth_get_pending_account_type();
+  if ($value === NULL) {
+    $value = 'customer';
+  }
+  $user->set('field_mel_account_type', $value);
+}

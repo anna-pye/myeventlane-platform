@@ -323,3 +323,44 @@ function myeventlane_core_update_9107(): void {
     }
   }
 }
+
+/**
+ * Install onboarding state entity tables on existing sites.
+ *
+ * Ensures myeventlane_onboarding_state base table exists when the entity
+ * was added after initial module install.
+ */
+function myeventlane_core_update_9108(): void {
+  $table = 'myeventlane_onboarding_state';
+  if (\Drupal::database()->schema()->tableExists($table)) {
+    return;
+  }
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_onboarding_state');
+  \Drupal::entityDefinitionUpdateManager()->installEntityType($entity_type);
+}
+
+/**
+ * Add Who-Pays-Fees config keys for existing installations.
+ */
+function myeventlane_core_update_9109(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_core.settings');
+  if ($config->get('stripe_fee_percent') === NULL) {
+    $config->set('stripe_fee_percent', 3)->save();
+  }
+  if ($config->get('stripe_fee_fixed_cents') === NULL) {
+    $config->set('stripe_fee_fixed_cents', 30)->save();
+  }
+  if ($config->get('fee_payer') === NULL) {
+    $config->set('fee_payer', 'buyer')->save();
+  }
+}
+
+/**
+ * Add checkout rate limit config for existing installations.
+ */
+function myeventlane_core_update_9110(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_core.settings');
+  if ($config->get('checkout_rate_limit_per_minute') === NULL) {
+    $config->set('checkout_rate_limit_per_minute', 15)->save();
+  }
+}

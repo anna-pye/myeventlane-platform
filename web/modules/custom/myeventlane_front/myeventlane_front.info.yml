@@ -4,4 +4,7 @@ description: Front page UI blocks for MyEventLane
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
+  - myeventlane_analytics:myeventlane_analytics
+  - myeventlane_page_visuals:myeventlane_page_visuals
   - drupal:views
+  - drupal:taxonomy

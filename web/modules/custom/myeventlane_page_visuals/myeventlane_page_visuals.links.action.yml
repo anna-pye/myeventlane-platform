@@ -1,0 +1,5 @@
+entity.myeventlane_page_visual.add_form:
+  route_name: entity.myeventlane_page_visual.add_form
+  title: 'Add page visual'
+  appears_on:
+    - entity.myeventlane_page_visual.collection

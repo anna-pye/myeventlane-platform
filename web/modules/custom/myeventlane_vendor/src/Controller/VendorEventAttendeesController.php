@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -24,11 +25,12 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly TicketLabelResolver $ticketLabelResolver,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**

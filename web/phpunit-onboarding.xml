@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Run only onboarding tests, bypassing broken contrib tests. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="core/tests/bootstrap.php"
+         colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd">
+  <php>
+    <ini name="error_reporting" value="32767"/>
+    <ini name="memory_limit" value="-1"/>
+    <env name="SIMPLETEST_DB" value="sqlite://localhost/:memory:"/>
+  </php>
+  <testsuites>
+    <testsuite name="onboarding">
+      <file>modules/custom/myeventlane_onboarding/tests/src/Kernel/OnboardingAccessKernelTest.php</file>
+    </testsuite>
+  </testsuites>
+</phpunit>

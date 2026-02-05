@@ -1,0 +1,18 @@
+.mel-onboarding {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  &__footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--mel-bg);
+    padding: 1rem 0;
+  }
+}

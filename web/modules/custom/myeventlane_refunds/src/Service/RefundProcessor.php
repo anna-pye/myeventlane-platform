@@ -33,6 +33,10 @@ final class RefundProcessor {
    *   The order inspector.
    * @param \Drupal\myeventlane_refunds\Service\RefundAccessResolver $accessResolver
    *   The access resolver.
+   * @param \Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService $buyerEligibility
+   *   The buyer refund eligibility service.
+   * @param \Drupal\myeventlane_refunds\Service\RefundRequestStorage $refundRequestStorage
+   *   The refund request storage.
    * @param \Drupal\myeventlane_messaging\Service\MessagingManager $messagingManager
    *   The messaging manager.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
@@ -50,6 +54,8 @@ final class RefundProcessor {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RefundOrderInspector $orderInspector,
     private readonly RefundAccessResolver $accessResolver,
+    private readonly BuyerRefundEligibilityService $buyerEligibility,
+    private readonly RefundRequestStorage $refundRequestStorage,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly QueueFactory $queueFactory,
@@ -66,6 +72,190 @@ final class RefundProcessor {
    */
   private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_refunds');
+  }
+
+  /**
+   * Requests a buyer-initiated self-service refund.
+   *
+   * Creates refund_request (status=requested), sends emails. No Stripe call.
+   * Vendor must approve before refund executes.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param \Drupal\Core\Session\AccountInterface $buyer
+   *   The buyer (order owner).
+   *
+   * @return int
+   *   The refund request ID.
+   *
+   * @throws \Exception
+   *   If eligibility fails or request creation fails.
+   */
+  public function requestBuyerRefund(OrderInterface $order, NodeInterface $event, AccountInterface $buyer): int {
+    if (!$this->buyerEligibility->isEligible($order, $event, $buyer)) {
+      $reason = $this->buyerEligibility->getIneligibilityReason($order, $event, $buyer);
+      throw new \Exception($reason ?? 'Refund not eligible.');
+    }
+
+    $vendorUid = (int) $event->getOwnerId();
+    $eventId = (int) $event->id();
+    $amountCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
+    $totalPrice = $order->getTotalPrice();
+    $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
+
+    $requestId = $this->refundRequestStorage->create([
+      'order_id' => $order->id(),
+      'event_id' => $eventId,
+      'buyer_uid' => $buyer->id(),
+      'vendor_uid' => $vendorUid,
+      'amount_cents' => $amountCents,
+      'currency' => strtolower($currency),
+      'status' => RefundRequestStorage::STATUS_REQUESTED,
+    ]);
+
+    $this->logger()->info('Buyer refund request: id=@id, order_id=@order_id', [
+      '@id' => $requestId,
+      '@order_id' => $order->id(),
+    ]);
+
+    $ctx = $this->buildRefundEmailContext($order, $event, $amountCents, $currency);
+    $buyerEmail = $order->getEmail() ?: $this->getUserEmail((int) $buyer->id());
+    $vendorEmail = $this->getUserEmail((int) $vendorUid);
+
+    if ($buyerEmail) {
+      $id = $this->messagingManager->queue('refund_requested_buyer', $buyerEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+    if ($vendorEmail) {
+      $id = $this->messagingManager->queue('refund_requested_vendor', $vendorEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    return $requestId;
+  }
+
+  /**
+   * Approves a buyer refund request (vendor action).
+   *
+   * Creates refund log, queues worker, sends emails. No Stripe call here.
+   *
+   * @param int $requestId
+   *   The refund request ID.
+   * @param \Drupal\Core\Session\AccountInterface $vendor
+   *   The vendor (event owner).
+   *
+   * @return int
+   *   The refund log ID.
+   *
+   * @throws \Exception
+   *   If validation fails.
+   */
+  public function approveBuyerRefundRequest(int $requestId, AccountInterface $vendor): int {
+    $req = $this->refundRequestStorage->load($requestId);
+    if (!$req || $req['status'] !== RefundRequestStorage::STATUS_REQUESTED) {
+      throw new \Exception('Refund request not found or not pending.');
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load($req['order_id']);
+    $event = $this->entityTypeManager->getStorage('node')->load($req['event_id']);
+    if (!$order instanceof OrderInterface || !$event instanceof NodeInterface) {
+      throw new \Exception('Order or event not found.');
+    }
+
+    if (!$this->accessResolver->vendorCanRefundOrderForEvent($order, $event, $vendor)) {
+      throw new \Exception('Access denied: vendor cannot approve this refund.');
+    }
+
+    $this->refundRequestStorage->update($requestId, ['status' => RefundRequestStorage::STATUS_APPROVED]);
+
+    $payload = [
+      'refund_type' => 'full',
+      'refund_scope' => 'tickets_only',
+      'include_donation' => FALSE,
+      'reason' => 'Buyer self-service refund (vendor approved)',
+      'refund_request_id' => $requestId,
+    ];
+
+    $logId = $this->requestRefund($order, $event, $vendor, $payload);
+    $this->refundRequestStorage->update($requestId, ['refund_log_id' => $logId]);
+
+    $ctx = $this->buildRefundEmailContext($order, $event, (int) $req['amount_cents'], $req['currency']);
+    $buyerEmail = $order->getEmail() ?: $this->getUserEmail((int) $req['buyer_uid']);
+    $vendorEmail = $this->getUserEmail((int) $vendor->id());
+
+    if ($buyerEmail) {
+      $id = $this->messagingManager->queue('refund_approved_buyer', $buyerEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+    if ($vendorEmail) {
+      $id = $this->messagingManager->queue('refund_approved_vendor', $vendorEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    return $logId;
+  }
+
+  /**
+   * Rejects a buyer refund request (vendor action).
+   *
+   * @param int $requestId
+   *   The refund request ID.
+   * @param \Drupal\Core\Session\AccountInterface $vendor
+   *   The vendor.
+   * @param string $reason
+   *   Rejection reason (required).
+   *
+   * @throws \Exception
+   *   If validation fails.
+   */
+  public function rejectBuyerRefundRequest(int $requestId, AccountInterface $vendor, string $reason): void {
+    $req = $this->refundRequestStorage->load($requestId);
+    if (!$req || $req['status'] !== RefundRequestStorage::STATUS_REQUESTED) {
+      throw new \Exception('Refund request not found or not pending.');
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load($req['order_id']);
+    $event = $this->entityTypeManager->getStorage('node')->load($req['event_id']);
+    if (!$order instanceof OrderInterface || !$event instanceof NodeInterface) {
+      throw new \Exception('Order or event not found.');
+    }
+
+    if (!$this->accessResolver->vendorCanRefundOrderForEvent($order, $event, $vendor)) {
+      throw new \Exception('Access denied: vendor cannot reject this refund.');
+    }
+
+    $this->refundRequestStorage->update($requestId, [
+      'status' => RefundRequestStorage::STATUS_REJECTED,
+      'decision_reason' => $reason,
+    ]);
+
+    $ctx = $this->buildRefundEmailContext($order, $event, (int) $req['amount_cents'], $req['currency']);
+    $ctx['rejection_reason'] = $reason;
+    $buyerEmail = $order->getEmail() ?: $this->getUserEmail((int) $req['buyer_uid']);
+    $vendorEmail = $this->getUserEmail((int) $vendor->id());
+
+    if ($buyerEmail) {
+      $id = $this->messagingManager->queue('refund_rejected_buyer', $buyerEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+    if ($vendorEmail) {
+      $id = $this->messagingManager->queue('refund_rejected_vendor', $vendorEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
   }
 
   /**
@@ -148,21 +338,24 @@ final class RefundProcessor {
     $totalPrice = $order->getTotalPrice();
     $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
 
-    // Create audit log entry.
+    $logFields = [
+      'order_id' => $order->id(),
+      'event_id' => $event->id(),
+      'vendor_uid' => $account->id(),
+      'refund_type' => $refundType,
+      'refund_scope' => $refundScope,
+      'amount_cents' => $amountCents,
+      'currency' => strtolower($currency),
+      'donation_refunded' => $donationRefunded,
+      'status' => 'pending',
+      'reason' => $refund_payload['reason'] ?? NULL,
+      'created' => $this->time->getRequestTime(),
+    ];
+    if (isset($refund_payload['refund_request_id'])) {
+      $logFields['refund_request_id'] = $refund_payload['refund_request_id'];
+    }
     $logId = $this->database->insert('myeventlane_refund_log')
-      ->fields([
-        'order_id' => $order->id(),
-        'event_id' => $event->id(),
-        'vendor_uid' => $account->id(),
-        'refund_type' => $refundType,
-        'refund_scope' => $refundScope,
-        'amount_cents' => $amountCents,
-        'currency' => strtolower($currency),
-        'donation_refunded' => $donationRefunded,
-        'status' => 'pending',
-        'reason' => $refund_payload['reason'] ?? NULL,
-        'created' => $this->time->getRequestTime(),
-      ])
+      ->fields($logFields)
       ->execute();
 
     // Cast to int as database may return string.
@@ -362,7 +555,7 @@ final class RefundProcessor {
   }
 
   /**
-   * Queues refund email to customer.
+   * Queues refund completion emails (buyer and optionally vendor).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -374,10 +567,65 @@ final class RefundProcessor {
    *   The customer email.
    */
   private function queueRefundEmail(OrderInterface $order, NodeInterface $event, array $log, string $customerEmail): void {
-    $amount = number_format($log['amount_cents'] / 100, 2);
-    $currency = strtoupper($log['currency']);
+    $ctx = $this->buildRefundEmailContext(
+      $order,
+      $event,
+      (int) $log['amount_cents'],
+      $log['currency'],
+      (bool) ($log['donation_refunded'] ?? FALSE)
+    );
 
-    $context = [
+    $id = $this->messagingManager->queue('refund_completed_buyer', $customerEmail, $ctx);
+    if ($id) {
+      $this->messagingManager->sendMessage($id);
+    }
+
+    $refundRequestId = $log['refund_request_id'] ?? NULL;
+    if ($refundRequestId) {
+      $req = $this->refundRequestStorage->load((int) $refundRequestId);
+      if ($req) {
+        $this->refundRequestStorage->update((int) $refundRequestId, ['status' => RefundRequestStorage::STATUS_COMPLETED]);
+        $vendorEmail = $this->getUserEmail((int) $req['vendor_uid']);
+        if ($vendorEmail) {
+          $id = $this->messagingManager->queue('refund_completed_vendor', $vendorEmail, $ctx);
+          if ($id) {
+            $this->messagingManager->sendMessage($id);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds shared context for refund emails.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event.
+   * @param int $amountCents
+   *   Amount in cents.
+   * @param string $currency
+   *   Currency code.
+   * @param bool $donationRefunded
+   *   Whether donation was included.
+   *
+   * @return array
+   *   Context for message templates.
+   */
+  private function buildRefundEmailContext(
+    OrderInterface $order,
+    NodeInterface $event,
+    int $amountCents,
+    string $currency,
+    bool $donationRefunded = FALSE
+  ): array {
+    $amount = number_format($amountCents / 100, 2);
+    $currencyUpper = strtoupper($currency);
+
+    return [
+      'order_id' => $order->id(),
+      'event_id' => (int) $event->id(),
       'event_title' => $event->label(),
       'event_date' => $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()
         ? $event->get('field_event_start')->date->format('F j, Y g:ia')
@@ -386,12 +634,20 @@ final class RefundProcessor {
         ? $event->get('field_venue_name')->value
         : '',
       'order_number' => $order->getOrderNumber() ?: '#' . $order->id(),
-      'refunded_amount' => $currency . ' ' . $amount,
-      'donation_refunded' => (bool) $log['donation_refunded'],
-      'my_tickets_url' => Url::fromRoute('entity.commerce_order.canonical', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(),
+      'refunded_amount' => $currencyUpper . ' ' . $amount,
+      'donation_refunded' => $donationRefunded,
+      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+        'commerce_order' => $order->id(),
+      ], ['absolute' => TRUE])->toString(),
     ];
+  }
 
-    $this->messagingManager->queue('refund_processed', $customerEmail, $context);
+  /**
+   * Gets email for a user ID.
+   */
+  private function getUserEmail(int $uid): ?string {
+    $user = $this->entityTypeManager->getStorage('user')->load($uid);
+    return $user && $user->getEmail() ? $user->getEmail() : NULL;
   }
 
 }

@@ -94,6 +94,38 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#size' => 5,
     ];
 
+    $form['payments']['stripe_fee_percent'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Stripe application fee percentage'),
+      '#description' => $this->t('Percentage deducted from vendor payout (e.g. 3 for 3%). Applied to ticket revenue only, not donations.'),
+      '#default_value' => (string) ($config->get('stripe_fee_percent') ?? 3),
+      '#min' => 0,
+      '#max' => 100,
+      '#step' => 0.1,
+      '#size' => 5,
+    ];
+
+    $form['payments']['stripe_fee_fixed_cents'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Stripe application fee fixed (cents)'),
+      '#description' => $this->t('Fixed fee in cents deducted from vendor payout (e.g. 30 for $0.30).'),
+      '#default_value' => (string) ($config->get('stripe_fee_fixed_cents') ?? 30),
+      '#min' => 0,
+      '#step' => 1,
+      '#size' => 5,
+    ];
+
+    $form['payments']['fee_payer'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Who pays platform fee'),
+      '#description' => $this->t('Buyer: platform fee shown as order adjustment. Organiser absorbs: no fee to buyer; organiser pays via reduced payout.'),
+      '#options' => [
+        'buyer' => $this->t('Buyer'),
+        'organizer_absorbs' => $this->t('Organiser absorbs'),
+      ],
+      '#default_value' => $config->get('fee_payer') ?? 'buyer',
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -105,12 +137,26 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $platform_fee_percent = is_numeric($v) ? (float) $v : 5;
     $platform_fee_percent = max(0, min(100, $platform_fee_percent));
 
+    $v = $form_state->getValue(['payments', 'stripe_fee_percent']);
+    $stripe_fee_percent = is_numeric($v) ? (float) $v : 3;
+    $stripe_fee_percent = max(0, min(100, $stripe_fee_percent));
+
+    $v = $form_state->getValue(['payments', 'stripe_fee_fixed_cents']);
+    $stripe_fee_fixed_cents = is_numeric($v) ? (int) $v : 30;
+    $stripe_fee_fixed_cents = max(0, $stripe_fee_fixed_cents);
+
+    $fee_payer = $form_state->getValue(['payments', 'fee_payer']);
+    $fee_payer = in_array($fee_payer, ['buyer', 'organizer_absorbs'], TRUE) ? $fee_payer : 'buyer';
+
     $this->config('myeventlane_core.settings')
-      ->set('site_name', $form_state->getValue('site_name'))
-      ->set('support_email', $form_state->getValue('support_email'))
-      ->set('default_timezone', $form_state->getValue('default_timezone'))
-      ->set('default_currency', $form_state->getValue('default_currency'))
+      ->set('site_name', $form_state->getValue(['platform', 'site_name']))
+      ->set('support_email', $form_state->getValue(['platform', 'support_email']))
+      ->set('default_timezone', $form_state->getValue(['defaults', 'default_timezone']))
+      ->set('default_currency', $form_state->getValue(['defaults', 'default_currency']))
       ->set('platform_fee_percent', $platform_fee_percent)
+      ->set('stripe_fee_percent', $stripe_fee_percent)
+      ->set('stripe_fee_fixed_cents', $stripe_fee_fixed_cents)
+      ->set('fee_payer', $fee_payer)
       ->save();
 
     parent::submitForm($form, $form_state);

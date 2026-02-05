@@ -2,6 +2,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.event.field_event_intro
     - field.field.node.event.field_venue
     - node.type.event
   module:
@@ -12,6 +13,20 @@ targetEntityType: node
 bundle: event
 mode: default
 content:
+  body:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_event_intro:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
   field_venue:
     type: entity_reference_label
     label: above

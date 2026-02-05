@@ -1,0 +1,12 @@
+services:
+  myeventlane.page_visual_resolver:
+    class: Drupal\myeventlane_page_visuals\Service\PageVisualResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@entity.repository'
+      - '@file_url_generator'
+
+  myeventlane_page_visuals.config_subscriber:
+    class: Drupal\myeventlane_page_visuals\EventSubscriber\PageVisualConfigSubscriber
+    tags:
+      - { name: event_subscriber }

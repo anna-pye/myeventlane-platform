@@ -29,20 +29,35 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_analytics']
 
+  # Phase 7 analytics (vendor revenue source; no Boost).
+  myeventlane_analytics.phase7.scope_resolver:
+    class: Drupal\myeventlane_analytics\Phase7\Scope\AnalyticsScopeResolver
+    arguments: ['@current_user', '@entity_type.manager']
 
+  myeventlane_analytics.phase7.guard:
+    class: Drupal\myeventlane_analytics\Phase7\Guard\AnalyticsQueryGuard
+    arguments: ['@logger.channel.myeventlane_analytics']
 
+  myeventlane_analytics.phase7.query:
+    class: Drupal\myeventlane_analytics\Phase7\Service\AnalyticsQueryService
+    arguments: ['@myeventlane_analytics.phase7.scope_resolver', '@myeventlane_analytics.phase7.guard']
 
+  myeventlane_analytics.admin_revenue_query:
+    class: Drupal\myeventlane_analytics\Phase7\Service\AdminRevenueQueryService
+    arguments: ['@myeventlane_analytics.phase7.query', '@database']
 
+  myeventlane_analytics.popular_events:
+    class: Drupal\myeventlane_analytics\Service\PopularEventsService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.factory'
 
-
-
-
-
-
-
-
-
-
-
-
-
+  myeventlane_analytics.trending_categories:
+    class: Drupal\myeventlane_analytics\Service\TrendingCategoriesService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@entity_type.manager'
+      - '@myeventlane_analytics.popular_events'
+      - '@logger.factory'

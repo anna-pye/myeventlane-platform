@@ -55,27 +55,11 @@ export default defineConfig({
         front: path.resolve(__dirname, 'src/scss/front.scss'),
       },
       output: {
-        // Stable filenames for Drupal libraries.yml compatibility
-        entryFileNames: (chunkInfo) => {
-          // Preserve existing stable root outputs.
-          if (chunkInfo.name === 'main' || chunkInfo.name === 'account-dropdown') {
-            return '[name].js';
-          }
-          // New entrypoints go into dist/js/.
-          return 'js/[name].js';
-        },
-        chunkFileNames: '[name].js',
-        assetFileNames: (assetInfo) => {
-          // Preserve existing main.css at dist/main.css.
-          if (assetInfo.name === 'main.css') {
-            return '[name][extname]';
-          }
-          // New CSS assets go into dist/css/.
-          if ((assetInfo.name || '').endsWith('.css')) {
-            return 'css/[name][extname]';
-          }
-          return '[name][extname]';
-        },
+        // Cache-busting filenames. Drupal libraries are rewritten at runtime
+        // using dist/.vite/manifest.json (hook_library_info_alter).
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]',
       },
       // Ensure we don't tree-shake or bundle external Commerce/Stripe JS
       external: [],

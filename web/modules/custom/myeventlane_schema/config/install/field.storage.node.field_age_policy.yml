@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_age_policy
+field_name: field_age_policy
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - { value: all_ages, label: all_ages }
+    - { value: 18_plus, label: 18_plus }
+    - { value: 16_plus, label: 16_plus }
+    - { value: under_18_with_guardian, label: under_18_with_guardian }
+    - { value: custom, label: custom }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
+

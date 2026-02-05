@@ -76,15 +76,20 @@
 
 // Coral accent button
 .mel-btn--coral {
-  background-color: $ml-accent-coral;
+  background-color: $ml-color-accent;
   color: $text-inverse;
-  border-color: $ml-accent-coral;
+  border-color: $ml-color-accent;
 
   &:hover {
-    background-color: color.adjust($ml-accent-coral, $lightness: -8%);
-    border-color: color.adjust($ml-accent-coral, $lightness: -8%);
+    background-color: color.adjust($ml-color-accent, $lightness: -8%);
+    border-color: color.adjust($ml-color-accent, $lightness: -8%);
     color: $text-inverse;
   }
+}
+
+// CTA (Coral) - conversion moments (Create, Boost, Checkout).
+.mel-btn--cta {
+  @extend .mel-btn--coral;
 }
 
 // Secondary/outline button

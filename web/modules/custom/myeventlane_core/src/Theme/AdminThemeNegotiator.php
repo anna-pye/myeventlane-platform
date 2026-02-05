@@ -29,8 +29,23 @@ final class AdminThemeNegotiator implements ThemeNegotiatorInterface {
    * {@inheritdoc}
    */
   public function applies(RouteMatchInterface $route_match): bool {
-    // Only apply on admin domain.
-    return $this->domainDetector->isAdminDomain();
+    // Only apply on the admin domain, and only for admin routes.
+    //
+    // IMPORTANT: Do not force the admin theme for public-facing routes, even if
+    // they are accessed via the admin domain. This prevents public pages (e.g.
+    // booking/cart/checkout) from inheriting admin styling and missing frontend
+    // asset attachments.
+    if (!$this->domainDetector->isAdminDomain()) {
+      return FALSE;
+    }
+
+    $route = $route_match->getRouteObject();
+    if ($route && $route->getOption('_admin_route')) {
+      return TRUE;
+    }
+
+    $path = $route?->getPath() ?? '';
+    return $path !== '' && str_starts_with($path, '/admin');
   }
 
   /**

@@ -1,3 +1,14 @@
+# Admin revenue dashboard (admin only; no reuse of vendor dashboard services).
+myeventlane_analytics.admin_revenue:
+  path: '/admin/myeventlane/revenue'
+  defaults:
+    _controller: '\Drupal\myeventlane_analytics\Controller\AdminRevenueDashboardController::build'
+    _title: 'Revenue (Admin only)'
+  requirements:
+    _permission: 'access myeventlane admin revenue dashboard'
+  options:
+    _admin_route: true
+
 # Analytics dashboard.
 myeventlane_analytics.dashboard:
   path: '/vendor/analytics'

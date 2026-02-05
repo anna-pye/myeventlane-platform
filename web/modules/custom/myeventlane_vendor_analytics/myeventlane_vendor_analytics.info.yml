@@ -8,4 +8,5 @@ lifecycle: stable
 dependencies:
   - commerce:commerce_order
   - commerce:commerce_store
+  - myeventlane_analytics:myeventlane_analytics
   - drupal:user

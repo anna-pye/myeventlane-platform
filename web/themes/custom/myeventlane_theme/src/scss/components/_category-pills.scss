@@ -1,32 +1,113 @@
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+
 .mel-category-pills {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin: 1.25rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+  margin: spacing.mel-space(3) 0;
 }
 
 .mel-pill {
+  --mel-pill-accent: #{colors.$mel-color-primary};
+  --mel-pill-accent-bg: rgba(108, 126, 242, 0.14);
+
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.55rem 1.05rem;
-  border-radius: 999px;
-  background: var(--pill-color);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.9rem;
+  gap: spacing.mel-space(2);
+  padding: 0.4rem 0.8rem;
+  border-radius: radii.$mel-radius-full;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: shadows.$mel-shadow-sm;
+  color: colors.$mel-color-text;
   text-decoration: none;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-weight: typography.$mel-font-semibold;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1;
+  backdrop-filter: blur(10px);
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: shadows.$mel-shadow-md;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
 }
 
-.mel-pill:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+.mel-pill__icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 7px;
+  background: var(--mel-pill-accent-bg);
+  position: relative;
+  flex: 0 0 auto;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    background: var(--mel-pill-accent);
+    opacity: 0.9;
+  }
 }
 
-.mel-pill:active,
-.mel-pill.is-active {
-  transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+.mel-pill__label {
+  white-space: nowrap;
 }
+
+// Badge variant for hero overlays.
+.mel-pill--on-image {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+// Category accents (best-effort mapping; ties to term slugs).
+.mel-pill--cat-arts { --mel-pill-accent: #f5a04c; --mel-pill-accent-bg: rgba(245, 160, 76, 0.18); }
+.mel-pill--cat-community { --mel-pill-accent: #5cc98b; --mel-pill-accent-bg: rgba(92, 201, 139, 0.18); }
+.mel-pill--cat-music { --mel-pill-accent: #{colors.$mel-color-primary}; --mel-pill-accent-bg: rgba(108, 126, 242, 0.16); }
+.mel-pill--cat-lgbtqia { --mel-pill-accent: #a855f7; --mel-pill-accent-bg: rgba(168, 85, 247, 0.16); }
+.mel-pill--cat-workshops { --mel-pill-accent: #{colors.$mel-color-secondary}; --mel-pill-accent-bg: rgba(242, 109, 91, 0.16); }
+.mel-pill--cat-food { --mel-pill-accent: #f59e0b; --mel-pill-accent-bg: rgba(245, 158, 11, 0.16); }
+
+// Full background colors for listing page pills (match homepage hero).
+.mel-category-pills .mel-pill {
+  background: var(--mel-lilac);
+  color: var(--mel-navy);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+.mel-category-pills .mel-pill--cat-music { background: var(--mel-coral); color: #fff; }
+.mel-category-pills .mel-pill--cat-movie { background: var(--mel-blue); color: #fff; }
+.mel-category-pills .mel-pill--cat-workshop,
+.mel-category-pills .mel-pill--cat-workshops { background: var(--mel-lilac); color: var(--mel-navy); }
+.mel-category-pills .mel-pill--cat-arts { background: var(--mel-peach); color: var(--mel-navy); }
+.mel-category-pills .mel-pill--cat-lgbtqia,
+.mel-category-pills .mel-pill--cat-lgbtqi { background: var(--mel-mint); color: var(--mel-navy); }
+.mel-category-pills .mel-pill--cat-food,
+.mel-category-pills .mel-pill--cat-food-drink { background: var(--mel-orange); color: #fff; }
+.mel-category-pills .mel-pill--cat-community { background: var(--mel-sky); color: var(--mel-navy); }
+.mel-category-pills .mel-pill--cat-markets { background: var(--mel-butter); color: var(--mel-navy); }
+.mel-category-pills .mel-pill--cat-family { background: var(--mel-coral); color: #fff; }
+.mel-category-pills .mel-pill--cat-sport,
+.mel-category-pills .mel-pill--cat-sports { background: var(--mel-blue); color: #fff; }
+.mel-category-pills .mel-pill--cat-default { background: var(--mel-lilac); color: var(--mel-navy); }

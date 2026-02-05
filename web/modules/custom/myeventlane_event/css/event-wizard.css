@@ -1,3 +1,17 @@
+/* Event image widget: preview, upload, alt in clear order. */
+.mel-event-image-widget .mel-event-image-preview {
+  margin-bottom: 1rem;
+}
+.mel-event-image-widget .mel-event-image-preview img {
+  display: block;
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+}
+.mel-event-image-widget .form-managed-file {
+  margin-bottom: 1rem;
+}
+
 /* Wizard layout enhancements to support LEFT stepper.
  * Vendor theme provides the visual tokens; this file focuses on layout + scoping.
  */
@@ -131,4 +145,112 @@ form .mel-simple-tabs {
   overflow: hidden;
   clip: rect(1px, 1px, 1px, 1px);
   white-space: nowrap;
+}
+
+/* ============================================================================
+ * Wizard card layout (prefix/suffix templates: mel-wizard-frame + sections)
+ * Loaded by myeventlane_event/event_wizard so it applies regardless of theme.
+ * Standardized width: 1080px (max-w-4xl equivalent) for consistent vendor UX.
+ * ============================================================================ */
+
+.mel-event-wizard .mel-event-wizard__main {
+  max-width: 67.5rem; /* 1080px - matches layout-content-max-width */
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mel-event-wizard .mel-wizard-frame {
+  background: #f9fafb;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.mel-event-wizard .mel-wizard-frame__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.mel-event-wizard .mel-wizard-frame__title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mel-event-wizard .mel-wizard-frame__menu {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.mel-event-wizard .mel-wizard-frame__content {
+  display: grid;
+  gap: 24px;
+}
+
+/* Phase II — Section sub-cards (structural wrappers) */
+.mel-event-wizard .mel-wizard-sections {
+  display: grid;
+  gap: 24px;
+}
+
+.mel-event-wizard .mel-wizard-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #eef2f7;
+}
+
+/* Phase III — Section headers */
+.mel-event-wizard .mel-wizard-section::before {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.mel-event-wizard .mel-wizard-section--basics::before {
+  content: 'Event details';
+}
+
+.mel-event-wizard .mel-wizard-section--category::before {
+  content: 'Category';
+}
+
+.mel-event-wizard .mel-wizard-section--image::before {
+  content: 'Event image';
+}
+
+/* Phase IV — Content layout (stepper moved to sidebar; single column) */
+.mel-event-wizard .mel-event-wizard__layout {
+  display: block;
+  width: 100%;
+}
+
+.mel-event-wizard .mel-wizard-steps__label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Phase V — Mobile density */
+@media (max-width: 480px) {
+  .mel-event-wizard .mel-wizard-frame {
+    padding: 16px;
+  }
+
+  .mel-event-wizard .mel-wizard-section {
+    padding: 16px;
+  }
+
+  .mel-event-wizard .mel-wizard-section::before {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
 }

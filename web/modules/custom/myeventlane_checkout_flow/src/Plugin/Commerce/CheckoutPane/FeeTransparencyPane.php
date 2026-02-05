@@ -8,6 +8,7 @@ use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\commerce_order\OrderRefreshInterface;
 use Drupal\commerce_price\CurrencyFormatter;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -38,12 +39,20 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
   private OrderRefreshInterface $orderRefresh;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  private ConfigFactoryInterface $configFactory;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->currencyFormatter = $container->get('commerce_price.currency_formatter');
     $instance->orderRefresh = $container->get('commerce_order.order_refresh');
+    $instance->configFactory = $container->get('config.factory');
     return $instance;
   }
 
@@ -142,6 +151,24 @@ final class FeeTransparencyPane extends CheckoutPaneBase {
           '#type' => 'html_tag',
           '#tag' => 'span',
           '#value' => $this->formatPrice($fees),
+          '#attributes' => ['class' => ['mel-summary-amount']],
+        ],
+      ];
+    }
+    elseif ($subtotal && $subtotal->getNumber() > 0 && $this->configFactory->get('myeventlane_core.settings')->get('fee_payer') === 'organizer_absorbs') {
+      $pane_form['summary']['organizer_absorbs'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-summary-row', 'mel-summary-organizer-absorbs']],
+        'label' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => $this->t('Platform fee'),
+          '#attributes' => ['class' => ['mel-summary-label']],
+        ],
+        'amount' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => $this->t('Organiser absorbs'),
           '#attributes' => ['class' => ['mel-summary-amount']],
         ],
       ];

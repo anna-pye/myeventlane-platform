@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\node\NodeInterface;
@@ -47,14 +48,16 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       ],
       'template' => 'myeventlane-manage-event',
     ],
-    'vendor_onboard_step' => [
+    'myeventlane_manage_series_instances_content' => [
       'variables' => [
-        'step_number' => 1,
-        'total_steps' => 5,
-        'step_title' => NULL,
-        'step_description' => NULL,
-        'content' => NULL,
+        'instance_rows' => [],
+        'generate_url' => NULL,
+        'empty' => TRUE,
       ],
+      'template' => 'myeventlane-manage-series-instances-content',
+    ],
+    'vendor_onboard_step' => [
+      'render element' => 'form',
       'template' => 'vendor-onboard-step',
     ],
     'myeventlane_vendor_console_page' => [
@@ -65,6 +68,18 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'body' => NULL,
       ],
       'template' => 'vendor-console-page',
+    ],
+    // Used in onboarding flash/CTA contexts. Must be available even when the
+    // vendor theme is not the active theme to avoid theme hook warnings.
+    'myeventlane_vendor_onboarding_panel' => [
+      'variables' => [
+        'stage_label' => NULL,
+        'flags' => [],
+        'next_action' => ['route_name' => NULL, 'title' => ''],
+        'vendor' => NULL,
+      ],
+      'template' => 'components/vendor-onboarding-panel',
+      'path' => \Drupal::service('extension.list.theme')->getPath('myeventlane_vendor_theme') . '/templates',
     ],
   ];
 }
@@ -103,7 +118,8 @@ function myeventlane_vendor_form_alter(
     return;
   }
 
-  // Only vendor-domain cosmetic/UX changes are allowed here.
+  // Onboarding profile step uses dedicated VendorOnboardProfileForm (not entity form).
+  // Only vendor-domain cosmetic/UX changes are allowed for vendor entity forms.
   if (!\Drupal::service('myeventlane_core.domain_detector')->isVendorDomain()) {
     return;
   }
@@ -112,34 +128,78 @@ function myeventlane_vendor_form_alter(
 /**
  * Implements hook_form_user_login_form_alter().
  *
- * Adds vendor onboarding messaging ONLY.
+ * Contextual login UI: vendor intent gets organiser copy and CTAs.
+ * Uses VendorIntentResolver for intent detection.
  */
 function myeventlane_vendor_form_user_login_form_alter(
   array &$form,
   FormStateInterface $form_state,
 ): void {
-  $destination = \Drupal::request()->query->get('destination');
+  $is_vendor_intent = \Drupal::hasService('myeventlane_core.vendor_intent_resolver')
+    ? \Drupal::service('myeventlane_core.vendor_intent_resolver')->isVendorIntent()
+    : _myeventlane_vendor_is_vendor_intent();
 
-  if ($destination && str_contains($destination, '/vendor')) {
-    $vendor_register = Url::fromRoute('user.register', [], [
-      'query' => [
-        'vendor' => '1',
-        'destination' => '/vendor/onboard',
-      ],
-    ])->toString();
-
-    $form['vendor_notice'] = [
-      '#type' => 'markup',
-      '#markup' => '
-        <div class="mel-vendor-login-notice">
-          <p><strong>Creating events?</strong> You need an organiser account.</p>
-          <a class="mel-btn mel-btn--primary" href="' . $vendor_register . '">
-            Create organiser account
-          </a>
-        </div>',
-      '#weight' => -100,
-    ];
+  // Pass contextual data to template via form (preprocess copies to variables).
+  $form['#mel_vendor_intent'] = $is_vendor_intent;
+  if ($is_vendor_intent) {
+    $form['#mel_auth_headline'] = t('Log in to create your event');
+    $form['#mel_auth_subcopy'] = t("You'll need an organiser account");
+    $form['#mel_auth_signup_url'] = Url::fromRoute('myeventlane_vendor.onboard.account')->toString();
+    $form['#mel_auth_signup_text'] = t('Create organiser account');
+    $form['#attributes']['class'][] = 'mel-auth--vendor-intent';
+    if (isset($form['actions']['submit']['#value'])) {
+      $form['actions']['submit']['#value'] = t('Log in');
+    }
   }
+  else {
+    $form['#mel_auth_headline'] = t('Log in');
+    $form['#mel_auth_subcopy'] = t('Log in to your account');
+    $form['#mel_auth_signup_url'] = Url::fromRoute('user.register')->toString();
+    $form['#mel_auth_signup_text'] = t('Sign up');
+  }
+}
+
+/**
+ * Implements hook_preprocess_form() for user_login_form.
+ *
+ * Passes contextual auth variables and form element to form template.
+ */
+function myeventlane_vendor_preprocess_form(array &$variables): void {
+  $element = $variables['element'] ?? [];
+  if (($element['#form_id'] ?? '') !== 'user_login_form') {
+    return;
+  }
+
+  $variables['form'] = $element;
+  $variables['mel_vendor_intent'] = $element['#mel_vendor_intent'] ?? FALSE;
+  $variables['mel_auth_headline'] = $element['#mel_auth_headline'] ?? t('Log in');
+  $variables['mel_auth_subcopy'] = $element['#mel_auth_subcopy'] ?? t('Log in to your account');
+  $variables['mel_auth_signup_url'] = $element['#mel_auth_signup_url'] ?? '';
+  $variables['mel_auth_signup_text'] = $element['#mel_auth_signup_text'] ?? t('Sign up');
+}
+
+/**
+ * Fallback vendor intent detection when VendorIntentResolver service unavailable.
+ *
+ * Replicates VendorIntentResolver::isVendorIntent() logic.
+ */
+function _myeventlane_vendor_is_vendor_intent(): bool {
+  $request = \Drupal::request();
+  if ($request === NULL) {
+    return FALSE;
+  }
+  if ($request->query->get('intent') === 'vendor') {
+    return TRUE;
+  }
+  $destination = $request->query->get('destination');
+  if ($destination === NULL || $destination === '') {
+    return FALSE;
+  }
+  $path = str_contains($destination, '?')
+    ? strstr($destination, '?', TRUE)
+    : $destination;
+  $path = '/' . trim($path, '/');
+  return str_starts_with($path, '/vendor') || $path === '/create-event';
 }
 
 /**

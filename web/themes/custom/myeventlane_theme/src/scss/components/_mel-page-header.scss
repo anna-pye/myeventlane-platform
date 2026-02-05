@@ -2,12 +2,33 @@
   max-width: 1200px;
   margin: 0 auto 32px;
   padding: 32px 24px 16px;
+
+  &--hero {
+    position: relative;
+    padding: clamp(3rem, 6vw, 5rem) 24px 2rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(254, 245, 236, 0.5) 0%, rgba(230, 217, 255, 0.5) 100%),
+      var(--mel-hero-bg);
+    background-size: 100% 100%, cover;
+    background-position: 0 0, center;
+
+    // Mobile-specific hero image when --mel-hero-bg-mobile is set.
+    @media (max-width: 767px) {
+      background-image: linear-gradient(
+          135deg,
+          rgba(254, 245, 236, 0.5) 0%,
+          rgba(230, 217, 255, 0.5) 100%
+        ),
+        var(--mel-hero-bg-mobile, var(--mel-hero-bg));
+    }
+  }
 }
 
 .mel-page-title {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
-  color: var(--mel-coral);
+  // Page titles are brand text; coral is reserved for conversion CTAs.
+  color: var(--mel-text);
   margin-bottom: 8px;
 }
 

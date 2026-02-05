@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_age_policy
+    - node.type.event
+  module:
+    - options
+id: node.event.field_age_policy
+field_name: field_age_policy
+entity_type: node
+bundle: event
+label: 'Age policy'
+description: 'Age restrictions for this event.'
+required: true
+translatable: false
+default_value:
+  - value: all_ages
+default_value_callback: ''
+settings: {  }
+field_type: list_string
+

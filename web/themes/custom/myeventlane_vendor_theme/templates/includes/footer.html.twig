@@ -1,26 +1,27 @@
 {#
 /**
  * @file
- * Footer include for MyEventLane Vendor Console.
+ * Vendor console footer.
+ * Always renders structural markup and SCSS-compatible layout.
  */
 #}
-<div class="mel-site-footer mel-site-footer--vendor">
-  <div class="mel-site-footer__inner">
-    <div class="mel-footer">
-  <div class="mel-footer__left">
-    <span class="mel-footer__brand">MyEventLane</span>
-    <span class="mel-footer__meta">{{ 'Performance, payouts, and audience in one place.'|t }}</span>
-  </div>
-  <div class="mel-footer__right">
-    {% if page.footer_links %}
-      {{ page.footer_links }}
-    {% else %}
-      <a href="/vendor/settings" class="mel-footer__link">{{ 'Settings'|t }}</a>
-      <a href="/vendor/payouts" class="mel-footer__link">{{ 'Payouts'|t }}</a>
-      <a href="/" class="mel-footer__link">{{ 'Main Site'|t }}</a>
-    {% endif %}
-  </div>
-    </div>
-  </div>
-</div>
 
+<footer class="mel-site-footer mel-site-footer--vendor" role="contentinfo">
+  <div class="mel-site-footer__inner mel-container">
+
+    <div class="mel-vendor-footer__row mel-footer-grid">
+      <div class="mel-vendor-footer__left mel-footer-col">
+        {{ page.vendor_footer_left }}
+      </div>
+
+      <div class="mel-vendor-footer__right mel-footer-col">
+        {{ page.vendor_footer_right }}
+      </div>
+    </div>
+
+    <div class="mel-vendor-footer__legal">
+      {{ page.vendor_footer_legal }}
+    </div>
+
+  </div>
+</footer>

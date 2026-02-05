@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - paragraphs
+id: paragraph.field_highlight_icon
+field_name: field_highlight_icon
+entity_type: paragraph
+type: list_string
+settings:
+  allowed_values:
+    - { value: star, label: star }
+    - { value: music, label: music }
+    - { value: food, label: food }
+    - { value: community, label: community }
+    - { value: workshop, label: workshop }
+    - { value: accessibility, label: accessibility }
+    - { value: warning, label: warning }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
+

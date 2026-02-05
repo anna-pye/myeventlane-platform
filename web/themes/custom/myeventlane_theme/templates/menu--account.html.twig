@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Theme override for the account menu.
+ * Wraps in mel-account-dropdown for desktop; single item renders as link.
+ */
+#}
+{% if items|length <= 1 %}
+  {# Single item (e.g. Log in): render as plain link #}
+  {% for item in items %}
+    {{ link(item.title, item.url, item.attributes) }}
+  {% endfor %}
+{% else %}
+  {# Multiple items: wrap in dropdown (hidden until toggle) #}
+  <div class="mel-account-dropdown">
+    <button type="button" class="mel-account-toggle" aria-expanded="false" aria-haspopup="true" aria-label="{{ 'Account menu'|t }}">
+      <span class="mel-account-icon" aria-hidden="true">👤</span>
+      <span class="mel-account-text">{{ items[0].title }}</span>
+      <span class="mel-dropdown-arrow" aria-hidden="true">▼</span>
+    </button>
+    <div class="mel-account-menu" aria-hidden="true" role="menu">
+      {% for item in items %}
+        {{ link(item.title, item.url, item.attributes.addClass('mel-account-menu-item')) }}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

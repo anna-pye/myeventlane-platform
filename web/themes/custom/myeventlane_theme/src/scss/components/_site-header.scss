@@ -1,0 +1,199 @@
+// ==========================================================================
+// Site Header Component
+// ==========================================================================
+// Compact global header (desktop + mobile).
+// Uses BEM: .site-header, .site-header__inner, etc.
+
+.site-header {
+  position: relative;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid rgba(41, 50, 65, 0.12);
+  height: 64px;
+  display: flex;
+  align-items: center;
+  box-shadow: none;
+  overflow: visible;
+
+  &__inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+
+    img,
+    svg {
+      max-height: 32px;
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+  }
+
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    @media (max-width: 900px) {
+      display: none;
+    }
+
+    // Reset list styling from Drupal menu output
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    // Primary nav links: 40px height, consistent padding, active pill
+    a,
+    .mel-nav__link {
+      display: inline-flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 14px;
+      color: var(--mel-ink);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      border-radius: var(--mel-radius-pill);
+      transition: background 0.15s ease, color 0.15s ease;
+      background: transparent;
+
+      &:hover {
+        color: var(--mel-coral);
+        background: rgba(242, 109, 91, 0.08);
+      }
+
+      &.is-active,
+      &[aria-current='page'],
+      &[aria-current='true'] {
+        color: var(--mel-coral);
+        background: rgba(242, 109, 91, 0.12);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--mel-coral);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+  }
+
+  &__organiser,
+  &__cart,
+  &__user {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  &__organiser {
+    @media (max-width: 900px) {
+      display: none;
+    }
+  }
+
+  &__cart {
+    .mel-cart-block-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      position: relative;
+      text-decoration: none;
+      color: var(--mel-ink);
+      border-radius: var(--mel-radius-1);
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: rgba(41, 50, 65, 0.06);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--mel-focus);
+        outline-offset: 2px;
+      }
+    }
+
+    .mel-cart-block-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--mel-ink);
+    }
+
+    .mel-cart-badge-count {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 6px;
+      background: var(--mel-coral);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: var(--mel-radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  &__user {
+    .mel-account-toggle {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: var(--mel-radius-1);
+      color: var(--mel-ink);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(41, 50, 65, 0.06);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--mel-focus);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__burger {
+    display: none;
+
+    @media (max-width: 900px) {
+      display: flex;
+      align-items: center;
+    }
+  }
+}

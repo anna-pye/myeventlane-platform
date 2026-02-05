@@ -1,0 +1,45 @@
+# Customer My Account - authenticated users only.
+
+myeventlane_account.event_review:
+  path: '/event/{node}/review'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\EventReviewController::reviewForm'
+    _title: 'Leave a review'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _custom_access: '\Drupal\myeventlane_account\Access\EventReviewRouteAccessCheck::checkAccess'
+  options:
+    _admin_route: FALSE
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_account.dashboard:
+  path: '/my-account'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\MyAccountController::dashboard'
+    _title: 'My Account'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+myeventlane_account.settings:
+  path: '/my-settings'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\MyAccountController::settings'
+    _title: 'Profile & Settings'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: FALSE
+
+myeventlane_account.past_events:
+  path: '/my-past-events'
+  defaults:
+    _controller: '\Drupal\myeventlane_account\Controller\MyAccountController::pastEvents'
+    _title: 'Past Events'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    _admin_route: FALSE

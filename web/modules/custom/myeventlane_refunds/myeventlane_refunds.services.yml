@@ -3,6 +3,21 @@ services:
     class: Drupal\myeventlane_refunds\Service\RefundOrderInspector
     arguments: ['@entity_type.manager']
 
+  myeventlane_refunds.buyer_eligibility:
+    class: Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService
+    arguments: ['@myeventlane_refunds.order_inspector']
+
+  myeventlane_refunds.refund_request_storage:
+    class: Drupal\myeventlane_refunds\Service\RefundRequestStorage
+    arguments: ['@database', '@datetime.time']
+
+  myeventlane_refunds.buyer_refund_access_check:
+    class: Drupal\myeventlane_refunds\Access\BuyerRefundAccessCheck
+    arguments:
+      - '@myeventlane_refunds.buyer_eligibility'
+      - '@request_stack'
+      - '@entity_type.manager'
+
   myeventlane_refunds.access_resolver:
     class: Drupal\myeventlane_refunds\Service\RefundAccessResolver
     arguments:
@@ -16,6 +31,8 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_refunds.order_inspector'
       - '@myeventlane_refunds.access_resolver'
+      - '@myeventlane_refunds.buyer_eligibility'
+      - '@myeventlane_refunds.refund_request_storage'
       - '@myeventlane_messaging.manager'
       - '@logger.factory'
       - '@queue'

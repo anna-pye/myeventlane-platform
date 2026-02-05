@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Install and uninstall for MyEventLane Auth.
+ *
+ * Field field_mel_account_type is provided via config/install and created
+ * when the module is installed. No role assignment is performed on registration.
+ * This hook performs a safety check only; config remains the source of truth.
+ */
+
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_auth_install(): void {
+  $storage = FieldStorageConfig::loadByName('user', 'field_mel_account_type');
+  $field = FieldConfig::loadByName('user', 'user', 'field_mel_account_type');
+  if (!$storage || !$field) {
+    \Drupal::logger('myeventlane_auth')->warning(
+      'MyEventLane Auth: field_mel_account_type storage or instance missing after install. Config/install may not have been applied. Enable config import or reinstall the module.'
+    );
+    return;
+  }
+}

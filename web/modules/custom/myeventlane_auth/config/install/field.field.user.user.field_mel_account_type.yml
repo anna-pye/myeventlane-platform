@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_mel_account_type
+  module:
+    - user
+id: user.user.field_mel_account_type
+field_name: field_mel_account_type
+entity_type: user
+bundle: user
+label: 'Account type'
+description: 'Whether you are attending events or running events. Used for onboarding; no role assignment on registration.'
+required: true
+translatable: false
+default_value:
+  - value: customer
+default_value_callback: ''
+settings: {}
+field_type: list_string

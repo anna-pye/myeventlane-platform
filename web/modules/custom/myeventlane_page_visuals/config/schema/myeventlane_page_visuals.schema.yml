@@ -1,0 +1,32 @@
+# Schema for Page Visual config entity.
+myeventlane_page_visuals.page_visual.*:
+  type: config_entity
+  label: 'Page Visual'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: 'Label'
+    route_name:
+      type: string
+      label: 'Route name'
+    media_uuid_desktop:
+      type: string
+      label: 'Desktop Media entity UUID'
+    media_uuid_mobile:
+      type: string
+      label: 'Mobile Media entity UUID'
+    hide_on_mobile:
+      type: boolean
+      label: 'Hide visual on mobile'
+    alt_text:
+      type: string
+      label: 'Alt text'
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    uuid:
+      type: string
+      label: 'UUID'

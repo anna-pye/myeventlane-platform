@@ -8,9 +8,9 @@
 
 .mel-hero {
   background: transparent;
-  padding: spacing.mel-space(7) 0;
+  padding: spacing.mel-space(8) 0;
   border-radius: 0;
-  margin-bottom: spacing.mel-space(6);
+  margin-bottom: spacing.mel-space(4);
 }
 
 .mel-hero-inner {
@@ -27,7 +27,7 @@
   font-weight: 800;
   color: colors.$mel-color-primary;
   letter-spacing: -0.025em;
-  line-height: 1.05;
+  line-height: 1.02;
   margin-bottom: spacing.mel-space(4);
   max-width: 16ch;
 }
@@ -63,6 +63,8 @@
   display: flex;
   gap: spacing.mel-space(2);
   box-shadow: shadows.$mel-shadow-sm;
+  max-width: 640px;
+  margin: 0 auto;
 
   input {
     flex: 1;
@@ -97,7 +99,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: spacing.mel-space(3);
+  gap: spacing.mel-space(2);
 }
 
 .mel-chip {
@@ -109,6 +111,7 @@
   color: colors.$mel-color-text;
   text-decoration: none;
   transition: background 0.2s;
+  opacity: 0.92;
 
   &:hover {
     background: color.adjust(colors.$mel-color-surface, $lightness: 4%);

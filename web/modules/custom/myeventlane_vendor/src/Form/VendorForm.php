@@ -25,23 +25,21 @@ class VendorForm extends ContentEntityForm {
     // This validation runs before preSave(), providing early feedback.
     if ($entity->isNew()) {
       $ownerId = $entity->getOwnerId();
-
-      // If owner is not set, it will be set in preSave() to current user.
-      // Check for current user's existing vendor.
       if ($ownerId === NULL) {
         $ownerId = (int) $currentUser->id();
       }
 
       if ($ownerId > 0) {
-        $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
+        $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
         $existingVendorIds = $storage->getQuery()
           ->accessCheck(FALSE)
           ->condition('uid', $ownerId)
           ->execute();
 
         if (!empty($existingVendorIds)) {
-          $form_state->setError($form, $this->t('A vendor entity already exists for this user. Each user can only have one vendor entity.'));
-          $this->logger('myeventlane_vendor')->warning('Form validation blocked duplicate Vendor creation for user @uid', [
+          $message = $this->t('A vendor entity already exists for this user. Each user can only have one vendor entity.');
+          $form_state->setErrorByName('name', $message);
+          \Drupal::logger('myeventlane_vendor')->warning('Form validation blocked duplicate Vendor creation for user @uid', [
             '@uid' => $ownerId,
           ]);
         }
@@ -116,7 +114,7 @@ class VendorForm extends ContentEntityForm {
       $form['field_public_show_location']['#group'] = 'contact_visibility';
     }
 
-    // Users section (hide during onboarding, but group if visible).
+    // Users section.
     if (isset($form['field_vendor_users'])) {
       $form['field_vendor_users']['#group'] = 'contact_visibility';
     }
@@ -156,13 +154,13 @@ class VendorForm extends ContentEntityForm {
     switch ($result) {
       case SAVED_NEW:
         $this->messenger()->addStatus($this->t('New vendor %label has been created.', $message_arguments));
-        $this->logger('myeventlane_vendor')->notice('Created new vendor %label', $logger_arguments);
+        \Drupal::logger('myeventlane_vendor')->notice('Created new vendor %label', $logger_arguments);
         $form_state->setRedirect('entity.myeventlane_vendor.canonical', ['myeventlane_vendor' => $entity->id()]);
         break;
 
       case SAVED_UPDATED:
         $this->messenger()->addStatus($this->t('The vendor %label has been updated.', $message_arguments));
-        $this->logger('myeventlane_vendor')->notice('Updated vendor %label.', $logger_arguments);
+        \Drupal::logger('myeventlane_vendor')->notice('Updated vendor %label.', $logger_arguments);
         $form_state->setRedirect('entity.myeventlane_vendor.canonical', ['myeventlane_vendor' => $entity->id()]);
         break;
 

@@ -21,12 +21,14 @@ content:
     region: content
     settings:
       link_to_entity: false
+    third_party_settings: {  }
   field_question_type:
     type: list_default
     label: inline
     weight: 1
     region: content
     settings: {  }
+    third_party_settings: {  }
   field_question_required:
     type: boolean
     label: inline
@@ -36,6 +38,7 @@ content:
       format: default
       format_custom_false: ''
       format_custom_true: ''
+    third_party_settings: {  }
 hidden:
   field_question_help: true
   field_question_machine_name: true

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_tickets\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -28,9 +29,10 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     EntityTypeManagerInterface $entityTypeManager,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
     $this->entityTypeManager = $entityTypeManager;
   }
 
@@ -41,6 +43,7 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
     return new self(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('entity_type.manager'),
     );
   }
@@ -136,7 +139,7 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
     return $this->buildTicketsPage(
       $event,
       $build,
-      $this->t('Ticket groups'),
+      (string) $this->t('Ticket groups'),
       'groups',
       $header_actions
     );

@@ -1,145 +1,192 @@
 // ==========================================================================
 // Home Hero Component
 // ==========================================================================
-// Event-led hero section for homepage
+// Homepage hero with brand, search, and popular tags.
+// BEM: .hero, .mel-home-hero
 
-@use '../tokens/colors';
-@use '../tokens/spacing';
-@use '../tokens/typography';
-@use '../tokens/radii';
-@use '../tokens/shadows';
 @use '../tokens/breakpoints';
 
-// ---------------------------------------------------------------------------
-// Hero Container
-// ---------------------------------------------------------------------------
-
-.mel-home-hero {
-  padding: 80px 0 60px;
-
+// Hide hero art on mobile when hero_hide_on_mobile is set (Page Visuals).
+.mel-home-hero__art--hide-mobile {
   @include breakpoints.mel-break(md, max) {
-    padding: 48px 0;
+    display: none;
   }
 }
 
-.mel-home-hero__wrapper {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 40px;
+.hero {
+  background: linear-gradient(135deg, var(--mel-cream) 0%, var(--mel-lilac) 100%);
+  padding: clamp(3rem, 6vw, 6rem) 1.5rem;
 
-  @include breakpoints.mel-break(md, max) {
-    grid-template-columns: 1fr;
-    padding: 0 16px;
-    gap: 32px;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Hero Content
-// ---------------------------------------------------------------------------
-
-.mel-home-hero__content {
-  display: flex;
-  flex-direction: column;
-  gap: spacing.mel-space(4);
-
-  h1 {
-    font-size: 2.6rem;
-    line-height: 1.1;
-    font-weight: typography.$mel-font-extrabold;
-    color: colors.$mel-color-primary;
-    margin: 0;
-    letter-spacing: -0.02em;
-    max-width: 16ch;
+  &__inner {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 
     @include breakpoints.mel-break(md, max) {
-      font-size: 2rem;
+      gap: 0;
     }
   }
 
-  p {
-    font-size: 1.05rem;
-    color: colors.$mel-color-text-muted;
-    margin: 0;
-    line-height: 1.55;
-    max-width: 36ch;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Hero Categories
-// ---------------------------------------------------------------------------
-
-.mel-home-hero__categories {
-  margin-top: spacing.mel-space(1);
-
-  &-intro {
-    font-size: typography.mel-font-size(sm);
-    color: colors.$mel-color-text-muted;
-    margin-bottom: spacing.mel-space(2);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Hero Visual (Event Strip)
-// ---------------------------------------------------------------------------
-
-.mel-home-hero__visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-
-  @include breakpoints.mel-break(md, max) {
-    min-height: auto;
-  }
-}
-
-.mel-home-hero__event-strip {
-  width: 100%;
-  
-  // Limit to 2 events max in hero strip
-  .mel-event-grid,
-  .view-content {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: spacing.mel-space(4);
-
-    @include breakpoints.mel-break(md, max) {
-      grid-template-columns: 1fr;
-      gap: spacing.mel-space(3);
-    }
-
-    // Hide all but first 2 events in hero
-    > *:nth-child(n + 3) {
-      display: none;
-    }
-  }
-
-  // Make event cards larger and more prominent in hero
-  .mel-event-card {
-    min-height: 300px;
-    
+  // Text overlays the image (desktop)
+  &__text {
     @include breakpoints.mel-break(md) {
-      min-height: 360px;
+      position: relative;
+      z-index: 1;
+    }
+  }
+
+  &__brand {
+    font-size: clamp(2.75rem, 4vw, 3rem);
+    font-weight: 700;
+    color: var(--mel-coral);
+    margin-bottom: 0.5rem;
+  }
+
+  &__tagline {
+    font-size: 1.625rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  &__utility {
+    font-size: 1.375rem;
+    color: var(--mel-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  &__description {
+    max-width: 42rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  // Search bar and pills: spacing from text (+20px down)
+  &__search {
+    margin-bottom: 0.5rem;
+    margin-top: 2.5rem;
+
+    @include breakpoints.mel-break(md) {
+      position: relative;
+      z-index: 1;
+      margin-top: 2.75rem;
+    }
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 2.25rem;
+
+    @include breakpoints.mel-break(md) {
+      position: relative;
+      z-index: 1;
+      margin-top: 2.5rem;
+    }
+  }
+
+  &__tags-label {
+    font-size: 0.875rem;
+    color: var(--mel-muted);
+    margin-right: 0.25rem;
+  }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 999px;
+    border: none;
+    color: var(--mel-ink);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: var(--mel-lilac);
+    color: var(--mel-navy);
+
+    // Mel colours - rotate through palette (child 1 = label, 2+ = pills)
+    &:nth-child(2) { background: var(--mel-coral); color: #fff; }
+    &:nth-child(3) { background: var(--mel-blue); color: #fff; }
+    &:nth-child(4) { background: var(--mel-lilac); color: var(--mel-navy); }
+    &:nth-child(5) { background: var(--mel-peach); color: var(--mel-navy); }
+    &:nth-child(6) { background: var(--mel-mint); color: var(--mel-navy); }
+    &:nth-child(7) { background: var(--mel-orange); color: #fff; }
+    &:nth-child(8) { background: var(--mel-sky); color: var(--mel-navy); }
+    &:nth-child(9) { background: var(--mel-butter); color: var(--mel-navy); }
+    &:nth-child(10) { background: var(--mel-coral); color: #fff; }
+    &:nth-child(11) { background: var(--mel-blue); color: #fff; }
+    &:nth-child(12) { background: var(--mel-lilac); color: var(--mel-navy); }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
-    .mel-event-card__image {
-      min-height: 180px;
-      
-      @include breakpoints.mel-break(md) {
-        min-height: 220px;
-      }
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--mel-surface), 0 0 0 5px var(--mel-focus);
+    }
+  }
+
+  &__visual {
+    min-height: 280px;
+
+    // Mobile: show purple character above content
+    @include breakpoints.mel-break(md, max) {
+      order: 0;
+      min-height: 200px;
+      margin-top: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
     }
 
-    .mel-event-card__content {
-      h3 {
-        font-size: typography.mel-font-size(lg);
-        font-weight: typography.$mel-font-bold;
-      }
+    // Desktop: image 5px under the writing, text overlays it
+    @include breakpoints.mel-break(md) {
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
+      width: 100%;
+      min-height: 280px;
+      z-index: 0;
+    }
+  }
+
+  &__visual-inner {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    background: transparent url('/themes/custom/myeventlane_theme/images/mel/hero/mel-hero-home.png') center / contain no-repeat;
+
+    // Mobile: purple character (screen blend makes black bg blend into gradient)
+    @include breakpoints.mel-break(md, max) {
+      min-height: 200px;
+      max-width: 200px;
+      margin: 0 auto;
+      background-image: url('/themes/custom/myeventlane_theme/images/mel/hero/mel-hero-mobile.png');
+      background-size: contain;
+      background-position: center top;
+      mix-blend-mode: screen;
+    }
+
+    @include breakpoints.mel-break(md) {
+      width: 100%;
+      min-height: 280px;
+    }
+  }
+
+  &__content {
+    // Mobile: content below the character
+    @include breakpoints.mel-break(md, max) {
+      order: 1;
     }
   }
 }

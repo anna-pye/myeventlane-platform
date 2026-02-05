@@ -1,17 +1,12 @@
 # MyEventLane Theme Libraries
 # Built with Vite; outputs live in dist/.
 
-myeventlane_global:
-  css:
-    theme:
-      dist/main.css: {}
-
 global-styling:
   css:
     theme:
       dist/main.css: {}
   js:
-    dist/main.js: { attributes: { type: module } }
+    dist/main.js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -62,21 +57,36 @@ event-page:
 # Event wizard form styling.
 # CSS for the vendor event creation wizard.
 event-wizard:
-  css:
-    theme:
-      css/event-wizard.css: {}
   dependencies:
     - core/drupal
     - core/drupal.form
     - core/drupal.states
+    - myeventlane_theme/global-styling
 
 # Event full node page styling.
 # Styles are compiled via Vite into dist/main.css from src/scss/pages/_event.scss.
 myeventlane_event_full:
-  css:
-    theme:
-      dist/main.css: {}
   dependencies:
     - core/drupal
     - core/once
     - myeventlane_location/event_map
+    - myeventlane_theme/global-styling
+
+# Commerce pages: toast-style add-to-cart messages (attached via page_attachments).
+mel_toasts:
+  js:
+    js/mel-toasts.js: {}
+  dependencies:
+    - core/drupal
+
+# Auth pages: login, register, password reset. Styled for Gin Login + MEL branding.
+# Attached only on user.login, user.register, user.pass.
+auth_pages:
+  css:
+    theme:
+      css/auth-pages.css: {}
+  js:
+    js/auth-pages.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

@@ -16,6 +16,9 @@ services:
       '@logger.channel.myeventlane_tickets'
     ]
 
+  myeventlane_tickets.ticket_assignment_token:
+    class: Drupal\myeventlane_tickets\Service\TicketAssignmentTokenService
+
   myeventlane_tickets.event_access:
     class: Drupal\myeventlane_tickets\Service\EventAccess
     arguments: ['@current_user', '@entity_type.manager']

@@ -1,0 +1,8 @@
+services:
+  myeventlane_refunds.commands:
+    class: Drupal\myeventlane_refunds\Commands\RefundCommands
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+    tags:
+      - { name: drush.command }

@@ -7,13 +7,21 @@ libraries:
   - myeventlane_theme/global-styling
 
 regions:
-  utility_bar: Utility Bar
-  header: Header
-  hero: Hero
-  pre_content: Pre-Content
-  sidebar_left: Sidebar Left
+  header_left: 'Header Left'
+  header_center: 'Header Center'
+  header_right: 'Header Right'
+  mobile_nav: 'Mobile Navigation'
+  hero: 'Hero'
+  pre_content: 'Pre-content'
   content: Content
-  sidebar_right: Sidebar Right
-  pre_footer: Pre-Footer
-  footer: Footer
-  post_footer: Post-Footer
+  below_content: 'Below content'
+  home_featured: 'Home: Featured events'
+  home_discover: 'Home: Discover events'
+  home_recommended: 'Home: Recommended for you'
+  footer_brand: 'Footer Brand'
+  footer_attendees: 'Footer Attendees'
+  footer_organisers: 'Footer Organisers'
+  footer_support_legal: 'Footer Support & Legal'
+  footer_ack: 'Footer Acknowledgement'
+  footer_payments: 'Footer Payments'
+  footer_bottom: 'Footer Bottom'

@@ -86,7 +86,8 @@
 }
 
 .mel-btn--primary {
-  background: var(--mel-coral);
+  // Brand primary (lavender/purple). Coral is reserved for .mel-btn--cta.
+  background: var(--mel-primary);
   color: #fff;
   border-color: transparent;
 }
@@ -110,4 +111,56 @@
   border-radius: var(--mel-radius-pill, 999px);
   border: 1px solid var(--mel-border);
   background: rgba(255, 255, 255, 0.65);
+}
+
+// ---------------------------------------------------------------------------
+// Header branding + cart alignment (temporary recovery tweaks)
+// ---------------------------------------------------------------------------
+
+// Cap the logo size for the header branding block.
+// Applies to core branding markup (site-logo) and any image inside header left.
+.mel-site-header--main {
+  .mel-header__left {
+    // Keep branding stacked if a slogan exists.
+    display: flex;
+    flex-direction: column;
+    gap: var(--mel-space-1);
+  }
+
+  .mel-header__left img,
+  .mel-header__left .site-logo img,
+  .mel-header__left .block-system-branding-block img {
+    max-width: 220px;
+    height: auto;
+  }
+
+  // Style Drupal's default slogan element if present.
+  .mel-header__left .site-slogan {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    color: var(--mel-muted);
+  }
+
+  // Ensure right region (cart/sign-in) stays flush to container edge.
+  .mel-header__right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--mel-space-2);
+  }
+
+  // If center content exists, let it flex without pushing the right region off-edge.
+  .mel-header__center {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  // Badge position tweak: sit slightly off-centre on the cart icon.
+  .mel-header__right .mel-cart-badge-count {
+    top: -8px;
+    right: -4px;
+    transform: translate(25%, -10%);
+  }
 }

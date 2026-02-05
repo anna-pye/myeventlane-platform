@@ -24,6 +24,7 @@ content:
     settings:
       rows: 2
       placeholder: 'Optional help text...'
+    third_party_settings: {}
   field_question_label:
     type: string_textfield
     weight: 0
@@ -31,6 +32,7 @@ content:
     settings:
       size: 60
       placeholder: 'Enter question text...'
+    third_party_settings: {}
   field_question_machine_name:
     type: string_textfield
     weight: 4
@@ -38,6 +40,7 @@ content:
     settings:
       size: 30
       placeholder: 'leave_blank_for_auto'
+    third_party_settings: {}
   field_question_options:
     type: string_textarea
     weight: 3
@@ -45,15 +48,18 @@ content:
     settings:
       rows: 4
       placeholder: 'One option per line...'
+    third_party_settings: {}
   field_question_required:
     type: boolean_checkbox
     weight: 2
     region: content
     settings:
       display_label: true
+    third_party_settings: {}
   field_question_type:
     type: options_select
     weight: 1
     region: content
     settings: {  }
+    third_party_settings: {}
 hidden: {  }

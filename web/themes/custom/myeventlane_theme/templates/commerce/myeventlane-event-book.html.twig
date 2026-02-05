@@ -14,349 +14,95 @@
  * - is_paid: Boolean, TRUE if event supports paid tickets.
  * - event_mode: String, the event booking mode ('rsvp', 'paid', 'both', 'external', 'none').
  * - event: The event node entity.
+ * - recommended_events: Render array for recommended events (optional).
  */
 #}
-<div class="mel-event-book-page" data-event-mode="{{ event_mode }}">
-  <div class="mel-container" style="max-width: 1200px; margin: 2rem auto; padding: 0 1rem;">
-    <div class="mel-event-book-layout" style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; align-items: start;">
-      
-      {# Event Details Card (Left Side) #}
-      <div class="mel-event-book-details-card mel-event-card" style="
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      ">
-        {# Event Image #}
-        {% if hero_url %}
-          <div class="mel-event-book-image" style="
-            width: 100%;
-            height: 300px;
-            overflow: hidden;
-            background: #f0f0f0;
-            position: relative;
-          ">
-            {# Event Type Badge #}
-            <div class="mel-event-book-badges" style="
-              position: absolute;
-              top: 1rem;
-              right: 1rem;
-              z-index: 10;
-            ">
+<div class="mel-event-book" data-event-mode="{{ event_mode }}">
+  <div class="mel-container">
+    <div class="mel-event-book__layout">
+      <main class="mel-event-book__main">
+        <div class="mel-event-book__details mel-card mel-card--surface">
+          {% if hero_url %}
+            <div class="mel-event-book__media">
+              <div class="mel-event-book__badge">
+                {% if event_mode == 'rsvp' %}
+                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'rsvp', label: 'RSVP'|t, size: 'md' } only %}
+                {% elseif event_mode == 'paid' %}
+                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'paid', label: 'Tickets'|t, size: 'md' } only %}
+                {% elseif event_mode == 'external' %}
+                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'external', label: 'External'|t, size: 'md' } only %}
+                {% endif %}
+              </div>
+              <img class="mel-event-book__image" src="{{ hero_url }}" alt="{{ title }}" loading="eager" />
+            </div>
+          {% endif %}
+
+          <div class="mel-event-book__body">
+            <h1 class="mel-event-book__title">{{ title }}</h1>
+
+            {% if event_date_text %}
+              <div class="mel-event-book__meta">
+                <span class="mel-event-book__meta-icon" aria-hidden="true"></span>
+                <span>{{ event_date_text }}</span>
+              </div>
+            {% endif %}
+
+            {% if venue_text %}
+              <div class="mel-event-book__meta">
+                <span class="mel-event-book__meta-icon mel-event-book__meta-icon--location" aria-hidden="true"></span>
+                <span>{{ venue_text }}</span>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </main>
+
+      <aside class="mel-event-book__sidebar" role="complementary">
+        <section class="mel-event-book__form mel-card mel-card--surface" aria-labelledby="mel-event-book-form-title">
+          <div class="mel-event-book__form-head">
+            <h2 class="mel-event-book__form-title" id="mel-event-book-form-title">
               {% if event_mode == 'rsvp' %}
-                {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
-                  type: 'rsvp',
-                  label: 'RSVP',
-                  size: 'md',
-                } only %}
+                {{ 'RSVP for this event'|t }}
               {% elseif event_mode == 'paid' %}
-                {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
-                  type: 'paid',
-                  label: 'Tickets',
-                  size: 'md',
-                } only %}
+                {{ 'Buy tickets'|t }}
               {% elseif event_mode == 'external' %}
-                {% include '@myeventlane_theme/components/event-type-pill.html.twig' with {
-                  type: 'external',
-                  label: 'External',
-                  size: 'md',
-                } only %}
-              {% endif %}
-            </div>
-            <img src="{{ hero_url }}" alt="{{ title }}" style="
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-            ">
-          </div>
-        {% endif %}
-
-        {# Event Info #}
-        <div class="mel-event-book-details-body" style="padding: 1.5rem;">
-          <h1 class="mel-event-book-title" style="
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin: 0 0 1rem 0;
-          ">{{ title }}</h1>
-          
-          {% if event_date_text %}
-            <div class="mel-event-book-meta" style="
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              margin-bottom: 0.75rem;
-              color: #666;
-              font-size: 0.95rem;
-            ">
-              <span style="font-size: 1.2rem;">📅</span>
-              <span>{{ event_date_text }}</span>
-            </div>
-          {% endif %}
-          
-          {% if venue_text %}
-            <div class="mel-event-book-meta" style="
-              display: flex;
-              align-items: center;
-              gap: 0.5rem;
-              margin-bottom: 0;
-              color: #666;
-              font-size: 0.95rem;
-            ">
-              <span style="font-size: 1.2rem;">📍</span>
-              <span>{{ venue_text }}</span>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-
-      {# Booking Form Card (Right Side) #}
-      <aside class="mel-event-book-form-card mel-event-card" style="
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        padding: 1.5rem;
-        position: sticky;
-        top: 2rem;
-        display: flex;
-        flex-direction: column;
-      ">
-        {# Dynamic Title Based on Event Mode #}
-        <h2 class="mel-event-book-form-title" style="
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #1a1a2e;
-          margin: 0 0 1.5rem 0;
-        ">
-          {% if event_mode == 'rsvp' %}
-            {{ 'RSVP for this Event'|t }}
-          {% elseif event_mode == 'paid' %}
-            {{ 'Buy Tickets'|t }}
-          {% elseif event_mode == 'external' %}
-            {{ 'Get Tickets'|t }}
-          {% else %}
-            {{ 'Registration'|t }}
-          {% endif %}
-        </h2>
-
-        {# Free Event Badge for RSVP #}
-        {% if event_mode == 'rsvp' %}
-          <div class="mel-free-badge" style="
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-          ">
-            ✓ {{ 'Free Event - RSVP Required'|t }}
-          </div>
-        {% endif %}
-
-        {# Tickets Available Badge for Paid #}
-        {% if event_mode == 'paid' %}
-          <div class="mel-tickets-badge" style="
-            background: linear-gradient(135deg, #ff6f61 0%, #e85a4d 100%);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-          ">
-            🎟️ {{ 'Tickets Available'|t }}
-          </div>
-        {% endif %}
-
-        {# Booking Form #}
-        <div class="mel-event-book-form">
-          {% if matrix_form %}
-            {{ matrix_form }}
-          {% elseif rsvp_form %}
-            {{ rsvp_form }}
-          {% else %}
-            {# No form available - show helpful message #}
-            <div class="mel-alert mel-alert--info" style="
-              padding: 1rem;
-              background: #e0f2fe;
-              border: 1px solid #0ea5e9;
-              border-radius: 8px;
-              color: #0369a1;
-            ">
-              {% if event_mode == 'none' %}
-                <p style="margin: 0;">{{ 'Registration will be available soon.'|t }}</p>
+                {{ 'Get tickets'|t }}
               {% else %}
-                <p style="margin: 0;">{{ 'Unable to load the booking form. Please try refreshing the page.'|t }}</p>
+                {{ 'Registration'|t }}
               {% endif %}
-            </div>
-          {% endif %}
-        </div>
-      </aside>
+            </h2>
+          </div>
 
+          <div class="mel-event-book__form-body">
+            {% if matrix_form %}
+              {{ matrix_form }}
+            {% elseif rsvp_form %}
+              {{ rsvp_form }}
+            {% else %}
+              <div class="mel-alert mel-alert--info" role="status">
+                {% if event_mode == 'none' %}
+                  {{ 'Registration opens soon.'|t }}
+                {% else %}
+                  {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      </aside>
     </div>
+
+    {% if recommended_events %}
+      <section class="mel-event-book__recommendations" aria-labelledby="mel-event-book-recommendations-title">
+        <header class="mel-event-book__recommendations-head">
+          <h2 class="mel-event-book__recommendations-title" id="mel-event-book-recommendations-title">
+            {{ 'More events'|t }}
+          </h2>
+        </header>
+        <div class="mel-event-book__recommendations-body">
+          {{ recommended_events }}
+        </div>
+      </section>
+    {% endif %}
   </div>
 </div>
-
-<style>
-/* Responsive layout */
-@media (max-width: 768px) {
-  .mel-event-book-layout {
-    grid-template-columns: 1fr !important;
-  }
-  
-  .mel-event-book-form-card {
-    position: static !important;
-  }
-}
-
-/* Form styling */
-.mel-event-book-form .form-item {
-  margin-bottom: 1rem;
-}
-
-.mel-event-book-form label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #1a1a2e;
-  font-size: 0.9rem;
-}
-
-.mel-event-book-form .form-actions {
-  margin-top: 1.5rem;
-}
-
-.mel-event-book-form .button--add-to-cart,
-.mel-event-book-form input[type='submit'],
-.mel-event-book-form button[type='submit'],
-.mel-event-book-form .form-actions .button {
-  width: 100%;
-  padding: 0.75rem 1.5rem;
-  background: #ff6b35;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  text-align: center;
-}
-
-.mel-event-book-form .button--add-to-cart:hover,
-.mel-event-book-form input[type='submit']:hover,
-.mel-event-book-form button[type='submit']:hover,
-.mel-event-book-form .form-actions .button:hover {
-  background: #e55a2b;
-}
-
-/* Ensure form fields are visible */
-.mel-event-book-form input[type='text'],
-.mel-event-book-form input[type='email'],
-.mel-event-book-form input[type='tel'],
-.mel-event-book-form input[type='number'],
-.mel-event-book-form select,
-.mel-event-book-form textarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-}
-
-.mel-event-book-form input[type='text']:focus,
-.mel-event-book-form input[type='email']:focus,
-.mel-event-book-form input[type='tel']:focus,
-.mel-event-book-form input[type='number']:focus,
-.mel-event-book-form select:focus,
-.mel-event-book-form textarea:focus {
-  outline: none;
-  border-color: #ff6b35;
-  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
-}
-
-/* RSVP Form specific styling */
-.mel-rsvp-form .form-item {
-  margin-bottom: 1.25rem;
-}
-
-/* Ticket selection styling */
-.mel-ticket-selection {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.mel-ticket-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.mel-ticket-label {
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.mel-ticket-price {
-  font-weight: 700;
-  color: #059669;
-}
-
-.mel-ticket-quantity {
-  width: 70px !important;
-  text-align: center;
-}
-
-/* Alert styling */
-.mel-alert {
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.mel-alert--warning {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  color: #856404;
-}
-
-.mel-alert--info {
-  background: #e0f2fe;
-  border: 1px solid #0ea5e9;
-  color: #0369a1;
-}
-
-.mel-alert p {
-  margin: 0;
-}
-
-/* External booking link */
-.mel-external-booking {
-  text-align: center;
-}
-
-.mel-external-booking p {
-  margin-bottom: 1rem;
-  color: #666;
-}
-
-/* Hide form elements that shouldn't be visible */
-.mel-event-book-form .visually-hidden {
-  position: absolute !important;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  width: 1px;
-  height: 1px;
-  word-wrap: normal;
-}
-</style>

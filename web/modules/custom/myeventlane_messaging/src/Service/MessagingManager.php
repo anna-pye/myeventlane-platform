@@ -28,10 +28,19 @@ final class MessagingManager {
    * @var string[]
    */
   private const TRANSACTIONAL_TEMPLATES = [
+    'assign_tickets_buyer',
     'order_receipt',
     'vendor_event_cancellation',
     'vendor_event_important_change',
     'vendor_event_update',
+    'refund_requested_buyer',
+    'refund_requested_vendor',
+    'refund_approved_buyer',
+    'refund_approved_vendor',
+    'refund_rejected_buyer',
+    'refund_rejected_vendor',
+    'refund_completed_buyer',
+    'refund_completed_vendor',
   ];
 
   /**
@@ -98,8 +107,12 @@ final class MessagingManager {
    *   The template context (must be serializable; no objects for hashing).
    * @param array $opts
    *   Optional: langcode, attachments, scheduled_for.
+   *
+   * @return string|null
+   *   The message ID (UUID) if queued, NULL if skipped or failed. Caller may pass
+   *   this to sendMessage() for immediate send (e.g. refund notifications).
    */
-  public function queue(string $type, string $to, array $context = [], array $opts = []): void {
+  public function queue(string $type, string $to, array $context = [], array $opts = []): ?string {
     $eventId = isset($context['event_id']) && is_numeric($context['event_id']) ? (int) $context['event_id'] : NULL;
     $orderId = isset($context['order_id']) && is_numeric($context['order_id']) ? (int) $context['order_id'] : NULL;
     $submissionId = isset($context['submission_id']) && is_numeric($context['submission_id']) ? (int) $context['submission_id'] : NULL;
@@ -112,7 +125,7 @@ final class MessagingManager {
         'order_id' => $orderId,
         'message_type' => $type,
       ]);
-      return;
+      return NULL;
     }
 
     $contextHash = $this->contextHash($type, $to, $context);
@@ -125,7 +138,7 @@ final class MessagingManager {
         'message_type' => $type,
         'existing_id' => $existing->id,
       ]);
-      return;
+      return NULL;
     }
 
     $now = (int) time();
@@ -161,7 +174,7 @@ final class MessagingManager {
         'order_id' => $orderId,
         'message_type' => $type,
       ]);
-      return;
+      return NULL;
     }
 
     try {
@@ -176,7 +189,10 @@ final class MessagingManager {
         'message_type' => $type,
         'message_id' => $id,
       ]);
+      return NULL;
     }
+
+    return $id;
   }
 
   /**
@@ -285,7 +301,6 @@ final class MessagingManager {
     }
 
     $provider = $this->deliveryProviderManager->getProvider(NULL, $ctx);
-    $providerId = $provider->id();
     $params = [
       'to' => $to,
       'subject' => $subject,
@@ -305,43 +320,28 @@ final class MessagingManager {
     }
 
     $sent = $provider->send($params);
-    $providerMessageId = NULL;
-
-    // Try to get provider message ID if provider supports it.
-    if ($sent && method_exists($provider, 'getLastMessageId')) {
-      $providerMessageId = $provider->getLastMessageId();
-    }
 
     $this->messageStorage->incrementAttempts($messageId);
-    $updateFields = [
-      'provider' => $providerId,
-    ];
-    if ($providerMessageId) {
-      $updateFields['provider_message_id'] = $providerMessageId;
-    }
-
     if ($sent) {
-      $updateFields['status'] = 'sent';
-      $updateFields['sent'] = (int) time();
-      $this->messageStorage->update($messageId, $updateFields);
-      $this->logger->info('Sent message @type to @to. message_id=@id provider=@provider', [
+      $this->messageStorage->update($messageId, [
+        'status' => 'sent',
+        'sent' => (int) time(),
+      ]);
+      $this->logger->info('Sent message @type to @to. message_id=@id', [
         '@type' => $type,
         '@to' => $to,
         '@id' => $messageId,
-        '@provider' => $providerId,
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
         'order_id' => $orderId,
       ]);
     }
     else {
-      $updateFields['status'] = 'failed';
-      $this->messageStorage->update($messageId, $updateFields);
-      $this->logger->error('Failed sending message @type to @to. message_id=@id provider=@provider', [
+      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->logger->error('Failed sending message @type to @to. message_id=@id', [
         '@type' => $type,
         '@to' => $to,
         '@id' => $messageId,
-        '@provider' => $providerId,
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
         'order_id' => $orderId,

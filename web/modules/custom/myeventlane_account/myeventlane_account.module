@@ -1,0 +1,188 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for MyEventLane Account module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_account_theme(): array {
+  return [
+    'myeventlane_my_account_dashboard' => [
+      'variables' => [
+        'display_name' => '',
+        'logo_url' => '',
+        'avatar_url' => '',
+        'avatar_initials' => '',
+        'upcoming_tickets' => [],
+        'upcoming_rsvps' => [],
+        'past_events' => [],
+        'account_links' => [],
+        'show_review_cta' => FALSE,
+        'review_eligible' => [],
+      ],
+      'template' => 'myeventlane-my-account-dashboard',
+    ],
+    'myeventlane_my_account_past_events' => [
+      'variables' => [
+        'display_name' => '',
+        'logo_url' => '',
+        'avatar_url' => '',
+        'avatar_initials' => '',
+        'past_events' => [],
+        'account_links' => [],
+        'show_review_cta' => FALSE,
+        'review_eligible' => [],
+      ],
+      'template' => 'myeventlane-my-account-past-events',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_account_dashboard.
+ */
+function myeventlane_account_preprocess_myeventlane_my_account_dashboard(array &$variables): void {
+  _myeventlane_account_add_header_vars($variables);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_my_account_past_events.
+ */
+function myeventlane_account_preprocess_myeventlane_my_account_past_events(array &$variables): void {
+  _myeventlane_account_add_header_vars($variables);
+  if (empty($variables['display_name'])) {
+    $variables['display_name'] = \Drupal::currentUser()->getDisplayName();
+  }
+}
+
+/**
+ * Adds logo and avatar variables for My Account header.
+ */
+function _myeventlane_account_add_header_vars(array &$variables): void {
+  $extension_list = \Drupal::service('extension.list.theme');
+  $theme_path = $extension_list->getPath('myeventlane_theme');
+  $base_path = \Drupal::request()->getBasePath();
+  $variables['logo_url'] = $base_path . '/' . $theme_path . '/images/logo.svg';
+
+  $account = \Drupal::currentUser();
+  if ($account->isAnonymous()) {
+    $variables['avatar_url'] = '';
+    $variables['avatar_initials'] = '';
+    return;
+  }
+
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load($account->id());
+  if (!$user || !$user->hasField('user_picture') || $user->get('user_picture')->isEmpty()) {
+    $variables['avatar_url'] = '';
+    $display_name = $variables['display_name'] ?? ($user ? $user->getDisplayName() : '');
+    $variables['avatar_initials'] = _myeventlane_account_get_initials($display_name);
+    return;
+  }
+
+  $file = $user->get('user_picture')->entity;
+  if ($file && $file->getFileUri()) {
+    $variables['avatar_url'] = \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+  }
+  else {
+    $variables['avatar_url'] = '';
+  }
+  $variables['avatar_initials'] = _myeventlane_account_get_initials($user->getDisplayName());
+}
+
+/**
+ * Derives initials from display name (max 2 chars).
+ */
+function _myeventlane_account_get_initials(string $name): string {
+  $name = trim($name);
+  if ($name === '') {
+    return '?';
+  }
+  $words = preg_split('/\s+/', $name, 2);
+  if (count($words) === 1) {
+    return mb_strtoupper(mb_substr($words[0], 0, 2));
+  }
+  return mb_strtoupper(mb_substr($words[0], 0, 1) . mb_substr($words[1], 0, 1));
+}
+
+/**
+ * Implements hook_menu_links_discovery_alter().
+ *
+ * Points "My account" in the account menu to our dashboard instead of /user.
+ */
+function myeventlane_account_menu_links_discovery_alter(array &$links): void {
+  if (isset($links['user.page'])) {
+    $links['user.page']['route_name'] = 'myeventlane_account.dashboard';
+    $links['user.page']['route_parameters'] = [];
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_page_alter().
+ *
+ * Adds page__account suggestion for customer account pages so they use
+ * the account layout with sidebar.
+ */
+function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  // My Tickets, My Events, and order detail need the account layout wrapper.
+  // Dashboard and Past Events already include the sidebar in their templates.
+  $account_routes = [
+    'myeventlane_checkout_flow.my_tickets',
+    'myeventlane_checkout_flow.order_detail',
+    'myeventlane_dashboard.customer',
+  ];
+  if (in_array($route, $account_routes, TRUE)) {
+    $suggestions[] = 'page__account';
+  }
+}
+
+/**
+ * Implements hook_preprocess_page() for page__account.
+ *
+ * Adds account sidebar variables for customer account pages.
+ */
+function myeventlane_account_preprocess_page__account(array &$variables): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  $account = \Drupal::currentUser();
+
+  if ($account->isAnonymous()) {
+    return;
+  }
+
+  $account_links_service = \Drupal::service('myeventlane_account.account_links');
+  $active_map = [
+    'myeventlane_checkout_flow.my_tickets' => 'my_tickets',
+    'myeventlane_checkout_flow.order_detail' => 'my_tickets',
+    'myeventlane_dashboard.customer' => 'my_events',
+  ];
+  $active = $active_map[$route] ?? 'dashboard';
+
+  $variables['account_show_sidebar'] = TRUE;
+  $variables['account_links'] = $account_links_service->buildLinks($active);
+  $variables['display_name'] = $account->getDisplayName();
+
+  _myeventlane_account_add_header_vars($variables);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function myeventlane_account_form_user_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Hide path (URL alias) from customers - not relevant for profile editing.
+  if (isset($form['path'])) {
+    $form['path']['#access'] = FALSE;
+  }
+
+  // Pronouns placeholder (helper text comes from field config).
+  if (isset($form['field_pronouns']['widget'][0]['value'])) {
+    $form['field_pronouns']['widget'][0]['value']['#attributes']['placeholder'] = 'e.g. they/them, she/her, he/him';
+  }
+}

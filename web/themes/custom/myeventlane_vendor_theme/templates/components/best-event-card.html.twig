@@ -16,6 +16,8 @@
  */
 #}
 {% if event %}
+{% set is_past = event.mel_event_state is defined and event.mel_event_state in ['ended', 'archived'] %}
+{% set is_promoted = event.boost is defined and event.boost.is_boosted|default(false) %}
 <div class="mel-best-event">
   <div class="mel-best-event__header">
     <div class="mel-best-event__badge">
@@ -28,6 +30,9 @@
   
   <div class="mel-best-event__content">
     <h3 class="mel-best-event__title">{{ event.title }}</h3>
+    {% if is_past and not is_promoted %}
+      <div class="mel-text--muted">{{ 'Based on completed events'|t }}</div>
+    {% endif %}
     
     <div class="mel-best-event__stats">
       <div class="mel-best-event__stat">

@@ -324,7 +324,7 @@ final class StripeConnectController extends ControllerBase {
     if ($destination) {
       return new RedirectResponse($destination);
     }
-    return new RedirectResponse(Url::fromRoute('myeventlane_dashboard.vendor')->toString());
+    return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
   }
 
   /**

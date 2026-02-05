@@ -19,6 +19,18 @@ myeventlane_tickets.download_pdf:
     _permission: 'access content'
     order_item_id: '\d+'
 
+# Assign holder details to an unassigned ticket (token-validated).
+myeventlane_tickets.assign_ticket:
+  path: '/ticket/assign/{token}'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\AssignTicketForm'
+    _title: 'Assign ticket'
+  requirements:
+    _permission: 'access content'
+    token: '[A-Za-z0-9+/=_-]+'
+  options:
+    _admin_route: FALSE
+
 # Canonical ticket PDF download by ticket code.
 myeventlane_tickets.download_pdf_by_code:
   path: '/ticket/{ticket_code}/pdf'
@@ -62,10 +74,14 @@ myeventlane_tickets.event_tickets_settings:
   defaults:
     _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::settings'
     _title: 'Ticket settings'
+  requirements:
+    _permission: 'access vendor console'
   options:
     parameters:
       event:
         type: entity:node
+        bundle:
+          - event
 
 myeventlane_tickets.event_tickets_groups:
   path: '/vendor/events/{event}/tickets/groups'
@@ -106,6 +122,22 @@ myeventlane_tickets.event_tickets_groups_edit:
         type: entity:node
         bundle:
           - event
+
+entity.mel_ticket_group.delete_form:
+  path: '/vendor/events/{event}/tickets/groups/{mel_ticket_group}/delete'
+  defaults:
+    _entity_form: 'mel_ticket_group.delete'
+    _title: 'Delete ticket group'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+      mel_ticket_group:
+        type: entity:mel_ticket_group
 
 myeventlane_tickets.event_tickets_access_codes:
   path: '/vendor/events/{event}/tickets/access-codes'
@@ -186,6 +218,22 @@ myeventlane_tickets.event_tickets_widgets_edit:
         type: entity:node
         bundle:
           - event
+
+entity.mel_purchase_surface.delete_form:
+  path: '/vendor/events/{event}/tickets/widgets/{mel_purchase_surface}/delete'
+  defaults:
+    _entity_form: 'mel_purchase_surface.delete'
+    _title: 'Delete widget'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+      mel_purchase_surface:
+        type: entity:mel_purchase_surface
 
 myeventlane_tickets.add_ticket_modal:
   path: '/vendor/events/{event}/tickets/types/add-modal'

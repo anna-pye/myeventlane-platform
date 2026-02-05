@@ -62,7 +62,8 @@
       </div>
       <div class="mel-table__body">
         {% for event in events %}
-          <div class="mel-table__row">
+          {% set is_past = event.mel_event_state is defined and event.mel_event_state in ['ended', 'archived'] %}
+          <div class="mel-table__row{% if is_past %} mel-card--past{% endif %}{% if event.is_boosted %} mel-card--promoted{% endif %}">
             <div class="mel-text--bold">{{ event.title }}</div>
             <div>
               {% if event.is_boosted %}
@@ -72,9 +73,14 @@
               {% else %}
                 <span class="mel-badge mel-badge--neutral">{{ 'Not boosted'|t }}</span>
               {% endif %}
+              {% if is_past and not event.is_boosted %}
+                <div class="mel-text--muted">
+                  {{ 'This event has ended. Boost campaigns are shown for reference.'|t }}
+                </div>
+              {% endif %}
             </div>
             <div>
-              <a href="{{ event.boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
+              <a href="{{ event.boost_url }}" class="mel-btn mel-btn--sm mel-btn--cta">
                 {% if event.is_boosted %}
                   {{ 'Extend boost'|t }}
                 {% else %}
@@ -101,7 +107,7 @@
       <div class="mel-empty__description">
         {{ 'Create an event first, then come back to boost it.'|t }}
       </div>
-      <a href="/vendor/events/add" class="mel-btn mel-btn--primary">
+      <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta">
         {{ 'Create event'|t }}
       </a>
     </div>
@@ -135,6 +141,66 @@
           {{ 'Choose 3, 7, or 14 day boost packages.'|t }}
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+{# Boost Terms & Conditions (short) #}
+<div class="mel-card">
+  <div class="mel-card__header">
+    <div class="mel-card__title">{{ 'Boost Terms'|t }}</div>
+  </div>
+
+  <div class="mel-card__body">
+    <ul class="mel-list">
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'What Boost does'|t }}</div>
+          <div class="mel-text--muted">{{ 'Boosted events receive increased visibility on MyEventLane, including featured placement on the homepage and priority positioning in selected listings. Boost does not guarantee ticket sales, RSVPs, or attendance.'|t }}</div>
+        </div>
+      </li>
+
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'Duration & placement'|t }}</div>
+          <div class="mel-text--muted">{{ 'Boosts run for the duration selected at checkout (e.g. 3, 7, or 14 days). Placement and prominence may vary based on availability, timing, and other boosted events.'|t }}</div>
+        </div>
+      </li>
+
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'Eligibility'|t }}</div>
+          <div class="mel-text--muted">{{ 'Only published events that comply with MyEventLane’s platform rules and community standards are eligible for Boost. We reserve the right to remove or suspend Boosts for events that breach our terms.'|t }}</div>
+        </div>
+      </li>
+
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'Ended or cancelled events'|t }}</div>
+          <div class="mel-text--muted">{{ 'Boosts are intended for active events. If an event ends or is cancelled during a Boost period, the Boost will conclude automatically. Completed Boosts are shown for reference only.'|t }}</div>
+        </div>
+      </li>
+
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'Refunds'|t }}</div>
+          <div class="mel-text--muted">{{ 'Boost purchases are generally non-refundable once activated, except where required by law or if MyEventLane is unable to deliver the Boost placement due to a platform issue.'|t }}</div>
+        </div>
+      </li>
+
+      <li class="mel-list__item">
+        <div class="mel-list__content">
+          <div class="mel-text--bold">{{ 'Fair use'|t }}</div>
+          <div class="mel-text--muted">{{ 'MyEventLane may adjust placement or presentation to ensure a fair and positive experience for all users and vendors.'|t }}</div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="form-item form-type-checkbox mel-text--muted" style="margin-top: var(--mel-space-3);">
+      <label class="option">
+        <input class="form-checkbox" type="checkbox" checked="checked" disabled="disabled">
+        {{ 'I agree that Boost increases visibility but does not guarantee sales, runs for the selected duration, is subject to availability and MyEventLane platform rules, and is generally non-refundable once active (except where required by law).'|t }}
+      </label>
     </div>
   </div>
 </div>

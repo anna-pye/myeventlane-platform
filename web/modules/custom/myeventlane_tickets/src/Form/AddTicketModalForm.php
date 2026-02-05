@@ -30,7 +30,9 @@ final class AddTicketModalForm extends FormBase {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly RouteMatchInterface $routeMatch,
+    // Do NOT name this $routeMatch: FormBase already has $routeMatch.
+    // Naming it the same (especially readonly) causes a fatal in PHP 8.2+/Drupal 11.
+    private readonly RouteMatchInterface $currentRouteMatch,
     private readonly FormBuilderInterface $formBuilder,
   ) {}
 
@@ -58,7 +60,7 @@ final class AddTicketModalForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $event = NULL): array {
     // Get event from route parameter if not passed directly.
     if (!$event) {
-      $event = $this->routeMatch->getParameter('event');
+      $event = $this->currentRouteMatch->getParameter('event');
     }
 
     if (!$event || $event->bundle() !== 'event') {
@@ -207,24 +209,48 @@ final class AddTicketModalForm extends FormBase {
     $quantity = (int) $form_state->getValue('quantity');
     $description = trim($form_state->getValue('description') ?? '');
 
-    // Create Commerce product of type "ticket".
-    $product_storage = $this->entityTypeManager->getStorage('commerce_product');
-    $product = $product_storage->create([
-      'type' => 'ticket',
-      'title' => $ticket_name,
-      'field_event' => $event->id(),
-      'status' => 1,
-    ]);
-
-    // Set description if provided (if field exists).
-    if (!empty($description) && $product->hasField('body')) {
-      $product->set('body', [
-        'value' => $description,
-        'format' => 'basic_html',
-      ]);
+    // MyEventLane ticketing model:
+    // - One Commerce Product (type "ticket") per event, linked from event.field_product_target.
+    // - Each ticket type is a Product Variation under that product.
+    $product = NULL;
+    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
+      $candidate = $event->get('field_product_target')->entity;
+      if ($candidate && $candidate->bundle() === 'ticket') {
+        $product = $candidate;
+      }
     }
 
-    $product->save();
+    // Ensure a store exists and create the product if needed.
+    $store_storage = $this->entityTypeManager->getStorage('commerce_store');
+    $store = $store_storage->loadDefault();
+    if (!$store) {
+      $stores = $store_storage->loadMultiple();
+      $store = $stores ? reset($stores) : NULL;
+    }
+    if (!$store) {
+      $this->messenger()->addError($this->t('No store available to create tickets.'));
+      return;
+    }
+
+    if (!$product) {
+      $product_storage = $this->entityTypeManager->getStorage('commerce_product');
+      $product = $product_storage->create([
+        'type' => 'ticket',
+        'title' => $event->label(),
+        'stores' => [$store->id()],
+        'status' => 1,
+        // IMPORTANT: entity reference values must be set as target_id arrays.
+        'field_event' => ['target_id' => $event->id()],
+        'uid' => $event->getOwnerId(),
+      ]);
+      $product->save();
+
+      // Link to event for checkout/sales.
+      if ($event->hasField('field_product_target')) {
+        $event->set('field_product_target', ['target_id' => $product->id()]);
+        $event->save();
+      }
+    }
 
     // Create Commerce product variation of type "ticket_variation".
     $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
@@ -232,12 +258,16 @@ final class AddTicketModalForm extends FormBase {
     // Generate a unique SKU.
     $sku = 'TICKET-' . $event->id() . '-' . $product->id() . '-' . time();
 
+    // Use store currency (defaults to AUD in MEL stores).
+    $currency = method_exists($store, 'getDefaultCurrencyCode') ? $store->getDefaultCurrencyCode() : 'AUD';
+
     $variation = $variation_storage->create([
       'type' => 'ticket_variation',
       'sku' => $sku,
       'title' => $ticket_name,
-      'price' => new Price((string) number_format($price_value, 2, '.', ''), 'USD'),
-      'field_event' => $event->id(),
+      'price' => new Price((string) number_format($price_value, 2, '.', ''), $currency),
+      'product_id' => $product->id(),
+      'field_event' => ['target_id' => $event->id()],
       'status' => 1,
     ]);
 
@@ -246,10 +276,25 @@ final class AddTicketModalForm extends FormBase {
       $variation->set('field_stock', $quantity);
     }
 
+    // Store description if variation supports it; otherwise ignore (schema-dependent).
+    if (!empty($description) && $variation->hasField('body')) {
+      $variation->set('body', [
+        'value' => $description,
+        'format' => 'basic_html',
+      ]);
+    }
+
     $variation->save();
 
-    // Link variation to product.
-    $product->set('variations', [$variation]);
+    // Link variation to product (append to existing).
+    $existing = $product->getVariations();
+    $variation_ids = [];
+    foreach ($existing as $v) {
+      $variation_ids[] = $v->id();
+    }
+    $variation_ids[] = $variation->id();
+    $variation_ids = array_values(array_unique(array_filter($variation_ids)));
+    $product->set('variations', $variation_ids);
     $product->save();
 
     $this->messenger()->addStatus($this->t('Ticket added 🎉'));

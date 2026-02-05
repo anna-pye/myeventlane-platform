@@ -1,0 +1,6 @@
+myeventlane_analytics.admin_revenue:
+  title: 'Revenue (Admin only)'
+  description: 'Platform revenue: ticket net (Phase 7) + boost net.'
+  route_name: myeventlane_analytics.admin_revenue
+  parent: myeventlane_admin_dashboard.overview
+  weight: 10

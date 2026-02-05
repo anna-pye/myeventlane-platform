@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -23,13 +24,19 @@ final class VendorOnboardStripeController extends ControllerBase {
   private readonly StripeService $stripeService;
 
   /**
-   * Constructs a VendorOnboardStripeController.
-   *
-   * @param \Drupal\myeventlane_core\Service\StripeService $stripeService
-   *   The Stripe service.
+   * The onboarding manager.
    */
-  public function __construct(StripeService $stripeService) {
-    $this->stripeService = $stripeService;
+  private readonly OnboardingManager $onboardingManager;
+
+  /**
+   * Constructs a VendorOnboardStripeController.
+   */
+  public function __construct(
+    StripeService $stripe_service,
+    OnboardingManager $onboarding_manager,
+  ) {
+    $this->stripeService = $stripe_service;
+    $this->onboardingManager = $onboarding_manager;
   }
 
   /**
@@ -38,6 +45,7 @@ final class VendorOnboardStripeController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_core.stripe'),
+      $container->get('myeventlane_onboarding.manager'),
     );
   }
 
@@ -86,6 +94,21 @@ final class VendorOnboardStripeController extends ControllerBase {
           // If we can't verify, assume not connected.
         }
       }
+    }
+
+    // Non-blocking: load/refresh onboarding state; advance when Stripe already connected.
+    try {
+      $user = $this->entityTypeManager()->getStorage('user')->load((int) $currentUser->id());
+      if ($user instanceof \Drupal\user\UserInterface && $vendor->id()) {
+        $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+        $this->onboardingManager->refreshFlags($state);
+        if ($isConnected) {
+          $this->onboardingManager->advanceStage($state, 'ask');
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->getLogger('myeventlane_vendor')->warning('Onboarding load/refresh/advance failed on stripe step: @m', ['@m' => $e->getMessage()]);
     }
 
     $content = [
@@ -176,7 +199,7 @@ final class VendorOnboardStripeController extends ControllerBase {
     return [
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 3,
-      '#total_steps' => 6,
+      '#total_steps' => 7,
       '#step_title' => $this->t('Set up payments'),
       '#step_description' => $this->t('Connect your Stripe account to accept payments for your events. This process takes about 5 minutes.'),
       '#content' => $content,
@@ -241,11 +264,13 @@ final class VendorOnboardStripeController extends ControllerBase {
     }
 
     $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $vendorIds = $vendorStorage->getQuery()
+    $query = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
+      ->range(0, 1);
+    $group = $query->orConditionGroup()
       ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
+      ->condition('field_vendor_users', $userId);
+    $vendorIds = $query->condition($group)->execute();
 
     if (!empty($vendorIds)) {
       $vendor = $vendorStorage->load(reset($vendorIds));

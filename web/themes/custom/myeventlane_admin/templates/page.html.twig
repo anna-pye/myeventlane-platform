@@ -3,89 +3,35 @@
  * @file
  * Page template for MyEventLane Admin theme.
  *
- * Variables:
- * - page: The rendered page content.
- * - attributes: HTML attributes for the page wrapper.
+ * Keeps markup minimal and Claro-compatible.
  */
 #}
-<!DOCTYPE html>
-<html{{ html_attributes }}>
-  <head>
-    <head-placeholder token="{{ placeholder_token|raw }}">
-    <title>{{ head_title|safe_join(' | ') }}</title>
-    <css-placeholder token="{{ placeholder_token|raw }}">
-    <js-placeholder token="{{ placeholder_token|raw }}">
-  </head>
-  <body{{ attributes.addClass('mel-admin-body') }}>
-    <div class="mel-admin-wrapper">
-      {% if page.header %}
-        <header class="mel-admin-header" role="banner">
-          <div class="container">
-            {{ page.header }}
-          </div>
-        </header>
+
+<div class="mel-admin-layout">
+  {% if page.header %}
+    <header class="mel-admin-header" role="banner">
+      {{ page.header }}
+    </header>
+  {% endif %}
+
+  <main id="main-content" class="mel-admin-content" role="main">
+    <div class="mel-admin-layout__grid">
+      {% if page.sidebar_first %}
+        <aside class="mel-admin-sidebar" role="complementary">
+          {{ page.sidebar_first }}
+        </aside>
       {% endif %}
 
-      <main class="mel-admin-main" role="main">
-        <div class="container-fluid">
-          <div class="row">
-            {% if page.sidebar_first %}
-              <aside class="mel-admin-sidebar col-md-3" role="complementary">
-                {{ page.sidebar_first }}
-              </aside>
-            {% endif %}
-
-            <div class="mel-admin-content {% if page.sidebar_first %}col-md-9{% else %}col-12{% endif %}">
-              {% if page.breadcrumb %}
-                <nav class="mel-breadcrumb mb-3" aria-label="breadcrumb">
-                  {{ page.breadcrumb }}
-                </nav>
-              {% endif %}
-
-              {% if messages %}
-                <div class="mel-messages">
-                  {{ messages }}
-                </div>
-              {% endif %}
-
-              {{ page.content }}
-            </div>
-
-            {% if page.sidebar_second %}
-              <aside class="mel-admin-sidebar col-md-3" role="complementary">
-                {{ page.sidebar_second }}
-              </aside>
-            {% endif %}
-          </div>
-        </div>
-      </main>
-
-      {% if page.footer %}
-        <footer class="mel-admin-footer" role="contentinfo">
-          <div class="container">
-            {{ page.footer }}
-          </div>
-        </footer>
-      {% endif %}
+      <div class="mel-admin-main">
+        {{ page.content }}
+      </div>
     </div>
-    <js-bottom-placeholder token="{{ placeholder_token|raw }}">
-  </body>
-</html>
+  </main>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  {% if page.footer %}
+    <footer class="mel-admin-footer" role="contentinfo">
+      {{ page.footer }}
+    </footer>
+  {% endif %}
+</div>
 

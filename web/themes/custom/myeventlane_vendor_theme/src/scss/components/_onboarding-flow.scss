@@ -1,0 +1,134 @@
+/**
+ * Onboarding flow UI (organiser, event, tickets, payouts, review).
+ * LEGACY: Previously used when /onboarding/* routes rendered on vendor domain.
+ * Those routes now redirect; canonical vendor onboarding uses vendor_onboard_step.
+ * Kept for backward compatibility if any templates still reference these classes.
+ */
+
+.mel-onboarding {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  &__footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--mel-bg, #fff);
+    padding: 1rem 0;
+  }
+}
+
+.mel-onboarding__progress ol {
+  display: flex;
+  gap: 0.5rem;
+
+  li {
+    flex: 1;
+    height: 4px;
+    background: #eee;
+
+    &.is-complete {
+      background: #6bcf9b;
+    }
+
+    &.is-current {
+      background: #6b9cff;
+    }
+  }
+}
+
+.mel-onboarding-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.mel-footer-cta {
+  display: flex;
+  gap: 0.5rem;
+
+  @media (max-width: 640px) {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+.mel-form-help {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.mel-trust {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.mel-review .mel-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+
+    &.is-complete {
+      opacity: 0.8;
+    }
+  }
+}
+
+.mel-hint {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.mel-start {
+  display: grid;
+  gap: 1rem;
+
+  &__choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  &__card {
+    display: block;
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: rgba(0, 0, 0, 0.15);
+    }
+
+    &--primary {
+      border-color: var(--mel-primary, #6b9cff);
+      background: rgba(107, 156, 255, 0.05);
+    }
+  }
+
+  &__reassurance {
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+}

@@ -130,7 +130,7 @@ myeventlane_vendor.create_event_gateway:
     _controller: '\Drupal\myeventlane_vendor\Controller\CreateEventGatewayController::gateway'
     _title: 'Create your event'
   requirements:
-    _permission: 'access content'
+    _access: 'TRUE'
   options:
     _maintenance_access: FALSE
 
@@ -144,6 +144,7 @@ myeventlane_vendor.onboard:
     _permission: 'access content'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.account:
   path: '/vendor/onboard/account'
@@ -154,17 +155,19 @@ myeventlane_vendor.onboard.account:
     _permission: 'access content'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.profile:
   path: '/vendor/onboard/profile'
   defaults:
-    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardProfileController::profile'
+    _form: '\Drupal\myeventlane_vendor\Form\VendorOnboardProfileForm'
     _title: 'Set up your organiser profile'
   requirements:
     _permission: 'access content'
     _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.stripe:
   path: '/vendor/onboard/stripe'
@@ -176,6 +179,19 @@ myeventlane_vendor.onboard.stripe:
     _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
+
+myeventlane_vendor.onboard.branding:
+  path: '/vendor/onboard/branding'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardBrandingController::branding'
+    _title: 'Add your branding'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.first_event:
   path: '/vendor/onboard/first-event'
@@ -187,6 +203,7 @@ myeventlane_vendor.onboard.first_event:
     _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.boost:
   path: '/vendor/onboard/boost'
@@ -198,6 +215,7 @@ myeventlane_vendor.onboard.boost:
     _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.onboard.complete:
   path: '/vendor/onboard/complete'
@@ -209,6 +227,7 @@ myeventlane_vendor.onboard.complete:
     _user_is_logged_in: 'TRUE'
   options:
     _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
 
 # Vendor event management routes.
 myeventlane_vendor.manage_event.edit:
@@ -477,6 +496,20 @@ myeventlane_vendor.manage_event.checkout_questions:
     _title: 'Checkout questions'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventCheckoutQuestionsController::access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_vendor.manage_event.series:
+  path: '/vendor/event/{event}/series'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\ManageSeriesInstancesController::listInstances'
+    _title: 'Series instances'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageSeriesInstancesController::access'
   options:
     parameters:
       event:

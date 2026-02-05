@@ -1,0 +1,173 @@
+/**
+ * Auth pages (login, register) for vendor domain.
+ *
+ * Centered card layout, rounded inputs, primary gradient button.
+ * Mobile-first. Illustration slot optional.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+
+.mel-auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-6 $spacing-4;
+  background: $ml-vendor-bg;
+}
+
+.mel-auth-container {
+  width: 100%;
+  max-width: 440px;
+}
+
+.mel-auth-card {
+  background: $ml-vendor-card;
+  border-radius: $radius-lg;
+  padding: $spacing-6;
+  box-shadow: $shadow-md;
+
+  @media (min-width: 768px) {
+    padding: $spacing-8;
+  }
+}
+
+.mel-auth-header {
+  text-align: center;
+  margin-bottom: $spacing-6;
+}
+
+.mel-auth-logo {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: $spacing-4;
+  text-decoration: none;
+
+  svg {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.mel-auth-title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $ml-vendor-text-dark;
+  margin: 0 0 $spacing-2 0;
+}
+
+.mel-auth-subtitle {
+  font-size: $font-size-base;
+  color: $ml-vendor-slate;
+  margin: 0;
+}
+
+.mel-auth-form {
+  .form-item {
+    margin-bottom: $spacing-4;
+  }
+
+  label {
+    display: block;
+    margin-bottom: $spacing-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $ml-vendor-text-dark;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: $spacing-3 $spacing-4;
+    border: 2px solid $ml-vendor-border;
+    border-radius: $radius-md;
+    font-size: $font-size-base;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $ml-accent-coral;
+      box-shadow: 0 0 0 3px $ml-accent-coral-light;
+    }
+  }
+
+  .description {
+    margin-top: $spacing-2;
+    font-size: $font-size-xs;
+    color: $ml-vendor-slate;
+  }
+}
+
+.mel-auth-actions {
+  margin-top: $spacing-6;
+
+  .form-submit,
+  .mel-btn {
+    width: 100%;
+    padding: $spacing-3 $spacing-4;
+    border-radius: $radius-md;
+    font-weight: $font-weight-semibold;
+    background: linear-gradient(135deg, $ml-accent-coral 0%, $wizard-coral-dark 100%);
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.95;
+    }
+  }
+}
+
+.mel-auth-remember {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  margin-bottom: $spacing-4;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  label {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $ml-vendor-slate;
+    font-weight: $font-weight-normal;
+  }
+}
+
+.mel-auth-footer {
+  margin-top: $spacing-6;
+  padding-top: $spacing-4;
+  border-top: 1px solid $ml-vendor-border;
+  text-align: center;
+}
+
+.mel-auth-link {
+  font-size: $font-size-sm;
+  color: $ml-vendor-slate;
+  margin: 0;
+
+  a {
+    color: $ml-accent-coral;
+    font-weight: $font-weight-semibold;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.mel-auth-illustration {
+  min-height: 120px;
+  margin-top: $spacing-6;
+}

@@ -8,21 +8,70 @@
  * Implements hook_theme().
  */
 function myeventlane_rsvp_theme($existing, $type, $theme, $path) {
+  $tpl_path = $path . '/templates';
   return [
     'myeventlane_rsvp_email_confirmation' => [
       'variables' => ['params' => NULL],
       'template' => 'email-confirmation',
+      'path' => $tpl_path,
     ],
     'myeventlane_rsvp_email_vendor_copy' => [
       'variables' => ['params' => NULL],
       'template' => 'email-vendor-copy',
+      'path' => $tpl_path,
     ],
     'mel_rsvp_thankyou' => [
       'variables' => [
-        'event' => NULL,
+        'title' => NULL,
         'message' => NULL,
+        'event_title' => NULL,
+        'event_link' => NULL,
+        'donation_enabled' => FALSE,
       ],
       'template' => 'mel-rsvp-thankyou',
+      'path' => $tpl_path,
+    ],
+    'mel_rsvp_confirmation_email' => [
+      'variables' => [
+        'name' => '',
+        'email' => '',
+        'event_title' => '',
+        'event_url' => '',
+        'event_date' => NULL,
+        'event_location' => NULL,
+      ],
+      'template' => 'mel-rsvp-confirmation-email',
+      'path' => $tpl_path,
+    ],
+    'mel_rsvp_waitlist_email' => [
+      'variables' => [
+        'name' => '',
+        'event_title' => '',
+        'event_date' => NULL,
+        'event_location' => NULL,
+      ],
+      'template' => 'email-rsvp-waitlist',
+      'path' => $tpl_path,
+    ],
+    'mel_rsvp_promotion_email' => [
+      'variables' => [
+        'name' => '',
+        'event_title' => '',
+        'event_url' => '',
+        'event_date' => NULL,
+        'event_location' => NULL,
+      ],
+      'template' => 'email-rsvp-promotion',
+      'path' => $tpl_path,
+    ],
+    'mel_vendor_digest_email' => [
+      'variables' => [
+        'vendor_name' => NULL,
+        'intro' => NULL,
+        'events' => [],
+      ],
+      'template' => 'mel-vendor-digest-email',
+      'path' => $tpl_path,
     ],
   ];
 }

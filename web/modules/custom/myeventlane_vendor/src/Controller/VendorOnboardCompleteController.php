@@ -6,29 +6,39 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Controller for vendor onboarding step 6: Completion and dashboard intro.
+ * Controller for vendor onboarding completion.
  */
 final class VendorOnboardCompleteController extends ControllerBase {
+
+  /**
+   * Constructs the controller.
+   */
+  public function __construct(
+    private readonly OnboardingManager $onboardingManager,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static();
+    return new static(
+      $container->get('myeventlane_onboarding.manager'),
+    );
   }
 
   /**
-   * Step 6: Onboarding complete - dashboard introduction.
+   * Step 6: Onboarding complete - promote and redirect.
    *
-   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
-   *   Render array or redirect.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response.
    */
-  public function complete(): array|RedirectResponse {
+  public function complete(): RedirectResponse {
     $currentUser = $this->currentUser();
 
     if ($currentUser->isAnonymous()) {
@@ -37,108 +47,38 @@ final class VendorOnboardCompleteController extends ControllerBase {
       );
     }
 
-    $vendor = $this->getCurrentUserVendor();
-    if (!$vendor) {
+    $uid = (int) $currentUser->id();
+    if ($uid <= 0) {
       return new RedirectResponse(
-        Url::fromRoute('myeventlane_vendor.onboard.profile')->toString()
+        Url::fromRoute('myeventlane_vendor.onboard.account')->toString()
       );
     }
 
-    $vendorName = $vendor->getName() ?: $this->t('your organisation');
+    $state = $this->onboardingManager->loadVendorStateByUid($uid);
+    if ($state === NULL) {
+      $state = $this->onboardingManager->createVendorStateForUid($uid);
+    }
 
-    $content = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['mel-onboard-complete'],
-      ],
-    ];
+    $vendor = $this->getCurrentUserVendor();
+    if (!$vendor) {
+      $vendor = $this->onboardingManager->ensureVendorExists($currentUser->getAccount());
+    }
 
-    $content['success'] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['mel-onboard-complete-success'],
-      ],
-      'icon' => [
-        '#markup' => '<div class="mel-onboard-complete-icon">✓</div>',
-      ],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $this->t('Welcome to MyEventLane!'),
-      ],
-      'message' => [
-        '#markup' => '<p>' . $this->t('Congratulations, @name! Your organiser account is set up and ready to go.', [
-          '@name' => $vendorName,
-        ]) . '</p>',
-      ],
-    ];
+    // Ensure completion invariant: vendor_id must exist for completed state.
+    if ($state->getVendorId() !== (int) $vendor->id()) {
+      $state->setVendorId((int) $vendor->id());
+    }
+    $state->setStage('complete');
+    $state->setCompleted(TRUE);
+    $state->save();
 
-    $content['features'] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['mel-onboard-complete-features'],
-      ],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('What you can do now:'),
-      ],
-      'list' => [
-        '#theme' => 'item_list',
-        '#items' => [
-          $this->t('Create and manage events'),
-          $this->t('Set up tickets and pricing'),
-          $this->t('Track registrations and sales'),
-          $this->t('View analytics and reports'),
-          $this->t('Manage your organiser profile'),
-        ],
-      ],
-    ];
+    // Grant vendor role (idempotent) at completion only.
+    $this->onboardingManager->ensureVendorAccess($currentUser->getAccount());
 
-    $content['actions'] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['mel-onboard-complete-actions'],
-      ],
-      'dashboard' => [
-        '#type' => 'link',
-        '#title' => $this->t('Go to dashboard'),
-        '#url' => Url::fromRoute('myeventlane_dashboard.vendor'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
-        ],
-      ],
-      'create_event' => [
-        '#type' => 'link',
-        '#title' => $this->t('Create an event'),
-        '#url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-secondary'],
-        ],
-      ],
-      'profile' => [
-        '#type' => 'link',
-        '#title' => $this->t('Edit profile'),
-        '#url' => Url::fromRoute('entity.myeventlane_vendor.edit_form', [
-          'myeventlane_vendor' => $vendor->id(),
-        ]),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-ghost'],
-        ],
-      ],
-    ];
-
-    return [
-      '#theme' => 'vendor_onboard_step',
-      '#step_number' => 6,
-      '#total_steps' => 6,
-      '#step_title' => $this->t('You\'re all set!'),
-      '#step_description' => $this->t('Your organiser account is ready. Start creating events and managing your business.'),
-      '#content' => $content,
-      '#attached' => [
-        'library' => ['myeventlane_vendor/onboarding'],
-      ],
-    ];
+    // After completion, route directly to event creation wizard.
+    return new RedirectResponse(
+      Url::fromRoute('myeventlane_event.wizard.create')->toString()
+    );
   }
 
   /**
@@ -156,11 +96,13 @@ final class VendorOnboardCompleteController extends ControllerBase {
     }
 
     $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $vendorIds = $vendorStorage->getQuery()
+    $query = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
+      ->range(0, 1);
+    $group = $query->orConditionGroup()
       ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
+      ->condition('field_vendor_users', $userId);
+    $vendorIds = $query->condition($group)->execute();
 
     if (!empty($vendorIds)) {
       $vendor = $vendorStorage->load(reset($vendorIds));

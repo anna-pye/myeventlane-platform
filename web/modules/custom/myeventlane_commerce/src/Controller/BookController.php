@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
@@ -39,6 +40,7 @@ final class BookController extends ControllerBase {
     private readonly EventModeManager $modeManager,
     private readonly EventCtaResolver $ctaResolver,
     private readonly FormBuilderInterface $formBuilderService,
+    private readonly ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
   /**
@@ -50,6 +52,9 @@ final class BookController extends ControllerBase {
       $container->get('myeventlane_event.event_mode_manager'),
       $container->get('myeventlane_event.cta_resolver'),
       $container->get('form_builder'),
+      $container->has('myeventlane_capacity.service')
+        ? $container->get('myeventlane_capacity.service')
+        : NULL,
     );
   }
 
@@ -212,6 +217,16 @@ final class BookController extends ControllerBase {
         '#attributes' => ['class' => ['mel-alert', 'mel-alert--warning']],
         'message' => [
           '#markup' => '<p>' . $this->t('Tickets are not currently on sale.') . '</p>',
+        ],
+      ];
+    }
+
+    if ($this->capacityService && $this->capacityService->isSoldOut($event)) {
+      return [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
+        'message' => [
+          '#markup' => '<p>' . $this->t('This event is sold out.') . '</p>',
         ],
       ];
     }

@@ -37,7 +37,12 @@
   border: 2px solid transparent;
   border-radius: radii.$mel-radius-md;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out),
+    border-color var(--mel-motion-fast) var(--mel-ease-out),
+    color var(--mel-motion-fast) var(--mel-ease-out);
 
   // Focus
   &:focus {
@@ -64,43 +69,68 @@
 // Primary (Coral) - Main CTAs
 .mel-btn-primary {
   background-color: colors.$mel-color-primary;
-  color: white;
+  color: colors.$mel-color-text-inverse;
   border-radius: radii.$mel-radius-full; // Pill shape
   font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.01em;
 
-  &:hover {
-    background-color: colors.$mel-color-primary-hover;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(242, 109, 91, 0.35);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: colors.$mel-color-primary-hover;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(colors.$mel-color-primary, 0.30);
+    }
   }
 
   &:active {
     background-color: colors.$mel-color-primary-active;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 }
 
 // Primary button variant for RSVP/Ticket buttons (WCAG compliant)
 .button--rsvp,
 .button--ticket {
-  color: white;
-  background-color: #C74848; // Meets 4.5:1 contrast ratio
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: colors.$mel-color-text-inverse;
+  background-color: colors.$mel-color-secondary-active;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out);
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(199, 72, 72, 0.35);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(colors.$mel-color-secondary-active, 0.35);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 }
 
 // CTA Button Hierarchy
 .button--primary {
-  background: #FC9167;
-  color: #fff;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: colors.$mel-color-primary;
+  color: colors.$mel-color-text-inverse;
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.01em;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out);
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(252, 145, 103, 0.35);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(colors.$mel-color-primary, 0.30);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 }
 
@@ -110,6 +140,21 @@
   color: colors.$mel-color-primary;
   border-radius: radii.$mel-radius-full; // Pill shape
   font-weight: typography.$mel-font-bold;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: rgba(colors.$mel-color-primary, 0.06);
+      border-color: colors.$mel-color-primary;
+    }
+  }
+
+  &:active {
+    background: rgba(colors.$mel-color-primary, 0.10);
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
 }
 
 // Secondary (Outline) - Secondary actions
@@ -120,12 +165,14 @@
   border-radius: radii.$mel-radius-full; // Pill shape
   font-weight: typography.$mel-font-bold;
 
-  &:hover {
-    background-color: rgba(242, 109, 91, 0.05);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: rgba(colors.$mel-color-primary, 0.05);
+    }
   }
 
   &:active {
-    background-color: rgba(242, 109, 91, 0.1);
+    background-color: rgba(colors.$mel-color-primary, 0.1);
   }
 }
 
@@ -149,9 +196,11 @@
   color: colors.$mel-color-text;
   border-color: colors.$mel-color-border-strong;
 
-  &:hover {
-    background-color: colors.$mel-color-bg;
-    border-color: colors.$mel-color-text-muted;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: colors.$mel-color-bg;
+      border-color: colors.$mel-color-text-muted;
+    }
   }
 
   &:active {
@@ -166,9 +215,15 @@
   padding-left: spacing.mel-space(2);
   padding-right: spacing.mel-space(2);
 
-  &:hover {
-    color: colors.$mel-color-primary-hover;
-    text-decoration: underline;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: colors.$mel-color-primary-hover;
+      text-decoration: underline;
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 }
 
@@ -282,14 +337,40 @@
 // Additional button classes using CSS custom properties for consistency.
 
 .mel-btn--primary {
-  background: var(--mel-coral);
-  color: #fff;
+  // Default primary = brand lavender/purple.
+  background: var(--mel-primary);
+  color: colors.$mel-color-text-inverse;
   border-radius: radii.$mel-radius-full; // Pill shape
   font-weight: typography.$mel-font-bold;
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(242, 109, 91, 0.35);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(colors.$mel-color-primary, 0.35);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+// CTA (Coral) - conversion moments (Create, Boost, Tickets, Checkout).
+.mel-btn--cta {
+  background: var(--mel-accent);
+  color: colors.$mel-color-text-inverse;
+  border-radius: radii.$mel-radius-full; // Pill shape
+  font-weight: typography.$mel-font-bold;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(colors.$mel-color-secondary, 0.35);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 }
 

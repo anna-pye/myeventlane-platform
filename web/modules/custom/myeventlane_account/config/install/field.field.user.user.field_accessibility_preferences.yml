@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_accessibility_preferences
+  module:
+    - user
+id: user.user.field_accessibility_preferences
+field_name: field_accessibility_preferences
+entity_type: user
+bundle: user
+label: 'Accessibility preferences'
+description: 'Let us know if there''s anything that helps you have a better experience. This is private and only used to improve accessibility where possible.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

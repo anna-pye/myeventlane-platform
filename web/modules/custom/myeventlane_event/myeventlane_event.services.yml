@@ -1,4 +1,18 @@
 services:
+  myeventlane_event.wizard_review_summary_builder:
+    class: Drupal\myeventlane_event\Service\WizardReviewSummaryBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_event.geo_resolver:
+    class: Drupal\myeventlane_event\Service\EventGeoResolver
+    public: true
+
+  myeventlane_event.wizard_publish_validator:
+    class: Drupal\myeventlane_event\Service\EventWizardPublishValidator
+    arguments:
+      - '@logger.factory'
+
   myeventlane_event.event_form_alter:
     class: Drupal\myeventlane_event\Form\EventFormAlter
     arguments:
@@ -27,6 +41,7 @@ services:
       - '@myeventlane_event_attendees.manager'
       - '@url_generator'
       - '@datetime.time'
+      - '@myeventlane_capacity.service'
 
   myeventlane_event.ticket_type_manager:
     class: Drupal\myeventlane_event\Service\TicketTypeManager
@@ -39,3 +54,9 @@ services:
     arguments:
       - '@myeventlane_event.event_mode_manager'
       - '@myeventlane_event_state.resolver'
+
+  myeventlane_event.recurrence_generator:
+    class: Drupal\myeventlane_event\Service\EventRecurrenceGenerator
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'

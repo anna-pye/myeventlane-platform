@@ -19,11 +19,12 @@ $mel-color-on-primary: #ffffff;       // Text on primary surfaces
 // ---------------------------------------------------------------------------
 // Accent Colors
 // ---------------------------------------------------------------------------
-// Primary palette - matching style guide exactly
+// Primary palette (MEL v2 UI reference)
+// Primary CTA is lavender-purple; coral is used as a supporting accent.
 
-$mel-color-primary: #f26d5b;          // Coral - primary CTA, brand accent
-$mel-color-primary-hover: #e85a4d;    // Darker coral for hover
-$mel-color-primary-active: #d14a3d;   // Even darker for active/pressed
+$mel-color-primary: #6c7ef2;          // Lavender purple - primary CTA
+$mel-color-primary-hover: #5f70e6;    // Hover
+$mel-color-primary-active: #5464d9;   // Active/pressed
 
 $mel-color-navy: #293241;             // Navy - text and dark elements
 $mel-color-blue: #6c7ef2;             // Blue - accents
@@ -31,12 +32,23 @@ $mel-color-orange: #f5a04c;           // Orange - highlights
 $mel-color-cream: #fef5ec;            // Cream - backgrounds
 $mel-color-grey-light: #f4f4f4;       // Light grey - subtle backgrounds
 
-$mel-color-secondary: #8d79f6;        // Lavender purple - secondary actions (legacy)
-$mel-color-secondary-hover: #7a65e8;  // Darker lavender for hover
-$mel-color-secondary-active: #6852d9; // Even darker for active
+$mel-color-secondary: #f26d5b;        // Coral - secondary/accent
+$mel-color-secondary-hover: #e85a4d;
+$mel-color-secondary-active: #d14a3d;
 
 $mel-color-accent: #ffd46f;           // Soft yellow - highlights, badges (legacy)
 $mel-color-accent-alt: #70d6c4;       // Aqua/teal - optional accent (legacy)
+
+// Semantic aliases (design authority):
+// - Primary system color remains lavender ($mel-color-primary).
+// - Coral is an accent for emphasis / momentum (Featured / Popular / Trending).
+$mel-color-highlight: $mel-color-secondary;
+$mel-color-highlight-hover: $mel-color-secondary-hover;
+$mel-color-highlight-active: $mel-color-secondary-active;
+
+$mel-color-momentum: $mel-color-secondary;
+$mel-color-momentum-hover: $mel-color-secondary-hover;
+$mel-color-momentum-active: $mel-color-secondary-active;
 
 // Legacy aliases (for backward compatibility)
 $mel-color-accent-1: $mel-color-primary;
@@ -77,7 +89,7 @@ $mel-color-info-bg: #dbeafe;          // Light blue background
 // Focus & Accessibility
 // ---------------------------------------------------------------------------
 
-$mel-focus-ring-color: $mel-color-secondary;
+$mel-focus-ring-color: $mel-color-primary;
 $mel-focus-ring-offset: 2px;
 $mel-focus-ring-width: 3px;
 $mel-focus-ring: 0 0 0 $mel-focus-ring-offset $mel-color-surface,

@@ -364,3 +364,236 @@ function myeventlane_schema_update_9003(): string {
 
   return 'Created field_event_setup_complete field on Event bundle.';
 }
+
+/**
+ * Add third_party_settings to entity view display components missing it.
+ *
+ * Drupal 11 FormatterBase::__construct() requires third_party_settings to be
+ * an array. Configs without it cause "Undefined array key third_party_settings"
+ * and TypeError when the wizard review step renders field_event_highlights
+ * (which loads paragraph.event_highlight.default).
+ */
+function myeventlane_schema_update_9004(): string {
+  $config_factory = \Drupal::configFactory();
+  $displays = [
+    'core.entity_view_display.paragraph.event_highlight.default',
+    'core.entity_view_display.paragraph.attendee_extra_field.default',
+    'core.entity_view_display.node.event.teaser',
+    'core.entity_view_display.node.event.event_home_card',
+  ];
+
+  $updated = 0;
+  foreach ($displays as $config_name) {
+    $config = $config_factory->getEditable($config_name);
+    if ($config->isNew()) {
+      continue;
+    }
+
+    $content = $config->get('content');
+    if (!is_array($content)) {
+      continue;
+    }
+
+    $changed = FALSE;
+    foreach ($content as $field_name => $component) {
+      if (!is_array($component)) {
+        continue;
+      }
+      if (!isset($component['third_party_settings'])) {
+        $content[$field_name]['third_party_settings'] = [];
+        $changed = TRUE;
+      }
+    }
+
+    if ($changed) {
+      $config->set('content', $content)->save(TRUE);
+      $updated++;
+    }
+  }
+
+  if ($updated > 0) {
+    drupal_flush_all_caches();
+  }
+
+  return sprintf('Added third_party_settings to %d entity view display(s). Fixes FormatterBase TypeError in wizard review.', $updated);
+}
+
+/**
+ * Add recurring series fields to Event bundle (Option A: Series Template Event).
+ *
+ * Fields: field_is_series_template, field_series_rrule, field_series_timezone,
+ * field_series_parent, field_series_instance_id. All optional; single events
+ * unaffected.
+ */
+function myeventlane_schema_update_9005(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $field_storage_storage = $entity_type_manager->getStorage('field_storage_config');
+  $field_config_storage = $entity_type_manager->getStorage('field_config');
+  $config_path = \Drupal::service('extension.list.module')->getPath('myeventlane_schema') . '/config/install';
+
+  $storages = [
+    'field.storage.node.field_is_series_template',
+    'field.storage.node.field_series_rrule',
+    'field.storage.node.field_series_timezone',
+    'field.storage.node.field_series_parent',
+    'field.storage.node.field_series_instance_id',
+  ];
+
+  foreach ($storages as $config_name) {
+    $config_file = $config_path . '/' . $config_name . '.yml';
+    if (file_exists($config_file)) {
+      $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+      $storage_id = $config_data['id'] ?? str_replace('field.storage.', '', $config_name);
+      if (!$field_storage_storage->load($storage_id)) {
+        \Drupal::configFactory()->getEditable($config_name)->setData($config_data)->save(TRUE);
+      }
+    }
+  }
+
+  $fields = [
+    'field.field.node.event.field_is_series_template',
+    'field.field.node.event.field_series_rrule',
+    'field.field.node.event.field_series_timezone',
+    'field.field.node.event.field_series_parent',
+    'field.field.node.event.field_series_instance_id',
+  ];
+
+  foreach ($fields as $config_name) {
+    $config_file = $config_path . '/' . $config_name . '.yml';
+    if (file_exists($config_file)) {
+      $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+      $field_id = $config_data['id'] ?? str_replace('field.field.', '', $config_name);
+      if (!$field_config_storage->load($field_id)) {
+        \Drupal::configFactory()->getEditable($config_name)->setData($config_data)->save(TRUE);
+      }
+    }
+  }
+
+  // Add series fields to default form display (Recurring series section).
+  $form_display_storage = $entity_type_manager->getStorage('entity_form_display');
+  $form_display = $form_display_storage->load('node.event.default');
+  if ($form_display) {
+    $content = $form_display->get('content') ?? [];
+    $content['field_is_series_template'] = [
+      'type' => 'boolean_checkbox',
+      'weight' => 95,
+      'region' => 'content',
+      'settings' => ['display_label' => TRUE],
+      'third_party_settings' => [],
+    ];
+    $content['field_series_rrule'] = [
+      'type' => 'string_textarea',
+      'weight' => 96,
+      'region' => 'content',
+      'settings' => ['rows' => 3, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ];
+    $content['field_series_timezone'] = [
+      'type' => 'string_textfield',
+      'weight' => 97,
+      'region' => 'content',
+      'settings' => ['size' => 60, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ];
+    $form_display->set('content', $content);
+    $form_display->save();
+  }
+
+  drupal_flush_all_caches();
+
+  return 'Added recurring series fields to Event bundle (field_is_series_template, field_series_rrule, field_series_timezone, field_series_parent, field_series_instance_id).';
+}
+
+/**
+ * Create database tables for recurring series fields.
+ *
+ * Update 9005 added field config via ConfigFactory, which does not create
+ * dedicated field tables. This hook applies entity definition updates to
+ * create node__field_is_series_template, node__field_series_*, etc.
+ */
+function myeventlane_schema_update_9006(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $storage_definitions = $entity_field_manager->getFieldStorageDefinitions('node');
+
+  $series_fields = [
+    'field_is_series_template',
+    'field_series_rrule',
+    'field_series_timezone',
+    'field_series_parent',
+    'field_series_instance_id',
+  ];
+
+  foreach ($series_fields as $field_name) {
+    if (!isset($storage_definitions[$field_name])) {
+      continue;
+    }
+    $storage_definition = $storage_definitions[$field_name];
+    $original = $entity_definition_update_manager->getFieldStorageDefinition($field_name, 'node');
+    if ($original === NULL) {
+      $entity_definition_update_manager->installFieldStorageDefinition(
+        $field_name,
+        'node',
+        'myeventlane_schema',
+        $storage_definition
+      );
+    }
+  }
+
+  drupal_flush_all_caches();
+
+  return 'Created database tables for recurring series fields (field_is_series_template, field_series_rrule, field_series_timezone, field_series_parent, field_series_instance_id).';
+}
+
+/**
+ * Ensure event default view display shows body and field_event_intro.
+ *
+ * The event full page template (node--event--full) expects content.body
+ * (About the Event) and content.field_event_intro (What to expect). They
+ * only appear when included on the default view display.
+ */
+function myeventlane_schema_update_9007(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_view_display');
+  $display = $storage->load('node.event.default');
+  if (!$display) {
+    return 'Event default view display not found; nothing to update.';
+  }
+
+  $field_exists = static function (string $name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $name);
+  };
+
+  $updated = FALSE;
+
+  if ($field_exists('body') && !$display->getComponent('body')) {
+    $display->setComponent('body', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'settings' => [],
+      'third_party_settings' => [],
+      'weight' => 0,
+      'region' => 'content',
+    ]);
+    $updated = TRUE;
+  }
+
+  if ($field_exists('field_event_intro') && !$display->getComponent('field_event_intro')) {
+    $display->setComponent('field_event_intro', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'settings' => [],
+      'third_party_settings' => [],
+      'weight' => 1,
+      'region' => 'content',
+    ]);
+    $updated = TRUE;
+  }
+
+  if ($updated) {
+    $display->save();
+  }
+
+  return $updated
+    ? 'Added body and field_event_intro to event default view display so event description and What to expect render on the event page.'
+    : 'Event default view display already had body and field_event_intro.';
+}

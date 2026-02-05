@@ -45,7 +45,7 @@ myeventlane_boost.wizard.step1:
           - event
 
 # Boost Wizard - Step 2 (Form API): Choose budget.
-myeventlane_boost.vendor_boost_wizard_step2:
+myeventlane_boost.wizard.step2:
   path: '/vendor/events/{event}/boost/wizard/step-2'
   defaults:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step2'
@@ -61,7 +61,7 @@ myeventlane_boost.vendor_boost_wizard_step2:
           - event
 
 # Boost Wizard - Step 3 (Form API): Choose dates.
-myeventlane_boost.vendor_boost_wizard_step3:
+myeventlane_boost.wizard.step3:
   path: '/vendor/events/{event}/boost/wizard/step-3'
   defaults:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step3'

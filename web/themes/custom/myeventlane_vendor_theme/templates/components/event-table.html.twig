@@ -24,9 +24,14 @@
     
     <div class="mel-event-table__body">
       {% for event in display_events %}
-        <div class="mel-event-table__row">
+        {% set is_past = (event.mel_event_state is defined and event.mel_event_state in ['ended', 'archived']) or (event.status|default('') == 'past') %}
+        {% set is_promoted = event.boost is defined and event.boost.is_boosted|default(false) %}
+        <div class="mel-event-table__row{% if is_past %} mel-card--past{% endif %}{% if is_promoted %} mel-card--promoted{% endif %}">
           <div class="mel-event-table__col mel-event-table__col--event">
             <a href="{{ event.manage_url }}" class="mel-event-table__title">{{ event.title }}</a>
+            {% if event.is_series_template|default(false) %}
+              <span class="mel-badge mel-badge--series">{{ 'Series'|t }}</span>
+            {% endif %}
             {% if event.venue %}
               <span class="mel-event-table__venue">{{ event.venue }}</span>
             {% endif %}
@@ -51,6 +56,14 @@
                   </svg>
                   {{ 'Edit Event'|t }}
                 </a>
+                {% if event.is_series_template|default(false) and event.series_url is defined and event.series_url %}
+                <a href="{{ event.series_url }}" class="mel-actions-menu__item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  {{ 'Manage instances'|t }}
+                </a>
+                {% endif %}
                 <a href="{{ event.tickets_url }}" class="mel-actions-menu__item">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
@@ -89,7 +102,7 @@
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
       <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
-      <a href="/vendor/events/create" class="mel-btn mel-btn--primary">{{ 'Create Event'|t }}</a>
+      <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta">{{ 'Create Event'|t }}</a>
     </div>
   {% endif %}
 </div>

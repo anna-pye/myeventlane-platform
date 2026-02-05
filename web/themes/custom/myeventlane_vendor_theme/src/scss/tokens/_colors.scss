@@ -25,6 +25,11 @@ $ml-accent-coral-light: #FFE0E0;
 $ml-accent-green:       #5CC98B;
 $ml-accent-yellow:      #FFEAAA;
 
+// Semantic aliases (design authority):
+// Coral is the vendor "momentum" / emphasis accent (performance, growth, revenue).
+$ml-color-accent: $ml-accent-coral;
+$ml-color-accent-light: $ml-accent-coral-light;
+
 // Wizard-specific coral accent (MyEventLane brand)
 $wizard-coral:          #FF6B6B;
 $wizard-coral-light:    rgba(255, 107, 107, 0.1);

@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Boost wizard shell: all step forms render inside this layout.
+ *
+ * Variables:
+ * - event_id: The event node ID.
+ * - event_title: The event title.
+ * - content: Render array (current step form or step content).
+ * - attributes: HTML attributes for the wrapper.
+ */
+#}
+<div{{ attributes.addClass('mel-boost-wizard') }}>
+  <div class="mel-boost-wizard__header">
+    <h1 class="mel-boost-wizard__title">
+      {{ 'Boost wizard'|t }}: {{ event_title }}
+    </h1>
+  </div>
+
+  <div class="mel-boost-wizard__stepper" role="region" aria-label="{{ 'Boost wizard steps'|t }}">
+    {% if content %}
+      {{ content }}
+    {% endif %}
+  </div>
+</div>

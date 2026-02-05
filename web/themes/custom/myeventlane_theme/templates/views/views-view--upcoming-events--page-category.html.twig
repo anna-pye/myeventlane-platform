@@ -5,9 +5,21 @@
  * 
  * Removes default View wrapper divs so rows go directly into .mel-event-grid
  * provided by views-view-unformatted template.
+ * Empty state: nothing-found image when no results.
  */
 #}
-{{ rows }}
+{% if view.result %}
+  {{ rows }}
+{% else %}
+  <div class="mel-empty-state mel-empty-state--listing">
+    <div class="mel-empty-state__image">
+      <img src="{{ directory }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
+    </div>
+    <h3 class="mel-empty-state__title">{{ 'No events in this category'|t }}</h3>
+    <p class="mel-empty-state__text">{{ 'Check back soon for new events, or browse other categories.'|t }}</p>
+    <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
+  </div>
+{% endif %}
 
 
 

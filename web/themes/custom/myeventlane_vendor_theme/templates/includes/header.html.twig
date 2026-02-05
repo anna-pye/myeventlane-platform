@@ -1,40 +1,25 @@
 {#
 /**
  * @file
- * Vendor header include.
+ * Vendor console header.
+ * Always renders structural markup and preserves SCSS layout contract.
  */
 #}
-<div class="mel-site-header mel-site-header--vendor">
-  <div class="mel-site-header__inner">
-    <div class="mel-header vendor-shell__topbar">
-  <div class="mel-header__left">
-    <button class="mel-header__menu-toggle" data-vendor-nav-toggle aria-label="{{ 'Toggle navigation'|t }}">
-      ☰
-    </button>
-    <div class="mel-header__brand">
-      <span class="mel-header__logo" aria-hidden="true">◆</span>
-      <div class="mel-header__titles">
-        <div class="mel-header__title">Vendor Console</div>
-        {% if page.workspace_name %}
-          <div class="mel-header__subtitle">{{ page.workspace_name }}</div>
-        {% endif %}
-      </div>
+
+<header class="mel-site-header mel-site-header--vendor" role="banner">
+  <div class="mel-site-header__inner mel-header-inner mel-container">
+
+    <div class="mel-vendor-header__left mel-header__left">
+      {{ page.vendor_header_left }}
     </div>
-  </div>
-  <div class="mel-header__actions">
-    {% if page.quick_actions is defined and page.quick_actions is not empty %}
-      <div class="mel-header__quick-actions">
-        {% for action in page.quick_actions %}
-          {{ action|render }}
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% if page.user_menu %}
-      <div class="mel-header__user">
-        {{ page.user_menu }}
-      </div>
-    {% endif %}
-  </div>
+
+    <div class="mel-vendor-header__center mel-header__center">
+      {{ page.vendor_header_center }}
     </div>
+
+    <div class="mel-vendor-header__right mel-header__right">
+      {{ page.vendor_header_right }}
+    </div>
+
   </div>
-</div>
+</header>

@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Default page layout for the MyEventLane Vendor Console.
+ *
+ * Minimal shell that explicitly includes the vendor header and footer includes,
+ * and renders regions without hardcoding menus, links, or logos in this file.
+ */
+#}
+
+{% set sidebar = include('@myeventlane_vendor_theme/includes/sidebar.html.twig', { page: page }, with_context = false) %}
+
+{# Mobile sidebar overlay (behavior is handled by existing theme JS/CSS if present). #}
+<div class="mel-sidebar-overlay" data-sidebar-overlay></div>
+
+<div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
+  <aside class="mel-vendor-shell__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
+    {{ sidebar|raw }}
+  </aside>
+
+  <div class="mel-vendor-shell__main">
+    {% include '@myeventlane_vendor_theme/includes/header.html.twig' with { page: page } only %}
+
+    {% if page.vendor_alert is defined %}
+      {% include '@myeventlane_vendor_theme/includes/vendor-alert-strip.html.twig' with {
+        vendor_alert: page.vendor_alert
+      } only %}
+    {% endif %}
+
+    <main class="mel-vendor-shell__content" role="main">
+      {% if page.highlighted %}
+        {{ page.highlighted }}
+      {% endif %}
+
+      {% if page.sidebar_help %}
+        <div class="mel-layout--two-column">
+          <div class="mel-layout__main">
+            {{ page.content }}
+          </div>
+          <aside class="mel-layout__sidebar-help">
+            {{ page.sidebar_help }}
+          </aside>
+        </div>
+      {% else %}
+        {{ page.content }}
+      {% endif %}
+    </main>
+
+    {% include '@myeventlane_vendor_theme/includes/footer.html.twig' with { page: page } only %}
+  </div>
+</div>
+

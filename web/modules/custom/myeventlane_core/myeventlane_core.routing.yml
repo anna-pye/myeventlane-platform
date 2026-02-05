@@ -74,4 +74,13 @@ myeventlane_core.onboard.my_tickets:
   options:
     _maintenance_access: FALSE
 
-
+# Onboarding state collection (admin).
+entity.myeventlane_onboarding_state.collection:
+  path: '/admin/config/myeventlane/onboarding'
+  defaults:
+    _entity_list: 'myeventlane_onboarding_state'
+    _title: 'Onboarding states'
+  requirements:
+    _permission: 'administer myeventlane onboarding'
+  options:
+    _admin_route: TRUE

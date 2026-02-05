@@ -59,7 +59,7 @@ final class AnalyticsScopeResolver implements AnalyticsScopeResolverInterface {
    */
   public function resolveEffectiveStoreIds(AnalyticsQuery $query): array {
     return match ($query->scope) {
-      AnalyticsQuery::SCOPE_VENDOR => [$this->resolveSingleVendorStoreId()],
+      AnalyticsQuery::SCOPE_VENDOR => $this->resolveVendorStoreIds(),
       AnalyticsQuery::SCOPE_ADMIN => $this->resolveAdminStoreIds($query),
       default => throw new InvalidScopeException('Invalid analytics scope.'),
     };
@@ -84,15 +84,18 @@ final class AnalyticsScopeResolver implements AnalyticsScopeResolverInterface {
   }
 
   /**
-   * Resolves exactly one vendor store ID for the current user.
+   * Resolves vendor store IDs for the current user.
    *
-   * @return int
-   *   The store ID.
+   * Returns all stores owned by the current user. Callers (e.g. VendorKpiService)
+   * filter results by the specific store they need when the vendor has multiple.
+   *
+   * @return list<int>
+   *   Store IDs owned by the current user.
    *
    * @throws \Drupal\myeventlane_analytics\Phase7\Exception\AccessDeniedAnalyticsException
-   *   If no store can be resolved or multiple stores exist.
+   *   If no store can be resolved.
    */
-  private function resolveSingleVendorStoreId(): int {
+  private function resolveVendorStoreIds(): array {
     $uid = (int) $this->currentUser->id();
     if ($uid <= 0) {
       throw new AccessDeniedAnalyticsException('You must be logged in.');
@@ -105,21 +108,23 @@ final class AnalyticsScopeResolver implements AnalyticsScopeResolverInterface {
       ->accessCheck(FALSE)
       ->condition('uid', $uid)
       ->condition('type', 'online')
-      ->range(0, 2)
       ->execute();
 
-    if (count($store_ids) === 1) {
-      $store_id = (int) reset($store_ids);
-      if ($store_id > 0) {
-        return $store_id;
+    if (empty($store_ids)) {
+      throw new AccessDeniedAnalyticsException('No vendor store found for your account.');
+    }
+
+    $ids = [];
+    foreach ($store_ids as $id) {
+      $id = (int) $id;
+      if ($id > 0) {
+        $ids[$id] = TRUE;
       }
     }
-
-    if (count($store_ids) > 1) {
-      throw new AccessDeniedAnalyticsException('Multiple vendor stores detected.');
-    }
-
-    throw new AccessDeniedAnalyticsException('No vendor store found for your account.');
+    $effective = array_keys($ids);
+    sort($effective, SORT_NUMERIC);
+    /** @var list<int> $effective */
+    return $effective;
   }
 
   /**

@@ -5,6 +5,18 @@ myeventlane_core.settings:
     platform_fee_percent:
       type: float
       label: 'Platform fee percentage (0-100, e.g. 5 for 5%)'
+    stripe_fee_percent:
+      type: float
+      label: 'Stripe application fee percentage (e.g. 3 for 3%)'
+    stripe_fee_fixed_cents:
+      type: integer
+      label: 'Stripe application fee fixed amount in cents (e.g. 30 for $0.30)'
+    fee_payer:
+      type: string
+      label: 'Who pays platform fee: buyer or organizer_absorbs'
+    checkout_rate_limit_per_minute:
+      type: integer
+      label: 'Checkout rate limit: max requests per minute per IP (0 = disabled)'
     front_page:
       type: mapping
       label: 'Front page settings'

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
@@ -26,11 +27,12 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     private readonly RsvpStatsService $rsvpStatsService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VendorEventTabsService $eventTabsService,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**
@@ -40,6 +42,7 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
     return new self(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_vendor.service.event_tabs'),

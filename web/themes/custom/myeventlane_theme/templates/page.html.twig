@@ -1,31 +1,35 @@
 {#
 /**
  * @file
- * Theme override for standard pages.
- * 
- * Uses proper Drupal attributes and includes header/footer components.
+ * Base page template for MyEventLane Theme.
+ *
+ * IMPORTANT:
+ * - This template defines blocks for page variants (front, search, event, etc).
+ * - Do not inline script/style tags. Attach assets via libraries only.
+ *
+ * Regions are rendered structurally; blocks/layout builder control the content.
  */
 #}
-{% set page_attributes = create_attribute() %}
-{% set page_attributes = page_attributes.addClass('mel-page') %}
 
-<div{{ page_attributes }}>
+{% set page_wrapper_attributes = create_attribute().addClass('mel-page') %}
+
+<div{{ page_wrapper_attributes }}>
   {{ title_prefix }}
   {{ title_suffix }}
 
-  {# ==================== HEADER ==================== #}
-  <div class="mel-region-header">
-    {% include '@myeventlane_theme/includes/header.html.twig' %}
-  </div>
+  {# Site header: compact global header (desktop + mobile) #}
+  {{ site_header }}
 
-  {# Hero (for pages with hero region) #}
-  {% if page.hero %}
-    <div class="mel-region-hero">
-      {{ page.hero }}
-    </div>
-  {% endif %}
+  {# Optional hero region used by some pages. #}
+  {% block hero %}
+    {% if page.hero %}
+      <div class="mel-region-hero">
+        {{ page.hero }}
+      </div>
+    {% endif %}
+  {% endblock %}
 
-  {# Pre-Content #}
+  {# Optional pre-content region. #}
   {% if page.pre_content %}
     <div class="mel-region-pre-content">
       <div class="mel-container">
@@ -34,28 +38,20 @@
     </div>
   {% endif %}
 
-  {# Main Content Area #}
-  {% block content %}
-    <main id="main-content" class="mel-main" role="main">
-      <div class="mel-container">
-        <div class="mel-content">
-          {{ page.content }}
-        </div>
-      </div>
-    </main>
-  {% endblock %}
+  <main id="main-content" class="mel-main" role="main">
+    {% block content %}
+      {{ page.content }}
+    {% endblock %}
+  </main>
 
-  {# Pre-Footer #}
-  {% if page.pre_footer %}
-    <div class="mel-pre-footer">
+  {# Optional below-content region. #}
+  {% if page.below_content %}
+    <div class="mel-region-below-content">
       <div class="mel-container">
-        {{ page.pre_footer }}
+        {{ page.below_content }}
       </div>
     </div>
   {% endif %}
 
-  {# ==================== FOOTER ==================== #}
-  <div class="mel-region-footer">
-    {% include '@myeventlane_theme/includes/footer.html.twig' %}
-  </div>
+  {% include '@myeventlane_theme/includes/footer.html.twig' %}
 </div>

@@ -1,0 +1,378 @@
+// ==========================================================================
+// Customer My Account Dashboard
+// ==========================================================================
+// Mobile-first, accessible layout with pill-card left nav, header avatar,
+// and event cards. Reuses MEL card styles (mel-card, mel-card__media).
+// 44x44 tap targets, WCAG AA.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------------
+
+.mel-my-account {
+  min-height: 100vh;
+  background: colors.$mel-color-bg;
+}
+
+.mel-my-account__layout {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(6);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: spacing.mel-space(4);
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    gap: spacing.mel-space(8);
+    padding: spacing.mel-space(6);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Left Navigation — pill-card style
+// ---------------------------------------------------------------------------
+// Nav wrapped in card panel; active item has pill background.
+// Mobile: horizontal scroll pills. Desktop: vertical pill list.
+// Min 44px tap targets.
+
+.mel-my-account__nav {
+  flex-shrink: 0;
+
+  @include breakpoints.mel-break(md) {
+    width: 240px;
+  }
+}
+
+.mel-my-account__nav-card {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  padding: spacing.mel-space(2);
+  box-shadow: shadows.$mel-shadow-sm;
+  border: 2px solid rgba(41, 50, 65, 0.08);
+}
+
+.mel-my-account__nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: spacing.mel-space(2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow-x: visible;
+    gap: spacing.mel-space(1);
+  }
+}
+
+.mel-my-account__nav-item {
+  margin: 0;
+  flex-shrink: 0;
+
+  @include breakpoints.mel-break(md) {
+    flex-shrink: 1;
+  }
+}
+
+.mel-my-account__nav-link {
+  display: block;
+  min-height: 44px;
+  min-width: 44px;
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  background: transparent;
+  border-radius: radii.$mel-radius-full;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-primary, $alpha: -0.92);
+    color: colors.$mel-color-primary;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  &--active {
+    background: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+    font-weight: typography.$mel-font-semibold;
+
+    &:hover {
+      background: colors.$mel-color-primary-hover;
+      color: colors.$mel-color-text-inverse;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header row — logo, welcome, avatar
+// ---------------------------------------------------------------------------
+
+.mel-my-account__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: spacing.mel-space(4);
+  margin-bottom: spacing.mel-space(6);
+
+  @include breakpoints.mel-break(md) {
+    margin-bottom: spacing.mel-space(8);
+  }
+}
+
+.mel-my-account__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: radii.$mel-radius-md;
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-sm;
+
+  img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+}
+
+.mel-my-account__logo-text {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-primary;
+}
+
+.mel-my-account__welcome {
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-extrabold;
+  color: colors.$mel-color-text;
+  margin: 0;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(3xl);
+  }
+}
+
+.mel-my-account__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color.adjust(colors.$mel-color-primary, $alpha: -0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.mel-my-account__avatar-initials {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-primary;
+}
+
+// ---------------------------------------------------------------------------
+// Main Content
+// ---------------------------------------------------------------------------
+
+.mel-my-account__main {
+  flex: 1;
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------
+
+.mel-my-account__section {
+  margin-bottom: spacing.mel-space(6);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-my-account__section-title {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(4) 0;
+}
+
+// ---------------------------------------------------------------------------
+// Cards Grid — reuses mel-card
+// ---------------------------------------------------------------------------
+// Image on top (cropped), title, date + location, CTA right bottom.
+
+.mel-my-account__cards {
+  display: grid;
+  gap: spacing.mel-space(4);
+  grid-template-columns: 1fr;
+
+  @include breakpoints.mel-break(sm) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.mel-my-account__card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  .mel-card__link {
+    flex-shrink: 0;
+  }
+
+  .mel-card__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .mel-card__title {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .mel-card__media--placeholder {
+    &::before {
+      content: "🎫";
+      font-size: 2.5rem;
+      opacity: 0.6;
+    }
+  }
+}
+
+.mel-my-account__card--past {
+  opacity: 0.9;
+}
+
+.mel-my-account__event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin: 0 0 spacing.mel-space(3) 0;
+}
+
+.mel-my-account__event-location {
+  &::before {
+    content: '';
+    display: none;
+  }
+}
+
+.mel-my-account__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+  margin-top: spacing.mel-space(3);
+  justify-content: flex-end;
+  align-items: center;
+}
+
+// ---------------------------------------------------------------------------
+// Quick Actions
+// ---------------------------------------------------------------------------
+
+.mel-my-account__quick-actions {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  padding: spacing.mel-space(5);
+  box-shadow: shadows.$mel-shadow-sm;
+}
+
+.mel-my-account__quick-actions-grid {
+  display: grid;
+  gap: spacing.mel-space(3);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.mel-my-account__quick-action {
+  display: flex;
+  align-items: center;
+  gap: spacing.mel-space(3);
+  min-height: 44px;
+  padding: spacing.mel-space(4);
+  background: colors.$mel-color-bg;
+  border-radius: radii.$mel-radius-lg;
+  text-decoration: none;
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text;
+  transition: background 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-bg, $lightness: -2%);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+.mel-my-account__quick-action-icon {
+  font-size: typography.mel-font-size(xl);
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------------------
+// View All / Empty States
+// ---------------------------------------------------------------------------
+
+.mel-my-account__view-all {
+  display: inline-block;
+  margin-top: spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
+  text-decoration: none;
+  min-height: 44px;
+  line-height: 44px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.mel-my-account__empty {
+  color: colors.$mel-color-text-muted;
+  margin: 0 0 spacing.mel-space(3) 0;
+}

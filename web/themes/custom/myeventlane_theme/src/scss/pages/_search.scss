@@ -322,11 +322,20 @@
   color: colors.$mel-color-text-muted;
   cursor: pointer;
   border-radius: radii.$mel-radius-full;
-  transition: all 0.15s ease;
+  transition:
+    background-color var(--mel-motion-fast) var(--mel-ease-out),
+    color var(--mel-motion-fast) var(--mel-ease-out),
+    transform var(--mel-motion-fast) var(--mel-ease-out);
 
-  &:hover {
-    background: colors.$mel-color-error-bg;
-    color: colors.$mel-color-error;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: colors.$mel-color-error-bg;
+      color: colors.$mel-color-error;
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
   }
 
   &::before {
@@ -365,6 +374,8 @@
   padding: spacing.mel-space(8) spacing.mel-space(4);
   background: colors.$mel-color-surface;
   border-radius: radii.$mel-radius-xl;
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: shadows.$mel-shadow-sm;
 }
 
 .mel-search-empty-icon {
@@ -432,7 +443,7 @@
   background: colors.$mel-color-surface;
   z-index: 200;
   transform: translateX(-100%);
-  transition: transform 0.3s ease;
+  transition: transform var(--mel-motion-slow) var(--mel-ease-in-out);
   overflow-y: auto;
 
   &.is-open {

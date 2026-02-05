@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Service;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -106,6 +107,9 @@ final class TicketTypeManager {
   /**
    * Gets or creates the ticket product for an event.
    *
+   * Uses the event's vendor store so orders are placed on the correct store.
+   * Falls back to default store only when the event has no store assigned.
+   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
@@ -121,15 +125,8 @@ final class TicketTypeManager {
       }
     }
 
-    // Create a new product.
-    $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
-    $stores = $storeStorage->loadByProperties(['is_default' => TRUE]);
-    $store = reset($stores);
-
-    if (!$store) {
-      $stores = $storeStorage->loadMultiple();
-      $store = reset($stores);
-    }
+    // Resolve store: event's vendor store first, then default.
+    $store = $this->resolveEventStore($event);
 
     if (!$store) {
       $this->loggerFactory->get('myeventlane_event')->error('No Commerce store available for ticket product creation.');
@@ -370,6 +367,84 @@ final class TicketTypeManager {
         ['@title' => $eventTitle]
       );
     }
+  }
+
+  /**
+   * Checks if the event has a resolvable vendor store (no default fallback).
+   *
+   * Returns TRUE only when field_event_store or field_event_vendor →
+   * field_vendor_store is set. Used for validation before ticket creation.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return bool
+   *   TRUE if the event has an explicit vendor store.
+   */
+  public function hasVendorStore(NodeInterface $event): bool {
+    return $this->resolveVendorStoreOnly($event) !== NULL;
+  }
+
+  /**
+   * Resolves the store for an event (vendor store or default).
+   *
+   * Uses field_event_store first; if empty, field_event_vendor → field_vendor_store.
+   * Falls back to default Commerce store when the event has no store assigned.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return \Drupal\commerce_store\Entity\StoreInterface|null
+   *   The store entity, or NULL if none available.
+   */
+  private function resolveEventStore(NodeInterface $event): ?StoreInterface {
+    $vendorStore = $this->resolveVendorStoreOnly($event);
+    if ($vendorStore) {
+      return $vendorStore;
+    }
+
+    $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
+    $stores = $storeStorage->loadByProperties(['is_default' => TRUE]);
+    $store = reset($stores);
+    if ($store instanceof StoreInterface) {
+      return $store;
+    }
+
+    $stores = $storeStorage->loadMultiple();
+    return reset($stores) ?: NULL;
+  }
+
+  /**
+   * Resolves the vendor store only (no default fallback).
+   *
+   * Returns the store from field_event_store or field_event_vendor →
+   * field_vendor_store. Returns NULL if neither is set.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return \Drupal\commerce_store\Entity\StoreInterface|null
+   *   The vendor store, or NULL if not assigned.
+   */
+  private function resolveVendorStoreOnly(NodeInterface $event): ?StoreInterface {
+    if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+      $store = $event->get('field_event_store')->entity;
+      if ($store instanceof StoreInterface) {
+        return $store;
+      }
+    }
+
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface) {
+          return $store;
+        }
+      }
+    }
+
+    return NULL;
   }
 
 }

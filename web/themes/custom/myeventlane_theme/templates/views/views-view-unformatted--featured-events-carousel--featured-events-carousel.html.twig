@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Featured Events Carousel (homepage block) — grid output.
+ *
+ * Uses the canonical `.mel-event-grid` wrapper (components/_event-grid.scss)
+ * to achieve a 4-across desktop grid with no new CSS/JS.
+ *
+ * No card markup here; rows already contain themed node output.
+ * When there are 0 rows, output nothing so the homepage section can collapse.
+ */
+#}
+
+{% if rows %}
+  <div class="mel-event-grid" aria-label="{{ 'Featured events'|t }}">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
+  </div>
+{% endif %}

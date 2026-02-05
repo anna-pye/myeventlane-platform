@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Admin revenue dashboard: ticket net (Phase 7, Boost excluded) + boost net.
+ *
+ * Available variables:
+ * - ticket_net_cents: int
+ * - boost_net_cents: int
+ * - total_cents: int
+ * - currency: string
+ * - range_days: int
+ */
+#}
+<div class="mel-admin-revenue-dashboard">
+  <h1>{{ 'Revenue (Admin only)'|t }}</h1>
+  <p>{{ 'Platform revenue for the last @days days. Ticket revenue from Phase 7 (Boost excluded); Boost revenue admin-only.'|t({'@days': range_days}) }}</p>
+
+  <div class="mel-admin-revenue-cards">
+    <div class="mel-admin-revenue-card">
+      <h2>{{ 'Ticket revenue (net)'|t }}</h2>
+      <p class="mel-admin-revenue-value">{{ (ticket_net_cents / 100)|number_format(2) }} {{ currency }}</p>
+    </div>
+    <div class="mel-admin-revenue-card">
+      <h2>{{ 'Boost revenue (net)'|t }}</h2>
+      <p class="mel-admin-revenue-value">{{ (boost_net_cents / 100)|number_format(2) }} {{ currency }}</p>
+    </div>
+    <div class="mel-admin-revenue-card mel-admin-revenue-total">
+      <h2>{{ 'Total platform revenue'|t }}</h2>
+      <p class="mel-admin-revenue-value">{{ (total_cents / 100)|number_format(2) }} {{ currency }}</p>
+    </div>
+  </div>
+</div>

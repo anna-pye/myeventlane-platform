@@ -24,7 +24,7 @@ final class TicketDownloadController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): self {
     return new self(
-      $container->get('myeventlane_tickets.pdf'),
+      $container->get('myeventlane_tickets.ticket_pdf_generator'),
     );
   }
 

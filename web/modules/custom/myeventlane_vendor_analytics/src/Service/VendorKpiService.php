@@ -9,17 +9,16 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_analytics\Phase7\Service\AnalyticsQueryServiceInterface;
+use Drupal\myeventlane_analytics\Phase7\Value\AnalyticsQuery;
 use Psr\Log\LoggerInterface;
 
 /**
- * Vendor KPI aggregation service (STAGE A1).
+ * Vendor KPI aggregation service.
  *
- * KPIs: Net Revenue, Orders, Tickets sold, RSVPs (confirmed).
- * No Views, no Conversion. Store-based ownership per A0.
- *
- * Path: Implemented queries (VendorMetricsService exists but lacks orders_count
- * and a currency parameter; logic mirrors A0 / VendorMetricsService where
- * applicable).
+ * Revenue (net) and tickets sold are sourced only from Phase 7
+ * (myeventlane_analytics.phase7.query). No commerce_order.total_price or
+ * direct DB revenue/ticket queries. Boost spend is not available to vendors.
  */
 final class VendorKpiService {
 
@@ -33,10 +32,13 @@ final class VendorKpiService {
     private readonly CacheBackendInterface $cache,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
+    private readonly AnalyticsQueryServiceInterface $phase7Query,
   ) {}
 
   /**
    * Returns KPI values for a vendor store over a time range.
+   *
+   * revenue_net_cents and tickets_sold come from Phase 7 only.
    *
    * @param \Drupal\commerce_store\Entity\StoreInterface $store
    *   The vendor store.
@@ -66,12 +68,28 @@ final class VendorKpiService {
       return $cached->data;
     }
 
-    $gross_cents = $this->getGrossRevenueCents($store_id, $start_ts, $end_ts, $currency);
-    $refunded_cents = $this->getRefundedAmountCents($store_id, $start_ts, $end_ts, $currency);
-    $revenue_net_cents = (int) max(0, $gross_cents - $refunded_cents);
+    $q_money = new AnalyticsQuery(
+      scope: AnalyticsQuery::SCOPE_VENDOR,
+      store_ids: [],
+      start_ts: $start_ts,
+      end_ts: $end_ts,
+      currency: $currency,
+    );
 
+    $q_count = new AnalyticsQuery(
+      scope: AnalyticsQuery::SCOPE_VENDOR,
+      store_ids: [],
+      start_ts: $start_ts,
+      end_ts: $end_ts,
+      currency: NULL,
+    );
+
+    $net_rows = $this->phase7Query->getNetRevenue($q_money);
+    $tickets_rows = $this->phase7Query->getTicketsSold($q_count);
+
+    $revenue_net_cents = $this->sumCentsForStore($net_rows, $store_id);
+    $tickets_sold = $this->sumCountForStore($tickets_rows, $store_id);
     $orders_count = $this->getOrdersCount($store_id, $start_ts, $end_ts, $currency);
-    $tickets_sold = $this->getTicketsSoldCount($store_id, $start_ts, $end_ts, $currency);
     $rsvps_confirmed = $this->getConfirmedRsvpCount($store_id, $start_ts, $end_ts);
 
     $result = [
@@ -106,66 +124,41 @@ final class VendorKpiService {
   }
 
   /**
-   * Gross revenue: SUM(commerce_order.total_price__number) in cents.
+   * Sums amount_cents for rows matching the given store_id.
    *
-   * A0: store_id, state='completed', placed BETWEEN start/end,
-   * total_price__currency_code = :currency.
+   * @param array $rows
+   *   MoneyByStoreEventCurrencyRow instances from Phase 7.
    */
-  private function getGrossRevenueCents(int $store_id, int $start, int $end, string $currency): int {
-    try {
-      $q = $this->database->select('commerce_order', 'o');
-      $q->addExpression('COALESCE(SUM(o.total_price__number), 0)', 'sum_number');
-      $q->condition('o.store_id', $store_id);
-      $q->condition('o.state', 'completed');
-      $q->condition('o.placed', $start, '>=');
-      $q->condition('o.placed', $end, '<=');
-      $q->condition('o.total_price__currency_code', $currency);
-
-      $sum = (string) $q->execute()->fetchField();
-      return $this->decimalToCents($sum);
+  private function sumCentsForStore(array $rows, int $store_id): int {
+    $sum = 0;
+    foreach ($rows as $row) {
+      if ((int) $row->store_id === $store_id) {
+        $sum += (int) ($row->amount_cents ?? 0);
+      }
     }
-    catch (\Throwable $e) {
-      $this->logger->warning('VendorKpiService::getGrossRevenueCents failed: @message', ['@message' => $e->getMessage()]);
-      return 0;
-    }
+    return $sum;
   }
 
   /**
-   * Refunds: SUM(myeventlane_refund_log.amount_cents).
+   * Sums count for rows matching the given store_id.
    *
-   * A0: join commerce_order; status='completed'; created BETWEEN start/end;
-   * currency filter if column exists (stored as lowercase 'aud' in schema).
+   * @param array $rows
+   *   CountByStoreEventRow instances from Phase 7.
    */
-  private function getRefundedAmountCents(int $store_id, int $start, int $end, string $currency): int {
-    try {
-      if (!$this->database->schema()->tableExists('myeventlane_refund_log')) {
-        return 0;
+  private function sumCountForStore(array $rows, int $store_id): int {
+    $sum = 0;
+    foreach ($rows as $row) {
+      if ((int) $row->store_id === $store_id) {
+        $sum += (int) ($row->count ?? 0);
       }
-
-      $q = $this->database->select('myeventlane_refund_log', 'r');
-      $q->join('commerce_order', 'o', 'o.order_id = r.order_id');
-      $q->addExpression('COALESCE(SUM(r.amount_cents), 0)', 'sum_cents');
-      $q->condition('o.store_id', $store_id);
-      $q->condition('r.status', 'completed');
-      $q->condition('r.created', $start, '>=');
-      $q->condition('r.created', $end, '<=');
-
-      if ($this->database->schema()->fieldExists('myeventlane_refund_log', 'currency')) {
-        $q->where('LOWER(r.currency) = LOWER(:cur)', [':cur' => $currency]);
-      }
-
-      return (int) $q->execute()->fetchField();
     }
-    catch (\Throwable $e) {
-      $this->logger->warning('VendorKpiService::getRefundedAmountCents failed: @message', ['@message' => $e->getMessage()]);
-      return 0;
-    }
+    return $sum;
   }
 
   /**
    * Orders count: COUNT(commerce_order.order_id).
    *
-   * A0: same filters as gross (store, state, placed, currency).
+   * Not a revenue total; kept for KPI display. Phase 7 does not provide this.
    */
   private function getOrdersCount(int $store_id, int $start, int $end, string $currency): int {
     try {
@@ -186,41 +179,9 @@ final class VendorKpiService {
   }
 
   /**
-   * Tickets sold: SUM(commerce_order_item.quantity), paid only.
-   *
-   * A0: order.store_id, order.state='completed', order.placed BETWEEN;
-   * order_item.unit_price__currency_code = :currency;
-   * order_item.unit_price__number > 0.
-   * No refund deduction (A0: not implemented). Does NOT restrict to
-   * field_target_event (non-trivial join; document as follow-up).
-   */
-  private function getTicketsSoldCount(int $store_id, int $start, int $end, string $currency): int {
-    try {
-      $q = $this->database->select('commerce_order_item', 'oi');
-      $q->join('commerce_order', 'o', 'o.order_id = oi.order_id');
-      $q->addExpression('COALESCE(SUM(oi.quantity), 0)', 'qty_sum');
-      $q->condition('o.store_id', $store_id);
-      $q->condition('o.state', 'completed');
-      $q->condition('o.placed', $start, '>=');
-      $q->condition('o.placed', $end, '<=');
-      $q->condition('oi.unit_price__currency_code', $currency);
-      $q->condition('oi.unit_price__number', '0', '>');
-
-      return (int) $q->execute()->fetchField();
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('VendorKpiService::getTicketsSoldCount failed: @message', ['@message' => $e->getMessage()]);
-      return 0;
-    }
-  }
-
-  /**
    * RSVPs confirmed: COUNT(rsvp_submission) via event→field_event_store.
    *
-   * A0: rsvp_submission.status='confirmed'; join rsvp_submission__event_id and
-   * node__field_event_store; field_event_store_target_id = store_id;
-   * rsvp_submission.created BETWEEN start/end.
-   * Legacy myeventlane_rsvp is NOT included; counts may understate.
+   * Phase 7 does not provide RSVP counts; kept for KPI display.
    */
   private function getConfirmedRsvpCount(int $store_id, int $start, int $end): int {
     try {
@@ -250,31 +211,6 @@ final class VendorKpiService {
       );
       return 0;
     }
-  }
-
-  /**
-   * Converts a decimal string (e.g. "123.45") to integer cents.
-   *
-   * Avoids float; uses string handling. Mirrors VendorMetricsService logic.
-   */
-  private function decimalToCents(string $decimal): int {
-    $decimal = trim($decimal);
-    if ($decimal === '' || $decimal === '0') {
-      return 0;
-    }
-    if (!str_contains($decimal, '.')) {
-      return (int) $decimal * 100;
-    }
-    [$whole, $frac] = explode('.', $decimal, 2);
-    $frac = substr(str_pad($frac, 2, '0'), 0, 2);
-    $sign = 1;
-    if (str_starts_with($whole, '-')) {
-      $sign = -1;
-      $whole = ltrim($whole, '-');
-    }
-    $whole_i = (int) $whole;
-    $frac_i = (int) $frac;
-    return $sign * (($whole_i * 100) + $frac_i);
   }
 
 }

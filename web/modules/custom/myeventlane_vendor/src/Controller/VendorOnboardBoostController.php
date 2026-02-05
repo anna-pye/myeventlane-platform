@@ -135,8 +135,8 @@ final class VendorOnboardBoostController extends ControllerBase {
 
     return [
       '#theme' => 'vendor_onboard_step',
-      '#step_number' => 5,
-      '#total_steps' => 6,
+      '#step_number' => 6,
+      '#total_steps' => 7,
       '#step_title' => $copy['title'],
       '#step_description' => NULL,
       '#content' => $content,
@@ -161,11 +161,13 @@ final class VendorOnboardBoostController extends ControllerBase {
     }
 
     $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $vendorIds = $vendorStorage->getQuery()
+    $query = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
+      ->range(0, 1);
+    $group = $query->orConditionGroup()
       ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
+      ->condition('field_vendor_users', $userId);
+    $vendorIds = $query->condition($group)->execute();
 
     if (!empty($vendorIds)) {
       $vendor = $vendorStorage->load(reset($vendorIds));

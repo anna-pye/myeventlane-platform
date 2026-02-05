@@ -1368,52 +1368,25 @@ final class EventWizardForm extends FormBase {
         $form_state->setErrorByName('field_event_end', $this->t('End time is required.'));
       }
 
-      // field_venue_name REQUIRED.
-      $venue_name_value = $form_state->getValue(['_venue_wrapper', 'venue_name']);
-      // Trim whitespace - empty() treats whitespace as empty, but we want to allow actual values.
+      // field_venue_name REQUIRED (check wizard and top-level paths).
+      $venue_name_value = $form_state->getValue(['_venue_wrapper', 'venue_name'])
+        ?? $form_state->getValue(['wizard', 'content', '_venue_wrapper', 'venue_name'])
+        ?? $form_state->getValue(['field_venue_name', 0, 'value']);
       if (is_string($venue_name_value)) {
         $venue_name_value = trim($venue_name_value);
       }
       if (empty($venue_name_value)) {
-        // Also check if it's in the direct field.
-        $venue_name_direct = $form_state->getValue(['field_venue_name', 0, 'value']);
-        if (is_string($venue_name_direct)) {
-          $venue_name_direct = trim($venue_name_direct);
-        }
-        if (empty($venue_name_direct)) {
-          $form_state->setErrorByName('venue_name', $this->t('Venue name is required.'));
-        }
+        $form_state->setErrorByName('venue_name', $this->t('Venue name is required.'));
       }
 
-      // field_venue_address REQUIRED (check if address components are filled).
-      $venue_address = $form_state->getValue(['field_venue_address', 0, 'address']);
-      $location_address = $form_state->getValue(['field_location', 0, 'address']);
+      // Venue address REQUIRED (from primary field_venue_address or field_location).
+      $address = $this->getAddressFromFormState($form_state);
       $has_address = FALSE;
-
-      // Check field_venue_address first.
-      if (!empty($venue_address) && is_array($venue_address)) {
-        $line1 = $venue_address['address_line1'] ?? '';
-        $locality = $venue_address['locality'] ?? '';
-        $admin_area = $venue_address['administrative_area'] ?? '';
-        $country = $venue_address['country_code'] ?? '';
-
-        // Address is valid if we have at least address_line1 OR (locality AND administrative_area)
-        if (!empty(trim($line1))) {
-          $has_address = TRUE;
-        }
-        elseif ((!empty(trim($locality)) || !empty(trim($admin_area))) && !empty(trim($country))) {
-          // If we have locality/state and country, that's acceptable.
-          $has_address = TRUE;
-        }
-      }
-
-      // Fallback to field_location if field_venue_address not used.
-      if (!$has_address && !empty($location_address) && is_array($location_address)) {
-        $line1 = $location_address['address_line1'] ?? '';
-        $locality = $location_address['locality'] ?? '';
-        $admin_area = $location_address['administrative_area'] ?? '';
-        $country = $location_address['country_code'] ?? '';
-
+      if (!empty($address) && is_array($address)) {
+        $line1 = $address['address_line1'] ?? '';
+        $locality = $address['locality'] ?? '';
+        $admin_area = $address['administrative_area'] ?? '';
+        $country = $address['country_code'] ?? '';
         if (!empty(trim($line1))) {
           $has_address = TRUE;
         }
@@ -1421,7 +1394,6 @@ final class EventWizardForm extends FormBase {
           $has_address = TRUE;
         }
       }
-
       if (!$has_address) {
         $form_state->setErrorByName('field_venue_address', $this->t('Venue address is required. Please provide at least a street address or suburb and state.'));
       }
@@ -1840,15 +1812,53 @@ final class EventWizardForm extends FormBase {
   }
 
   /**
+   * Gets address array from form state (wizard and step forms).
+   *
+   * Handles widget-wrapped paths (field_*[widget][0][address]) and primary
+   * field_venue_address in the wizard.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array|null
+   *   Address component array or NULL if not found.
+   */
+  private function getAddressFromFormState(FormStateInterface $form_state): ?array {
+    $paths = [
+      // Wizard: primary address field (what user edits).
+      ['wizard', 'content', '_venue_wrapper', 'field_venue_address', 'widget', 0, 'address'],
+      ['wizard', 'content', '_venue_wrapper', 'field_location', 'widget', 0, 'address'],
+      ['wizard', 'content', '_venue_wrapper', 'field_location', 0, 'address'],
+      ['wizard', 'content', 'field_location', 0, 'address'],
+      // Top-level (step form or default).
+      ['field_venue_address', 0, 'address'],
+      ['field_location', 'widget', 0, 'address'],
+      ['field_location', 0, 'address'],
+    ];
+    foreach ($paths as $path) {
+      if ($form_state->hasValue($path)) {
+        $value = $form_state->getValue($path);
+        if (is_array($value)) {
+          return $value;
+        }
+      }
+    }
+    return NULL;
+  }
+
+  /**
    * Saves location address from hidden form widget to event entity.
    *
-   * The address is populated by JavaScript into the hidden field_location widget.
-   * We explicitly extract it because extractFormValues() may skip hidden widgets.
+   * The address is populated by JavaScript into the hidden field_location widget
+   * or the primary field_venue_address. We explicitly extract it because
+   * extractFormValues() may skip hidden widgets or use widget-wrapped paths.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
+   * @param array|null $existing_address
+   *   Existing address to restore if form state has none.
    */
   private function saveLocationAddress(NodeInterface $event, FormStateInterface $form_state, ?array $existing_address = NULL): void {
     // Check if field_location exists on the event.
@@ -1856,28 +1866,23 @@ final class EventWizardForm extends FormBase {
       return;
     }
 
-    // Try to get address from form state.
-    // The field_location widget is hidden but should still be in form state.
-    $address_value = NULL;
+    $address_value = $this->getAddressFromFormState($form_state);
     $user_input = $form_state->getUserInput();
 
-    // Check for field_location in form state (standard widget path).
-    if ($form_state->hasValue(['field_location', 0, 'address'])) {
-      $address_value = $form_state->getValue(['field_location', 0, 'address']);
-    }
-    // Check wizard structure path (where it's actually located).
-    elseif ($form_state->hasValue(['wizard', 'content', '_venue_wrapper', 'field_location', 0, 'address'])) {
-      $address_value = $form_state->getValue(['wizard', 'content', '_venue_wrapper', 'field_location', 0, 'address']);
-    }
-    // Check wizard content path.
-    elseif ($form_state->hasValue(['wizard', 'content', 'field_location', 0, 'address'])) {
-      $address_value = $form_state->getValue(['wizard', 'content', 'field_location', 0, 'address']);
-    }
-    // Check user input directly (fallback if form state doesn't have it).
-    elseif (isset($user_input['field_location'][0]['address']) && is_array($user_input['field_location'][0]['address'])) {
+    // Fallback: user input (raw POST) if form state didn't have it.
+    if ($address_value === NULL && isset($user_input['field_location'][0]['address']) && is_array($user_input['field_location'][0]['address'])) {
       $address_value = $user_input['field_location'][0]['address'];
     }
-    elseif (isset($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address']) && is_array($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address'])) {
+    if ($address_value === NULL && isset($user_input['field_location']['widget'][0]['address']) && is_array($user_input['field_location']['widget'][0]['address'])) {
+      $address_value = $user_input['field_location']['widget'][0]['address'];
+    }
+    if ($address_value === NULL && isset($user_input['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address']) && is_array($user_input['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address'])) {
+      $address_value = $user_input['wizard']['content']['_venue_wrapper']['field_location']['widget'][0]['address'];
+    }
+    if ($address_value === NULL && isset($user_input['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address']) && is_array($user_input['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address'])) {
+      $address_value = $user_input['wizard']['content']['_venue_wrapper']['field_venue_address']['widget'][0]['address'];
+    }
+    if ($address_value === NULL && isset($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address']) && is_array($user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address'])) {
       $address_value = $user_input['wizard']['content']['_venue_wrapper']['field_location'][0]['address'];
     }
 

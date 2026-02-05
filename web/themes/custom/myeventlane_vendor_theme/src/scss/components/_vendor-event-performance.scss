@@ -27,13 +27,62 @@
   padding: var(--mel-space-3);
 }
 
-.mel-event-perf__item--past {
+.mel-event-perf__item.mel-card--past:not(.mel-card--promoted):not(.mel-event-perf__item--sold-out) {
   opacity: 0.85;
 }
 
-.mel-event-perf__item--past .mel-event-perf__title,
-.mel-event-perf__item--past .mel-event-perf__metrics {
+.mel-event-perf__item.mel-card--past:not(.mel-card--promoted):not(.mel-event-perf__item--sold-out) .mel-event-perf__title,
+.mel-event-perf__item.mel-card--past:not(.mel-card--promoted):not(.mel-event-perf__item--sold-out) .mel-event-perf__metrics {
   color: var(--mel-muted);
+}
+
+// Phase 11 — Lifecycle-aware analytics framing (Past).
+// Present metrics as historical outcomes (readable, not urgent).
+.mel-event-perf__item.mel-card--past:not(.mel-card--promoted) {
+  .mel-event-perf__metric {
+    color: var(--mel-muted);
+    font-weight: 400;
+  }
+
+  // Neutralise "nearly full" urgency for past events.
+  // Sold-out may remain (historical fact).
+  &:not(.mel-event-perf__item--sold-out) {
+    .mel-event-perf__bar-fill {
+      filter: grayscale(0.25);
+    }
+
+    .mel-event-perf__bar-fill--nearly-full {
+      background: var(--mel-muted);
+    }
+
+    // Reduce status badge urgency (do not hide).
+    .mel-badge {
+      background: transparent;
+      border: 1px solid var(--mel-border);
+      color: var(--mel-muted);
+      font-weight: 500;
+    }
+  }
+}
+
+// Phase 10 — Lifecycle-aware CTA suppression (Past).
+// Keep CTAs visible + accessible, but remove "boost" urgency.
+.mel-event-perf__item.mel-card--past:not(.mel-card--promoted) {
+  .mel-event-perf__action--boost,
+  .mel-boost-button {
+    color: var(--mel-muted);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .mel-event-perf__action--boost:hover,
+  .mel-event-perf__action--boost:focus-visible,
+  .mel-boost-button:hover,
+  .mel-boost-button:focus-visible {
+    color: var(--mel-text);
+    box-shadow: none;
+    transform: none;
+  }
 }
 
 .mel-event-perf__item--sold-out {

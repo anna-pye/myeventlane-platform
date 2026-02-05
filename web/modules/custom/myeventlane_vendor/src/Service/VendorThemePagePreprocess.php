@@ -261,7 +261,7 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.audience' => 'audience',
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_vendor.dashboard' => 'dashboard',
-      'myeventlane_dashboard.vendor' => 'dashboard',
+      'myeventlane_vendor.console.dashboard' => 'dashboard',
     ];
     return $mapping[$route_name] ?? 'dashboard';
   }

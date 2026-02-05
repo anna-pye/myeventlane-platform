@@ -39,7 +39,7 @@ final class ChoosePlacementForm extends FormBase implements ContainerInjectionIn
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'myeventlane_boost_wizard_choose_placement_form';
+    return 'myeventlane_boost_choose_placement_form';
   }
 
   /**
@@ -81,9 +81,11 @@ final class ChoosePlacementForm extends FormBase implements ContainerInjectionIn
       '#type' => 'submit',
       '#value' => $this->t('Next'),
       '#button_type' => 'primary',
+      '#attributes' => [
+        'class' => ['mel-button', 'mel-button--primary'],
+        'aria-label' => $this->t('Continue to budget step'),
+      ],
     ];
-
-    // @todo Step 2 route (/step-2) will be wired after implementing step 2.
 
     return $form;
   }
@@ -115,7 +117,7 @@ final class ChoosePlacementForm extends FormBase implements ContainerInjectionIn
     ]));
 
     // Continue to step 2.
-    $form_state->setRedirect('myeventlane_boost.vendor_boost_wizard_step2', ['event' => $event_id]);
+    $form_state->setRedirect('myeventlane_boost.wizard.step2', ['event' => $event_id]);
   }
 
 }

@@ -1,38 +1,20 @@
 {#
 /**
  * @file
- * Featured events carousel.
- * Horizontal scroll carousel with prev/next controls on desktop.
+ * Featured events (homepage) — grid output.
+ *
+ * IMPORTANT:
+ * - Use the canonical `.mel-event-grid` wrapper (defined in components/_event-grid.scss)
+ *   to achieve the 4-across desktop grid without introducing new layout markup.
+ * - No card markup here; rows already contain themed node output.
+ * - When there are 0 rows, output nothing so the homepage section can collapse.
  */
 #}
 
 {% if rows %}
-  <div class="mel-featured-carousel" aria-label="{{ 'Featured events'|t }}">
-    <div class="mel-featured-carousel__container">
-      <div class="mel-featured-carousel__track" role="list">
-        {% for row in rows %}
-          <div class="mel-featured-carousel__slide" role="listitem">
-            {{ row.content }}
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-    
-    <div class="mel-featured-carousel__controls">
-      <button 
-        type="button" 
-        class="mel-featured-carousel__button mel-featured-carousel__button--prev" 
-        aria-label="{{ 'Previous featured events'|t }}"
-      >
-        <span aria-hidden="true">‹</span>
-      </button>
-      <button 
-        type="button" 
-        class="mel-featured-carousel__button mel-featured-carousel__button--next" 
-        aria-label="{{ 'Next featured events'|t }}"
-      >
-        <span aria-hidden="true">›</span>
-      </button>
-    </div>
+  <div class="mel-event-grid" aria-label="{{ 'Featured events'|t }}">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
   </div>
 {% endif %}

@@ -2,17 +2,39 @@
 /**
  * @file
  * Home hero block.
+ *
+ * Variables:
+ * - hero_image_url: Optional URL from Page Visuals Manager (desktop).
+ * - hero_image_url_mobile: Optional URL for mobile viewports.
+ * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
+ * - hero_alt: Alt text for hero image.
  */
 #}
 
 <section class="mel-home-hero" aria-label="Find events">
-  <div class="mel-home-hero__art" aria-hidden="true">
-    <img
-      class="mel-home-hero__art-img"
-      src="{{ base_path ~ directory }}/images/mel/hero/purple-cityscape.png"
-      alt=""
-      loading="eager"
-    />
+  <div class="mel-home-hero__art{% if hero_hide_on_mobile|default(false) %} mel-home-hero__art--hide-mobile{% endif %}" aria-hidden="true">
+    {% if hero_image_url %}
+      {% if hero_image_url_mobile|default(null) and not hero_hide_on_mobile|default(false) %}
+        <picture>
+          <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
+          <img
+            class="mel-home-hero__art-img"
+            src="{{ hero_image_url }}"
+            alt="{{ hero_alt }}"
+            loading="eager"
+          />
+        </picture>
+      {% else %}
+        <img
+          class="mel-home-hero__art-img"
+          src="{{ hero_image_url }}"
+          alt="{{ hero_alt }}"
+          loading="eager"
+        />
+      {% endif %}
+    {% else %}
+      <div class="mel-home-hero__art-img mel-home-hero__art-img--placeholder"></div>
+    {% endif %}
   </div>
 
   <div class="mel-home-hero__inner">

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_core\Service\StripeService;
@@ -30,12 +31,15 @@ final class StripeConnectPaymentService {
    *   The entity type manager.
    * @param \Drupal\myeventlane_core\Service\StripeService $stripeService
    *   The Stripe service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The config factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly StripeService $stripeService,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -249,7 +253,11 @@ final class StripeConnectPaymentService {
    * @return int
    *   Application fee in cents (calculated on ticket revenue only).
    */
-  public function calculateApplicationFee(OrderInterface $order, float $feePercentage = 0.03, int $fixedFeeCents = 30): int {
+  public function calculateApplicationFee(OrderInterface $order, ?float $feePercentage = NULL, ?int $fixedFeeCents = NULL): int {
+    $config = $this->configFactory->get('myeventlane_core.settings');
+    $feePercentage = $feePercentage ?? (float) ($config->get('stripe_fee_percent') ?? 3) / 100;
+    $fixedFeeCents = $fixedFeeCents ?? (int) ($config->get('stripe_fee_fixed_cents') ?? 30);
+
     // Calculate fee only on ticket revenue (excludes donations).
     $ticketRevenue = $this->calculateTicketRevenue($order);
 

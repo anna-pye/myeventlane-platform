@@ -47,7 +47,6 @@ use Drupal\user\EntityOwnerTrait;
  *     }
  *   },
  *   base_table = "myeventlane_vendor",
- *   data_table = "myeventlane_vendor_field_data",
  *   admin_permission = "administer myeventlane vendor",
  *   field_ui_base_route = "myeventlane_vendor.settings",
  *   entity_keys = {

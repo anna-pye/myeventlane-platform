@@ -61,10 +61,10 @@ final class MyTicketsController extends ControllerBase {
    * @param \Drupal\commerce_order\Entity\OrderInterface $commerce_order
    *   The order.
    *
-   * @return string
-   *   Page title.
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
+   *   Page title (translatable).
    */
-  public function orderDetailTitle(OrderInterface $commerce_order): string {
+  public function orderDetailTitle(OrderInterface $commerce_order) {
     return $this->t('Order @order_number', ['@order_number' => $commerce_order->getOrderNumber()]);
   }
 
@@ -140,13 +140,21 @@ final class MyTicketsController extends ControllerBase {
     // If user doesn't have access, they'll get a 403.
     $orderData = $this->buildOrderData($commerce_order, TRUE);
 
+    $cacheTags = ['commerce_order:' . $commerce_order->id()];
+    foreach ($orderData['events'] ?? [] as $eventData) {
+      $nid = (int) ($eventData['id'] ?? 0);
+      if ($nid) {
+        $cacheTags[] = 'node:' . $nid;
+      }
+    }
+
     return [
       '#theme' => 'myeventlane_order_detail',
       '#title' => $this->t('Order @order_number', ['@order_number' => $commerce_order->getOrderNumber()]),
       '#order' => $orderData,
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['commerce_order:' . $commerce_order->id()],
+        'tags' => $cacheTags,
       ],
     ];
   }

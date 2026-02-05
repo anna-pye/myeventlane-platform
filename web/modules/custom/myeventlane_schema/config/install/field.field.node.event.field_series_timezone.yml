@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_series_timezone
+    - node.type.event
+id: node.event.field_series_timezone
+field_name: field_series_timezone
+entity_type: node
+bundle: event
+label: 'Series timezone'
+description: 'Timezone for RRULE interpretation (e.g. Australia/Sydney). Optional.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  size: 60
+  placeholder: ''
+field_type: string

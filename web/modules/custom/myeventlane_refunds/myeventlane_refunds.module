@@ -7,6 +7,53 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
+ *
+ * Adds buyer self-service refund eligibility and URL per event.
+ */
+function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variables): void {
+  $order = $variables['order']['order'] ?? NULL;
+  if (!$order) {
+    return;
+  }
+
+  $currentUser = \Drupal::currentUser();
+  if ($currentUser->isAnonymous()) {
+    return;
+  }
+
+  $eligibility = \Drupal::service('myeventlane_refunds.buyer_eligibility');
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+
+  foreach ($variables['order']['events'] ?? [] as $key => $eventData) {
+    $eventId = (int) ($eventData['id'] ?? 0);
+    if (!$eventId) {
+      continue;
+    }
+
+    $event = $nodeStorage->load($eventId);
+    if (!$event) {
+      continue;
+    }
+
+    $canRefund = $eligibility->isEligible($order, $event, $currentUser);
+    $variables['order']['events'][$key]['can_refund'] = $canRefund;
+    $variables['order']['events'][$key]['refund_url'] = $canRefund
+      ? Url::fromRoute('myeventlane_refunds.buyer_refund', [
+        'commerce_order' => $order->id(),
+      ], [
+        'query' => ['event' => $eventId],
+      ])->toString()
+      : NULL;
+    if (!$canRefund) {
+      $variables['order']['events'][$key]['refund_ineligible_reason'] = $eligibility->getIneligibilityReason($order, $event, $currentUser);
+    }
+  }
+}
+
 /**
  * Implements hook_theme().
  */

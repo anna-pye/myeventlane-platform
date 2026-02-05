@@ -6,6 +6,9 @@
   overflow: hidden;
   width: 100%;
   min-width: 0;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out);
 }
 
 .mel-card__link {
@@ -206,9 +209,419 @@
 .mel-layout--sticker .mel-tilt-2 { transform: rotate(1deg); }
 .mel-layout--sticker .mel-tilt-3 { transform: rotate(-0.5deg); }
 
-.mel-layout--sticker .mel-card:hover { box-shadow: var(--mel-shadow-hover); }
+@media (hover: hover) and (pointer: fine) {
+  .mel-layout--sticker .mel-card:hover { box-shadow: var(--mel-shadow-hover); }
+  .mel-layout--clean .mel-card:hover { box-shadow: var(--mel-shadow-hover); transform: translateY(-2px); }
+}
 
 .mel-layout--clean .mel-card { transform: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .mel-card { transition: none !important; }
+}
+
+// ==========================================================================
+// Views / Listing Event Card (Field-based Views output)
+// ==========================================================================
+// Styles the markup from templates/event/event-card.html.twig:
+// - .mel-event-card (wrapper)
+// - .mel-card-link / .mel-card-media / .mel-date-badge / .mel-status-pill
+// Keeps cards calm + appropriately sized across Views.
+
+.mel-event-card {
+  background: var(--mel-surface, #ffffff);
+  border: var(--mel-border, 2px solid rgba(41, 50, 65, 0.12));
+  border-radius: var(--mel-radius-3, 14px);
+  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mel-card-link:hover,
+.mel-card-link:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.mel-card-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--mel-focus, #6c7ef2);
+  border-radius: var(--mel-radius-3, 14px);
+}
+
+.mel-card-media {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.mel-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mel-card-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--mel-peach, #ffd6c9) 0%, var(--mel-lilac, #e6d9ff) 100%);
+}
+
+.mel-date-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(41, 50, 65, 0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+.mel-date-day {
+  display: block;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--mel-ink, #293241);
+}
+
+.mel-date-month {
+  display: block;
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(41, 50, 65, 0.75);
+}
+
+.mel-status-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 8px 10px;
+  border-radius: var(--mel-radius-pill, 999px);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(41, 50, 65, 0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--mel-ink, #293241);
+  pointer-events: none;
+}
+
+.mel-status-pill.mel-status-rsvp {
+  background: rgba(223, 245, 234, 0.92);
+}
+
+.mel-status-pill.mel-status-paid,
+.mel-status-pill.mel-status-both {
+  background: rgba(255, 241, 191, 0.92);
+}
+
+.mel-status-pill.mel-status-external {
+  background: rgba(217, 241, 255, 0.92);
+}
+
+.mel-card-body {
+  padding: 14px;
+}
+
+.mel-card-date {
+  font-size: 13px;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  margin-bottom: 8px;
+}
+
+.mel-card-title {
+  font-size: 18px;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  color: var(--mel-ink, #293241);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mel-card-location {
+  font-size: 14px;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// --------------------------------------------------------------------------
+// Node teaser / card view modes (mel-event-card__* markup)
+// --------------------------------------------------------------------------
+// Styles templates like:
+// - templates/node--event--teaser.html.twig
+// - templates/node--event--event-card.html.twig (if used elsewhere)
+
+.mel-event-card__image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+// --------------------------------------------------------------------------
+// Pill positioning (force corner anchoring)
+// --------------------------------------------------------------------------
+// Some pages load additional CSS that can accidentally override the generic
+// `.mel-featured-badge` positioning. Re-assert the intended absolute placement
+// for event cards with higher specificity.
+.mel-event-card__image .mel-featured-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.mel-event-card__image .mel-event-card__cta {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  top: auto;
+  left: auto;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.mel-event-card__image-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mel-event-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--mel-peach, #ffd6c9) 0%, var(--mel-lilac, #e6d9ff) 100%);
+}
+
+.mel-event-card__date-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(41, 50, 65, 0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+.mel-event-card__date-day {
+  display: block;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--mel-ink, #293241);
+}
+
+.mel-event-card__date-month {
+  display: block;
+  margin-top: 2px;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(41, 50, 65, 0.75);
+}
+
+.mel-event-card__body {
+  padding: 14px;
+}
+
+.mel-event-card__title {
+  font-size: 18px;
+  line-height: 1.15;
+  margin: 0 0 8px;
+  color: var(--mel-ink, #293241);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mel-event-card__category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--mel-radius-pill, 999px);
+  padding: 8px 10px;
+  font-weight: 800;
+  border: 2px solid rgba(43, 43, 43, 0.18);
+  background: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mel-event-card__meta {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  font-size: 14px;
+}
+
+.mel-event-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mel-event-card__meta-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 10px;
+  background: rgba(41, 50, 65, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+// ==========================================================================
+// MEL Listing Card (Homepage / Views) — matches mockups
+// ==========================================================================
+
+.mel-event-card {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--mel-radius-3, 14px);
+  border: var(--mel-border, 2px solid rgba(41, 50, 65, 0.12));
+  background: var(--mel-surface, #ffffff);
+  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.mel-event-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mel-event-card__link:hover,
+.mel-event-card__link:active {
+  text-decoration: none;
+  color: inherit;
+}
+
+.mel-event-card__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--mel-focus, #6c7ef2);
+  border-radius: var(--mel-radius-3, 14px);
+}
+
+.mel-event-card__image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.mel-event-card__image-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mel-event-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--mel-peach, #ffd6c9) 0%, var(--mel-lilac, #e6d9ff) 100%);
+}
+
+.mel-event-card__category-pill {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  pointer-events: none;
+  // Leave space so long categories don't collide with Featured (top-right).
+  max-width: calc(100% - 24px - 120px);
+  overflow: hidden;
+}
+
+.mel-event-card__cta {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  pointer-events: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 14px;
+  border-radius: var(--mel-radius-pill, 999px);
+  border: 2px solid rgba(43, 43, 43, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--mel-ink, #293241);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+}
+
+.mel-event-card__category-pill .mel-pill__label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mel-event-card__content {
+  padding: 14px;
+}
+
+.mel-event-card__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--mel-ink, #293241);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mel-event-card__meta {
+  display: grid;
+  gap: 6px;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  font-size: 14px;
+}
+
+.mel-event-card__meta-item {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

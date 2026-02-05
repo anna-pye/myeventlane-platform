@@ -165,11 +165,11 @@ final class AnalyticsQueryGuard implements AnalyticsQueryGuardInterface {
     $effective_store_ids = $this->normalizeStoreIdList($effective_store_ids);
 
     if ($query->scope === AnalyticsQuery::SCOPE_VENDOR) {
-      if (count($effective_store_ids) !== 1) {
-        $this->logViolation('warning', 'scope', 'vendor_scope_requires_single_effective_store', $query, [
+      if (count($effective_store_ids) < 1) {
+        $this->logViolation('warning', 'scope', 'vendor_scope_requires_at_least_one_store', $query, [
           'effective_store_ids' => $effective_store_ids,
         ]);
-        throw new AccessDeniedAnalyticsException('Vendor scope requires exactly one effective store.');
+        throw new AccessDeniedAnalyticsException('Vendor scope requires at least one effective store.');
       }
       return;
     }

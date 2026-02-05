@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_highlight_text
+    - paragraphs.paragraphs_type.event_highlight
+  module:
+    - text
+id: paragraph.event_highlight.field_highlight_text
+field_name: field_highlight_text
+entity_type: paragraph
+bundle: event_highlight
+label: 'Highlight text'
+description: 'Short highlight text.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text
+

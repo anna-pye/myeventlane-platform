@@ -1,4 +1,8 @@
 platform_fee_percent: 5
+stripe_fee_percent: 3
+stripe_fee_fixed_cents: 30
+fee_payer: buyer
+checkout_rate_limit_per_minute: 15
 front_page:
   event_type: event
   category_vocab: categories

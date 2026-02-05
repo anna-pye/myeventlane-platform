@@ -1,0 +1,12 @@
+--- a/lib/Drupal/Core/Field/FormatterPluginManager.php
++++ b/lib/Drupal/Core/Field/FormatterPluginManager.php
+@@ -54,6 +54,9 @@ class FormatterPluginManager extends DefaultPluginManager {
+   public function createInstance($plugin_id, array $configuration = []) {
+     $plugin_definition = $this->getDefinition($plugin_id);
+     $plugin_class = DefaultFactory::getPluginClass($plugin_id, $plugin_definition);
++    // Ensure third_party_settings is always an array - Layout Builder field
++    // blocks may return null when configuration is loaded from storage.
++    $configuration['third_party_settings'] = $configuration['third_party_settings'] ?? [];
+ 
+     // @todo This is copied from \Drupal\Core\Plugin\Factory\ContainerFactory.
+     //   Find a way to restore sanity to

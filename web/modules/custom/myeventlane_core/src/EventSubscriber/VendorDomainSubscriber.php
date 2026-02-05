@@ -29,7 +29,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
    */
   private const VENDOR_ROUTE_PATTERNS = [
     'myeventlane_vendor.',
-    'myeventlane_dashboard.vendor',
+    'myeventlane_vendor.console.dashboard',
     'myeventlane_boost.',
     'myeventlane_event_attendees.vendor',
     'myeventlane_commerce.stripe',
@@ -100,7 +100,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents(): array {
     return [
-      KernelEvents::REQUEST => ['onRequest', 30],
+      // Run after routing so _route is available for exclusions/guards.
+      KernelEvents::REQUEST => ['onRequest', 0],
     ];
   }
 
@@ -118,37 +119,103 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
     $request = $event->getRequest();
     $path = $request->getPathInfo();
-    $route_name = $this->routeMatch->getRouteName();
+    $route_name = (string) $request->attributes->get('_route');
+    if ($route_name === '') {
+      return;
+    }
+
+    // Never domain-switch during vendor onboarding.
+    // Onboarding must remain on the public domain to preserve session.
+    if (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard')) {
+      return;
+    }
+
+    // Never redirect AJAX/XHR requests.
+    if ($request->isXmlHttpRequest()) {
+      return;
+    }
+
+    // Explicit route exclusions (mandatory).
+    // These must never trigger redirects, to prevent redirect loops and to avoid
+    // interfering with authentication and onboarding flows.
+    $excluded_routes = [
+      'user.login',
+      'user.logout',
+      'user.pass',
+      'user.reset',
+      // Core AJAX endpoints.
+      'system.ajax',
+      'ajax_form',
+      'views.ajax',
+      // Vendor onboarding flow.
+      'myeventlane_vendor.onboard',
+      'myeventlane_vendor.onboard.account',
+      'myeventlane_vendor.onboard.profile',
+      'myeventlane_vendor.onboard.stripe',
+      'myeventlane_vendor.onboard.branding',
+      'myeventlane_vendor.onboard.first_event',
+      'myeventlane_vendor.onboard.boost',
+      'myeventlane_vendor.onboard.complete',
+    ];
+    if (in_array($route_name, $excluded_routes, TRUE)) {
+      return;
+    }
+
+    // HARD EXCLUSION: Never vendor-intent redirect onboarding itself.
+    // This prevents redirect loops during onboarding step transitions.
+    if (str_starts_with($path, '/vendor/onboard')) {
+      return;
+    }
 
     $is_vendor_domain = $this->domainDetector->isVendorDomain();
 
-    // DIAGNOSTIC LOGGING: Track authentication state at kernel.request.
-    $host = $request->getHost();
-    $uid = $this->currentUser->id();
-    $is_authenticated = $this->currentUser->isAuthenticated();
-    $is_anonymous = $this->currentUser->isAnonymous();
-
-    $this->loggerFactory->get('vendor_domain_diagnostic')->debug('VendorDomainSubscriber::onRequest', [
-      'host' => $host,
-      'path' => $path,
-      'route_name' => $route_name ?? 'NULL',
-      'uid' => $uid,
-      'is_authenticated' => $is_authenticated ? 'TRUE' : 'FALSE',
-      'is_anonymous' => $is_anonymous ? 'TRUE' : 'FALSE',
-      'is_vendor_domain' => $is_vendor_domain ? 'TRUE' : 'FALSE',
-      'session_id' => $request->hasSession() ? substr($request->getSession()->getId(), 0, 8) . '...' : 'NO_SESSION',
-    ]);
-
-    // Redirect vendor domain root to vendor dashboard (always, regardless of force_redirects).
+    // Redirect vendor domain root to vendor dashboard (always, regardless of
+    // force_redirects).
     if ($is_vendor_domain && ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>')) {
       // If user is anonymous, redirect to login first, then to dashboard.
       if ($this->currentUser->isAnonymous()) {
-        $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=/vendor/dashboard', 'vendor');
+        try {
+          $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=/vendor/dashboard', 'vendor');
+        }
+        catch (\Throwable $e) {
+          $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+            '@m' => $e->getMessage(),
+          ]);
+          return;
+        }
+        if ($request->getUri() === $login_url) {
+          return;
+        }
+        $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+          'uid' => $this->currentUser->id(),
+          'route' => $route_name,
+          'current_domain' => $request->getHost(),
+          'target_domain' => (string) parse_url($login_url, PHP_URL_HOST),
+          'redirect' => $login_url,
+        ]);
         $event->setResponse(new TrustedRedirectResponse($login_url, 302));
         return;
       }
 
-      $dashboard_url = $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
+      try {
+        $dashboard_url = $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+          '@m' => $e->getMessage(),
+        ]);
+        return;
+      }
+      if ($request->getUri() === $dashboard_url) {
+        return;
+      }
+      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+        'uid' => $this->currentUser->id(),
+        'route' => $route_name,
+        'current_domain' => $request->getHost(),
+        'target_domain' => (string) parse_url($dashboard_url, PHP_URL_HOST),
+        'redirect' => $dashboard_url,
+      ]);
       $event->setResponse(new TrustedRedirectResponse($dashboard_url, 302));
       return;
     }
@@ -160,7 +227,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     }
 
     // Allow form action paths on both domains (Drupal form submission tokens).
-    // These can appear as /form_action_... or /vendor/form_action_... depending on context.
+    // These can appear as /form_action_... or /vendor/form_action_... depending
+    // on context.
     if (str_starts_with($path, '/form_action_') || str_contains($path, '/form_action_')) {
       return;
     }
@@ -186,7 +254,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     }
     else {
       // Fallback to path-based matching when route name not available.
-      // Skip root path and paths that might be allowed on both (like /user/login).
+      // Skip root path and paths that might be allowed on both (like
+      // /user/login).
       if ($path === '/' || $path === '' || str_starts_with($path, '/user/')) {
         return;
       }
@@ -197,14 +266,70 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
     // Redirect vendor routes from public domain to vendor domain.
     if ($is_vendor_route && !$is_vendor_domain) {
-      $vendor_url = $this->domainDetector->buildDomainUrl($request->getPathInfo(), 'vendor');
+      // Only redirect vendor users; avoid redirecting anonymous/unknown users.
+      if (!$this->currentUser->isAuthenticated() || !$this->currentUser->hasPermission('access vendor console')) {
+        return;
+      }
+
+      try {
+        $vendor_url = $this->domainDetector->buildDomainUrl($request->getRequestUri(), 'vendor');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+          '@m' => $e->getMessage(),
+        ]);
+        return;
+      }
+      $current_domain = $request->getHost();
+      $target_domain = (string) parse_url($vendor_url, PHP_URL_HOST);
+      if ($target_domain === '' || $current_domain === $target_domain) {
+        return;
+      }
+      if ($request->getUri() === $vendor_url) {
+        return;
+      }
+      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+        'uid' => $this->currentUser->id(),
+        'route' => $route_name,
+        'current_domain' => $current_domain,
+        'target_domain' => $target_domain,
+        'redirect' => $vendor_url,
+      ]);
       $event->setResponse(new TrustedRedirectResponse($vendor_url, 301));
       return;
     }
 
     // Redirect public routes from vendor domain to public domain.
     if ($is_public_route && $is_vendor_domain) {
-      $public_url = $this->domainDetector->buildDomainUrl($request->getPathInfo(), 'public');
+      // Only redirect vendor users; avoid redirecting anonymous/unknown users.
+      if (!$this->currentUser->isAuthenticated() || !$this->currentUser->hasPermission('access vendor console')) {
+        return;
+      }
+
+      try {
+        $public_url = $this->domainDetector->buildDomainUrl($request->getRequestUri(), 'public');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+          '@m' => $e->getMessage(),
+        ]);
+        return;
+      }
+      $current_domain = $request->getHost();
+      $target_domain = (string) parse_url($public_url, PHP_URL_HOST);
+      if ($target_domain === '' || $current_domain === $target_domain) {
+        return;
+      }
+      if ($request->getUri() === $public_url) {
+        return;
+      }
+      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+        'uid' => $this->currentUser->id(),
+        'route' => $route_name,
+        'current_domain' => $current_domain,
+        'target_domain' => $target_domain,
+        'redirect' => $public_url,
+      ]);
       $event->setResponse(new TrustedRedirectResponse($public_url, 301));
       return;
     }
@@ -219,7 +344,25 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       }
 
       // Redirect to vendor login with destination parameter.
-      $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=' . urlencode($path), 'vendor');
+      try {
+        $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=' . urlencode($path), 'vendor');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+          '@m' => $e->getMessage(),
+        ]);
+        return;
+      }
+      if ($request->getUri() === $login_url) {
+        return;
+      }
+      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+        'uid' => $this->currentUser->id(),
+        'route' => $route_name,
+        'current_domain' => $request->getHost(),
+        'target_domain' => (string) parse_url($login_url, PHP_URL_HOST),
+        'redirect' => $login_url,
+      ]);
       $event->setResponse(new TrustedRedirectResponse($login_url, 302));
       return;
     }
@@ -229,9 +372,13 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     if ($is_vendor_domain && $route_name === 'entity.node.add_form') {
       try {
         $node_type = $this->routeMatch->getParameter('node_type');
-        $bundle = $node_type ? (is_string($node_type) ? $node_type : $node_type->id()) : NULL;
+        $bundle = NULL;
+        if ($node_type) {
+          $bundle = is_string($node_type) ? $node_type : $node_type->id();
+        }
         if ($bundle === 'event') {
-          // Redirect directly to wizard (gateway will handle auth/onboarding if needed).
+          // Redirect directly to wizard (gateway will handle auth/onboarding if
+          // needed).
           $wizard_url = Url::fromRoute('myeventlane_event.wizard.create')->toString();
           $event->setResponse(new TrustedRedirectResponse($wizard_url, 302));
           return;

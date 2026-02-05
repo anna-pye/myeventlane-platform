@@ -32,13 +32,13 @@
       <div class="mel-card__title">{{ 'Actions'|t }}</div>
     </div>
     <div class="mel-list mel-list--actions">
-      <a class="mel-list__item" href="/vendor/event/{{ event_id|default(event.id()) }}/tickets">
+      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">
         {{ 'Edit ticket types'|t }}
       </a>
-      <a class="mel-list__item" href="/vendor/event/{{ event_id|default(event.id()) }}/checkout-questions">
+      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.checkout_questions', { event: event_id|default(event.id()) }) }}">
         {{ 'Checkout questions'|t }}
       </a>
-      <a class="mel-list__item" href="/vendor/event/{{ event_id|default(event.id()) }}/payments">
+      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.payments', { event: event_id|default(event.id()) }) }}">
         {{ 'Payment settings'|t }}
       </a>
     </div>
@@ -48,7 +48,7 @@
 <div class="mel-card">
   <div class="mel-card__header">
     <div class="mel-card__title">{{ 'Ticket types'|t }}</div>
-    <a class="mel-btn mel-btn--ghost" href="/vendor/event/{{ event_id|default(event.id()) }}/tickets">{{ 'Manage'|t }}</a>
+    <a class="mel-btn mel-btn--ghost" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">{{ 'Manage'|t }}</a>
   </div>
   <div class="mel-table">
     <div class="mel-table__head">

@@ -293,9 +293,11 @@ final class OnboardingState extends ContentEntityBase implements OnboardingState
       }
     }
     else {
-      // Vendor track: vendor_id is required. store_id may be NULL initially.
-      if ($vendor_id === NULL) {
-        throw new EntityStorageException('Vendor onboarding states must reference vendor_id.');
+      // Vendor track:
+      // - Allow vendor_id NULL for pre-vendor onboarding (in-progress).
+      // - REQUIRE vendor_id once onboarding completes.
+      if (($stage === 'complete' || $this->isCompleted()) && $vendor_id === NULL) {
+        throw new EntityStorageException('Vendor onboarding states must reference vendor_id once onboarding is complete.');
       }
     }
 

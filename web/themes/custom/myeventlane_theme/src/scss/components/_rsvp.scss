@@ -18,9 +18,10 @@
 .mel-rsvp-form,
 .mel-ticket-form {
   background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
   border-radius: radii.$mel-radius-xl;
   padding: spacing.mel-space(5);
-  box-shadow: shadows.$mel-shadow-md;
+  box-shadow: shadows.$mel-shadow-sm;
   margin-bottom: spacing.mel-space(6);
 
   @include breakpoints.mel-break(md) {
@@ -47,6 +48,62 @@
   font-size: typography.mel-font-size(sm);
   color: colors.$mel-color-text-muted;
   margin: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Form elements & error states (visual only)
+// ---------------------------------------------------------------------------
+
+.mel-rsvp-form,
+.mel-ticket-form {
+  .form-item {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  label {
+    font-weight: typography.$mel-font-semibold;
+    margin-bottom: spacing.mel-space(1);
+  }
+
+  .description {
+    margin-top: spacing.mel-space(1);
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+  }
+
+  .messages {
+    margin-bottom: spacing.mel-space(4);
+  }
+
+  .messages--error,
+  .messages.messages--error {
+    background: colors.$mel-color-error-bg;
+    border: 1px solid rgba(colors.$mel-color-error, 0.22);
+    border-left: 6px solid rgba(colors.$mel-color-error, 0.6);
+    border-radius: radii.$mel-radius-lg;
+    color: colors.$mel-color-text;
+    padding: spacing.mel-space(3);
+  }
+
+  .form-item--error-message {
+    margin-top: spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text;
+    background: colors.$mel-color-error-bg;
+    border: 1px solid rgba(colors.$mel-color-error, 0.2);
+    border-radius: radii.$mel-radius-md;
+    padding: spacing.mel-space(2) spacing.mel-space(3);
+  }
+
+  .form-item--error input[type='text'],
+  .form-item--error input[type='email'],
+  .form-item--error input[type='tel'],
+  .form-item--error input[type='number'],
+  .form-item--error select,
+  .form-item--error textarea {
+    border-color: rgba(colors.$mel-color-error, 0.55);
+    box-shadow: 0 0 0 3px rgba(colors.$mel-color-error, 0.12);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +140,13 @@
   &.is-selected {
     border-color: colors.$mel-color-secondary;
     background: color.adjust(colors.$mel-color-secondary, $lightness: 45%);
+  }
+
+  // Visual-only disabled state.
+  &.is-disabled,
+  &.is-sold-out {
+    opacity: 0.65;
+    border-style: dashed;
   }
 }
 
@@ -327,6 +391,7 @@
   input:checked + & {
     border-color: colors.$mel-color-secondary;
     background: color.adjust(colors.$mel-color-secondary, $lightness: 45%);
+    border-width: 3px;
   }
 
   input:focus-visible + & {
@@ -358,6 +423,84 @@
   font-size: typography.mel-font-size(base);
   font-weight: typography.$mel-font-medium;
   color: colors.$mel-color-text;
+}
+
+// ---------------------------------------------------------------------------
+// Optional donation panel (RSVP)
+// ---------------------------------------------------------------------------
+
+.mel-rsvp-donation-section {
+  margin-bottom: spacing.mel-space(5);
+  background: colors.$mel-color-bg;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+  overflow: hidden;
+
+  > summary {
+    cursor: pointer;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    list-style: none;
+  }
+
+  &[open] > summary {
+    border-bottom: 1px solid colors.$mel-color-border;
+    background: colors.$mel-color-surface;
+  }
+
+  .details-wrapper {
+    padding: spacing.mel-space(4);
+  }
+}
+
+.mel-rsvp-donation-section--disabled {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.mel-donation-intro-text {
+  margin: 0 0 spacing.mel-space(3);
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(sm);
+  line-height: typography.$mel-leading-relaxed;
+}
+
+.mel-donation-disabled-message {
+  margin: 0;
+  padding: spacing.mel-space(3);
+  background: colors.$mel-color-warning-bg;
+  border-radius: radii.$mel-radius-md;
+  color: color.adjust(colors.$mel-color-warning, $lightness: -20%);
+  font-size: typography.mel-font-size(sm);
+}
+
+.mel-donation-amounts {
+  margin-top: spacing.mel-space(3);
+  padding: spacing.mel-space(3);
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+}
+
+.mel-rsvp-donation-section .form-type-checkbox,
+.mel-rsvp-donation-section .form-type-radios,
+.mel-rsvp-donation-section .form-type-radio {
+  margin-bottom: spacing.mel-space(3);
+}
+
+.mel-rsvp-donation-section .form-type-radio label,
+.mel-rsvp-donation-section .form-type-checkbox label {
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-donation-presets {
+  display: grid;
+  gap: spacing.mel-space(2);
+}
+
+.mel-donation-custom-input {
+  min-height: 44px;
 }
 
 // ---------------------------------------------------------------------------
@@ -427,8 +570,10 @@
   margin-bottom: spacing.mel-space(5);
 }
 
-
-
-
-
-
+@media (prefers-reduced-motion: reduce) {
+  .mel-ticket-item,
+  .mel-rsvp-option-label,
+  .mel-quantity-btn {
+    transition: none;
+  }
+}

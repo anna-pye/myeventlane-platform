@@ -1,205 +1,38 @@
 {#
 /**
  * @file
- * Header component with logo, navigation, and user actions.
- *
- * Mobile-first, token-driven, accessible, and paired with header.js behaviors.
+ * Main site header.
+ * Always renders structural markup for debugging and CSS recovery.
  */
 #}
 
-{{ attach_library('myeventlane_theme/global-styling') }}
-
-{% set header_attributes = create_attribute().addClass('mel-header') %}
-
-{% set account_menu_id = 'mel-account-menu' %}
-{% set account_toggle_id = 'mel-account-toggle' %}
-{% set mobile_nav_id = 'mel-nav-mobile' %}
-
-{# Hidden checkbox for CSS-only mobile menu - before header for sibling selectors #}
-<input type="checkbox" id="mel-nav-toggle-checkbox" class="mel-nav-toggle-checkbox" aria-hidden="true">
-
 <header class="mel-site-header mel-site-header--main" role="banner">
-  <div class="mel-site-header__inner mel-container">
-    <div{{ header_attributes }}>
-  <div class="mel-header-inner mel-container">
-    {# Logo #}
-    <div class="mel-header-left">
-      <a href="{{ path('<front>') }}" class="mel-logo" aria-label="{{ 'Home'|t }}">
-        <img src="/themes/custom/myeventlane_theme/images/logo.svg" alt="{{ 'MyEventLane'|t }}" class="mel-logo-image" loading="eager" />
-      </a>
+  <div class="mel-site-header__inner mel-header-inner mel-container">
+
+    <div class="mel-header-left mel-header__left">
+      {{ page.header_left }}
     </div>
 
-    {# Desktop Navigation #}
-    <nav class="mel-nav-desktop" aria-label="{{ 'Primary'|t }}">
-      {% if page.header.main_menu %}
-        {{ page.header.main_menu }}
-      {% else %}
-        <div class="mel-nav-placeholder">
-          {{ 'Add a Main menu block to Header region'|t }}
-        </div>
-      {% endif %}
-    </nav>
+    <div class="mel-header__center">
+      {{ page.header_center }}
+    </div>
 
-    {# Header Actions #}
-    <div class="mel-header-actions" data-header-actions>
-      {% if page.header.cart_block %}
+    <div class="mel-header__right">
+      {{ page.header_right }}
+
+      {# Fallback: theme preprocess builds page.header.cart_block if not placed. #}
+      {% if page.header is defined and page.header.cart_block is defined %}
         <div class="mel-header-cart">
           {{ page.header.cart_block }}
         </div>
       {% endif %}
-
-      {% if logged_in %}
-        <div class="mel-account-dropdown">
-          <button
-            type="button"
-            id="{{ account_toggle_id }}"
-            class="mel-btn mel-btn-ghost mel-account-toggle"
-            aria-label="{{ 'Account menu'|t }}"
-            aria-expanded="false"
-            aria-haspopup="true"
-            aria-controls="{{ account_menu_id }}"
-          >
-            <span class="mel-account-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                <path d="M3 18c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </span>
-            <span class="mel-account-text">{{ user.display_name }}</span>
-            <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div
-            class="mel-account-menu"
-            id="{{ account_menu_id }}"
-            role="menu"
-            aria-hidden="true"
-            aria-labelledby="{{ account_toggle_id }}"
-          >
-            <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-account-menu-item" role="menuitem">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M2 6h12M6 2v12" stroke="currentColor" stroke-width="1.5"/>
-              </svg>
-              {{ 'My Events'|t }}
-            </a>
-            {% if user_is_vendor %}
-              <a href="{{ path('myeventlane_vendor.console.settings') }}" class="mel-account-menu-item" role="menuitem">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M3 14c0-2.5 2.5-4.5 5-4.5s5 2 5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                {{ 'My Profile'|t }}
-              </a>
-              <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-account-menu-item" role="menuitem">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5"/>
-                </svg>
-                {{ 'Vendor Dashboard'|t }}
-              </a>
-            {% else %}
-              <a href="{{ path('entity.user.edit_form', {'user': user.id}) }}" class="mel-account-menu-item" role="menuitem">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M3 14c0-2.5 2.5-4.5 5-4.5s5 2 5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                {{ 'My Profile'|t }}
-              </a>
-            {% endif %}
-            <div class="mel-account-menu-divider" role="separator" aria-hidden="true"></div>
-            <a href="{{ path('user.logout') }}" class="mel-account-menu-item" role="menuitem">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M6 14H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3M10 12l4-4-4-4M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              {{ 'Log out'|t }}
-            </a>
-          </div>
-        </div>
-      {% else %}
-        <a href="{{ path('user.login') }}" class="mel-btn mel-btn-ghost">{{ 'Log in'|t }}</a>
-      {% endif %}
-      <a href="/create-event" class="mel-btn mel-btn-primary">{{ 'Create Event'|t }}</a>
     </div>
 
-    {# Mobile Toggle - CSS-only using checkbox hack #}
-    <label for="mel-nav-toggle-checkbox" class="mel-nav-toggle" aria-label="{{ 'Toggle menu'|t }}">
-      <span class="mel-nav-toggle-box" aria-hidden="true">
-        <span class="mel-nav-toggle-line"></span>
-        <span class="mel-nav-toggle-line"></span>
-        <span class="mel-nav-toggle-line"></span>
-      </span>
-    </label>
   </div>
 
-  {# Mobile Navigation Drawer #}
-  <div class="mel-nav-mobile-wrapper" id="{{ mobile_nav_id }}">
-    <div class="mel-nav-mobile-header">
-      <label for="mel-nav-toggle-checkbox" class="mel-nav-mobile-close" aria-label="{{ 'Close menu'|t }}">
-        <span aria-hidden="true">×</span>
-      </label>
+  {% if page.mobile_nav %}
+    <div class="mel-site-header__mobile-nav mel-container">
+      {{ page.mobile_nav }}
     </div>
-    <nav class="mel-nav-mobile" aria-label="{{ 'Mobile navigation'|t }}">
-      <ul class="mel-nav-mobile-list">
-        {% if page.header.main_menu %}
-          {{ page.header.main_menu }}
-        {% else %}
-          <li class="mel-nav-mobile-note">{{ 'Add a Main menu block to Header region'|t }}</li>
-        {% endif %}
-        <li class="mel-mobile-divider" aria-hidden="true"></li>
-        {% if page.header.cart_block %}
-          <li class="mel-mobile-cart">
-            {{ page.header.cart_block }}
-          </li>
-          <li class="mel-mobile-divider" aria-hidden="true"></li>
-        {% endif %}
-        {% if logged_in %}
-          <li class="mel-mobile-account">
-            <div class="mel-account-dropdown mel-account-dropdown--mobile">
-              <button
-                type="button"
-                class="mel-btn mel-btn-ghost mel-account-toggle"
-                aria-label="{{ 'Account menu'|t }}"
-                aria-expanded="false"
-                aria-haspopup="true"
-              >
-                <span class="mel-account-icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                    <path d="M3 18c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </span>
-                <span class="mel-account-text">{{ user.display_name }}</span>
-                <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <div class="mel-account-menu" role="menu" aria-hidden="true">
-                <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-account-menu-item" role="menuitem">{{ 'My Events'|t }}</a>
-                {% if user_is_vendor %}
-                  <a href="{{ path('myeventlane_vendor.console.settings') }}" class="mel-account-menu-item" role="menuitem">{{ 'My Profile'|t }}</a>
-                  <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-account-menu-item" role="menuitem">{{ 'Vendor Dashboard'|t }}</a>
-                {% else %}
-                  <a href="{{ path('entity.user.edit_form', {'user': user.id}) }}" class="mel-account-menu-item" role="menuitem">{{ 'My Profile'|t }}</a>
-                {% endif %}
-                <div class="mel-account-menu-divider" role="separator" aria-hidden="true"></div>
-                <a href="{{ path('user.logout') }}" class="mel-account-menu-item" role="menuitem">{{ 'Log out'|t }}</a>
-              </div>
-            </div>
-          </li>
-        {% else %}
-          <li><a class="mel-nav-mobile-link" href="{{ path('user.login') }}">{{ 'Log in'|t }}</a></li>
-          <li><a class="mel-nav-mobile-link" href="{{ path('user.register') }}">{{ 'Sign up'|t }}</a></li>
-        {% endif %}
-        <li class="mel-mobile-divider" aria-hidden="true"></li>
-        <li><a href="/create-event" class="mel-btn-mobile-accent">{{ 'Create Event'|t }}</a></li>
-      </ul>
-    </nav>
-  </div>
-    </div>
-  </div>
+  {% endif %}
 </header>
-
-{# Mobile overlay - CSS-only, controlled by checkbox #}
-<label for="mel-nav-toggle-checkbox" class="mel-nav-overlay" aria-hidden="true"></label>

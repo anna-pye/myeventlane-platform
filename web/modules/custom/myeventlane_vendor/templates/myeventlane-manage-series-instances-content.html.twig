@@ -1,0 +1,46 @@
+{#
+/**
+ * @file
+ * Content for the Series instances manage page.
+ *
+ * Available variables:
+ * - instance_rows: Array of table rows (title, date, status, actions).
+ * - generate_url: URL to generate instances form.
+ * - empty: Whether there are no instances yet.
+ */
+#}
+<div class="mel-manage-series-instances">
+  <div class="mel-series-actions">
+    {% if generate_url %}
+      <a href="{{ generate_url }}" class="mel-btn mel-btn-primary">
+        {{ 'Generate instances'|t }}
+      </a>
+    {% endif %}
+  </div>
+
+  {% if empty %}
+    <p class="mel-series-empty">
+      {{ 'No instances yet. Click "Generate instances" to create event instances from the RRULE.'|t }}
+    </p>
+  {% else %}
+    <table class="mel-table mel-table--instances">
+      <thead>
+        <tr>
+          <th>{{ 'Title'|t }}</th>
+          <th>{{ 'Date'|t }}</th>
+          <th>{{ 'Status'|t }}</th>
+          <th>{{ 'Actions'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in instance_rows %}
+          <tr>
+            {% for cell in row %}
+              <td>{{ cell }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>

@@ -1,4 +1,11 @@
 services:
+  # Lazy proxy for currency formatter to break circular dependency with serializer.
+  # @see \Drupal\myeventlane_commerce\MyeventlaneCommerceServiceProvider
+  myeventlane_commerce.currency_formatter.lazy:
+    class: Drupal\myeventlane_commerce\Service\LazyCurrencyFormatter
+    arguments:
+      - !service_closure '@commerce_price.currency_formatter'
+
   # Logger channel for commerce module.
   logger.channel.myeventlane_commerce:
     parent: logger.channel_base
@@ -32,6 +39,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_core.stripe'
+      - '@config.factory'
       - '@logger.channel.myeventlane_commerce'
 
   myeventlane_commerce.platform_fee_order_processor:

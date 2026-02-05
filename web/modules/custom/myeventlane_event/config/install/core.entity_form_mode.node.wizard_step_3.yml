@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.wizard_step_3
+label: 'Wizard step 3'
+targetEntityType: node
+cache: true

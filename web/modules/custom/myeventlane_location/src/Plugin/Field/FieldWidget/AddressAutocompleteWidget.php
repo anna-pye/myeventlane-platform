@@ -31,7 +31,7 @@ final class AddressAutocompleteWidget extends AddressDefaultWidget {
     // These fields are not needed for venue addresses.
     $unused_fields = ['organization', 'given_name', 'family_name'];
 
-    // The address fields are in $element['address'] after parent::formElement().
+    // Address fields live in $element['address'] after parent::formElement().
     if (isset($element['address']) && is_array($element['address'])) {
       foreach ($unused_fields as $field_name) {
         if (isset($element['address'][$field_name])) {
@@ -115,16 +115,14 @@ final class AddressAutocompleteWidget extends AddressDefaultWidget {
    * {@inheritdoc}
    */
   public function massageFormValues(array $values, array $form, FormStateInterface $form_state): array {
-    $values = parent::massageFormValues($values, $form, $form_state);
-
-    // Extract latitude and longitude from hidden fields and store them.
-    // Note: We'll need to save these to dedicated fields (field_location_latitude/longitude
-    // or field_event_lat/lng) via a form submit handler or entity presave hook.
-    foreach ($values as $delta => &$value) {
-      // The latitude/longitude are in the form values but not part of the address field.
-      // We'll handle saving them separately in the module hooks.
+    // Drupal stores deltas under 'widget' (field_location[widget][0]).
+    // Parent expects [0 => ['address' => ...], ...].
+    if (isset($values['widget']) && is_array($values['widget'])) {
+      $values = $values['widget'];
     }
 
+    $values = parent::massageFormValues($values, $form, $form_state);
+    // Lat/lng saved via myeventlane_location submit handler.
     return $values;
   }
 

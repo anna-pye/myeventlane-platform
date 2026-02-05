@@ -32,7 +32,15 @@
     <div class="mel-card__title">{{ 'All Attendees'|t }}</div>
     {% if attendees|length > 0 %}
       <div class="mel-search mel-search--inline">
-        <input type="text" class="mel-input mel-input--sm" placeholder="{{ 'Search attendees...'|t }}" id="audience-search">
+        <label class="visually-hidden" for="audience-search">{{ 'Search attendees'|t }}</label>
+        <input
+          type="search"
+          class="mel-input mel-input--sm"
+          placeholder="{{ 'Search attendees…'|t }}"
+          id="audience-search"
+          data-mel-table-search
+          data-mel-table-search-rows=".attendee-row"
+        >
       </div>
     {% endif %}
   </div>
@@ -63,7 +71,7 @@
               </td>
               <td>
                 {% if attendee.event_id %}
-                  <a href="/vendor/events/{{ attendee.event_id }}/attendees">{{ attendee.event }}</a>
+                  <a href="{{ path('myeventlane_vendor.console.event_attendees', { event: attendee.event_id }) }}">{{ attendee.event }}</a>
                 {% else %}
                   {{ attendee.event|default('—') }}
                 {% endif %}
@@ -91,7 +99,7 @@
       <div class="mel-empty__description">
         {{ 'When people RSVP or purchase tickets to your events, they will appear here.'|t }}
       </div>
-      <a href="/vendor/events/create" class="mel-btn mel-btn--primary">{{ 'Create an event'|t }}</a>
+      <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta">{{ 'Create an event'|t }}</a>
     </div>
   {% endif %}
 </div>
@@ -112,21 +120,3 @@
   </div>
 </div>
 {% endif %}
-
-{# Search JavaScript #}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('audience-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const rows = document.querySelectorAll('.attendee-row');
-        
-        rows.forEach(function(row) {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-      });
-    }
-  });
-</script>

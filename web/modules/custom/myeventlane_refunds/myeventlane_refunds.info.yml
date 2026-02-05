@@ -10,5 +10,6 @@ dependencies:
   - myeventlane_checkout_flow:myeventlane_checkout_flow
   - myeventlane_messaging:myeventlane_messaging
   - myeventlane_vendor_comms:myeventlane_vendor_comms
+  - myeventlane_vendor:myeventlane_vendor
   - node
 

@@ -1,0 +1,88 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.wizard_step_4
+    - field.field.node.event.field_capacity
+    - field.field.node.event.field_collect_per_ticket
+    - field.field.node.event.field_event_type
+    - field.field.node.event.field_external_url
+    - field.field.node.event.field_product_target
+    - field.field.node.event.field_ticket_types
+    - field.field.node.event.field_waitlist_capacity
+    - node.type.event
+  module:
+    - link
+    - paragraphs
+id: node.event.wizard_step_4
+targetEntityType: node
+bundle: event
+mode: wizard_step_4
+content:
+  field_event_type:
+    type: options_select
+    weight: -10
+    region: content
+    settings: {  }
+    third_party_settings: {}
+  field_capacity:
+    type: number
+    weight: 0
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {}
+  field_waitlist_capacity:
+    type: number
+    weight: 1
+    region: content
+    settings:
+      placeholder: 'Leave empty for unlimited'
+    third_party_settings: {}
+  field_external_url:
+    type: link_default
+    weight: 2
+    region: content
+    settings:
+      placeholder_url: 'https://'
+      placeholder_title: ''
+    third_party_settings: {}
+  field_collect_per_ticket:
+    type: boolean_checkbox
+    weight: 5
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {}
+  field_ticket_types:
+    type: paragraphs
+    weight: 10
+    region: content
+    settings:
+      title: 'Ticket Type'
+      title_plural: 'Ticket Types'
+      edit_mode: open
+      closed_mode: summary
+      autocollapse: none
+      closed_mode_threshold: 0
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ticket_type_config
+      features:
+        add_above: '0'
+        collapse_edit_all: collapse_edit_all
+        duplicate: duplicate
+    third_party_settings: {}
+  field_product_target:
+    type: entity_reference_autocomplete
+    weight: 30
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {}
+hidden:
+  revision: true
+  revision_log: true

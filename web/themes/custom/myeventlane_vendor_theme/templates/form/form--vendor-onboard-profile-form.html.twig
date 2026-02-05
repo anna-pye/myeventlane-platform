@@ -1,0 +1,61 @@
+{#
+/**
+ * @file
+ * Theme override for vendor onboarding profile form.
+ *
+ * Uses default form rendering (children) so form_build_id, form_token, form_id
+ * and field name attributes render correctly. Wraps in onboarding layout.
+ *
+ * Available variables:
+ * - attributes: Form HTML attributes.
+ * - children: Pre-rendered form children (form_build_id, form_token, form_id,
+ *   step_content).
+ * - step_number: Current step (from preprocess).
+ * - total_steps: Total steps (from preprocess).
+ * - step_title: Step title (from preprocess).
+ * - step_description: Step description (from preprocess).
+ * - back_route: Route for Back link (from preprocess).
+ */
+#}
+{% set back_route = back_route ?? null %}
+<div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
+  <div class="mel-container mel-container--onboard">
+
+    {# Progress indicator #}
+    <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
+      <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
+      <div class="mel-onboard-progress-steps">
+        {% for i in 1..total_steps %}
+          <div class="mel-onboard-progress-step {{ i <= step_number ? 'mel-onboard-progress-step--active' : '' }} {{ i == step_number ? 'mel-onboard-progress-step--current' : '' }}">
+            <span class="mel-onboard-progress-step-number">{{ i }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Step header #}
+    <div class="mel-onboard-header">
+      <h1 class="mel-onboard-title">{{ step_title }}</h1>
+      {% if step_description %}
+        <p class="mel-onboard-description">{{ step_description }}</p>
+      {% endif %}
+    </div>
+
+    {# Form - children are pre-rendered with correct name/value attributes #}
+    <div class="mel-onboard-content">
+      <form{{ attributes }}>
+        {{ children }}
+      </form>
+    </div>
+
+    {# Navigation #}
+    {% if back_route %}
+      <div class="mel-onboard-nav">
+        <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">
+          {{ 'Back'|t }}
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>

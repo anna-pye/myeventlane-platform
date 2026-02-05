@@ -16,6 +16,7 @@
     ],
     "require": {
         "composer/installers": "^2.3",
+        "cweagans/composer-patches": "^1.7",
         "dompdf/dompdf": "^3.1",
         "drupal/address": "^2.0",
         "drupal/admin_toolbar": "^3.6",
@@ -36,6 +37,7 @@
         "drupal/flag": "^5.0",
         "drupal/focal_point": "^2.1",
         "drupal/fullcalendar_view": "^5.2",
+        "drupal/geofield": "^10.3",
         "drupal/gin": "^5.0",
         "drupal/gin_login": "2.1.x-dev@dev",
         "drupal/gin_toolbar": "^3.0",
@@ -51,6 +53,8 @@
         "drupal/paragraphs": "^1.19",
         "drupal/pathauto": "^1.14",
         "drupal/radix": "^6.0",
+        "drupal/search_api": "^1.40",
+        "drupal/search_api_db": "^1.40",
         "drupal/social_auth_google": "^4.0",
         "drupal/stable": "^2.1",
         "drupal/token": "^1.16",
@@ -58,7 +62,8 @@
         "drupal/twig_tweak": "^3.4",
         "drush/drush": "^13.7",
         "mglaman/drupal-check": "^1.5",
-        "phpoffice/phpspreadsheet": "^5.3"
+        "phpoffice/phpspreadsheet": "^5.3",
+        "rlanvin/php-rrule": "^2.0"
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -68,17 +73,24 @@
     "config": {
         "allow-plugins": {
             "composer/installers": true,
-            "drupal/core-composer-scaffold": true,
-            "drupal/core-recipe-unpack": true,
-            "drupal/core-project-message": true,
-            "phpstan/extension-installer": true,
+            "cweagans/composer-patches": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
+            "drupal/core-composer-scaffold": true,
+            "drupal/core-project-message": true,
+            "drupal/core-recipe-unpack": true,
             "php-http/discovery": true,
-            "php-tuf/composer-integration": true
+            "php-tuf/composer-integration": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": true
         },
         "sort-packages": true
     },
     "extra": {
+        "patches": {
+            "drupal/core": {
+                "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch"
+            }
+        },
         "drupal-scaffold": {
             "locations": {
                 "web-root": "web/"
@@ -141,6 +153,7 @@
     "require-dev": {
         "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
         "drupal/coder": "^8.3",
+        "drupal/core-dev": "11.3.1",
         "mglaman/phpstan-drupal": "^1.3",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^1.12",

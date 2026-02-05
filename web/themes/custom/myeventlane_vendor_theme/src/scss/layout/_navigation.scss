@@ -157,6 +157,7 @@
   font-weight: $font-weight-medium;
   font-size: $font-size-label;
   transition: all 0.15s ease-in-out;
+  position: relative;
 
   &:hover,
   &:focus {
@@ -168,7 +169,7 @@
   &.is-active {
     background: rgba(255, 255, 255, 0.12);
     color: $text-inverse;
-    
+
     &::before {
       content: '';
       position: absolute;
@@ -180,6 +181,38 @@
       background: $ml-accent-coral;
       border-radius: 0 $radius-sm $radius-sm 0;
     }
+  }
+}
+
+// ============================================================================
+// EVENT WIZARD SIDEBAR STEPS (.is-wizard-step)
+// ============================================================================
+// MEL brand: orange active indicator, bold font, left padding.
+// Matches Gin UX: highlight background, left border accent.
+
+.mel-sidebar__link.is-wizard-step {
+  padding-left: $spacing-4;
+  font-weight: $font-weight-semibold;
+
+  &.is-active {
+    background: rgba(255, 255, 255, 0.12);
+    color: $text-inverse;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 20px;
+      background: #f5a04c; // MEL orange accent
+      border-radius: 0 $radius-sm $radius-sm 0;
+    }
+  }
+
+  &:hover:not(.is-active) {
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 

@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\node\NodeInterface;
 
@@ -17,6 +18,11 @@ use Drupal\node\NodeInterface;
  *
  * This service is the canonical source of truth for determining how an event
  * should be booked (RSVP, paid tickets, both, external, or none).
+ *
+ * INVARIANT:
+ * Ticket capacity MUST be reflected here (getRsvpAvailability, getTicketAvailability
+ * using EventCapacityService). Do not rely on node edit form validation or UI state.
+ * This protects Ticket UX (Phase 3A).
  */
 final class EventModeManager {
 
@@ -39,6 +45,7 @@ final class EventModeManager {
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly UrlGeneratorInterface $urlGenerator,
     private readonly TimeInterface $time,
+    private readonly ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
   /**
@@ -216,9 +223,26 @@ final class EventModeManager {
       ];
     }
 
-    // Use the unified AttendanceManager for capacity checking.
-    $availability = $this->attendanceManager->getAvailability($event);
+    // Use EventCapacityService when available so display matches enforcement.
+    if ($this->capacityService) {
+      if ($this->capacityService->isSoldOut($event)) {
+        return [
+          'available' => FALSE,
+          'reason' => (string) $this->t('This event is at capacity.'),
+          'spots_remaining' => 0,
+        ];
+      }
+      $remaining = $this->capacityService->getRemaining($event);
+      return [
+        'available' => $remaining === NULL || $remaining > 0,
+        'reason' => $remaining !== NULL
+          ? (string) $this->t('@count spot(s) remaining.', ['@count' => $remaining])
+          : (string) $this->t('Spots available.'),
+        'spots_remaining' => $remaining,
+      ];
+    }
 
+    $availability = $this->attendanceManager->getAvailability($event);
     return [
       'available' => $availability['available'],
       'reason' => $availability['reason'],
@@ -274,12 +298,33 @@ final class EventModeManager {
       ];
     }
 
-    // Optionally check stock if commerce_stock is available.
-    // For now, assume available if product is published.
+    // Check event-level capacity if service is available.
+    if ($this->capacityService) {
+      if ($this->capacityService->isSoldOut($event)) {
+        return [
+          'available' => FALSE,
+          'reason' => (string) $this->t('This event is sold out.'),
+          'product' => $product,
+          'remaining' => 0,
+        ];
+      }
+      $remaining = $this->capacityService->getRemaining($event);
+      $reason = $remaining !== NULL
+        ? (string) $this->t('@count ticket(s) remaining.', ['@count' => $remaining])
+        : (string) $this->t('Tickets available.');
+      return [
+        'available' => TRUE,
+        'reason' => $reason,
+        'product' => $product,
+        'remaining' => $remaining,
+      ];
+    }
+
     return [
       'available' => TRUE,
       'reason' => (string) $this->t('Tickets available.'),
       'product' => $product,
+      'remaining' => NULL,
     ];
   }
 
@@ -576,7 +621,8 @@ final class EventModeManager {
       return NULL;
     }
 
-    return $event->get('field_product_target')->entity;
+    $entities = $event->get('field_product_target')->referencedEntities();
+    return $entities[0] ?? NULL;
   }
 
   /**

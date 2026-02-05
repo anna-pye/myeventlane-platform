@@ -17,6 +17,13 @@
 #}
 <div class="mel-dashboard">
 
+  {# Onboarding panel: show only when incomplete (passed from controller). #}
+  {% if onboarding_panel is defined and onboarding_panel %}
+    <div class="mel-dashboard__onboarding-panel">
+      {{ onboarding_panel }}
+    </div>
+  {% endif %}
+
   {# Dashboard Header #}
   <div class="mel-dashboard__header">
     <div class="mel-dashboard__header-content">
@@ -40,13 +47,13 @@
     </div>
     
     <div class="mel-dashboard__actions">
-      <a class="mel-btn mel-btn--primary mel-btn--lg" href="/vendor/events/create">
+      <a class="mel-btn mel-btn--cta mel-btn--lg" href="{{ path('myeventlane_event.wizard.create') }}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
         {{ 'Create New Event'|t }}
       </a>
-      <a class="mel-btn mel-btn--secondary mel-btn--lg" href="/vendor/analytics">
+      <a class="mel-btn mel-btn--secondary mel-btn--lg" href="{{ path('myeventlane_analytics.dashboard') }}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
@@ -81,7 +88,7 @@
         </div>
       </div>
       <div class="mel-welcome-banner__actions">
-        <a href="/vendor/events/create" class="mel-btn mel-btn--primary mel-btn--lg">{{ 'Create Your First Event'|t }}</a>
+        <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Create Your First Event'|t }}</a>
       </div>
     </div>
   {% endif %}
@@ -151,7 +158,7 @@
         <tbody>
           <tr>
             <td>
-              <a href="/vendor/events/create" class="mel-action-btn mel-action-btn--primary">
+              <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-action-btn mel-action-btn--primary">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -159,7 +166,7 @@
               </a>
             </td>
             <td>
-              <a href="/vendor/payouts" class="mel-action-btn mel-action-btn--success">
+              <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-action-btn mel-action-btn--success">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                 </svg>
@@ -167,7 +174,7 @@
               </a>
             </td>
             <td>
-              <a href="/vendor/audience" class="mel-action-btn mel-action-btn--info">
+              <a href="{{ path('myeventlane_vendor.console.audience') }}" class="mel-action-btn mel-action-btn--info">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
@@ -177,7 +184,7 @@
           </tr>
           <tr>
             <td>
-              <a href="/vendor/boost" class="mel-action-btn mel-action-btn--warning">
+              <a href="{{ path('myeventlane_vendor.console.boost') }}" class="mel-action-btn mel-action-btn--warning">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
@@ -185,7 +192,7 @@
               </a>
             </td>
             <td>
-              <a href="/vendor/audience" class="mel-action-btn mel-action-btn--secondary">
+              <a href="{{ path('myeventlane_vendor.console.audience') }}" class="mel-action-btn mel-action-btn--secondary">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                 </svg>
@@ -193,7 +200,7 @@
               </a>
             </td>
             <td>
-              <a href="/vendor/settings" class="mel-action-btn mel-action-btn--neutral">
+              <a href="{{ path('myeventlane_vendor.console.settings') }}" class="mel-action-btn mel-action-btn--neutral">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                 </svg>
@@ -217,7 +224,7 @@
             <h3 class="mel-card__title">{{ 'Your Events'|t }}</h3>
             <p class="mel-card__subtitle">{{ 'Manage and track all your events'|t }}</p>
           </div>
-          <a class="mel-link" href="/vendor/events">{{ 'View All'|t }} →</a>
+          <a class="mel-link" href="{{ path('myeventlane_vendor.console.events') }}">{{ 'View All'|t }} →</a>
         </div>
         <div class="mel-card__body mel-card__body--flush">
           {# STAGE B: Event Performance List (replaces table). Below KPI strip, above secondary. #}

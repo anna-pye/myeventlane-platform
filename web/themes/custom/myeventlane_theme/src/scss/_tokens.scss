@@ -5,6 +5,7 @@
   --mel-orange: #f5a04c;
   --mel-cream: #fef5ec;
   --mel-grey-light: #f4f4f4;
+  --mel-accent: var(--mel-coral);
 
   --mel-paper: var(--mel-cream);
   --mel-ink: var(--mel-navy);
@@ -31,7 +32,7 @@
   --mel-shadow-hover: 0 12px 26px rgba(0,0,0,.12);
 
   --mel-border: 2px solid rgba(41, 50, 65, 0.12);
-  --mel-primary: var(--mel-coral);
+  --mel-primary: var(--mel-blue);
 
   // --- MyEventLane v2 header/footer tokens (extend only; do not remove above) ---
   --mel-bg: var(--mel-paper);

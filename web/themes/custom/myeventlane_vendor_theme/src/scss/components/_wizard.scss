@@ -281,3 +281,99 @@
     margin-left: $spacing-3;
   }
 }
+
+// ============================================================================
+// WIZARD PREVIEW (Review step inline event preview)
+// ============================================================================
+// Framed like a “window”: border, rounded corners, subtle shadow.
+// Read-only: pointer-events disabled; no iframes; real event markup.
+// Mobile-safe and responsive.
+
+// Preview "window" — aligned with new look: coral accent border, rounded, shadow
+.mel-wizard-preview {
+  margin-top: $spacing-4;
+  margin-bottom: $spacing-4;
+  padding: $spacing-4;
+  border: 2px solid rgba($wizard-coral, 0.2);
+  border-radius: $radius-lg;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba($wizard-coral, 0.05);
+  background: $bg-primary;
+
+  @include respond-to(md) {
+    margin-top: $spacing-6;
+    margin-bottom: $spacing-6;
+    padding: $spacing-5;
+    border-radius: $radius-xl;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba($wizard-coral, 0.06);
+  }
+}
+
+.mel-wizard-preview__title {
+  margin: 0 0 $spacing-3 0;
+  font-size: $font-size-base;
+  font-weight: 600;
+  color: $text-primary;
+
+  @include respond-to(md) {
+    margin-bottom: $spacing-4;
+    font-size: $font-size-lg;
+  }
+}
+
+.mel-wizard-preview--readonly .mel-wizard-preview__title + *,
+.mel-wizard-preview--readonly [class*="node--event"] {
+  pointer-events: none;
+  user-select: none;
+}
+
+.mel-wizard-preview--readonly a {
+  pointer-events: none;
+  cursor: default;
+}
+
+// ============================================================================
+// "Edit this section" affordance (Review step)
+// ============================================================================
+// Submit buttons that switch to that step (same as sidebar). Styled to match
+// the new look: subtle coral-accent pill/links.
+
+.mel-wizard-edit-sections {
+  margin-top: $spacing-4;
+  padding-top: $spacing-4;
+  border-top: 1px solid $border-color-light;
+}
+
+.mel-wizard-edit-sections__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2 $spacing-4;
+}
+
+// Edit section buttons (submit elements with class mel-wizard-edit-section-link)
+.mel-wizard-edit-section-link,
+button.mel-wizard-edit-section-link,
+input.mel-wizard-edit-section-link {
+  appearance: none;
+  font-size: $font-size-sm;
+  font-weight: 500;
+  color: $text-secondary;
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid $border-color;
+  border-radius: $radius-full;
+  padding: $spacing-2 $spacing-3;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+
+  &:hover {
+    color: $wizard-coral;
+    background: $wizard-coral-light;
+    border-color: rgba($wizard-coral, 0.4);
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $wizard-coral;
+    outline-offset: 2px;
+  }
+}

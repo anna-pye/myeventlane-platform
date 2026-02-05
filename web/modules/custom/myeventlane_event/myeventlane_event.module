@@ -6,12 +6,54 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
-use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\node\NodeInterface;
+use Drupal\paragraphs\ParagraphInterface;
 use Drupal\taxonomy\TermInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_access() for paragraph.
+ *
+ * Allows vendors to edit event-related paragraphs when they own the parent
+ * event node. Fixes lock icons preventing edit/remove in the event wizard.
+ */
+function myeventlane_event_paragraph_access(ParagraphInterface $entity, string $operation, AccountInterface $account): AccessResult {
+  if (!in_array($operation, ['view', 'update', 'delete'], TRUE)) {
+    return AccessResult::neutral();
+  }
+
+  $event_paragraph_types = [
+    'ticket_type_config',
+    'attendee_extra_field',
+    'event_highlight',
+  ];
+  if (!in_array($entity->bundle(), $event_paragraph_types, TRUE)) {
+    return AccessResult::neutral();
+  }
+
+  $parent = $entity->getParentEntity();
+  if (!$parent instanceof NodeInterface || $parent->bundle() !== 'event') {
+    return AccessResult::neutral();
+  }
+
+  if ($account->hasPermission('administer nodes') || $account->hasPermission('bypass node access')) {
+    return AccessResult::allowed()->cachePerPermissions();
+  }
+
+  if ((int) $parent->getOwnerId() === (int) $account->id()) {
+    return AccessResult::allowed()
+      ->cachePerUser()
+      ->addCacheableDependency($entity)
+      ->addCacheableDependency($parent);
+  }
+
+  return AccessResult::neutral();
+}
 
 /**
  * Implements hook_theme().
@@ -27,13 +69,29 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'event-wizard-step',
     ],
+    'myeventlane_event_wizard_step_prefix' => [
+      'variables' => [
+        'steps' => [],
+        'step' => ['id' => '', 'label' => ''],
+        'title' => '',
+      ],
+      'template' => 'event-wizard-step-prefix',
+    ],
+    'myeventlane_event_wizard_step_suffix' => [
+      'variables' => ['step_id' => NULL],
+      'template' => 'event-wizard-step-suffix',
+    ],
     'myeventlane_event_wizard_review' => [
       'variables' => [
         'title' => NULL,
         'event' => NULL,
         'steps' => [],
         'summary' => [],
+        'warnings' => [],
+        'ready' => [],
+        'tickets_edit_link' => NULL,
         'publish_url' => NULL,
+        'card_preview' => NULL,
       ],
       'template' => 'event-wizard-review',
     ],
@@ -232,6 +290,141 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
 function myeventlane_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Ticket type paragraph conditional logic.
   TicketTypeFormAlter::alterForm($form, $form_state);
+
+  // Ensure field_multiple_value_form elements have #attributes (prevents
+  // FieldPreprocess warnings in wizard step forms).
+  if (str_starts_with($form_id, 'event_wizard_')) {
+    $form['#attached']['library'][] = 'myeventlane_event/event_wizard';
+    $form['#after_build'][] = [\Drupal\myeventlane_event\Form\EventWizardBaseForm::class, 'ensureFieldAttributes'];
+
+    // Basics step: ensure form accepts file uploads (field_event_image).
+    if ($form_id === 'event_wizard_basics_form') {
+      if (!isset($form['#attributes']) || !is_array($form['#attributes'])) {
+        $form['#attributes'] = [];
+      }
+      $form['#attributes']['enctype'] = 'multipart/form-data';
+
+      // Hide admin-only fields (Wizard UI Cleanup Step 1).
+      if (isset($form['revision_log'])) {
+        $form['revision_log']['#access'] = FALSE;
+      }
+      if (isset($form['body'][0]['format'])) {
+        $form['body'][0]['format']['#access'] = FALSE;
+      }
+      if (isset($form['field_category']['widget']['#show_row_weights'])) {
+        $form['field_category']['widget']['#show_row_weights'] = FALSE;
+      }
+    }
+
+    // When & Where step: hide admin-only noise (Wizard UI Cleanup Step 2).
+    if ($form_id === 'event_wizard_when_where_form') {
+      if (isset($form['revision_log'])) {
+        $form['revision_log']['#access'] = FALSE;
+      }
+      foreach ($form as $key => $element) {
+        if (str_starts_with((string) $key, '#') || !is_array($element)) {
+          continue;
+        }
+        if (isset($form[$key]['format'])) {
+          $form[$key]['format']['#access'] = FALSE;
+        }
+      }
+    }
+
+    // Tickets step: hide admin-only noise (Wizard UI Cleanup Step 3).
+    if ($form_id === 'event_wizard_tickets_form') {
+      if (isset($form['revision_log'])) {
+        $form['revision_log']['#access'] = FALSE;
+      }
+      foreach ($form as $key => $element) {
+        if (str_starts_with((string) $key, '#') || !is_array($element)) {
+          continue;
+        }
+        if (isset($form[$key]['format'])) {
+          $form[$key]['format']['#access'] = FALSE;
+        }
+      }
+    }
+
+    // Details step: hide admin-only noise (Wizard UI Cleanup Step 4).
+    if ($form_id === 'event_wizard_details_form') {
+      if (isset($form['revision_log'])) {
+        $form['revision_log']['#access'] = FALSE;
+      }
+      foreach ($form as $key => $element) {
+        if (str_starts_with((string) $key, '#') || !is_array($element)) {
+          continue;
+        }
+        if (isset($form[$key]['format'])) {
+          $form[$key]['format']['#access'] = FALSE;
+        }
+      }
+    }
+
+    // Belt-and-braces: hide meta/system fields — not needed in wizard.
+    foreach (['path', 'revision_information', 'uid', 'created', 'status'] as $key) {
+      if (isset($form[$key])) {
+        $form[$key]['#access'] = FALSE;
+      }
+    }
+  }
+
+  // Details step only: human, clear, inclusive help text (Phase 3D).
+  if ($form_id === 'event_wizard_details_form') {
+    _myeventlane_event_details_step_descriptions($form, $form_id);
+  }
+}
+
+/**
+ * Sets help text for Details step fields (clarity, inclusivity, supportive tone).
+ *
+ * Called from hook_form_alter for event_wizard_details_form only.
+ * No schema or logic changes; copy only.
+ *
+ * @param array &$form
+ *   The form array (altered by reference).
+ * @param string $form_id
+ *   The form ID (for Phase 3D DEBUG logging only).
+ */
+function _myeventlane_event_details_step_descriptions(array &$form, string $form_id): void {
+  // Phase 3D DEBUG (audit-only): prove alter runs and list actual form keys.
+  \Drupal::logger('myeventlane_event')->notice(
+    'Phase 3D DEBUG: details step alter fired for form_id=@id',
+    ['@id' => $form_id]
+  );
+  \Drupal::logger('myeventlane_event')->notice(
+    'Phase 3D DEBUG: details fields=@fields',
+    ['@fields' => implode(', ', array_keys($form))]
+  );
+
+  $t = function (string $s) {
+    return t($s);
+  };
+
+  if (isset($form['field_event_highlights'])) {
+    $form['field_event_highlights']['#description'] = $t('Add a few highlights to help people quickly understand what makes this event special.');
+  }
+  if (isset($form['field_refund_policy'])) {
+    $form['field_refund_policy']['#description'] = $t('Explain your refund or cancellation policy so attendees know what to expect.');
+  }
+  if (isset($form['field_age_policy'])) {
+    $form['field_age_policy']['#description'] = $t('Let attendees know if there are age requirements or recommendations for this event.');
+  }
+  if (isset($form['field_accessibility'])) {
+    $form['field_accessibility']['#description'] = $t('Let people know what accessibility supports are available at this event. You can add more detail below.');
+  }
+  if (isset($form['field_accessibility_contact'])) {
+    $form['field_accessibility_contact']['#description'] = $t('Who should attendees contact if they have accessibility questions or need support?');
+  }
+  if (isset($form['field_accessibility_directions'])) {
+    $form['field_accessibility_directions']['#description'] = $t('Any directions or tips that help people access the venue more easily.');
+  }
+  if (isset($form['field_accessibility_entry'])) {
+    $form['field_accessibility_entry']['#description'] = $t('Information about entrances, ramps, lifts, or step-free access.');
+  }
+  if (isset($form['field_accessibility_parking'])) {
+    $form['field_accessibility_parking']['#description'] = $t('Details about accessible parking options, if available.');
+  }
 }
 
 /**
@@ -239,8 +432,28 @@ function myeventlane_event_form_alter(array &$form, FormStateInterface $form_sta
  *
  * This specific hook runs AFTER hook_form_alter, ensuring we can remove
  * conflicting elements added by other modules (like vendor module's tabs).
+ *
+ * Legacy wizard (EventFormAlter stepping on node edit) is OFF by default.
+ * Canonical event creation flow is /vendor/events/create.
  */
 function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Advanced edit only: persistent warning (admin-facing).
+  $form['myeventlane_advanced_notice'] = [
+    '#type' => 'markup',
+    '#markup' => '<div class="mel-advanced-edit-warning"><strong>⚠️ Advanced edit mode</strong><br>Event creation and ticketing should be done via <em>Create Event</em>. Editing here may bypass validation and capacity safeguards.</div>',
+    '#weight' => -100,
+  ];
+
+  /**
+   * Legacy node form wizard (EventFormAlter) — DEPRECATED.
+   * Canonical flow is /vendor/events/create. Re-enabling this state key
+   * bypasses wizard safeguards and capacity UX (Phase 3A) and is unsupported.
+   * State key: myeventlane.enable_legacy_node_wizard (default FALSE).
+   */
+  if (!\Drupal::state()->get('myeventlane.enable_legacy_node_wizard', FALSE)) {
+    return;
+  }
+
   /** @var \Drupal\myeventlane_event\Form\EventFormAlter $alter */
   $alter = \Drupal::service('myeventlane_event.event_form_alter');
   $alter->alterForm($form, $form_state, $form_id);
@@ -394,9 +607,42 @@ function myeventlane_event_entity_load(array $entities, string $entity_type): vo
 /**
  * Implements hook_entity_presave().
  *
- * Prevents saving corrupted datetime field values in ticket type paragraphs.
+ * Non-blocking audit log when event is saved with incomplete ticket config.
+ * Also prevents saving corrupted datetime field values in ticket type paragraphs.
  */
 function myeventlane_event_entity_presave(EntityInterface $entity): void {
+  // Audit: log when event is saved with incomplete ticket configuration (do not block save).
+  if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'event' && $entity instanceof NodeInterface) {
+    // Do not warn when saving from a wizard step form (basics, when_where, etc.).
+    $route = \Drupal::routeMatch()->getRouteName();
+    $wizard_step_routes = [
+      'myeventlane_event.wizard.basics',
+      'myeventlane_event.wizard.when_where',
+      'myeventlane_event.wizard.tickets',
+      'myeventlane_event.wizard.details',
+      'myeventlane_event.wizard.review',
+      'myeventlane_event.wizard.publish',
+    ];
+    if ($route && in_array($route, $wizard_step_routes, TRUE)) {
+      return;
+    }
+
+    $event_type = $entity->hasField('field_event_type') && !$entity->get('field_event_type')->isEmpty()
+      ? $entity->get('field_event_type')->value : NULL;
+    $capacity_required = in_array($event_type, ['rsvp', 'paid', 'both'], TRUE);
+    $capacity_ok = !$capacity_required;
+    if ($capacity_required && $entity->hasField('field_capacity') && !$entity->get('field_capacity')->isEmpty()) {
+      $capacity_ok = (int) $entity->get('field_capacity')->value > 0;
+    }
+    if ($event_type === NULL || ($capacity_required && !$capacity_ok)) {
+      \Drupal::logger('myeventlane_event')->warning(
+        'Event @id saved outside wizard with incomplete ticket configuration.',
+        ['@id' => $entity->id() ?? 'new']
+      );
+    }
+    return;
+  }
+
   if ($entity->getEntityTypeId() !== 'paragraph' || $entity->bundle() !== 'ticket_type_config') {
     return;
   }
@@ -433,22 +679,6 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     return;
   }
 
-  // Defaults.
-  $lat = NULL;
-  $lng = NULL;
-
-  // Pull coords if present.
-  if ($node->hasField('field_event_lat') && !$node->get('field_event_lat')->isEmpty()) {
-    $lat = (float) $node->get('field_event_lat')->value;
-  }
-  if ($node->hasField('field_event_lng') && !$node->get('field_event_lng')->isEmpty()) {
-    $lng = (float) $node->get('field_event_lng')->value;
-  }
-
-  // Expose coords to Twig if needed.
-  $variables['mel_event_lat'] = $lat;
-  $variables['mel_event_lng'] = $lng;
-
   // Categories metadata for theming (name + color).
   $categories = [];
   if ($node->hasField('field_event_categories') && !$node->get('field_event_categories')->isEmpty()) {
@@ -467,11 +697,6 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
   $variables['mel_categories'] = $categories;
 
-  // Attach the map library if coords exist.
-  if ($lat !== NULL && $lng !== NULL) {
-    $variables['#attached']['library'][] = 'myeventlane_location/event_map';
-  }
-
   // CTA and state: mutual exclusivity (paid | rsvp | none). Logic in service only.
   $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
   $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
@@ -483,4 +708,66 @@ function myeventlane_event_preprocess_node(array &$variables): void {
 
   $salesStart = $stateResolver->getSalesStart($node);
   $variables['mel_sales_start_formatted'] = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
+
+  // Lowest enabled ticket price for "Tickets from $X" (paid) or "Free" (RSVP).
+  $variables['mel_tickets_from'] = NULL;
+  if ($node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+    $product = $node->get('field_product_target')->entity;
+    if ($product && $product->getEntityTypeId() === 'commerce_product') {
+      $variations = $product->getVariations();
+      $min_price_obj = NULL;
+      $min_n = NULL;
+      foreach ($variations as $variation) {
+        if ($variation->status && method_exists($variation, 'getPrice')) {
+          $price = $variation->getPrice();
+          if ($price) {
+            $n = (float) $price->getNumber();
+            if ($min_n === NULL || $n < $min_n) {
+              $min_n = $n;
+              $min_price_obj = $price;
+            }
+          }
+        }
+      }
+      if ($min_price_obj !== NULL) {
+        $formatted = _myeventlane_event_format_price_simple(
+          $min_price_obj->getNumber(),
+          $min_price_obj->getCurrencyCode()
+        );
+        $variables['mel_tickets_from'] = t('Tickets from @price', ['@price' => $formatted]);
+      }
+    }
+  }
+  if ($variables['mel_tickets_from'] === NULL && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+    if ($node->get('field_event_type')->value === 'rsvp') {
+      $variables['mel_tickets_from'] = t('Free');
+    }
+  }
+}
+
+/**
+ * Formats a price without using commerce_price.currency_formatter.
+ *
+ * Avoids ServiceCircularReferenceException when called during render (e.g. in
+ * preprocess). Uses currency entity and number_format instead.
+ *
+ * @param string $number
+ *   The price number.
+ * @param string $currency_code
+ *   The currency code (e.g. USD).
+ *
+ * @return string
+ *   Formatted price (e.g. "$10.00" or "10.00 USD" if currency not found).
+ *
+ * @internal Used only in preprocess to avoid circular dependency.
+ */
+function _myeventlane_event_format_price_simple(string $number, string $currency_code): string {
+  $currency_storage = \Drupal::entityTypeManager()->getStorage('commerce_currency');
+  $currency = $currency_storage->load($currency_code);
+  $fraction_digits = $currency ? $currency->getFractionDigits() : 2;
+  $formatted_number = number_format((float) $number, $fraction_digits);
+  if ($currency && $currency->getSymbol()) {
+    return $currency->getSymbol() . $formatted_number;
+  }
+  return $formatted_number . ' ' . $currency_code;
 }

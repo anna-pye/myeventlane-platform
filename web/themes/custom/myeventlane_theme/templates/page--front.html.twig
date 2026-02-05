@@ -1,121 +1,64 @@
 {#
   MEL v2 Front Page
-  - Hero
-  - Category strip (real taxonomy terms)
+  - Hero (component)
+  - Featured Events (component)
   - Discover events (View render)
   - Secondary rows (Views)
 #}
 
 {% extends "page.html.twig" %}
 
+{#
+  NOTE:
+  - Sections render regions that should be populated with Views blocks in Drupal.
+  - Hero and Featured Events use component includes.
+#}
+
+{% block hero %}
+  {% set popular_tags = popular_tags|default([]) %}
+  {% include '@myeventlane_theme/components/hero/hero.twig' with { popular_tags: popular_tags } %}
+{% endblock %}
+
 {% block content %}
-  {% set container_class = 'mel-container' %}
+  {{ attach_library('myeventlane_theme/front') }}
+  <div class="mel-home">
+    {% if page.home_featured %}
+      {% include '@myeventlane_theme/components/featured-events/featured-events.twig' with {
+        title: 'Featured Events'|t,
+        subtitle: null,
+        view: page.home_featured
+      } %}
+    {% endif %}
 
-  <main class="mel-home">
-    {# HERO #}
-    <section class="mel-home__hero">
-      <div class="{{ container_class }}">
-        <div class="mel-hero">
-          <div class="mel-hero__copy">
-            <h1 class="mel-hero__title"><span class="mel-text-coral">Your</span> lane to great events.</h1>
-            <p class="mel-hero__subtitle">Discover local events, workshops, gigs, and community gatherings — or create your own in minutes.</p>
-
-            <form class="mel-search" action="/events" method="get">
-              <label class="visually-hidden" for="mel-search-q">Search events</label>
-              <input id="mel-search-q" class="mel-search__input" type="search" name="q" placeholder="What do you feel like doing?" />
-              <button class="mel-btn mel-btn--primary" type="submit">Search</button>
-            </form>
-
-            <p class="mel-hero__hint">Music • Markets • Workshops • Family</p>
+    {% if page.home_discover %}
+      <section class="mel-home-section mel-home-section--discover" aria-labelledby="mel-home-discover-title">
+        <div class="mel-container">
+          <div class="mel-section-head">
+            <h2 id="mel-home-discover-title" class="mel-section-head__title">{{ 'Discover events'|t }}</h2>
+            <a class="mel-section-head__link" href="{{ path('view.upcoming_events.page_events') }}">{{ 'View all'|t }}</a>
           </div>
+          {{ page.home_discover }}
+        </div>
+      </section>
+    {% endif %}
 
-          <div class="mel-hero__decor" aria-hidden="true">
-            <div class="mel-sticker-burst"></div>
-            <div class="mel-sticker-burst mel-sticker-burst--two"></div>
+    {% if page.home_recommended %}
+      <section class="mel-home-section mel-home-section--recommended" aria-labelledby="mel-home-recommended-title">
+        <div class="mel-container">
+          <div class="mel-section-head">
+            <h2 id="mel-home-recommended-title" class="mel-section-head__title">{{ 'Recommended for you'|t }}</h2>
+            <a class="mel-section-head__link" href="{{ path('view.upcoming_events.page_events') }}">{{ 'View all'|t }}</a>
           </div>
+          {{ page.home_recommended }}
         </div>
-      </div>
-    </section>
+      </section>
+    {% endif %}
 
-  {# CATEGORY STRIP (real taxonomy) #}
-  <section class="mel-home__categories">
-    <div class="{{ container_class }}">
-      <div class="mel-section-head">
-        <h2 class="mel-section-head__title">Pick a category</h2>
+    {# Fallback: if no dedicated home regions are populated, render normal content. #}
+    {% if not page.home_featured and not page.home_discover and not page.home_recommended %}
+      <div class="mel-container">
+        {{ page.content }}
       </div>
-
-      <div class="mel-category-strip">
-        {% set category_pills_block = drupal_block('myeventlane_category_pills') %}
-        {% if category_pills_block %}
-          {{ category_pills_block }}
-        {% else %}
-          {# Fallback: try the alternative block name #}
-          {{ drupal_block('myeventlane_event_categories_strip') }}
-        {% endif %}
-      </div>
-    </div>
-  </section>
-
-  {# DISCOVER EVENTS (poster card view mode via View) #}
-  <section class="mel-home__discover">
-    <div class="{{ container_class }}">
-      <div class="mel-section-head">
-        <h2 class="mel-section-head__title">Discover events</h2>
-        <a class="mel-link" href="/events">See all</a>
-      </div>
-
-      <div class="mel-sticker-wall">
-        {{ drupal_view('mel_home_events', 'discover') }}
-      </div>
-    </div>
-  </section>
-
-  {# SECONDARY ROWS (compact) #}
-  <section class="mel-home__rows">
-    <div class="{{ container_class }}">
-      <div class="mel-row">
-        <div class="mel-section-head">
-          <h2 class="mel-section-head__title">Tonight</h2>
-          <a class="mel-link" href="/events?when=tonight">More</a>
-        </div>
-        <div class="mel-row__scroller">
-          {{ drupal_view('mel_home_events', 'tonight') }}
-        </div>
-      </div>
-
-      <div class="mel-row">
-        <div class="mel-section-head">
-          <h2 class="mel-section-head__title">Free & under $20</h2>
-          <a class="mel-link" href="/events?price=under20">More</a>
-        </div>
-        <div class="mel-row__scroller">
-          {{ drupal_view('mel_home_events', 'under_20') }}
-        </div>
-      </div>
-
-      <div class="mel-row">
-        <div class="mel-section-head">
-          <h2 class="mel-section-head__title">Near you</h2>
-          <a class="mel-link" href="/events?near=me">More</a>
-        </div>
-        <div class="mel-row__scroller">
-          {{ drupal_view('mel_home_events', 'near_you') }}
-        </div>
-      </div>
-    </div>
-  </section>
-
-    {# CREATE EVENT CTA #}
-    <section class="mel-home__cta">
-      <div class="{{ container_class }}">
-        <div class="mel-cta-card">
-          <div class="mel-cta-card__copy">
-            <h2 class="mel-cta-card__title">Got something to share?</h2>
-            <p class="mel-cta-card__text">Create an event listing in minutes.</p>
-          </div>
-          <a class="mel-btn mel-btn--primary" href="/event/add">Create event</a>
-        </div>
-      </div>
-    </section>
-  </main>
+    {% endif %}
+  </div>
 {% endblock %}

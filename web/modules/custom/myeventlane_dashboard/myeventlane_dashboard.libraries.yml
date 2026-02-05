@@ -1,6 +1,6 @@
 # Dashboard library - used by both admin and vendor dashboards.
 dashboard:
-  version: VERSION
+  version: 2.x
   css:
     theme:
       css/dashboard.css: {}

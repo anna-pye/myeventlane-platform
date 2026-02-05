@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: event_highlight
+label: 'Event highlight'
+description: 'Bullet highlight with optional icon.'
+icon_uuid: null
+icon_default: null
+behavior_plugins: {  }
+

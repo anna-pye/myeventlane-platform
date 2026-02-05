@@ -1,0 +1,60 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.event.field_event_image
+    - field.field.node.event.field_event_intro
+    - field.field.node.event.field_location
+    - field.field.node.event.field_venue_name
+    - node.type.event
+  module:
+    - address
+    - image
+    - node
+    - text
+id: node.event.full
+targetEntityType: node
+bundle: event
+mode: full
+content:
+  field_event_image:
+    type: image
+    label: hidden
+    settings:
+      image_style: large
+      image_link: ''
+      image_loading:
+        attribute: eager
+    weight: 0
+    region: content
+    third_party_settings: {  }
+  body:
+    type: text_default
+    label: hidden
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_event_intro:
+    type: text_default
+    label: hidden
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_venue_name:
+    type: string
+    label: hidden
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_location:
+    type: address_default
+    label: hidden
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  links: true

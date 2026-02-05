@@ -99,7 +99,7 @@
       <div class="mel-card__title">{{ 'Boost summary'|t }}</div>
       {% if event %}
         {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
-        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
+        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--cta">
           <span class="mel-btn__icon">⚡</span>
           {{ 'Boost this event'|t }}
         </a>
@@ -396,7 +396,7 @@
       <div class="mel-card__title">{{ 'Boost placements'|t }}</div>
       {% if event %}
         {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
-        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--primary">
+        <a href="{{ boost_url }}" class="mel-btn mel-btn--sm mel-btn--cta">
           <span class="mel-btn__icon">⚡</span>
           {{ 'Boost this event'|t }}
         </a>

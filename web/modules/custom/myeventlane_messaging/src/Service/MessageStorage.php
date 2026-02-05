@@ -123,13 +123,13 @@ final class MessageStorage {
    * @param string $id
    *   Message UUID.
    * @param array $updates
-   *   Keys: status, attempts, sent, provider, provider_message_id.
+   *   Keys: status, attempts, sent.
    *
    * @return int
    *   Number of rows updated.
    */
   public function update(string $id, array $updates): int {
-    $allowed = ['status', 'attempts', 'sent', 'provider', 'provider_message_id'];
+    $allowed = ['status', 'attempts', 'sent'];
     $fields = array_intersect_key($updates, array_flip($allowed));
     if (empty($fields)) {
       return 0;
@@ -138,29 +138,6 @@ final class MessageStorage {
       ->fields($fields)
       ->condition('id', $id)
       ->execute();
-  }
-
-  /**
-   * Finds a message by provider message ID.
-   *
-   * @param string $providerMessageId
-   *   The provider message ID.
-   *
-   * @return object|null
-   *   Message row or NULL.
-   */
-  public function findByProviderMessageId(string $providerMessageId): ?object {
-    $r = $this->connection->select('myeventlane_message', 'm')
-      ->fields('m')
-      ->condition('m.provider_message_id', $providerMessageId)
-      ->execute()
-      ->fetchObject();
-
-    if (!$r) {
-      return NULL;
-    }
-    $r->context = $r->context ? unserialize($r->context, ['allowed_classes' => FALSE]) : [];
-    return $r;
   }
 
   /**

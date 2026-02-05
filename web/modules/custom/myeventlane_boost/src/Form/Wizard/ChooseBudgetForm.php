@@ -40,7 +40,7 @@ final class ChooseBudgetForm extends FormBase implements ContainerInjectionInter
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'myeventlane_boost_wizard_choose_budget_form';
+    return 'myeventlane_boost_choose_budget_form';
   }
 
   /**
@@ -81,7 +81,8 @@ final class ChooseBudgetForm extends FormBase implements ContainerInjectionInter
       '#title' => $this->t('Back'),
       '#url' => Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $event_id]),
       '#attributes' => [
-        'class' => ['button', 'button--ghost'],
+        'class' => ['mel-button', 'mel-button--ghost'],
+        'aria-label' => $this->t('Back to placement step'),
       ],
     ];
 
@@ -113,9 +114,11 @@ final class ChooseBudgetForm extends FormBase implements ContainerInjectionInter
       '#type' => 'submit',
       '#value' => $this->t('Next'),
       '#button_type' => 'primary',
+      '#attributes' => [
+        'class' => ['mel-button', 'mel-button--primary'],
+        'aria-label' => $this->t('Continue to dates step'),
+      ],
     ];
-
-    // @todo Step 3 routing will be wired later.
 
     return $form;
   }
@@ -170,6 +173,8 @@ final class ChooseBudgetForm extends FormBase implements ContainerInjectionInter
         '@budget' => $budget,
       ]
     ));
+
+    $form_state->setRedirect('myeventlane_boost.wizard.step3', ['event' => $event_id]);
   }
 
 }

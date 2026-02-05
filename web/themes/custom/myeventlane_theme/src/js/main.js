@@ -6,6 +6,9 @@
  * Uses Drupal behaviors to ensure compatibility with Commerce payment JS.
  */
 
+// Polyfill _.defer when Lodash overwrites Underscore (fixes toolbar TypeError).
+import './underscore-defer-polyfill.js';
+
 // Import SCSS (processed by Vite)
 import '../scss/main.scss';
 
