@@ -1,3 +1,35 @@
-<p>Good news {{ name }}!</p>
-<p>A spot has opened up for <strong>{{ event_title }}</strong>.</p>
-<p><a href="{{ event_url }}">View event details</a></p>
+{#
+  RSVP Promotion Email (inner-body-only)
+  Wrapper provided by Mime Mail theme override (mimemail-message.html.twig)
+  Variables: name, event_title, event_url, event_date, event_location
+#}
+
+<p style="margin: 0 0 12px 0;">
+  Hi {{ name|default('there') }},
+</p>
+
+<p style="margin: 0 0 14px 0;">
+  Good news. You are off the waitlist and confirmed for:
+</p>
+
+<div style="font-weight: 700; font-size: 16px; line-height: 1.2; margin: 0 0 6px 0;">
+  {{ event_title|default('Event') }}
+</div>
+
+{% if event_date is defined and event_date %}
+  <div style="font-size: 14px; opacity: 0.9; margin: 0 0 2px 0;">
+    {{ event_date }}
+  </div>
+{% endif %}
+
+{% if event_location is defined and event_location %}
+  <div style="font-size: 14px; opacity: 0.85; margin: 0 0 12px 0;">
+    {{ event_location }}
+  </div>
+{% endif %}
+
+{% if event_url is defined and event_url %}
+  <p style="margin: 12px 0 0 0;">
+    <a href="{{ event_url }}" style="color:#6e7ef2; text-decoration:none;">View event details</a>
+  </p>
+{% endif %}

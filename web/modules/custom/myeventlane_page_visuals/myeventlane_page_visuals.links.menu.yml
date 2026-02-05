@@ -1,0 +1,6 @@
+entity.myeventlane_page_visual.collection:
+  title: 'Page Visuals'
+  description: 'Assign hero/illustration images to system routes (homepage, search, events, calendar, vendors, support).'
+  route_name: entity.myeventlane_page_visual.collection
+  parent: myeventlane_core.config
+  weight: 15

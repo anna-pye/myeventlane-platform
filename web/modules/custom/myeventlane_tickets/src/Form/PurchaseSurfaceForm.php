@@ -6,18 +6,12 @@ namespace Drupal\myeventlane_tickets\Form;
 
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form handler for Purchase Surface add/edit forms.
  */
 final class PurchaseSurfaceForm extends ContentEntityForm {
-
-  /**
-   * The current route match.
-   */
-  protected RouteMatchInterface $routeMatch;
 
   /**
    * {@inheritdoc}

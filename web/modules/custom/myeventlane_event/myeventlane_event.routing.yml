@@ -1,27 +1,18 @@
 # Event creation wizard routes.
-# Canonical create route: redirects to wizard form.
+# Create: creates draft event and redirects to basics step.
 myeventlane_event.wizard.create:
   path: '/vendor/events/create'
   defaults:
-    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'
+    _controller: '\Drupal\myeventlane_event\Controller\EventWizardCreateController::createDraft'
     _title: 'Create event'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
 
-# New wizard form routes (legacy, kept for backward compatibility).
-myeventlane_event.wizard_form_new:
-  path: '/vendor/events/wizard'
-  defaults:
-    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'
-    _title: 'Create event'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
-
-# Edit event via wizard (canonical edit route for vendors).
+# Edit event via wizard: redirects to basics step.
 myeventlane_event.wizard.edit:
   path: '/vendor/events/{node}/edit'
   defaults:
-    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'
+    _controller: '\Drupal\myeventlane_event\Controller\EventWizardCreateController::edit'
     _title: 'Edit event'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -33,26 +24,11 @@ myeventlane_event.wizard.edit:
         bundle:
           - event
 
-# Legacy wizard edit route (kept for backward compatibility).
-myeventlane_event.wizard_form_edit:
-  path: '/vendor/events/wizard/{node}'
-  defaults:
-    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'
-    _title: 'Edit event'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
-    node: '\d+'
-  options:
-    parameters:
-      node:
-        type: entity:node
-        bundle:
-          - event
-
+# Wizard step forms (Form API, save on every step).
 myeventlane_event.wizard.basics:
   path: '/vendor/events/{event}/build/basics'
   defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::basics'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardBasicsForm'
     _title: 'Event basics'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -67,7 +43,7 @@ myeventlane_event.wizard.basics:
 myeventlane_event.wizard.when_where:
   path: '/vendor/events/{event}/build/when-where'
   defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::whenWhere'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardWhenWhereForm'
     _title: 'When & Where'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -82,8 +58,23 @@ myeventlane_event.wizard.when_where:
 myeventlane_event.wizard.tickets:
   path: '/vendor/events/{event}/build/tickets'
   defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::tickets'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardTicketsForm'
     _title: 'Tickets'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_event.wizard.details:
+  path: '/vendor/events/{event}/build/details'
+  defaults:
+    _form: '\Drupal\myeventlane_event\Form\EventWizardDetailsForm'
+    _title: 'Details'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
     event: '\d+'
@@ -97,7 +88,7 @@ myeventlane_event.wizard.tickets:
 myeventlane_event.wizard.review:
   path: '/vendor/events/{event}/build/review'
   defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::review'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardReviewForm'
     _title: 'Review & Publish'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -112,7 +103,7 @@ myeventlane_event.wizard.review:
 myeventlane_event.wizard.publish:
   path: '/vendor/events/{event}/build/publish'
   defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::publish'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardPublishForm'
     _title: 'Publish event'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -132,6 +123,21 @@ myeventlane_event.wizard.success:
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
     event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+# Series instance generation (manual trigger).
+myeventlane_event.generate_series_instances:
+  path: '/vendor/event/{event}/series/generate'
+  defaults:
+    _form: '\Drupal\myeventlane_event\Form\GenerateSeriesInstancesForm'
+    _title: 'Generate instances'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageSeriesInstancesController::access'
   options:
     parameters:
       event:

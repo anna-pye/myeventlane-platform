@@ -12,6 +12,11 @@ use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 
 /**
  * Capacity service for events.
+ *
+ * INVARIANT:
+ * Ticket capacity MUST be enforced here (getCapacityTotal, getSoldCount,
+ * assertCanBook). Do not rely on node edit form validation or UI state.
+ * This protects Ticket UX (Phase 3A).
  */
 final class EventCapacityService implements EventCapacityServiceInterface {
 
@@ -200,12 +205,12 @@ final class EventCapacityService implements EventCapacityServiceInterface {
    */
   public function assertCanBook(NodeInterface $event, int $requested = 1): void {
     if ($this->isSoldOut($event)) {
-      throw new CapacityExceededException('Event is sold out.');
+      throw new CapacityExceededException('This event is sold out.');
     }
 
     $remaining = $this->getRemaining($event);
     if ($remaining !== NULL && $requested > $remaining) {
-      throw new CapacityExceededException("Cannot book {$requested} tickets. Only {$remaining} remaining.");
+      throw new CapacityExceededException("Only {$remaining} ticket(s) remaining.");
     }
   }
 

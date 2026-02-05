@@ -53,6 +53,12 @@ final class ManageEventNavigation {
         'label' => 'Checkout questions',
         'icon' => 'question',
       ],
+      'series' => [
+        'route' => 'myeventlane_vendor.manage_event.series',
+        'label' => 'Series',
+        'icon' => 'calendar',
+        'series_only' => TRUE,
+      ],
       'promote' => [
         'route' => 'myeventlane_vendor.manage_event.promote',
         'label' => 'Promote',
@@ -80,6 +86,11 @@ final class ManageEventNavigation {
     ];
 
     foreach ($step_definitions as $key => $def) {
+      // Skip series step unless event is a series template.
+      if (!empty($def['series_only']) && !$this->isSeriesTemplate($event)) {
+        continue;
+      }
+
       $is_active = ($def['route'] === $current_step);
       $url = NULL;
 
@@ -193,6 +204,16 @@ final class ManageEventNavigation {
     }
 
     return NULL;
+  }
+
+  /**
+   * Checks if an event is a series template.
+   */
+  private function isSeriesTemplate(NodeInterface $event): bool {
+    if (!$event->hasField('field_is_series_template') || $event->get('field_is_series_template')->isEmpty()) {
+      return FALSE;
+    }
+    return (bool) $event->get('field_is_series_template')->value;
   }
 
 }

@@ -347,7 +347,7 @@ class RsvpPublicForm extends FormBase {
         $capacityService->assertCanBook($event, $guests);
       }
       catch (CapacityExceededException $e) {
-        $form_state->setErrorByName('', $e->getMessage());
+        $form_state->setErrorByName('', $this->t('This event is full. Join the waitlist?'));
       }
     }
 

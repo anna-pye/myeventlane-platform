@@ -332,6 +332,49 @@ function myeventlane_vendor_update_10009() {
 }
 
 /**
+ * Apply any remaining Vendor entity type definition updates.
+ */
+function myeventlane_vendor_update_10010(array &$sandbox): string {
+  // Ensure we are working with the latest definition from code.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $change_list = $entity_definition_update_manager->getChangeList();
+
+  if (empty($change_list['myeventlane_vendor']['entity_type'])) {
+    return 'No Vendor entity type definition updates required.';
+  }
+
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor', FALSE);
+  if (!$entity_type) {
+    \Drupal::logger('myeventlane_vendor')->error('Could not load Vendor entity type definition during update 10010.');
+    throw new \RuntimeException('Vendor entity type definition not found: myeventlane_vendor');
+  }
+
+  try {
+    // Vendor is a fieldable content entity. Schema updates must run in a batch
+    // context (sandbox) or Drupal will reject them.
+    $field_storage_definitions = \Drupal::service('entity_field.manager')
+      ->getFieldStorageDefinitions('myeventlane_vendor');
+    $entity_definition_update_manager->updateFieldableEntityType($entity_type, $field_storage_definitions, $sandbox);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_vendor')->error('Failed to update Vendor entity type definition during update 10010: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    throw $e;
+  }
+
+  // Clear cached definitions after applying, when complete.
+  if (!empty($sandbox['#finished']) && (float) $sandbox['#finished'] >= 1.0) {
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    return 'Updated Vendor entity type definition via EntityDefinitionUpdateManager.';
+  }
+
+  return 'Updating Vendor entity type definition...';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

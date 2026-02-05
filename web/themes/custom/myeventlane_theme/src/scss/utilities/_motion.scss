@@ -1,0 +1,25 @@
+// ==========================================================================
+// Motion Utilities (Humanitix-level polish)
+// ==========================================================================
+// Centralised motion tokens for consistent transitions across components.
+// CSS-only: no behavior/logic changes.
+
+:root {
+  // Durations
+  --mel-motion-fast: 150ms;
+  --mel-motion-base: 200ms;
+  --mel-motion-slow: 300ms;
+
+  // Easings (subtle, modern)
+  --mel-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --mel-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mel-motion-fast: 0ms;
+    --mel-motion-base: 0ms;
+    --mel-motion-slow: 0ms;
+  }
+}
+

@@ -1,0 +1,21 @@
+# Event reviews (feature-flagged).
+create event reviews:
+  title: 'Create event reviews'
+  description: 'Leave a review for events they attended.'
+
+view own event reviews:
+  title: 'View own event reviews'
+  description: 'View reviews they have written.'
+
+edit own event reviews:
+  title: 'Edit own event reviews'
+  description: 'Edit or delete their own reviews.'
+
+view event reviews for own events:
+  title: 'View reviews for own events'
+  description: 'Allow vendors to view reviews for events they created.'
+
+administer event reviews:
+  title: 'Administer event reviews'
+  description: 'Full access to all event reviews.'
+  restrict access: TRUE

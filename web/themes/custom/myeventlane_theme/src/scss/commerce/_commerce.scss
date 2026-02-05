@@ -1,0 +1,844 @@
+// ==========================================================================
+// Commerce: Cart + Checkout (Consolidated)
+// ==========================================================================
+// Single partial for cart and checkout styling. Scoped by body classes
+// .mel-commerce, .mel-commerce-cart, .mel-commerce-checkout from
+// myeventlane_theme_preprocess_html(). No duplicate SCSS elsewhere.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing' as space-tokens;
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Mini Cart (header dropdown - applies on all pages)
+// ---------------------------------------------------------------------------
+
+.mel-mini-cart {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 360px;
+  max-height: 480px;
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-lg;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.mel-mini-cart-header {
+  padding: space-tokens.mel-space(4);
+  border-bottom: 1px solid colors.$mel-color-border;
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-mini-cart-items {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: space-tokens.mel-space(3);
+}
+
+.mel-mini-cart-item {
+  display: flex;
+  gap: space-tokens.mel-space(3);
+  padding: space-tokens.mel-space(2);
+  border-radius: radii.$mel-radius-md;
+
+  &:hover {
+    background: colors.$mel-color-bg;
+  }
+}
+
+.mel-mini-cart-footer {
+  padding: space-tokens.mel-space(4);
+  border-top: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-bg;
+}
+
+.mel-cart-badge {
+  position: relative;
+}
+
+.mel-cart-badge-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 space-tokens.mel-space(1);
+  background: colors.$mel-color-secondary;
+  color: colors.$mel-color-text-inverse;
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-bold;
+  border-radius: radii.$mel-radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Header cart: disable dropdown, keep icon + badge */
+.site-header__cart {
+  /* Hide any dropdown/popup contents */
+  .dropdown-menu,
+  .cart-block--contents,
+  .commerce-cart-block__contents,
+  .cart-block__contents,
+  .mel-mini-cart,
+  [class*="cart-block__contents"] {
+    display: none !important;
+  }
+
+  /* Prevent popover/dropdown interaction */
+  .is-open,
+  &.is-open,
+  [aria-expanded="true"] {
+    pointer-events: none;
+  }
+
+  /* Neutralise dropdown toggles if present */
+  [data-bs-toggle="dropdown"],
+  [data-toggle="dropdown"] {
+    pointer-events: none;
+  }
+
+  /* Ensure the cart link remains clickable to /cart */
+  a {
+    pointer-events: auto;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared: .mel-commerce (cart + checkout routes)
+// ---------------------------------------------------------------------------
+
+.mel-commerce {
+  .layout-container {
+    background: transparent;
+  }
+
+  .region-content {
+    padding: space-tokens.mel-space(6) space-tokens.mel-space(5);
+  }
+
+  .region-content > * {
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Give checkout more room on large screens */
+  @media (min-width: 1200px) {
+    .region-content > * {
+      max-width: 1320px;
+    }
+  }
+
+  @media (min-width: 1400px) {
+    .region-content > * {
+      max-width: 1440px;
+    }
+  }
+}
+
+/* MEL messages: cart add/update feedback */
+.mel-commerce,
+.mel-commerce-cart,
+.mel-commerce-checkout {
+  .messages {
+    max-width: 1180px;
+    margin: space-tokens.mel-space(4) auto;
+    border-radius: radii.$mel-radius-lg;
+    border: 1px solid rgba(242, 109, 91, 0.22);
+    background: colors.$mel-color-surface;
+    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    padding: space-tokens.mel-space(4) space-tokens.mel-space(5);
+    color: colors.$mel-color-text;
+  }
+
+  .messages--status {
+    border-color: rgba(242, 109, 91, 0.26);
+  }
+
+  .messages__content,
+  .messages__list {
+    margin: 0;
+    padding: 0;
+  }
+
+  .messages a {
+    color: colors.$mel-color-secondary;
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: none;
+  }
+
+  .messages a:hover {
+    text-decoration: underline;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CART: /cart
+// ---------------------------------------------------------------------------
+
+.mel-commerce-cart {
+  .views-form,
+  form.commerce-cart-form,
+  form[id^="views-form-commerce-cart-form"],
+  form.views-form-commerce-cart-form-default {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  /* Desktop table polish */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 space-tokens.mel-space(4);
+  }
+
+  tbody tr {
+    background: colors.$mel-color-surface;
+    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    border-radius: radii.$mel-radius-lg;
+    overflow: hidden;
+  }
+
+  thead th {
+    color: colors.$mel-color-text-muted;
+    font-weight: typography.$mel-font-semibold;
+    padding: space-tokens.mel-space(2) space-tokens.mel-space(4);
+  }
+
+  tbody td {
+    padding: space-tokens.mel-space(4);
+    border: 0;
+    vertical-align: middle;
+  }
+
+  /* Product title */
+  td:first-child a {
+    color: colors.$mel-color-text;
+    text-decoration: none;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  td:first-child a:hover {
+    text-decoration: underline;
+  }
+
+  a {
+    color: colors.$mel-color-secondary;
+    text-decoration: none;
+    font-weight: typography.$mel-font-semibold;
+  }
+
+  input.form-number,
+  input[type="number"] {
+    width: 92px;
+    min-height: 44px;
+    border-radius: radii.$mel-radius-sm;
+    border: 1px solid colors.$mel-color-border;
+    padding: 0 space-tokens.mel-space(2);
+    font-size: typography.mel-font-size(base);
+    text-align: center;
+    background: colors.$mel-color-surface;
+  }
+
+  /* Remove should be quiet */
+  .delete-order-item,
+  .remove-order-item,
+  input.form-submit[value="Remove"],
+  button[name*="remove"] {
+    background: transparent;
+    border: 0;
+    color: colors.$mel-color-text-muted;
+    text-decoration: underline;
+    padding: space-tokens.mel-space(2) space-tokens.mel-space(4);
+    border-radius: radii.$mel-radius-pill;
+    cursor: pointer;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: space-tokens.mel-space(4);
+    justify-content: flex-end;
+    margin-top: space-tokens.mel-space(5);
+  }
+
+  .form-actions input.form-submit,
+  .form-actions button {
+    min-height: 48px;
+    border-radius: radii.$mel-radius-pill;
+    padding: 0 space-tokens.mel-space(6);
+    border: 0;
+    font-weight: typography.$mel-font-bold;
+    cursor: pointer;
+  }
+
+  .form-actions input.form-submit[value*="Checkout"],
+  .form-actions button[value*="Checkout"] {
+    background: colors.$mel-color-secondary;
+    color: colors.$mel-color-text-inverse;
+  }
+
+  .form-actions input.form-submit[value*="Update"],
+  .form-actions button[value*="Update"] {
+    background: colors.$mel-color-bg;
+    color: colors.$mel-color-text;
+  }
+
+  /* Mobile: stack table into cards */
+  @include breakpoints.mel-break(md, max) {
+    table,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    thead {
+      display: none;
+    }
+
+    tbody tr {
+      padding: space-tokens.mel-space(4);
+    }
+
+    tbody td {
+      padding: space-tokens.mel-space(2) 0;
+      display: flex;
+      justify-content: space-between;
+      gap: space-tokens.mel-space(4);
+      align-items: center;
+    }
+
+    tbody td:first-child {
+      display: block;
+    }
+
+    /* Sticky action bar */
+    .form-actions,
+    .mel-cart-actions {
+      position: sticky;
+      bottom: 0;
+      background: rgba(254, 245, 236, 0.92);
+      backdrop-filter: blur(6px);
+      padding: space-tokens.mel-space(4);
+      border-top: 1px solid colors.$mel-color-border;
+      border-radius: radii.$mel-radius-lg;
+      z-index: 10;
+    }
+
+    .form-actions input.form-submit,
+    .form-actions button,
+    .mel-cart-actions input.form-submit,
+    .mel-cart-actions button {
+      flex: 1 1 auto;
+      min-height: 44px;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Template component: .mel-cart (commerce-cart-form.html.twig)
+  // -------------------------------------------------------------------------
+
+  .mel-cart {
+    display: grid;
+    gap: space-tokens.mel-space(6);
+
+    @include breakpoints.mel-break(lg) {
+      grid-template-columns: 1fr 380px;
+      align-items: start;
+    }
+  }
+
+  .mel-cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: space-tokens.mel-space(5);
+    padding-bottom: space-tokens.mel-space(4);
+    border-bottom: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-cart-title {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0;
+  }
+
+  .mel-cart-count {
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    font-weight: typography.$mel-font-regular;
+  }
+
+  .mel-cart-items {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-xl;
+    padding: space-tokens.mel-space(4);
+    box-shadow: shadows.$mel-shadow-sm;
+
+    @include breakpoints.mel-break(md) {
+      padding: space-tokens.mel-space(5);
+    }
+  }
+
+  .mel-cart-summary {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-xl;
+    padding: space-tokens.mel-space(5);
+    box-shadow: shadows.$mel-shadow-md;
+    position: sticky;
+    top: space-tokens.mel-space(6);
+  }
+
+  .mel-cart-summary-title {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0 0 space-tokens.mel-space(4) 0;
+    padding-bottom: space-tokens.mel-space(3);
+    border-bottom: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: space-tokens.mel-space(4) 0;
+    margin-bottom: space-tokens.mel-space(4);
+    border-top: 2px solid colors.$mel-color-border-strong;
+    border-bottom: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-cart-total-label {
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-cart-total-value {
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-extrabold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-cart-empty {
+    max-width: 920px;
+    margin: space-tokens.mel-space(8) auto;
+    text-align: center;
+    padding: space-tokens.mel-space(7) space-tokens.mel-space(6);
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 12px 30px shadows.$mel-shadow-lg;
+  }
+
+  .mel-cart-empty__image {
+    width: min(520px, 100%);
+    height: auto;
+    display: block;
+    margin: 0 auto space-tokens.mel-space(6);
+  }
+
+  .mel-cart-empty__title {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    margin: 0 0 space-tokens.mel-space(2);
+    color: colors.$mel-color-text;
+  }
+
+  .mel-cart-empty__text {
+    margin: 0 0 space-tokens.mel-space(5);
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(base);
+  }
+
+  .mel-cart-empty__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 space-tokens.mel-space(7);
+    border-radius: radii.$mel-radius-pill;
+    background: colors.$mel-color-secondary;
+    color: colors.$mel-color-text-inverse;
+    text-decoration: none;
+    font-weight: typography.$mel-font-bold;
+    box-shadow: 0 10px 24px rgba(242, 109, 91, 0.24);
+  }
+
+  .mel-cart-empty__cta:hover {
+    text-decoration: none;
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-cart-empty {
+      margin: space-tokens.mel-space(6) space-tokens.mel-space(4);
+      padding: space-tokens.mel-space(6) space-tokens.mel-space(5);
+    }
+  }
+
+  /* Inline empty state (commerce-cart-form when 0 items) */
+  .mel-cart-empty-title {
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin-bottom: space-tokens.mel-space(2);
+  }
+
+  .mel-cart-empty-text {
+    color: colors.$mel-color-text-muted;
+    margin-bottom: space-tokens.mel-space(5);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CHECKOUT: /checkout/*
+// ---------------------------------------------------------------------------
+
+.mel-commerce-checkout {
+  /* Checkout: page-wide (target all possible wrappers) */
+  .region-content,
+  .region-content > *,
+  .layout-content,
+  .layout-content > *,
+  main.mel-main,
+  main.mel-main > * {
+    max-width: none !important;
+  }
+
+  /* Main content area: minimal horizontal padding, full width */
+  main.mel-main {
+    padding-left: space-tokens.mel-space(4);
+    padding-right: space-tokens.mel-space(4);
+  }
+
+  @include breakpoints.mel-break(md) {
+    main.mel-main {
+      padding-left: space-tokens.mel-space(5);
+      padding-right: space-tokens.mel-space(5);
+    }
+  }
+
+  /* Checkout form: fills page wrap */
+  form.commerce-checkout-flow,
+  form[id^="commerce-checkout-flow-"],
+  form[class*="commerce-checkout"] {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Desktop checkout layout: two columns, ~5px gap */
+  .mel-checkout__layout,
+  .layout-checkout-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 5px;
+    align-items: start;
+  }
+
+  @media (min-width: 1400px) {
+    .mel-checkout__layout,
+    .layout-checkout-form {
+      grid-template-columns: minmax(0, 1fr) 480px;
+    }
+  }
+
+  @include breakpoints.mel-break(lg, max) {
+    .mel-checkout__layout,
+    .layout-checkout-form {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Ensure the sidebar itself doesn't collapse */
+  .mel-checkout__sidebar,
+  .layout-region-checkout-secondary {
+    width: 420px;
+  }
+
+  @media (min-width: 1400px) {
+    .mel-checkout__sidebar,
+    .layout-region-checkout-secondary {
+      width: 480px;
+    }
+  }
+
+  @include breakpoints.mel-break(lg, max) {
+    .mel-checkout__sidebar,
+    .layout-region-checkout-secondary {
+      width: auto;
+    }
+  }
+
+  /* Allow main column to shrink correctly */
+  .mel-checkout__main,
+  .layout-region-checkout-main {
+    min-width: 0;
+  }
+
+  /* Pane cards: reduced vertical gap (remove "cap") */
+  .checkout-pane,
+  .commerce-checkout-pane,
+  .mel-checkout__main > fieldset,
+  .mel-checkout__main > .form-wrapper {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    padding: space-tokens.mel-space(5);
+    margin: 0 0 space-tokens.mel-space(2) 0;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+  }
+
+  .mel-checkout__main > fieldset:last-child,
+  .mel-checkout__main > .form-wrapper:last-child {
+    margin-bottom: 0;
+  }
+
+  .checkout-pane h2,
+  .commerce-checkout-pane h2,
+  .checkout-pane legend,
+  .commerce-checkout-pane legend,
+  .mel-checkout__main fieldset > legend {
+    margin: 0 0 space-tokens.mel-space(4) 0;
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+  }
+
+  /* Sticky sidebar summary on desktop; reduced vertical gap (remove cap) */
+  .mel-checkout__sidebar,
+  .layout-region-checkout-secondary {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+  }
+
+  @include breakpoints.mel-break(lg, max) {
+    .mel-checkout__sidebar,
+    .layout-region-checkout-secondary {
+      position: static;
+    }
+  }
+
+  /* Form controls */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    border-radius: radii.$mel-radius-sm;
+    border: 1px solid colors.$mel-color-border;
+    padding: 10px 12px;
+    font-size: typography.mel-font-size(base);
+    background: colors.$mel-color-surface;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 3px solid rgba(242, 109, 91, 0.25);
+    border-color: colors.$mel-color-primary;
+  }
+
+  label {
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+  }
+
+  .description {
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(sm);
+    margin-top: 6px;
+  }
+
+  /* Buttons */
+  .form-actions {
+    display: flex;
+    gap: space-tokens.mel-space(4);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: space-tokens.mel-space(5);
+  }
+
+  .form-actions input.form-submit,
+  .form-actions .button,
+  .form-actions button {
+    min-height: 52px;
+    border-radius: radii.$mel-radius-pill;
+    padding: 0 space-tokens.mel-space(6);
+    border: 0;
+    font-weight: typography.$mel-font-bold;
+    cursor: pointer;
+  }
+
+  /* Primary submit (coral CTA) */
+  .form-actions input.form-submit[type="submit"],
+  .form-actions button[type="submit"] {
+    background: colors.$mel-color-secondary;
+    color: colors.$mel-color-text-inverse;
+  }
+
+  /* Secondary links */
+  .form-actions a,
+  .form-actions .button--link {
+    color: colors.$mel-color-secondary;
+    text-decoration: none;
+    font-weight: typography.$mel-font-semibold;
+  }
+
+  /* Coupon: compact, reduced gap */
+  .coupon-redemption-form,
+  .commerce-coupon-redemption-form {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    padding: space-tokens.mel-space(5);
+    margin-top: space-tokens.mel-space(2);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+  }
+
+  .coupon-redemption-form input.form-submit,
+  .commerce-coupon-redemption-form input.form-submit {
+    background: colors.$mel-color-bg;
+    color: colors.$mel-color-text;
+    border-radius: radii.$mel-radius-pill;
+    min-height: 44px;
+    padding: 0 space-tokens.mel-space(5);
+  }
+
+  /* Totals: emphasize total */
+  .order-total-line__total,
+  .commerce-order-total-summary__total,
+  .order-total-line-total,
+  .mel-checkout-grand-total {
+    font-size: 18px;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  /* Completion: make status message look intentional */
+  .messages--status {
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    padding: space-tokens.mel-space(5);
+    margin-bottom: space-tokens.mel-space(5);
+    border: 0;
+  }
+
+  // -------------------------------------------------------------------------
+  // Template component: .mel-checkout (commerce-checkout-form.html.twig)
+  // -------------------------------------------------------------------------
+
+  .mel-checkout__main {
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+  }
+
+  .mel-checkout__title {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0 0 space-tokens.mel-space(5) 0;
+  }
+
+  .mel-checkout__progress {
+    margin-bottom: space-tokens.mel-space(2);
+
+    ol,
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      gap: space-tokens.mel-space(2);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    li {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: space-tokens.mel-space(2);
+      padding: space-tokens.mel-space(2) space-tokens.mel-space(3);
+      border-radius: radii.$mel-radius-full;
+      border: 1px solid colors.$mel-color-border;
+      background: colors.$mel-color-bg;
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-medium;
+      color: colors.$mel-color-text-muted;
+      white-space: nowrap;
+    }
+
+    li.is-active,
+    li.is-current,
+    li.active,
+    li.current {
+      border-color: rgba(colors.$mel-color-secondary, 0.55);
+      background: rgba(colors.$mel-color-secondary, 0.12);
+      color: colors.$mel-color-text;
+      font-weight: typography.$mel-font-semibold;
+    }
+  }
+
+  .mel-checkout__actions {
+    display: flex;
+    gap: space-tokens.mel-space(4);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: space-tokens.mel-space(5);
+  }
+
+  .mel-checkout-order-summary,
+  .mel-checkout-totals {
+    margin-bottom: space-tokens.mel-space(4);
+  }
+
+  .mel-checkout-order-item {
+    display: flex;
+    gap: space-tokens.mel-space(3);
+    padding: space-tokens.mel-space(2) 0;
+  }
+
+  .mel-checkout-order-item-title {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-medium;
+    color: colors.$mel-color-text;
+    margin-bottom: space-tokens.mel-space(1);
+  }
+
+  .mel-checkout-order-item-price {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-checkout-confirmation {
+    text-align: center;
+    padding: space-tokens.mel-space(8) space-tokens.mel-space(4);
+    background: colors.$mel-color-surface;
+    border-radius: radii.$mel-radius-xl;
+  }
+
+  .mel-confirmation-title {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-success;
+    margin-bottom: space-tokens.mel-space(2);
+  }
+}

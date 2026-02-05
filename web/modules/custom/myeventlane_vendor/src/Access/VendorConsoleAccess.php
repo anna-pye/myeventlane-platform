@@ -31,6 +31,14 @@ final class VendorConsoleAccess {
   public static function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     $uid = $account->id();
     $route_name = $route_match->getRouteName();
+
+    // ALWAYS allow vendor onboarding routes.
+    // This prevents a deadlock where Stripe onboarding is blocked
+    // by the vendor console access gate itself.
+    if ($route_name === 'myeventlane_vendor.onboard' || str_starts_with((string) $route_name, 'myeventlane_vendor.onboard.')) {
+      return AccessResult::allowed()->cachePerUser();
+    }
+
     $request = \Drupal::request();
     $host = $request ? $request->getHost() : 'UNKNOWN';
 

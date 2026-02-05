@@ -3,3 +3,17 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
     arguments: ['@entity_type.manager']
 
+  logger.channel.myeventlane_checkout_flow:
+    parent: logger.channel_base
+    arguments: ['myeventlane_checkout_flow']
+
+  myeventlane_checkout_flow.checkout_rate_limit_subscriber:
+    class: Drupal\myeventlane_checkout_flow\EventSubscriber\CheckoutRateLimitSubscriber
+    arguments:
+      - '@myeventlane_api.rate_limiter'
+      - '@config.factory'
+      - '@current_route_match'
+      - '@logger.channel.myeventlane_checkout_flow'
+    tags:
+      - { name: event_subscriber }
+

@@ -10,7 +10,7 @@
    * Initialize admin theme enhancements.
    */
   function initAdminTheme() {
-    // Enhance form validation with Bootstrap feedback.
+    // Enhance form validation feedback.
     enhanceFormValidation();
   }
 
@@ -21,14 +21,14 @@
     const forms = once('mel-form-validation', '.mel-admin-form', document);
     
     forms.forEach(function (form) {
-      // Add Bootstrap validation classes on submit.
+      // Add validation classes on submit.
       form.addEventListener('submit', function (e) {
         if (!form.checkValidity()) {
           e.preventDefault();
           e.stopPropagation();
         }
         
-        form.classList.add('was-validated');
+        form.classList.add('mel-was-validated');
       }, false);
       
       // Real-time validation feedback.
@@ -36,11 +36,11 @@
       inputs.forEach(function (input) {
         input.addEventListener('blur', function () {
           if (input.checkValidity()) {
-            input.classList.remove('is-invalid');
-            input.classList.add('is-valid');
+            input.classList.remove('mel-is-invalid');
+            input.classList.add('mel-is-valid');
           } else {
-            input.classList.remove('is-valid');
-            input.classList.add('is-invalid');
+            input.classList.remove('mel-is-valid');
+            input.classList.add('mel-is-invalid');
           }
         });
       });

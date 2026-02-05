@@ -1,0 +1,66 @@
+{#
+/**
+ * @file
+ * Prefix markup for wizard step forms (card header + content wrapper).
+ *
+ * Wizard step navigation is rendered in the left sidebar (myeventlane_vendor_theme)
+ * when on vendor event wizard routes. Inline stepper removed in favor of sidebar.
+ *
+ * Variables:
+ * - steps: Step navigation array (kept for compatibility; no longer rendered here)
+ * - step: Current step (id, label)
+ * - title: Page title (fallback)
+ */
+#}
+<div class="mel-event-wizard">
+  <div class="mel-event-wizard__layout">
+    <div class="mel-event-wizard__main">
+      <div class="mel-wizard-frame">
+        <div class="mel-wizard-frame__header">
+          <h2 class="mel-wizard-frame__title">
+            {{ 'Create an event'|t }}
+          </h2>
+          <button class="mel-wizard-frame__menu" type="button" aria-haspopup="true">
+            ⋯
+          </button>
+        </div>
+        <div class="mel-wizard-frame__content">
+      <div class="mel-wizard-step-shell">
+        <div class="mel-wizard-step-card mel-wizard-step-card--{{ step.id }}">
+        <div class="mel-wizard-step-card__header">
+          <h1 class="mel-wizard-step-card__title">
+            {% if step.id == 'basics' %}
+              {{ 'Tell us about your event'|t }}
+            {% elseif step.id == 'when_where' %}
+              {{ 'When and where'|t }}
+            {% elseif step.id == 'tickets' %}
+              {{ 'How people attend'|t }}
+            {% elseif step.id == 'details' %}
+              {{ 'Details'|t }}
+            {% elseif step.id == 'publish' %}
+              {{ 'Publish your event'|t }}
+            {% else %}
+              {{ title }}
+            {% endif %}
+          </h1>
+          <p class="mel-wizard-step-card__description">
+            {% if step.id == 'basics' %}
+              {{ 'What\'s happening? Give your event a clear name and description so people know what to expect. You can always edit these later.'|t }}
+            {% elseif step.id == 'when_where' %}
+              {{ 'When does it start and where will it be? Use the address search to find your venue quickly. If it\'s online, you can skip the location.'|t }}
+            {% elseif step.id == 'tickets' %}
+              {{ 'How do people attend? Choose RSVP (free), paid tickets, both, or an external booking link. Each option is explained in plain language.'|t }}
+            {% elseif step.id == 'details' %}
+              {{ 'Add highlights, refund and age policies, accessibility info, and any attendee questions. This helps attendees know what to expect.'|t }}
+            {% elseif step.id == 'publish' %}
+              {{ 'Click below to publish your event and make it visible to attendees.'|t }}
+            {% else %}
+              {{ 'Complete this step to continue.'|t }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="mel-wizard-step-card__content">
+          <div class="mel-wizard-sections">
+            {% if step.id == 'basics' %}
+              <section class="mel-wizard-section mel-wizard-section--basics">
+            {% endif %}

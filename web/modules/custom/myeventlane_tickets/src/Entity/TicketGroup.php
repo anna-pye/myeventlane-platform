@@ -215,6 +215,20 @@ final class TicketGroup extends ContentEntityBase implements EntityChangedInterf
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Adds the event route parameter for link templates that include {event}.
+   */
+  protected function urlRouteParameters($rel): array {
+    $params = parent::urlRouteParameters($rel);
+    $event_id = $this->getEventId();
+    if ($event_id !== NULL) {
+      $params['event'] = $event_id;
+    }
+    return $params;
+  }
+
+  /**
    * Gets the ticket group name.
    */
   public function getName(): string {

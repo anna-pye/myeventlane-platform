@@ -3,6 +3,11 @@ access analytics dashboard:
   description: 'View analytics and reports for events.'
   restrict access: true
 
+access myeventlane admin revenue dashboard:
+  title: 'Access MyEventLane admin revenue dashboard'
+  description: 'View platform revenue (ticket net + boost net). Admin only.'
+  restrict access: true
+
 
 
 

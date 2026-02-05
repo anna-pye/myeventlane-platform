@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: { }
+id: node.event_home_card
+label: 'Home card'
+targetEntityType: node
+cache: true

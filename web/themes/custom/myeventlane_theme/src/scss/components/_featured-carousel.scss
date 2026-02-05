@@ -15,7 +15,7 @@
 .mel-featured-carousel {
   position: relative;
   width: 100%;
-  margin-bottom: space-tokens.mel-space(6);
+  margin-bottom: space-tokens.mel-space(4);
 
   &__container {
     position: relative;
@@ -25,14 +25,14 @@
   // Track (scrollable container)
   &__track {
     display: flex;
-    gap: space-tokens.mel-space(4);
+    gap: space-tokens.mel-space(3);
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
-    scroll-padding: 0 space-tokens.mel-space(4);
+    scroll-padding: 0 space-tokens.mel-space(3);
     -webkit-overflow-scrolling: touch;
-    padding-bottom: space-tokens.mel-space(2);
+    padding-bottom: space-tokens.mel-space(1);
 
     // Hide scrollbar but keep functionality
     scrollbar-width: thin;
@@ -115,25 +115,30 @@
       color: colors.$mel-color-text;
       cursor: pointer;
       pointer-events: auto;
-      transition: all 0.2s ease;
+      transition:
+        transform var(--mel-motion-fast) var(--mel-ease-out),
+        box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+        background-color var(--mel-motion-fast) var(--mel-ease-out),
+        border-color var(--mel-motion-fast) var(--mel-ease-out);
       box-shadow: shadows.$mel-shadow-sm;
       font-size: 24px;
       line-height: 1;
       padding: 0;
 
-      &:hover {
-        background: colors.$mel-color-surface;
-        box-shadow: shadows.$mel-shadow-md;
-        transform: scale(1.05);
+      @media (hover: hover) and (pointer: fine) {
+        &:hover {
+          background: colors.$mel-color-surface;
+          box-shadow: shadows.$mel-shadow-md;
+          transform: translateY(-1px);
+        }
       }
 
       &:active {
-        transform: scale(0.95);
+        transform: translateY(0);
       }
 
       &:focus-visible {
-        outline: 2px solid colors.$mel-color-primary;
-        outline-offset: 2px;
+        @include colors.mel-focus-ring;
       }
 
       // Respect reduced motion
@@ -151,11 +156,11 @@
       }
 
       &--prev {
-        margin-left: space-tokens.mel-space(2);
+        margin-left: space-tokens.mel-space(1);
       }
 
       &--next {
-        margin-right: space-tokens.mel-space(2);
+        margin-right: space-tokens.mel-space(1);
       }
     }
   }
@@ -192,16 +197,20 @@
     text-decoration: none;
     padding: space-tokens.mel-space(2) space-tokens.mel-space(3);
     border-radius: radii.$mel-radius-md;
-    transition: all 0.15s ease;
+    transition:
+      background-color var(--mel-motion-fast) var(--mel-ease-out),
+      color var(--mel-motion-fast) var(--mel-ease-out),
+      box-shadow var(--mel-motion-fast) var(--mel-ease-out);
 
-    &:hover {
-      background: colors.$mel-color-bg;
-      text-decoration: underline;
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: colors.$mel-color-bg;
+        text-decoration: underline;
+      }
     }
 
     &:focus-visible {
-      outline: 2px solid colors.$mel-color-primary;
-      outline-offset: 2px;
+      @include colors.mel-focus-ring;
     }
 
     // Only show if route exists (handled in template)

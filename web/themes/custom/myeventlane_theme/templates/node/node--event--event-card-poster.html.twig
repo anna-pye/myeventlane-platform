@@ -5,8 +5,11 @@
 
 {% set url = url('entity.node.canonical', {'node': node.id}) %}
 
-{# Image field render - use content array which is already rendered by Drupal #}
-{% set image = content.field_event_image|default(null) %}
+{# Promoted / Boosted flag (data already managed by Boost system). #}
+{% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
+
+{# Image: use preprocess URL (real or placeholder file) when set; else inline SVG fallback #}
+{% set image_url = (mel_card_image_url is defined and mel_card_image_url) ? mel_card_image_url : null %}
 
 {# Category: taxonomy term label + optional class mapping #}
 {% set category_label = '' %}
@@ -106,7 +109,7 @@
 {# Build card data #}
 {% set card = {
   url: url,
-  image: image,
+  image_url: image_url,
   title: label,
   date: date_label,
   time: time_label,
@@ -118,4 +121,4 @@
   title_placement: title_placement
 } %}
 
-{% include '@myeventlane_theme/components/event-card/event-card-poster.twig' with { card: card } only %}
+{% include '@myeventlane_theme/components/event-card/event-card-poster.twig' with { card: card, is_promoted: is_promoted } only %}

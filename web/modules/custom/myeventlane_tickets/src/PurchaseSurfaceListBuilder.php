@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -111,13 +112,23 @@ final class PurchaseSurfaceListBuilder extends EntityListBuilder {
     $operations = parent::getDefaultOperations($entity);
     /** @var \Drupal\myeventlane_tickets\Entity\PurchaseSurface $entity */
     $event_id = $entity->getEventId();
+    if ($event_id === NULL) {
+      unset($operations['edit'], $operations['delete']);
+      return $operations;
+    }
 
     if (isset($operations['edit'])) {
-      $operations['edit']['url'] = $entity->toUrl('edit-form', ['event' => $event_id]);
+      $operations['edit']['url'] = Url::fromRoute('myeventlane_tickets.event_tickets_widgets_edit', [
+        'event' => $event_id,
+        'mel_purchase_surface' => $entity->id(),
+      ]);
     }
 
     if (isset($operations['delete'])) {
-      $operations['delete']['url'] = $entity->toUrl('delete-form', ['event' => $event_id]);
+      $operations['delete']['url'] = Url::fromRoute('entity.mel_purchase_surface.delete_form', [
+        'event' => $event_id,
+        'mel_purchase_surface' => $entity->id(),
+      ]);
     }
 
     return $operations;

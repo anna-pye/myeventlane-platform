@@ -229,10 +229,43 @@ function myeventlane_commerce_theme(): array {
         'is_paid' => FALSE,
         'event_mode' => 'none',
         'event' => NULL,
+        // Optional view render array for booking-page recommendations.
+        'recommended_events' => [],
       ],
       'template' => 'myeventlane-event-book',
     ],
   ];
+}
+
+/**
+ * Preprocess variables for the event booking page template.
+ *
+ * Adds a lightweight "recommended events" render array for the theme layer.
+ * This is presentation-only and does not alter Commerce behavior.
+ *
+ * @param array $variables
+ *   Template variables.
+ */
+function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variables): void {
+  $variables['recommended_events'] = [];
+
+  // Only attempt to embed recommendations if Views is available.
+  if (!function_exists('views_embed_view')) {
+    return;
+  }
+
+  $event = $variables['event'] ?? NULL;
+  if (!$event instanceof \Drupal\node\NodeInterface) {
+    return;
+  }
+
+  // Reuse existing recommendations View, if present.
+  // Pass the current event ID as an argument (ignored unless the View is configured
+  // with a contextual filter).
+  $render = views_embed_view('front_recommended_events', 'block_1', (string) $event->id());
+  if (is_array($render)) {
+    $variables['recommended_events'] = $render;
+  }
 }
 
 /**
@@ -250,6 +283,8 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
  * Implements hook_ENTITY_TYPE_presave() for commerce_order_item.
  *
  * Auto-populates field_target_event from the purchased variation.
+ * Checks field_event first, then field_event_ref (for variation types that use it).
+ * Also falls back to product's field_event if variation has neither.
  */
 function myeventlane_commerce_commerce_order_item_presave(EntityInterface $entity): void {
   // Only process if field_target_event exists and is empty.
@@ -257,14 +292,29 @@ function myeventlane_commerce_commerce_order_item_presave(EntityInterface $entit
     return;
   }
 
-  // Get purchased entity (variation).
+  $eventId = NULL;
   $purchasedEntity = $entity->getPurchasedEntity();
-  if (!$purchasedEntity || !$purchasedEntity->hasField('field_event')) {
-    return;
+
+  if ($purchasedEntity) {
+    if ($purchasedEntity->hasField('field_event') && !$purchasedEntity->get('field_event')->isEmpty()) {
+      $eventId = $purchasedEntity->get('field_event')->target_id;
+    }
+    elseif ($purchasedEntity->hasField('field_event_ref') && !$purchasedEntity->get('field_event_ref')->isEmpty()) {
+      $eventId = $purchasedEntity->get('field_event_ref')->target_id;
+    }
+    if (!$eventId) {
+      try {
+        $product = $purchasedEntity->getProduct();
+        if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
+          $eventId = $product->get('field_event')->target_id;
+        }
+      }
+      catch (\Throwable $e) {
+        // No product or field; skip.
+      }
+    }
   }
 
-  // Get event ID from variation.
-  $eventId = $purchasedEntity->get('field_event')->target_id;
   if ($eventId) {
     $entity->set('field_target_event', ['target_id' => $eventId]);
     \Drupal::logger('myeventlane_commerce')->notice('Auto-linked order item @item to event @event', [

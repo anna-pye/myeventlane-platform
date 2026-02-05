@@ -115,9 +115,14 @@ OneDrive/
 vendor.bak
 
 ############################################
-# Cursor IDE
+# IDE / editor (local only — not for staging)
 ############################################
 .cursor/
+.cursorrules
+.cursor-view-modes.md
+.cursor-scss.md
+.cursor-system.md
+CURSOR_GIT_RULES.md
 
 ############################################
 # Historical audit / phase docs (deprecated)

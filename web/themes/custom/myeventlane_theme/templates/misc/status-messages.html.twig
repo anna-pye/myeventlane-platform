@@ -1,0 +1,67 @@
+{#
+  MyEventLane status messages
+  - Commerce pages: status/info become non-blocking toasts
+  - Non-commerce pages: use normal inline messages
+  - warning/error always inline
+#}
+
+{% set is_commerce_route = is_commerce_route|default(false) %}
+{% set toast_types = ['status', 'info'] %}
+{% set banner_types = ['warning', 'error'] %}
+
+{% if is_commerce_route %}
+  <div class="mel-toasts" aria-live="polite" aria-relevant="additions text">
+    {% for type, messages in message_list %}
+      {% if type in toast_types %}
+        {% for message in messages %}
+        <div class="mel-toast mel-toast--{{ type }}" data-mel-toast>
+          <div class="mel-toast__icon" aria-hidden="true">✓</div>
+
+          <div class="mel-toast__content">
+            <div class="mel-toast__title">
+              {% if type == 'info' %}
+                {{ 'Updated your cart'|t }}
+              {% else %}
+                {{ 'Added to cart'|t }}
+              {% endif %}
+            </div>
+            <div class="mel-toast__text">{{ message }}</div>
+          </div>
+
+          <div class="mel-toast__actions">
+            <a class="mel-btn mel-btn-sm" href="{{ path('commerce_cart.page') }}">{{ 'View cart'|t }}</a>
+            <button class="mel-toast__close" type="button" aria-label="{{ 'Dismiss'|t }}" data-mel-toast-close>×</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="mel-banners">
+  {% for type, messages in message_list %}
+    {% if is_commerce_route and type in toast_types %}
+      {# on commerce pages, status/info are handled by toasts above #}
+    {% else %}
+      <div class="mel-banner mel-banner--{{ type }}" role="{{ type == 'error' ? 'alert' : 'status' }}">
+        <div class="mel-banner__inner">
+          <div class="mel-banner__icon" aria-hidden="true">
+            {% if type == 'error' %}
+              !
+            {% elseif type == 'warning' %}
+              ⚠
+            {% else %}
+              ✓
+            {% endif %}
+          </div>
+          <div class="mel-banner__content">
+            {% for message in messages %}
+              <div class="mel-banner__text">{{ message }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

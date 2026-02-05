@@ -1,0 +1,22 @@
+{#
+/**
+ * @file
+ * Theme override for Commerce empty cart page.
+ *
+ * MEL branded empty state: image, headline, supporting text, CTA.
+ *
+ * @see commerce/modules/cart/templates/commerce-cart-empty-page.html.twig
+ */
+#}
+<div class="mel-cart-empty">
+  <img
+    src="{{ base_path ~ directory }}/images/mel-empty-cart.png"
+    alt=""
+    class="mel-cart-empty__image"
+    width="520"
+    height="auto"
+  />
+  <h1 class="mel-cart-empty__title">{{ 'Your cart is empty'|t }}</h1>
+  <p class="mel-cart-empty__text">{{ 'Find something great and come back here to check out.'|t }}</p>
+  <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-cart-empty__cta">{{ 'Browse events'|t }}</a>
+</div>

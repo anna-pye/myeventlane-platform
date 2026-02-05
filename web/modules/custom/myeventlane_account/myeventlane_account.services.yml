@@ -1,0 +1,18 @@
+services:
+  myeventlane_account.event_review_access:
+    class: Drupal\myeventlane_account\Access\EventReviewRouteAccessCheck
+    arguments:
+      - '@config.factory'
+
+  myeventlane_account.account_links:
+    class: Drupal\myeventlane_account\Service\AccountLinksService
+    arguments:
+      - '@module_handler'
+
+  myeventlane_account.user_profile_redirect:
+    class: Drupal\myeventlane_account\EventSubscriber\UserProfileRedirectSubscriber
+    arguments:
+      - '@current_route_match'
+      - '@current_user'
+    tags:
+      - { name: event_subscriber }

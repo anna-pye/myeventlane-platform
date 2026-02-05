@@ -30,5 +30,15 @@ function myeventlane_analytics_theme(): array {
       ],
       'template' => 'analytics-event',
     ],
+    'admin_revenue_dashboard' => [
+      'variables' => [
+        'ticket_net_cents' => 0,
+        'boost_net_cents' => 0,
+        'total_cents' => 0,
+        'currency' => 'AUD',
+        'range_days' => 30,
+      ],
+      'template' => 'admin-revenue-dashboard',
+    ],
   ];
 }

@@ -222,6 +222,66 @@
     }
   }
 
+  // Phase 9 — PAST (ended + archived)
+  // Semantic hook: `.mel-card--past` is added by vendor templates when
+  // mel_event_state ∈ { ended, archived }.
+  //
+  // Rules:
+  // - Calm, settled tone (still readable/clickable).
+  // - No hover highlight.
+  // - Promoted takes precedence.
+  &__row.mel-card--past:not(.mel-card--promoted) {
+    opacity: 0.85;
+
+    &:hover {
+      background: transparent;
+    }
+
+    .mel-event-table__title {
+      color: var(--mel-color-text-secondary);
+
+      &:hover {
+        color: var(--mel-color-text-secondary);
+      }
+    }
+
+    // Phase 11 — Lifecycle-aware analytics framing (Past).
+    // Present table metrics as final totals (historical), not actionable signals.
+    .mel-event-table__col--date,
+    .mel-event-table__col--tickets,
+    .mel-event-table__col--revenue {
+      color: var(--mel-color-text-secondary);
+      font-weight: 400;
+    }
+
+    .mel-event-table__col--status .mel-badge {
+      background: var(--mel-color-bg);
+      border: 1px solid var(--mel-color-border);
+      color: var(--mel-color-text-secondary);
+      font-weight: 500;
+    }
+
+    // Phase 10 — Lifecycle-aware CTA suppression (Past).
+    // Only calm the Boost action (keep Edit/View/etc unchanged).
+    .mel-actions-menu__item[href*="boost"] {
+      color: var(--mel-color-text-secondary);
+      box-shadow: none;
+      transform: none;
+    }
+
+    .mel-actions-menu__item[href*="boost"] svg {
+      color: var(--mel-color-text-secondary);
+    }
+
+    .mel-actions-menu__item[href*="boost"]:hover,
+    .mel-actions-menu__item[href*="boost"]:focus-visible {
+      background: var(--mel-color-bg-subtle);
+      color: var(--mel-color-text);
+      box-shadow: none;
+      transform: none;
+    }
+  }
+
   &__title {
     font-weight: 600;
     color: var(--mel-color-text);

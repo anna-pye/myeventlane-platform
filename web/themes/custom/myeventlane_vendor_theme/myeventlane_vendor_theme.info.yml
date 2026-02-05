@@ -9,7 +9,13 @@ libraries:
 
 # Only define regions we actually use in our custom layout
 regions:
+  vendor_header_left: 'Vendor Header Left'
+  vendor_header_center: 'Vendor Header Center'
+  vendor_header_right: 'Vendor Header Right'
   content: Content
   sidebar_help: 'Vendor Help / Blog Sidebar'
   highlighted: Highlighted
+  vendor_footer_left: 'Vendor Footer Left'
+  vendor_footer_right: 'Vendor Footer Right'
+  vendor_footer_legal: 'Vendor Footer Legal'
 

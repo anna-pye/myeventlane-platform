@@ -98,7 +98,7 @@ final class VendorDashboardController extends ControllerBase {
    */
   public function legacyRedirect(): RedirectResponse {
     return new RedirectResponse(
-      Url::fromRoute('myeventlane_dashboard.vendor')->toString(),
+      Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
       301
     );
   }

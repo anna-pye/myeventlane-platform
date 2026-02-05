@@ -68,16 +68,17 @@ final class PreviewConfirmForm extends FormBase implements ContainerInjectionInt
     $form['back'] = [
       '#type' => 'link',
       '#title' => $this->t('Back'),
-      '#url' => Url::fromRoute('myeventlane_boost.vendor_boost_wizard_step3', ['event' => $event_id]),
+      '#url' => Url::fromRoute('myeventlane_boost.wizard.step3', ['event' => $event_id]),
       '#attributes' => [
-        'class' => ['button', 'button--ghost'],
+        'class' => ['mel-button', 'mel-button--ghost'],
+        'aria-label' => $this->t('Back to dates step'),
       ],
     ];
 
     $rows = [
       [$this->t('Placement'), $this->formatValue($state['placement_type'] ?? NULL)],
-      [$this->t('Duration (days)'), $this->formatValue($state['duration_days'] ?? NULL)],
-      [$this->t('Budget amount'), $this->formatValue($state['budget_amount'] ?? NULL)],
+      [$this->t('Budget'), $this->formatValue($state['budget_amount'] ?? NULL)],
+      [$this->t('Duration'), $this->formatValue($state['duration_days'] ?? NULL)],
       [$this->t('Start date'), $this->formatValue($state['start_date'] ?? NULL)],
       [$this->t('End date'), $this->formatValue($state['end_date'] ?? NULL)],
     ];
@@ -97,6 +98,10 @@ final class PreviewConfirmForm extends FormBase implements ContainerInjectionInt
       '#type' => 'submit',
       '#value' => $this->t('Confirm & Submit'),
       '#button_type' => 'primary',
+      '#attributes' => [
+        'class' => ['mel-button', 'mel-button--primary'],
+        'aria-label' => $this->t('Confirm and continue to payment'),
+      ],
     ];
 
     return $form;
@@ -119,9 +124,9 @@ final class PreviewConfirmForm extends FormBase implements ContainerInjectionInt
       'end_date' => $state['end_date'] ?? NULL,
     ]);
 
-    $this->messenger()->addStatus($this->t('Boost wizard confirmation received (stub).'));
+    $this->messenger()->addStatus($this->t('Boost wizard confirmation received.'));
 
-    $form_state->setRedirectUrl(Url::fromUserInput('/vendor/events/' . $event_id . '/boost/wizard/step-5'));
+    $form_state->setRedirect('myeventlane_boost.wizard.step5', ['event' => $event_id]);
   }
 
   /**

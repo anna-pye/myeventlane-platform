@@ -11,3 +11,4 @@ services:
       - '@cache.default'
       - '@datetime.time'
       - '@logger.channel.myeventlane_vendor_analytics'
+      - '@myeventlane_analytics.phase7.query'

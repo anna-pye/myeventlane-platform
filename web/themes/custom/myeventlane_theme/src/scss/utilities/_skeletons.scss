@@ -1,0 +1,61 @@
+// ==========================================================================
+// Skeletons / Loading polish (CSS-only)
+// ==========================================================================
+// Applies subtle shimmer backgrounds behind card media.
+// No markup required; images render above the shimmer once loaded.
+
+@keyframes mel-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Shared skeleton surface
+@mixin mel-skeleton-surface {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+
+  // Neutral, token-driven palette (no new brand colors).
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 0%,
+    rgba(0, 0, 0, 0.06) 20%,
+    rgba(0, 0, 0, 0.04) 40%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+  background-size: 200% 100%;
+
+  // Subtle shimmer (disabled for reduced motion via motion tokens).
+  animation: mel-shimmer 1.2s linear infinite;
+  opacity: 0.55;
+}
+
+// Ensure our pseudo-element sits behind content and badges.
+.mel-card__media,
+.mel-event-card__image,
+.mel-card-media {
+  isolation: isolate;
+
+  // Keep children above shimmer by default.
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &::before {
+    @include mel-skeleton-surface;
+    z-index: 0;
+  }
+}
+
+// Respect reduced motion: no shimmer animation.
+@media (prefers-reduced-motion: reduce) {
+  .mel-card__media::before,
+  .mel-event-card__image::before,
+  .mel-card-media::before {
+    animation: none;
+  }
+}
+

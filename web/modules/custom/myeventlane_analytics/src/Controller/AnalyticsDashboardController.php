@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_analytics\Controller;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -36,13 +37,14 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     private readonly AnalyticsDataService $dataService,
     private readonly SalesAnalyticsService $salesService,
     private readonly ConversionAnalyticsService $conversionService,
     private readonly ReportGeneratorService $reportService,
     private readonly DashboardEventLoader $eventLoader,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
   }
 
   /**
@@ -52,6 +54,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_analytics.data'),
       $container->get('myeventlane_analytics.sales'),
       $container->get('myeventlane_analytics.conversion'),

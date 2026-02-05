@@ -322,13 +322,18 @@ final class RsvpBookingForm extends FormBase {
 
     $order_item->save();
 
-    // Add to cart.
-    $store = $this->entityTypeManager->getStorage('commerce_store')->loadDefault();
-    $cart = $this->cartProvider->getCart('default', $store);
-
-    if (!$cart) {
-      $cart = $this->cartProvider->createCart('default', $store);
+    // Add to cart — use the product's store (event's vendor store) so orders
+    // appear on the correct store. Fall back to default if product has no store.
+    $product = $variation->getProduct();
+    $stores = $product ? $product->getStores() : [];
+    $store = !empty($stores) ? reset($stores) : $this->entityTypeManager->getStorage('commerce_store')->loadDefault();
+    if (!$store) {
+      $this->messenger()->addError($this->t('No store available for checkout.'));
+      return;
     }
+    $account = $this->currentUser();
+    $cart = $this->cartProvider->getCart('default', $store, $account)
+      ?: $this->cartProvider->createCart('default', $store, $account);
 
     $this->cartManager->addOrderItem($cart, $order_item);
 

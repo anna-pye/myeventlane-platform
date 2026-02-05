@@ -101,6 +101,94 @@ function myeventlane_refunds_schema(): array {
         'not null' => FALSE,
         'description' => 'Error message if refund failed.',
       ],
+      'refund_request_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Refund request ID when created from vendor approval.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'order_id' => ['order_id'],
+      'event_id' => ['event_id'],
+      'vendor_uid' => ['vendor_uid'],
+      'status' => ['status'],
+    ],
+  ];
+
+  $schema['myeventlane_refund_request'] = [
+    'description' => 'Buyer-initiated refund requests awaiting vendor approval.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order ID.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'buyer_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Buyer (order owner) user ID.',
+      ],
+      'vendor_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Vendor (event owner) user ID.',
+      ],
+      'amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Refund amount in cents.',
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+        'description' => 'Currency code (ISO 4217).',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'requested',
+        'description' => 'Status: requested, approved, rejected, completed.',
+      ],
+      'decision_reason' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Reason provided when rejecting.',
+      ],
+      'refund_log_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'myeventlane_refund_log ID when approved.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when request was created.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when status changed.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -112,6 +200,228 @@ function myeventlane_refunds_schema(): array {
   ];
 
   return $schema;
+}
+
+/**
+ * Create myeventlane_refund_request table if it doesn't exist.
+ */
+function myeventlane_refunds_update_9002(): void {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('myeventlane_refund_request')) {
+    return;
+  }
+  $table_schema = [
+    'description' => 'Buyer-initiated refund requests awaiting vendor approval.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order ID.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'buyer_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Buyer (order owner) user ID.',
+      ],
+      'vendor_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Vendor (event owner) user ID.',
+      ],
+      'amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Refund amount in cents.',
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+        'description' => 'Currency code (ISO 4217).',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'requested',
+        'description' => 'Status: requested, approved, rejected, completed.',
+      ],
+      'decision_reason' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Reason provided when rejecting.',
+      ],
+      'refund_log_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'myeventlane_refund_log ID when approved.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when request was created.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when status changed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'order_id' => ['order_id'],
+      'event_id' => ['event_id'],
+      'vendor_uid' => ['vendor_uid'],
+      'status' => ['status'],
+    ],
+  ];
+  $schema->createTable('myeventlane_refund_request', $table_schema);
+}
+
+/**
+ * Add refund_request_id to myeventlane_refund_log and install messaging templates.
+ */
+function myeventlane_refunds_update_9001(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('myeventlane_refund_log', 'refund_request_id')) {
+    $schema->addField('myeventlane_refund_log', 'refund_request_id', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'description' => 'Refund request ID when created from vendor approval.',
+    ]);
+  }
+
+  myeventlane_refunds_install_messaging_templates();
+}
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_refunds_install(): void {
+  myeventlane_refunds_install_messaging_templates();
+}
+
+/**
+ * Installs refund messaging templates if not present.
+ */
+function myeventlane_refunds_install_messaging_templates(): void {
+  $templates = [
+    'refund_requested_buyer' => [
+      'subject' => 'Refund request received – {{ event_title }}',
+      'body' => 'Hi there,
+
+Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been received.
+
+We\'ll notify you once the event organiser has reviewed your request.
+
+<a href="{{ my_tickets_url }}">View your tickets</a>',
+    ],
+    'refund_requested_vendor' => [
+      'subject' => 'Refund request pending – {{ event_title }}',
+      'body' => 'A customer has requested a refund for <strong>{{ event_title }}</strong>.
+
+Order: {{ order_number }}
+Amount: {{ refunded_amount }}
+
+Please review and approve or reject this request in your vendor dashboard.',
+    ],
+    'refund_approved_buyer' => [
+      'subject' => 'Refund approved – {{ event_title }}',
+      'body' => 'Hi there,
+
+Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been approved and is being processed.
+
+You should see the refund ({{ refunded_amount }}) within 2–5 business days.
+
+<a href="{{ my_tickets_url }}">View your tickets</a>',
+    ],
+    'refund_approved_vendor' => [
+      'subject' => 'Refund approved – {{ event_title }}',
+      'body' => 'You approved the refund request for Order {{ order_number }} ({{ refunded_amount }}).
+
+The refund is being processed.',
+    ],
+    'refund_rejected_buyer' => [
+      'subject' => 'Refund request declined – {{ event_title }}',
+      'body' => 'Hi there,
+
+Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been declined by the event organiser.
+
+{% if rejection_reason %}
+Reason: {{ rejection_reason }}
+{% endif %}
+
+<a href="{{ my_tickets_url }}">View your tickets</a>',
+    ],
+    'refund_rejected_vendor' => [
+      'subject' => 'Refund rejected – {{ event_title }}',
+      'body' => 'You rejected the refund request for Order {{ order_number }}.
+
+The buyer has been notified.',
+    ],
+    'refund_completed_buyer' => [
+      'subject' => 'Refund completed – {{ event_title }}',
+      'body' => 'Hi there,
+
+Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been completed.
+
+Amount refunded: {{ refunded_amount }}
+
+The refund should appear on your card within 2–5 business days.
+
+<a href="{{ my_tickets_url }}">View your tickets</a>',
+    ],
+    'refund_completed_vendor' => [
+      'subject' => 'Refund completed – {{ event_title }}',
+      'body' => 'The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
+
+The customer has been notified.',
+    ],
+  ];
+
+  $configFactory = \Drupal::configFactory();
+  foreach ($templates as $key => $template) {
+    $configName = "myeventlane_messaging.template.{$key}";
+    if ($configFactory->get($configName)->isNew()) {
+      $config = $configFactory->getEditable($configName);
+      $config->set('enabled', TRUE);
+      $config->set('subject', $template['subject']);
+      $config->set('body_html', $template['body']);
+      $config->set('utm', [
+        'enable' => TRUE,
+        'params' => [
+          'utm_source' => 'email',
+          'utm_medium' => 'transactional',
+          'utm_campaign' => 'refund_' . $key,
+        ],
+      ]);
+      $config->save();
+    }
+  }
+}
+
+/**
+ * Ensure refund email templates exist (idempotent).
+ */
+function myeventlane_refunds_update_9003(): void {
+  myeventlane_refunds_install_messaging_templates();
 }
 
 /**

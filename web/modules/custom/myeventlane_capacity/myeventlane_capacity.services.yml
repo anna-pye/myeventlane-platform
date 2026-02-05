@@ -16,6 +16,8 @@ services:
       - '@myeventlane_capacity.service'
       - '@myeventlane_capacity.order_inspector'
       - '@entity_type.manager'
+      - '@lock'
+      - '@request_stack'
       - '@string_translation'
       - '@logger.channel.myeventlane_capacity'
     tags:

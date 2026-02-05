@@ -102,9 +102,10 @@ final class ChooseDatesForm extends FormBase implements ContainerInjectionInterf
     $form['back'] = [
       '#type' => 'link',
       '#title' => $this->t('Back'),
-      '#url' => Url::fromRoute('myeventlane_boost.vendor_boost_wizard_step2', ['event' => $event_id]),
+      '#url' => Url::fromRoute('myeventlane_boost.wizard.step2', ['event' => $event_id]),
       '#attributes' => [
-        'class' => ['button', 'button--ghost'],
+        'class' => ['mel-button', 'mel-button--ghost'],
+        'aria-label' => $this->t('Back to budget step'),
       ],
     ];
 
@@ -129,6 +130,10 @@ final class ChooseDatesForm extends FormBase implements ContainerInjectionInterf
       '#type' => 'submit',
       '#value' => $this->t('Next'),
       '#button_type' => 'primary',
+      '#attributes' => [
+        'class' => ['mel-button', 'mel-button--primary'],
+        'aria-label' => $this->t('Continue to preview step'),
+      ],
     ];
 
     return $form;
@@ -176,8 +181,7 @@ final class ChooseDatesForm extends FormBase implements ContainerInjectionInterf
     $state['end_date'] = $end;
     $temp_store->set((string) $event_id, $state);
 
-    // Step 4 is not implemented yet; redirect to the intended URL stub.
-    $form_state->setRedirectUrl(Url::fromUserInput('/vendor/events/' . $event_id . '/boost/wizard/step-4'));
+    $form_state->setRedirect('myeventlane_boost.wizard.step4', ['event' => $event_id]);
   }
 
 }

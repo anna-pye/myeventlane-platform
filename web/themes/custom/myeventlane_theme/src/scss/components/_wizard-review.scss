@@ -1,0 +1,167 @@
+// ============================================================================
+// Wizard Review Step (Phase 3C)
+// ============================================================================
+// Scoped styles for the Event wizard review page:
+// - .mel-wizard-review (summary container)
+// - .mel-wizard-review__warnings (warning panel)
+// - .mel-wizard-review__group (summary section cards)
+// - .mel-wizard-review__fix-link (Fix link per warning)
+// Pastel MEL styling; mobile-first; WCAG contrast.
+// ============================================================================
+
+@use '../tokens/colors';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/typography';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Warning panel (soft pastel yellow / orange)
+// ---------------------------------------------------------------------------
+
+.mel-wizard-review__warnings {
+  margin-bottom: spacing.mel-space(5);
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  border-left: 4px solid colors.$mel-color-accent;
+  background: rgba(colors.$mel-color-accent, 0.15);
+
+  @include breakpoints.mel-break(sm, max) {
+    padding: spacing.mel-space(3);
+    margin-bottom: spacing.mel-space(4);
+  }
+}
+
+.mel-wizard-review__warnings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}
+
+.mel-wizard-review__warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: spacing.mel-space(2);
+  padding: spacing.mel-space(2) 0;
+  border-bottom: 1px solid rgba(colors.$mel-color-text-light, 0.12);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text;
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+.mel-wizard-review__warning--recommended {
+  .mel-wizard-review__warning-message {
+    color: colors.$mel-color-navy;
+  }
+}
+
+.mel-wizard-review__warning--important {
+  .mel-wizard-review__warning-message {
+    color: colors.$mel-color-navy;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+.mel-wizard-review__warnings .mel-wizard-review__warning--important {
+  background: rgba(colors.$mel-color-orange, 0.08);
+  margin: 0 calc(-1 * #{spacing.mel-space(2)});
+  padding: spacing.mel-space(2);
+  border-radius: radii.$mel-radius-sm;
+  border-left: 3px solid colors.$mel-color-orange;
+}
+
+.mel-wizard-review__warning-message {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.mel-wizard-review__fix-link {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: spacing.mel-space(1) spacing.mel-space(3);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-primary;
+  border-radius: radii.$mel-radius-sm;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    background: colors.$mel-color-primary;
+    color: colors.$mel-color-on-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$mel-color-primary;
+    outline-offset: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Summary groups (rounded cards, clean spacing)
+// ---------------------------------------------------------------------------
+
+.mel-wizard-review {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(5);
+
+  @include breakpoints.mel-break(sm, max) {
+    gap: spacing.mel-space(4);
+  }
+}
+
+.mel-wizard-review__group {
+  padding: spacing.mel-space(4);
+  background: colors.$mel-color-surface;
+  border: 1px solid rgba(colors.$mel-color-text-light, 0.12);
+  border-radius: radii.$mel-radius-md;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  @include breakpoints.mel-break(sm, max) {
+    padding: spacing.mel-space(3);
+  }
+}
+
+// Ensure existing .mel-review-section inside .mel-wizard-review__group
+// does not double padding (group is the card; section is the content)
+.mel-wizard-review__group.mel-review-section {
+  .mel-review-section__header {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .mel-review-section__list {
+    margin: 0;
+  }
+
+  .mel-review-section__edit {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+    padding: spacing.mel-space(1) spacing.mel-space(2);
+    border-radius: radii.$mel-radius-sm;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+      background: rgba(colors.$mel-color-primary, 0.08);
+      border-color: colors.$mel-color-primary;
+    }
+
+    &:focus-visible {
+      outline: 2px solid colors.$mel-color-primary;
+      outline-offset: 2px;
+    }
+  }
+}

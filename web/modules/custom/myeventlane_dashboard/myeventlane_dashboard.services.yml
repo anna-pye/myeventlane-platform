@@ -34,6 +34,7 @@ services:
       - '@commerce_price.currency_formatter'
       - '@logger.factory'
       - '@request_stack'
+      - '@myeventlane_analytics.phase7.query'
 
   myeventlane_dashboard.events:
     class: Drupal\myeventlane_dashboard\Service\VendorEventsService

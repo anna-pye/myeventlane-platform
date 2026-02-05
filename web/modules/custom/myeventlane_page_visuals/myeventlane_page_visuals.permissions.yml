@@ -1,0 +1,4 @@
+administer myeventlane page visuals:
+  title: 'Administer MyEventLane page visuals'
+  description: 'Create, edit, and delete page visuals (hero/illustration images for system routes).'
+  restrict access: TRUE

@@ -15,6 +15,11 @@
 // Header Container
 // ---------------------------------------------------------------------------
 
+.mel-site-header,
+.mel-site-header--main {
+  @extend .mel-header;
+}
+
 .mel-header {
   position: sticky;
   top: 0;
@@ -423,9 +428,10 @@ header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
   }
   
   // CSS-only dropdown using :hover and :focus-within
-  // Opens on hover (mouse) or focus (keyboard)
+  // Also supports JS click via .is-open (account-dropdown.js)
   &:hover,
-  &:focus-within {
+  &:focus-within,
+  &.is-open {
     .mel-account-toggle {
       .mel-dropdown-arrow {
         transform: rotate(180deg);
@@ -482,6 +488,8 @@ header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
+  list-style: none;
+  margin: 0;
   // Long delay before closing - gives plenty of time to move mouse (0.6s delay)
   transition: opacity 0.2s ease 0.6s, visibility 0.2s ease 0.6s, transform 0.2s ease 0.6s;
   z-index: zindex.mel-z(dropdown);
@@ -528,11 +536,13 @@ header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
   display: flex;
   align-items: center;
   gap: spacing.mel-space(3);
+  width: 100%;
   padding: spacing.mel-space(2) spacing.mel-space(3);
   color: colors.$mel-color-text;
   text-decoration: none;
   border-radius: radii.$mel-radius-sm;
   transition: background 0.15s ease;
+  box-sizing: border-box;
 
   svg {
     flex-shrink: 0;

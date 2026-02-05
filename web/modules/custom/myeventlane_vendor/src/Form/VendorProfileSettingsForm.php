@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -28,12 +29,18 @@ class VendorProfileSettingsForm extends FormBase {
   protected AccountProxyInterface $currentUser;
 
   /**
+   * The onboarding manager.
+   */
+  protected OnboardingManager $onboardingManager;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->currentUser = $container->get('current_user');
+    $instance->onboardingManager = $container->get('myeventlane_onboarding.manager');
     return $instance;
   }
 
@@ -145,14 +152,54 @@ class VendorProfileSettingsForm extends FormBase {
       '#weight' => -1000,
     ];
 
+    // Onboarding panel at top when not invite-ready (non-blocking).
+    // Hide when completed OR when all Ask steps done (invite-ready).
+    $form['onboarding_panel'] = [
+      '#weight' => -999,
+    ];
+    if ($vendor->id()) {
+      try {
+        $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+        if ($user instanceof \Drupal\user\UserInterface) {
+          $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+          $this->onboardingManager->refreshFlags($state);
+          $show_panel = !$this->onboardingManager->isCompleted($state)
+            && !$this->onboardingManager->isInviteReady($state);
+          if ($show_panel) {
+            $stage = $state->getStage();
+            $stage_labels = [
+              'probe' => $this->t('Get started'),
+              'present' => $this->t('Profile'),
+              'listen' => $this->t('Payments'),
+              'ask' => $this->t('First event'),
+              'invite' => $this->t('Boost'),
+              'complete' => $this->t('Complete'),
+            ];
+            $next = $this->onboardingManager->getNextActionForAuthenticatedVendor($state);
+            $form['onboarding_panel'] = [
+              '#weight' => -999,
+              '#theme' => 'myeventlane_vendor_onboarding_panel',
+              '#stage_label' => $stage_labels[$stage] ?? $stage,
+              '#flags' => $state->getFlags(),
+              '#next_action' => $next,
+              '#vendor' => $vendor,
+            ];
+          }
+        }
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_vendor')->warning('Onboarding panel failed on settings form: @m', ['@m' => $e->getMessage()]);
+      }
+    }
+
     // CRITICAL: Override form action URL on vendor domain to prevent /vendor/ prefix.
-    // Drupal generates form action URLs based on current request path.
-    // Setting #action here ensures it's set BEFORE FormBuilder generates the action token.
+    // Drupal generates form action URLs based on current request path, which can
+    // produce /vendor/form_action_xxx and cause 404s. Use the settings route URL
+    // so the form POSTs to the correct path.
     if (\Drupal::hasService('myeventlane_core.domain_detector')) {
       $domain_detector = \Drupal::service('myeventlane_core.domain_detector');
       if ($domain_detector->isVendorDomain()) {
-        // Set action to root path to prevent /vendor/ prefix in form action token.
-        $form['#action'] = '/';
+        $form['#action'] = Url::fromRoute('myeventlane_vendor.console.settings', [], ['absolute' => TRUE])->toString();
       }
     }
 

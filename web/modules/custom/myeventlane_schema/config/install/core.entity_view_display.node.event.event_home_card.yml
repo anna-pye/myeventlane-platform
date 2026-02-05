@@ -1,0 +1,69 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.event_home_card
+    - field.field.node.event.field_category
+    - field.field.node.event.field_event_image
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_venue_name
+    - node.type.event
+  module:
+    - datetime
+    - image
+    - node
+id: node.event.event_home_card
+targetEntityType: node
+bundle: event
+mode: event_home_card
+content:
+  field_event_image:
+    type: image
+    label: hidden
+    settings:
+      image_style: thumbnail
+      image_link: ''
+      image_loading:
+        attribute: lazy
+    weight: 0
+    region: content
+    third_party_settings: {  }
+  title:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: true
+    weight: 1
+    region: content
+    third_party_settings: {  }
+  field_event_start:
+    type: datetime_default
+    label: hidden
+    settings:
+      timezone_override: ''
+      format_type: medium
+    weight: 2
+    region: content
+    third_party_settings: {  }
+  field_venue_name:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    weight: 3
+    region: content
+    third_party_settings: {  }
+  field_category:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    weight: 4
+    region: content
+    third_party_settings: {  }
+
+hidden:
+  body: true
+  created: true
+  links: true
+  uid: true

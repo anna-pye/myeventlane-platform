@@ -4,6 +4,11 @@ administer myeventlane:
   description: 'Access all MyEventLane configuration pages and settings.'
   restrict access: TRUE
 
+administer myeventlane onboarding:
+  title: 'Administer MyEventLane onboarding'
+  description: 'Access onboarding state listing and configuration.'
+  restrict access: TRUE
+
 
 
 

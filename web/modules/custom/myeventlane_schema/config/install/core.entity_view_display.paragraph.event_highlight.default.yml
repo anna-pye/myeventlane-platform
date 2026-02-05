@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.event_highlight.field_highlight_icon
+    - field.field.paragraph.event_highlight.field_highlight_text
+    - paragraphs.paragraphs_type.event_highlight
+id: paragraph.event_highlight.default
+targetEntityType: paragraph
+bundle: event_highlight
+mode: default
+content:
+  field_highlight_icon:
+    type: list_default
+    label: hidden
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_highlight_text:
+    type: text_default
+    label: hidden
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden: {  }
+

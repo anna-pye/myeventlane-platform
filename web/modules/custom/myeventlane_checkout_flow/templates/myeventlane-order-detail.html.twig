@@ -1,0 +1,170 @@
+{#
+/**
+ * @file
+ * Template for order detail page (customer-facing).
+ *
+ * Available variables:
+ * - title: Page title
+ * - order: Order data array with events, tickets, donations, etc.
+ */
+#}
+
+<div class="mel-order-detail">
+  <div class="mel-page-header">
+    <a href="{{ url('myeventlane_checkout_flow.my_tickets') }}" class="mel-link mel-back-link">
+      ← Back to My Tickets
+    </a>
+    <h1 class="mel-page-title">{{ title }}</h1>
+    <div class="mel-order-meta mel-mt-2">
+      <span class="mel-order-date">
+        <strong>Placed:</strong> {{ order.placed_date }}
+      </span>
+      <span class="mel-order-status">
+        <strong>Status:</strong> {{ order.state }}
+      </span>
+    </div>
+  </div>
+
+  {# Events #}
+  {% if order.events|length > 0 %}
+    <div class="mel-section mel-mt-6">
+      <h2 class="mel-section-title">Your Events</h2>
+      {% for event in order.events %}
+        <div class="mel-card mel-event-card mel-mt-4">
+          <div class="mel-card-body">
+            <h3 class="mel-event-title">
+              <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
+            </h3>
+            
+            <div class="mel-event-details mel-mt-3">
+              {% if event.start_date %}
+                <div class="mel-event-detail-row">
+                  <strong>Date:</strong> {{ event.start_date }}
+                  {% if event.end_date and event.end_date != event.start_date %}
+                    - {{ event.end_date }}
+                  {% endif %}
+                </div>
+              {% endif %}
+              {% if event.start_time %}
+                <div class="mel-event-detail-row">
+                  <strong>Time:</strong> {{ event.start_time }}
+                  {% if event.end_time %}
+                    - {{ event.end_time }}
+                  {% endif %}
+                </div>
+              {% endif %}
+              {% if event.location %}
+                <div class="mel-event-detail-row">
+                  <strong>Location:</strong> {{ event.location }}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mel-event-actions mel-mt-4">
+              <a href="{{ event.ics_url }}" 
+                 class="mel-btn mel-btn-primary"
+                 download>
+                📅 Download Calendar (.ics)
+              </a>
+              <a href="{{ event.url }}" class="mel-btn mel-btn-secondary">
+                View Event Page
+              </a>
+              {% if event.can_refund and event.refund_url %}
+                <a href="{{ event.refund_url }}" class="mel-btn mel-btn-secondary">
+                  Request Refund
+                </a>
+              {% elseif event.refund_ineligible_reason is defined and event.refund_ineligible_reason %}
+                <p class="mel-event-refund-note mel-text--muted" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                  {{ 'Refunds:'|t }} {{ event.refund_ineligible_reason }}
+                </p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Tickets #}
+  {% if order.ticket_items|length > 0 %}
+    <div class="mel-section mel-mt-6">
+      <h2 class="mel-section-title">Your Tickets</h2>
+      <div class="mel-card mel-mt-4">
+        <div class="mel-card-body">
+          {% for ticket in order.ticket_items %}
+            <div class="mel-ticket-item mel-mt-4{% if not loop.first %} mel-pt-4 mel-border-top{% endif %}">
+              <div class="mel-ticket-header">
+                <div class="mel-ticket-title">
+                  <strong>{{ ticket.title }}</strong>
+                </div>
+                <div class="mel-ticket-price">
+                  ${{ ticket.price|number_format(2) }}
+                </div>
+              </div>
+              <div class="mel-ticket-meta mel-mt-2">
+                <span class="mel-ticket-quantity">
+                  Quantity: {{ ticket.quantity }}
+                </span>
+              </div>
+
+              {# Attendees #}
+              {% if ticket.attendees|length > 0 %}
+                <div class="mel-attendees mel-mt-3">
+                  <strong>Attendees:</strong>
+                  <ul class="mel-attendee-list mel-mt-2">
+                    {% for attendee in ticket.attendees %}
+                      <li>
+                        {{ attendee.name }}
+                        {% if attendee.email %}
+                          <span class="mel-attendee-email">({{ attendee.email }})</span>
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Donation #}
+  {% if order.donation_total > 0 %}
+    <div class="mel-section mel-mt-6">
+      <div class="mel-card mel-card-highlight">
+        <div class="mel-card-body">
+          <h3 class="mel-donation-title">💝 Your Donation</h3>
+          <p class="mel-donation-amount mel-mt-2">
+            <strong>Donation Amount:</strong> ${{ order.donation_total|number_format(2) }}
+          </p>
+          <p class="mel-donation-note mel-mt-2">
+            Thank you for your generous donation! Your contribution helps support our platform and events.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Order Total #}
+  <div class="mel-section mel-mt-6">
+    <div class="mel-card">
+      <div class="mel-card-body">
+        <div class="mel-total-row">
+          <span class="mel-total-label">Total Paid</span>
+          <span class="mel-total-amount">${{ order.total_price|number_format(2) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Actions #}
+  <div class="mel-order-actions mel-mt-6">
+    <a href="{{ url('myeventlane_checkout_flow.my_tickets') }}" 
+       class="mel-btn mel-btn-secondary">
+      Back to My Tickets
+    </a>
+  </div>
+</div>
+

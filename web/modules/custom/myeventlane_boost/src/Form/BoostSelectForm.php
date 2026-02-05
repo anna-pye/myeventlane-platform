@@ -13,6 +13,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -316,7 +317,12 @@ final class BoostSelectForm extends FormBase {
       \Drupal::logger('myeventlane_boost')->notice('Form submission successful, redirecting to cart. Cart ID: @cart_id', [
         '@cart_id' => $cart->id(),
       ]);
-      $form_state->setRedirect('commerce_cart.page');
+      // Redirect directly to checkout for this cart ID.
+      // The cart page is store-contextual and may not show carts from other stores
+      // (e.g., vendor console vs platform store), which can make the cart appear empty.
+      $form_state->setRedirectUrl(Url::fromRoute('commerce_checkout.form', [
+        'commerce_order' => $cart->id(),
+      ]));
     }
     catch (\Exception $e) {
       $this->messenger()->addError($this->t('An error occurred: @message', ['@message' => $e->getMessage()]));

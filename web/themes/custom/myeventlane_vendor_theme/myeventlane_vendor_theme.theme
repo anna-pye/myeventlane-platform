@@ -42,6 +42,9 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // Try to get vendor name from node context if viewing an event.
   $route_match = \Drupal::routeMatch();
   $node = $route_match->getParameter('node');
+  if (!$node) {
+    $node = $route_match->getParameter('event');
+  }
   if ($node && $node instanceof \Drupal\node\NodeInterface && $node->bundle() === 'event') {
     if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
       $vendor = $node->get('field_event_vendor')->entity;
@@ -127,6 +130,16 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // Determine active section from route.
   $route_name = $route_match->getRouteName();
   $variables['page']['active_section'] = _myeventlane_vendor_theme_get_active_section($route_name);
+
+  // Build Event Wizard sidebar steps when on wizard route (requires event param).
+  $variables['page']['wizard_steps'] = [];
+  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+    $event = $route_match->getParameter('event') ?? $route_match->getParameter('node');
+    if ($event && $event instanceof \Drupal\node\NodeInterface && $event->bundle() === 'event') {
+      $variables['page']['wizard_steps'] = _myeventlane_vendor_theme_build_wizard_steps($event, $route_name);
+      $variables['page']['wizard_sidebar_active'] = TRUE;
+    }
+  }
 
   // Build logout link.
   $variables['page']['logout_link'] = [
@@ -233,6 +246,12 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
 function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
   // Add vendor theme body class.
   $variables['attributes']['class'][] = 'mel-vendor-theme';
+
+  // Event step wizard pages: body class for layout (e.g. full-width content).
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+    $variables['attributes']['class'][] = 'mel-page--event-wizard';
+  }
 }
 
 /**
@@ -272,6 +291,64 @@ function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $f
     $form['#attached']['library'][] = 'core/drupal.states';
     $form['#attached']['library'][] = 'core/drupal.ajax';
   }
+
+  // Step wizard forms (Basics, When & Where, Tickets, Details, Review, Publish).
+  if (str_starts_with($form_id, 'event_wizard_')) {
+    $form['#attributes']['class'][] = 'mel-event-wizard-page';
+    $form['#attributes']['class'][] = 'mel-wizard-form';
+    $form['#attached']['library'][] = 'myeventlane_vendor_theme/event-form';
+    $form['#attached']['library'][] = 'core/drupal.form';
+    $form['#attached']['library'][] = 'core/drupal.states';
+    $form['#attached']['library'][] = 'core/drupal.ajax';
+  }
+}
+
+/**
+ * Event wizard build route names (step wizard: Basics → When & Where → … → Publish).
+ */
+function _myeventlane_vendor_theme_event_wizard_routes(): array {
+  return [
+    'myeventlane_event.wizard.basics',
+    'myeventlane_event.wizard.when_where',
+    'myeventlane_event.wizard.tickets',
+    'myeventlane_event.wizard.details',
+    'myeventlane_event.wizard.review',
+    'myeventlane_event.wizard.publish',
+    'myeventlane_event.wizard.success',
+  ];
+}
+
+/**
+ * Builds wizard step items for the sidebar (Basics, When & Where, … Publish).
+ *
+ * @param \Drupal\node\NodeInterface $event
+ *   The event node.
+ * @param string $current_route
+ *   The current route name.
+ *
+ * @return array<int, array{id: string, label: string, url: string, is_active: bool}>
+ *   Wizard steps for sidebar rendering.
+ */
+function _myeventlane_vendor_theme_build_wizard_steps(\Drupal\node\NodeInterface $event, string $current_route): array {
+  $steps = [
+    ['id' => 'basics', 'label' => t('Basics'), 'route' => 'myeventlane_event.wizard.basics'],
+    ['id' => 'when_where', 'label' => t('When & Where'), 'route' => 'myeventlane_event.wizard.when_where'],
+    ['id' => 'tickets', 'label' => t('Tickets'), 'route' => 'myeventlane_event.wizard.tickets'],
+    ['id' => 'details', 'label' => t('Details'), 'route' => 'myeventlane_event.wizard.details'],
+    ['id' => 'review', 'label' => t('Review'), 'route' => 'myeventlane_event.wizard.review'],
+    ['id' => 'publish', 'label' => t('Publish'), 'route' => 'myeventlane_event.wizard.publish'],
+  ];
+  $event_id = (int) $event->id();
+  $out = [];
+  foreach ($steps as $step) {
+    $out[] = [
+      'id' => $step['id'],
+      'label' => $step['label'],
+      'url' => \Drupal\Core\Url::fromRoute($step['route'], ['event' => $event_id])->toString(),
+      'is_active' => ($step['route'] === $current_route),
+    ];
+  }
+  return $out;
 }
 
 /**
@@ -280,8 +357,11 @@ function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $f
 function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
   // Add page suggestions based on route.
   $route_name = \Drupal::routeMatch()->getRouteName();
-  
-  if ($route_name === 'myeventlane_vendor.dashboard') {
+
+  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+    $suggestions[] = 'page__vendor__event_wizard';
+  }
+  elseif ($route_name === 'myeventlane_vendor.dashboard') {
     $suggestions[] = 'page__vendor__dashboard';
   }
   elseif (str_starts_with($route_name ?? '', 'myeventlane_vendor.')) {
@@ -303,17 +383,42 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'], TRUE)) {
     $suggestions[] = 'form__node_event_form__vendor';
   }
-  
-  // Also add suggestion for EventWizardForm.
+
   if ($form_id === 'myeventlane_event_wizard') {
     $suggestions[] = 'form__myeventlane_event_wizard';
   }
+
+  if ($form_id === 'vendor_onboard_profile_form') {
+    $suggestions[] = 'form__vendor_onboard_profile_form';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for form__vendor_onboard_profile_form.
+ *
+ * Passes step metadata from the form element for the onboarding layout.
+ */
+function myeventlane_vendor_theme_preprocess_form__vendor_onboard_profile_form(array &$variables): void {
+  $element = $variables['element'];
+  $variables['step_number'] = $element['#step_number'] ?? 2;
+  $variables['total_steps'] = $element['#total_steps'] ?? 7;
+  $variables['step_title'] = $element['#step_title'] ?? '';
+  $variables['step_description'] = $element['#step_description'] ?? NULL;
+  $step_number = $variables['step_number'];
+  $variables['back_route'] = match ($step_number) {
+    2 => 'myeventlane_vendor.onboard.account',
+    3 => 'myeventlane_vendor.onboard.profile',
+    4 => 'myeventlane_vendor.onboard.stripe',
+    5 => 'myeventlane_vendor.onboard.first_event',
+    6 => 'myeventlane_vendor.onboard.boost',
+    default => NULL,
+  };
 }
 
 /**
  * Implements hook_theme().
  */
-function myeventlane_vendor_theme_theme(): array {
+function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array {
   return [
     'myeventlane_vendor_console_page' => [
       'variables' => [
@@ -338,8 +443,18 @@ function myeventlane_vendor_theme_theme(): array {
         'upcoming_count' => 0,
         'show_welcome' => FALSE,
         'vendor_kpis' => NULL,
+        'onboarding_panel' => NULL,
       ],
       'template' => 'dashboard/dashboard',
+    ],
+    'myeventlane_vendor_onboarding_panel' => [
+      'variables' => [
+        'stage_label' => NULL,
+        'flags' => [],
+        'next_action' => ['route_name' => NULL, 'title' => ''],
+        'vendor' => NULL,
+      ],
+      'template' => 'components/vendor-onboarding-panel',
     ],
     'myeventlane_vendor_analytics' => [
       'variables' => [
@@ -497,7 +612,7 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.settings' => 'settings',
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
-    'myeventlane_dashboard.vendor' => 'dashboard',
+    'myeventlane_vendor.console.dashboard' => 'dashboard',
   ];
 
   return $mapping[$route_name] ?? 'dashboard';

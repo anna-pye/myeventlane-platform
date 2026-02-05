@@ -8,6 +8,7 @@ lifecycle: stable
 dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_schema:myeventlane_schema
+  - myeventlane_capacity:myeventlane_capacity
   - drupal:node
   - drupal:user
   - drupal:views

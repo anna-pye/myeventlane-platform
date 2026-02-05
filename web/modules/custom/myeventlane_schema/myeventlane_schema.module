@@ -11,6 +11,31 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_entity_view_display_alter().
+ *
+ * Ensures every content component has third_party_settings. Drupal 11
+ * FormatterBase::__construct() requires third_party_settings to be an array;
+ * configs without it cause "Undefined array key" and TypeError when formatters
+ * are instantiated (e.g. wizard review step rendering field_event_highlights).
+ */
+function myeventlane_schema_entity_view_display_alter(\Drupal\Core\Entity\Display\EntityDisplayInterface $display, array $context): void {
+  $content = $display->get('content');
+  if (!is_array($content)) {
+    return;
+  }
+  $changed = FALSE;
+  foreach ($content as $name => $component) {
+    if (is_array($component) && !isset($component['third_party_settings'])) {
+      $content[$name]['third_party_settings'] = [];
+      $changed = TRUE;
+    }
+  }
+  if ($changed) {
+    $display->set('content', $content);
+  }
+}
+
+/**
  * Implements hook_help().
  */
 function myeventlane_schema_help(string $route_name): string {

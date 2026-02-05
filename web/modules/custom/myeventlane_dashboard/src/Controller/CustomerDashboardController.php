@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_dashboard\Controller;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DisplayNameResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,6 +21,7 @@ final class CustomerDashboardController extends ControllerBase {
    */
   public function __construct(
     private readonly TimeInterface $time,
+    private readonly DisplayNameResolver $displayNameResolver,
   ) {}
 
   /**
@@ -27,7 +29,8 @@ final class CustomerDashboardController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('datetime.time')
+      $container->get('datetime.time'),
+      $container->get('myeventlane_core.display_name_resolver')
     );
   }
 
@@ -235,7 +238,7 @@ final class CustomerDashboardController extends ControllerBase {
       '#upcoming_events' => $upcomingEvents,
       '#past_events' => $pastEvents,
       '#welcome_message' => $this->t('Welcome, @name! Here are your events.', [
-        '@name' => $currentUser->getDisplayName(),
+        '@name' => $this->displayNameResolver->getDisplayName($currentUser),
       ]),
       '#attached' => [
         'library' => ['myeventlane_dashboard/dashboard'],

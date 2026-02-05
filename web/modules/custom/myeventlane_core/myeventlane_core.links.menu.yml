@@ -22,3 +22,11 @@ myeventlane_core.settings:
   route_name: myeventlane_core.settings
   parent: myeventlane_core.config
   weight: -10
+
+# Admin config: Onboarding states.
+entity.myeventlane_onboarding_state.collection:
+  title: 'Onboarding states'
+  description: 'List onboarding state records.'
+  route_name: entity.myeventlane_onboarding_state.collection
+  parent: myeventlane_core.config
+  weight: 5

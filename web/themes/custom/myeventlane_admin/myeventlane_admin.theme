@@ -20,21 +20,13 @@ function myeventlane_admin_preprocess_page(&$variables) {
   if (strpos($route_name, 'node.add') !== FALSE || strpos($route_name, 'node.edit') !== FALSE) {
     $variables['attributes']['class'][] = 'mel-node-form';
   }
-  
-  if (strpos($route_name, 'vendor') !== FALSE) {
-    $variables['attributes']['class'][] = 'mel-vendor-area';
-  }
-  
-  if (strpos($route_name, 'dashboard') !== FALSE) {
-    $variables['attributes']['class'][] = 'mel-dashboard';
-  }
 }
 
 /**
  * Implements hook_form_alter().
  */
 function myeventlane_admin_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  // Add Bootstrap form class to form attributes.
+  // Add a stable admin form hook class.
   if (!isset($form['#attributes'])) {
     $form['#attributes'] = [];
   }
@@ -42,31 +34,10 @@ function myeventlane_admin_form_alter(&$form, FormStateInterface $form_state, $f
     $form['#attributes']['class'] = [];
   }
   $form['#attributes']['class'][] = 'mel-admin-form';
-  
-  // Add container wrapper for centered forms (only for node forms).
-  if (strpos($form_id, 'node_') !== FALSE || strpos($form_id, 'entity_') !== FALSE) {
-    if (!isset($form['#prefix'])) {
-      $form['#prefix'] = '';
-    }
-    $form['#prefix'] = '<div class="mel-form-container"><div class="container"><div class="row justify-content-center"><div class="col-12 col-lg-10 col-xl-8">' . $form['#prefix'];
-    
-    if (!isset($form['#suffix'])) {
-      $form['#suffix'] = '';
-    }
-    $form['#suffix'] = $form['#suffix'] . '</div></div></div></div>';
-    
-    // Add wrapper for actions.
-    if (isset($form['actions']) && is_array($form['actions'])) {
-      if (!isset($form['actions']['#prefix'])) {
-        $form['actions']['#prefix'] = '';
-      }
-      $form['actions']['#prefix'] = '<div class="mel-form-actions mt-4 pt-4 border-top">' . $form['actions']['#prefix'];
-      
-      if (!isset($form['actions']['#suffix'])) {
-        $form['actions']['#suffix'] = '';
-      }
-      $form['actions']['#suffix'] = $form['actions']['#suffix'] . '</div>';
-    }
+
+  // Mark actions wrapper for styling (no structural wrappers injected).
+  if (isset($form['actions']) && is_array($form['actions'])) {
+    $form['actions']['#attributes']['class'][] = 'mel-form-actions';
   }
 }
 

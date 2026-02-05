@@ -5,26 +5,32 @@ namespace Drupal\myeventlane_event_attendees\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- *
+ * RSVP form: enforces event capacity server-side before submission.
  */
 final class RsvpForm extends FormBase {
 
   protected AttendanceManager $attendeeManager;
   protected AttendanceWaitlistManager $waitlistManager;
+  protected ?EventCapacityServiceInterface $capacityService;
   protected NodeInterface $event;
 
   /**
-   *
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     $instance = new static();
     $instance->attendeeManager = $container->get('myeventlane_event_attendees.manager');
     $instance->waitlistManager = $container->get('myeventlane_event_attendees.waitlist');
+    $instance->capacityService = $container->has('myeventlane_capacity.service')
+      ? $container->get('myeventlane_capacity.service') : NULL;
     return $instance;
   }
 
@@ -72,20 +78,37 @@ final class RsvpForm extends FormBase {
   }
 
   /**
-   *
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    if (!$this->capacityService) {
+      return;
+    }
+    try {
+      $this->capacityService->assertCanBook($this->event, 1);
+    }
+    catch (CapacityExceededException $e) {
+      $form_state->setErrorByName('', $this->t('This event is full. Join the waitlist?'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $capacity = (int) ($this->event->get('field_capacity')->value ?? 0);
-
-    $current = $this->attendeeManager->getConfirmedCount($this->event);
+    $current = $this->attendeeManager->getAttendeeCount((int) $this->event->id(), [EventAttendee::STATUS_CONFIRMED]);
     $is_full = $capacity > 0 && $current >= $capacity;
 
-    $attendee = $this->attendeeManager->create(
+    $name = trim($form_state->getValue('first_name') . ' ' . $form_state->getValue('last_name'));
+    $this->attendeeManager->createAttendance(
       $this->event,
-      $form_state->getValue('first_name'),
-      $form_state->getValue('last_name'),
-      $form_state->getValue('email'),
-      $is_full ? 'waitlist' : 'confirmed'
+      [
+        'name' => $name,
+        'email' => $form_state->getValue('email'),
+        'status' => $is_full ? EventAttendee::STATUS_WAITLIST : EventAttendee::STATUS_CONFIRMED,
+      ],
+      'rsvp'
     );
 
     if ($is_full) {

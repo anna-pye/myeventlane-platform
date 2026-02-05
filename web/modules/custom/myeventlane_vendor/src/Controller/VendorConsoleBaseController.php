@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
-use Symfony\Component\HttpFoundation\TrustedRedirectResponse;
+use Drupal\node\NodeInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -18,12 +19,22 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 abstract class VendorConsoleBaseController {
 
   /**
+   * The messenger service.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected readonly MessengerInterface $messenger;
+
+  /**
    * Constructs the base controller.
    */
   public function __construct(
     protected readonly DomainDetector $domainDetector,
     protected readonly AccountProxyInterface $currentUser,
-  ) {}
+    MessengerInterface $messenger,
+  ) {
+    $this->messenger = $messenger;
+  }
 
   /**
    * Ensures user and domain are allowed for vendor console.
@@ -199,10 +210,8 @@ abstract class VendorConsoleBaseController {
   /**
    * Asserts that the vendor has Stripe Connect configured.
    *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-   *   When Stripe is not connected.
-   * @throws \Symfony\Component\HttpFoundation\TrustedRedirectResponse
-   *   Redirects to Stripe onboarding if not connected.
+   * @throws \Drupal\Core\Form\EnforcedResponseException
+   *   Redirect to Stripe onboarding if not connected.
    */
   protected function assertStripeConnected(): void {
     // Administrators bypass this check.
@@ -213,17 +222,16 @@ abstract class VendorConsoleBaseController {
 
     $vendor = $this->getCurrentVendorOrNull();
     if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
-      // No vendor or no store - redirect to onboarding.
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
       $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new TrustedRedirectResponse($url->toString());
+      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
     }
 
     $store = $vendor->get('field_vendor_store')->entity;
     if (!$store) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
       $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new TrustedRedirectResponse($url->toString());
+      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
     }
 
     // Check if Stripe is connected.
@@ -232,7 +240,6 @@ abstract class VendorConsoleBaseController {
       $connected = (bool) $store->get('field_stripe_connected')->value;
     }
 
-    // Also check charges_enabled as a stronger indicator.
     if (!$connected && $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
       $connected = (bool) $store->get('field_stripe_charges_enabled')->value;
     }
@@ -240,7 +247,7 @@ abstract class VendorConsoleBaseController {
     if (!$connected) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
       $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new TrustedRedirectResponse($url->toString());
+      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
     }
   }
 
@@ -251,9 +258,6 @@ abstract class VendorConsoleBaseController {
    *   The messenger service.
    */
   protected function getMessenger(): MessengerInterface {
-    if (!isset($this->messenger)) {
-      $this->messenger = \Drupal::service('messenger');
-    }
     return $this->messenger;
   }
 

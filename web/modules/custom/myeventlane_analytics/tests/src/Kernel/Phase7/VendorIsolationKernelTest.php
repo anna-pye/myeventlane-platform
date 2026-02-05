@@ -67,13 +67,13 @@ final class VendorIsolationKernelTest extends AnalyticsKernelTestBase {
   }
 
   /**
-   * Vendor scope must fail-closed when multiple stores exist.
+   * Vendor scope succeeds when multiple stores exist; caller filters by store.
    */
-  public function testVendorScopeFailsClosedForMultipleStores(): void {
+  public function testVendorScopeSucceedsWithMultipleStores(): void {
     $vendor = $this->createUserAccount('vendor_multi_store');
 
-    $this->createOnlineStore($vendor, 'Vendor Store A');
-    $this->createOnlineStore($vendor, 'Vendor Store B');
+    $store_a = $this->createOnlineStore($vendor, 'Vendor Store A');
+    $store_b = $this->createOnlineStore($vendor, 'Vendor Store B');
 
     $this->switchToUser($vendor);
 
@@ -86,8 +86,9 @@ final class VendorIsolationKernelTest extends AnalyticsKernelTestBase {
       currency: 'AUD',
     );
 
-    $this->expectException(AccessDeniedAnalyticsException::class);
-    $service->getGrossRevenue($query);
+    // Must not throw; Phase 7 returns data for all vendor stores; callers filter.
+    $rows = $service->getGrossRevenue($query);
+    $this->assertIsArray($rows);
   }
 
 }

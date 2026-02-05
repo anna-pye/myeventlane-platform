@@ -6,12 +6,14 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -25,12 +27,14 @@ final class VendorBoostController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly BoostManager $boostManager,
     private readonly LoggerInterface $logger,
     private readonly BoostHelpContent $boostHelpContent,
+    private readonly EventStateResolverInterface $eventStateResolver,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**
@@ -69,6 +73,7 @@ final class VendorBoostController extends VendorConsoleBaseController {
       // Use canonical API to check boost status for each event.
       $boostStatus = $this->boostManager->getBoostStatusForEvent($eventNode);
       $isBoosted = $boostStatus['active'];
+      $eventState = $this->eventStateResolver->resolveState($eventNode);
 
       // Add to campaigns if actively boosted.
       if ($isBoosted) {
@@ -86,6 +91,7 @@ final class VendorBoostController extends VendorConsoleBaseController {
         'id' => $eventNode->id(),
         'title' => $eventNode->label(),
         'is_boosted' => $isBoosted,
+        'mel_event_state' => $eventState,
         'boost_url' => Url::fromRoute('myeventlane_boost.boost_page', ['node' => $eventNode->id()])->toString(),
       ];
     }

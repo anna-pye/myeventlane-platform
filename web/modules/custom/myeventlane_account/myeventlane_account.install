@@ -1,0 +1,171 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for MyEventLane Account module.
+ */
+
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_account_install(): void {
+  _myeventlane_account_ensure_form_display();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function myeventlane_account_update_10001(): string {
+  _myeventlane_account_ensure_form_display();
+  return 'Added inclusive customer profile fields (field_display_name, field_pronouns, field_city, field_accessibility_preferences).';
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function myeventlane_account_update_10002(): string {
+  _myeventlane_account_ensure_user_fields();
+  _myeventlane_account_ensure_form_display();
+  return 'Ensured user fields exist (safety net for config-managed fields).';
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Note: field_reviews_enabled is provisioned via config/install YAML.
+ * Permissions are defined in myeventlane_account.permissions.yml only;
+ * no automatic role grants.
+ */
+function myeventlane_account_update_10003(): string {
+  return 'Reviews scaffold: field_reviews_enabled and permissions now config-managed.';
+}
+
+/**
+ * Implements hook_update_N().
+ *
+ * Adds DB-level unique index on (uid, event_id) to prevent race-condition
+ * duplicate reviews.
+ */
+function myeventlane_account_update_10004(): string {
+  $schema = \Drupal::database()->schema();
+  $table = 'event_review';
+  $index = 'event_review_uid_event';
+
+  if ($schema->tableExists($table) && !$schema->indexExists($table, $index)) {
+    $schema->addUniqueKey($table, $index, ['uid', 'event_id']);
+  }
+
+  return 'Added unique index on event_review (uid, event_id).';
+}
+
+/**
+ * Ensures user entity fields exist (safety net when config not yet imported).
+ */
+function _myeventlane_account_ensure_user_fields(): void {
+  $fields = [
+    'field_display_name' => [
+      'storage' => ['type' => 'string', 'settings' => ['max_length' => 255]],
+      'instance' => [
+        'label' => 'Display name',
+        'description' => "This is the name shown on your account and in public interactions. It can be your name, nickname, or any name you're comfortable using.",
+        'required' => TRUE,
+      ],
+    ],
+    'field_pronouns' => [
+      'storage' => ['type' => 'string', 'settings' => ['max_length' => 64]],
+      'instance' => [
+        'label' => 'Pronouns',
+        'description' => "Share your pronouns if you'd like. This helps us communicate respectfully. You can leave this blank or change it anytime.",
+        'required' => FALSE,
+      ],
+    ],
+    'field_city' => [
+      'storage' => ['type' => 'string', 'settings' => ['max_length' => 255]],
+      'instance' => [
+        'label' => 'City',
+        'description' => "Helps us show you nearby events. You can update or remove this at any time.",
+        'required' => FALSE,
+      ],
+    ],
+    'field_accessibility_preferences' => [
+      'storage' => ['type' => 'text_long', 'settings' => []],
+      'instance' => [
+        'label' => 'Accessibility preferences',
+        'description' => "Let us know if there's anything that helps you have a better experience. This is private and only used to improve accessibility where possible.",
+        'required' => FALSE,
+      ],
+    ],
+  ];
+
+  foreach ($fields as $fieldName => $def) {
+    if (!FieldStorageConfig::loadByName('user', $fieldName)) {
+      FieldStorageConfig::create([
+        'field_name' => $fieldName,
+        'entity_type' => 'user',
+        'type' => $def['storage']['type'],
+        'settings' => $def['storage']['settings'] ?? [],
+        'cardinality' => 1,
+      ])->save();
+    }
+
+    if (!FieldConfig::loadByName('user', 'user', $fieldName)) {
+      FieldConfig::create([
+        'field_name' => $fieldName,
+        'entity_type' => 'user',
+        'bundle' => 'user',
+        'label' => $def['instance']['label'],
+        'description' => $def['instance']['description'],
+        'required' => $def['instance']['required'] ?? FALSE,
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Ensures user form display includes customer profile fields.
+ */
+function _myeventlane_account_ensure_form_display(): void {
+  $formDisplay = EntityFormDisplay::load('user.user.default');
+  if (!$formDisplay) {
+    return;
+  }
+
+  $components = [
+    'field_display_name' => [
+      'type' => 'string_textfield',
+      'weight' => -9,
+      'region' => 'content',
+      'settings' => ['size' => 60, 'placeholder' => ''],
+    ],
+    'field_pronouns' => [
+      'type' => 'string_textfield',
+      'weight' => -8,
+      'region' => 'content',
+      'settings' => ['size' => 60, 'placeholder' => 'e.g. they/them, she/her, he/him'],
+    ],
+    'field_city' => [
+      'type' => 'string_textfield',
+      'weight' => -7,
+      'region' => 'content',
+      'settings' => ['size' => 60, 'placeholder' => ''],
+    ],
+    'field_accessibility_preferences' => [
+      'type' => 'text_textarea',
+      'weight' => 7,
+      'region' => 'content',
+      'settings' => ['rows' => 4, 'placeholder' => ''],
+    ],
+  ];
+
+  foreach ($components as $fieldName => $component) {
+    if (\Drupal::entityTypeManager()->getStorage('field_config')->load('user.user.' . $fieldName)) {
+      $formDisplay->setComponent($fieldName, $component);
+    }
+  }
+
+  $formDisplay->save();
+}

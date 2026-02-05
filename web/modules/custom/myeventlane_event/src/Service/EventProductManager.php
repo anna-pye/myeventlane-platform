@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Service;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductVariation;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -203,14 +204,7 @@ final class EventProductManager {
    *   The created product, or NULL on failure.
    */
   private function createRsvpProduct(NodeInterface $event): ?object {
-    $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
-    $stores = $storeStorage->loadByProperties(['is_default' => TRUE]);
-    $store = reset($stores);
-
-    if (!$store) {
-      $stores = $storeStorage->loadMultiple();
-      $store = reset($stores);
-    }
+    $store = $this->resolveEventStore($event);
 
     if (!$store) {
       $this->loggerFactory->get('myeventlane_event')->error(
@@ -319,6 +313,42 @@ final class EventProductManager {
     $price = $variation->getPrice();
 
     return $price && $price->getNumber() === '0';
+  }
+
+  /**
+   * Resolves the store for an event (vendor store or default).
+   *
+   * Uses field_event_store first; if empty, field_event_vendor → field_vendor_store.
+   * Falls back to default Commerce store when the event has no store assigned.
+   */
+  private function resolveEventStore(NodeInterface $event): ?StoreInterface {
+    $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
+
+    if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+      $store = $event->get('field_event_store')->entity;
+      if ($store instanceof StoreInterface) {
+        return $store;
+      }
+    }
+
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface) {
+          return $store;
+        }
+      }
+    }
+
+    $stores = $storeStorage->loadByProperties(['is_default' => TRUE]);
+    $store = reset($stores);
+    if ($store instanceof StoreInterface) {
+      return $store;
+    }
+
+    $stores = $storeStorage->loadMultiple();
+    return reset($stores) ?: NULL;
   }
 
 }

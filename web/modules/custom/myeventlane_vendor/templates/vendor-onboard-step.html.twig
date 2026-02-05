@@ -3,14 +3,18 @@
  * @file
  * Template for vendor onboarding step pages.
  *
- * Available variables:
- * - step_number: Current step number (1-6)
- * - total_steps: Total number of steps (6)
- * - step_title: Title for this step
- * - step_description: Description text for this step
- * - content: Render array for step content
+ * Uses render element 'form' so the element (form or controller render array)
+ * is passed directly. This ensures form_build_id, form_token, form_id render
+ * correctly in context (copied elements lose #name, placeholder replacement).
+ *
+ * Available: form (the element with #step_number, #step_title, etc., and
+ * optionally form.form_build_id, form.form_token, form.form_id, form.step_content).
  */
 #}
+{% set step_number = form['#step_number'] ?? 1 %}
+{% set total_steps = form['#total_steps'] ?? 5 %}
+{% set step_title = form['#step_title'] ?? '' %}
+{% set step_description = form['#step_description'] ?? null %}
 {% set back_route = null %}
 {% if step_number == 2 %}
   {% set back_route = 'myeventlane_vendor.onboard.account' %}
@@ -25,7 +29,7 @@
 {% endif %}
 <div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
   <div class="mel-container mel-container--onboard">
-    
+
     {# Progress indicator #}
     <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
       <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
@@ -46,9 +50,12 @@
       {% endif %}
     </div>
 
-    {# Step content #}
+    {# Step content - render form children in context (form_build_id, form_token, form_id, step_content) or #content for controllers #}
     <div class="mel-onboard-content">
-      {{ content }}
+      {% if form.form_build_id is defined %}{{ form.form_build_id }}{% endif %}
+      {% if form.form_token is defined %}{{ form.form_token }}{% endif %}
+      {% if form.form_id is defined %}{{ form.form_id }}{% endif %}
+      {{ form.step_content|default(form['#content']) }}
     </div>
 
     {# Navigation (if needed) #}
@@ -62,20 +69,3 @@
 
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

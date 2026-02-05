@@ -1,197 +1,83 @@
 {#
-/**
- * @file
- * Email template for weekly category digest.
- *
- * Available variables:
- * - user: The user receiving the digest.
- * - events_by_category: Array of events grouped by category.
- */
+  MyEventLane Category Digest Email (inner-body-only)
+  Wrapper is provided by Mime Mail theme override (mimemail-message.html.twig)
+  Data: events_by_category = { categoryId => { category, events } }
 #}
-<style>
-  body {
-    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #fef5ec;
-    padding: 24px;
-    margin: 0;
-  }
-  .wrap {
-    background: white;
-    border-radius: 16px;
-    padding: 32px;
-    max-width: 600px;
-    margin: 0 auto;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  h1 {
-    font-size: 28px;
-    font-weight: 700;
-    color: #293241;
-    margin: 0 0 16px 0;
-  }
-  .intro {
-    color: #666;
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 32px;
-  }
-  .category-section {
-    margin-bottom: 40px;
-    padding-bottom: 32px;
-    border-bottom: 2px solid #f0f0f0;
-  }
-  .category-section:last-child {
-    border-bottom: none;
-  }
-  .category-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #293241;
-    margin: 0 0 20px 0;
-  }
-  .event {
-    background: #fafafa;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-    border-left: 4px solid #ff6f61;
-  }
-  .event.featured {
-    background: linear-gradient(135deg, #fff5f3 0%, #fafafa 100%);
-    border-left-color: #ff6f61;
-  }
-  .event-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #293241;
-    margin: 0 0 12px 0;
-  }
-  .event-title a {
-    color: #293241;
-    text-decoration: none;
-  }
-  .event-title a:hover {
-    color: #ff6f61;
-  }
-  .event-meta {
-    color: #666;
-    font-size: 14px;
-    margin-bottom: 16px;
-    line-height: 1.8;
-  }
-  .event-meta-item {
-    margin-bottom: 4px;
-  }
-  .featured-badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #ff6f61 0%, #ff8c7a 100%);
-    color: white;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-  }
-  .event-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-  }
-  .btn-primary {
-    background: #ff6f61;
-    color: white;
-  }
-  .btn-primary:hover {
-    background: #ff5a4a;
-  }
-  .btn-link {
-    color: #ff6f61;
-    text-decoration: underline;
-  }
-  .footer {
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid #e0e0e0;
-    text-align: center;
-    color: #999;
-    font-size: 12px;
-  }
-</style>
 
-<div class="wrap">
-  <h1>📅 Weekly Event Digest</h1>
-  <p class="intro">
-    Hi {{ user.name.value }},<br>
-    Here are new events this week in the categories you follow:
+{% if user is defined and user %}
+  <p style="margin: 0 0 12px 0;">
+    Hi {{ user.name.value|default('there') }},
   </p>
+{% endif %}
 
+{% if intro is defined and intro %}
+  <p style="margin: 0 0 16px 0;">
+    {{ intro }}
+  </p>
+{% else %}
+  <p style="margin: 0 0 16px 0;">
+    Here are new events in the categories you follow.
+  </p>
+{% endif %}
+
+{% if events_by_category is defined and events_by_category %}
   {% for category_data in events_by_category %}
-    <div class="category-section">
-      <h2 class="category-title">{{ category_data.category.label }}</h2>
+    <div style="margin: 18px 0 10px 0;">
+      <div style="font-weight: 700; font-size: 16px; line-height: 1.2; margin: 0 0 8px 0;">
+        {{ category_data.category.label|default('Events') }}
+      </div>
 
-      {% for event in category_data.events %}
-        <div class="event{% if event.is_boosted %} featured{% endif %}">
-          {% if event.is_boosted %}
-            <span class="featured-badge">⭐ Featured</span>
-          {% endif %}
-          <h3 class="event-title">
-            <a href="{{ event.url }}">{{ event.title }}</a>
-          </h3>
-          <div class="event-meta">
-            {% if event.start_date %}
-              <div class="event-meta-item">
-                <strong>📅 Date:</strong> {{ event.start_date }}{% if event.start_time %} at {{ event.start_time }}{% endif %}
-              </div>
-            {% endif %}
-            {% if event.venue %}
-              <div class="event-meta-item">
-                <strong>📍 Venue:</strong> {{ event.venue }}
-              </div>
-            {% endif %}
-          </div>
-          <div class="event-actions">
-            <a href="{{ event.url }}" class="btn btn-primary">View Event</a>
-            {% if event.ics_url %}
-              <a href="{{ event.ics_url }}" class="btn btn-link">Add to Calendar</a>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
+      {% if category_data.events %}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
+          {% for event in category_data.events %}
+            <tr>
+              <td style="padding: 10px 0; border-top: 1px solid rgba(0,0,0,0.06);">
+                <div style="font-weight: 700; margin: 0 0 4px 0;">
+                  {% if event.url is defined and event.url %}
+                    <a href="{{ event.url }}" style="color:#2c3e50; text-decoration: none;">
+                      {{ event.title|default('Event') }}
+                    </a>
+                  {% else %}
+                    {{ event.title|default('Event') }}
+                  {% endif %}
+                </div>
+
+                {% set when_bits = [] %}
+                {% if event.start_date is defined and event.start_date %}{% set when_bits = when_bits|merge([event.start_date]) %}{% endif %}
+                {% if event.start_time is defined and event.start_time %}{% set when_bits = when_bits|merge([event.start_time]) %}{% endif %}
+
+                {% set where_bits = [] %}
+                {% if event.venue is defined and event.venue %}{% set where_bits = where_bits|merge([event.venue]) %}{% endif %}
+                {% if event.location is defined and event.location %}{% set where_bits = where_bits|merge([event.location]) %}{% endif %}
+
+                {% if when_bits|length %}
+                  <div style="font-size: 14px; opacity: 0.9; margin: 0 0 2px 0;">
+                    {{ when_bits|join(' • ') }}
+                  </div>
+                {% endif %}
+
+                {% if where_bits|length %}
+                  <div style="font-size: 14px; opacity: 0.85; margin: 0;">
+                    {{ where_bits|join(' • ') }}
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p style="margin: 0 0 8px 0; opacity: 0.85;">No new events this period.</p>
+      {% endif %}
     </div>
   {% endfor %}
+{% else %}
+  <p style="margin: 0 0 12px 0;">
+    No new events in your followed categories right now.
+  </p>
+{% endif %}
 
-  <div class="footer">
-    <p>You're receiving this because you follow these categories on MyEventLane.</p>
-    <p><a href="{{ url('<front>', {'absolute': true}) }}">Visit MyEventLane</a> | <a href="{{ url('myeventlane_core.my_categories', {'absolute': true}) }}">Manage Categories</a></p>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+{% if footer_note is defined and footer_note %}
+  <p style="margin: 16px 0 0 0; font-size: 12px; opacity: 0.85;">
+    {{ footer_note }}
+  </p>
+{% endif %}

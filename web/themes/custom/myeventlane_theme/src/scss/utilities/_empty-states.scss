@@ -1,0 +1,79 @@
+// ==========================================================================
+// Empty State Styling (CSS-only)
+// ==========================================================================
+// Styles existing Drupal markup (e.g. Views `.view-empty`) without adding copy.
+// Friendly tone comes from typography + spacing, not hardcoded strings.
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+
+// Listing empty state (category, events, search).
+.mel-empty-state--listing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: spacing.mel-space(8) spacing.mel-space(4);
+  margin: spacing.mel-space(4) 0;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-sm;
+  text-align: center;
+
+  .mel-empty-state__image {
+    margin-bottom: spacing.mel-space(4);
+
+    img {
+      max-width: 240px;
+      height: auto;
+    }
+  }
+
+  .mel-empty-state__title {
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(2);
+  }
+
+  .mel-empty-state__text {
+    font-size: typography.mel-font-size(base);
+    color: colors.$mel-color-text-muted;
+    margin: 0 0 spacing.mel-space(4);
+    max-width: 32rem;
+  }
+}
+
+// Views empty output (when present).
+.view-empty {
+  padding: spacing.mel-space(7) spacing.mel-space(4);
+  margin: spacing.mel-space(4) 0;
+
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-sm;
+
+  text-align: center;
+
+  p {
+    margin: 0;
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(base);
+    line-height: typography.$mel-leading-relaxed;
+  }
+
+  a {
+    color: colors.$mel-color-primary;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+  }
+}
+

@@ -50,8 +50,12 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
    * {@inheritdoc}
    */
   public function process(OrderInterface $order): void {
-    $percent = (float) ($this->configFactory->get('myeventlane_core.settings')
-      ->get('platform_fee_percent') ?? 5);
+    $settings = $this->configFactory->get('myeventlane_core.settings');
+    if ($settings->get('fee_payer') === 'organizer_absorbs') {
+      return;
+    }
+
+    $percent = (float) ($settings->get('platform_fee_percent') ?? 5);
 
     if ($percent <= 0) {
       return;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\node\NodeInterface;
 
@@ -20,9 +21,12 @@ final class VendorEventTabsService {
    *
    * @param \Drupal\myeventlane_event\Service\EventModeManager $eventModeManager
    *   The event mode manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   *   The module handler.
    */
   public function __construct(
     private readonly EventModeManager $eventModeManager,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -44,6 +48,11 @@ final class VendorEventTabsService {
     $all = [
       'overview' => ['label' => 'Overview', 'url' => "/vendor/events/{$id}/overview", 'key' => 'overview'],
       'orders' => ['label' => 'Orders', 'url' => "/vendor/events/{$id}/orders", 'key' => 'orders'],
+      'refund_requests' => [
+        'label' => 'Refund requests',
+        'url' => "/vendor/events/{$id}/refund-requests",
+        'key' => 'refund_requests',
+      ],
       'tickets' => ['label' => 'Tickets', 'url' => "/vendor/events/{$id}/tickets", 'key' => 'tickets'],
       'attendees' => ['label' => 'Attendees', 'url' => "/vendor/events/{$id}/attendees", 'key' => 'attendees'],
       'rsvps' => ['label' => 'RSVPs', 'url' => "/vendor/events/{$id}/rsvps", 'key' => 'rsvps'],
@@ -54,6 +63,11 @@ final class VendorEventTabsService {
 
     $tabs = [];
     foreach ($all as $key => $tab) {
+      if ($key === 'refund_requests') {
+        if (!$this->moduleHandler->moduleExists('myeventlane_refunds') || !$isTickets) {
+          continue;
+        }
+      }
       if ($key === 'orders' || $key === 'tickets' || $key === 'boost') {
         if (!$isTickets) {
           continue;

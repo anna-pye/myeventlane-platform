@@ -1,0 +1,11 @@
+name: 'MyEventLane Page Visuals'
+type: module
+description: 'Centralized, admin-configurable Page Visuals Manager. Assigns hero/illustration images to system routes (homepage, search, events, calendar, vendors, support) via route name. Uses Media entities; no hardcoded paths.'
+package: MyEventLane
+core_version_requirement: ^11
+
+dependencies:
+  - drupal:file
+  - drupal:media
+  - drupal:media_library
+  - myeventlane_core:myeventlane_core

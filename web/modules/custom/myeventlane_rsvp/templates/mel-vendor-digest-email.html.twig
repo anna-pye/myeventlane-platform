@@ -1,31 +1,58 @@
-<style>
-  body { font-family: Nunito, sans-serif; background: #fef5ec; padding: 24px; }
-  .wrap { background: white; border-radius: 16px; padding: 24px; }
-  .event { border-bottom: 1px solid #eee; padding: 16px 0; }
-  .event:last-child { border-bottom: none; }
-  .title { font-size: 20px; font-weight: 700; color: #293241; }
-  .meta { color: #555; margin: 4px 0 8px; }
-  .badge { background: #f26d5b; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
-</style>
+{#
+  Vendor RSVP Digest Email (inner-body-only)
+  Wrapper provided by Mime Mail theme override (mimemail-message.html.twig)
+  Variables: vendor_name, intro, events (each: title, url, start, end, venue, address, rsvps, waitlist, sales)
+#}
 
-<div class="wrap">
-  <h2>Good morning — here’s your event digest ☀️</h2>
+{% if vendor_name is defined and vendor_name %}
+  <p style="margin: 0 0 12px 0;">
+    Hi {{ vendor_name }},
+  </p>
+{% endif %}
 
-  {% for e in events %}
-    <div class="event">
-      <div class="title"><a href="{{ e.url }}">{{ e.title }}</a></div>
+{% if intro is defined and intro %}
+  <p style="margin: 0 0 14px 0;">
+    {{ intro }}
+  </p>
+{% else %}
+  <p style="margin: 0 0 14px 0;">
+    Here is your RSVP summary.
+  </p>
+{% endif %}
 
-      <div class="meta">
-        {{ e.start }} → {{ e.end }} — {{ e.venue }}
-      </div>
-
-      <div>{{ e.address }}</div>
-
-      <p>
-        <span class="badge">{{ e.rsvps }} RSVPs</span>
-        <span class="badge">{{ e.waitlist }} Waitlist</span>
-        <span class="badge">{{ e.sales }} Tickets Sold</span>
-      </p>
-    </div>
-  {% endfor %}
-</div>
+{% if events is defined and events %}
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse: collapse;">
+    {% for event in events %}
+      <tr>
+        <td style="padding: 10px 0; border-top: 1px solid rgba(0,0,0,0.06);">
+          <div style="font-weight:700; margin: 0 0 4px 0;">
+            {% if event.url is defined and event.url %}
+              <a href="{{ event.url }}" style="color:#2c3e50; text-decoration:none;">
+                {{ event.title|default('Event') }}
+              </a>
+            {% else %}
+              {{ event.title|default('Event') }}
+            {% endif %}
+          </div>
+          {% if event.start is defined or event.venue is defined %}
+            <div style="font-size: 14px; opacity: 0.9; margin: 0 0 2px 0;">
+              {% if event.start %}{{ event.start }}{% if event.end %} → {{ event.end }}{% endif %}{% endif %}
+              {% if event.venue %} — {{ event.venue }}{% endif %}
+            </div>
+          {% endif %}
+          {% if event.rsvps is defined or event.waitlist is defined or event.sales is defined %}
+            <div style="font-size: 14px; opacity: 0.85; margin: 0;">
+              {% if event.rsvps is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.rsvps }} RSVPs</span>{% endif %}
+              {% if event.waitlist is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.waitlist }} Waitlist</span>{% endif %}
+              {% if event.sales is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px;">{{ event.sales }} Tickets Sold</span>{% endif %}
+            </div>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p style="margin: 0;">
+    No new RSVPs in this period.
+  </p>
+{% endif %}

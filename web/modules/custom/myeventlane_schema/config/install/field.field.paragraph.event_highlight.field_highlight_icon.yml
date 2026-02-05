@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_highlight_icon
+    - paragraphs.paragraphs_type.event_highlight
+  module:
+    - options
+id: paragraph.event_highlight.field_highlight_icon
+field_name: field_highlight_icon
+entity_type: paragraph
+bundle: event_highlight
+label: 'Highlight icon'
+description: 'Optional icon key for this highlight.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string
+

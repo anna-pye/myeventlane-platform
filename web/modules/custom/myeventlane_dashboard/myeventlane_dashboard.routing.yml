@@ -1,6 +1,17 @@
 # NOTE: Vendor dashboard is now handled by myeventlane_vendor module.
 # Route myeventlane_vendor.console.dashboard at /vendor/dashboard
 
+# Legacy /dashboard path — redirects to vendor dashboard.
+# Header links to /dashboard; this prevents 404.
+myeventlane_dashboard.legacy_redirect:
+  path: '/dashboard'
+  defaults:
+    _controller: '\Drupal\myeventlane_dashboard\Controller\VendorDashboardController::legacyRedirect'
+    _title: 'Dashboard'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
 # Customer "My Events" dashboard.
 myeventlane_dashboard.customer:
   path: '/my-events'

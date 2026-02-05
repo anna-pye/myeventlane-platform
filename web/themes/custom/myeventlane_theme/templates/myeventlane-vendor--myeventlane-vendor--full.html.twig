@@ -27,9 +27,19 @@
   {% endif %}
 
   <section class="vendor-profile__events" aria-labelledby="vendor-events-heading">
-    <h2 id="vendor-events-heading">Upcoming events</h2>
+    <h2 id="vendor-events-heading">{{ 'Upcoming events'|t }}</h2>
 
-    {# Embed the views block for vendor upcoming events #}
-    {{ drupal_block('views_block:vendor_upcoming_events-block_1', {'arg_0': entity.id()}) }}
+    {#
+      Events listing MUST be provided by a placed Views block (Layout Builder or
+      block placement) for cache safety and to avoid hard Twig dependencies.
+      This template intentionally does not embed blocks programmatically.
+    #}
+    {% if content.field_vendor_events is defined %}
+      {{ content.field_vendor_events }}
+    {% else %}
+      <div class="vendor-profile__events-placeholder">
+        {{ 'Events will appear here.'|t }}
+      </div>
+    {% endif %}
   </section>
 </article>

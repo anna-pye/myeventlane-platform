@@ -71,12 +71,19 @@
 @use 'components/alerts';
 @use 'components/tables';
 @use 'components/header';
+@use 'components/site-header';
+@use 'components/mobile-drawer';
 @use 'components/mel-header-footer';
 @use 'components/hero';
 @use 'components/home-hero';
+@use 'components/featured-events';
 @use 'components/event-grid';
 @use 'components/vibe-mixer';
 @use 'components/featured-carousel';
+@use 'components/featured-badge';
+@use 'components/event-card';
+@use 'components/event-card-poster';
+@use 'components/event-card-compact';
 @use 'components/event-page';
 @use 'components/event-full' as event_full_component;
 @use 'components/event-node';
@@ -89,18 +96,26 @@
 @use 'components/mel-page-header';
 @use 'components/event-type-pill';
 @use 'components/rsvp';
-@use 'components/cart';
-@use 'components/checkout';
+@use 'components/toasts';
+@use 'commerce/commerce';
 @use 'components/search-form';
 @use 'components/footer';
 @use 'components/vendor-detail';
 @use 'components/feature-block';
 @use 'components/taxonomy-tags';
 @use 'components/wizard';
+@use 'components/wizard-review';
+@use 'components/wizard-step-card';
 @use 'components/ticket-types';
 @use 'components/diagnostics';
 @use 'components/vendor-profile';
 @use 'components/card-carousel/card-carousel';
+@use 'onboarding/onboarding-shell';
+@use 'onboarding/onboarding-progress';
+@use 'onboarding/onboarding-start';
+@use 'onboarding/onboarding-forms';
+@use 'onboarding/onboarding-footer';
+@use 'vendor/vendor-dashboard-onboarding';
 
 // ---------------------------------------------------------------------------
 // 6. Pages
@@ -110,6 +125,7 @@
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
 @use 'pages/event';
+@use 'pages/event-book';
 @use 'pages/event-form';
 @use 'pages/dashboard';
 @use 'pages/user';
@@ -117,10 +133,14 @@
 @use 'pages/vendor-form';
 @use 'pages/search';
 @use 'pages/profile';
+@use 'pages/my-account';
 
 // ---------------------------------------------------------------------------
 // 7. Utilities
 // ---------------------------------------------------------------------------
 // Helper classes (spacing, visibility, etc.).
 
+@use 'utilities/motion';
+@use 'utilities/skeletons';
+@use 'utilities/empty-states';
 @use 'utilities/spacing' as space-utils;

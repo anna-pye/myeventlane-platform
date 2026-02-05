@@ -28,7 +28,7 @@ onboarding:
       css/onboarding.css: {}
   dependencies:
     - core/drupal
-    - myeventlane_theme/global-styling
+    - myeventlane_vendor_theme/global-styling
 
 bulk_actions:
   version: 1.x
@@ -46,6 +46,8 @@ vendor_settings:
   css:
     component:
       css/vendor-settings.css: {}
+  js:
+    js/fix-form-action.js: {}
   dependencies:
     - core/drupal
     - core/drupal.vertical_tabs

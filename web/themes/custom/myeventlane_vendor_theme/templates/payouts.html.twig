@@ -24,8 +24,8 @@
       <div class="mel-card__title">{{ 'Actions'|t }}</div>
     </div>
     <div class="mel-list mel-list--actions">
-      <a class="mel-list__item" href="/vendor/stripe/connect">{{ 'Connect Stripe'|t }}</a>
-      <a class="mel-list__item" href="/vendor/stripe/manage">{{ 'Open Stripe dashboard'|t }}</a>
+      <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_connect') }}">{{ 'Connect Stripe'|t }}</a>
+      <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_manage') }}">{{ 'Open Stripe dashboard'|t }}</a>
     </div>
   </div>
 </div>

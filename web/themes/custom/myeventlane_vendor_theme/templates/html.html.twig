@@ -9,38 +9,10 @@
 <!DOCTYPE html>
 <html{{ html_attributes }}>
   <head>
-    <head-placeholder token="{{ placeholder_token }}">
+    <head-placeholder token="{{ placeholder_token|raw }}">
     <title>{{ head_title|safe_join(' | ') }}</title>
-    <css-placeholder token="{{ placeholder_token }}">
-    <js-placeholder token="{{ placeholder_token }}">
-    <style>
-      /* Force hide any menus that appear before the vendor shell */
-      body.mel-vendor-theme > ul,
-      body.mel-vendor-theme > nav,
-      body.mel-vendor-theme > div > ul.menu,
-      body.mel-vendor-theme > header:not(.mel-vendor-shell__header),
-      body.mel-vendor-theme .region-header,
-      body.mel-vendor-theme #block-myeventlane-vendor-theme-main-menu,
-      body.mel-vendor-theme .block-system-menu-block,
-      body.mel-vendor-theme .menu--vendor,
-      body.mel-vendor-theme .block-menu,
-      .toolbar-oriented,
-      body.mel-vendor-theme > .dialog-off-canvas-main-canvas > ul,
-      body.mel-vendor-theme > .dialog-off-canvas-main-canvas > nav,
-      body.mel-vendor-theme > .dialog-off-canvas-main-canvas > header:first-child,
-      body.mel-vendor-theme .layout-container > header:first-child,
-      body.mel-vendor-theme .layout-container > nav:first-child,
-      #block-myeventlane-vendor-theme-vendormenu,
-      .block-myeventlane-vendor-menu {
-        display: none !important;
-      }
-      
-      /* Ensure the vendor shell is the first visible element */
-      body.mel-vendor-theme > .dialog-off-canvas-main-canvas > .mel-vendor-shell,
-      body.mel-vendor-theme .mel-vendor-shell {
-        display: grid !important;
-      }
-    </style>
+    <css-placeholder token="{{ placeholder_token|raw }}">
+    <js-placeholder token="{{ placeholder_token|raw }}">
   </head>
   <body{{ attributes.addClass('mel-vendor-theme') }}>
     {#
@@ -53,7 +25,7 @@
     {{ page_top }}
     {{ page }}
     {{ page_bottom }}
-    <js-bottom-placeholder token="{{ placeholder_token }}">
+    <js-bottom-placeholder token="{{ placeholder_token|raw }}">
   </body>
 </html>
 

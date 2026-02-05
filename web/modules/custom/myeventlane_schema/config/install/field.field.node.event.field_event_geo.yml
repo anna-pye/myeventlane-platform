@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_geo
+    - node.type.event
+  module:
+    - geofield
+id: node.event.field_event_geo
+field_name: field_event_geo
+entity_type: node
+bundle: event
+label: 'Event geo'
+description: 'Canonical event geolocation (POINT).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  backend: geofield_backend_default
+field_type: geofield
+

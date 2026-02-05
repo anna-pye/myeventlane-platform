@@ -1,12 +1,11 @@
 name: MyEventLane Admin
 type: theme
-base theme: stable9
+base theme: claro
 core_version_requirement: ^11
-description: 'Bootstrap 5 admin theme for vendor and admin workflows in MyEventLane'
+description: 'Minimal admin UX layer for MyEventLane (Claro-based)'
 version: 1.0.0
 
 libraries:
-  - myeventlane_admin/bootstrap
   - myeventlane_admin/admin
 
 regions:

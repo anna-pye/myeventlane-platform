@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\CategoryAudienceService;
@@ -18,8 +19,13 @@ final class VendorAudienceController extends VendorConsoleBaseController {
   /**
    * Constructs the controller.
    */
-  public function __construct(DomainDetector $domain_detector, AccountProxyInterface $current_user, private readonly CategoryAudienceService $categoryAudienceService) {
-    parent::__construct($domain_detector, $current_user);
+  public function __construct(
+    DomainDetector $domain_detector,
+    AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
+    private readonly CategoryAudienceService $categoryAudienceService,
+  ) {
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**

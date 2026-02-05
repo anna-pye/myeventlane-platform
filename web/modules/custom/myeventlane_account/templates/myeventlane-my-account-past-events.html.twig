@@ -1,0 +1,96 @@
+{#
+/**
+ * @file
+ * Customer Past Events page template.
+ *
+ * Variables:
+ * - display_name: User display name (for header).
+ * - logo_url: URL to MEL logo.
+ * - avatar_url: URL to user picture.
+ * - avatar_initials: Fallback initials.
+ * - past_events: Array of past event data.
+ * - account_links: Array of nav links.
+ * - show_review_cta: Boolean feature flag.
+ * - review_eligible: Map of event_id => bool.
+ */
+#}
+
+<div class="mel-my-account">
+  <div class="mel-my-account__layout">
+    {# Left navigation #}
+    <nav class="mel-my-account__nav" aria-label="{{ 'Account navigation'|t }}">
+      <div class="mel-my-account__nav-card">
+        <ul class="mel-my-account__nav-list">
+          {% for link in account_links %}
+            <li class="mel-my-account__nav-item">
+              <a href="{{ link.url }}" class="mel-my-account__nav-link{% if link.active %} mel-my-account__nav-link--active{% endif %}"
+                 {% if link.active %}aria-current="page"{% endif %}>
+                {{ link.title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </nav>
+
+    {# Main content #}
+    <main class="mel-my-account__main">
+      {# Header row #}
+      <header class="mel-my-account__header">
+        <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
+          {% if logo_url %}
+            <img src="{{ logo_url }}" alt="" width="32" height="32" />
+          {% else %}
+            <span class="mel-my-account__logo-text">MyEventLane</span>
+          {% endif %}
+        </a>
+        <h1 class="mel-my-account__welcome">{{ 'Past Events'|t }}</h1>
+        <div class="mel-my-account__avatar" aria-hidden="true">
+          {% if avatar_url %}
+            <img src="{{ avatar_url }}" alt="" width="44" height="44" />
+          {% else %}
+            <span class="mel-my-account__avatar-initials">{{ avatar_initials }}</span>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if past_events is not empty %}
+        <div class="mel-my-account__cards">
+          {% for event in past_events %}
+            <article class="mel-card mel-my-account__card mel-my-account__card--past">
+              <a href="{{ event.url }}" class="mel-card__link">
+                <div class="mel-card__media{% if not event.image_url %} mel-card__media--placeholder{% endif %}" aria-hidden="true">
+                  {% if event.image_url %}
+                    <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__media--placeholder');" />
+                  {% endif %}
+                </div>
+              </a>
+              <div class="mel-card__body">
+                <h2 class="mel-card__title">
+                  <a href="{{ event.url }}">{{ event.title }}</a>
+                </h2>
+                <div class="mel-my-account__event-meta">
+                  {% if event.start_date %}
+                    <time datetime="{{ event.start_date }}">{{ event.start_date }}</time>
+                  {% endif %}
+                  {% if event.location %}
+                    <span class="mel-my-account__event-location">{{ event.location }}</span>
+                  {% endif %}
+                </div>
+                <div class="mel-my-account__card-actions">
+                  <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
+                  {% if show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
+                    <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Leave a review'|t }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="mel-my-account__empty">{{ "No past events yet — once you've attended something, it'll show up here."|t }}</p>
+        <a href="{{ path('<front>') }}" class="mel-btn mel-btn--primary">{{ 'Browse events'|t }}</a>
+      {% endif %}
+    </main>
+  </div>
+</div>

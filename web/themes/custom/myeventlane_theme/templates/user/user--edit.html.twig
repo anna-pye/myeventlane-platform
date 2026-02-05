@@ -19,6 +19,32 @@
 
     {# Profile Cards Grid #}
     <div class="mel-profile-grid">
+
+      {# About You Card (display name, pronouns, city) #}
+      {% if form.field_display_name or form.field_pronouns or form.field_city %}
+        <div class="mel-profile-card">
+          <div class="mel-profile-card-header">
+            <div class="mel-profile-card-icon mel-profile-card-icon--profile">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 21c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h2 class="mel-profile-card-title">{{ 'About you'|t }}</h2>
+          </div>
+          <div class="mel-profile-card-body">
+            {% if form.field_display_name %}
+              {{ form.field_display_name }}
+            {% endif %}
+            {% if form.field_pronouns %}
+              {{ form.field_pronouns }}
+            {% endif %}
+            {% if form.field_city %}
+              {{ form.field_city }}
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
       
       {# Account Information Card #}
       <div class="mel-profile-card">
@@ -42,6 +68,7 @@
           {% if form.account %}
             {{ form.account }}
           {% endif %}
+          <p class="mel-profile-privacy-note">{{ 'Your email is never shown publicly.'|t }}</p>
         </div>
       </div>
 
@@ -65,7 +92,7 @@
       </div>
 
       {# Preferences Card #}
-      {% if form.contact or form.timezone or form.language %}
+      {% if form.field_accessibility_preferences or form.contact or form.timezone or form.language %}
         <div class="mel-profile-card">
           <div class="mel-profile-card-header">
             <div class="mel-profile-card-icon mel-profile-card-icon--settings">
@@ -76,6 +103,12 @@
             <h2 class="mel-profile-card-title">{{ 'Preferences'|t }}</h2>
           </div>
           <div class="mel-profile-card-body">
+            {% if form.field_accessibility_preferences %}
+              <div class="mel-profile-section">
+                <h3 class="mel-profile-section-title">{{ 'Accessibility preferences'|t }}</h3>
+                {{ form.field_accessibility_preferences }}
+              </div>
+            {% endif %}
             {% if form.contact %}
               <div class="mel-profile-section">
                 <h3 class="mel-profile-section-title">{{ 'Contact Preferences'|t }}</h3>
@@ -108,7 +141,7 @@
     </div>
 
     {# Render any remaining form elements (hidden fields, tokens, etc.) #}
-    {{ form|without('account', 'user_picture', 'contact', 'timezone', 'language', 'actions', 'form_build_id', 'form_token', 'form_id') }}
+    {{ form|without('account', 'user_picture', 'contact', 'timezone', 'language', 'actions', 'field_display_name', 'field_pronouns', 'field_city', 'field_accessibility_preferences', 'path', 'form_build_id', 'form_token', 'form_id') }}
     {{ form.form_build_id }}
     {{ form.form_token }}
     {{ form.form_id }}

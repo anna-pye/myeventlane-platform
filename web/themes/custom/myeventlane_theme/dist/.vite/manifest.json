@@ -1,27 +1,27 @@
 {
   "js/account-dropdown.js": {
-    "file": "account-dropdown.js",
+    "file": "assets/account-dropdown.CQNNPLAN.js",
     "name": "account-dropdown",
     "src": "js/account-dropdown.js",
     "isEntry": true
   },
   "js/front-pie.js": {
-    "file": "js/front-pie.js",
+    "file": "assets/front-pie.D3pEjEX8.js",
     "name": "front-pie",
     "src": "js/front-pie.js",
     "isEntry": true
   },
   "js/main.js": {
-    "file": "main.js",
+    "file": "assets/main.Cl7NRo8Q.js",
     "name": "main",
     "src": "js/main.js",
     "isEntry": true,
     "css": [
-      "main.css"
+      "assets/main.DpugNpkw.css"
     ]
   },
   "scss/front.scss": {
-    "file": "css/front.css",
+    "file": "assets/front.DTHcFrYm.css",
     "src": "scss/front.scss",
     "isEntry": true,
     "name": "front",

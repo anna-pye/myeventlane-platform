@@ -1,0 +1,27 @@
+{#
+/**
+ * @component Featured Events
+ *
+ * Variables:
+ * - title
+ * - subtitle
+ * - view
+ */
+#}
+
+<section class="featured-events" aria-labelledby="featured-events-title">
+  <div class="featured-events__header">
+    <div>
+      <h2 id="featured-events-title" class="featured-events__title">{{ title }}</h2>
+      {% if subtitle %}
+        <p class="featured-events__subtitle">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+
+    <a href="{{ path('view.upcoming_events.page_events') }}" class="featured-events__link">{{ 'View all'|t }} →</a>
+  </div>
+
+  <div class="featured-events__carousel">
+    {{ view }}
+  </div>
+</section>

@@ -1,0 +1,14 @@
+.mel-onboarding-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.mel-footer-cta {
+  display: flex;
+  gap: .5rem;
+
+  @media (max-width: 640px) {
+    position: sticky;
+    bottom: 0;
+  }
+}

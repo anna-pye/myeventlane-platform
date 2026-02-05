@@ -1,0 +1,111 @@
+// ==========================================================================
+// Featured / Promoted (Boost) UI
+// ==========================================================================
+// Frontend-only styling for paid Boosted/Promoted events.
+// - Token-driven (uses existing MEL CSS custom properties)
+// - No layout shift (badge is absolutely positioned; no padding/margins change)
+// - Accessible badge (real DOM text; not color-only)
+
+// ---------------------------------------------------------------------------
+// Promoted Card Treatment (halo + elevation)
+// ---------------------------------------------------------------------------
+
+// Applies to both card systems:
+// - .mel-card (poster/compact/newer cards)
+// - .mel-event-card (teaser cards used across Views)
+.mel-card--promoted,
+.mel-event-card--promoted {
+  // HOT: Boosted/Featured momentum (accent ring + slightly stronger lift).
+  // Keep normal layout identical; only elevate + add a soft premium halo.
+  box-shadow:
+    var(--mel-shadow-rest),
+    0 0 0 2px color-mix(in srgb, var(--mel-accent) 22%, transparent),
+    0 18px 44px color-mix(in srgb, var(--mel-ink) 14%, transparent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-card--promoted:hover,
+  .mel-event-card--promoted:hover {
+    box-shadow:
+      var(--mel-shadow-hover),
+      0 0 0 2px color-mix(in srgb, var(--mel-accent) 26%, transparent),
+      0 22px 60px color-mix(in srgb, var(--mel-ink) 18%, transparent);
+  }
+}
+
+// Ensure focus remains obvious (don’t rely on color alone).
+.mel-card--promoted:focus-visible,
+.mel-event-card--promoted:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--mel-surface),
+    0 0 0 5px var(--mel-focus, var(--mel-blue));
+}
+
+// ---------------------------------------------------------------------------
+// Featured Badge (✨ Featured)
+// ---------------------------------------------------------------------------
+
+// Anchor badges inside media blocks reliably.
+.mel-card__media,
+.mel-event-card__image,
+.mel-card-media {
+  position: relative;
+}
+
+// Compact cards don’t always have a dedicated media wrapper; anchor to the card.
+.mel-card--compact.mel-card--promoted {
+  position: relative;
+}
+
+.mel-featured-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 10px;
+  border-radius: var(--mel-radius-pill);
+  border: 2px solid var(--mel-accent);
+
+  // “Premium” but tasteful: soft surface + subtle tint from existing tokens.
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+
+  // Do not intercept card clicks/taps.
+  pointer-events: none;
+
+  // Small lift to read well on images.
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+}
+
+.mel-featured-badge__icon {
+  line-height: 1;
+  color: var(--mel-accent);
+}
+
+// Poster cards sometimes also show a stamp at top-right; stack the Featured badge below it.
+.mel-stamp + .mel-featured-badge {
+  top: 52px;
+}
+
+// Inline variant for event full page meta row.
+.mel-featured-badge--inline {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  box-shadow: none;
+  border-width: 2px;
+  background: var(--mel-paper);
+}
+

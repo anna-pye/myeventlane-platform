@@ -1,0 +1,48 @@
+// ==========================================================================
+// Featured Events Component
+// ==========================================================================
+// Section header + carousel for featured events.
+
+
+.featured-events {
+  padding: 4rem 1.5rem;
+
+  &__header {
+    max-width: 1200px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  &__subtitle {
+    font-size: 0.875rem;
+    color: var(--mel-muted);
+  }
+
+  &__link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--mel-ink);
+
+    &:hover {
+      color: var(--mel-coral);
+    }
+
+    &:focus-visible {
+      outline: none;
+      text-decoration: underline;
+    }
+  }
+
+  &__carousel {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}

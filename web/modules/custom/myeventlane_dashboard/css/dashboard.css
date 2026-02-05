@@ -264,3 +264,294 @@
   font-size: 0.8125rem;
   color: var(--mel-dash-text-muted);
 }
+
+/* ==========================================================================
+   Customer Dashboard (My Events) — MEL Brand
+   Uses MEL tokens: cream, butter, orange, navy, pastels.
+   ========================================================================== */
+
+.mel-dashboard-wrapper--customer {
+  background: var(--mel-paper, #fef5ec);
+}
+
+.mel-dashboard-wrapper--customer .mel-dashboard-title {
+  color: #e67e22 !important;
+}
+
+.mel-dashboard-wrapper--customer .mel-dashboard-welcome {
+  font-size: 1rem;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  margin: 0 0 var(--mel-space-5, 26px);
+}
+
+.mel-dashboard-wrapper--customer .mel-dashboard-welcome p {
+  margin: 0;
+}
+
+.mel-dashboard-wrapper--customer .mel-section-title {
+  color: #293241;
+  border-bottom: 2px solid #e67e22 !important;
+}
+
+/* Events Table */
+.mel-dashboard-wrapper--customer .mel-events-table {
+  background: var(--mel-surface, #ffffff);
+  border: 2px solid rgba(245, 160, 76, 0.25);
+  border-radius: var(--mel-radius-3, 14px);
+  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.mel-dashboard-wrapper--customer .mel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.mel-dashboard-wrapper--customer .mel-table thead {
+  background: linear-gradient(135deg, rgba(255, 241, 191, 0.7) 0%, rgba(245, 160, 76, 0.2) 100%);
+  border-bottom: 2px solid rgba(245, 160, 76, 0.3);
+}
+
+.mel-dashboard-wrapper--customer .mel-table th {
+  padding: 14px 18px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--mel-ink, #293241);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mel-dashboard-wrapper--customer .mel-table tbody tr {
+  border-bottom: 1px solid rgba(245, 160, 76, 0.1);
+  transition: background-color 0.15s ease;
+}
+
+.mel-dashboard-wrapper--customer .mel-table tbody tr:nth-child(even) {
+  background: rgba(255, 241, 191, 0.25);
+}
+
+.mel-dashboard-wrapper--customer .mel-table tbody tr:hover {
+  background: rgba(255, 241, 191, 0.5);
+}
+
+.mel-dashboard-wrapper--customer .mel-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mel-dashboard-wrapper--customer .mel-table td {
+  padding: 16px 18px;
+  vertical-align: middle;
+}
+
+.mel-dashboard-wrapper--customer .mel-table td a:not(.mel-btn) {
+  color: #e67e22 !important;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.mel-dashboard-wrapper--customer .mel-table td a:not(.mel-btn):hover,
+.mel-dashboard-wrapper--customer .mel-table td a:not(.mel-btn):focus {
+  color: #d97d2d;
+  text-decoration: underline;
+}
+
+.mel-dashboard-wrapper--customer .mel-table td time {
+  color: var(--mel-ink, #293241);
+  font-weight: 500;
+}
+
+/* Badges — MEL pastels */
+.mel-dashboard-wrapper--customer .mel-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--mel-radius-pill, 999px);
+  letter-spacing: 0.02em;
+}
+
+.mel-dashboard-wrapper--customer .mel-badge--success {
+  background: rgba(245, 160, 76, 0.25);
+  color: #b86a1f;
+}
+
+.mel-dashboard-wrapper--customer .mel-badge--info {
+  background: rgba(255, 241, 191, 0.6);
+  color: #a86a1f;
+}
+
+/* Action Cell */
+.mel-dashboard-wrapper--customer .mel-table td:last-child {
+  white-space: normal;
+}
+
+.mel-dashboard-wrapper--customer .mel-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mel-space-2, 10px) var(--mel-space-3, 14px);
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-small {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--mel-radius-pill, 999px);
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-small:hover,
+.mel-dashboard-wrapper--customer .mel-btn-small:focus {
+  transform: translateY(-1px);
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-secondary {
+  background: transparent;
+  border: 2px solid #e67e22 !important;
+  color: #e67e22 !important;
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-secondary:hover,
+.mel-dashboard-wrapper--customer .mel-btn-secondary:focus {
+  background: rgba(245, 160, 76, 0.12);
+}
+
+.mel-dashboard-wrapper--customer .mel-btn:not(.mel-btn-secondary):not(.mel-btn-link) {
+  background: #e67e22 !important;
+  color: #fff;
+  border: 2px solid transparent;
+}
+
+.mel-dashboard-wrapper--customer .mel-btn:not(.mel-btn-secondary):not(.mel-btn-link):hover,
+.mel-dashboard-wrapper--customer .mel-btn:not(.mel-btn-secondary):not(.mel-btn-link):focus {
+  background: #e08d3d;
+  box-shadow: 0 4px 14px rgba(245, 160, 76, 0.4);
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-link {
+  background: transparent;
+  color: #e67e22 !important;
+}
+
+.mel-dashboard-wrapper--customer .mel-btn-link:hover,
+.mel-dashboard-wrapper--customer .mel-btn-link:focus {
+  background: transparent;
+  color: #d97d2d;
+  text-decoration: underline;
+}
+
+/* Ticket Code Chip — butter/orange */
+.mel-dashboard-wrapper--customer .mel-ticket-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", Monaco, monospace;
+  letter-spacing: 0.05em;
+  background: rgba(255, 241, 191, 0.7);
+  border: 1px solid rgba(245, 160, 76, 0.3);
+  border-radius: var(--mel-radius-2, 10px);
+  color: var(--mel-ink, #293241);
+}
+
+/* Past Events (Collapsible) */
+.mel-dashboard-wrapper--customer .mel-details {
+  border: 2px solid rgba(245, 160, 76, 0.25);
+  border-radius: var(--mel-radius-3, 14px);
+  background: var(--mel-surface, #ffffff);
+  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.mel-dashboard-wrapper--customer .mel-details summary {
+  padding: 14px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  background: linear-gradient(90deg, rgba(255, 241, 191, 0.6) 0%, rgba(245, 160, 76, 0.15) 100%);
+  border-bottom: 1px solid rgba(245, 160, 76, 0.2);
+  transition: background-color 0.15s ease;
+  color: var(--mel-ink, #293241);
+}
+
+.mel-dashboard-wrapper--customer .mel-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-dashboard-wrapper--customer .mel-details summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 0.7em;
+  color: #e67e22 !important;
+  transition: transform 0.2s ease;
+}
+
+.mel-dashboard-wrapper--customer .mel-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.mel-dashboard-wrapper--customer .mel-details summary:hover {
+  background: linear-gradient(90deg, rgba(255, 241, 191, 0.8) 0%, rgba(245, 160, 76, 0.2) 100%);
+}
+
+.mel-dashboard-wrapper--customer .mel-details .mel-events-table {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Empty State */
+.mel-dashboard-wrapper--customer .mel-card--empty {
+  text-align: center;
+  padding: var(--mel-space-6, 34px);
+  background: var(--mel-surface, #ffffff);
+  border: var(--mel-border, 2px solid rgba(41, 50, 65, 0.12));
+  border-radius: var(--mel-radius-3, 14px);
+  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+}
+
+.mel-dashboard-wrapper--customer .mel-card--empty p {
+  margin: 0 0 var(--mel-space-4, 18px);
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  font-size: 1rem;
+}
+
+.mel-dashboard-wrapper--customer .mel-card--empty .mel-btn-primary {
+  background: #e67e22 !important;
+  color: #fff;
+  border-radius: var(--mel-radius-pill, 999px);
+  font-weight: 700;
+}
+
+.mel-dashboard-wrapper--customer .mel-card--empty .mel-btn-primary:hover,
+.mel-dashboard-wrapper--customer .mel-card--empty .mel-btn-primary:focus {
+  background: #e08d3d;
+  box-shadow: 0 4px 14px rgba(245, 160, 76, 0.4);
+}
+
+.mel-dashboard-wrapper--customer .mel-muted {
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  font-style: italic;
+}
+
+/* Responsive: stack actions on small screens */
+@media (max-width: 640px) {
+  .mel-dashboard-wrapper--customer .mel-events-table {
+    overflow-x: auto;
+  }
+
+  .mel-dashboard-wrapper--customer .mel-table {
+    min-width: 480px;
+  }
+
+  .mel-dashboard-wrapper--customer .mel-table-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

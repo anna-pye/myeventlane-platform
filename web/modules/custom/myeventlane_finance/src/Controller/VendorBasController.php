@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_finance\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -61,12 +62,13 @@ final class VendorBasController extends VendorConsoleBaseController implements C
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     BasReportService $basReportService,
     EntityTypeManagerInterface $entity_type_manager,
     BasCsvExportService $basCsvExportService,
     BasPdfExportService $basPdfExportService,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
     $this->basReportService = $basReportService;
     $this->entityTypeManager = $entity_type_manager;
     $this->basCsvExportService = $basCsvExportService;
@@ -80,6 +82,7 @@ final class VendorBasController extends VendorConsoleBaseController implements C
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_finance.bas_report'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_finance.bas_csv_export'),

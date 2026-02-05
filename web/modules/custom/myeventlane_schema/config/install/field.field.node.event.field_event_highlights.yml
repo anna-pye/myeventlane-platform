@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_highlights
+    - node.type.event
+    - paragraphs.paragraphs_type.event_highlight
+  module:
+    - entity_reference_revisions
+    - paragraphs
+id: node.event.field_event_highlights
+field_name: field_event_highlights
+entity_type: node
+bundle: event
+label: 'Event highlights'
+description: 'Bullet highlights for the event, each with an optional icon.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:paragraph'
+  handler_settings:
+    target_bundles:
+      event_highlight: event_highlight
+    negate: 0
+field_type: entity_reference_revisions
+

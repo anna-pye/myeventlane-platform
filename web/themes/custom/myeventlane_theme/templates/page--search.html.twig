@@ -7,61 +7,22 @@
  * above the page content, without changing the results view output.
  */
 #}
-{% set page_attributes = create_attribute() %}
-{% set page_attributes = page_attributes.addClass('mel-page', 'mel-page--search') %}
+{% extends "page.html.twig" %}
 
-<div{{ page_attributes }}>
-  {{ title_prefix }}
-  {{ title_suffix }}
+{% block content %}
+  <div class="mel-container">
+    <div class="mel-content mel-content--search">
+      {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
+        title: 'Search results'|t,
+        show_search: true,
+        show_categories: true,
+        categories: mel_header_categories|default([]),
+        hero_image_url: mel_hero_image_url|default(null),
+        hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
+        hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
+      } only %}
 
-  {# ==================== HEADER ==================== #}
-  <div class="mel-region-header">
-    {% include '@myeventlane_theme/includes/header.html.twig' %}
+      {{ page.content }}
+    </div>
   </div>
-
-  {# Hero (for pages with hero region) #}
-  {% if page.hero %}
-    <div class="mel-region-hero">
-      {{ page.hero }}
-    </div>
-  {% endif %}
-
-  {# Pre-Content #}
-  {% if page.pre_content %}
-    <div class="mel-region-pre-content">
-      <div class="mel-container">
-        {{ page.pre_content }}
-      </div>
-    </div>
-  {% endif %}
-
-  {# Main Content Area #}
-  <main id="main-content" class="mel-main" role="main">
-    <div class="mel-container">
-      <div class="mel-content">
-        {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
-          title: 'Search results',
-          show_search: true,
-          show_categories: true,
-          categories: mel_header_categories|default([])
-        } %}
-
-        {{ page.content }}
-      </div>
-    </div>
-  </main>
-
-  {# Pre-Footer #}
-  {% if page.pre_footer %}
-    <div class="mel-pre-footer">
-      <div class="mel-container">
-        {{ page.pre_footer }}
-      </div>
-    </div>
-  {% endif %}
-
-  {# ==================== FOOTER ==================== #}
-  <div class="mel-region-footer">
-    {% include '@myeventlane_theme/includes/footer.html.twig' %}
-  </div>
-</div>
+{% endblock %}

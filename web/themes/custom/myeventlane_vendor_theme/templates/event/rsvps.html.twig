@@ -51,7 +51,15 @@
     <div class="mel-card__title">{{ 'All RSVPs'|t }}</div>
     {% if rsvps|length > 0 %}
       <div class="mel-search mel-search--inline">
-        <input type="text" class="mel-input mel-input--sm" placeholder="{{ 'Search...'|t }}" id="rsvp-search">
+        <label class="visually-hidden" for="rsvp-search">{{ 'Search RSVPs'|t }}</label>
+        <input
+          type="search"
+          class="mel-input mel-input--sm"
+          placeholder="{{ 'Search…'|t }}"
+          id="rsvp-search"
+          data-mel-table-search
+          data-mel-table-search-rows=".rsvp-row"
+        >
       </div>
     {% endif %}
   </div>
@@ -101,21 +109,3 @@
     </div>
   {% endif %}
 </div>
-
-{# Search JavaScript #}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('rsvp-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const rows = document.querySelectorAll('.rsvp-row');
-        
-        rows.forEach(function(row) {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(searchTerm) ? '' : 'none';
-        });
-      });
-    }
-  });
-</script>

@@ -17,9 +17,19 @@ use Drupal\node\NodeInterface;
  * - none: Neutral placeholder. No CTA.
  *
  * Logic lives in controller/service. Twig receives only cta_type and
- * a single resolved event_cta (label, url, disabled, helper).
+ * a single resolved event_cta (label, url, disabled, helper, remaining).
+ *
+ * INVARIANT:
+ * Ticket capacity MUST be reflected here (sold-out, remaining, helper from
+ * EventModeManager/EventCapacityService). Do not rely on node edit form or UI state.
+ * This protects Ticket UX (Phase 3A).
  */
 final class EventCtaResolver {
+
+  /**
+   * Threshold below which we show "Only X left" helper.
+   */
+  private const LOW_AVAILABILITY_THRESHOLD = 10;
 
   public const CTA_PAID = 'paid';
   public const CTA_RSVP = 'rsvp';
@@ -84,6 +94,7 @@ final class EventCtaResolver {
       'url' => NULL,
       'disabled' => TRUE,
       'helper' => NULL,
+      'remaining' => NULL,
     ];
 
     if ($state === 'cancelled' || $state === 'ended') {
@@ -126,13 +137,17 @@ final class EventCtaResolver {
 
     if ($ctaType === self::CTA_PAID) {
       $avail = $this->modeManager->getTicketAvailability($event);
+      $base['remaining'] = $avail['remaining'] ?? NULL;
       if ($avail['available']) {
-        $base['label'] = 'Buy Tickets';
+        $base['label'] = (string) \t('Buy Tickets');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
+        if ($base['remaining'] !== NULL && $base['remaining'] > 0 && $base['remaining'] <= self::LOW_AVAILABILITY_THRESHOLD) {
+          $base['helper'] = (string) \t('Only @count tickets remaining', ['@count' => $base['remaining']]);
+        }
       }
       else {
-        $base['label'] = 'Tickets';
+        $base['label'] = (string) \t('Tickets');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
       }
@@ -141,18 +156,22 @@ final class EventCtaResolver {
 
     if ($ctaType === self::CTA_RSVP) {
       $avail = $this->modeManager->getRsvpAvailability($event);
+      $base['remaining'] = $avail['spots_remaining'] ?? NULL;
       if ($avail['available']) {
-        $base['label'] = 'RSVP Now';
+        $base['label'] = (string) \t('RSVP Now');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
+        if ($base['remaining'] !== NULL && $base['remaining'] > 0 && $base['remaining'] <= self::LOW_AVAILABILITY_THRESHOLD) {
+          $base['helper'] = (string) \t('Only @count spots left', ['@count' => $base['remaining']]);
+        }
       }
       elseif (isset($avail['spots_remaining']) && $avail['spots_remaining'] === 0) {
-        $base['label'] = 'Join Waitlist';
+        $base['label'] = (string) \t('Join Waitlist');
         $base['url'] = Url::fromRoute('myeventlane_event_attendees.waitlist_signup', ['node' => $event->id()])->toString();
         $base['disabled'] = FALSE;
       }
       else {
-        $base['label'] = 'RSVP';
+        $base['label'] = (string) \t('RSVP');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
       }

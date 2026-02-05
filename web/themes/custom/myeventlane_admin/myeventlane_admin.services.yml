@@ -1,6 +1,9 @@
 services:
   theme.negotiator.myeventlane_admin:
     class: Drupal\myeventlane_admin\Theme\MyEventLaneAdminThemeNegotiator
+    arguments:
+      - '@current_user'
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: theme_negotiator, priority: 1000 }
 

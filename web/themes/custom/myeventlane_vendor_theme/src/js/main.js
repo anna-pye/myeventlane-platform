@@ -159,21 +159,24 @@ import './vendor-alert';
    */
   Drupal.behaviors.melDashboardCharts = {
     attach: function (context) {
-      // Check if Chart.js is loaded
-      if (typeof Chart === 'undefined') {
-        console.warn('Chart.js not loaded');
+      const chartContainers = once('mel-chart', '[data-chart-id]', context);
+      if (!chartContainers || chartContainers.length === 0) {
         return;
       }
 
-      const chartContainers = once('mel-chart', '[data-chart-id]', context);
+      // Check if Chart.js is loaded (only when charts exist on the page).
+      if (typeof Chart === 'undefined') {
+        console.warn('Chart.js not loaded (charts will not render).');
+        return;
+      }
 
       // Chart color palette from design tokens
       const colors = {
-        primary: '#2563EB',
-        coral: '#FF8A8A',
+        primary: '#6C7EF2',
+        coral: '#F26D5B',
         green: '#5CC98B',
-        yellow: '#FFEAAA',
-        slate: '#637185',
+        yellow: '#FFD46F',
+        slate: '#5C5C6F',
         border: '#E6E6E6'
       };
 
@@ -446,6 +449,44 @@ import './vendor-alert';
             group?.classList.remove('mel-form-group--error');
           }
         });
+      });
+    }
+  };
+
+  /**
+   * Client-side table search (no inline JS in Twig).
+   *
+   * Usage:
+   * - Add `data-mel-table-search` to an input.
+   * - Provide `data-mel-table-search-rows` selector for row elements.
+   */
+  Drupal.behaviors.melTableSearch = {
+    attach: function (context) {
+      const inputs = once('mel-table-search', '[data-mel-table-search]', context);
+
+      inputs.forEach((input) => {
+        if (!(input instanceof HTMLInputElement)) {
+          return;
+        }
+
+        const rowsSelector = input.getAttribute('data-mel-table-search-rows');
+        if (!rowsSelector) {
+          return;
+        }
+
+        const getRows = () => Array.from(document.querySelectorAll(rowsSelector));
+
+        const run = () => {
+          const q = (input.value || '').trim().toLowerCase();
+          const rows = getRows();
+          rows.forEach((row) => {
+            const text = (row.textContent || '').toLowerCase();
+            row.style.display = !q || text.includes(q) ? '' : 'none';
+          });
+        };
+
+        input.addEventListener('input', run);
+        run();
       });
     }
   };

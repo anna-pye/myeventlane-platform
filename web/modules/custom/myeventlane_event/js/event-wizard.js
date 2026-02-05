@@ -167,13 +167,21 @@
 
   /**
    * Handle stepper button clicks (for EventWizardForm and EventFormAlter).
+   * Step wizard (Basics, When & Where, …) uses real <a href="..."> links; do not intercept.
    */
   function initStepperButtons(context) {
     const buttons = once('mel-stepper-button', context.querySelectorAll('.js-mel-stepper-button'), context);
     
-    // For EventWizardForm: handle clicks on step containers that trigger hidden submit buttons.
     buttons.forEach((button) => {
-      // If it's a container (not a button element), find the hidden submit button inside.
+      // Step wizard: stepper items are <a href="{{ nav_step.url }}">. Let them navigate.
+      if (button.tagName === 'A') {
+        const href = (button.getAttribute('href') || '').trim();
+        if (href && href !== '#' && !href.startsWith('javascript:')) {
+          return;
+        }
+      }
+
+      // For EventWizardForm: handle clicks on step containers that trigger hidden submit buttons.
       if (button.tagName !== 'BUTTON' && button.tagName !== 'INPUT') {
         const hiddenSubmit = button.querySelector('.js-mel-step-submit');
         if (hiddenSubmit) {
@@ -295,7 +303,32 @@
       // Initialize stepper buttons for both EventWizardForm and EventFormAlter.
       // This will also update button accessibility.
       initStepperButtons(context);
-      
+
+      // Warn when leaving Basics with unsaved image (sidebar links or refresh).
+      once('mel-basics-unsaved-image', context, () => {
+        const form = context.querySelector('form#event-wizard-basics-form');
+        if (!form) return;
+        let formSubmitting = false;
+        form.addEventListener('submit', () => { formSubmitting = true; });
+        const hasUnsavedImage = () => {
+          if (formSubmitting) return false;
+          const fidsInput = form.querySelector('input[name*="field_event_image"][name*="fids"]');
+          return fidsInput && String(fidsInput.value || '').trim() !== '';
+        };
+        const msg = Drupal.t('You have an image that has not been saved. Click "Continue" to save before switching steps.');
+        context.querySelectorAll('.mel-sidebar__link--wizard.is-wizard-step').forEach((link) => {
+          const href = (link.getAttribute('href') || '').trim();
+          const isActive = link.classList.contains('is-active');
+          if (!href || href === '#' || isActive) return;
+          link.addEventListener('click', (e) => {
+            if (hasUnsavedImage() && !window.confirm(msg)) e.preventDefault();
+          });
+        });
+        window.addEventListener('beforeunload', (e) => {
+          if (hasUnsavedImage()) e.preventDefault();
+        });
+      });
+
       // Also update button accessibility after a short delay to ensure DOM is ready.
       setTimeout(() => {
         updateStepButtonAccessibility(context);

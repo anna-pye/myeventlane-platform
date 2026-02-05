@@ -152,6 +152,10 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
 
   /**
    * {@inheritdoc}
+   *
+   * Composes net from getGrossRevenue and getRefundAmount. No SQL. Keys are
+   * (store_id, event_id, currency). net = gross - refund; throws if refund > gross,
+   * refund without gross, or currency mismatch. Returns only rows with net > 0.
    */
   public function getNetRevenue(AnalyticsQuery $query): array {
     $effective_store_ids = $this->scopeResolver->resolveEffectiveStoreIds($query);
@@ -159,8 +163,66 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $this->guard->assertOrderItemAnchoringRequired(AnalyticsQueryGuard::METRIC_NET_REVENUE);
     $this->guard->assertValidQueryForMoneyMetric($query, AnalyticsQueryGuard::METRIC_NET_REVENUE);
 
+    $gross_rows = $this->getGrossRevenue($query);
+    $refund_rows = $this->getRefundAmount($query);
+
+    $query_currency = $query->currency !== null && $query->currency !== '' ? (string) $query->currency : null;
+    if ($query_currency === null) {
+      throw new InvariantViolationException('Net revenue requires a currency.');
+    }
+
+    $gross_by_key = [];
+    foreach ($gross_rows as $row) {
+      $k = (int) $row->store_id . '|' . (int) $row->event_id . '|' . (string) $row->currency;
+      $gross_by_key[$k] = (int) $row->amount_cents;
+    }
+
+    $refund_by_key = [];
+    foreach ($refund_rows as $row) {
+      $store_id = (int) $row->store_id;
+      $event_id = (int) $row->event_id;
+      $currency = (string) $row->currency;
+      if ($currency !== $query_currency) {
+        throw new InvariantViolationException('Currency mismatch: refund row currency does not match query currency.');
+      }
+      $k = $store_id . '|' . $event_id . '|' . $currency;
+      $refund_by_key[$k] = (int) $row->amount_cents;
+    }
+
+    foreach (array_keys($refund_by_key) as $k) {
+      if (!isset($gross_by_key[$k])) {
+        throw new InvariantViolationException('Refund exists without gross for the same (store_id, event_id, currency).');
+      }
+    }
+
     /** @var list<\Drupal\myeventlane_analytics\Phase7\Value\MoneyByStoreEventCurrencyRow> $rows */
     $rows = [];
+    foreach ($gross_rows as $row) {
+      $store_id = (int) $row->store_id;
+      $event_id = (int) $row->event_id;
+      $currency = (string) $row->currency;
+      $gross_cents = (int) $row->amount_cents;
+      $key = $store_id . '|' . $event_id . '|' . $currency;
+      $refund_cents = $refund_by_key[$key] ?? 0;
+
+      if ($refund_cents > $gross_cents) {
+        throw new InvariantViolationException('Refund amount exceeds gross for (store_id, event_id, currency).');
+      }
+
+      $net_cents = $gross_cents - $refund_cents;
+      if ($net_cents <= 0) {
+        continue;
+      }
+
+      $rows[] = new MoneyByStoreEventCurrencyRow(
+        store_id: $store_id,
+        event_id: $event_id,
+        currency: $currency,
+        amount_cents: $net_cents,
+        integrity_flags: [],
+      );
+    }
+
     return $rows;
   }
 

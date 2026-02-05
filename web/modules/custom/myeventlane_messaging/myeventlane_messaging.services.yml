@@ -24,18 +24,10 @@ services:
     arguments:
       - '@plugin.manager.mail'
 
-  myeventlane_messaging.delivery.postmark:
-    class: Drupal\myeventlane_messaging\Service\Delivery\PostmarkDeliveryProvider
-    arguments:
-      - '@http_client_factory'
-      - '@config.factory'
-      - '@logger.channel.myeventlane_messaging'
-
   myeventlane_messaging.delivery_provider_manager:
     class: Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager
     arguments:
       - '@myeventlane_messaging.delivery.drupal_mail'
-      - '@?myeventlane_messaging.delivery.postmark'
       - '@config.factory'
 
   myeventlane_messaging.vendor_brand_resolver:
@@ -120,8 +112,3 @@ services:
       - '@logger.channel.myeventlane_messaging'
     tags:
       - { name: event_subscriber }
-
-  myeventlane_messaging.attendee_recipient_resolver:
-    class: Drupal\myeventlane_messaging\Service\AttendeeRecipientResolver
-    arguments:
-      - '@entity_type.manager'

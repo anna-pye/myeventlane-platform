@@ -11,22 +11,3 @@ declare(strict_types=1);
  * MyEventLane RSVP module hooks.
  */
 
-/**
- * Implements hook_theme().
- */
-function myeventlane_rsvp_theme($existing, $type, $theme, $path): array {
-  return [
-    'mel_rsvp_thankyou' => [
-      'variables' => [
-        'title' => NULL,
-        'message' => NULL,
-        'event_title' => NULL,
-        'event_link' => NULL,
-        'donation_enabled' => FALSE,
-      ],
-      // Provide a default template shipped by the module.
-      'template' => 'mel-rsvp-thankyou',
-      'path' => $path . '/templates',
-    ],
-  ];
-}

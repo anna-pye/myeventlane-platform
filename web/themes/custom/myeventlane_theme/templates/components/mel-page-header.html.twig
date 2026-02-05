@@ -9,16 +9,25 @@
  * - title: Page title string.
  * - show_search: Boolean; when TRUE renders the MEL search block.
  * - show_categories: Boolean; when TRUE renders the MEL category pills UI.
- * - categories: Optional array of items with keys: tid, label, color.
+ * - categories: Optional array of items with keys: tid, label, slug.
+ * - hero_image_url: Optional URL for hero background (desktop).
+ * - hero_image_url_mobile: Optional URL for hero background (mobile viewports).
+ * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
  */
 #}
 {% set show_search = show_search|default(false) %}
 {% set show_categories = show_categories|default(false) %}
 {% set categories = categories|default([]) %}
+{% set hero_image_url = hero_image_url|default(null) %}
+{% set hero_image_url_mobile = hero_image_url_mobile|default(null) %}
+{% set hero_hide_on_mobile = hero_hide_on_mobile|default(false) %}
+{% set has_hero = hero_image_url and not hero_hide_on_mobile %}
 
 {{ attach_library('myeventlane_theme/mel-listing-header') }}
 
-<section class="mel-page-header">
+{% set hero_style = (hero_image_url and not hero_hide_on_mobile) ? ('--mel-hero-bg: url(' ~ hero_image_url ~ ')' ~ (hero_image_url_mobile ? '; --mel-hero-bg-mobile: url(' ~ hero_image_url_mobile ~ ')' : '')) : '' %}
+
+<section class="mel-page-header{% if has_hero %} mel-page-header--hero{% endif %}"{% if hero_style %} style="{{ hero_style }}"{% endif %}>
   <h1 class="mel-page-title">
     {{ title }}
   </h1>
@@ -38,9 +47,8 @@
     <nav class="mel-category-pills" aria-label="Event categories">
       {% for c in categories %}
         <a
-          href="{{ path('entity.taxonomy_term.canonical', {'taxonomy_term': c.tid}) }}"
-          class="mel-pill"
-          style="--pill-color: {{ c.color }}"
+          href="{{ path('view.upcoming_events.page_category', {'arg_0': c.tid}) }}"
+          class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}"
         >
           {{ c.label }}
         </a>

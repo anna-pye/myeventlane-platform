@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_reporting\Controller;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -29,12 +30,13 @@ final class EventInsightsController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventMetricsServiceInterface $metricsService,
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly AutomationAuditLogger $auditLogger,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
   }
 
   /**
@@ -44,6 +46,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
       $container->get('myeventlane_attendee.repository_resolver'),

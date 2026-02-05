@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
@@ -36,12 +37,13 @@ final class BoostVendorExportController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     private readonly MetricsAggregator $metricsAggregator,
     EntityTypeManagerInterface $entityTypeManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly TimeInterface $time,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
     $this->entityTypeManager = $entityTypeManager;
   }
 

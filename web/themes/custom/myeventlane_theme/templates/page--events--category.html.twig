@@ -16,7 +16,7 @@
 
   {# ==================== HEADER ==================== #}
   <div class="mel-region-header">
-    {% include '@myeventlane_theme/includes/header.html.twig' %}
+    {{ site_header }}
   </div>
 
   {# ==================== MAIN CONTENT ==================== #}
@@ -28,7 +28,10 @@
           title: header_title,
           show_search: true,
           show_categories: true,
-          categories: mel_header_categories|default([])
+          categories: mel_header_categories|default([]),
+          hero_image_url: mel_hero_image_url|default(null),
+          hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
+          hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
         } %}
 
         {{ page.content }}

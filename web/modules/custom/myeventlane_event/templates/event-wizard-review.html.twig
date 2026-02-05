@@ -7,29 +7,19 @@
  * - title: Page title
  * - event: Event node
  * - steps: Step navigation array
- * - summary: Event summary data
+ * - summary: Event summary groups (from WizardReviewSummaryBuilder)
+ * - warnings: List of { message, severity, fix_route, fix_route_params }
+ * - ready: { tickets_ready, location_ready, details_ready }
+ * - tickets_edit_link: Rendered link to edit tickets (PHP-resolved, route-safe)
  * - publish_url: URL to publish the event
+ * - card_preview: Rendered event teaser
  */
 #}
 <div class="mel-event-wizard">
   <div class="mel-event-wizard__layout">
-    {# Left: Stepper #}
-    <nav class="mel-event-wizard__nav" aria-label="{{ 'Event creation steps'|t }}">
-      <ol class="mel-wizard-steps">
-        {% for nav_step in steps %}
-          <li class="mel-wizard-steps__item{% if nav_step.is_current %} is-current{% endif %}{% if nav_step.is_complete %} is-complete{% endif %}">
-            <span class="mel-wizard-steps__link">
-              <span class="mel-wizard-steps__number">{{ nav_step.step_number }}</span>
-              <span class="mel-wizard-steps__label">{{ nav_step.label }}</span>
-            </span>
-          </li>
-        {% endfor %}
-      </ol>
-    </nav>
-
-    {# Center: Review Content #}
+    {# Wizard stepper moved to left sidebar (myeventlane_vendor_theme) #}
     <div class="mel-event-wizard__main">
-      <div class="mel-wizard-step-card">
+      <div class="mel-wizard-step-card mel-wizard-step-card--review">
         <div class="mel-wizard-step-card__header">
           <h1 class="mel-wizard-step-card__title">{{ 'Almost there! Review your event'|t }}</h1>
           <p class="mel-wizard-step-card__description">
@@ -38,9 +28,31 @@
         </div>
 
         <div class="mel-wizard-step-card__content">
-          <div class="mel-review-summary">
+          {# Non-blocking warnings (if any) #}
+          {% if warnings is not empty %}
+            <div class="mel-wizard-review__warnings" role="region" aria-label="{{ 'Review suggestions'|t }}">
+              <ul class="mel-wizard-review__warnings-list">
+                {% for warning in warnings %}
+                  <li class="mel-wizard-review__warning mel-wizard-review__warning--{{ warning.severity }}">
+                    <span class="mel-wizard-review__warning-message">{{ warning.message }}</span>
+                    <a href="{{ url(warning.fix_route, warning.fix_route_params) }}" class="mel-wizard-review__fix-link">{{ 'Fix'|t }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          {# Event card preview (matches /event/{node} listing) #}
+          <div class="mel-review-card-preview">
+            <h3 class="mel-review-card-preview__title">{{ 'Your event will look like this'|t }}</h3>
+            <div class="mel-review-card-preview__card">
+              {{ card_preview }}
+            </div>
+          </div>
+
+          <div class="mel-wizard-review mel-review-summary">
             {% for section_key, section in summary %}
-              <div class="mel-review-section">
+              <div class="mel-wizard-review__group mel-review-section">
                 <div class="mel-review-section__header">
                   <h3 class="mel-review-section__title">{{ section.title }}</h3>
                   {% if section_key == 'basics' %}
@@ -52,18 +64,15 @@
                       {{ 'Edit'|t }}
                     </a>
                   {% elseif section_key == 'tickets' %}
-                    {% if event.hasField('field_event_type') and not event.get('field_event_type').isEmpty %}
-                      {% set event_type = event.get('field_event_type').value %}
-                      {% if event_type in ['paid', 'both'] %}
-                        <a href="{{ url('myeventlane_vendor.console.event_tickets', {'event': event.id()}) }}" class="mel-review-section__edit">
-                          {{ 'Edit'|t }}
-                        </a>
-                      {% else %}
-                        <a href="{{ url('myeventlane_event.wizard.tickets', {'event': event.id()}) }}" class="mel-review-section__edit">
-                          {{ 'Edit'|t }}
-                        </a>
-                      {% endif %}
+                    {% if tickets_edit_link %}
+                      <div class="mel-review-section__edit">
+                        {{ tickets_edit_link }}
+                      </div>
                     {% endif %}
+                  {% elseif section_key == 'details' %}
+                    <a href="{{ url('myeventlane_event.wizard.details', {'event': event.id()}) }}" class="mel-review-section__edit">
+                      {{ 'Edit'|t }}
+                    </a>
                   {% endif %}
                 </div>
                 <dl class="mel-review-section__list">
@@ -81,6 +90,20 @@
                 </dl>
               </div>
             {% endfor %}
+          </div>
+
+          {# Visual-only reassurance checklist (does not gate publishing). #}
+          <div class="mel-wizard-review__confidence-checklist" role="note" aria-label="{{ 'Pre-publish checklist'|t }}">
+            <h2 class="mel-wizard-review__confidence-title">{{ 'Before you publish'|t }}</h2>
+            <p class="mel-wizard-review__confidence-description">
+              {{ 'Quick confidence check — you can always edit these anytime.'|t }}
+            </p>
+            <ul class="mel-wizard-review__confidence-list">
+              <li class="mel-wizard-review__confidence-item">{{ 'Event details added'|t }}</li>
+              <li class="mel-wizard-review__confidence-item">{{ 'Date & location set'|t }}</li>
+              <li class="mel-wizard-review__confidence-item">{{ 'Tickets configured'|t }}</li>
+              <li class="mel-wizard-review__confidence-item">{{ 'Accessibility & policies reviewed'|t }}</li>
+            </ul>
           </div>
 
           {# Publish Actions #}

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -25,10 +26,11 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     private readonly TicketSalesService $ticketSalesService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**
@@ -38,6 +40,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     return new self(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('entity_type.manager'),
     );

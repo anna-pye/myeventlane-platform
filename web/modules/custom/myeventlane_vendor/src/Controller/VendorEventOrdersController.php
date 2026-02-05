@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -53,11 +54,12 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorEventTabsService $eventTabsService,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
   }
 
   /**
@@ -124,6 +126,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       ->execute();
 
     $orderIds = [];
+    $foundViaEventLink = FALSE;
     if (!empty($orderItemIds)) {
       $items = $orderItemStorage->loadMultiple($orderItemIds);
       foreach ($items as $item) {
@@ -132,6 +135,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
         }
       }
       $orderIds = array_keys($orderIds);
+      $foundViaEventLink = !empty($orderIds);
     }
 
     // Intermediate: if primary is empty, find order items by variation's
@@ -139,6 +143,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     // was never set on items).
     if (empty($orderIds)) {
       $orderIds = $this->findOrderIdsByVariationEvent($orderItemStorage, $eventId);
+      $foundViaEventLink = !empty($orderIds);
     }
 
     // Fallback: if still empty and we have a store, find orders for
@@ -169,7 +174,12 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       if (!$order instanceof OrderInterface) {
         continue;
       }
-      if (!empty($allowedStoreIds)
+      // When orders were found via event-linked items (primary/variation path),
+      // do not filter by store. Order items explicitly reference this event;
+      // event ownership is already asserted. Store mismatch can occur when
+      // checkout uses the default store instead of the vendor's store.
+      if (!$foundViaEventLink
+        && !empty($allowedStoreIds)
         && !in_array((int) $order->getStoreId(), $allowedStoreIds, TRUE)) {
         continue;
       }

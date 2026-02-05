@@ -8,10 +8,12 @@ lifecycle: stable
 dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_venue:myeventlane_venue
+  - geofield:geofield
   - drupal:node
   - drupal:taxonomy
   - drupal:datetime
   - drupal:options
+  - drupal:text
   - drupal:image
   - drupal:link
   - drupal:field

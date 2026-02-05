@@ -1,119 +1,28 @@
 {#
 /**
  * @file
- * Theme override for the calendar page.
- * Uses FullCalendar from CDN for reliable calendar display.
+ * Calendar page template.
+ *
+ * Policy:
+ * - No inline script/style tags.
+ * - No CDN JS/CSS in Twig.
+ *
+ * Calendar UI should be provided by placed blocks/views and theme assets.
  */
 #}
 
-<div class="mel-page mel-page--calendar">
+{% extends "page.html.twig" %}
 
-  {# ==================== HEADER ==================== #}
-  <div class="mel-region-header">
-    {% include '@myeventlane_theme/includes/header.html.twig' %}
-  </div>
+{% block content %}
+  <div class="mel-container">
+    {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
+      title: 'Events calendar'|t,
+      show_search: false,
+      show_categories: false
+    } only %}
 
-  {# ==================== MAIN CONTENT ==================== #}
-  <main id="main-content" class="mel-main">
-    <div class="mel-container" style="padding: 2rem 1rem;">
-      
-      <div style="margin-bottom: 2rem;">
-        <h1 style="font-size: 2rem; font-weight: 700; color: #1a1a2e; margin: 0 0 0.5rem;">Events Calendar</h1>
-        <p style="color: #666; margin: 0;">Browse all upcoming events</p>
-      </div>
-
-      {# FullCalendar Container #}
-      <div id="fullcalendar" style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08);"></div>
-
+    <div class="mel-content mel-content--calendar">
+      {{ page.content }}
     </div>
-  </main>
-
-  {# ==================== FOOTER ==================== #}
-  <div class="mel-region-footer">
-    {% include '@myeventlane_theme/includes/footer.html.twig' %}
   </div>
-
-</div>
-
-{# Load FullCalendar from CDN #}
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-
-<style>
-  #fullcalendar {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .fc .fc-toolbar-title {
-    font-size: 1.5rem !important;
-    font-weight: 600;
-    color: #1a1a2e;
-  }
-  .fc .fc-button-primary {
-    background-color: #ff6f61 !important;
-    border-color: #ff6f61 !important;
-  }
-  .fc .fc-button-primary:hover {
-    background-color: #e55a4d !important;
-    border-color: #e55a4d !important;
-  }
-  .fc .fc-button-primary:not(:disabled).fc-button-active {
-    background-color: #7c5cff !important;
-    border-color: #7c5cff !important;
-  }
-  .fc-event {
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 2px 4px;
-  }
-  .fc-daygrid-event {
-    background-color: #7c5cff;
-    border-color: #7c5cff;
-  }
-  .fc-timegrid-event {
-    background-color: #7c5cff;
-    border-color: #7c5cff;
-  }
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  var calendarEl = document.getElementById('fullcalendar');
-  
-  // Events data from Drupal
-  var events = [
-    {% for event in calendar_events %}
-    {
-      title: {{ event.title|json_encode|raw }},
-      start: '{{ event.start }}',
-      {% if event.end %}end: '{{ event.end }}',{% endif %}
-      url: '{{ event.url }}',
-      color: '{{ event.color|default("#7c5cff") }}'
-    },
-    {% endfor %}
-  ];
-
-  var calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-    },
-    events: events,
-    eventClick: function(info) {
-      if (info.event.url) {
-        window.location.href = info.event.url;
-        info.jsEvent.preventDefault();
-      }
-    },
-    height: 'auto',
-    navLinks: true,
-    editable: false,
-    dayMaxEvents: 3
-  });
-
-  calendar.render();
-});
-</script>
-
+{% endblock %}

@@ -1,0 +1,18 @@
+name: 'MyEventLane Account'
+type: module
+description: 'Customer My Account experience. Provides dashboard, profile, and inclusive account settings for customers.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - drupal:user
+  - drupal:node
+  - drupal:commerce_order
+  - drupal:image
+  - drupal:options
+  - myeventlane_core:myeventlane_core
+  - myeventlane_checkout_flow:myeventlane_checkout_flow
+  - myeventlane_dashboard:myeventlane_dashboard
+  - myeventlane_event_attendees:myeventlane_event_attendees
+  - myeventlane_rsvp:myeventlane_rsvp

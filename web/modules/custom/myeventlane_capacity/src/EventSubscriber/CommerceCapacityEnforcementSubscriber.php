@@ -8,6 +8,7 @@ use Drupal\commerce_cart\Event\CartEntityAddEvent;
 use Drupal\commerce_cart\Event\CartEvents;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
@@ -17,6 +18,7 @@ use Drupal\node\NodeInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Enforces event capacity at Commerce lifecycle points.
@@ -24,10 +26,28 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Prevents overselling by checking capacity:
  * - When items are added to cart
  * - Before order placement (final gate)
+ *
+ * Also acquires a lock per order during placement to prevent duplicate
+ * submissions (e.g. double-click).
+ *
+ * INVARIANT:
+ * Ticket capacity MUST be enforced here (onCartEntityAdd, onOrderPlacePreTransition).
+ * Do not rely on node edit form validation or UI state.
+ * This protects Ticket UX (Phase 3A).
  */
 final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInterface {
 
   use StringTranslationTrait;
+
+  /**
+   * Request attribute key for placement lock (released in post_transition).
+   */
+  private const PLACEMENT_LOCK_ATTR = 'myeventlane_capacity.placement_lock';
+
+  /**
+   * Lock timeout in seconds (covers payment processing).
+   */
+  private const LOCK_TIMEOUT = 30;
 
   /**
    * Constructs CommerceCapacityEnforcementSubscriber.
@@ -38,6 +58,10 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
    *   The order inspector service.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\Core\Lock\LockBackendInterface $lock
+   *   The lock backend.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $stringTranslation
    *   The string translation service.
    * @param \Psr\Log\LoggerInterface $logger
@@ -47,6 +71,8 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
     private readonly EventCapacityService $capacityService,
     private readonly CapacityOrderInspector $orderInspector,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly LockBackendInterface $lock,
+    private readonly RequestStack $requestStack,
     TranslationInterface $stringTranslation,
     private readonly LoggerInterface $logger,
   ) {
@@ -62,6 +88,8 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
       CartEvents::CART_ENTITY_ADD => 'onCartEntityAdd',
       // Final enforcement before order placement.
       'commerce_order.place.pre_transition' => 'onOrderPlacePreTransition',
+      // Release placement lock after transition completes.
+      'commerce_order.place.post_transition' => 'onOrderPlacePostTransition',
     ];
   }
 
@@ -148,11 +176,16 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
    * overselling even if cart validation was bypassed or capacity changed
    * between cart and checkout.
    *
+   * Acquires a lock per order to prevent duplicate placement
+   * (e.g. double-click).
+   *
    * @param \Drupal\state_machine\Event\WorkflowTransitionEvent $event
    *   The workflow transition event.
    *
    * @throws \Drupal\myeventlane_capacity\Exception\CapacityExceededException
    *   If capacity would be exceeded.
+   * @throws \RuntimeException
+   *   If placement lock cannot be acquired (order already being processed).
    */
   public function onOrderPlacePreTransition(WorkflowTransitionEvent $event): void {
     $order = $event->getEntity();
@@ -167,62 +200,111 @@ final class CommerceCapacityEnforcementSubscriber implements EventSubscriberInte
       return;
     }
 
-    // Load all events in bulk.
-    $event_ids = array_keys($event_quantities);
-    $event_storage = $this->entityTypeManager->getStorage('node');
-    $events = $event_storage->loadMultiple($event_ids);
+    // Acquire lock to prevent duplicate placement
+    // (double-click, concurrent requests).
+    $lock_name = 'myeventlane_checkout:place_order:' . $order->id();
+    if (!$this->lock->acquire($lock_name, self::LOCK_TIMEOUT)) {
+      $this->logger->warning(
+        'Order placement lock not acquired for order @order_id (possible duplicate submit)',
+        ['@order_id' => $order->id()]
+      );
+      throw new \RuntimeException(
+        $this->t('Your order is already being processed. Please wait a moment before trying again.')
+      );
+    }
 
-    // Enforce capacity for each event.
-    foreach ($event_quantities as $event_id => $requested_total) {
-      if ($requested_total <= 0) {
-        continue;
-      }
+    // Store lock name for release in post_transition (or on exception).
+    $request = $this->requestStack->getCurrentRequest();
+    if ($request) {
+      $request->attributes->set(self::PLACEMENT_LOCK_ATTR, $lock_name);
+    }
 
-      $event_node = $events[$event_id] ?? NULL;
-      if (!$event_node instanceof NodeInterface || $event_node->bundle() !== 'event') {
-        continue;
-      }
+    try {
+      // Load all events in bulk.
+      $event_ids = array_keys($event_quantities);
+      $event_storage = $this->entityTypeManager->getStorage('node');
+      $events = $event_storage->loadMultiple($event_ids);
 
-      // Check if event has capacity limits (NULL = unlimited).
-      $capacity_total = $this->capacityService->getCapacityTotal($event_node);
-      if ($capacity_total === NULL) {
-        // Unlimited capacity, allow.
-        continue;
-      }
-
-      // Enforce capacity.
-      try {
-        $this->capacityService->assertCanBook($event_node, $requested_total);
-      }
-      catch (CapacityExceededException $e) {
-        // Log the blocked order.
-        $this->logger->error(
-          'Capacity enforcement blocked order placement: order @order_id, event @event_id, requested @qty, message: @message',
-          [
-            '@order_id' => $order->id(),
-            '@event_id' => $event_id,
-            '@qty' => $requested_total,
-            '@message' => $e->getMessage(),
-          ]
-        );
-
-        // Convert to user-friendly message.
-        $remaining = $this->capacityService->getRemaining($event_node);
-        if ($remaining !== NULL && $remaining > 0) {
-          $message = $this->t('Sorry, only @remaining ticket(s) remaining for "@event". Please adjust your order.', [
-            '@remaining' => $remaining,
-            '@event' => $event_node->label(),
-          ]);
-        }
-        else {
-          $message = $this->t('Sorry, "@event" is sold out. Please try another event.', [
-            '@event' => $event_node->label(),
-          ]);
+      // Enforce capacity for each event.
+      foreach ($event_quantities as $event_id => $requested_total) {
+        if ($requested_total <= 0) {
+          continue;
         }
 
-        // Rethrow with user-friendly message.
-        throw new CapacityExceededException($message, 0, $e);
+        $event_node = $events[$event_id] ?? NULL;
+        if (!$event_node instanceof NodeInterface || $event_node->bundle() !== 'event') {
+          continue;
+        }
+
+        // Check if event has capacity limits (NULL = unlimited).
+        $capacity_total = $this->capacityService->getCapacityTotal($event_node);
+        if ($capacity_total === NULL) {
+          // Unlimited capacity, allow.
+          continue;
+        }
+
+        // Enforce capacity.
+        try {
+          $this->capacityService->assertCanBook($event_node, $requested_total);
+        }
+        catch (CapacityExceededException $e) {
+          // Log the blocked order.
+          $this->logger->error(
+            'Capacity enforcement blocked order placement: order @order_id, event @event_id, requested @qty, message: @message',
+            [
+              '@order_id' => $order->id(),
+              '@event_id' => $event_id,
+              '@qty' => $requested_total,
+              '@message' => $e->getMessage(),
+            ]
+          );
+
+          // Convert to user-friendly message.
+          $remaining = $this->capacityService->getRemaining($event_node);
+          if ($remaining !== NULL && $remaining > 0) {
+            $message = $this->t('Sorry, only @remaining ticket(s) remaining for "@event". Please adjust your order.', [
+              '@remaining' => $remaining,
+              '@event' => $event_node->label(),
+            ]);
+          }
+          else {
+            $message = $this->t('Sorry, "@event" is sold out. Please try another event.', [
+              '@event' => $event_node->label(),
+            ]);
+          }
+
+          throw new CapacityExceededException($message, 0, $e);
+        }
       }
+    }
+    catch (\Throwable $e) {
+      // Release lock on any exception so user can retry.
+      $this->lock->release($lock_name);
+      if ($request) {
+        $request->attributes->remove(self::PLACEMENT_LOCK_ATTR);
+      }
+      throw $e;
+    }
+  }
+
+  /**
+   * Handles order place post-transition event.
+   *
+   * Releases the placement lock acquired in pre_transition.
+   *
+   * @param \Drupal\state_machine\Event\WorkflowTransitionEvent $event
+   *   The workflow transition event.
+   */
+  public function onOrderPlacePostTransition(WorkflowTransitionEvent $event): void {
+    $request = $this->requestStack->getCurrentRequest();
+    if (!$request) {
+      return;
+    }
+
+    $lock_name = $request->attributes->get(self::PLACEMENT_LOCK_ATTR);
+    if ($lock_name) {
+      $this->lock->release($lock_name);
+      $request->attributes->remove(self::PLACEMENT_LOCK_ATTR);
     }
   }
 

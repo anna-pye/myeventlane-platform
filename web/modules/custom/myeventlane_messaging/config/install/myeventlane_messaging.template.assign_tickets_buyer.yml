@@ -1,0 +1,32 @@
+enabled: true
+subject: 'Assign your tickets – {{ event_title|default("your event") }}'
+body_html: |
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <h1 style="color: #2c3e50; margin: 0 0 20px 0; font-size: 24px;">Assign your ticket</h1>
+
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        You have unassigned tickets for <strong>{{ event_title|default("your event") }}</strong> (Order {{ order_number }}).
+      </p>
+
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Add the attendee name and email for each ticket so you can download your ticket PDF.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{ assign_url }}" style="display: inline-block; background-color: #ff6b9d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+          Assign ticket
+        </a>
+      </div>
+
+      <p style="color: #7f8c8d; font-size: 14px; margin-top: 20px;">
+        This link expires in 7 days. If you need a new link, visit My Tickets.
+      </p>
+    </div>
+  </div>
+utm:
+  enable: true
+  params:
+    utm_source: 'email'
+    utm_medium: 'transactional'
+    utm_campaign: 'assign_tickets'

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -32,10 +33,11 @@ final class VendorEventsController extends VendorConsoleBaseController implement
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
+    MessengerInterface $messenger,
     EntityTypeManagerInterface $entity_type_manager,
     FormBuilderInterface $form_builder,
   ) {
-    parent::__construct($domain_detector, $current_user);
+    parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entity_type_manager;
     $this->formBuilder = $form_builder;
   }
@@ -47,6 +49,7 @@ final class VendorEventsController extends VendorConsoleBaseController implement
     return new self(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
     );

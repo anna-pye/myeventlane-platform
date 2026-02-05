@@ -16,9 +16,13 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\node\NodeInterface;
 
+// Drush scr may pass args differently than plain CLI; use last numeric arg as event ID.
 $eid = 0;
-if (isset($argv[1]) && is_numeric($argv[1])) {
-  $eid = (int) $argv[1];
+$args = $argv ?? ($_SERVER['argv'] ?? []);
+foreach ($args as $a) {
+  if (is_numeric($a) && (int) $a > 0) {
+    $eid = (int) $a;
+  }
 }
 
 $etm = \Drupal::entityTypeManager();
@@ -55,6 +59,7 @@ echo "=== 1) Event nodes (up to 5) and resolved store ===\n";
 $events = $nodeStorage->getQuery()
   ->accessCheck(FALSE)
   ->condition('type', 'event')
+  ->sort('nid', 'DESC')
   ->range(0, 5)
   ->execute();
 foreach ($events as $nid) {

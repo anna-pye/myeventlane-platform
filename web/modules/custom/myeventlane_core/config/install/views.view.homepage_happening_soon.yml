@@ -3,7 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.teaser
+    - core.entity_view_mode.node.event_home_card
     - node.type.event
   module:
     - datetime
@@ -167,7 +167,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: teaser
+          view_mode: event_home_card
       query:
         type: views_query
         options:

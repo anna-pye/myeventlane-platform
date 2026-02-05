@@ -279,6 +279,762 @@ function myeventlane_event_update_11004(array &$sandbox): void {
 }
 
 /**
+ * Repairs the Event wizard_step_4 form display (Tickets & Capacity step).
+ *
+ * Some environments have an empty/broken `node.event.wizard_step_4` display
+ * (only langcode/revision_log), which prevents the wizard from rendering
+ * ticket fields and makes the Event Type conditional UI appear "stuck".
+ *
+ * This update creates or updates `node.event.wizard_step_4` in active config
+ * without requiring a full config import.
+ */
+function myeventlane_event_update_11005(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_4';
+  $display = $storage->load($id);
+
+  if (!$display) {
+    $display = $storage->create([
+      'id' => $id,
+      'targetEntityType' => 'node',
+      'bundle' => 'event',
+      'mode' => 'wizard_step_4',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Only add components for fields that exist on the Event bundle.
+  $field_exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  $components = [
+    'field_event_type' => [
+      'type' => 'options_select',
+      'weight' => -10,
+      'region' => 'content',
+      'settings' => [],
+    ],
+    'field_capacity' => [
+      'type' => 'number',
+      'weight' => 0,
+      'region' => 'content',
+      'settings' => ['placeholder' => ''],
+    ],
+    'field_waitlist_capacity' => [
+      'type' => 'number',
+      'weight' => 1,
+      'region' => 'content',
+      'settings' => ['placeholder' => 'Leave empty for unlimited'],
+    ],
+    'field_external_url' => [
+      'type' => 'link_default',
+      'weight' => 2,
+      'region' => 'content',
+      'settings' => [
+        'placeholder_url' => 'https://',
+        'placeholder_title' => '',
+      ],
+    ],
+    'field_collect_per_ticket' => [
+      'type' => 'boolean_checkbox',
+      'weight' => 5,
+      'region' => 'content',
+      'settings' => ['display_label' => TRUE],
+    ],
+    'field_ticket_types' => [
+      'type' => 'paragraphs',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Ticket Type',
+        'title_plural' => 'Ticket Types',
+        'edit_mode' => 'open',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'ticket_type_config',
+        'features' => [
+          'add_above' => '0',
+          'collapse_edit_all' => 'collapse_edit_all',
+          'duplicate' => 'duplicate',
+        ],
+      ],
+    ],
+    'field_attendee_questions' => [
+      'type' => 'paragraphs',
+      'weight' => 20,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Question',
+        'title_plural' => 'Questions',
+        'edit_mode' => 'open',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'attendee_extra_field',
+        'features' => [
+          'add_above' => '0',
+          'collapse_edit_all' => 'collapse_edit_all',
+          'duplicate' => 'duplicate',
+        ],
+      ],
+    ],
+    // Keep this available (hidden/optional) in case vendors link an existing product.
+    'field_product_target' => [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 30,
+      'region' => 'content',
+      'settings' => [
+        'match_operator' => 'CONTAINS',
+        'match_limit' => 10,
+        'size' => 60,
+        'placeholder' => '',
+      ],
+    ],
+  ];
+
+  foreach ($components as $field_name => $component) {
+    if ($field_exists($field_name)) {
+      $display->setComponent($field_name, $component);
+    }
+  }
+
+  $display->save();
+  $logger->notice('Repaired entity form display: @id', ['@id' => $id]);
+}
+
+/**
+ * Repairs the Event wizard_step_5 form display (Content / Event details step).
+ *
+ * Some environments have an empty/broken `node.event.wizard_step_5` display,
+ * which prevents the wizard from rendering the body/summary fields.
+ *
+ * This update creates or updates `node.event.wizard_step_5` in active config
+ * without requiring a full config import.
+ */
+function myeventlane_event_update_11006(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_5';
+  $display = $storage->load($id);
+
+  if (!$display) {
+    $display = $storage->create([
+      'id' => $id,
+      'targetEntityType' => 'node',
+      'bundle' => 'event',
+      'mode' => 'wizard_step_5',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Only add components for fields that exist on the Event bundle.
+  $field_exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  // Content step: keep long description + optional short summary.
+  $components = [
+    'field_event_summary' => [
+      'type' => 'text_textfield',
+      'weight' => 0,
+      'region' => 'content',
+      'settings' => [
+        'size' => 60,
+        'placeholder' => '',
+      ],
+    ],
+    'body' => [
+      'type' => 'text_textarea_with_summary',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [
+        'rows' => 9,
+        'summary_rows' => 3,
+        'placeholder' => '',
+      ],
+    ],
+  ];
+
+  foreach ($components as $field_name => $component) {
+    if ($field_name === 'body' || $field_exists($field_name)) {
+      $display->setComponent($field_name, $component);
+    }
+  }
+
+  $display->save();
+  $logger->notice('Repaired entity form display: @id', ['@id' => $id]);
+}
+
+/**
+ * Extends/repairs wizard_step_5 to include intro + highlights in Content step.
+ *
+ * Desired order for vendors:
+ * - About this event (body)
+ * - What to expect (field_event_intro)
+ * - Highlights (field_event_highlights) — bullet points with icons
+ */
+function myeventlane_event_update_11007(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_5';
+  $display = $storage->load($id);
+
+  if (!$display) {
+    $display = $storage->create([
+      'id' => $id,
+      'targetEntityType' => 'node',
+      'bundle' => 'event',
+      'mode' => 'wizard_step_5',
+      'status' => TRUE,
+    ]);
+  }
+
+  $field_exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  // About this event.
+  $display->setComponent('body', [
+    'type' => 'text_textarea_with_summary',
+    'weight' => 0,
+    'region' => 'content',
+    'settings' => [
+      'rows' => 9,
+      'summary_rows' => 3,
+      'placeholder' => '',
+    ],
+  ]);
+
+  // What to expect.
+  if ($field_exists('field_event_intro')) {
+    $display->setComponent('field_event_intro', [
+      'type' => 'text_textarea',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [
+        'rows' => 4,
+        'placeholder' => '',
+      ],
+    ]);
+  }
+
+  // Highlights (paragraphs with icon + text).
+  if ($field_exists('field_event_highlights')) {
+    $display->setComponent('field_event_highlights', [
+      'type' => 'paragraphs',
+      'weight' => 20,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Highlight',
+        'title_plural' => 'Highlights',
+        'edit_mode' => 'open',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'event_highlight',
+        'features' => [
+          'add_above' => '0',
+          'collapse_edit_all' => 'collapse_edit_all',
+          'duplicate' => 'duplicate',
+        ],
+      ],
+    ]);
+  }
+
+  $display->save();
+  $logger->notice('Updated entity form display ordering/content: @id', ['@id' => $id]);
+}
+
+/**
+ * Repairs wizard_step_1 (Basics) form display.
+ */
+function myeventlane_event_update_11008(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_1';
+  $display = $storage->load($id) ?: $storage->create([
+    'id' => $id,
+    'targetEntityType' => 'node',
+    'bundle' => 'event',
+    'mode' => 'wizard_step_1',
+    'status' => TRUE,
+  ]);
+
+  $exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  // Title is a base field; always include.
+  $display->setComponent('title', [
+    'type' => 'string_textfield',
+    'weight' => 0,
+    'region' => 'content',
+    'settings' => [
+      'size' => 60,
+      'placeholder' => '',
+    ],
+  ]);
+
+  if ($exists('field_category')) {
+    $display->setComponent('field_category', [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [
+        'match_operator' => 'CONTAINS',
+        'match_limit' => 10,
+        'size' => 60,
+        'placeholder' => '',
+      ],
+    ]);
+  }
+
+  if ($exists('field_event_image')) {
+    $display->setComponent('field_event_image', [
+      'type' => 'image_image',
+      'weight' => 20,
+      'region' => 'content',
+      'settings' => [
+        'progress_indicator' => 'throbber',
+        'preview_image_style' => 'thumbnail',
+      ],
+    ]);
+  }
+
+  $display->save();
+  $logger->notice('Repaired entity form display: @id', ['@id' => $id]);
+}
+
+/**
+ * Repairs wizard_step_2 (When & Where) form display.
+ */
+function myeventlane_event_update_11009(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_2';
+  $display = $storage->load($id) ?: $storage->create([
+    'id' => $id,
+    'targetEntityType' => 'node',
+    'bundle' => 'event',
+    'mode' => 'wizard_step_2',
+    'status' => TRUE,
+  ]);
+
+  $exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  foreach ([
+    'field_event_start' => ['type' => 'datetime_default', 'weight' => 0],
+    'field_event_end' => ['type' => 'datetime_default', 'weight' => 10],
+    'field_location' => ['type' => 'address_default', 'weight' => 20],
+  ] as $field_name => $meta) {
+    if ($exists($field_name)) {
+      $display->setComponent($field_name, [
+        'type' => $meta['type'],
+        'weight' => $meta['weight'],
+        'region' => 'content',
+        'settings' => [],
+      ]);
+    }
+  }
+
+  if ($exists('field_venue_name')) {
+    $display->setComponent('field_venue_name', [
+      'type' => 'string_textfield',
+      'weight' => 30,
+      'region' => 'content',
+      'settings' => [
+        'size' => 60,
+        'placeholder' => '',
+      ],
+    ]);
+  }
+
+  $display->save();
+  $logger->notice('Repaired entity form display: @id', ['@id' => $id]);
+}
+
+/**
+ * Repairs wizard_step_3 (Branding) form display.
+ */
+function myeventlane_event_update_11010(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+
+  $id = 'node.event.wizard_step_3';
+  $display = $storage->load($id) ?: $storage->create([
+    'id' => $id,
+    'targetEntityType' => 'node',
+    'bundle' => 'event',
+    'mode' => 'wizard_step_3',
+    'status' => TRUE,
+  ]);
+
+  $exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  if ($exists('field_event_image')) {
+    $display->setComponent('field_event_image', [
+      'type' => 'image_image',
+      'weight' => 0,
+      'region' => 'content',
+      'settings' => [
+        'progress_indicator' => 'throbber',
+        'preview_image_style' => 'thumbnail',
+      ],
+    ]);
+  }
+
+  $display->save();
+  $logger->notice('Repaired entity form display: @id', ['@id' => $id]);
+}
+
+/**
+ * Creates wizard_step_details form mode and display for the Details step.
+ */
+function myeventlane_event_update_11011(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  // Create form mode if missing.
+  $form_mode_storage = $entity_type_manager->getStorage('entity_form_mode');
+  if (!$form_mode_storage->load('node.wizard_step_details')) {
+    $form_mode_storage->create([
+      'id' => 'node.wizard_step_details',
+      'targetEntityType' => 'node',
+      'label' => 'Wizard step details',
+      'cache' => TRUE,
+    ])->save();
+  }
+
+  // Create or update form display.
+  $display_storage = $entity_type_manager->getStorage('entity_form_display');
+  $display = $display_storage->load('node.event.wizard_step_details');
+  if (!$display) {
+    $display = $display_storage->create([
+      'id' => 'node.event.wizard_step_details',
+      'targetEntityType' => 'node',
+      'bundle' => 'event',
+      'mode' => 'wizard_step_details',
+      'status' => TRUE,
+    ]);
+  }
+
+  $exists = static function (string $field_name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $field_name);
+  };
+
+  $components = [
+    'field_event_highlights' => [
+      'type' => 'paragraphs',
+      'weight' => 0,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Highlight',
+        'title_plural' => 'Highlights',
+        'edit_mode' => 'open',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'event_highlight',
+        'features' => ['add_above' => '0', 'collapse_edit_all' => 'collapse_edit_all', 'duplicate' => 'duplicate'],
+      ],
+    ],
+    'field_refund_policy' => ['type' => 'options_select', 'weight' => 10, 'region' => 'content', 'settings' => []],
+    'field_age_policy' => ['type' => 'options_select', 'weight' => 20, 'region' => 'content', 'settings' => []],
+    'field_age_policy_note' => [
+      'type' => 'string_textfield',
+      'weight' => 21,
+      'region' => 'content',
+      'settings' => ['size' => 60, 'placeholder' => ''],
+    ],
+    'field_attendee_questions' => [
+      'type' => 'paragraphs',
+      'weight' => 30,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Question',
+        'title_plural' => 'Questions',
+        'edit_mode' => 'open',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'attendee_extra_field',
+        'features' => ['add_above' => '0', 'collapse_edit_all' => 'collapse_edit_all', 'duplicate' => 'duplicate'],
+      ],
+    ],
+    'field_accessibility' => [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 40,
+      'region' => 'content',
+      'settings' => ['match_operator' => 'CONTAINS', 'match_limit' => 10, 'size' => 60, 'placeholder' => ''],
+    ],
+    'field_accessibility_contact' => [
+      'type' => 'text_textarea',
+      'weight' => 41,
+      'region' => 'content',
+      'settings' => ['rows' => 3, 'placeholder' => ''],
+    ],
+    'field_accessibility_directions' => [
+      'type' => 'text_textarea',
+      'weight' => 42,
+      'region' => 'content',
+      'settings' => ['rows' => 3, 'placeholder' => ''],
+    ],
+    'field_accessibility_entry' => [
+      'type' => 'text_textarea',
+      'weight' => 43,
+      'region' => 'content',
+      'settings' => ['rows' => 3, 'placeholder' => ''],
+    ],
+    'field_accessibility_parking' => [
+      'type' => 'text_textarea',
+      'weight' => 44,
+      'region' => 'content',
+      'settings' => ['rows' => 3, 'placeholder' => ''],
+    ],
+  ];
+
+  foreach ($components as $field_name => $component) {
+    if ($exists($field_name)) {
+      $display->setComponent($field_name, $component);
+    }
+  }
+
+  $display->save();
+  \Drupal::logger('myeventlane_event')->notice('Created/updated wizard_step_details form display.');
+}
+
+/**
+ * Recreates wizard_step_details if missing (e.g. after config import deleted it).
+ *
+ * Config import can delete wizard_step_details when it's not in config/sync.
+ * Without it, the Details step falls back to default form = full page of fields.
+ */
+function myeventlane_event_update_11013(): void {
+  myeventlane_event_update_11011();
+}
+
+/**
+ * Hides revision_log on all wizard form displays.
+ *
+ * Omits "Revision log message" from the event wizard for vendor UX.
+ */
+function myeventlane_event_update_11012(): void {
+  $display_ids = [
+    'node.event.wizard_step_1',
+    'node.event.wizard_step_2',
+    'node.event.wizard_step_3',
+    'node.event.wizard_step_4',
+    'node.event.wizard_step_5',
+    'node.event.wizard_step_details',
+  ];
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  foreach ($display_ids as $id) {
+    $display = $storage->load($id);
+    if ($display) {
+      $display->setComponent('revision', ['region' => 'hidden']);
+      $display->setComponent('revision_log', ['region' => 'hidden']);
+      $display->save();
+    }
+  }
+}
+
+/**
+ * Move Event description (body) to Basics; Event intro (What to expect) to Details.
+ *
+ * Basics (wizard_step_1): show body (Event description), remove field_event_intro.
+ * Details (wizard_step_details): add field_event_intro at top before highlights.
+ */
+function myeventlane_event_update_11014(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  $field_exists = static function (string $name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $name);
+  };
+
+  // Basics: add body (Event description), hide field_event_intro.
+  $basics = $storage->load('node.event.wizard_step_1');
+  if ($basics) {
+    if ($field_exists('body')) {
+      $basics->setComponent('body', [
+        'type' => 'text_textarea_with_summary',
+        'weight' => 5,
+        'region' => 'content',
+        'settings' => [
+          'rows' => 9,
+          'summary_rows' => 3,
+          'placeholder' => '',
+        ],
+      ]);
+    }
+    $basics->setComponent('field_event_intro', ['region' => 'hidden']);
+    $basics->save();
+  }
+
+  // Details: add field_event_intro at top (weight -10) before highlights.
+  $details = $storage->load('node.event.wizard_step_details');
+  if ($details && $field_exists('field_event_intro')) {
+    $details->setComponent('field_event_intro', [
+      'type' => 'text_textarea',
+      'weight' => -10,
+      'region' => 'content',
+      'settings' => [
+        'rows' => 4,
+        'placeholder' => '',
+      ],
+    ]);
+    $details->save();
+  }
+}
+
+/**
+ * Ensures event full view display has field_event_image so hero renders.
+ */
+function myeventlane_event_update_11015(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_view_display');
+  $display = $storage->load('node.event.full');
+  if (!$display) {
+    $display = $storage->create([
+      'id' => 'node.event.full',
+      'targetEntityType' => 'node',
+      'bundle' => 'event',
+      'mode' => 'full',
+      'status' => TRUE,
+    ]);
+  }
+  $exists = static function (string $name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $name);
+  };
+  if ($exists('field_event_image')) {
+    $display->setComponent('field_event_image', [
+      'type' => 'image',
+      'label' => 'hidden',
+      'weight' => 0,
+      'region' => 'content',
+      'settings' => [
+        'image_style' => 'large',
+        'image_link' => '',
+        'image_loading' => ['attribute' => 'eager'],
+      ],
+    ]);
+  }
+  if ($exists('body')) {
+    $display->setComponent('body', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'weight' => 1,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+  }
+  if ($exists('field_event_intro')) {
+    $display->setComponent('field_event_intro', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'weight' => 2,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+  }
+  $display->save();
+}
+
+/**
+ * Adds body and field_event_intro to event full view display (About, What to expect).
+ */
+function myeventlane_event_update_11016(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_view_display');
+  $display = $storage->load('node.event.full');
+  if (!$display) {
+    return;
+  }
+  $exists = static function (string $name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $name);
+  };
+  $changed = FALSE;
+  if ($exists('body')) {
+    $display->setComponent('body', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'weight' => 1,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+    $changed = TRUE;
+  }
+  if ($exists('field_event_intro')) {
+    $display->setComponent('field_event_intro', [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'weight' => 2,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+    $changed = TRUE;
+  }
+  if ($changed) {
+    $display->save();
+  }
+}
+
+/**
+ * Adds field_venue_name and field_location to event full view display (venue/address fallback).
+ */
+function myeventlane_event_update_11017(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('entity_view_display');
+  $display = $storage->load('node.event.full');
+  if (!$display) {
+    return;
+  }
+  $exists = static function (string $name): bool {
+    return (bool) \Drupal\field\Entity\FieldConfig::loadByName('node', 'event', $name);
+  };
+  $changed = FALSE;
+  if ($exists('field_venue_name')) {
+    $display->setComponent('field_venue_name', [
+      'type' => 'string',
+      'label' => 'hidden',
+      'weight' => 3,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+    $changed = TRUE;
+  }
+  if ($exists('field_location')) {
+    $display->setComponent('field_location', [
+      'type' => 'address_default',
+      'label' => 'hidden',
+      'weight' => 4,
+      'region' => 'content',
+      'settings' => [],
+    ]);
+    $changed = TRUE;
+  }
+  if ($changed) {
+    $display->save();
+  }
+}
+
+/**
  * Testing checklist (for reference):
  *
  * Commands:

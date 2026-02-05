@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
@@ -25,10 +26,11 @@ final class BoostEventExportController extends VendorConsoleBaseController {
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     private readonly MetricsAggregator $metricsAggregator,
     private readonly ConfigFactoryInterface $configFactory,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
   }
 
   /**

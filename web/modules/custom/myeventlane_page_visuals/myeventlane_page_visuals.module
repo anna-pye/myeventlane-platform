@@ -1,0 +1,56 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * MyEventLane Page Visuals - centralized hero/illustration image management.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Injects page_visual (hero/illustration) for the current route.
+ * Twig receives: page_visual.enabled, page_visual.image_url, page_visual.alt.
+ */
+function myeventlane_page_visuals_preprocess_page(array &$variables): void {
+  $route_match = \Drupal::routeMatch();
+  $resolver = \Drupal::service('myeventlane.page_visual_resolver');
+  $result = $resolver->resolveForRoute($route_match);
+
+  if ($result === NULL) {
+    $variables['page_visual'] = [
+      'enabled' => FALSE,
+      'image_url' => NULL,
+      'image_url_mobile' => NULL,
+      'hide_on_mobile' => FALSE,
+      'alt' => '',
+    ];
+    $metadata = $resolver->getCacheableMetadata($route_match);
+  }
+  else {
+    $cache = $result['_cache'] ?? [];
+    unset($result['_cache']);
+    $variables['page_visual'] = $result;
+    $metadata = \Drupal\Core\Cache\CacheableMetadata::createFromRenderArray([
+      '#cache' => [
+        'contexts' => $cache['contexts'] ?? [],
+        'tags' => $cache['tags'] ?? [],
+      ],
+    ]);
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $variables['#cache']['contexts'] = array_merge(
+    $variables['#cache']['contexts'] ?? [],
+    $metadata->getCacheContexts()
+  );
+  $variables['#cache']['tags'] = array_merge(
+    $variables['#cache']['tags'] ?? [],
+    $metadata->getCacheTags()
+  );
+}

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_tickets\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -28,9 +29,10 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     EntityTypeManagerInterface $entityTypeManager,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
     $this->entityTypeManager = $entityTypeManager;
   }
 
@@ -41,6 +43,7 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     return new self(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('entity_type.manager'),
     );
   }
@@ -112,7 +115,10 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
               ],
               'delete' => [
                 'title' => $this->t('Delete'),
-                'url' => $widget->toUrl('delete-form', ['event' => $event->id()]),
+                'url' => Url::fromRoute('entity.mel_purchase_surface.delete_form', [
+                  'event' => $event->id(),
+                  'mel_purchase_surface' => $widget->id(),
+                ]),
               ],
             ],
           ],
@@ -139,7 +145,7 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     return $this->buildTicketsPage(
       $event,
       $build,
-      $this->t('Embedded widgets'),
+      (string) $this->t('Embedded widgets'),
       'widgets',
       $header_actions
     );

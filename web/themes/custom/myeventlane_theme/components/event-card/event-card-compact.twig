@@ -9,11 +9,21 @@
   })
 %}
 
-<article class="mel-card mel-card--compact">
+{% set is_promoted = is_promoted|default(false) %}
+{% set is_past = is_past|default(false) %}
+
+<article class="mel-card mel-card--compact{% if is_promoted %} mel-card--promoted{% endif %}{% if is_past %} mel-card--past{% endif %}">
   <a class="mel-card__link" href="{{ item.url }}">
     {% if item.thumb %}
       <div class="mel-card__thumb">
         {{ item.thumb }}
+      </div>
+    {% endif %}
+
+    {% if is_promoted %}
+      <div class="mel-featured-badge" role="note" aria-label="{{ 'Featured event'|t }}">
+        <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
+        <span class="mel-featured-badge__text">{{ 'Featured'|t }}</span>
       </div>
     {% endif %}
 

@@ -16,9 +16,14 @@
 <section class="mel-event-perf" aria-label="{{ 'Event performance'|t }}">
   <ul class="mel-event-perf__list">
     {% for event in events %}
-      <li class="mel-event-perf__item {% if event.status_badge == 'past' %}mel-event-perf__item--past{% endif %} {% if event.is_sold_out %}mel-event-perf__item--sold-out{% endif %}">
+      {% set is_past = (event.mel_event_state is defined and event.mel_event_state in ['ended', 'archived']) or (event.status_badge|default('') == 'past') %}
+      {% set is_promoted = event.boost is defined and event.boost.is_boosted|default(false) %}
+      <li class="mel-event-perf__item{% if is_past %} mel-card--past{% endif %}{% if is_promoted %} mel-card--promoted{% endif %}{% if event.is_sold_out %} mel-event-perf__item--sold-out{% endif %}">
         <div class="mel-event-perf__head">
           <a href="{{ event.manage_url }}" class="mel-event-perf__title">{{ event.title }}</a>
+          {% if event.is_series_template|default(false) %}
+            <span class="mel-badge mel-badge--series">{{ 'Series'|t }}</span>
+          {% endif %}
           <span class="mel-badge mel-badge--{{ event.status_badge }}">{{ event.status_badge_label }}</span>
         </div>
         {% if event.bar_width is defined and event.bar_width is not null %}
@@ -34,11 +39,16 @@
           <span class="mel-event-perf__metric">{{ 'RSVPs'|t }}: {{ event.rsvps|default(0) }}</span>
           <span class="mel-event-perf__metric">{{ 'Revenue'|t }}: {{ event.revenue_formatted|default('$0') }}</span>
         </div>
+        {% if is_past and not is_promoted %}
+          <div class="mel-text--muted">
+            {{ 'This event has concluded. Metrics shown reflect final performance.'|t }}
+          </div>
+        {% endif %}
         <div class="mel-event-perf__actions">
           <a href="{{ event.manage_url }}" class="mel-event-perf__action">{{ 'View'|t }}</a>
           <a href="{{ event.edit_url }}" class="mel-event-perf__action">{{ 'Edit'|t }}</a>
           {% if event.boost_wizard_url is defined and event.boost_wizard_url %}
-            <a href="{{ event.boost_wizard_url }}" class="mel-event-perf__action mel-event-perf__action--boost">🚀 {{ 'Boost This Event'|t }}</a>
+            <a href="{{ event.boost_wizard_url }}" class="mel-boost-button mel-event-perf__action mel-event-perf__action--boost" aria-label="{{ 'Boost this event'|t }}">🚀 {{ 'Boost This Event'|t }}</a>
           {% endif %}
           {% if event.export_csv_url is defined and event.export_csv_url %}
             <a href="{{ event.export_csv_url }}" class="mel-event-perf__action" download>{{ 'Export CSV'|t }}</a>
@@ -51,6 +61,6 @@
 {% else %}
   <div class="mel-empty-state mel-empty-state--compact">
     <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
-    <a href="/vendor/events/create" class="mel-btn mel-btn--primary">{{ 'Create Event'|t }}</a>
+    <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta">{{ 'Create Event'|t }}</a>
   </div>
 {% endif %}

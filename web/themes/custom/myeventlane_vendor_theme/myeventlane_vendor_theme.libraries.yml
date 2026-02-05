@@ -4,58 +4,37 @@
 global-styling:
   css:
     theme:
-      css/fallback.css: {}
       dist/main.css: {}
   js:
     dist/main.js: { attributes: { type: module } }
   dependencies:
     - core/drupal
     - core/once
-    - core/drupal.form
-    - core/drupal.states
 
 # Dashboard with Chart.js
 dashboard:
-  css:
-    theme:
-      dist/main.css: {}
-  js:
-    dist/main.js: { attributes: { type: module } }
   dependencies:
-    - core/drupal
-    - core/once
+    - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/chartjs
 
 # Chart.js library (CDN)
 chartjs:
   version: 4.4.1
   js:
-    https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js: { type: external, minified: true, attributes: { defer: true } }
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js: { type: external, minified: true }
 
 # Event form with tabs and validation
 event-form:
-  css:
-    theme:
-      dist/main.css: {}
-  js:
-    dist/main.js: { attributes: { type: module } }
   dependencies:
-    - core/drupal
-    - core/once
+    - myeventlane_vendor_theme/global-styling
     - core/drupal.form
     - core/drupal.states
     - core/drupal.ajax
 
 # Analytics page
 analytics:
-  css:
-    theme:
-      dist/main.css: {}
-  js:
-    dist/main.js: { attributes: { type: module } }
   dependencies:
-    - core/drupal
-    - core/once
+    - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/chartjs
 
 # Vendor Event Wizard

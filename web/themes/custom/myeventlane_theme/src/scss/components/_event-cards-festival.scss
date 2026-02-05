@@ -15,121 +15,210 @@
 // Card Base
 // --------------------------------------------------------------------------
 
-.mel-event-card {
-  background: $mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  padding: space.mel-space(6);
-  box-shadow: shadows.$mel-shadow-sm;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+// IMPORTANT:
+// `.mel-event-card` is used for BOTH:
+// - listing cards (Views, homepage, search), and
+// - event page content sections (about/schedule/venue/etc).
+//
+// The festival content-card styling (large padding) must ONLY apply on event pages,
+// otherwise all listing cards become huge.
+//
+// Event pages provide `.mel-event--full` / `.mel-event-page` wrappers.
+.mel-event--full,
+.mel-event-page {
+  .mel-event-card {
+    background: $mel-color-surface;
+    border-radius: radii.$mel-radius-lg;
+    padding: space.mel-space(6);
+    box-shadow: shadows.$mel-shadow-sm;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-  @media (hover: hover) {
-    @media (prefers-reduced-motion: no-preference) {
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: shadows.$mel-shadow-lg;
+    @media (hover: hover) {
+      @media (prefers-reduced-motion: no-preference) {
+        &:hover {
+          transform: translateY(-4px);
+          box-shadow: shadows.$mel-shadow-lg;
+        }
       }
     }
-  }
 
-  @include mel-break(md) {
-    padding: space.mel-space(7);
+    @include mel-break(md) {
+      padding: space.mel-space(7);
+    }
   }
-}
 
 // --------------------------------------------------------------------------
 // Card Title
 // --------------------------------------------------------------------------
 
-.mel-event-card__title {
-  font-size: type.mel-font-size(2xl);
-  font-weight: type.$mel-font-extrabold;
-  color: $mel-color-text;
-  margin: 0 0 space.mel-space(4) 0;
-  letter-spacing: -0.01em;
+  .mel-event-card__title {
+    font-size: type.mel-font-size(2xl);
+    font-weight: type.$mel-font-extrabold;
+    color: $mel-color-text;
+    margin: 0 0 space.mel-space(4) 0;
+    letter-spacing: -0.01em;
 
-  @include mel-break(md) {
-    font-size: type.mel-font-size(3xl);
-    margin-bottom: space.mel-space(5);
+    @include mel-break(md) {
+      font-size: type.mel-font-size(3xl);
+      margin-bottom: space.mel-space(5);
+    }
   }
-}
 
 // --------------------------------------------------------------------------
 // Card Content
 // --------------------------------------------------------------------------
 
-.mel-event-card__content {
-  font-size: type.mel-font-size(base);
-  line-height: 1.7;
-  color: $mel-color-text;
+  .mel-event-card__content {
+    font-size: type.mel-font-size(base);
+    line-height: 1.7;
+    color: $mel-color-text;
 
-  p {
-    margin-bottom: space.mel-space(3);
+    p {
+      margin-bottom: space.mel-space(3);
 
-    &:last-child {
-      margin-bottom: 0;
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    strong {
+      font-weight: type.$mel-font-bold;
+    }
+
+    em {
+      font-style: italic;
+      color: $mel-color-text-muted;
+    }
+
+    h3 {
+      font-size: type.mel-font-size(lg);
+      font-weight: type.$mel-font-bold;
+      margin: space.mel-space(4) 0 space.mel-space(2) 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    ul, ol {
+      margin: space.mel-space(3) 0;
+      padding-left: space.mel-space(5);
+    }
+
+    li {
+      margin-bottom: space.mel-space(2);
     }
   }
-
-  strong {
-    font-weight: type.$mel-font-bold;
-  }
-
-  em {
-    font-style: italic;
-    color: $mel-color-text-muted;
-  }
-
-  h3 {
-    font-size: type.mel-font-size(lg);
-    font-weight: type.$mel-font-bold;
-    margin: space.mel-space(4) 0 space.mel-space(2) 0;
-
-    &:first-child {
-      margin-top: 0;
-    }
-  }
-
-  ul, ol {
-    margin: space.mel-space(3) 0;
-    padding-left: space.mel-space(5);
-  }
-
-  li {
-    margin-bottom: space.mel-space(2);
-  }
-}
 
 // --------------------------------------------------------------------------
 // Card Variants - Gradient backgrounds matching mockup
 // --------------------------------------------------------------------------
 
-.mel-event-card--about {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-peach) 100%);
-  background-size: 200% 200%;
-}
+  .mel-event-card--about {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-peach) 100%);
+    background-size: 200% 200%;
+  }
 
-.mel-event-card--schedule,
-.mel-event-card--lineup {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-mint) 100%);
-}
+  .mel-event-card--schedule,
+  .mel-event-card--lineup {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-mint) 100%);
+  }
 
-.mel-event-card--venue,
-.mel-event-card--location {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-sky) 100%);
-}
+  .mel-event-card--venue,
+  .mel-event-card--location {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-sky) 100%);
+  }
 
-.mel-event-card--organiser,
-.mel-event-card--host {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-lilac) 100%);
-}
+  .mel-event-card--organiser,
+  .mel-event-card--host {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-lilac) 100%);
+  }
 
-.mel-event-card--policies,
-.mel-event-card--faq {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-butter) 100%);
-}
+  .mel-event-card--policies,
+  .mel-event-card--faq {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-butter) 100%);
+  }
 
-.mel-event-card--accessibility {
-  background: linear-gradient(135deg, #fff 0%, var(--mel-peach) 100%);
+  .mel-event-card--accessibility {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-peach) 100%);
+  }
+
+// --------------------------------------------------------------------------
+// New schema-backed sections (Stage 4)
+// --------------------------------------------------------------------------
+
+  .mel-event-card--summary {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-sky) 100%);
+  }
+
+  .mel-event-card--intro {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-mint) 100%);
+  }
+
+  .mel-event-card--highlights {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-lilac) 100%);
+  }
+
+  .mel-event-card--age-policy {
+    background: linear-gradient(135deg, #fff 0%, var(--mel-butter) 100%);
+  }
+
+  .mel-event-summary {
+    font-size: type.mel-font-size(lg);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .mel-event-intro {
+    font-size: type.mel-font-size(base);
+    line-height: 1.7;
+  }
+
+  .mel-event-highlights {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: space.mel-space(3);
+  }
+
+  .mel-event-highlights__item {
+    display: flex;
+    align-items: flex-start;
+    gap: space.mel-space(3);
+  }
+
+  .mel-event-highlights__icon {
+    width: 1.75em;
+    flex: 0 0 1.75em;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    margin-top: 0.1em;
+  }
+
+  .mel-event-highlights__text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mel-event-age-policy {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: radii.$mel-radius-md;
+    padding: space.mel-space(4);
+  }
+
+  .mel-event-age-policy__primary {
+    margin: 0 0 space.mel-space(2) 0;
+  }
+
+  .mel-event-age-policy__note {
+    margin: 0;
+    color: $mel-color-text-muted;
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -185,4 +274,61 @@
     height: 400px;
     min-height: 400px;
   }
+}
+
+// ==========================================================================
+// Trending / Popular blocks (Stage 6)
+// ==========================================================================
+
+.mel-trending-categories-block__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(3);
+}
+
+.mel-trending-category-pill {
+  display: flex;
+  flex-direction: column;
+  gap: space.mel-space(2);
+  padding: space.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  min-width: 160px;
+}
+
+.mel-trending-category-pill__link {
+  font-weight: type.$mel-font-bold;
+  color: $mel-color-text;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.mel-trending-category-pill__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space.mel-space(2);
+  font-size: type.mel-font-size(sm);
+  color: $mel-color-text-muted;
+}
+
+.mel-trending-in-category-block__grid,
+.mel-popular-events-block__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space.mel-space(4);
+
+  @include mel-break(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-popular-event__going {
+  margin-top: space.mel-space(2);
+  font-size: type.mel-font-size(sm);
+  color: $mel-color-text-muted;
 }

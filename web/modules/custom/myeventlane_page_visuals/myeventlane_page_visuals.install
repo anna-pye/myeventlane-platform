@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane Page Visuals.
+ */
+
+/**
+ * Migrate media_id to media_uuid for config portability across environments.
+ */
+function myeventlane_page_visuals_update_9001(): string {
+  $config_factory = \Drupal::configFactory();
+  $updated = 0;
+  $prefix = 'myeventlane_page_visuals.page_visual.';
+  foreach ($config_factory->listAll('myeventlane_page_visuals.page_visual') as $config_name) {
+    $config = $config_factory->getEditable($config_name);
+    $media_id = $config->get('media_id');
+    $media_uuid = $config->get('media_uuid');
+
+    if ($media_uuid !== NULL && $media_uuid !== '') {
+      continue;
+    }
+    if ($media_id === NULL || $media_id <= 0) {
+      $config->clear('media_id');
+      $config->set('media_uuid', NULL);
+      $config->save();
+      $updated++;
+      continue;
+    }
+
+    $media = \Drupal::entityTypeManager()->getStorage('media')->load($media_id);
+    if ($media !== NULL) {
+      $config->set('media_uuid', $media->uuid());
+    }
+    else {
+      $config->set('media_uuid', NULL);
+    }
+    $config->clear('media_id');
+    $config->save();
+    $updated++;
+  }
+
+  return $updated > 0
+    ? (string) t('Migrated @count page visual(s) from media_id to media_uuid.', ['@count' => $updated])
+    : (string) t('No page visuals required migration.');
+}
+
+/**
+ * Migrate media_uuid to media_uuid_desktop and add desktop/mobile support.
+ */
+function myeventlane_page_visuals_update_9002(): string {
+  $config_factory = \Drupal::configFactory();
+  $updated = 0;
+  foreach ($config_factory->listAll('myeventlane_page_visuals.page_visual') as $config_name) {
+    $config = $config_factory->getEditable($config_name);
+    $media_uuid_desktop = $config->get('media_uuid_desktop');
+    $media_uuid = $config->get('media_uuid');
+
+    $changed = FALSE;
+    if (empty($media_uuid_desktop) && !empty($media_uuid)) {
+      $config->set('media_uuid_desktop', $media_uuid);
+      $config->clear('media_uuid');
+      $changed = TRUE;
+    }
+    if ($config->get('media_uuid_mobile') === NULL) {
+      $config->set('media_uuid_mobile', NULL);
+      $changed = TRUE;
+    }
+    if ($config->get('hide_on_mobile') === NULL) {
+      $config->set('hide_on_mobile', FALSE);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $config->save();
+      $updated++;
+    }
+  }
+
+  return $updated > 0
+    ? (string) t('Migrated @count page visual(s) to desktop/mobile fields.', ['@count' => $updated])
+    : (string) t('No page visuals required migration.');
+}

@@ -56,15 +56,19 @@ configuration:
       step: _sidebar
       weight: 0
       wrapper_element: fieldset
+    coupon_redemption:
+      step: _sidebar
+      weight: 1
+      allow_multiple: false
     mel_fee_transparency:
       display_label: 'Order summary'
       step: _sidebar
-      weight: 1
+      weight: 2
       wrapper_element: fieldset
     order_summary:
       display_label: null
       step: _sidebar
-      weight: 2
+      weight: 3
       wrapper_element: container
       view: commerce_checkout_order_summary
     # DISABLED - Legacy panes we don't want

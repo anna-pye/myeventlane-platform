@@ -1,1 +1,3 @@
-{{ template|replace(context)|raw }}
+{# Template is expected to be pre-rendered before being passed in. #}
+{% set template_html = template is iterable ? template|join('') : template %}
+{{ template_html|default('')|raw }}

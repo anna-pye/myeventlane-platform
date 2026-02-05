@@ -65,14 +65,14 @@
             {{ 'Open Stripe Dashboard'|t }}
           </a>
         {% endif %}
-        <a href="/vendor/payouts" class="mel-btn mel-btn--secondary mel-btn--sm">
+        <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-btn mel-btn--secondary mel-btn--sm">
           {{ 'View Payout History'|t }}
         </a>
       </div>
     {% else %}
       <div class="mel-stripe-panel__empty">
         <p>{{ 'Connect your Stripe account to receive payouts for ticket sales.'|t }}</p>
-        <a href="{{ stripe.connect_url }}" class="mel-btn mel-btn--primary">
+        <a href="{{ stripe.connect_url }}" class="mel-btn mel-btn--cta">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
           </svg>

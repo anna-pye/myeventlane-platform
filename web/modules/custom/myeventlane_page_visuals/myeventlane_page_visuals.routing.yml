@@ -1,0 +1,40 @@
+# Page Visual config entity routes.
+entity.myeventlane_page_visual.collection:
+  path: '/admin/config/myeventlane/page-visuals'
+  defaults:
+    _entity_list: 'myeventlane_page_visual'
+    _title: 'Page Visuals'
+  requirements:
+    _permission: 'administer myeventlane page visuals'
+  options:
+    _admin_route: TRUE
+
+entity.myeventlane_page_visual.add_form:
+  path: '/admin/config/myeventlane/page-visuals/add'
+  defaults:
+    _entity_form: 'myeventlane_page_visual.add'
+    _title: 'Add page visual'
+  requirements:
+    _permission: 'administer myeventlane page visuals'
+  options:
+    _admin_route: TRUE
+
+entity.myeventlane_page_visual.edit_form:
+  path: '/admin/config/myeventlane/page-visuals/manage/{myeventlane_page_visual}'
+  defaults:
+    _entity_form: 'myeventlane_page_visual.edit'
+    _title: 'Edit page visual'
+  requirements:
+    _permission: 'administer myeventlane page visuals'
+  options:
+    _admin_route: TRUE
+
+entity.myeventlane_page_visual.delete_form:
+  path: '/admin/config/myeventlane/page-visuals/manage/{myeventlane_page_visual}/delete'
+  defaults:
+    _entity_form: 'myeventlane_page_visual.delete'
+    _title: 'Delete page visual'
+  requirements:
+    _permission: 'administer myeventlane page visuals'
+  options:
+    _admin_route: TRUE

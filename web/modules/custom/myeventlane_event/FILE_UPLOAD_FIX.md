@@ -1,6 +1,23 @@
-# File Upload Size Issue - Fix Notes
+# File Upload Fix Notes
 
-## Issue
+## Issue 1: Image upload not saving (Basics wizard step)
+**Symptom:** User uploads an image on the Event wizard Basics step; it appears in the form (thumbnail, Remove button). After navigating away (clicking "Continue" or a sidebar step) and returning, the image is gone ("No file chosen").
+
+**Root causes:**
+1. **EntityFormDisplay image_image widget + form cache:** The standard widget conflicts with disableCache (fid lost on "Upload + Continue") and form cache + sanitizer caused regressions (alt field missing, still not saving).
+2. **Fix (2025-02):** Use EventInformationForm pattern: custom managed_file + always-visible alt field, manual save in submitForm. Remove field_event_image from form display, add custom field_event_image container with upload + alt. `processImageUploadIfNeeded()` handles "Select file + Continue" (same request). disableCache avoids serialization issues.
+3. **Sidebar navigation:** JS warns when leaving Basics with unsaved image.
+
+**Fixes (2025-02):**
+- `EventWizardBaseForm.php`:
+  - `normalizeFormStateForExtraction()`: Copy `field_event_image` from `user_input` into `values` when missing, so widget extraction finds it.
+  - `applyImageFromFormState()`: Fallback that reads image from form state (direct or wrapper paths), handles `fids` as string or array, and applies to the event.
+  - `copyFormValuesToEvent()`: Calls `applyImageFromFormState()` for `wizard_step_1`.
+- `event-wizard.js`: Warn when leaving Basics with an unsaved image (sidebar click or page refresh). Prompts: "You have an image that has not been saved. Click 'Continue' to save before switching steps."
+
+---
+
+## Issue 2: File size error
 Error message: "An unrecoverable error occurred. The uploaded file likely exceeded the maximum file size (256 MB) that this server supports."
 
 ## Changes Made

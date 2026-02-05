@@ -70,6 +70,11 @@ services:
     tags:
       - { name: theme_negotiator, priority: 2000 }
 
+  myeventlane_core.route_theme_negotiator:
+    class: Drupal\myeventlane_core\Theme\RouteThemeNegotiator
+    tags:
+      - { name: theme_negotiator, priority: 1500 }
+
   myeventlane_core.admin_theme_negotiator:
     class: Drupal\myeventlane_core\Theme\AdminThemeNegotiator
     arguments:
@@ -146,3 +151,16 @@ services:
 
   myeventlane_core.ticket_label_resolver:
     class: Drupal\myeventlane_core\Service\TicketLabelResolver
+
+  myeventlane_core.display_name_resolver:
+    class: Drupal\myeventlane_core\Service\DisplayNameResolver
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_onboarding.manager:
+    class: Drupal\myeventlane_core\Service\OnboardingManager
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@current_user'
+      - '@datetime.time'

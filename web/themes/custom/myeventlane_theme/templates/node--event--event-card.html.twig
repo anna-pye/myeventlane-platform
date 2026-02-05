@@ -6,89 +6,56 @@
  * Uses same structure as teaser template for consistency.
  */
 #}
-<article class="mel-card">
-  <a href="{{ card_url|default(url|default('#')) }}" class="mel-card__link" aria-label="{{ card_title }}">
-    <div class="mel-card__media">
-    {% if card_image_url %}
-      <img 
-        src="{{ card_image_url }}" 
-        alt="{{ card_image_alt|default(card_title) }}" 
-        loading="lazy" 
-        decoding="async"
-        class="mel-card__image"
-      />
-    {% else %}
-      {# Primary placeholder (shown when no image URL provided) #}
-      <div class="mel-card__media--placeholder" aria-hidden="true">
-        <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
-          <defs>
-            <linearGradient id="melPh" x1="0" x2="1" y1="0" y2="1">
-              <stop offset="0" stop-color="#f26d5b"/>
-              <stop offset="0.5" stop-color="#6e7ef2"/>
-              <stop offset="1" stop-color="#f5c04c"/>
-            </linearGradient>
-            <filter id="melSoft" x="-10%" y="-10%" width="120%" height="120%">
-              <feGaussianBlur stdDeviation="10"/>
-            </filter>
-          </defs>
-          <rect width="800" height="450" fill="url(#melPh)"/>
-          <circle cx="140" cy="110" r="70" fill="#ffffff" opacity="0.22" filter="url(#melSoft)"/>
-          <circle cx="700" cy="120" r="90" fill="#ffffff" opacity="0.18" filter="url(#melSoft)"/>
-          <circle cx="640" cy="360" r="110" fill="#ffffff" opacity="0.14" filter="url(#melSoft)"/>
-          <g opacity="0.92">
-            <rect x="285" y="140" width="230" height="210" rx="28" fill="#ffffff" opacity="0.18"/>
-            <path d="M330 195h140a18 18 0 0 1 18 18v95a18 18 0 0 1-18 18H330a18 18 0 0 1-18-18v-95a18 18 0 0 1 18-18Z" fill="#ffffff" opacity="0.25"/>
-            <path d="M355 170v40M445 170v40" stroke="#ffffff" stroke-width="14" stroke-linecap="round" opacity="0.45"/>
-            <circle cx="365" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
-            <circle cx="415" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
-            <circle cx="465" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
-          </g>
-          <text x="50%" y="420" text-anchor="middle" font-size="28" fill="#ffffff" opacity="0.9" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
-            No image yet. Your event still slaps.
-          </text>
-        </svg>
-      </div>
-    {% endif %}
+{# Promoted / Boosted flag (data already managed by Boost system). #}
+{% set is_promoted = node is defined and node and node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
 
-      {% if card_day and card_month %}
-        <div class="mel-card__date-badge" aria-hidden="true">
-          <span class="mel-card__date-day">{{ card_day }}</span>
-          <span class="mel-card__date-month">{{ card_month }}</span>
-        </div>
-      {% endif %}
+{% set cta_text = 'Get tickets'|t %}
+{% if card_type|default('paid') == 'rsvp' %}
+  {% set cta_text = 'RSVP'|t %}
+{% elseif card_type|default('paid') == 'external' %}
+  {% set cta_text = 'Book'|t %}
+{% endif %}
 
-      {% if card_type %}
-        <span class="mel-pill mel-pill--sm
-          {% if card_type == 'rsvp' %} mel-pill--rsvp{% endif %}
-          {% if card_type == 'paid' %} mel-pill--paid{% endif %}
-          {% if card_type == 'both' %} mel-pill--both{% endif %}
-          {% if card_type == 'none' %} mel-pill--none{% endif %}
-        ">
-          <span class="mel-pill__label">
-            {{ card_price_label }}
-          </span>
-        </span>
+<article class="mel-event-card{% if is_promoted %} mel-event-card--promoted{% endif %}">
+  <a href="{{ card_url|default(url|default('#')) }}" class="mel-event-card__link" aria-label="{{ card_title }}">
+    <div class="mel-event-card__image">
+      {% if card_image_url %}
+        <img
+          src="{{ card_image_url }}"
+          alt="{{ card_image_alt|default(card_title) }}"
+          loading="lazy"
+          decoding="async"
+          class="mel-event-card__image-element"
+        />
+      {% else %}
+        <div class="mel-event-card__placeholder" aria-hidden="true"></div>
       {% endif %}
 
       {% if card_category %}
-        <div class="mel-pill mel-pill--category">
-          <a href="{{ card_category.url }}" class="mel-pill__text" aria-label="{{ 'View events in'|t }} {{ card_category.label }}">
-            {{ card_category.label }}
-          </a>
+        <span class="mel-event-card__category-pill mel-pill mel-pill--category mel-pill--on-image" aria-hidden="true">
+          <span class="mel-pill__label">{{ card_category.label }}</span>
+        </span>
+      {% endif %}
+
+      {% if is_promoted %}
+        <div class="mel-featured-badge" role="note" aria-label="{{ 'Featured event'|t }}">
+          <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
+          <span class="mel-featured-badge__text">{{ 'Featured'|t }}</span>
         </div>
       {% endif %}
+
+      <span class="mel-event-card__cta" aria-hidden="true">{{ cta_text }}</span>
     </div>
 
-    <div class="mel-card__body">
-      <h3 class="mel-card__title">{{ card_title }}</h3>
+    <div class="mel-event-card__content">
+      <h3 class="mel-event-card__title">{{ card_title }}</h3>
 
-      <div class="mel-card__meta">
+      <div class="mel-event-card__meta">
         {% if card_time_range %}
-          <div class="mel-meta">{{ card_time_range }}</div>
+          <div class="mel-event-card__meta-item">{{ card_time_range }}</div>
         {% endif %}
-
         {% if card_location %}
-          <div class="mel-meta">{{ card_location }}</div>
+          <div class="mel-event-card__meta-item">{{ card_location }}</div>
         {% endif %}
       </div>
     </div>

@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_tickets\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_tickets\Service\EventAccess;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -33,18 +36,26 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   protected FormBuilderInterface $formBuilder;
 
   /**
+   * The entity form builder.
+   */
+  protected EntityFormBuilderInterface $entityFormBuilder;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
     private readonly EventAccess $eventAccess,
     EntityTypeManagerInterface $entityTypeManager,
     FormBuilderInterface $formBuilder,
+    EntityFormBuilderInterface $entityFormBuilder,
   ) {
-    parent::__construct($domainDetector, $currentUser);
+    parent::__construct($domainDetector, $currentUser, $messenger);
     $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
+    $this->entityFormBuilder = $entityFormBuilder;
   }
 
   /**
@@ -54,10 +65,27 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     return new static(
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
+      $container->get('messenger'),
       $container->get('myeventlane_tickets.event_access'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
+      $container->get('entity.form_builder'),
     );
+  }
+
+  /**
+   * Asserts the current user can manage this event's tickets.
+   *
+   * Allows either: (a) manage own events tickets + owner/vendor membership, or
+   * (b) access vendor console + owner/vendor membership (same as vendor base).
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   */
+  protected function assertEventOwnership(NodeInterface $event): void {
+    if ($this->eventAccess->canManageEventTickets($event)) {
+      return;
+    }
+    parent::assertEventOwnership($event);
   }
 
   /**
@@ -123,22 +151,10 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   }
 
   /**
-   * Lists ticket types (Commerce products) for the event.
+   * Lists ticket types (Commerce variations) for the event.
    */
   public function typesList(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-
-    $storage = $this->entityTypeManager->getStorage('commerce_product');
-
-    // Query ticket products filtered by event.
-    $query = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('type', 'ticket')
-      ->condition('field_event', $event->id())
-      ->sort('created', 'DESC');
-
-    $product_ids = $query->execute();
-    $products = $product_ids ? $storage->loadMultiple($product_ids) : [];
 
     $content = [
       '#type' => 'container',
@@ -162,7 +178,18 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     // Attach AJAX library.
     $content['#attached']['library'][] = 'core/drupal.dialog.ajax';
 
-    if (empty($products)) {
+    // Ticket types in MEL are variations on the event's linked ticket product.
+    $product = NULL;
+    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
+      $candidate = $event->get('field_product_target')->entity;
+      if ($candidate && $candidate->bundle() === 'ticket') {
+        $product = $candidate;
+      }
+    }
+
+    $variations = $product ? $product->getVariations() : [];
+
+    if (empty($variations)) {
       $content['empty'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-empty-state']],
@@ -178,28 +205,22 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
         '#attributes' => ['class' => ['mel-ticket-types-grid']],
       ];
 
-      foreach ($products as $product) {
-        /** @var \Drupal\commerce_product\Entity\ProductInterface $product */
-        $variations = $product->getVariations();
-        $variation = !empty($variations) ? reset($variations) : NULL;
-
+      foreach ($variations as $variation) {
         $price = 'Free';
         $stock = 'Unlimited';
 
-        if ($variation) {
-          $price_obj = $variation->getPrice();
-          if ($price_obj) {
-            $price_number = (float) $price_obj->getNumber();
-            if ($price_number > 0) {
-              $price = '$' . number_format($price_number, 2);
-            }
+        $price_obj = $variation->getPrice();
+        if ($price_obj) {
+          $price_number = (float) $price_obj->getNumber();
+          if ($price_number > 0) {
+            $price = '$' . number_format($price_number, 2);
           }
+        }
 
-          // Get stock if available.
-          if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
-            $stock_value = (int) $variation->get('field_stock')->value;
-            $stock = $this->t('@count available', ['@count' => $stock_value]);
-          }
+        // Get stock if available.
+        if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
+          $stock_value = (int) $variation->get('field_stock')->value;
+          $stock = $this->t('@count available', ['@count' => $stock_value]);
         }
 
         $card = [
@@ -209,7 +230,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
         $card['name'] = [
           '#type' => 'markup',
-          '#markup' => '<h3 class="mel-ticket-type-card__name">' . $this->t('@name', ['@name' => $product->label()]) . '</h3>',
+          '#markup' => '<h3 class="mel-ticket-type-card__name">' . $this->t('@name', ['@name' => $variation->label()]) . '</h3>',
         ];
 
         $card['price'] = [
@@ -230,7 +251,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
         $card['actions']['edit'] = [
           '#type' => 'link',
           '#title' => $this->t('Edit'),
-          '#url' => $product->toUrl('edit-form'),
+          '#url' => $variation->toUrl('edit-form'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
         ];
 
@@ -260,7 +281,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       'status' => 1,
     ]);
 
-    $form = $this->formBuilder->getForm($settings, 'default');
+    $form = $this->entityFormBuilder->getForm($settings, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Ticket settings'), 'settings');
   }
@@ -273,7 +294,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $storage = $this->entityTypeManager->getStorage('mel_ticket_group');
     $entity = $storage->create(['event' => $event->id()]);
-    $form = $this->formBuilder->getForm($entity, 'add');
+    $form = $this->entityFormBuilder->getForm($entity, 'add');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Add ticket group'), 'groups');
   }
@@ -291,7 +312,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       throw new NotFoundHttpException();
     }
 
-    $form = $this->formBuilder->getForm($entity, 'default');
+    $form = $this->entityFormBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit ticket group'), 'groups');
   }
@@ -304,7 +325,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $storage = $this->entityTypeManager->getStorage('mel_access_code');
     $entity = $storage->create(['event' => $event->id()]);
-    $form = $this->formBuilder->getForm($entity, 'add');
+    $form = $this->entityFormBuilder->getForm($entity, 'add');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Add access code'), 'access_codes');
   }
@@ -322,7 +343,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       throw new NotFoundHttpException();
     }
 
-    $form = $this->formBuilder->getForm($entity, 'default');
+    $form = $this->entityFormBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit access code'), 'access_codes');
   }
@@ -335,7 +356,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $storage = $this->entityTypeManager->getStorage('mel_purchase_surface');
     $entity = $storage->create(['event' => $event->id()]);
-    $form = $this->formBuilder->getForm($entity, 'add');
+    $form = $this->entityFormBuilder->getForm($entity, 'add');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Add widget'), 'widgets');
   }
@@ -353,7 +374,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       throw new NotFoundHttpException();
     }
 
-    $form = $this->formBuilder->getForm($entity, 'default');
+    $form = $this->entityFormBuilder->getForm($entity, 'default');
 
     return $this->buildTicketsPage($event, $form, (string) $this->t('Edit widget'), 'widgets');
   }

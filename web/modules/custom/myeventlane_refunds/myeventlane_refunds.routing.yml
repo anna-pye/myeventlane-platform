@@ -1,3 +1,62 @@
+myeventlane_refunds.buyer_refund:
+  path: '/my-tickets/order/{commerce_order}/refund'
+  defaults:
+    _form: '\Drupal\myeventlane_refunds\Form\BuyerRefundForm'
+    _title: 'Request Refund'
+  requirements:
+    _entity_access: 'commerce_order.view'
+    _custom_access: 'myeventlane_refunds.buyer_refund_access_check:access'
+    commerce_order: \d+
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+    _admin_route: FALSE
+
+myeventlane_refunds.vendor_refund_requests:
+  path: '/vendor/events/{node}/refund-requests'
+  defaults:
+    _controller: '\Drupal\myeventlane_refunds\Controller\VendorRefundRequestsController::list'
+    _title: 'Refund Requests'
+  requirements:
+    _entity_access: 'node.view'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+
+myeventlane_refunds.vendor_refund_request_approve:
+  path: '/vendor/events/{node}/refund-requests/{refund_request}/approve'
+  defaults:
+    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestApproveForm'
+    _title: 'Approve Refund Request'
+  requirements:
+    _entity_access: 'node.update'
+    node: \d+
+    refund_request: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+
+myeventlane_refunds.vendor_refund_request_reject:
+  path: '/vendor/events/{node}/refund-requests/{refund_request}/reject'
+  defaults:
+    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestRejectForm'
+    _title: 'Reject Refund Request'
+  requirements:
+    _entity_access: 'node.update'
+    node: \d+
+    refund_request: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+
 myeventlane_refunds.vendor_refund:
   path: '/vendor/orders/{commerce_order}/refund'
   defaults:

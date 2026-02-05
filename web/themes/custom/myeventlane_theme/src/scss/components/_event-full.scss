@@ -11,6 +11,446 @@
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
 
+// ==========================================================================
+// MEL v2 Event Page (Reference Implementation)
+// ==========================================================================
+
+.mel-event--v2 {
+  padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
+}
+
+.mel-event-hero-card {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-lg;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.mel-event-hero-card__media {
+  position: relative;
+}
+
+.mel-event-hero-card__image,
+.mel-event-hero-card__image-wrap img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: linear-gradient(
+    135deg,
+    rgba(colors.$mel-color-primary, 0.18) 0%,
+    rgba(colors.$mel-color-secondary, 0.12) 55%,
+    rgba(colors.$mel-color-accent, 0.12) 100%
+  );
+}
+
+.mel-event-hero-card__image-wrap {
+  width: 100%;
+  line-height: 0;
+
+  img {
+    width: 100%;
+  }
+}
+
+.mel-event-hero-card__image--placeholder {
+  min-height: 220px;
+}
+
+.mel-event-hero-card__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.0) 45%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  pointer-events: none;
+}
+
+.mel-event-hero-card__badge {
+  position: absolute;
+  top: space-tokens.mel-space(3);
+  left: space-tokens.mel-space(3);
+  z-index: 2;
+}
+
+.mel-event-hero-card__title-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: space-tokens.mel-space(4);
+}
+
+.mel-event-hero-card__title {
+  margin: 0;
+  color: colors.$mel-color-text-inverse;
+  font-weight: typography.$mel-font-extrabold;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.mel-event-hero-card__summary {
+  margin: space-tokens.mel-space(2) 0 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: typography.mel-font-size(base);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.mel-event-meta-bar {
+  margin-top: space-tokens.mel-space(2);
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: shadows.$mel-shadow-md;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: space-tokens.mel-space(3);
+  display: flex;
+  flex-direction: column;
+  gap: space-tokens.mel-space(3);
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+// Buy Tickets in highlight panel: red with white text.
+.mel-event-meta-bar__cta .mel-btn--cta {
+  background: var(--mel-accent);
+  color: colors.$mel-color-text-inverse;
+  border: none;
+}
+
+.mel-event-meta-bar__items {
+  display: grid;
+  gap: space-tokens.mel-space(3);
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+  }
+}
+
+.mel-event-meta {
+  display: flex;
+  gap: space-tokens.mel-space(2);
+  align-items: flex-start;
+}
+
+.mel-event-meta__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(colors.$mel-color-primary, 0.14);
+  flex: 0 0 auto;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: colors.$mel-color-primary;
+    opacity: 0.9;
+  }
+}
+
+.mel-event-meta__icon--time {
+  background: rgba(colors.$mel-color-secondary, 0.14);
+
+  &::after {
+    background: colors.$mel-color-secondary;
+  }
+}
+
+.mel-event-meta__icon--location {
+  background: rgba(colors.$mel-color-accent-alt, 0.14);
+
+  &::after {
+    background: colors.$mel-color-accent-alt;
+  }
+}
+
+.mel-event-meta__primary {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+  line-height: 1.2;
+}
+
+.mel-event-meta__secondary {
+  margin-top: 2px;
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.2;
+}
+
+.mel-event-layout {
+  margin-top: space-tokens.mel-space(5);
+  display: grid;
+  gap: space-tokens.mel-space(5);
+
+  @include breakpoints.mel-break(lg) {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+  }
+}
+
+.mel-card--surface {
+  border-radius: radii.$mel-radius-xl;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: shadows.$mel-shadow-md;
+  background: colors.$mel-color-surface;
+}
+
+.mel-card--sticky {
+  position: sticky;
+  top: space-tokens.mel-space(4);
+}
+
+.mel-btn--pill {
+  border-radius: radii.$mel-radius-full;
+}
+
+.mel-btn--full {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.mel-event-share {
+  display: flex;
+  gap: space-tokens.mel-space(2);
+  align-items: center;
+  margin-top: space-tokens.mel-space(4);
+}
+
+.mel-event-share__link {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: shadows.$mel-shadow-sm;
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: shadows.$mel-shadow-md;
+      transform: translateY(-1px);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
+}
+
+.mel-event-share__icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: rgba(colors.$mel-color-primary, 0.8);
+}
+
+.mel-event-share__icon--email { background: colors.$mel-color-navy; }
+.mel-event-share__icon--facebook { background: rgba(24, 119, 242, 0.9); }
+.mel-event-share__icon--x { background: rgba(0, 0, 0, 0.75); }
+
+.mel-info-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: space-tokens.mel-space(1);
+  padding: space-tokens.mel-space(3) 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+.mel-info-row__label {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-info-row__value {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-event-location-map {
+  margin-top: space-tokens.mel-space(2);
+}
+
+// ---------------------------------------------------------------------------
+// Content Relevance & Styling (Phase D.1b)
+// ---------------------------------------------------------------------------
+// Highlights: quick-scan, calm, distinct from body copy.
+
+.mel-event--v2 .mel-card--highlights {
+  background: colors.$mel-color-surface-alt;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-highlights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: space-tokens.mel-space(2);
+}
+
+.mel-event-highlights__item {
+  display: flex;
+  gap: space-tokens.mel-space(2);
+  align-items: flex-start;
+}
+
+.mel-event-highlights__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: rgba(colors.$mel-color-primary, 0.14);
+  color: colors.$mel-color-primary;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.mel-event-highlights__text {
+  color: colors.$mel-color-text;
+  line-height: 1.5;
+  font-size: typography.mel-font-size(base);
+}
+
+// What to expect: slightly lighter + structured feel (without competing with About).
+.mel-event--v2 .mel-card--expect {
+  background: rgba(colors.$mel-color-primary, 0.06);
+  border: 1px solid rgba(colors.$mel-color-primary, 0.14);
+}
+
+.mel-event--v2 .mel-card--expect .mel-card__body {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-event--v2 .mel-card--expect .mel-card__body p {
+  margin-top: 0;
+  margin-bottom: space-tokens.mel-space(3);
+}
+
+.mel-event--v2 .mel-card--expect .mel-card__body ul,
+.mel-event--v2 .mel-card--expect .mel-card__body ol {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.mel-event--v2 .mel-card--expect .mel-card__body li + li {
+  margin-top: space-tokens.mel-space(2);
+}
+
+// Sidebar map: visually subordinate to location text.
+.mel-event--v2 .mel-event-location-map.myeventlane-event-map-container {
+  height: 160px;
+  min-height: 160px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: colors.$mel-color-surface-alt;
+}
+
+// Google Maps iframe embed in Event Information card (no API key required).
+.mel-event-map-embed {
+  width: 100%;
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  background: colors.$mel-color-surface-alt;
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: 200px;
+    border: 0;
+    border-radius: inherit;
+  }
+}
+
+.mel-mobile-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding:
+    space-tokens.mel-space(3)
+    space-tokens.mel-space(3)
+    calc(#{space-tokens.mel-space(3)} + env(safe-area-inset-bottom));
+  background: rgba(250, 247, 251, 0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  z-index: 50;
+  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.08);
+
+  @include breakpoints.mel-break(lg) {
+    display: none;
+  }
+}
+
+.mel-mobile-cta__button {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.9rem 1.2rem;
+  border-radius: radii.$mel-radius-full;
+  background: colors.$mel-color-primary;
+  color: colors.$mel-color-text-inverse;
+  font-weight: typography.$mel-font-bold;
+  text-decoration: none;
+  box-shadow: shadows.$mel-shadow-md;
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease-out),
+    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    background-color var(--mel-motion-fast) var(--mel-ease-out);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: shadows.$mel-shadow-lg;
+      transform: translateY(-1px);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Event Shell (Master Card Wrapper)
 // ---------------------------------------------------------------------------
@@ -60,6 +500,25 @@
   width: 100%;
   overflow: hidden;
 
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    min-height: 50vh;
+    background: linear-gradient(
+      135deg,
+      rgba(colors.$mel-color-secondary, 0.15) 0%,
+      rgba(colors.$mel-color-primary, 0.12) 50%,
+      rgba(colors.$mel-color-accent, 0.1) 100%
+    );
+  }
+
+  &__placeholder-inner {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+  }
+
   &__media {
     position: relative;
     width: 100%;
@@ -99,7 +558,7 @@
     @media (prefers-reduced-motion: no-preference) {
       opacity: 0;
       transform: translateY(10px);
-      animation: mel-hero-fade-in 0.14s ease-out forwards;
+      animation: mel-hero-fade-in var(--mel-motion-fast) var(--mel-ease-out) forwards;
     }
 
     @keyframes mel-hero-fade-in {
@@ -297,7 +756,9 @@
   // Micro-interaction 2: Card hover lift (only on hover-capable devices)
   @media (hover: hover) {
     @media (prefers-reduced-motion: no-preference) {
-      transition: transform 0.14s ease, box-shadow 0.14s ease;
+      transition:
+        transform var(--mel-motion-fast) var(--mel-ease-out),
+        box-shadow var(--mel-motion-fast) var(--mel-ease-out);
 
       &:hover {
         transform: translateY(-2px);
@@ -426,11 +887,20 @@
     text-decoration: none;
     font-size: typography.mel-font-size(sm);
     text-align: center;
-    transition: background-color 0.14s ease, border-color 0.14s ease;
+    transition:
+      background-color var(--mel-motion-fast) var(--mel-ease-out),
+      border-color var(--mel-motion-fast) var(--mel-ease-out),
+      color var(--mel-motion-fast) var(--mel-ease-out);
 
-    &:hover {
-      background: colors.$mel-color-surface-alt;
-      border-color: colors.$mel-color-border-strong;
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: colors.$mel-color-surface-alt;
+        border-color: colors.$mel-color-border-strong;
+      }
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
     }
   }
 }

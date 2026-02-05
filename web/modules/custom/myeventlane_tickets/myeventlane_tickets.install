@@ -130,3 +130,52 @@ function myeventlane_tickets_schema_alter(array &$schema): void {
     $schema['myeventlane_ticket']['indexes']['myeventlane_ticket__holder_email'] = ['holder_email'];
   }
 }
+
+/**
+ * Install new ticketing content entity types added after initial install.
+ */
+function myeventlane_tickets_update_8003(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $change_list = $update_manager->getChangeList();
+  $entity_type_ids = [
+    'mel_purchase_surface',
+    'mel_event_ticket_settings',
+    'mel_ticket_group',
+    'mel_access_code',
+  ];
+
+  $installed = [];
+  foreach ($entity_type_ids as $entity_type_id) {
+    if (empty($change_list[$entity_type_id]['entity_type'])) {
+      continue;
+    }
+
+    $definition = $entity_type_manager->getDefinition($entity_type_id, FALSE);
+    if (!$definition) {
+      \Drupal::logger('myeventlane_tickets')->error('Could not load entity type definition for @entity_type_id during update 8003.', [
+        '@entity_type_id' => $entity_type_id,
+      ]);
+      throw new \RuntimeException(sprintf('Entity type definition not found: %s', $entity_type_id));
+    }
+
+    try {
+      $update_manager->installEntityType($definition);
+      $installed[] = $entity_type_id;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_tickets')->error('Failed to install entity type @entity_type_id during update 8003: @message', [
+        '@entity_type_id' => $entity_type_id,
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  if (empty($installed)) {
+    return 'No new ticketing entity types required installation.';
+  }
+
+  return 'Installed ticketing entity types: ' . implode(', ', $installed) . '.';
+}

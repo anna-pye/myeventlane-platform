@@ -1,0 +1,7 @@
+services:
+  myeventlane_event.commands:
+    class: Drupal\myeventlane_event\Commands\MigrateLegacyTicketStoresCommands
+    arguments:
+      - '@entity_type.manager'
+    tags:
+      - { name: drush.command }

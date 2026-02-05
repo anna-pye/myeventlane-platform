@@ -1,0 +1,9 @@
+name: 'MyEventLane Auth'
+type: module
+description: 'Branded login and registration UX. Curates user forms, account type choice, and Gin Login styling for MyEventLane.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - drupal:user

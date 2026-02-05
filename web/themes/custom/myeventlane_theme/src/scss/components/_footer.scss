@@ -15,6 +15,11 @@
 // Standard Footer
 // ---------------------------------------------------------------------------
 
+.mel-site-footer,
+.mel-site-footer--main {
+  @extend .mel-footer;
+}
+
 .mel-footer {
   background: colors.$mel-color-surface;
   padding: spacing.mel-space(8) 0;

@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_reviews_enabled
+    - node.type.event
+  module:
+    - options
+id: node.event.field_reviews_enabled
+field_name: field_reviews_enabled
+entity_type: node
+bundle: event
+label: 'Reviews enabled'
+description: 'Allow attendees to leave reviews for this event after it ends.'
+required: false
+translatable: false
+default_value:
+  - value: false
+default_value_callback: ''
+settings: {  }
+field_type: boolean

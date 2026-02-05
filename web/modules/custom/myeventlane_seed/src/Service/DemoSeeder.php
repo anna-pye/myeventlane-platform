@@ -13,6 +13,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Image\ImageFactory as CoreImageFactory;
 use Drupal\myeventlane_seed\Util\ImageFactory;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\user\Entity\User;
 
 /**
@@ -34,6 +35,8 @@ final class DemoSeeder {
    *   The logger factory.
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user service.
+   * @param \Drupal\myeventlane_core\Service\OnboardingManager $onboardingManager
+   *   The onboarding manager (for ensuring vendor access).
    * @param \Drupal\Core\File\FileSystemInterface $fileSystem
    *   The file system service.
    * @param \Drupal\Core\Image\ImageFactory $imageFactory
@@ -45,6 +48,7 @@ final class DemoSeeder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly AccountProxyInterface $currentUser,
+    private readonly OnboardingManager $onboardingManager,
     private readonly FileSystemInterface $fileSystem,
     private readonly CoreImageFactory $imageFactory,
     private readonly ImageFactory $imageFactoryUtil,
@@ -54,7 +58,12 @@ final class DemoSeeder {
    * Seeds all demo data.
    *
    * @return array
-   *   Summary table data: ['vendor' => string, 'user_id' => int, 'vendor_id' => int, 'store_id' => int, 'events' => [...]]
+   *   Summary table data:
+   *   - vendor: string
+   *   - user_id: int
+   *   - vendor_id: int
+   *   - store_id: int
+   *   - events: array
    */
   public function seedDemo(): array {
     $logger = $this->loggerFactory->get('myeventlane_seed');
@@ -102,11 +111,7 @@ final class DemoSeeder {
     if (!empty($existing)) {
       /** @var \Drupal\user\Entity\User $user */
       $user = reset($existing);
-      // Ensure vendor role is assigned.
-      if (!$user->hasRole('vendor')) {
-        $user->addRole('vendor');
-        $user->save();
-      }
+      $this->onboardingManager->ensureVendorAccess($user);
       return $user;
     }
 
@@ -115,10 +120,11 @@ final class DemoSeeder {
       'name' => $username,
       'mail' => $email,
       'status' => 1,
-      'roles' => ['authenticated', 'vendor'],
+      'roles' => ['authenticated'],
       'pass' => 'password',
     ]);
     $user->save();
+    $this->onboardingManager->ensureVendorAccess($user);
 
     return $user;
   }
@@ -135,7 +141,6 @@ final class DemoSeeder {
    *   Summary data for this vendor.
    */
   private function seedVendorEvents(User $vendorUser, string $vendorLabel): array {
-    $logger = $this->loggerFactory->get('myeventlane_seed');
     $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
     $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
 
@@ -254,7 +259,6 @@ final class DemoSeeder {
    *   Event summary data, or NULL on failure.
    */
   private function createTicketedEvent($vendor, $store, User $vendorUser, string $vendorLabel, int $eventNum, \DateTime $baseTime): ?array {
-    $logger = $this->loggerFactory->get('myeventlane_seed');
     $sydneyLocations = [
       ['name' => 'Sydney Opera House', 'street' => 'Bennelong Point', 'city' => 'Sydney', 'postcode' => '2000'],
       ['name' => 'Darling Harbour', 'street' => 'Darling Harbour', 'city' => 'Sydney', 'postcode' => '2000'],
@@ -356,10 +360,8 @@ final class DemoSeeder {
       return NULL;
     }
 
-    /** @var \Drupal\node\NodeInterface $event */
-    $event = $this->entityTypeManager->getStorage('node')->load($nid);
-
-    // RSVP events don't need products, but we can create a $0 product for consistency if needed.
+    // RSVP events don't need products, but we can create a $0 product for
+    // consistency if needed.
     // For now, we'll leave product empty for RSVP events.
     return [
       'event_nid' => $nid,
@@ -380,7 +382,11 @@ final class DemoSeeder {
    * @param string $title
    *   Event title.
    * @param array $location
-   *   Location data: ['name' => string, 'street' => string, 'city' => string, 'postcode' => string].
+   *   Location data:
+   *   - name: string.
+   *   - street: string.
+   *   - city: string.
+   *   - postcode: string.
    * @param \DateTime $start
    *   Event start date/time.
    * @param \DateTime $end
@@ -458,8 +464,6 @@ final class DemoSeeder {
    *   The product entity, or NULL on failure.
    */
   private function createTicketProduct($event, $store, User $vendorUser, string $title): ?Product {
-    $productStorage = $this->entityTypeManager->getStorage('commerce_product');
-
     $product = Product::create([
       'type' => 'ticket',
       'title' => $title . ' - Tickets',
@@ -495,8 +499,6 @@ final class DemoSeeder {
    *   The variation entity, or NULL on failure.
    */
   private function createTicketVariation($product, string $title, float $price, string $currency, int $stock): ?ProductVariation {
-    $variationStorage = $this->entityTypeManager->getStorage('commerce_product_variation');
-
     $sku = 'TICKET-' . $product->id() . '-' . substr(md5($title), 0, 8);
 
     $variation = ProductVariation::create([

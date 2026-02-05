@@ -1,0 +1,25 @@
+<svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="melPhDefault" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f26d5b"/>
+      <stop offset="0.5" stop-color="#6e7ef2"/>
+      <stop offset="1" stop-color="#f5c04c"/>
+    </linearGradient>
+    <filter id="melSoftDefault" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="800" height="450" fill="url(#melPhDefault)"/>
+  <circle cx="140" cy="110" r="70" fill="#ffffff" opacity="0.22" filter="url(#melSoftDefault)"/>
+  <circle cx="700" cy="120" r="90" fill="#ffffff" opacity="0.18" filter="url(#melSoftDefault)"/>
+  <circle cx="640" cy="360" r="110" fill="#ffffff" opacity="0.14" filter="url(#melSoftDefault)"/>
+  <g opacity="0.92">
+    <rect x="285" y="140" width="230" height="210" rx="28" fill="#ffffff" opacity="0.18"/>
+    <path d="M330 195h140a18 18 0 0 1 18 18v95a18 18 0 0 1-18 18H330a18 18 0 0 1-18-18v-95a18 18 0 0 1 18-18Z" fill="#ffffff" opacity="0.25"/>
+    <path d="M355 170v40M445 170v40" stroke="#ffffff" stroke-width="14" stroke-linecap="round" opacity="0.45"/>
+    <circle cx="365" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
+    <circle cx="415" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
+    <circle cx="465" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
+  </g>
+  <text x="50%" y="420" text-anchor="middle" font-size="28" fill="#ffffff" opacity="0.9" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">No image yet. Your event still slaps.</text>
+</svg>

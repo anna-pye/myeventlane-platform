@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Vendor onboarding panel - read-only, no business logic.
+ *
+ * Variables:
+ * - stage_label: Current stage label (string).
+ * - flags: Map of flags (has_vendor, has_store, stripe_connected, etc.).
+ * - next_action: { route_name: string|null, title: string }.
+ * - vendor: (optional) Vendor entity for display context only.
+ */
+#}
+<div class="mel-onboarding-panel">
+  <div class="mel-onboarding-panel__inner">
+    <div class="mel-onboarding-panel__header">
+      <h3 class="mel-onboarding-panel__title">{{ 'Complete your setup'|t }}</h3>
+      {% if stage_label %}
+        <span class="mel-onboarding-panel__stage">{{ stage_label }}</span>
+      {% endif %}
+    </div>
+    <div class="mel-onboarding-panel__body">
+      {% if next_action.route_name and next_action.title %}
+        <a href="{{ path(next_action.route_name) }}" class="mel-onboarding-panel__cta mel-btn mel-btn--cta">
+          {{ 'Continue onboarding'|t }}: {{ next_action.title }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>

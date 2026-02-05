@@ -153,8 +153,8 @@ final class VendorOnboardFirstEventController extends ControllerBase {
 
     return [
       '#theme' => 'vendor_onboard_step',
-      '#step_number' => 4,
-      '#total_steps' => 6,
+      '#step_number' => 5,
+      '#total_steps' => 7,
       '#step_title' => $this->t('Create your first event'),
       '#step_description' => $this->t('Let\'s get your first event set up. You can always come back to edit it later.'),
       '#content' => $content,
@@ -179,11 +179,13 @@ final class VendorOnboardFirstEventController extends ControllerBase {
     }
 
     $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $vendorIds = $vendorStorage->getQuery()
+    $query = $vendorStorage->getQuery()
       ->accessCheck(FALSE)
+      ->range(0, 1);
+    $group = $query->orConditionGroup()
       ->condition('uid', $userId)
-      ->range(0, 1)
-      ->execute();
+      ->condition('field_vendor_users', $userId);
+    $vendorIds = $query->condition($group)->execute();
 
     if (!empty($vendorIds)) {
       $vendor = $vendorStorage->load(reset($vendorIds));

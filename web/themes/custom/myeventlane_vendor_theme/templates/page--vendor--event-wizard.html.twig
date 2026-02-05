@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Vendor event wizard page template (Basics, When & Where, Tickets, Details, Review, Publish).
+ *
+ * Used when theme_suggestions_page_alter adds page__vendor__event_wizard for
+ * routes: myeventlane_event.wizard.basics, when_where, tickets, details,
+ * review, publish, success.
+ */
+#}
+{% extends "page.html.twig" %}
+
+{% block content %}
+  <div class="page--vendor-event-wizard">
+    {{ page.content }}
+  </div>
+{% endblock %}

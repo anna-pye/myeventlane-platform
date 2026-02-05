@@ -48,10 +48,29 @@ function myeventlane_views_views_post_execute(ViewExecutable $view): void {
 /**
  * Implements hook_views_pre_render().
  *
- * Ensures null field values are converted to empty strings to prevent
- * Html::escape() errors when rendering Views fields.
+ * - Sorts upcoming_events by promoted (featured) first.
+ * - Ensures null field values are converted to empty strings.
  */
 function myeventlane_views_views_pre_render(ViewExecutable $view): void {
+  // Sort upcoming_events: featured first, preserve existing order within groups.
+  if ($view->id() === 'upcoming_events' && !empty($view->result)) {
+    usort($view->result, function ($a, $b) {
+      $promo_a = 0;
+      $promo_b = 0;
+      if (isset($a->_entity) && $a->_entity->hasField('field_promoted') && !$a->_entity->get('field_promoted')->isEmpty()) {
+        $promo_a = (int) $a->_entity->get('field_promoted')->value;
+      }
+      if (isset($b->_entity) && $b->_entity->hasField('field_promoted') && !$b->_entity->get('field_promoted')->isEmpty()) {
+        $promo_b = (int) $b->_entity->get('field_promoted')->value;
+      }
+      if ($promo_a !== $promo_b) {
+        return $promo_b - $promo_a;
+      }
+      return 0;
+    });
+  }
+
+  // Null conversion for all views.
   foreach ($view->result as $index => $row) {
     foreach ($view->field as $field_id => $field) {
       if (isset($field->field_alias)) {

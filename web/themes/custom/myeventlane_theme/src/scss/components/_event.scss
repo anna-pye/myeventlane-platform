@@ -169,7 +169,10 @@
   }
 }
 
-.mel-card {
+// NOTE:
+// This file is legacy event-page styling. It should never override global card
+// systems used across the site (homepage/listings). Scope to event pages only.
+.mel-event .mel-card {
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 8px 24px rgba(41, 50, 65, 0.06);
@@ -181,17 +184,17 @@
   margin-top: 1rem;
 }
 
-.mel-h2 {
+.mel-event .mel-h2 {
   font-size: 1.25rem;
   margin: 0 0 0.75rem;
 }
 
-.mel-small {
+.mel-event .mel-small {
   font-size: 0.95rem;
   opacity: 0.9;
 }
 
-.mel-badge {
+.mel-event .mel-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.6rem;
@@ -201,7 +204,7 @@
   margin-bottom: 0.75rem;
 }
 
-.mel-button {
+.mel-event .mel-button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -212,12 +215,12 @@
   text-decoration: none;
 }
 
-.mel-button--primary {
+.mel-event .mel-button--primary {
   background: #f26d5b;
   color: #fff;
 }
 
-.mel-button--full {
+.mel-event .mel-button--full {
   width: 100%;
 }
 
@@ -232,32 +235,32 @@
   margin-bottom: 0.35rem;
 }
 
-.mel-accordion {
+.mel-event .mel-accordion {
   border: 1px solid rgba(41, 50, 65, 0.08);
   border-radius: 14px;
   padding: 0.75rem;
   background: rgba(254, 245, 236, 0.5);
 }
 
-.mel-accordion + .mel-accordion {
+.mel-event .mel-accordion + .mel-accordion {
   margin-top: 0.75rem;
 }
 
-.mel-accordion__summary {
+.mel-event .mel-accordion__summary {
   cursor: pointer;
   font-weight: 700;
   list-style: none;
 }
 
-.mel-accordion__summary::-webkit-details-marker {
+.mel-event .mel-accordion__summary::-webkit-details-marker {
   display: none;
 }
 
-.mel-accordion__body {
+.mel-event .mel-accordion__body {
   margin-top: 0.75rem;
 }
 
-.mel-links-inline__list {
+.mel-event .mel-links-inline__list {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;

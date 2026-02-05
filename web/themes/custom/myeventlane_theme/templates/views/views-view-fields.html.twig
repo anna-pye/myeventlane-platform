@@ -10,22 +10,44 @@
 #}
 
 {% if mel_is_event_view %}
-  {# Preprocess sets these as strings via _myeventlane_theme_set_views_field_content #}
-  {# Use values directly - preprocess should provide clean strings #}
+  {# Views field output is often markup (links/wrappers). Normalize to plain values. #}
+
+  {# URL: prefer raw, fall back to extracting href from link markup. #}
+  {% set _url = fields.view_node.raw|default('') %}
+  {% if not _url %}
+    {% set _link_html = fields.view_node.content|default('')|render|trim %}
+    {% if 'href="' in _link_html %}
+      {% set _url = _link_html|split('href="')|last|split('"')|first %}
+    {% elseif "href='" in _link_html %}
+      {% set _url = _link_html|split("href='")|last|split("'")|first %}
+    {% endif %}
+  {% endif %}
+
+  {# Image: extract src from rendered field markup if possible. #}
+  {% set _image_src = '' %}
+  {% set _image_html = fields.field_image.content|default('')|render|trim %}
+  {% if _image_html %}
+    {% if 'src="' in _image_html %}
+      {% set _image_src = _image_html|split('src="')|last|split('"')|first %}
+    {% elseif "src='" in _image_html %}
+      {% set _image_src = _image_html|split("src='")|last|split("'")|first %}
+    {% endif %}
+  {% endif %}
+
   {% include '@myeventlane_theme/event/event-card.html.twig' with {
-    title: fields.title.content|default(''),
-    url: fields.view_node.content|default(''),
-    image: fields.field_image.content|default(''),
-    date_day: fields.field_date_day.content|default(''),
-    date_month: fields.field_date_month.content|default(''),
-    date_full: fields.field_date.content|default(''),
-    location: fields.field_location.content|default(''),
-    category: fields.field_category.content|default(''),
-    category_slug: fields.field_category_slug.content|default(''),
-    ticket_type: fields.field_ticket_type.content|default('rsvp'),
-    ticket_label: fields.field_ticket_label.content|default('RSVP'),
+    title: fields.title.content|default('')|striptags|trim,
+    url: _url,
+    image: _image_src,
+    date_day: fields.field_date_day.content|default('')|striptags|trim,
+    date_month: fields.field_date_month.content|default('')|striptags|trim,
+    date_full: fields.field_date.content|default('')|striptags|trim,
+    location: fields.field_location.content|default('')|striptags|trim,
+    category: fields.field_category.content|default('')|striptags|trim,
+    category_slug: fields.field_category_slug.content|default('')|striptags|trim,
+    ticket_type: fields.field_ticket_type.content|default('rsvp')|striptags|trim,
+    ticket_label: fields.field_ticket_label.content|default('RSVP')|striptags|trim,
     accessibility: fields.field_accessibility_icons.content|default([])
-  } %}
+  } only %}
 {% else %}
   {% for field in fields -%}
     {{ field.separator }}

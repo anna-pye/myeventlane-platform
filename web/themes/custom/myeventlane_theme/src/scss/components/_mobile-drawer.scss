@@ -1,0 +1,113 @@
+// ==========================================================================
+// Mobile Drawer Component
+// ==========================================================================
+// <details>/<summary> drawer for mobile navigation.
+// Uses BEM: .mobile-drawer, .mobile-drawer__toggle, etc.
+
+.mobile-drawer {
+  position: relative;
+  // Ensure panel is not clipped by parent overflow
+  isolation: isolate;
+
+  &__toggle {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--mel-border);
+    background: #fff;
+    color: var(--mel-ink);
+    font-weight: 600;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral);
+      outline-offset: 2px;
+    }
+  }
+
+  &__icon {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  &__label {
+    font-size: 0.9rem;
+  }
+
+  &[open] &__panel {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  &__panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 76px; // Below 64px header + 12px gap
+    width: auto;
+    max-width: 360px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--mel-border);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    padding: 12px;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 9999;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  &__section {
+    display: grid;
+    gap: 6px;
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    li {
+      margin: 0;
+    }
+
+    a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--mel-ink);
+      font-weight: 500;
+
+      &:hover {
+        background: #f7f7fb;
+        color: var(--mel-coral);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--mel-coral);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__divider {
+    height: 1px;
+    background: var(--mel-border);
+    margin: 10px 0;
+  }
+}
