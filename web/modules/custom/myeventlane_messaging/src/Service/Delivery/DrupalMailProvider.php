@@ -43,6 +43,9 @@ final class DrupalMailProvider implements DeliveryProviderInterface {
       'subject' => $subject,
       'body' => $html,
       'html' => $html,
+      // Mark as brand applied to prevent hook_mail_alter from double-processing.
+      // MessagingManager already applies brand before calling this provider.
+      'mel_brand_applied' => TRUE,
     ];
     if (!empty($attachments) && is_array($attachments)) {
       $messageParams['attachments'] = $attachments;
@@ -55,6 +58,13 @@ final class DrupalMailProvider implements DeliveryProviderInterface {
     }
     if (!empty($params['reply_to'])) {
       $messageParams['reply_to'] = $params['reply_to'];
+    }
+    // Pass through vendor/event context for hook_mail if needed.
+    if (!empty($params['vendor_id'])) {
+      $messageParams['vendor_id'] = $params['vendor_id'];
+    }
+    if (!empty($params['event_id'])) {
+      $messageParams['event_id'] = $params['event_id'];
     }
 
     $result = $this->mailManager->mail(

@@ -2,12 +2,34 @@
  * @file
  * Vendor Settings Page Styles
  *
- * Direct CSS for vendor settings form to ensure styles load.
+ * Uses MEL design tokens:
+ * - Primary (Coral): #f26d5b
+ * - Primary Hover: #e05a48
+ * - Background Pastel: #fef5ec
+ * - Text Dark: #293241
+ * - Text Muted: #637185
+ * - Border: #E5E7EB
+ * - Surface: #ffffff
  */
 
-/* Vertical Tabs Styling */
+/* ===== MEL Token Variables ===== */
+:root {
+  --mel-primary: #f26d5b;
+  --mel-primary-hover: #e05a48;
+  --mel-primary-focus: rgba(242, 109, 91, 0.15);
+  --mel-surface: #ffffff;
+  --mel-surface-alt: #F7F8FA;
+  --mel-text-dark: #293241;
+  --mel-text-muted: #637185;
+  --mel-border: #E5E7EB;
+  --mel-border-input: #E6E6E6;
+  --mel-radius-sm: 0.5rem;
+  --mel-radius-md: 0.75rem;
+}
+
+/* ===== Vertical Tabs ===== */
 #vendor-settings-form .vertical-tabs {
-  display: flex !important;
+  display: flex;
   gap: 1.5rem;
   margin: 0;
   border: none;
@@ -21,13 +43,13 @@
 }
 
 #vendor-settings-form .vertical-tabs__menu {
-  flex: 0 0 240px !important;
+  flex: 0 0 240px;
   margin: 0;
-  padding: 0.5rem !important;
+  padding: 0.5rem;
   list-style: none;
-  background: #ffffff !important;
-  border: 1px solid #E5E7EB !important;
-  border-radius: 0.75rem !important;
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-md);
 }
 
 @media (max-width: 767px) {
@@ -53,28 +75,28 @@
 
 #vendor-settings-form .vertical-tabs__tab,
 #vendor-settings-form .vertical-tabs__menu a {
-  display: block !important;
-  padding: 1rem 1.25rem !important;
+  display: block;
+  padding: 1rem 1.25rem;
   margin-bottom: 0.25rem;
-  color: #637185 !important;
-  text-decoration: none !important;
-  border-radius: 0.5rem !important;
-  font-weight: 500 !important;
-  font-size: 1rem !important;
+  color: var(--mel-text-muted);
+  text-decoration: none;
+  border-radius: var(--mel-radius-sm);
+  font-weight: 500;
+  font-size: 1rem;
   transition: all 0.2s ease;
-  border: 1px solid transparent !important;
+  border: 1px solid transparent;
 }
 
 #vendor-settings-form .vertical-tabs__tab:hover,
 #vendor-settings-form .vertical-tabs__menu a:hover {
-  background: #F7F8FA !important;
-  color: #1A1A1A !important;
-  text-decoration: none !important;
+  background: var(--mel-surface-alt);
+  color: var(--mel-text-dark);
+  text-decoration: none;
 }
 
 #vendor-settings-form .vertical-tabs__tab:focus,
 #vendor-settings-form .vertical-tabs__menu a:focus {
-  outline: 2px solid #2563EB !important;
+  outline: 2px solid var(--mel-primary);
   outline-offset: 2px;
 }
 
@@ -82,34 +104,34 @@
 #vendor-settings-form .vertical-tabs__tab.selected,
 #vendor-settings-form .vertical-tabs__menu a.is-selected,
 #vendor-settings-form .vertical-tabs__menu a.selected {
-  background: #2563EB !important;
-  color: #FFFFFF !important;
-  border-color: #2563EB !important;
-  font-weight: 600 !important;
+  background: var(--mel-primary);
+  color: #FFFFFF;
+  border-color: var(--mel-primary);
+  font-weight: 600;
 }
 
 #vendor-settings-form .vertical-tabs__tab.is-selected:hover,
 #vendor-settings-form .vertical-tabs__tab.selected:hover,
 #vendor-settings-form .vertical-tabs__menu a.is-selected:hover,
 #vendor-settings-form .vertical-tabs__menu a.selected:hover {
-  background: #1D4ED8 !important;
-  color: #FFFFFF !important;
+  background: var(--mel-primary-hover);
+  color: #FFFFFF;
 }
 
 @media (max-width: 767px) {
   #vendor-settings-form .vertical-tabs__tab,
   #vendor-settings-form .vertical-tabs__menu a {
-    padding: 0.75rem 1rem !important;
-    font-size: 0.875rem !important;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
     text-align: center;
   }
 }
 
 #vendor-settings-form .vertical-tabs__panes {
   flex: 1;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.75rem;
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-md);
   padding: 1.5rem;
   min-height: 400px;
 }
@@ -128,7 +150,7 @@
   display: block;
 }
 
-/* Form Fields */
+/* ===== Form Fields ===== */
 #vendor-settings-form .form-item {
   margin-bottom: 1.5rem;
 }
@@ -140,7 +162,7 @@
 #vendor-settings-form .form-item label {
   display: block;
   font-weight: 600;
-  color: #1A1A1A;
+  color: var(--mel-text-dark);
   margin-bottom: 0.5rem;
   font-size: 1rem;
 }
@@ -149,7 +171,7 @@
 #vendor-settings-form .description {
   margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: #637185;
+  color: var(--mel-text-muted);
   line-height: 1.5;
 }
 
@@ -160,13 +182,13 @@
 #vendor-settings-form textarea,
 #vendor-settings-form select {
   width: 100%;
-  padding: 1rem !important;
+  padding: 1rem;
   font-size: 1rem;
-  font-family: 'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: #1A1A1A;
-  background: #ffffff;
-  border: 1px solid #E6E6E6 !important;
-  border-radius: 0.5rem !important;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--mel-text-dark);
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border-input);
+  border-radius: var(--mel-radius-sm);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -177,8 +199,8 @@
 #vendor-settings-form textarea:focus,
 #vendor-settings-form select:focus {
   outline: none;
-  border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+  border-color: var(--mel-primary);
+  box-shadow: 0 0 0 3px var(--mel-primary-focus);
 }
 
 #vendor-settings-form textarea {
@@ -186,26 +208,26 @@
   resize: vertical;
 }
 
-/* Details/Fieldsets */
+/* ===== Details/Fieldsets ===== */
 #vendor-settings-form details {
   margin-bottom: 1.5rem;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.5rem;
-  background: #ffffff;
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-sm);
+  background: var(--mel-surface);
   overflow: hidden;
 }
 
 #vendor-settings-form details[open] {
-  border-color: #E6E6E6;
+  border-color: var(--mel-border-input);
 }
 
 #vendor-settings-form details > summary {
   padding: 1.25rem;
-  background: #F7F8FA;
+  background: var(--mel-surface-alt);
   cursor: pointer;
   font-weight: 600;
   font-size: 1.125rem;
-  color: #1A1A1A;
+  color: var(--mel-text-dark);
   list-style: none;
   user-select: none;
   transition: background-color 0.2s ease;
@@ -220,7 +242,7 @@
   display: inline-block;
   margin-right: 0.75rem;
   transition: transform 0.2s ease;
-  color: #2563EB;
+  color: var(--mel-primary);
 }
 
 #vendor-settings-form details > summary:hover {
@@ -228,7 +250,7 @@
 }
 
 #vendor-settings-form details[open] > summary {
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--mel-border);
 }
 
 #vendor-settings-form details[open] > summary::before {
@@ -245,21 +267,21 @@
   }
 }
 
-/* Buttons */
+/* ===== Buttons ===== */
 #vendor-settings-form .form-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 2px solid #E5E7EB;
+  border-top: 2px solid var(--mel-border);
 }
 
 #vendor-settings-form .form-actions .button {
-  padding: 1rem 1.5rem !important;
+  padding: 1rem 1.5rem;
   font-size: 1rem;
   font-weight: 600;
-  border-radius: 0.5rem;
+  border-radius: var(--mel-radius-sm);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -267,13 +289,13 @@
 
 #vendor-settings-form .form-actions .button--primary,
 #vendor-settings-form .form-actions .button-primary {
-  background: #2563EB !important;
-  color: #FFFFFF !important;
+  background: var(--mel-primary);
+  color: #FFFFFF;
 }
 
 #vendor-settings-form .form-actions .button--primary:hover,
 #vendor-settings-form .form-actions .button-primary:hover {
-  background: #1D4ED8 !important;
+  background: var(--mel-primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -288,7 +310,7 @@
   }
 }
 
-/* Tables */
+/* ===== Tables ===== */
 #vendor-settings-form table {
   width: 100%;
   border-collapse: collapse;
@@ -296,7 +318,7 @@
 }
 
 #vendor-settings-form table thead {
-  background: #F7F8FA;
+  background: var(--mel-surface-alt);
 }
 
 #vendor-settings-form table thead th {
@@ -304,18 +326,18 @@
   text-align: left;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #637185;
+  color: var(--mel-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid var(--mel-border);
 }
 
 #vendor-settings-form table tbody tr {
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--mel-border);
 }
 
 #vendor-settings-form table tbody tr:hover {
-  background: #F7F8FA;
+  background: var(--mel-surface-alt);
 }
 
 #vendor-settings-form table tbody tr.draggable {
@@ -331,7 +353,7 @@
   margin: 0;
 }
 
-/* Checkboxes */
+/* ===== Checkboxes ===== */
 #vendor-settings-form .form-checkbox {
   display: flex;
   align-items: center;
@@ -343,7 +365,7 @@
   height: 20px;
   margin: 0;
   cursor: pointer;
-  accent-color: #2563EB;
+  accent-color: var(--mel-primary);
 }
 
 #vendor-settings-form .form-checkbox label {
@@ -352,18 +374,233 @@
   cursor: pointer;
 }
 
-/* Fieldsets */
+/* ===== Fieldsets ===== */
 #vendor-settings-form fieldset {
-  border: 1px solid #E5E7EB;
-  border-radius: 0.5rem;
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-sm);
   padding: 1.25rem;
   margin-bottom: 1.5rem;
-  background: #F7F8FA;
+  background: var(--mel-surface-alt);
 }
 
 #vendor-settings-form fieldset legend {
   font-weight: 600;
   font-size: 1.125rem;
-  color: #1A1A1A;
+  color: var(--mel-text-dark);
   padding: 0 0.75rem;
+}
+
+/* ===== Social Links Table ===== */
+#social-links-wrapper table input[type="text"],
+#social-links-wrapper table input[type="url"] {
+  width: 100%;
+  min-width: 0;
+}
+
+#social-links-wrapper .button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+  color: var(--mel-text-muted);
+  border-radius: var(--mel-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#social-links-wrapper .button:hover {
+  background: var(--mel-surface-alt);
+  color: var(--mel-text-dark);
+}
+
+/* ===== Store Details Table ===== */
+.store-details-table {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--mel-border);
+  border-radius: var(--mel-radius-sm);
+  overflow: hidden;
+}
+
+.store-details-table tr {
+  border-bottom: 1px solid var(--mel-border);
+}
+
+.store-details-table tr:last-child {
+  border-bottom: none;
+}
+
+.store-details-table td {
+  padding: 0.75rem 1rem;
+}
+
+.store-details-table td[headers] {
+  background: var(--mel-surface-alt);
+  font-weight: 600;
+  width: 40%;
+  color: var(--mel-text-dark);
+}
+
+/* ===== Stripe Status ===== */
+.stripe-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--mel-radius-sm);
+  margin-bottom: 1rem;
+}
+
+.stripe-status--connected {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+}
+
+.stripe-status--disconnected {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-indicator--success {
+  background: #10B981;
+}
+
+.status-indicator--warning {
+  background: #F59E0B;
+}
+
+.status-indicator--error {
+  background: #EF4444;
+}
+
+.stripe-capabilities {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--mel-text-muted);
+}
+
+.stripe-capabilities li {
+  margin-bottom: 0.25rem;
+}
+
+/* Stripe section fieldset */
+#vendor-settings-form fieldset[class*="stripe"] {
+  background: var(--mel-surface);
+  border: 1px solid var(--mel-border);
+}
+
+/* Tax info */
+.tax-info {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mel-border);
+  font-size: 0.875rem;
+  color: var(--mel-text-muted);
+}
+
+/* Button styles for links */
+#vendor-settings-form a.button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--mel-radius-sm);
+  transition: all 0.2s ease;
+}
+
+#vendor-settings-form a.button--primary {
+  background: var(--mel-primary);
+  color: #FFFFFF;
+}
+
+#vendor-settings-form a.button--primary:hover {
+  background: var(--mel-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+#vendor-settings-form a.button--secondary {
+  background: var(--mel-surface);
+  color: var(--mel-text-dark);
+  border: 1px solid var(--mel-border);
+}
+
+#vendor-settings-form a.button--secondary:hover {
+  background: var(--mel-surface-alt);
+  border-color: var(--mel-text-muted);
+}
+
+/* Business fieldset */
+#vendor-settings-form [data-drupal-selector*="edit-payment-business"] {
+  background: var(--mel-surface);
+}
+
+/* ===== Preview Link Banner ===== */
+.vendor-preview-link-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.vendor-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+  border: 1px solid #C7D2FE;
+  border-radius: var(--mel-radius-md);
+}
+
+.vendor-preview-banner .preview-icon {
+  font-size: 1.25rem;
+}
+
+.vendor-preview-banner .vendor-preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--mel-surface);
+  color: var(--mel-text-dark);
+  border: 1px solid #A5B4FC;
+  border-radius: var(--mel-radius-sm);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.vendor-preview-banner .vendor-preview-link:hover {
+  background: #4F46E5;
+  color: #FFFFFF;
+  border-color: #4F46E5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+}
+
+.vendor-preview-banner .preview-hint {
+  color: #4338CA;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (max-width: 767px) {
+  .vendor-preview-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+  
+  .vendor-preview-banner .preview-icon {
+    display: none;
+  }
 }

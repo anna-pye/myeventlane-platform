@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_msg_accent_color
+field_name: field_msg_accent_color
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    '#f26d5b': 'Coral (MEL Primary)'
+    '#6e7ef2': 'Lavender'
+    '#4f9da6': 'Teal'
+    '#5b8c5a': 'Forest'
+    '#e8a838': 'Amber'
+    '#8b5cf6': 'Violet'
+    '#293241': 'Charcoal'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

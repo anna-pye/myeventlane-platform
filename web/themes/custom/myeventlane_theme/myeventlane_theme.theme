@@ -207,6 +207,73 @@ function myeventlane_theme_preprocess_menu__account(array &$variables): void {
 }
 
 /**
+ * Implements hook_preprocess_menu__main().
+ *
+ * Transforms the "Vendors" menu item into a dropdown with child links.
+ * Shows "Vendor Dashboard" for vendors, "Become a Vendor" for non-vendors.
+ */
+function myeventlane_theme_preprocess_menu__main(array &$variables): void {
+  if (empty($variables['items'])) {
+    return;
+  }
+
+  // Check if current user is a vendor (has access to vendor console).
+  $current_user = \Drupal::currentUser();
+  $is_vendor = $current_user->hasPermission('access vendor console');
+
+  // Find and transform the Vendors menu item.
+  foreach ($variables['items'] as $key => &$item) {
+    $title = (string) ($item['title'] ?? '');
+    if (strtolower($title) === 'vendors') {
+      // Create child items for the dropdown.
+      $item['below'] = [
+        'browse_vendors' => [
+          'title' => t('Browse Vendors'),
+          'url' => Url::fromRoute('myeventlane_vendor.public_list'),
+          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ],
+      ];
+
+      // Show "Vendor Dashboard" for vendors, "Become a Vendor" for non-vendors.
+      if ($is_vendor) {
+        $item['below']['vendor_dashboard'] = [
+          'title' => t('Vendor Dashboard'),
+          'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
+          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+      }
+      else {
+        $item['below']['become_vendor'] = [
+          'title' => t('Become a Vendor'),
+          'url' => Url::fromRoute('myeventlane_vendor.onboard'),
+          'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
+          'below' => [],
+          'in_active_trail' => FALSE,
+          'is_expanded' => FALSE,
+          'is_collapsed' => FALSE,
+        ];
+      }
+
+      // Mark as expanded so the template knows it has children.
+      $item['is_expanded'] = TRUE;
+      $item['is_collapsed'] = FALSE;
+
+      // Make the parent link just a label (no navigation).
+      $item['url'] = Url::fromRoute('<none>');
+      break;
+    }
+  }
+}
+
+/**
  * Implements hook_preprocess_mobile_drawer().
  *
  * Ensures drawer_menu and drawer_organiser are render arrays.
@@ -214,6 +281,16 @@ function myeventlane_theme_preprocess_menu__account(array &$variables): void {
 function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
   $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
   $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
+}
+
+/**
+ * Implements hook_preprocess_region__header().
+ *
+ * Passes vendor status to the header region template.
+ */
+function myeventlane_theme_preprocess_region__header(array &$variables): void {
+  $current_user = \Drupal::currentUser();
+  $variables['is_vendor'] = $current_user->hasPermission('access vendor console');
 }
 
 /**

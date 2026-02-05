@@ -49,6 +49,8 @@ function template_preprocess_myeventlane_email(array &$variables): void {
   $variables['#attributes']['style'] = 'margin:0;padding:0;background:#fef5ec;';
 
   $context = $variables['context'] ?? [];
+  $variables['preheader'] = $context['preheader'] ?? '';
+  $variables['marketing'] = $context['marketing'] ?? [];
   $vendor_logo = $context['logo_url'] ?? '';
 
   if ($vendor_logo !== '') {
@@ -77,7 +79,8 @@ function template_preprocess_myeventlane_email(array &$variables): void {
  * Single generic key used by MessagingManager.
  */
 function myeventlane_messaging_mail($key, &$message, $params) {
-  if ($key !== 'generic') {
+  // Handle generic and brand_test mail keys.
+  if ($key !== 'generic' && $key !== 'brand_test') {
     return;
   }
 
@@ -136,4 +139,111 @@ function myeventlane_messaging_mail($key, &$message, $params) {
       }
     }
   }
+}
+
+/**
+ * Implements hook_mail_alter().
+ *
+ * Applies vendor brand settings to ALL outgoing emails.
+ * This ensures consistent branding regardless of which module sends the email.
+ *
+ * Resolution order for vendor context:
+ * 1. Explicit vendor_id in params
+ * 2. Vendor entity in params
+ * 3. Event ID in params → load event → field_event_vendor
+ * 4. Order in params → resolve vendor from order
+ * 5. Node (event) in params → field_event_vendor
+ * 6. Fallback to MEL defaults
+ */
+function myeventlane_messaging_mail_alter(array &$message): void {
+  // Skip if brand already applied (via MessagingManager path).
+  if (!empty($message['params']['mel_brand_applied'])) {
+    return;
+  }
+
+  // Build context from available params.
+  $params = $message['params'] ?? [];
+  $context = [];
+
+  // Check for explicit vendor context.
+  if (!empty($params['vendor_id']) && is_numeric($params['vendor_id'])) {
+    $context['vendor_id'] = (int) $params['vendor_id'];
+  }
+  if (!empty($params['vendor']) && is_object($params['vendor'])) {
+    $context['vendor'] = $params['vendor'];
+  }
+
+  // Check for event context.
+  if (!empty($params['event_id']) && is_numeric($params['event_id'])) {
+    $context['event_id'] = (int) $params['event_id'];
+  }
+  if (!empty($params['event']) && $params['event'] instanceof \Drupal\node\NodeInterface) {
+    $context['event'] = $params['event'];
+  }
+  // Also check 'node' param (common in Drupal mail).
+  if (empty($context['event']) && !empty($params['node']) && $params['node'] instanceof \Drupal\node\NodeInterface) {
+    $node = $params['node'];
+    if ($node->bundle() === 'event') {
+      $context['event'] = $node;
+    }
+  }
+
+  // Check for order context (Commerce).
+  if (!empty($params['order']) && is_object($params['order'])) {
+    $context['order'] = $params['order'];
+  }
+  if (!empty($params['commerce_order']) && is_object($params['commerce_order'])) {
+    $context['order'] = $params['commerce_order'];
+  }
+
+  // Resolve brand using the BrandResolver service.
+  try {
+    /** @var \Drupal\myeventlane_messaging\Service\BrandResolverInterface $brandResolver */
+    $brandResolver = \Drupal::service('myeventlane_messaging.vendor_brand_resolver');
+    $brand = $brandResolver->resolve($context);
+    $brandArray = $brand->toArray();
+  }
+  catch (\Exception $e) {
+    // Fallback to defaults if service unavailable.
+    $brandArray = [
+      'from_name' => 'MyEventLane',
+      'from_email' => '',
+      'reply_to' => '',
+      'footer_text' => "You're receiving this because you interacted with MyEventLane.",
+      'accent_color' => '#f26d5b',
+      'logo_url' => '',
+    ];
+  }
+
+  // Ensure headers array exists.
+  if (!isset($message['headers']) || !is_array($message['headers'])) {
+    $message['headers'] = [];
+  }
+
+  // Apply From header if vendor has custom from_email.
+  // Only override if not already set by the sending module.
+  if (!empty($brandArray['from_email']) && empty($message['headers']['From'])) {
+    $fromName = $brandArray['from_name'] ?: 'MyEventLane';
+    $fromEmail = $brandArray['from_email'];
+    $message['headers']['From'] = "{$fromName} <{$fromEmail}>";
+  }
+
+  // Apply Reply-To if vendor has custom reply_to.
+  // Only override if not already set.
+  if (!empty($brandArray['reply_to']) && empty($message['headers']['Reply-To'])) {
+    $message['headers']['Reply-To'] = $brandArray['reply_to'];
+  }
+
+  // Inject brand variables into params for template use.
+  $message['params']['mel_brand'] = [
+    'from_name' => $brandArray['from_name'] ?? 'MyEventLane',
+    'accent_color' => $brandArray['accent_color'] ?? '#f26d5b',
+    'logo_url' => $brandArray['logo_url'] ?? '',
+    'footer_text' => $brandArray['footer_text'] ?? '',
+    'vendor_id' => $brandArray['vendor_id'] ?? NULL,
+    'source' => $brandArray['source'] ?? 'default',
+  ];
+
+  // Mark as applied to prevent double-processing.
+  $message['params']['mel_brand_applied'] = TRUE;
 }

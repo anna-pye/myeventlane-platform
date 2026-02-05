@@ -119,6 +119,113 @@
 }
 
 // ---------------------------------------------------------------------------
+// Navigation Dropdown (Desktop)
+// ---------------------------------------------------------------------------
+
+.mel-nav-dropdown {
+  position: relative;
+
+  // Hover bridge to prevent accidental closing
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -10px;
+    right: -10px;
+    height: spacing.mel-space(2);
+    z-index: zindex.mel-z(dropdown) - 1;
+  }
+
+  &:hover,
+  &:focus-within,
+  &.is-open {
+    .mel-nav-dropdown-toggle {
+      background: colors.$mel-color-bg;
+      color: colors.$mel-color-primary;
+
+      .mel-dropdown-arrow {
+        transform: rotate(180deg);
+      }
+    }
+
+    .mel-nav-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+  }
+}
+
+.mel-nav-dropdown-toggle {
+  gap: spacing.mel-space(1);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+
+  .mel-dropdown-arrow {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+}
+
+.mel-nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + spacing.mel-space(1));
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  min-width: 180px;
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-md;
+  box-shadow: shadows.$mel-shadow-lg;
+  padding: spacing.mel-space(2);
+  opacity: 0;
+  visibility: hidden;
+  list-style: none;
+  margin: 0;
+  transition: opacity 0.2s ease 0.15s, visibility 0.2s ease 0.15s, transform 0.2s ease 0.15s;
+  z-index: zindex.mel-z(dropdown);
+  pointer-events: none;
+
+  // Hover bridge on menu itself
+  &::before {
+    content: '';
+    position: absolute;
+    top: -(spacing.mel-space(2));
+    left: 0;
+    right: 0;
+    height: spacing.mel-space(2);
+  }
+
+  li {
+    margin: 0;
+  }
+}
+
+.mel-nav-dropdown-link {
+  display: block;
+  padding: spacing.mel-space(2) spacing.mel-space(3);
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  border-radius: radii.$mel-radius-sm;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: colors.$mel-color-bg;
+    color: colors.$mel-color-primary;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Header Actions (Desktop)
 // ---------------------------------------------------------------------------
 
@@ -312,6 +419,16 @@ header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
   height: 1px;
   background: colors.$mel-color-border;
   margin: spacing.mel-space(3) 0;
+}
+
+.mel-mobile-section-header {
+  padding: spacing.mel-space(2) spacing.mel-space(4);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: spacing.mel-space(2);
 }
 
 .mel-btn-mobile-accent {

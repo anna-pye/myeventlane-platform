@@ -1,4 +1,15 @@
 services:
+  logger.channel.myeventlane_vendor:
+    parent: logger.channel_base
+    arguments: ['myeventlane_vendor']
+
+  myeventlane_vendor.current_vendor_resolver:
+    class: Drupal\myeventlane_vendor\Service\CurrentVendorResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@logger.channel.myeventlane_vendor'
+
   myeventlane_vendor.vendor_theme_page_preprocess:
     class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
     arguments:
@@ -165,6 +176,12 @@ services:
   myeventlane_vendor.controller.vendor_audience:
     class: Drupal\myeventlane_vendor\Controller\VendorAudienceController
     arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.category_audience']
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_vendor.controller.vendor_dashboard_messaging_brand:
+    class: Drupal\myeventlane_vendor\Controller\VendorDashboardMessagingBrandController
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@form_builder', '@entity_type.manager']
     tags:
       - { name: controller.service_arguments }
 

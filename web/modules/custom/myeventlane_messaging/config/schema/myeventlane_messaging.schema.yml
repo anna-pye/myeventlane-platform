@@ -43,12 +43,73 @@ myeventlane_messaging.template.*:
     subject:
       type: string
       label: 'Subject line (Twig)'
+    preheader:
+      type: string
+      label: 'Email preheader (Twig)'
     body:
       type: string
       label: 'Body HTML (Twig, legacy)'
     body_html:
       type: string
       label: 'Body HTML (Twig)'
+    sms_text:
+      type: string
+      label: 'SMS text (Twig)'
+    ab_test:
+      type: mapping
+      label: 'A/B test'
+      mapping:
+        enable:
+          type: boolean
+          label: 'A/B test enabled'
+        variants:
+          type: mapping
+          label: 'Variants'
+          mapping:
+            A:
+              type: mapping
+              label: 'Variant A'
+              mapping:
+                weight:
+                  type: integer
+                  label: 'Weight (0-100)'
+                subject:
+                  type: string
+                  label: 'Subject override'
+                preheader:
+                  type: string
+                  label: 'Preheader override'
+                body_html:
+                  type: string
+                  label: 'Body HTML override'
+                sms_text:
+                  type: string
+                  label: 'SMS text override'
+                marketing:
+                  type: mapping
+                  label: 'Marketing overrides'
+            B:
+              type: mapping
+              label: 'Variant B'
+              mapping:
+                weight:
+                  type: integer
+                  label: 'Weight (0-100)'
+                subject:
+                  type: string
+                  label: 'Subject override'
+                preheader:
+                  type: string
+                  label: 'Preheader override'
+                body_html:
+                  type: string
+                  label: 'Body HTML override'
+                sms_text:
+                  type: string
+                  label: 'SMS text override'
+                marketing:
+                  type: mapping
+                  label: 'Marketing overrides'
     utm:
       type: mapping
       label: 'UTM parameters'
@@ -69,3 +130,83 @@ myeventlane_messaging.template.*:
             utm_campaign:
               type: string
               label: 'utm_campaign'
+
+# Vendor-level brand override: myeventlane_messaging.brand.vendor.{vendor_id}
+myeventlane_messaging.brand.vendor.*:
+  type: config_object
+  label: 'Vendor messaging brand'
+  mapping:
+    from_name:
+      type: string
+      label: 'From name'
+    from_email:
+      type: email
+      label: 'From email'
+    reply_to:
+      type: email
+      label: 'Reply-to email'
+    logo_url:
+      type: string
+      label: 'Logo URL'
+    accent_color:
+      type: string
+      label: 'Accent colour'
+    footer_text:
+      type: string
+      label: 'Footer text'
+    marketing:
+      type: mapping
+      label: 'Marketing block'
+      mapping:
+        promo_title:
+          type: string
+          label: 'Promo title'
+        promo_body:
+          type: string
+          label: 'Promo body'
+        promo_url:
+          type: string
+          label: 'Promo URL'
+        promo_button:
+          type: string
+          label: 'Promo button label'
+
+# Event-level brand override: myeventlane_messaging.brand.event.{nid}
+myeventlane_messaging.brand.event.*:
+  type: config_object
+  label: 'Event messaging brand override'
+  mapping:
+    from_name:
+      type: string
+      label: 'From name'
+    from_email:
+      type: email
+      label: 'From email'
+    reply_to:
+      type: email
+      label: 'Reply-to email'
+    logo_url:
+      type: string
+      label: 'Logo URL'
+    accent_color:
+      type: string
+      label: 'Accent colour'
+    footer_text:
+      type: string
+      label: 'Footer text'
+    marketing:
+      type: mapping
+      label: 'Marketing block'
+      mapping:
+        promo_title:
+          type: string
+          label: 'Promo title'
+        promo_body:
+          type: string
+          label: 'Promo body'
+        promo_url:
+          type: string
+          label: 'Promo URL'
+        promo_button:
+          type: string
+          label: 'Promo button label'

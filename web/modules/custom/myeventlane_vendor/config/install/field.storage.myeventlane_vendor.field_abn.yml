@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.field_abn
+field_name: field_abn
+entity_type: myeventlane_vendor
+type: string
+settings:
+  max_length: 14
+  is_ascii: true
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

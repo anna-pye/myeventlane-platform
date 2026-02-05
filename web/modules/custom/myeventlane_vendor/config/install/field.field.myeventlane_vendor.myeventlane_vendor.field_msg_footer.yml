@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_msg_footer
+id: myeventlane_vendor.myeventlane_vendor.field_msg_footer
+field_name: field_msg_footer
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Messaging Footer Text'
+description: 'Custom footer text shown at the bottom of outgoing emails.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

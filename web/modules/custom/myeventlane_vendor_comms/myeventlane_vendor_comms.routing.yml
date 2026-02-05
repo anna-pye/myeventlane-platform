@@ -13,3 +13,18 @@ myeventlane_vendor_comms.send:
         type: entity:node
     _admin_route: FALSE
 
+myeventlane_vendor_comms.branding:
+  path: '/vendor/events/{node}/comms/branding'
+  defaults:
+    _form: '\Drupal\myeventlane_messaging\Form\EventBrandOverrideForm'
+    _title: 'Event branding'
+  requirements:
+    _entity_access: 'node.view'
+    _custom_access: '\Drupal\myeventlane_vendor_comms\Controller\VendorCommsController::checkAccess'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _admin_route: FALSE
+

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_pref_email_on_order
+id: myeventlane_vendor.myeventlane_vendor.field_pref_email_on_order
+field_name: field_pref_email_on_order
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Email on Order'
+description: 'Receive email notifications when orders are placed.'
+required: false
+translatable: false
+default_value:
+  - value: true
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

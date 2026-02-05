@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - link
+    - myeventlane_vendor
+id: myeventlane_vendor.field_social_links
+field_name: field_social_links
+entity_type: myeventlane_vendor
+type: link
+settings: {  }
+module: link
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

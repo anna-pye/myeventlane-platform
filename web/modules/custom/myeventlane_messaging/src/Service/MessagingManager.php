@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_messaging\Service;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -106,7 +107,7 @@ final class MessagingManager {
    * @param array $context
    *   The template context (must be serializable; no objects for hashing).
    * @param array $opts
-   *   Optional: langcode, attachments, scheduled_for.
+   *   Optional: langcode, attachments, scheduled_for, channel.
    *
    * @return string|null
    *   The message ID (UUID) if queued, NULL if skipped or failed. Caller may pass
@@ -128,6 +129,12 @@ final class MessagingManager {
       return NULL;
     }
 
+    // Choose A/B variant once at queue time (deterministic).
+    $conf = $this->configFactory->get("myeventlane_messaging.template.{$type}");
+    if ($conf && $conf->get('ab_test.enable')) {
+      $context['_ab_variant'] = $this->pickAbVariant($conf, $type, $to);
+    }
+
     $contextHash = $this->contextHash($type, $to, $context);
     $existing = $this->messageStorage->findByContextHash($contextHash, $to, $type, ['queued', 'sent']);
     if ($existing) {
@@ -144,6 +151,10 @@ final class MessagingManager {
     $now = (int) time();
     $langcode = $opts['langcode'] ?? $this->lang->getDefaultLanguage()->getId();
     $scheduledFor = (int) ($opts['scheduled_for'] ?? $now);
+    $channel = (string) ($opts['channel'] ?? 'email');
+    if ($channel !== 'email' && $channel !== 'sms') {
+      $channel = 'email';
+    }
 
     // Normalize context for storage: ensure scalar/array only for serialization.
     $storableContext = $this->normalizeContextForStorage($context);
@@ -154,7 +165,7 @@ final class MessagingManager {
       $this->messageStorage->create([
         'id' => $id,
         'template' => $type,
-        'channel' => 'email',
+        'channel' => $channel,
         'recipient' => $to,
         'langcode' => $langcode,
         'context' => $storableContext,
@@ -262,8 +273,70 @@ final class MessagingManager {
       return;
     }
 
-    // Render subject/body (token safety).
-    $subjectTpl = (string) ($conf->get('subject') ?? '');
+    // SMS channel: render SMS text but do not send; mark suppressed.
+    if ($message->channel === 'sms') {
+      $smsText = $this->messageRenderer->renderSmsText($conf, $ctx);
+      $smsLength = strlen($smsText);
+      // Safety guard: truncate to 320 chars max with warning.
+      if ($smsLength > 320) {
+        $smsText = Unicode::truncate($smsText, 320, TRUE, TRUE);
+        $this->logger->warning('SMS content truncated to 320 chars for message @id. Original length @original.', [
+          '@id' => $messageId,
+          '@original' => $smsLength,
+          'queue_name' => self::QUEUE_NAME,
+        ]);
+      }
+      $this->logger->warning('SMS channel not yet delivered; message suppressed. message_id=@id template=@type sms_length=@len', [
+        '@id' => $messageId,
+        '@type' => $type,
+        '@len' => strlen($smsText),
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      $this->messageStorage->update($messageId, ['status' => 'suppressed']);
+      return;
+    }
+
+    // A/B overrides at send time (subject, preheader, body_html, sms_text, marketing only).
+    $variant = isset($ctx['_ab_variant']) && ($ctx['_ab_variant'] === 'A' || $ctx['_ab_variant'] === 'B')
+      ? $ctx['_ab_variant']
+      : NULL;
+    $variantData = [];
+    if ($variant && $conf->get('ab_test.enable')) {
+      $variantData = is_array($conf->get("ab_test.variants.{$variant}")) ? $conf->get("ab_test.variants.{$variant}") : [];
+    }
+    $subjectTpl = (string) (($variantData['subject'] ?? '') !== '' ? $variantData['subject'] : ($conf->get('subject') ?? ''));
+    $preheaderTpl = (string) (($variantData['preheader'] ?? '') !== '' ? $variantData['preheader'] : ($conf->get('preheader') ?? ''));
+    $bodyHtmlOverride = (($variantData['body_html'] ?? '') !== '') ? $variantData['body_html'] : NULL;
+
+    // Inject brand into context before preheader/body render.
+    // Inject brand into context before preheader/body render.
+    $brandObject = $this->vendorBrandResolver?->resolve($ctx);
+    $brand = $brandObject ? $brandObject->toArray() : [
+      'from_name' => 'MyEventLane',
+      'from_email' => '',
+      'reply_to' => '',
+      'footer_text' => "You're receiving this because you interacted with MyEventLane.",
+      'accent_color' => '#f26d5b',
+      'logo_url' => '',
+      'marketing' => [],
+    ];
+    if (!empty($variantData['marketing']) && is_array($variantData['marketing'])) {
+      $brand['marketing'] = array_merge($brand['marketing'] ?? [], $variantData['marketing']);
+    }
+    $ctx += $brand;
+
+    // Preheader: render and inject into context for wrapper.
+    $preheaderRaw = $preheaderTpl !== ''
+      ? $this->messageRenderer->renderString($preheaderTpl, $ctx)
+      : '';
+    $ctx['preheader'] = Unicode::truncate(
+      trim(strip_tags(Html::decodeEntities($preheaderRaw))),
+      200,
+      TRUE,
+      TRUE
+    );
+
+    // Render subject (token safety).
     $subjectRaw = $this->messageRenderer->renderString($subjectTpl, $ctx);
     if (self::containsTwigSyntax($subjectRaw)) {
       $this->logger->error('Message subject contains unresolved tokens; skipping.', [
@@ -277,11 +350,29 @@ final class MessagingManager {
     $subject = Html::decodeEntities(strip_tags($subjectRaw));
     $subject = Unicode::truncate($subject, 150, TRUE, TRUE);
 
-    // Inject brand into context before body render.
-    $brand = $this->vendorBrandResolver?->resolve($ctx) ?? [];
-    $ctx += $brand;
+    // Guardrail: empty subject after A/B + overrides → abort.
+    if (trim($subject) === '') {
+      $this->logger->error('Message subject is empty after rendering; aborting send. message_id=@id template=@type', [
+        '@id' => $messageId,
+        '@type' => $type,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      return;
+    }
 
-    $body = $this->messageRenderer->renderHtmlBody($conf, $ctx);
+    // Guardrail: from_email is required for delivery.
+    if (empty($brand['from_email'])) {
+      $this->logger->error('Brand from_email is empty; aborting send. message_id=@id template=@type', [
+        '@id' => $messageId,
+        '@type' => $type,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      return;
+    }
+
+    $body = $this->messageRenderer->renderHtmlBody($conf, $ctx, $bodyHtmlOverride);
     if (self::containsTwigSyntax($body)) {
       $this->logger->error('Message body contains unresolved tokens; skipping.', [
         'queue_name' => self::QUEUE_NAME,
@@ -456,6 +547,15 @@ final class MessagingManager {
       return !$prefs['operational_reminder_opt_out'];
     }
     return !$prefs['marketing_opt_out'];
+  }
+
+  /**
+   * Picks A/B variant deterministically at queue time (same recipient+type = same variant).
+   */
+  private function pickAbVariant(Config $conf, string $type, string $to): string {
+    $weight = (int) ($conf->get('ab_test.variants.A.weight') ?? 50);
+    $bucket = crc32(strtolower($to . '|' . $type)) % 100;
+    return ($bucket < $weight) ? 'A' : 'B';
   }
 
   private static function containsTwigSyntax(string $rendered): bool {

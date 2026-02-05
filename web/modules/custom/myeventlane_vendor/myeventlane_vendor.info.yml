@@ -8,6 +8,7 @@ lifecycle: stable
 dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
+  - myeventlane_messaging:myeventlane_messaging
   - drupal:field
   - drupal:text
   - drupal:image
