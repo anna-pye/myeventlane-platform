@@ -259,6 +259,7 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.payouts' => 'payouts',
       'myeventlane_vendor.console.boost' => 'boost',
       'myeventlane_vendor.console.audience' => 'audience',
+      'myeventlane_vendor.console.messaging_brand' => 'messaging_brand',
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_vendor.dashboard' => 'dashboard',
       'myeventlane_vendor.console.dashboard' => 'dashboard',

@@ -1088,6 +1088,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'style' => 'secondary',
       ],
       [
+        'label' => 'Messaging brand',
+        'url' => '/vendor/dashboard/messaging/brand',
+        'icon' => 'mail',
+        'style' => 'secondary',
+      ],
+      [
         'label' => 'Edit Profile',
         'url' => '/vendor/settings',
         'icon' => 'settings',

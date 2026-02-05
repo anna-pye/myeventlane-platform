@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_pref_email_digest
+field_name: field_pref_email_digest
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    never: 'Never'
+    daily: 'Daily'
+    weekly: 'Weekly'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

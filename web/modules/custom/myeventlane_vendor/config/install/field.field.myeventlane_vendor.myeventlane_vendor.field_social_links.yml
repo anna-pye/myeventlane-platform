@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_social_links
+  module:
+    - link
+id: myeventlane_vendor.myeventlane_vendor.field_social_links
+field_name: field_social_links
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Social Links'
+description: 'Social media profile links for your organisation.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  link_type: 16
+  title: 1
+field_type: link

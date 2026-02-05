@@ -34,28 +34,39 @@
     {% if menu_level == 0 %}
       <ul{{ attributes.addClass('mel-nav') }}>
     {% else %}
-      <ul class="mel-nav mel-nav--stacked">
+      <ul class="mel-nav-dropdown-menu">
     {% endif %}
     {% for item in items %}
+      {# Determine if this is a dropdown parent (level 0 with children) #}
+      {% set has_dropdown = menu_level == 0 and item.below %}
       {%
         set classes = [
-          'mel-nav__item',
+          menu_level == 0 ? 'mel-nav__item' : '',
+          has_dropdown ? 'mel-nav-dropdown' : '',
           item.is_expanded ? 'mel-nav__item--expanded',
           item.is_collapsed ? 'mel-nav__item--collapsed',
           item.in_active_trail ? 'mel-nav__item--active-trail',
-          item.below ? 'mel-nav__item--has-children',
         ]
       %}
       <li{{ item.attributes.addClass(classes) }}>
-        {%
-          set link_classes = [
-            'mel-nav__link',
-            item.in_active_trail ? 'is-active',
-          ]
-        %}
-        {{ link(item.title, item.url, item.attributes.addClass(link_classes)) }}
-        {% if item.below %}
+        {% if has_dropdown %}
+          {# Dropdown toggle button #}
+          <button class="mel-nav__link mel-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            {{ item.title }}
+            <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
           {{ menu.menu_links(item.below, attributes, menu_level + 1) }}
+        {% else %}
+          {# Regular link #}
+          {%
+            set link_classes = [
+              menu_level == 0 ? 'mel-nav__link' : 'mel-nav-dropdown-link',
+              item.in_active_trail ? 'is-active',
+            ]
+          %}
+          {{ link(item.title, item.url, {'class': link_classes}) }}
         {% endif %}
       </li>
     {% endfor %}

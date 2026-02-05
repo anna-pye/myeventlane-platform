@@ -68,10 +68,10 @@ myeventlane_vendor.settings:
 
 # Public vendor directory listing.
 myeventlane_vendor.public_list:
-  path: '/vendor'
+  path: '/vendors'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorPublicController::list'
-    _title: 'Organisers'
+    _title: 'Event Organisers'
   requirements:
     _permission: 'access content'
   options:
@@ -82,7 +82,7 @@ myeventlane_vendor.organisers:
   path: '/organisers'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorPublicController::list'
-    _title: 'Organisers'
+    _title: 'Event Organisers'
   requirements:
     _permission: 'access content'
   options:
@@ -436,6 +436,14 @@ myeventlane_vendor.console.audience:
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_audience:audience'
     _title: 'Audience'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
+myeventlane_vendor.console.messaging_brand:
+  path: '/vendor/dashboard/messaging/brand'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_dashboard_messaging_brand:brand'
+    _title: 'Messaging brand'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
 

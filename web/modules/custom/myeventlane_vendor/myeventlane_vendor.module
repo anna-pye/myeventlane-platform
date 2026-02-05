@@ -31,6 +31,19 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       'variables' => ['vendor' => NULL],
       'template' => 'myeventlane-vendor-detail',
     ],
+    // Vendor public profile page template.
+    'entity__myeventlane_vendor__full' => [
+      'variables' => [
+        'entity' => NULL,
+        'view_mode' => 'full',
+        'content' => [],
+        'vendor_events' => NULL,
+        'attributes' => NULL,
+        'title_attributes' => NULL,
+      ],
+      'template' => 'entity--myeventlane-vendor--full',
+      'path' => \Drupal::service('extension.list.theme')->getPath('myeventlane_theme') . '/templates',
+    ],
     'myeventlane_vendor_analytics' => [
       'variables' => [
         'vendor' => NULL,

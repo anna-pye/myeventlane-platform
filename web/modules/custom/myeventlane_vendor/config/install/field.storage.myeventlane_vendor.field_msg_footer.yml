@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.field_msg_footer
+field_name: field_msg_footer
+entity_type: myeventlane_vendor
+type: string_long
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Controller;
 
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessageRenderer;
+use Drupal\myeventlane_messaging\Service\VendorBrandResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Previews messaging templates.
+ *
+ * Uses the same pipeline as delivery: brand resolve and preheader injection
+ * so preview output matches send output (wrapper, preheader, marketing block).
  */
 final class TemplatePreviewController extends ControllerBase {
 
@@ -22,10 +28,13 @@ final class TemplatePreviewController extends ControllerBase {
    *   The config factory.
    * @param \Drupal\myeventlane_messaging\Service\MessageRenderer $messageRenderer
    *   The message renderer.
+   * @param \Drupal\myeventlane_messaging\Service\VendorBrandResolver $vendorBrandResolver
+   *   The vendor brand resolver (same as delivery path).
    */
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
     private readonly MessageRenderer $messageRenderer,
+    private readonly VendorBrandResolver $vendorBrandResolver,
   ) {}
 
   /**
@@ -35,6 +44,7 @@ final class TemplatePreviewController extends ControllerBase {
     return new static(
       $container->get('config.factory'),
       $container->get('myeventlane_messaging.message_renderer'),
+      $container->get('myeventlane_messaging.vendor_brand_resolver'),
     );
   }
 
@@ -58,6 +68,21 @@ final class TemplatePreviewController extends ControllerBase {
     }
 
     $context = $this->getSampleContext($template);
+    // Same pipeline as delivery: brand then preheader so preview matches send.
+    $context += $this->vendorBrandResolver->resolve($context);
+    $preheaderTpl = (string) ($config->get('preheader') ?? '');
+    if ($preheaderTpl !== '') {
+      $preheaderRaw = $this->messageRenderer->renderString($preheaderTpl, $context);
+      $context['preheader'] = Unicode::truncate(
+        trim(strip_tags(Html::decodeEntities($preheaderRaw))),
+        200,
+        TRUE,
+        TRUE
+      );
+    }
+    else {
+      $context['preheader'] = '';
+    }
     $subject = (string) ($config->get('subject') ?? '');
     $renderedSubject = $this->messageRenderer->renderString($subject, $context);
     $renderedBody = $this->messageRenderer->renderHtmlBody($config, $context);

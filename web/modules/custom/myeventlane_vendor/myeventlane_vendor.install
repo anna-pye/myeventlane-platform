@@ -375,6 +375,402 @@ function myeventlane_vendor_update_10010(array &$sandbox): string {
 }
 
 /**
+ * Install messaging brand and preferences fields on vendor entity.
+ */
+function myeventlane_vendor_update_10011(): string {
+  $field_storage_config_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_config_storage = \Drupal::entityTypeManager()->getStorage('field_config');
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_vendor');
+
+  // List of new fields to install.
+  $new_fields = [
+    'field_msg_from_name',
+    'field_msg_from_email',
+    'field_msg_reply_to',
+    'field_msg_footer',
+    'field_msg_logo',
+    'field_msg_accent_color',
+    'field_pref_email_on_order',
+    'field_pref_email_on_rsvp',
+    'field_pref_email_digest',
+    'field_social_links',
+  ];
+
+  $installed = [];
+  $skipped = [];
+
+  foreach ($new_fields as $field_name) {
+    $storage_id = "myeventlane_vendor.{$field_name}";
+
+    // Check if field storage already exists.
+    $existing_storage = $field_storage_config_storage->load($storage_id);
+    if ($existing_storage) {
+      $skipped[] = $field_name;
+      continue;
+    }
+
+    // Load field storage config from YAML.
+    $storage_yaml_path = "{$module_path}/config/install/field.storage.myeventlane_vendor.{$field_name}.yml";
+    if (!file_exists($storage_yaml_path)) {
+      \Drupal::logger('myeventlane_vendor')->warning('Field storage config not found: @path', ['@path' => $storage_yaml_path]);
+      continue;
+    }
+
+    $storage_config = \Symfony\Component\Yaml\Yaml::parseFile($storage_yaml_path);
+    if (!$storage_config) {
+      \Drupal::logger('myeventlane_vendor')->warning('Could not parse field storage config: @path', ['@path' => $storage_yaml_path]);
+      continue;
+    }
+
+    // Create field storage.
+    try {
+      $field_storage = $field_storage_config_storage->create($storage_config);
+      $field_storage->save();
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Failed to create field storage @field: @message', [
+        '@field' => $field_name,
+        '@message' => $e->getMessage(),
+      ]);
+      continue;
+    }
+
+    // Load field instance config from YAML.
+    $field_yaml_path = "{$module_path}/config/install/field.field.myeventlane_vendor.myeventlane_vendor.{$field_name}.yml";
+    if (!file_exists($field_yaml_path)) {
+      \Drupal::logger('myeventlane_vendor')->warning('Field config not found: @path', ['@path' => $field_yaml_path]);
+      continue;
+    }
+
+    $field_config = \Symfony\Component\Yaml\Yaml::parseFile($field_yaml_path);
+    if (!$field_config) {
+      \Drupal::logger('myeventlane_vendor')->warning('Could not parse field config: @path', ['@path' => $field_yaml_path]);
+      continue;
+    }
+
+    // Create field instance.
+    try {
+      $field = $field_config_storage->create($field_config);
+      $field->save();
+      $installed[] = $field_name;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('myeventlane_vendor')->error('Failed to create field instance @field: @message', [
+        '@field' => $field_name,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  // Clear entity field caches.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  $message = 'Messaging brand and preferences fields update complete.';
+  if (!empty($installed)) {
+    $message .= ' Installed: ' . implode(', ', $installed) . '.';
+  }
+  if (!empty($skipped)) {
+    $message .= ' Skipped (already exist): ' . implode(', ', $skipped) . '.';
+  }
+
+  return $message;
+}
+
+/**
+ * Ensure list_string fields (accent_color, email_digest) exist with correct allowed_values.
+ *
+ * This hook uses FieldStorageConfig/FieldConfig APIs directly (no YAML parsing)
+ * to guarantee these fields exist on a fresh database after running updb.
+ *
+ * Also installs new business fields: field_abn and field_business_name.
+ */
+function myeventlane_vendor_update_10012(): string {
+  $messages = [];
+
+  // Define fields in PHP - no YAML parsing at runtime.
+  $fields = [
+    'field_msg_accent_color' => [
+      'storage' => [
+        'field_name' => 'field_msg_accent_color',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'list_string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'allowed_values' => [
+            '#f26d5b' => 'Coral (MEL Primary)',
+            '#6e7ef2' => 'Lavender',
+            '#4f9da6' => 'Teal',
+            '#5b8c5a' => 'Forest',
+            '#e8a838' => 'Amber',
+            '#8b5cf6' => 'Violet',
+            '#293241' => 'Charcoal',
+          ],
+          'allowed_values_function' => '',
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_msg_accent_color',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'Messaging Accent Colour',
+        'description' => 'Accent colour for buttons and links in outgoing emails.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [['value' => '#f26d5b']],
+      ],
+    ],
+    'field_pref_email_digest' => [
+      'storage' => [
+        'field_name' => 'field_pref_email_digest',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'list_string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'allowed_values' => [
+            'never' => 'Never',
+            'daily' => 'Daily',
+            'weekly' => 'Weekly',
+          ],
+          'allowed_values_function' => '',
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_pref_email_digest',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'Email Digest Frequency',
+        'description' => 'How often to receive digest emails with activity summaries.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [['value' => 'daily']],
+      ],
+    ],
+    'field_abn' => [
+      'storage' => [
+        'field_name' => 'field_abn',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'max_length' => 14,
+          'is_ascii' => TRUE,
+          'case_sensitive' => FALSE,
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_abn',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'ABN',
+        'description' => 'Australian Business Number for invoicing and tax purposes.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [],
+      ],
+    ],
+    'field_business_name' => [
+      'storage' => [
+        'field_name' => 'field_business_name',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'max_length' => 255,
+          'is_ascii' => FALSE,
+          'case_sensitive' => FALSE,
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_business_name',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'Legal Business Name',
+        'description' => 'Your registered business name for invoices and legal documents.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [],
+      ],
+    ],
+  ];
+
+  foreach ($fields as $field_name => $config) {
+    // Check if field storage exists.
+    $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('myeventlane_vendor', $field_name);
+
+    if (!$storage) {
+      // Create field storage.
+      try {
+        $storage = \Drupal\field\Entity\FieldStorageConfig::create($config['storage']);
+        $storage->save();
+        $messages[] = "Created field storage: {$field_name}";
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('myeventlane_vendor')->error('Failed to create field storage @field: @message', [
+          '@field' => $field_name,
+          '@message' => $e->getMessage(),
+        ]);
+        $messages[] = "ERROR creating storage for {$field_name}: " . $e->getMessage();
+        continue;
+      }
+    }
+    else {
+      // Storage exists - verify allowed_values are correct.
+      $current_settings = $storage->getSettings();
+      $expected_values = $config['storage']['settings']['allowed_values'];
+
+      if ($current_settings['allowed_values'] !== $expected_values) {
+        $storage->setSetting('allowed_values', $expected_values);
+        $storage->save();
+        $messages[] = "Updated allowed_values for: {$field_name}";
+      }
+      else {
+        $messages[] = "Field storage already correct: {$field_name}";
+      }
+    }
+
+    // Check if field instance exists.
+    $field = \Drupal\field\Entity\FieldConfig::loadByName('myeventlane_vendor', 'myeventlane_vendor', $field_name);
+
+    if (!$field) {
+      // Create field instance.
+      try {
+        $field = \Drupal\field\Entity\FieldConfig::create($config['field']);
+        $field->save();
+        $messages[] = "Created field instance: {$field_name}";
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('myeventlane_vendor')->error('Failed to create field instance @field: @message', [
+          '@field' => $field_name,
+          '@message' => $e->getMessage(),
+        ]);
+        $messages[] = "ERROR creating instance for {$field_name}: " . $e->getMessage();
+      }
+    }
+    else {
+      $messages[] = "Field instance already exists: {$field_name}";
+    }
+  }
+
+  // Clear cached field definitions.
+  \Drupal::service('entity.definition_update_manager')->getChangeList();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return implode(' | ', $messages);
+}
+
+/**
+ * Install business information fields (ABN and Legal Business Name).
+ */
+function myeventlane_vendor_update_10013(): string {
+  $messages = [];
+
+  $fields = [
+    'field_abn' => [
+      'storage' => [
+        'field_name' => 'field_abn',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'max_length' => 14,
+          'is_ascii' => TRUE,
+          'case_sensitive' => FALSE,
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_abn',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'ABN',
+        'description' => 'Australian Business Number for invoicing and tax purposes.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [],
+      ],
+    ],
+    'field_business_name' => [
+      'storage' => [
+        'field_name' => 'field_business_name',
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'string',
+        'cardinality' => 1,
+        'translatable' => FALSE,
+        'settings' => [
+          'max_length' => 255,
+          'is_ascii' => FALSE,
+          'case_sensitive' => FALSE,
+        ],
+      ],
+      'field' => [
+        'field_name' => 'field_business_name',
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => 'Legal Business Name',
+        'description' => 'Your registered business name for invoices and legal documents.',
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => [],
+      ],
+    ],
+  ];
+
+  foreach ($fields as $field_name => $config) {
+    $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('myeventlane_vendor', $field_name);
+
+    if (!$storage) {
+      try {
+        $storage = \Drupal\field\Entity\FieldStorageConfig::create($config['storage']);
+        $storage->save();
+        $messages[] = "Created storage: {$field_name}";
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('myeventlane_vendor')->error('Failed to create field storage @field: @message', [
+          '@field' => $field_name,
+          '@message' => $e->getMessage(),
+        ]);
+        $messages[] = "ERROR storage {$field_name}: " . $e->getMessage();
+        continue;
+      }
+    }
+    else {
+      $messages[] = "Storage exists: {$field_name}";
+    }
+
+    $field = \Drupal\field\Entity\FieldConfig::loadByName('myeventlane_vendor', 'myeventlane_vendor', $field_name);
+
+    if (!$field) {
+      try {
+        $field = \Drupal\field\Entity\FieldConfig::create($config['field']);
+        $field->save();
+        $messages[] = "Created instance: {$field_name}";
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('myeventlane_vendor')->error('Failed to create field instance @field: @message', [
+          '@field' => $field_name,
+          '@message' => $e->getMessage(),
+        ]);
+        $messages[] = "ERROR instance {$field_name}: " . $e->getMessage();
+      }
+    }
+    else {
+      $messages[] = "Instance exists: {$field_name}";
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return implode(' | ', $messages);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

@@ -34,6 +34,8 @@ services:
     class: Drupal\myeventlane_messaging\Service\VendorBrandResolver
     arguments:
       - '@config.factory'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@file_url_generator'
 
   myeventlane_messaging.utm_linker:
     class: Drupal\myeventlane_messaging\Service\UtmLinker

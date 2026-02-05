@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - file
+    - myeventlane_vendor
+id: myeventlane_vendor.field_msg_logo
+field_name: field_msg_logo
+entity_type: myeventlane_vendor
+type: image
+settings:
+  uri_scheme: public
+  default_image:
+    uuid: null
+    alt: ''
+    title: ''
+    width: null
+    height: null
+  target_type: file
+module: image
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

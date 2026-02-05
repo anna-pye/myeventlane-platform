@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_business_name
+id: myeventlane_vendor.myeventlane_vendor.field_business_name
+field_name: field_business_name
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Legal Business Name'
+description: 'Your registered business name for invoices and legal documents.'
+required: false
+translatable: false
+default_value: []
+default_value_callback: ''
+settings: {}
+field_type: string

@@ -11,7 +11,22 @@
       <ul class="mel-nav-list">
         <li><a href="/events" class="mel-nav-link">Events</a></li>
         <li><a href="/categories" class="mel-nav-link">Categories</a></li>
-        <li><a href="/vendors" class="mel-nav-link">Vendors</a></li>
+        <li class="mel-nav-dropdown">
+          <button class="mel-nav-link mel-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            {{ 'Vendors'|t }}
+            <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="mel-nav-dropdown-menu">
+            <li><a href="/vendors" class="mel-nav-dropdown-link">{{ 'Browse Vendors'|t }}</a></li>
+            {% if is_vendor %}
+              <li><a href="/vendor/dashboard" class="mel-nav-dropdown-link">{{ 'Vendor Dashboard'|t }}</a></li>
+            {% else %}
+              <li><a href="/vendor/onboard" class="mel-nav-dropdown-link">{{ 'Become a Vendor'|t }}</a></li>
+            {% endif %}
+          </ul>
+        </li>
       </ul>
     </nav>
 
@@ -36,7 +51,13 @@
       <ul class="mel-nav-mobile-list">
         <li><a href="/events">Events</a></li>
         <li><a href="/categories">Categories</a></li>
-        <li><a href="/vendors">Vendors</a></li>
+        <li class="mel-mobile-section-header">{{ 'Vendors'|t }}</li>
+        <li><a href="/vendors">{{ 'Browse Vendors'|t }}</a></li>
+        {% if is_vendor %}
+          <li><a href="/vendor/dashboard">{{ 'Vendor Dashboard'|t }}</a></li>
+        {% else %}
+          <li><a href="/vendor/onboard">{{ 'Become a Vendor'|t }}</a></li>
+        {% endif %}
         <li class="mel-mobile-divider"></li>
         {% if logged_in %}
           <li><a href="/dashboard">Dashboard</a></li>
