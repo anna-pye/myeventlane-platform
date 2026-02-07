@@ -502,17 +502,21 @@
 }
 
 // ==========================================================================
-// MEL Listing Card (Homepage / Views) — matches mockups
+// MEL Event Card — Full-bleed image + Liquid Glass overlay
 // ==========================================================================
 
 .mel-event-card {
+  position: relative;
   display: block;
   width: 100%;
   min-width: 0;
-  border-radius: var(--mel-radius-3, 14px);
-  border: var(--mel-border, 2px solid rgba(41, 50, 65, 0.12));
-  background: var(--mel-surface, #ffffff);
-  box-shadow: var(--mel-shadow-rest, 0 6px 18px rgba(0, 0, 0, 0.08));
+  min-height: 260px;
+  border-radius: 20px;
+  border: none;
+  background: rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    0 12px 48px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
@@ -520,6 +524,7 @@
   display: block;
   color: inherit;
   text-decoration: none;
+  height: 100%;
 }
 
 .mel-event-card__link:hover,
@@ -531,15 +536,22 @@
 .mel-event-card__link:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--mel-focus, #6c7ef2);
-  border-radius: var(--mel-radius-3, 14px);
+  border-radius: 20px;
 }
 
+// Full-bleed image covering entire card
 .mel-event-card__image {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
+  aspect-ratio: unset;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.03);
+  z-index: 0;
 }
 
 .mel-event-card__image-element {
@@ -547,6 +559,13 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  filter: brightness(0.95);
+  transition: filter 0.4s ease, transform 0.4s ease;
+}
+
+.mel-event-card:hover .mel-event-card__image-element {
+  filter: brightness(1);
+  transform: scale(1.02);
 }
 
 .mel-event-card__placeholder {
@@ -555,68 +574,100 @@
   background: linear-gradient(135deg, var(--mel-peach, #ffd6c9) 0%, var(--mel-lilac, #e6d9ff) 100%);
 }
 
+// Hide category pill on image
 .mel-event-card__category-pill {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
-  pointer-events: none;
-  // Leave space so long categories don't collide with Featured (top-right).
-  max-width: calc(100% - 24px - 120px);
-  overflow: hidden;
+  display: none;
 }
 
+// Hide CTA button overlay
 .mel-event-card__cta {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 3;
-  pointer-events: none;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 10px 14px;
-  border-radius: var(--mel-radius-pill, 999px);
-  border: 2px solid rgba(43, 43, 43, 0.18);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-  color: var(--mel-ink, #293241);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.08);
+  display: none;
 }
 
-.mel-event-card__category-pill .mel-pill__label {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+// Hide featured badge
+.mel-event-card .mel-featured-badge {
+  display: none;
 }
 
+// --- LIQUID GLASS CONTENT OVERLAY ---
 .mel-event-card__content {
-  padding: 14px;
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  right: 10px;
+  z-index: 10;
+  padding: 14px 18px;
+  margin: 0 0 10px 0;
+  border-radius: 14px;
+  overflow: hidden;
+
+  // Liquid glass
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(50px) saturate(200%) brightness(1.15);
+  -webkit-backdrop-filter: blur(50px) saturate(200%) brightness(1.15);
+
+  // SVG filter for Chromium
+  @supports (backdrop-filter: url(#a)) {
+    backdrop-filter: url(#mel-liquid-glass) saturate(180%) brightness(1.1);
+  }
+
+  // Glass edge
+  border: 1px solid rgba(255, 255, 255, 0.25);
+
+  // Depth + specular
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    inset 0 2px 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06);
 }
 
+// Specular rim gradient
+.mel-event-card__content::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 25%,
+    transparent 50%,
+    transparent 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+// Black text with white drop shadow
 .mel-event-card__title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  line-height: 1.15;
-  color: var(--mel-ink, #293241);
+  position: relative;
+  z-index: 2;
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #000;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-shadow:
+    0 1px 4px rgba(255, 255, 255, 0.9),
+    0 2px 8px rgba(255, 255, 255, 0.6);
 }
 
 .mel-event-card__meta {
+  position: relative;
+  z-index: 2;
   display: grid;
-  gap: 6px;
-  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
-  font-size: 14px;
+  gap: 4px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow:
+    0 1px 4px rgba(255, 255, 255, 0.9),
+    0 2px 8px rgba(255, 255, 255, 0.6);
 }
 
 .mel-event-card__meta-item {
@@ -624,4 +675,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+// --- ADAPTIVE CONTRAST (set by JS) ---
+.mel-event-card--light-bg .mel-event-card__content {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.mel-event-card--dark-bg .mel-event-card__title,
+.mel-event-card--dark-bg .mel-event-card__meta {
+  color: #fff;
+  text-shadow:
+    0 1px 3px rgba(20, 20, 50, 0.6),
+    0 4px 12px rgba(20, 20, 50, 0.45);
 }

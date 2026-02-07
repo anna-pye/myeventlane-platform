@@ -30,6 +30,7 @@ final class MessagingManager {
    */
   private const TRANSACTIONAL_TEMPLATES = [
     'assign_tickets_buyer',
+    'boost_confirmation',
     'order_receipt',
     'vendor_event_cancellation',
     'vendor_event_important_change',
@@ -309,7 +310,6 @@ final class MessagingManager {
     $bodyHtmlOverride = (($variantData['body_html'] ?? '') !== '') ? $variantData['body_html'] : NULL;
 
     // Inject brand into context before preheader/body render.
-    // Inject brand into context before preheader/body render.
     $brandObject = $this->vendorBrandResolver?->resolve($ctx);
     $brand = $brandObject ? $brandObject->toArray() : [
       'from_name' => 'MyEventLane',
@@ -554,7 +554,8 @@ final class MessagingManager {
    */
   private function pickAbVariant(Config $conf, string $type, string $to): string {
     $weight = (int) ($conf->get('ab_test.variants.A.weight') ?? 50);
-    $bucket = crc32(strtolower($to . '|' . $type)) % 100;
+    // Use abs() because crc32() returns a signed integer that can be negative.
+    $bucket = abs(crc32(strtolower($to . '|' . $type))) % 100;
     return ($bucket < $weight) ? 'A' : 'B';
   }
 

@@ -1,20 +1,25 @@
 {#
 /**
  * @file
- * Featured events (homepage) — grid output.
+ * Featured events (homepage) — horizontal carousel output.
  *
  * IMPORTANT:
- * - Use the canonical `.mel-event-grid` wrapper (defined in components/_event-grid.scss)
- *   to achieve the 4-across desktop grid without introducing new layout markup.
+ * - Uses CSS scroll-snap for carousel behavior (NO JavaScript).
+ * - Shows 2 cards on desktop, ~1.2 cards on mobile.
+ * - Featured cards appear visually larger than standard event cards.
  * - No card markup here; rows already contain themed node output.
  * - When there are 0 rows, output nothing so the homepage section can collapse.
  */
 #}
 
 {% if rows %}
-  <div class="mel-event-grid" aria-label="{{ 'Featured events'|t }}">
-    {% for row in rows %}
-      {{- row.content -}}
-    {% endfor %}
+  <div class="mel-featured-carousel" aria-label="{{ 'Featured events'|t }}" role="region">
+    <div class="mel-featured-carousel__track">
+      {% for row in rows %}
+        <div class="mel-featured-carousel__slide">
+          {{ row.content }}
+        </div>
+      {% endfor %}
+    </div>
   </div>
 {% endif %}

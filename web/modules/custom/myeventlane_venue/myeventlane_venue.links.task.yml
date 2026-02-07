@@ -1,0 +1,26 @@
+# Admin tasks for venues.
+entity.myeventlane_venue.collection:
+  title: 'Venues'
+  route_name: entity.myeventlane_venue.collection
+  base_route: entity.myeventlane_venue.collection
+
+entity.myeventlane_venue_location.collection:
+  title: 'Locations'
+  route_name: entity.myeventlane_venue_location.collection
+  base_route: entity.myeventlane_venue.collection
+
+entity.myeventlane_venue_access.collection:
+  title: 'Access grants'
+  route_name: entity.myeventlane_venue_access.collection
+  base_route: entity.myeventlane_venue.collection
+
+entity.myeventlane_venue_issue.collection:
+  title: 'Issues'
+  route_name: entity.myeventlane_venue_issue.collection
+  base_route: entity.myeventlane_venue.collection
+
+myeventlane_venue.admin_settings:
+  title: 'Settings'
+  route_name: myeventlane_venue.admin_settings
+  base_route: entity.myeventlane_venue.collection
+  weight: 100

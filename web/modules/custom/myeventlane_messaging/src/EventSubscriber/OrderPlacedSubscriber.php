@@ -23,11 +23,17 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Includes:
  * - Branded HTML receipt email
  * - Calendar (.ics) attachments (one per event)
- * - Clear separation of tickets vs donations.
+ * - Clear separation of tickets vs donations
+ * - Dedicated boost confirmation email for boost-only orders.
  */
 final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
   use StringTranslationTrait;
+
+  /**
+   * Placeholder vendor support URL until the support page is built.
+   */
+  private const VENDOR_SUPPORT_URL = 'https://myeventlane.com.au/contact';
 
   /**
    * Constructs OrderPlacedSubscriber.
@@ -63,6 +69,9 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
   /**
    * Queues the order receipt email with ICS attachments.
    *
+   * Detects boost-only orders and sends a dedicated boost confirmation
+   * template instead of the generic order receipt.
+   *
    * @param \Drupal\state_machine\Event\WorkflowTransitionEvent $event
    *   The workflow transition event.
    */
@@ -91,6 +100,213 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Route to boost confirmation if this is a boost-only order.
+    if ($this->isBoostOnlyOrder($order)) {
+      $this->sendBoostConfirmation($order, $mail);
+      return;
+    }
+
+    $this->sendOrderReceipt($order, $mail);
+  }
+
+  /**
+   * Checks if an order contains only boost items (no tickets, no donations).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return bool
+   *   TRUE if all order items are boost items.
+   */
+  private function isBoostOnlyOrder(OrderInterface $order): bool {
+    $items = $order->getItems();
+    if (empty($items)) {
+      return FALSE;
+    }
+
+    foreach ($items as $item) {
+      if ($item->bundle() !== 'boost') {
+        return FALSE;
+      }
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Sends a dedicated boost confirmation email.
+   *
+   * Calculates boost dates from order data (product variation field_boost_days)
+   * rather than reading field_promo_expires from the event, because the boost
+   * has not yet been applied at order-place time (it fires on ORDER_PAID).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param string $mail
+   *   The recipient email.
+   */
+  private function sendBoostConfirmation(OrderInterface $order, string $mail): void {
+    $orderId = (int) $order->id();
+    $customer = $order->getCustomer();
+    $first_name = $customer ? $customer->getDisplayName() : 'there';
+
+    // Extract boost details from all boost items in the order.
+    $boostItems = $this->extractBoostItems($order);
+
+    if (empty($boostItems)) {
+      $this->logger->error(
+        'Boost-only order @order_id has no extractable boost items. Falling back to generic receipt.',
+        ['@order_id' => $orderId, 'order_id' => $orderId]
+      );
+      $this->sendOrderReceipt($order, $mail);
+      return;
+    }
+
+    // Use the first boost item for primary context (most orders have one).
+    $primaryBoost = reset($boostItems);
+
+    // Build boost manage URL (link to the boost page for the event).
+    $boostManageUrl = NULL;
+    if ($primaryBoost['event_id']) {
+      try {
+        $boostManageUrl = Url::fromRoute('myeventlane_boost.boost_page', [
+          'node' => $primaryBoost['event_id'],
+        ], [
+          'absolute' => TRUE,
+        ])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Could not generate boost manage URL: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $context = [
+      'first_name' => $first_name,
+      'order_number' => $order->label(),
+      'order_id' => $orderId,
+      'order_email' => $mail,
+      'event_name' => $primaryBoost['event_name'],
+      'boost_days' => $primaryBoost['boost_days'],
+      'boost_start_date' => $primaryBoost['boost_start_date'],
+      'boost_end_date' => $primaryBoost['boost_end_date'],
+      'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'boost_manage_url' => $boostManageUrl,
+      'support_url' => self::VENDOR_SUPPORT_URL,
+    ];
+
+    if ($primaryBoost['event_id']) {
+      $context['event_id'] = $primaryBoost['event_id'];
+    }
+
+    try {
+      $this->messagingManager->queue('boost_confirmation', $mail, $context, [
+        'langcode' => $order->language()->getId(),
+      ]);
+
+      $this->logger->info(
+        'Boost confirmation queued for order @order_id to @email (event: @event, @days days)',
+        [
+          '@order_id' => $orderId,
+          '@email' => $mail,
+          '@event' => $primaryBoost['event_name'],
+          '@days' => $primaryBoost['boost_days'],
+          'order_id' => $orderId,
+          'event_id' => $primaryBoost['event_id'],
+          'message_type' => 'boost_confirmation',
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->error(
+        'Failed to queue boost confirmation for order @order_id: @message',
+        [
+          '@order_id' => $orderId,
+          '@message' => $e->getMessage(),
+          'order_id' => $orderId,
+          'event_id' => $primaryBoost['event_id'],
+          'message_type' => 'boost_confirmation',
+        ]
+      );
+    }
+  }
+
+  /**
+   * Extracts boost item data from an order.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   *
+   * @return array
+   *   Array of boost item data, each with keys:
+   *   - event_id (int|null)
+   *   - event_name (string)
+   *   - boost_days (int)
+   *   - boost_start_date (string): Formatted date.
+   *   - boost_end_date (string): Formatted date.
+   */
+  private function extractBoostItems(OrderInterface $order): array {
+    $items = [];
+    $orderDate = new \DateTimeImmutable(
+      $order->getPlacedTime()
+        ? '@' . $order->getPlacedTime()
+        : 'now',
+      new \DateTimeZone('Australia/Sydney')
+    );
+
+    foreach ($order->getItems() as $item) {
+      if ($item->bundle() !== 'boost') {
+        continue;
+      }
+
+      $eventName = 'your event';
+      $eventId = NULL;
+
+      if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+        $event = $item->get('field_target_event')->entity;
+        if ($event instanceof NodeInterface) {
+          $eventName = $event->label();
+          $eventId = (int) $event->id();
+        }
+      }
+
+      // Get boost duration from the product variation.
+      $boostDays = 7;
+      $variation = $item->getPurchasedEntity();
+      if ($variation && $variation->hasField('field_boost_days') && !$variation->get('field_boost_days')->isEmpty()) {
+        $boostDays = (int) $variation->get('field_boost_days')->value;
+        if ($boostDays < 1) {
+          $boostDays = 7;
+        }
+      }
+
+      // Calculate start and end dates from order placed date.
+      $startDate = $orderDate->setTimezone(new \DateTimeZone('Australia/Sydney'));
+      $endDate = $startDate->modify(sprintf('+%d days', $boostDays));
+
+      $items[] = [
+        'event_id' => $eventId,
+        'event_name' => $eventName,
+        'boost_days' => $boostDays,
+        'boost_start_date' => $startDate->format('j F Y'),
+        'boost_end_date' => $endDate->format('j F Y'),
+      ];
+    }
+
+    return $items;
+  }
+
+  /**
+   * Sends the standard order receipt email (for ticket/donation orders).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param string $mail
+   *   The recipient email.
+   */
+  private function sendOrderReceipt(OrderInterface $order, string $mail): void {
+    $orderId = (int) $order->id();
     $customer = $order->getCustomer();
     $first_name = $customer ? $customer->getDisplayName() : 'there';
 
@@ -100,6 +316,23 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $donation_total = $this->calculateDonationTotal($order);
 
     $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
+
+    // Build ticket download URL.
+    $tickets_url = NULL;
+    try {
+      $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+        'commerce_order' => $orderId,
+      ], [
+        'absolute' => TRUE,
+        'fragment' => 'tickets',
+      ])->toString(TRUE)->getGeneratedUrl();
+    }
+    catch (\Exception $e) {
+      // Fallback to order URL if route doesn't exist.
+      $this->logger->warning('Could not generate tickets URL: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
 
     // Build email context.
     $context = [
@@ -118,6 +351,9 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
       'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
+      // Add tickets download link for the email template.
+      'tickets_url' => $tickets_url,
+      'has_tickets' => !empty($ticket_items),
     ];
     if ($primaryEventId !== NULL) {
       $context['event_id'] = $primaryEventId;

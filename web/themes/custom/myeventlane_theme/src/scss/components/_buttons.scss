@@ -190,6 +190,18 @@
   }
 }
 
+// Create Event CTA - prominent header button
+.mel-btn-create-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
 // Ghost - Subtle, outlined
 .mel-btn-ghost {
   background-color: transparent;

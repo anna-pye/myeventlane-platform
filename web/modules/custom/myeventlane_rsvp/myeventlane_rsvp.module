@@ -2,12 +2,85 @@
 
 /**
  * @file
+ * MyEventLane RSVP module hooks.
  */
 
 declare(strict_types=1);
 
-/**
- * @file
- * MyEventLane RSVP module hooks.
- */
+use Drupal\Core\Render\Markup;
 
+/**
+ * Implements hook_mail().
+ *
+ * Handles RSVP confirmation emails with ticket PDF attachments.
+ */
+function myeventlane_rsvp_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'rsvp_confirmation':
+      $message['subject'] = t('Your RSVP Confirmation for @event', [
+        '@event' => $params['event_title'] ?? 'the event',
+      ]);
+
+      // Build email body.
+      $body = [];
+      $body[] = t('Hi @name,', ['@name' => $params['name'] ?? 'there']);
+      $body[] = '';
+      $body[] = t("You're confirmed for @event!", [
+        '@event' => $params['event_title'] ?? 'the event',
+      ]);
+      $body[] = '';
+
+      if (!empty($params['event_date'])) {
+        $body[] = t('Date: @date', ['@date' => $params['event_date']]);
+      }
+      if (!empty($params['event_location'])) {
+        $body[] = t('Location: @location', ['@location' => $params['event_location']]);
+      }
+
+      $body[] = '';
+      $body[] = t('Your ticket is attached to this email. You can also add this event to your calendar using the attached file.');
+      $body[] = '';
+      $body[] = t('See you there!');
+
+      $message['body'] = $body;
+
+      // Handle attachments (ticket PDF and ICS).
+      if (!empty($params['attachments']) && is_array($params['attachments'])) {
+        if (!isset($message['params'])) {
+          $message['params'] = [];
+        }
+        if (!isset($message['params']['attachments'])) {
+          $message['params']['attachments'] = [];
+        }
+
+        foreach ($params['attachments'] as $attachment) {
+          if (isset($attachment['filename']) && isset($attachment['content'])) {
+            $message['params']['attachments'][] = [
+              'filecontent' => $attachment['content'],
+              'filename' => $attachment['filename'],
+              'filemime' => $attachment['mime'] ?? 'application/octet-stream',
+            ];
+          }
+        }
+      }
+      break;
+
+    case 'rsvp_vendor_copy':
+      $message['subject'] = t('New RSVP for @event', [
+        '@event' => $params['event_title'] ?? 'your event',
+      ]);
+
+      $body = [];
+      $body[] = t('A new RSVP has been received for @event.', [
+        '@event' => $params['event_title'] ?? 'your event',
+      ]);
+      $body[] = '';
+      $body[] = t('Attendee: @name (@email)', [
+        '@name' => $params['name'] ?? 'Guest',
+        '@email' => $params['email'] ?? '',
+      ]);
+
+      $message['body'] = $body;
+      break;
+  }
+}

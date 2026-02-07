@@ -1,0 +1,108 @@
+{#
+/**
+ * @file
+ * Template for the vendor venues list.
+ *
+ * Available variables:
+ * - venues: Array of venue row data.
+ *   - name: Venue name.
+ *   - visibility: Visibility string (public/shared).
+ *   - visibility_label: Translated visibility label.
+ *   - location_count: Number of locations.
+ *   - primary_address: Primary address string.
+ *   - is_owner: Whether current user owns this venue.
+ *   - has_image: Whether venue has an image.
+ *   - image_url: URL to the venue image.
+ *   - actions: Array of action links.
+ * - add_url: URL to add a new venue.
+ */
+#}
+<div class="mel-venues-list-page">
+  <div class="mel-venues-header">
+    <h2 class="mel-venues-title">{{ 'Your Venues'|t }}</h2>
+    <div class="mel-venues-actions">
+      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
+        <span class="mel-btn__icon">+</span>
+        {{ 'Add venue'|t }}
+      </a>
+    </div>
+  </div>
+
+  {% if venues is empty %}
+    <div class="mel-empty-state">
+      <div class="mel-empty-state__icon">📍</div>
+      <h3 class="mel-empty-state__title">{{ 'No venues yet'|t }}</h3>
+      <p class="mel-empty-state__text">
+        {{ 'Create your first venue to easily reuse locations across your events.'|t }}
+      </p>
+      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
+        {{ 'Create your first venue'|t }}
+      </a>
+    </div>
+  {% else %}
+    <div class="mel-venues-grid">
+      {% for row in venues %}
+        <div class="mel-venue-card{% if row.is_owner %} mel-venue-card--owned{% endif %}{% if row.has_image %} mel-venue-card--has-image{% endif %}">
+          {# Venue image or placeholder #}
+          <div class="mel-venue-card__image">
+            {% if row.has_image and row.image_url %}
+              <img src="{{ row.image_url }}" alt="{{ row.name }}" class="mel-venue-card__img" loading="lazy">
+            {% else %}
+              <div class="mel-venue-card__placeholder">
+                <svg class="mel-venue-card__placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="mel-venue-card__content">
+            <div class="mel-venue-card__header">
+              <h3 class="mel-venue-card__name">{{ row.name }}</h3>
+              <span class="mel-pill mel-pill--{{ row.visibility }}">
+                {{ row.visibility_label }}
+              </span>
+            </div>
+
+            {% if row.primary_address %}
+              <p class="mel-venue-card__address">{{ row.primary_address }}</p>
+            {% endif %}
+
+            <div class="mel-venue-card__meta">
+              <span class="mel-venue-card__locations">
+                {{ row.location_count }} {{ row.location_count == 1 ? 'location'|t : 'locations'|t }}
+              </span>
+              {% if not row.is_owner %}
+                <span class="mel-venue-card__shared-badge">{{ 'Shared with you'|t }}</span>
+              {% endif %}
+            </div>
+
+            <div class="mel-venue-card__actions">
+              {% for key, action in row.actions %}
+                {% if key == 'share' %}
+                  <button type="button"
+                          class="mel-btn mel-btn--text mel-copy-share-link"
+                          data-share-url="{{ action.share_url }}"
+                          title="{{ 'Click to copy share link'|t }}">
+                    {{ action.title }}
+                  </button>
+                {% elseif key == 'delete' %}
+                  <a href="{{ action.url }}"
+                     class="mel-btn mel-btn--text mel-btn--danger mel-venue-delete-btn"
+                     data-venue-name="{{ row.name }}">
+                    {{ action.title }}
+                  </a>
+                {% elseif action.url %}
+                  <a href="{{ action.url }}" class="mel-btn mel-btn--text">
+                    {{ action.title }}
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

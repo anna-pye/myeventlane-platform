@@ -6,9 +6,10 @@ namespace Drupal\myeventlane_venue\Form;
 
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 
 /**
- * Form handler for the Venue entity forms.
+ * Form handler for the Venue entity add/edit forms.
  */
 class VenueForm extends ContentEntityForm {
 
@@ -17,50 +18,9 @@ class VenueForm extends ContentEntityForm {
    */
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
-    $entity = $this->getEntity();
 
-    // Group fields into logical sections.
-    $form['basic_info'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Basic information'),
-      '#weight' => -20,
-    ];
-
-    // Move name field into basic_info section.
-    if (isset($form['name'])) {
-      $form['name']['#group'] = 'basic_info';
-    }
-
-    // Location section.
-    $form['location'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Location'),
-      '#weight' => -10,
-    ];
-
-    if (isset($form['field_location'])) {
-      $form['field_location']['#group'] = 'location';
-    }
-    if (isset($form['field_latitude'])) {
-      $form['field_latitude']['#group'] = 'location';
-    }
-    if (isset($form['field_longitude'])) {
-      $form['field_longitude']['#group'] = 'location';
-    }
-    if (isset($form['field_place_id'])) {
-      $form['field_place_id']['#group'] = 'location';
-    }
-
-    // Vendor section.
-    $form['vendor'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Vendor'),
-      '#weight' => 0,
-    ];
-
-    if (isset($form['field_vendor'])) {
-      $form['field_vendor']['#group'] = 'vendor';
-    }
+    $form['#attributes']['class'][] = 'mel-form';
+    $form['#attributes']['class'][] = 'mel-venue-form';
 
     return $form;
   }
@@ -68,34 +28,65 @@ class VenueForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function save(array $form, FormStateInterface $form_state): int {
-    $result = parent::save($form, $form_state);
+  protected function actions(array $form, FormStateInterface $form_state): array {
+    $actions = parent::actions($form, $form_state);
 
-    $entity = $this->getEntity();
-    $message_arguments = ['%label' => $entity->toLink()->toString()];
-    $logger_arguments = [
-      '%label' => $entity->label(),
-      'link' => $entity->toLink($this->t('View'))->toString(),
+    $actions['submit']['#attributes']['class'][] = 'mel-btn';
+    $actions['submit']['#attributes']['class'][] = 'mel-btn--primary';
+
+    // Add cancel link - use entity collection as safe fallback.
+    $cancel_url = $this->getCancelUrl();
+    $actions['cancel'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Cancel'),
+      '#url' => $cancel_url,
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--secondary'],
+      ],
+      '#weight' => 10,
     ];
 
-    switch ($result) {
-      case SAVED_NEW:
-        $this->messenger()->addStatus($this->t('New venue %label has been created.', $message_arguments));
-        $this->logger('myeventlane_venue')->notice('Created new venue %label', $logger_arguments);
-        $form_state->setRedirect('entity.myeventlane_venue.canonical', ['myeventlane_venue' => $entity->id()]);
-        break;
+    return $actions;
+  }
 
-      case SAVED_UPDATED:
-        $this->messenger()->addStatus($this->t('The venue %label has been updated.', $message_arguments));
-        $this->logger('myeventlane_venue')->notice('Updated venue %label.', $logger_arguments);
-        $form_state->setRedirect('entity.myeventlane_venue.canonical', ['myeventlane_venue' => $entity->id()]);
-        break;
+  /**
+   * Gets the cancel URL, with fallback for route availability.
+   *
+   * @return \Drupal\Core\Url
+   *   The cancel URL.
+   */
+  protected function getCancelUrl(): Url {
+    try {
+      return Url::fromRoute('myeventlane_venue.vendor_venues');
+    }
+    catch (\Exception $e) {
+      // Fallback to entity collection if vendor route not available.
+      return Url::fromRoute('entity.myeventlane_venue.collection');
+    }
+  }
 
-      default:
-        $form_state->setRedirect('entity.myeventlane_venue.collection');
+  /**
+   * {@inheritdoc}
+   */
+  public function save(array $form, FormStateInterface $form_state): int {
+    $entity = $this->entity;
+    $status = parent::save($form, $form_state);
+
+    if ($status === SAVED_NEW) {
+      $this->messenger()->addStatus($this->t('Venue "@name" has been created.', [
+        '@name' => $entity->label(),
+      ]));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Venue "@name" has been updated.', [
+        '@name' => $entity->label(),
+      ]));
     }
 
-    return $result;
+    // Redirect with fallback for route availability.
+    $form_state->setRedirectUrl($this->getCancelUrl());
+
+    return $status;
   }
 
 }

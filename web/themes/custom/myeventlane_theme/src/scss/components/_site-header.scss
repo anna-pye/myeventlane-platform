@@ -106,6 +106,54 @@
     min-height: 40px;
   }
 
+  &__create-event {
+    display: flex;
+    align-items: center;
+
+    @media (max-width: 900px) {
+      display: none;
+    }
+  }
+
+  &__create-event-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 18px;
+    background: var(--mel-coral, #f26d5b);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: var(--mel-radius-pill, 100px);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: var(--mel-coral-hover, #e05a48);
+      box-shadow: 0 2px 6px rgba(242, 109, 91, 0.3);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral, #f26d5b);
+      outline-offset: 2px;
+    }
+  }
+
   &__organiser,
   &__cart,
   &__user {

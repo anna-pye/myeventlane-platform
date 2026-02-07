@@ -1,0 +1,79 @@
+enabled: true
+subject: 'Your Boost for "{{ event_name }}" is confirmed – MyEventLane'
+body_html: |
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; margin: 0; font-size: 28px;">🚀 Boost Confirmed!</h1>
+      </div>
+
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Hi {{ first_name }},
+      </p>
+
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+        Your Boost for <strong>{{ event_name }}</strong> has been confirmed.
+        Your event will be featured and promoted across MyEventLane for <strong>{{ boost_days }} days</strong>.
+      </p>
+
+      <div style="margin: 30px 0;">
+        <h2 style="color: #2c3e50; font-size: 20px; margin-bottom: 15px; border-bottom: 2px solid #fef5ec; padding-bottom: 10px;">Boost Details</h2>
+        <div style="background-color: #fef5ec; border-radius: 6px; padding: 20px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="color: #7f8c8d; font-size: 14px; padding: 8px 0; vertical-align: top; width: 130px;">Event</td>
+              <td style="color: #2c3e50; font-size: 14px; padding: 8px 0; font-weight: 600;">{{ event_name }}</td>
+            </tr>
+            <tr>
+              <td style="color: #7f8c8d; font-size: 14px; padding: 8px 0; vertical-align: top;">Duration</td>
+              <td style="color: #2c3e50; font-size: 14px; padding: 8px 0; font-weight: 600;">{{ boost_days }} days</td>
+            </tr>
+            <tr>
+              <td style="color: #7f8c8d; font-size: 14px; padding: 8px 0; vertical-align: top;">Starts</td>
+              <td style="color: #2c3e50; font-size: 14px; padding: 8px 0; font-weight: 600;">{{ boost_start_date }}</td>
+            </tr>
+            <tr>
+              <td style="color: #7f8c8d; font-size: 14px; padding: 8px 0; vertical-align: top;">Ends</td>
+              <td style="color: #2c3e50; font-size: 14px; padding: 8px 0; font-weight: 600;">{{ boost_end_date }}</td>
+            </tr>
+            <tr>
+              <td style="color: #7f8c8d; font-size: 14px; padding: 8px 0; vertical-align: top;">Order</td>
+              <td style="color: #2c3e50; font-size: 14px; padding: 8px 0; font-weight: 600;">#{{ order_number }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; color: #2c3e50; font-size: 18px;">Total Paid</span>
+          <span style="font-weight: 700; color: #2c3e50; font-size: 20px;">{{ total_paid }}</span>
+        </div>
+      </div>
+
+      {% if boost_manage_url %}
+        <div style="text-align: center; margin: 30px 0 15px 0;">
+          <a href="{{ boost_manage_url }}" style="display: inline-block; background-color: #f26d5b; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+            Manage Your Boost
+          </a>
+        </div>
+      {% endif %}
+
+      <div style="text-align: center; margin: 15px 0 30px 0;">
+        <a href="{{ support_url }}" style="color: #f26d5b; font-size: 14px; text-decoration: underline;">
+          Need help? Contact Vendor Support
+        </a>
+      </div>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
+        <p style="margin: 5px 0;">This email was sent to {{ order_email }}</p>
+        <p style="margin: 5px 0;">If you have any questions, please contact us.</p>
+      </div>
+    </div>
+  </div>
+utm:
+  enable: true
+  params:
+    utm_source: 'email'
+    utm_medium: 'transactional'
+    utm_campaign: 'boost_confirmation'

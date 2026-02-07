@@ -47,45 +47,49 @@
   /**
    * Return the best "widget root" for field_location or field_venue_address.
    *
-   * Priority:
+   * Priority (VISIBLE widgets preferred):
    * 1) Explicit wrapper: [data-mel-address="field_venue_address"] (PHASE 5: prefer venue address)
    * 2) Explicit wrapper: [data-mel-address="field_location"]
    * 3) Drupal field wrapper: .field--name-field-venue-address
    * 4) Drupal field wrapper: .field--name-field-location
-   * 5) Closest fieldset
+   * 5) Closest fieldset containing address inputs
    * 6) Form fallback
+   *
+   * IMPORTANT: Only return visible widgets. Hidden widgets (like field_location
+   * in the Event Wizard) should be skipped.
    */
   function getLocationWidgetRoot(form) {
     if (!form) return null;
 
-    // PHASE 5: Prefer field_venue_address if it exists.
+    // PHASE 5: Prefer field_venue_address if it exists AND is visible.
     let root = form.querySelector('[data-mel-address="field_venue_address"]');
-    if (root) {
+    if (root && isVisible(root)) {
       log('Found field_venue_address widget root by data-mel-address attribute');
       return root;
     }
 
     root = form.querySelector('[data-mel-address="field_location"]');
-    if (root) {
+    if (root && isVisible(root)) {
       log('Found field_location widget root by data-mel-address attribute');
       return root;
     }
 
     root = form.querySelector('.field--name-field-venue-address');
-    if (root) {
+    if (root && isVisible(root)) {
       log('Found field_venue_address widget root by class');
       return root;
     }
 
     root = form.querySelector('.field--name-field-location');
-    if (root) {
+    if (root && isVisible(root)) {
       log('Found field_location widget root by class');
       return root;
     }
 
-    // Fieldset containing address inputs (prefer field_venue_address).
+    // Fieldset containing VISIBLE address inputs (prefer field_venue_address).
     const fieldsets = form.querySelectorAll('fieldset');
     for (const fs of fieldsets) {
+      if (!isVisible(fs)) continue;
       if (fs.querySelector('input[name*="field_venue_address"][name*="[address][address_line1]"]') ||
           fs.querySelector('input[name*="field_venue_address"][name*="[address][locality]"]')) {
         log('Found field_venue_address widget root in fieldset');
@@ -93,6 +97,7 @@
       }
     }
     for (const fs of fieldsets) {
+      if (!isVisible(fs)) continue;
       if (fs.querySelector('input[name*="[address][address_line1]"]') ||
           fs.querySelector('input[name*="[address][locality]"]') ||
           fs.querySelector('input[name*="[address][postal_code]"]')) {
@@ -101,28 +106,52 @@
       }
     }
 
-    log('Using form as widget root fallback');
+    // Fall back to form but log it.
+    log('Using form as widget root fallback (no visible address widget found)');
     return form;
   }
 
   /**
    * Finds the search input that the vendor types into.
-   * Supports:
+   * Returns the FIRST VISIBLE input matching any of these selectors:
    * - .myeventlane-location-address-search
    * - input[data-address-search="true"]
    * - name contains field_location_address_search
+   *
+   * IMPORTANT: We search for ALL matches and return the first visible one
+   * because forms may have multiple search inputs (e.g., one hidden in
+   * field_location widget, one visible at the top).
    */
   function findSearchInput(context) {
     if (!context) return null;
 
-    let input = context.querySelector('.myeventlane-location-address-search');
-    if (input) return input;
+    // Collect all possible search inputs.
+    const selectors = [
+      '.myeventlane-location-address-search',
+      'input[data-address-search="true"]',
+      'input[name*="field_location_address_search"]',
+      'input[name*="address_search"]'
+    ];
 
-    input = context.querySelector('input[data-address-search="true"]');
-    if (input) return input;
+    // First pass: try to find a visible input.
+    for (const selector of selectors) {
+      const inputs = context.querySelectorAll(selector);
+      for (const input of inputs) {
+        if (isVisible(input)) {
+          log('Found visible search input with selector:', selector);
+          return input;
+        }
+      }
+    }
 
-    input = context.querySelector('input[name*="field_location_address_search"], input[name*="address_search"]');
-    if (input) return input;
+    // Second pass: if no visible input, return the first match (for backwards compat).
+    for (const selector of selectors) {
+      const input = context.querySelector(selector);
+      if (input) {
+        log('No visible search input found, falling back to first match:', selector);
+        return input;
+      }
+    }
 
     return null;
   }

@@ -9,159 +9,364 @@
 @use '../tokens/shadows';
 
 // ---------------------------------------------------------------------------
+// Hidden SVG for Liquid Glass filter
+// ---------------------------------------------------------------------------
+.mel-liquid-glass-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
 // Carousel Container
 // ---------------------------------------------------------------------------
 
 .mel-featured-carousel {
   position: relative;
   width: 100%;
-  margin-bottom: space-tokens.mel-space(4);
+  margin-bottom: space-tokens.mel-space(1);
 
-  &__container {
-    position: relative;
-    overflow: hidden;
-  }
+  // Horizontal scrolling carousel - HIDE OVERFLOW to prevent 3rd card peek
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
 
-  // Track (scrollable container)
+  // Track - horizontal flex, NO wrap, constrained to parent width
   &__track {
-    display: flex;
-    gap: space-tokens.mel-space(3);
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 24px;
+    // Exactly 2 cards: each card = (100% - gap) / 2
+    width: 100%;
     overflow-x: auto;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
-    scroll-padding: 0 space-tokens.mel-space(3);
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: space-tokens.mel-space(1);
+    scroll-behavior: smooth;
+    padding-bottom: 4px; // Prevent cut-off shadows
 
-    // Hide scrollbar but keep functionality
-    scrollbar-width: thin;
-    scrollbar-color: colors.$mel-color-border colors.$mel-color-surface;
+    // Hide scrollbar on track
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 
     &::-webkit-scrollbar {
-      height: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: colors.$mel-color-surface;
-      border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: colors.$mel-color-border;
-      border-radius: 3px;
-
-      &:hover {
-        background: colors.$mel-color-border-strong;
-      }
-    }
-
-    // Respect reduced motion
-    @media (prefers-reduced-motion: reduce) {
-      scroll-behavior: auto;
+      display: none;
     }
   }
 
-  // Individual slide
+  // Individual slide - EXACTLY 2 cards visible, no 3rd card peek
   &__slide {
-    flex: 0 0 auto;
-    width: 80vw;
-    max-width: 420px;
+    // Width = (100% - 24px gap) / 2
+    flex: 0 0 calc(50% - 12px) !important;
+    min-width: 0;
     scroll-snap-align: start;
-    scroll-snap-stop: always;
 
-    @include breakpoints.mel-break(md) {
-      width: 360px;
+    // Mobile: single card view
+    @media (max-width: 767px) {
+      flex: 0 0 100% !important;
     }
 
-    // Ensure card fills slide
+    // =========================================================================
+    // FULL-BLEED IMAGE WITH APPLE LIQUID GLASS OVERLAY
+    // =========================================================================
+
     .mel-event-card {
-      width: 100%;
-      height: 100%;
+      position: relative !important;
+      width: 100% !important;
+      min-height: 300px !important;
+      border-radius: 20px !important;
+      overflow: hidden !important;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.08),
+        0 12px 48px rgba(0, 0, 0, 0.12) !important;
+      display: block !important;
+
+      @include breakpoints.mel-break(md) {
+        min-height: 340px !important;
+      }
     }
-  }
 
-  // Controls (desktop only)
-  &__controls {
-    display: none;
+    // -------------------------------------------------------------------------
+    // Full-bleed image covering entire card
+    // -------------------------------------------------------------------------
+    .mel-event-card__image {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      aspect-ratio: unset !important;
+      max-height: none !important;
+      z-index: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
 
-    @include breakpoints.mel-break(md) {
-      display: flex;
-      justify-content: space-between;
+      img,
+      .mel-event-card__image-element {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        filter: brightness(0.95) !important;
+        transition: filter 0.4s ease, transform 0.4s ease;
+      }
+    }
+
+    // Hover: brighten and subtle zoom
+    .mel-event-card:hover .mel-event-card__image img,
+    .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
+      filter: brightness(1) !important;
+      transform: scale(1.02);
+    }
+
+    // Hide sparkle badge
+    .mel-featured-badge {
+      display: none !important;
+    }
+
+    // Hide CTA button
+    .mel-event-card__cta {
+      display: none !important;
+    }
+
+    // Hide category pill
+    .mel-event-card__category-pill {
+      display: none !important;
+    }
+
+    // =========================================================================
+    // APPLE LIQUID GLASS — SVG refraction + CSS specular highlights
+    //
+    // Uses SVG feDisplacementMap via backdrop-filter: url(#mel-liquid-glass)
+    // for true light-bending refraction in Chromium browsers.
+    // Falls back to backdrop-filter: blur() in Safari/Firefox.
+    //
+    // Ref: https://frontendmasters.com/blog/liquid-glass-on-the-web/
+    //      https://blog.logrocket.com/how-create-liquid-glass-effects-css-and-svg/
+    // =========================================================================
+
+    .mel-event-card__content {
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 12px !important;
+      right: 12px !important;
+      z-index: 10 !important;
+      padding: 18px 24px !important;
+      margin: 0 0 12px 0 !important;
+      border-radius: 16px !important;
+      overflow: hidden !important;
+
+      // --- LIQUID GLASS REFRACTION ---
+      // SVG filter for true refraction (Chrome/Edge) + CSS blur fallback
+      background: rgba(255, 255, 255, 0.12) !important;
+
+      // Fallback for Safari/Firefox: standard blur
+      backdrop-filter: blur(24px) saturate(180%) brightness(1.1) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.1) !important;
+
+      // SVG filter override for Chromium (true refraction + blur)
+      @supports (backdrop-filter: url(#a)) {
+        backdrop-filter: url(#mel-liquid-glass) saturate(180%) brightness(1.1) !important;
+      }
+
+      // --- GLASS EDGE ---
+      // Thin border all around with brighter top edge
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+
+      // --- DEPTH + SPECULAR HIGHLIGHTS ---
+      box-shadow:
+        // Outer: floating glass shadow
+        0 8px 32px rgba(0, 0, 0, 0.18),
+        // Inner top: specular highlight (light catching top edge)
+        inset 0 2px 1px 0 rgba(255, 255, 255, 0.5),
+        // Inner bottom: subtle depth
+        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    // --- SPECULAR RIM GRADIENT (Reflection layer) ---
+    .mel-event-card__content::after {
+      content: '';
       position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      transform: translateY(-50%);
+      inset: 0;
+      border-radius: inherit;
       pointer-events: none;
+      z-index: 1;
+
+      // Diagonal specular gradient (simulates light source top-left)
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.1) 25%,
+        transparent 50%,
+        transparent 100%
+      );
+
+      // Top-edge refraction rim
+      border-top: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    // -------------------------------------------------------------------------
+    // TEXT — White with soft purple-gray shadows
+    // -------------------------------------------------------------------------
+    .mel-event-card__title {
+      position: relative;
       z-index: 2;
+      font-size: 22px !important;
+      font-weight: 800 !important;
+      line-height: 1.2;
+      margin: 0 0 10px 0 !important;
+      color: #000 !important;
+      text-shadow:
+        0 1px 4px rgba(255, 255, 255, 0.9),
+        0 2px 8px rgba(255, 255, 255, 0.6);
+      letter-spacing: -0.01em;
+    }
+
+    .mel-event-card__meta {
+      position: relative;
+      z-index: 2;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #000 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+      margin: 0 !important;
+      text-shadow:
+        0 1px 4px rgba(255, 255, 255, 0.9),
+        0 2px 8px rgba(255, 255, 255, 0.6);
+    }
+
+    // Featured label
+    .mel-event-card__content .mel-event-card__title::before {
+      content: 'FEATURED · PLATFORM PICK';
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.7) !important;
+      margin-bottom: 8px;
+      text-shadow:
+        0 1px 4px rgba(255, 255, 255, 0.9),
+        0 2px 8px rgba(255, 255, 255, 0.6);
+    }
+
+    // =========================================================================
+    // ADAPTIVE TEXT CONTRAST
+    // Applied via JS based on sampled image brightness.
+    // Default = white text (for dark images).
+    // .mel-event-card--light-bg = dark text (for light/pastel images).
+    // =========================================================================
+    .mel-event-card--light-bg .mel-event-card__content {
+      // Darker tinted glass on light backgrounds for contrast
+      background: rgba(0, 0, 0, 0.15) !important;
+      border-color: rgba(0, 0, 0, 0.1) !important;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .mel-event-card--light-bg .mel-event-card__title {
+      color: #000 !important;
+      text-shadow:
+        0 1px 3px rgba(255, 255, 255, 0.6);
+      -webkit-text-stroke: 0;
+    }
+
+    .mel-event-card--light-bg .mel-event-card__meta {
+      color: #000 !important;
+      text-shadow:
+        0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    .mel-event-card--light-bg .mel-event-card__content .mel-event-card__title::before {
+      color: rgba(0, 0, 0, 0.7) !important;
+      text-shadow:
+        0 1px 2px rgba(255, 255, 255, 0.4);
+    }
+
+    // Specular rim on light bg - subtle dark glass edge
+    .mel-event-card--light-bg .mel-event-card__content::after {
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.03) 100%
+      );
+      border-top-color: rgba(255, 255, 255, 0.5);
     }
   }
 
-  // Navigation buttons
-  &__button {
-    display: none;
+  // Respect reduced motion
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
 
-    @include breakpoints.mel-break(md) {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      border: 1px solid colors.$mel-color-border;
-      border-radius: radii.$mel-radius-full;
-      color: colors.$mel-color-text;
-      cursor: pointer;
-      pointer-events: auto;
-      transition:
-        transform var(--mel-motion-fast) var(--mel-ease-out),
-        box-shadow var(--mel-motion-fast) var(--mel-ease-out),
-        background-color var(--mel-motion-fast) var(--mel-ease-out),
-        border-color var(--mel-motion-fast) var(--mel-ease-out);
-      box-shadow: shadows.$mel-shadow-sm;
-      font-size: 24px;
-      line-height: 1;
-      padding: 0;
+    .mel-event-card:hover .mel-event-card__image img {
+      transform: none;
+    }
+  }
 
-      @media (hover: hover) and (pointer: fine) {
-        &:hover {
-          background: colors.$mel-color-surface;
-          box-shadow: shadows.$mel-shadow-md;
-          transform: translateY(-1px);
-        }
-      }
+  // ---------------------------------------------------------------------------
+  // Navigation Buttons - Liquid Glass Style
+  // ---------------------------------------------------------------------------
+  &__nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
 
-      &:active {
-        transform: translateY(0);
-      }
+  &__btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    overflow: hidden;
 
-      &:focus-visible {
-        @include colors.mel-focus-ring;
-      }
+    // Liquid glass
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    color: colors.$mel-color-text;
 
-      // Respect reduced motion
-      @media (prefers-reduced-motion: reduce) {
-        transition: none;
-        transform: none;
+    &:hover {
+      background: rgba(0, 0, 0, 0.07);
+      transform: scale(1.08);
+      box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+    }
 
-        &:hover {
-          transform: none;
-        }
+    &:active {
+      transform: scale(0.96);
+    }
 
-        &:active {
-          transform: none;
-        }
-      }
+    &:focus-visible {
+      outline: 2px solid colors.$mel-color-primary;
+      outline-offset: 3px;
+    }
 
-      &--prev {
-        margin-left: space-tokens.mel-space(1);
-      }
+    svg {
+      position: relative;
+      z-index: 2;
+      width: 20px;
+      height: 20px;
+      opacity: 0.5;
+    }
 
-      &--next {
-        margin-right: space-tokens.mel-space(1);
-      }
+    &:hover svg {
+      opacity: 0.8;
     }
   }
 }
