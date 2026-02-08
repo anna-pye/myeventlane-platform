@@ -27,7 +27,12 @@ web/themes/contrib/
 ############################################
 # Drupal files (generated content)
 ############################################
-web/sites/*/files/
+web/sites/*/files/styles/
+web/sites/*/files/simpletest/
+web/sites/*/files/sync/
+web/sites/*/files/php/
+web/sites/*/files/js/
+web/sites/*/files/css/
 web/sites/*/private/
 
 ############################################
@@ -134,3 +139,33 @@ FINAL_*.md
 DEBUG_*.md
 IMPLEMENTATION_*.md
 TEST_RESULTS.md
+
+# -------------------------
+# AI / Assistant artefacts
+# -------------------------
+.cursor/
+.cursorrules
+.cursor-*.md
+.ai/
+.ai-history/
+.ai-cache/
+.ai-output/
+.ai-notes/
+
+# -------------------------
+# Audit / summaries / notes
+# -------------------------
+*_SUMMARY.md
+*_REPORT.md
+*_AUDIT.md
+*_DIAGNOSTIC*.md
+*_DEBUG*.md
+*_FIX*.md
+*_NOTES*.md
+
+# -------------------------
+# Local scripts & temp
+# -------------------------
+tmp/
+memory/
+docs/internal/
