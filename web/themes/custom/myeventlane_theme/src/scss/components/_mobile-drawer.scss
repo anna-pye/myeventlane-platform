@@ -110,4 +110,34 @@
     background: var(--mel-border);
     margin: 10px 0;
   }
+
+  &__create-event {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--mel-coral, #f26d5b);
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: background 0.15s ease;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: var(--mel-coral-hover, #e05a48);
+      color: #fff !important;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral, #f26d5b);
+      outline-offset: 2px;
+    }
+  }
 }

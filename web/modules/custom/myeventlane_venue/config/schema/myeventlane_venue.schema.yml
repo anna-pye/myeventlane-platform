@@ -1,0 +1,10 @@
+myeventlane_venue.settings:
+  type: config_object
+  label: 'MyEventLane Venue settings'
+  mapping:
+    allow_public_directory:
+      type: boolean
+      label: 'Allow public venue directory'
+    require_approval_for_public:
+      type: boolean
+      label: 'Require approval for public venues'

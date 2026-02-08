@@ -1,0 +1,22 @@
+# Menu links for MyEventLane Venues module.
+
+myeventlane_venue.admin:
+  title: 'Venues'
+  description: 'Manage venues and venue settings.'
+  parent: system.admin_structure
+  route_name: entity.myeventlane_venue.collection
+  weight: 10
+
+myeventlane_venue.admin.settings:
+  title: 'Venue settings'
+  description: 'Configure venue system settings.'
+  parent: myeventlane_venue.admin
+  route_name: myeventlane_venue.settings
+  weight: 100
+
+myeventlane_venue.admin.issues:
+  title: 'Venue issues'
+  description: 'Review reported venue issues.'
+  parent: myeventlane_venue.admin
+  route_name: entity.myeventlane_venue_issue.collection
+  weight: 50

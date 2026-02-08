@@ -1,0 +1,189 @@
+// ==========================================================================
+// Glass Panel Components — MEL v2 Pastel Visual System
+// ==========================================================================
+// Reusable glassmorphism panel containers. Used across pages, checkout,
+// dashboards, and any elevated content area. Event cards are NOT affected.
+//
+// BEM: .mel-panel, .mel-panel--*
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+@use '../abstracts/mixins';
+
+// ---------------------------------------------------------------------------
+// Base Panel
+// ---------------------------------------------------------------------------
+
+.mel-panel {
+  @include mixins.glass-panel;
+  padding: spacing.mel-space(5);
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(6);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Panel Variants
+// ---------------------------------------------------------------------------
+
+// Strong — higher opacity for content-heavy areas
+.mel-panel--strong {
+  background: colors.$mel-glass-bg-strong;
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.95);
+  }
+}
+
+// Solid — fully opaque, no glass effect
+.mel-panel--solid {
+  background: colors.$mel-color-surface;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+// Accent — pastel-tinted glass
+.mel-panel--lavender {
+  background: rgba(236, 229, 243, 0.55);
+  border-color: rgba(236, 229, 243, 0.6);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+.mel-panel--pink {
+  background: rgba(252, 228, 236, 0.55);
+  border-color: rgba(252, 228, 236, 0.6);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+.mel-panel--mint {
+  background: rgba(227, 245, 236, 0.55);
+  border-color: rgba(227, 245, 236, 0.6);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Panel Header
+// ---------------------------------------------------------------------------
+
+.mel-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: spacing.mel-space(3);
+  margin-bottom: spacing.mel-space(4);
+  padding-bottom: spacing.mel-space(3);
+  border-bottom: 1px solid colors.$mel-color-border;
+}
+
+.mel-panel__title {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Panel Body
+// ---------------------------------------------------------------------------
+
+.mel-panel__body {
+  color: colors.$mel-color-text;
+  line-height: typography.$mel-leading-relaxed;
+}
+
+// ---------------------------------------------------------------------------
+// Panel Footer
+// ---------------------------------------------------------------------------
+
+.mel-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: spacing.mel-space(3);
+  margin-top: spacing.mel-space(4);
+  padding-top: spacing.mel-space(3);
+  border-top: 1px solid colors.$mel-color-border;
+}
+
+// ---------------------------------------------------------------------------
+// Panel with Hover
+// ---------------------------------------------------------------------------
+
+.mel-panel--interactive {
+  @include mixins.glass-panel-hover;
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Summary Panel (order totals, checkout sidebar)
+// ---------------------------------------------------------------------------
+
+.mel-panel--summary {
+  background: colors.$mel-glass-bg-strong;
+  border-radius: var(--mel-radius-panel, 24px);
+  padding: spacing.mel-space(5);
+  box-shadow: shadows.$mel-shadow-pastel;
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.96);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notice Panel (soft callouts, info boxes)
+// ---------------------------------------------------------------------------
+
+.mel-panel--notice {
+  background: rgba(227, 240, 250, 0.5);
+  border-color: rgba(200, 220, 245, 0.6);
+  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(4);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Responsive stacking
+// ---------------------------------------------------------------------------
+
+.mel-panel-grid {
+  display: grid;
+  gap: spacing.mel-space(4);
+  grid-template-columns: 1fr;
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include breakpoints.mel-break(lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

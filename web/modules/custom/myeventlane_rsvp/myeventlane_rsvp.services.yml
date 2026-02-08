@@ -6,7 +6,12 @@ services:
 
   myeventlane_rsvp.mailer:
     class: Drupal\myeventlane_rsvp\Service\RsvpMailer
-    arguments: ['@plugin.manager.mail', '@config.factory']
+    arguments: ['@plugin.manager.mail', '@config.factory', '@logger.channel.myeventlane_rsvp']
+
+  logger.channel.myeventlane_rsvp:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['myeventlane_rsvp']
 
   myeventlane_rsvp.ics_controller:
     class: Drupal\myeventlane_rsvp\Controller\IcsController

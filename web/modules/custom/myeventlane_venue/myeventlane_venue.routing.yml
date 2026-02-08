@@ -1,66 +1,227 @@
-entity.myeventlane_venue.canonical:
-  path: '/venue/{myeventlane_venue}'
+# ==============================================================================
+# Admin routes
+# ==============================================================================
+
+# Admin venue list.
+entity.myeventlane_venue.collection:
+  path: '/admin/structure/myeventlane/venues'
   defaults:
-    _entity_view: 'myeventlane_venue'
-    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    _entity_list: 'myeventlane_venue'
+    _title: 'Venues'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# Admin venue settings (Field UI base route).
+myeventlane_venue.admin_settings:
+  path: '/admin/structure/myeventlane/venues/settings'
+  defaults:
+    _form: '\Drupal\myeventlane_venue\Form\VenueSettingsForm'
+    _title: 'Venue settings'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# Admin add venue.
+entity.myeventlane_venue.add_form:
+  path: '/admin/structure/myeventlane/venues/add'
+  defaults:
+    _entity_form: 'myeventlane_venue.add'
+    _title: 'Add venue'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# Admin edit venue.
+entity.myeventlane_venue.edit_form:
+  path: '/admin/structure/myeventlane/venues/{myeventlane_venue}/edit'
+  defaults:
+    _entity_form: 'myeventlane_venue.edit'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::editTitle'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# Admin delete venue.
+entity.myeventlane_venue.delete_form:
+  path: '/admin/structure/myeventlane/venues/{myeventlane_venue}/delete'
+  defaults:
+    _entity_form: 'myeventlane_venue.delete'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::deleteTitle'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# Admin venue location list.
+entity.myeventlane_venue_location.collection:
+  path: '/admin/structure/myeventlane/venue-locations'
+  defaults:
+    _entity_list: 'myeventlane_venue_location'
+    _title: 'Venue Locations'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# Admin venue access grants list.
+entity.myeventlane_venue_access.collection:
+  path: '/admin/structure/myeventlane/venue-access'
+  defaults:
+    _entity_list: 'myeventlane_venue_access'
+    _title: 'Venue Access Grants'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# Admin venue issues list.
+entity.myeventlane_venue_issue.collection:
+  path: '/admin/structure/myeventlane/venue-issues'
+  defaults:
+    _entity_list: 'myeventlane_venue_issue'
+    _title: 'Venue Issues'
+  requirements:
+    _permission: 'administer myeventlane venues'
+  options:
+    _admin_route: TRUE
+
+# ==============================================================================
+# Public venue routes
+# ==============================================================================
+
+# Public venue page (canonical).
+entity.myeventlane_venue.canonical:
+  path: '/venues/{myeventlane_venue}'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueViewController::view'
+    _title_callback: '\Drupal\myeventlane_venue\Controller\VenueViewController::title'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_venue\Controller\VenueViewController::access'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# ==============================================================================
+# Vendor console routes
+# ==============================================================================
+
+# Vendor venues list (tab under /vendor/settings).
+myeventlane_venue.vendor_venues:
+  path: '/vendor/settings/venues'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VendorVenuesController::list'
+    _title: 'Venues'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
+# Vendor add venue form.
+myeventlane_venue.vendor_venue_add:
+  path: '/vendor/settings/venues/add'
+  defaults:
+    _entity_form: 'myeventlane_venue.add'
+    _title: 'Add venue'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
+# Vendor edit venue form.
+myeventlane_venue.vendor_venue_edit:
+  path: '/vendor/settings/venues/{myeventlane_venue}/edit'
+  defaults:
+    _entity_form: 'myeventlane_venue.edit'
+    _title: 'Edit venue'
+  requirements:
+    _entity_access: 'myeventlane_venue.update'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# Vendor delete venue form.
+myeventlane_venue.vendor_venue_delete:
+  path: '/vendor/settings/venues/{myeventlane_venue}/delete'
+  defaults:
+    _entity_form: 'myeventlane_venue.delete'
+    _title: 'Delete venue'
+  requirements:
+    _entity_access: 'myeventlane_venue.delete'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# Venue quick create modal (AJAX).
+myeventlane_venue.quick_create:
+  path: '/vendor/venues/quick-create'
+  defaults:
+    _form: '\Drupal\myeventlane_venue\Form\VenueQuickCreateForm'
+    _title: 'Add venue'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
+# ==============================================================================
+# Share-by-link routes
+# ==============================================================================
+
+# Accept shared venue.
+myeventlane_venue.share_accept:
+  path: '/vendor/venues/share/{token}'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueShareController::accept'
+    _title: 'Accept shared venue'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access vendor venues'
+
+# ==============================================================================
+# Issue reporting routes
+# ==============================================================================
+
+# Report issue for a venue.
+myeventlane_venue.report_issue:
+  path: '/venues/{myeventlane_venue}/report'
+  defaults:
+    _form: '\Drupal\myeventlane_venue\Form\VenueIssueForm'
+    _title: 'Report an issue'
+  requirements:
+    _entity_access: 'myeventlane_venue.view'
+    _permission: 'flag venue issues'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# ==============================================================================
+# Autocomplete routes
+# ==============================================================================
+
+# Venue autocomplete for Event Wizard.
+myeventlane_venue.autocomplete:
+  path: '/myeventlane/venues/autocomplete'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueAutocompleteController::autocomplete'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+
+# Venue locations AJAX callback for Event Wizard.
+myeventlane_venue.locations_ajax:
+  path: '/myeventlane/venues/{myeventlane_venue}/locations'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueLocationsController::getLocations'
   requirements:
     _entity_access: 'myeventlane_venue.view'
   options:
     parameters:
       myeventlane_venue:
         type: entity:myeventlane_venue
-
-entity.myeventlane_venue.collection:
-  path: '/admin/structure/myeventlane/venue'
-  defaults:
-    _entity_list: 'myeventlane_venue'
-    _title: 'Venues'
-  requirements:
-    _permission: 'administer myeventlane venue'
-
-entity.myeventlane_venue.add_form:
-  path: '/admin/structure/myeventlane/venue/add'
-  defaults:
-    _entity_form: 'myeventlane_venue.add'
-    _title: 'Add venue'
-  requirements:
-    _permission: 'administer myeventlane venue'
-
-entity.myeventlane_venue.edit_form:
-  path: '/admin/structure/myeventlane/venue/{myeventlane_venue}/edit'
-  defaults:
-    _entity_form: 'myeventlane_venue.edit'
-    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::editTitle'
-  requirements:
-    _entity_access: 'myeventlane_venue.update'
-
-entity.myeventlane_venue.delete_form:
-  path: '/admin/structure/myeventlane/venue/{myeventlane_venue}/delete'
-  defaults:
-    _entity_form: 'myeventlane_venue.delete'
-    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::deleteTitle'
-  requirements:
-    _entity_access: 'myeventlane_venue.delete'
-
-myeventlane_venue.settings:
-  path: '/admin/structure/myeventlane/venue/settings'
-  defaults:
-    _form: '\Drupal\myeventlane_venue\Form\VenueSettingsForm'
-    _title: 'Venue settings'
-  requirements:
-    _permission: 'administer myeventlane venue'
-
-myeventlane_venue.autocomplete:
-  path: '/venue/autocomplete'
-  defaults:
-    _controller: '\Drupal\myeventlane_venue\Controller\VenueAutocompleteController::autocomplete'
-  requirements:
-    _access: 'TRUE'
-
-myeventlane_venue.vendor_list:
-  path: '/vendor/venues'
-  defaults:
-    _controller: '\Drupal\myeventlane_venue\Controller\VendorVenueController::list'
-    _title: 'My Venues'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'

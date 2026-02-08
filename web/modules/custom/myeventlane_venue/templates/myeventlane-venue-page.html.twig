@@ -1,0 +1,208 @@
+{#
+/**
+ * @file
+ * Template for the public venue page.
+ *
+ * Available variables:
+ * - venue: The venue entity.
+ * - can_edit: Boolean indicating if the user can edit.
+ * - edit_url: URL object for editing the venue.
+ * - locations: Array of venue locations.
+ * - events: Array of events at this venue.
+ */
+#}
+
+<article class="mel-venue-page">
+  <div class="mel-container">
+    {# Hero section with image and title #}
+    <section class="mel-venue-hero" aria-labelledby="mel-venue-title">
+      <div class="mel-venue-hero__media">
+        {% if venue.image.entity %}
+          {% set image_url = file_url(venue.image.entity.fileuri) %}
+          <img src="{{ image_url }}" alt="{{ venue.name.value }}" class="mel-venue-hero__image" loading="eager">
+        {% else %}
+          <div class="mel-venue-hero__placeholder" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="64" height="64">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+          </div>
+        {% endif %}
+
+        {% if venue.visibility.value == 'public' %}
+          <span class="mel-venue-hero__badge mel-pill mel-pill--on-image">{{ 'Public Venue'|t }}</span>
+        {% endif %}
+      </div>
+
+      <div class="mel-venue-hero__content">
+        <h1 id="mel-venue-title" class="mel-venue-hero__title">{{ venue.name.value }}</h1>
+
+        {% if venue.primary_address.value %}
+          <p class="mel-venue-hero__address">
+            <span class="mel-venue-hero__icon" aria-hidden="true">📍</span>
+            {{ venue.primary_address.value }}
+          </p>
+        {% endif %}
+
+        {# Contact & Links row #}
+        {% set has_contact = venue.website.value or venue.phone.value or venue.email.value %}
+        {% set has_social = venue.facebook.value or venue.instagram.value or venue.twitter.value or venue.linkedin.value or venue.youtube.value or venue.tiktok.value %}
+        
+        {% if has_contact or has_social %}
+          <div class="mel-venue-hero__meta">
+            {% if venue.website.value %}
+              <a href="{{ venue.website.value }}" target="_blank" rel="noopener" class="mel-venue-meta-link">
+                <span class="mel-venue-meta-link__icon">🌐</span>
+                {{ venue.website.value|replace({'https://': '', 'http://': ''})|split('/')|first }}
+              </a>
+            {% endif %}
+            {% if venue.phone.value %}
+              <a href="tel:{{ venue.phone.value|replace({' ': '', '-': '', '(': '', ')': ''}) }}" class="mel-venue-meta-link">
+                <span class="mel-venue-meta-link__icon">📞</span>
+                {{ venue.phone.value }}
+              </a>
+            {% endif %}
+            {% if venue.email.value %}
+              <a href="mailto:{{ venue.email.value }}" class="mel-venue-meta-link">
+                <span class="mel-venue-meta-link__icon">✉️</span>
+                {{ venue.email.value }}
+              </a>
+            {% endif %}
+            
+            {# Social Media Links inline #}
+            {% if has_social %}
+              <div class="mel-venue-hero__social">
+                {% if venue.facebook.value %}
+                  <a href="{{ venue.facebook.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="Facebook">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--facebook" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'Facebook'|t }}</span>
+                  </a>
+                {% endif %}
+                {% if venue.instagram.value %}
+                  <a href="{{ venue.instagram.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="Instagram">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--instagram" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'Instagram'|t }}</span>
+                  </a>
+                {% endif %}
+                {% if venue.twitter.value %}
+                  <a href="{{ venue.twitter.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="X (Twitter)">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--x" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'X (Twitter)'|t }}</span>
+                  </a>
+                {% endif %}
+                {% if venue.linkedin.value %}
+                  <a href="{{ venue.linkedin.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="LinkedIn">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--linkedin" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'LinkedIn'|t }}</span>
+                  </a>
+                {% endif %}
+                {% if venue.youtube.value %}
+                  <a href="{{ venue.youtube.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="YouTube">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--youtube" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'YouTube'|t }}</span>
+                  </a>
+                {% endif %}
+                {% if venue.tiktok.value %}
+                  <a href="{{ venue.tiktok.value }}" target="_blank" rel="noopener" class="mel-venue-social__link mel-venue-social__link--sm" title="TikTok">
+                    <span class="mel-venue-social__icon mel-venue-social__icon--tiktok" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'TikTok'|t }}</span>
+                  </a>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if can_edit and edit_url %}
+          <div class="mel-venue-hero__actions">
+            <a href="{{ edit_url }}" class="mel-btn mel-btn--secondary mel-btn--sm">
+              {{ 'Edit Venue'|t }}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    {# Map section - full width #}
+    {% if venue.primary_address.value %}
+      <section class="mel-venue-map-section">
+        <iframe
+          src="https://www.google.com/maps?output=embed&amp;q={{ venue.primary_address.value|url_encode }}"
+          width="100%"
+          height="250"
+          style="border:0;"
+          allowfullscreen
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="{{ 'Map of venue location'|t }}">
+        </iframe>
+      </section>
+    {% endif %}
+
+    {# About section #}
+    {% if venue.description.value %}
+      <section class="mel-venue-section">
+        <h2 class="mel-venue-section__title">{{ 'About'|t }}</h2>
+        <div class="mel-venue-section__content">
+          {{ venue.description.value|raw }}
+        </div>
+      </section>
+    {% endif %}
+
+    {# Locations section #}
+    {% if locations|length > 0 %}
+      <section class="mel-venue-section">
+        <h2 class="mel-venue-section__title">{{ 'Locations'|t }}</h2>
+        <ul class="mel-venue-locations" role="list">
+          {% for location in locations %}
+            <li class="mel-venue-locations__item">
+              <div class="mel-venue-locations__name">{{ location.name }}</div>
+              {% if location.address %}
+                <div class="mel-venue-locations__address mel-muted">{{ location.address }}</div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {# Events at this Venue #}
+    {% if events|length > 0 %}
+      <section class="mel-venue-events-section" aria-labelledby="mel-venue-events-title">
+        <div class="mel-venue-events-header">
+          <h2 id="mel-venue-events-title" class="mel-venue-events-title">{{ 'Events at this Venue'|t }}</h2>
+          <span class="mel-venue-events-count">{{ events|length }} {{ events|length == 1 ? 'event'|t : 'events'|t }}</span>
+        </div>
+        <div class="mel-venue-events-grid">
+          {% for event in events %}
+            <a href="{{ event.url }}" class="mel-venue-event-card mel-venue-event-card--featured">
+              <div class="mel-venue-event-card__thumbnail">
+                {% if event.image_url %}
+                  <img src="{{ event.image_url }}" alt="{{ event.title }}" loading="lazy">
+                {% else %}
+                  <div class="mel-venue-event-card__thumb-placeholder" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                      <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
+                    </svg>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="mel-venue-event-card__info">
+                <h3 class="mel-venue-event-card__name">{{ event.title }}</h3>
+                {% if event.date %}
+                  <p class="mel-venue-event-card__date">
+                    <span class="mel-venue-event-card__date-icon" aria-hidden="true">📅</span>
+                    {{ event.date }}
+                  </p>
+                {% endif %}
+                {% if event.time %}
+                  <p class="mel-venue-event-card__time">{{ event.time }}</p>
+                {% endif %}
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+  </div>
+</article>

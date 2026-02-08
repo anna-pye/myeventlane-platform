@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the myeventlane_venue module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_venue_install(): void {
+  \Drupal::logger('myeventlane_venue')->notice('MyEventLane Venue module installed.');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_venue_uninstall(): void {
+  // Clean up configuration.
+  \Drupal::configFactory()->getEditable('myeventlane_venue.settings')->delete();
+
+  \Drupal::logger('myeventlane_venue')->notice('MyEventLane Venue module uninstalled.');
+}

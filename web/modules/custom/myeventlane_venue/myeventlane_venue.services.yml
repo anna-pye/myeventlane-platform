@@ -1,4 +1,32 @@
 services:
-  myeventlane_venue.autocomplete:
-    class: Drupal\myeventlane_venue\Service\VenueAutocompleteService
-    arguments: ['@entity_type.manager', '@current_user', '@logger.factory']
+  # Logger channel.
+  logger.channel.myeventlane_venue:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['myeventlane_venue']
+
+  # Venue access resolver - single source of truth for access decisions.
+  myeventlane_venue.access_resolver:
+    class: Drupal\myeventlane_venue\Service\VenueAccessResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+
+  # Venue manager service.
+  myeventlane_venue.manager:
+    class: Drupal\myeventlane_venue\Service\VenueManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_venue.access_resolver'
+      - '@logger.channel.myeventlane_venue'
+
+  # Share token generator.
+  myeventlane_venue.share_token_generator:
+    class: Drupal\myeventlane_venue\Service\ShareTokenGenerator
+
+  # Controller for venues list.
+  myeventlane_venue.controller.venues_list:
+    class: Drupal\myeventlane_venue\Controller\VendorVenuesController
+    arguments:
+      - '@myeventlane_venue.access_resolver'
+      - '@myeventlane_venue.manager'

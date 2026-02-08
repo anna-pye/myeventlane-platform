@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * Default template for venue entities.
+ *
+ * Available variables:
+ * - venue: The venue entity.
+ * - elements: All rendered elements from the entity.
+ *
+ * @see myeventlane_venue_preprocess_myeventlane_venue()
+ */
+#}
+<article{{ attributes.addClass('mel-venue') }}>
+  {% if venue %}
+    <h2 class="mel-venue__title">{{ venue.name.value }}</h2>
+
+    {% if venue.description.value %}
+      <div class="mel-venue__description">
+        {{ venue.description.value|raw }}
+      </div>
+    {% endif %}
+
+    <div class="mel-venue__meta">
+      <span class="mel-venue__visibility">
+        {% if venue.visibility.value == 'public' %}
+          {{ 'Public'|t }}
+        {% else %}
+          {{ 'Shared'|t }}
+        {% endif %}
+      </span>
+    </div>
+  {% else %}
+    {# Fallback: render all elements #}
+    {% for key, element in elements %}
+      {% if key|first != '#' %}
+        {{ element }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</article>

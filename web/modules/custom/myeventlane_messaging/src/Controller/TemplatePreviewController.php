@@ -69,7 +69,8 @@ final class TemplatePreviewController extends ControllerBase {
 
     $context = $this->getSampleContext($template);
     // Same pipeline as delivery: brand then preheader so preview matches send.
-    $context += $this->vendorBrandResolver->resolve($context);
+    $brandObject = $this->vendorBrandResolver->resolve($context);
+    $context += $brandObject ? $brandObject->toArray() : [];
     $preheaderTpl = (string) ($config->get('preheader') ?? '');
     if ($preheaderTpl !== '') {
       $preheaderRaw = $this->messageRenderer->renderString($preheaderTpl, $context);

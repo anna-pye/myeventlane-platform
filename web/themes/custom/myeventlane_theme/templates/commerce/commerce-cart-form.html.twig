@@ -13,9 +13,9 @@
   <div class="mel-cart-items">
     <div class="mel-cart-header">
       <h1 class="mel-cart-title">
-        Your Cart
+        {{ 'Your Cart'|t }}
         {% if form['#order_items']|length > 0 %}
-          <span class="mel-cart-count">({{ form['#order_items']|length }} items)</span>
+          <span class="mel-cart-count">({{ form['#order_items']|length }} {{ form['#order_items']|length == 1 ? 'item'|t : 'items'|t }})</span>
         {% endif %}
       </h1>
     </div>
@@ -62,9 +62,9 @@
     {% else %}
       <div class="mel-cart-empty">
         <div class="mel-cart-empty-icon">🛒</div>
-        <h2 class="mel-cart-empty-title">Your cart is empty</h2>
-        <p class="mel-cart-empty-text">Looks like you haven't added any tickets yet.</p>
-        <a href="/events" class="mel-btn mel-btn-primary">Browse Events</a>
+        <h2 class="mel-cart-empty-title">{{ 'Your cart is empty'|t }}</h2>
+        <p class="mel-cart-empty-text">{{ 'No worries — browse events and add tickets when you\'re ready.'|t }}</p>
+        <a href="/events" class="mel-btn mel-btn-primary">{{ 'Browse Events'|t }}</a>
       </div>
     {% endif %}
   </div>
@@ -72,7 +72,7 @@
   {# Cart Summary Sidebar #}
   {% if form['#order_items']|length > 0 %}
     <aside class="mel-cart-summary">
-      <h2 class="mel-cart-summary-title">Order Summary</h2>
+      <h2 class="mel-cart-summary-title">{{ 'Order Summary'|t }}</h2>
 
       <div class="mel-cart-summary-lines">
         {% if form.totals is defined %}
@@ -81,7 +81,7 @@
       </div>
 
       <div class="mel-cart-total">
-        <span class="mel-cart-total-label">Total</span>
+        <span class="mel-cart-total-label">{{ 'Total'|t }}</span>
         <span class="mel-cart-total-value">
           {% if form['#order'] is defined %}
             {{ form['#order'].getTotalPrice()|commerce_price_format }}
@@ -93,7 +93,8 @@
         {{ form.actions }}
       </div>
 
-      <p class="mel-checkout-security">Secure checkout</p>
+      <p class="mel-checkout-security">{{ 'You can review your order before paying.'|t }}</p>
+      <p class="mel-checkout-security mel-checkout-security--lock">{{ 'Your payment details are secure.'|t }}</p>
     </aside>
   {% endif %}
 </div>

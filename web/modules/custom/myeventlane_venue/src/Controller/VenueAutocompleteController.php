@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_venue\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\myeventlane_venue\Service\VenueAutocompleteService;
+use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Service\VenueAccessResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,53 +17,63 @@ use Symfony\Component\HttpFoundation\Request;
 class VenueAutocompleteController extends ControllerBase {
 
   /**
-   * The venue autocomplete service.
+   * Constructs the controller.
    */
-  protected VenueAutocompleteService $autocompleteService;
-
-  /**
-   * Constructs a VenueAutocompleteController.
-   *
-   * @param \Drupal\myeventlane_venue\Service\VenueAutocompleteService $autocomplete_service
-   *   The venue autocomplete service.
-   */
-  public function __construct(VenueAutocompleteService $autocomplete_service) {
-    $this->autocompleteService = $autocomplete_service;
-  }
+  public function __construct(
+    protected VenueAccessResolver $accessResolver,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container): self {
-    return new self(
-      $container->get('myeventlane_venue.autocomplete')
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('myeventlane_venue.access_resolver'),
     );
   }
 
   /**
-   * Autocomplete callback for venue search.
+   * Autocomplete callback for venues.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response with autocomplete suggestions.
+   *   JSON response with matching venues.
    */
   public function autocomplete(Request $request): JsonResponse {
-    $string = $request->query->get('q', '');
-    $suggestions = $this->autocompleteService->getAutocompleteSuggestions($string);
+    $query = $request->query->get('q', '');
+    $results = [];
 
-    // Format for autocomplete.js.
-    $matches = [];
-    foreach ($suggestions as $suggestion) {
-      $matches[] = [
-        'value' => $suggestion['value'],
-        'label' => $suggestion['label'],
-        'venue_id' => $suggestion['venue_id'],
-      ];
+    if (strlen($query) < 2) {
+      return new JsonResponse($results);
     }
 
-    return new JsonResponse($matches);
+    $venues = $this->accessResolver->getAccessibleVenues($this->currentUser());
+    $query_lower = strtolower($query);
+
+    foreach ($venues as $venue) {
+      if (!$venue instanceof Venue) {
+        continue;
+      }
+
+      $name = $venue->getName();
+      if (str_contains(strtolower($name), $query_lower)) {
+        $results[] = [
+          'value' => $venue->id() . ': ' . $name,
+          'label' => $name,
+          'venue_id' => $venue->id(),
+          'visibility' => $venue->getVisibility(),
+        ];
+      }
+
+      // Limit results.
+      if (count($results) >= 20) {
+        break;
+      }
+    }
+
+    return new JsonResponse($results);
   }
 
 }

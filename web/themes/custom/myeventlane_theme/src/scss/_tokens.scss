@@ -35,7 +35,7 @@
   --mel-primary: var(--mel-blue);
 
   // --- MyEventLane v2 header/footer tokens (extend only; do not remove above) ---
-  --mel-bg: var(--mel-paper);
+  --mel-bg: #f8f4fb;
   --mel-surface: #ffffff;
   --mel-surface-2: var(--mel-cream);
   --mel-text: var(--mel-ink);
@@ -46,6 +46,41 @@
   --mel-max: 1320px;
   --mel-header-bg: linear-gradient(90deg, var(--mel-peach), var(--mel-lilac));
   --mel-footer-bg: var(--mel-paper);
+
+  // --- MEL v2 Pastel Visual System (Melbourne-inspired) ---
+
+  // Pastel palette
+  --mel-pastel-lavender: #ece5f3;
+  --mel-pastel-pink: #fce4ec;
+  --mel-pastel-mint: #e3f5ec;
+  --mel-pastel-peach: #fde8d8;
+  --mel-pastel-sky: #e3f0fa;
+  --mel-pastel-bg: #f8f4fb;
+
+  // Glassmorphism surfaces
+  --mel-glass-bg: rgba(255, 255, 255, 0.68);
+  --mel-glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --mel-glass-border: rgba(255, 255, 255, 0.45);
+  --mel-glass-blur: 16px;
+  --mel-glass-shadow: 0 8px 32px rgba(100, 80, 140, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+  // Pastel gradients
+  --mel-gradient-hero: linear-gradient(135deg, rgba(236, 229, 243, 0.55) 0%, rgba(252, 228, 236, 0.4) 40%, rgba(227, 245, 236, 0.45) 100%);
+  --mel-gradient-hero-overlay: linear-gradient(160deg, rgba(236, 229, 243, 0.6) 0%, rgba(252, 228, 236, 0.4) 50%, rgba(227, 245, 236, 0.5) 100%);
+  --mel-gradient-section: linear-gradient(160deg, rgba(236, 229, 243, 0.35), rgba(252, 228, 236, 0.2), rgba(227, 245, 236, 0.3));
+  --mel-gradient-text: linear-gradient(135deg, var(--mel-blue) 0%, var(--mel-coral) 100%);
+
+  // Soft radius for pastel containers
+  --mel-radius-soft: 20px;
+  --mel-radius-panel: 24px;
+
+  // --- Section Rhythm ---
+  // Vertical spacing tokens for editorial-style page flow.
+  // Used between named layout sections, never inside event cards.
+  --mel-section-space-sm: 24px;       // Tight grouping (related sections)
+  --mel-section-space: 40px;          // Default section gap
+  --mel-section-space-lg: 56px;       // Hero-to-content / major transitions
+  --mel-section-divider-opacity: 0.2; // Gradient separator visibility
 }
 
 .mel-container {

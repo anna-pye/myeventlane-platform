@@ -1,0 +1,256 @@
+/**
+ * Venue integration in Event Wizard.
+ */
+
+/* Main venue section */
+.mel-venue-section {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #fafafa;
+}
+
+.mel-venue-section legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+  color: #1a1a1a;
+}
+
+/* Venue choice radios */
+.mel-venue-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.mel-venue-choice .form-item {
+  margin: 0;
+}
+
+.mel-venue-choice label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.mel-venue-choice label:hover {
+  border-color: #7c3aed;
+  background: #faf5ff;
+}
+
+.mel-venue-choice input:checked + label,
+.mel-venue-choice label:has(input:checked) {
+  border-color: #7c3aed;
+  background: #faf5ff;
+}
+
+/* Existing venue container */
+.mel-venue-existing-container {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Create venue container */
+.mel-venue-create-container {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.mel-venue-create-container .form-item {
+  margin-bottom: 1rem;
+}
+
+.mel-venue-create-container .form-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Location search trigger */
+.mel-venue-location-trigger {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #7c3aed;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #faf5ff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mel-venue-location-trigger:focus {
+  outline: none;
+  border-color: #6d28d9;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+/* Complete venue button */
+.mel-complete-venue-btn {
+  margin-top: 0.75rem;
+}
+
+/* Legacy venue selection (backward compat) */
+.mel-venue-selection {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #fafafa;
+}
+
+.mel-venue-selection legend {
+  font-weight: 600;
+  padding: 0 0.5rem;
+  color: #1a1a1a;
+}
+
+.mel-venue-selection .form-item {
+  margin-bottom: 1rem;
+}
+
+.mel-venue-selection .form-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Venue autocomplete field */
+.mel-venue-section input[data-venue-autocomplete],
+.mel-venue-selection input[data-venue-autocomplete] {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mel-venue-section input[data-venue-autocomplete]:focus,
+.mel-venue-selection input[data-venue-autocomplete]:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* Location select */
+.mel-venue-section select[data-venue-locations-select],
+.mel-venue-selection select[data-venue-locations-select] {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.mel-venue-section select[data-venue-locations-select]:focus,
+.mel-venue-selection select[data-venue-locations-select]:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+/* Quick create button */
+.mel-btn--small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Modal dialog styling */
+.mel-venue-quick-create-dialog .ui-dialog-titlebar {
+  background: #7c3aed;
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+}
+
+.mel-venue-quick-create-dialog .ui-dialog-title {
+  color: #fff;
+}
+
+.mel-venue-quick-create-dialog .ui-dialog-content {
+  padding: 0;
+}
+
+/* Google Places autocomplete dropdown styling */
+.pac-container {
+  z-index: 10000 !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  font-family: inherit;
+}
+
+.pac-item {
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pac-item:hover {
+  background: #faf5ff;
+}
+
+.pac-item-selected {
+  background: #f3f0ff;
+}
+
+/* Hide manual location fields when venue is selected (backup for #states) */
+.mel-manual-location-fields.js-hide {
+  display: none !important;
+}
+
+/* Venue section info text */
+.mel-venue-section-info {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+/* Selected venue display */
+.mel-venue-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.mel-venue-selected-info__icon {
+  color: #2e7d32;
+  font-size: 1.25rem;
+}
+
+.mel-venue-selected-info__text {
+  flex: 1;
+  font-weight: 500;
+  color: #1b5e20;
+}
+
+.mel-venue-selected-info__clear {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+}
+
+.mel-venue-selected-info__clear:hover {
+  color: #d32f2f;
+}

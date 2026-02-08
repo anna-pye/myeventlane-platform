@@ -37,6 +37,15 @@
 
     <div class="site-header__right">
       {% if not is_checkout %}
+        <div class="site-header__create-event">
+          <a href="{{ create_event_url }}" class="site-header__create-event-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            {{ 'Create a New Event'|t }}
+          </a>
+        </div>
         <div class="site-header__organiser">
           {{ organiser_context }}
         </div>

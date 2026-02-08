@@ -145,3 +145,103 @@
   padding: 0;
   margin: 0;
 }
+
+// ---------------------------------------------------------------------------
+// Pastel Visual System — Glass Panel
+// ---------------------------------------------------------------------------
+// Glassmorphism container with semi-transparent white, subtle blur, and
+// warm pastel shadow. Falls back to solid white in browsers without
+// backdrop-filter support.
+//
+// Usage: @include glass-panel;
+//        @include glass-panel($bg: rgba(255,255,255,0.82));
+
+@mixin glass-panel($bg: colors.$mel-glass-bg, $blur: 16px, $radius: radii.$mel-radius-lg) {
+  background: $bg;
+  border: 1px solid colors.$mel-glass-border-color;
+  border-radius: $radius;
+  box-shadow: shadows.$mel-shadow-glass;
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur($blur);
+    -webkit-backdrop-filter: blur($blur);
+  }
+
+  // Solid fallback when backdrop-filter unsupported
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+@mixin glass-panel-hover {
+  transition:
+    box-shadow var(--mel-motion-base, 200ms) var(--mel-ease-out, ease),
+    transform var(--mel-motion-base, 200ms) var(--mel-ease-out, ease);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: shadows.$mel-shadow-glass-hover;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pastel Visual System — Gradient Text
+// ---------------------------------------------------------------------------
+// Applies a gradient fill to text. Falls back to primary color if
+// background-clip is unsupported.
+//
+// Usage: @include gradient-text;
+
+@mixin gradient-text($gradient: linear-gradient(135deg, colors.$mel-color-primary 0%, colors.$mel-color-secondary 100%)) {
+  background: $gradient;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  // Print / high-contrast fallback
+  @media print, (forced-colors: active) {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: colors.$mel-color-primary;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pastel Visual System — Pastel Focus Ring
+// ---------------------------------------------------------------------------
+// Softer focus ring using pastel lavender glow instead of hard outline.
+// Still WCAG AA compliant (3px ring + offset).
+
+@mixin pastel-focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 colors.$mel-focus-ring-offset colors.$mel-color-pastel-bg,
+    0 0 0 (colors.$mel-focus-ring-offset + colors.$mel-focus-ring-width) colors.$mel-color-primary,
+    0 0 12px rgba(colors.$mel-color-primary, 0.2);
+}
+
+@mixin pastel-focus-visible {
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    @include pastel-focus-ring;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pastel Visual System — Radial Background
+// ---------------------------------------------------------------------------
+// Full-page soft radial gradient background. Applied to body via _global.scss.
+
+@mixin pastel-radial-bg {
+  background-color: colors.$mel-color-pastel-bg;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 10% 20%, rgba(200, 170, 230, 0.16), transparent 60%),
+    radial-gradient(ellipse 1000px 550px at 85% 15%, rgba(252, 200, 210, 0.13), transparent 58%),
+    radial-gradient(ellipse 900px 500px at 50% 85%, rgba(180, 230, 210, 0.12), transparent 55%),
+    radial-gradient(ellipse 600px 400px at 70% 40%, rgba(253, 220, 190, 0.10), transparent 50%);
+}

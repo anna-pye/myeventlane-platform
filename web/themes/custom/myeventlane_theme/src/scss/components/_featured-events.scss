@@ -2,10 +2,11 @@
 // Featured Events Component
 // ==========================================================================
 // Section header + carousel for featured events.
+// Editorial / curated tone — not promotional.
 
 
 .featured-events {
-  padding: 4rem 1.5rem;
+  padding: 3rem 1.5rem 1rem; // Reduced bottom padding (was 4rem all sides)
 
   &__header {
     max-width: 1200px;
@@ -15,14 +16,27 @@
     align-items: flex-end;
   }
 
+  // Curator line: reframes section as editorial judgment
+  &__curator {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mel-muted);
+    margin-bottom: 0.375rem;
+  }
+
   &__title {
     font-size: 1.5rem;
     font-weight: 600;
+    margin: 0;
   }
 
   &__subtitle {
     font-size: 0.875rem;
     color: var(--mel-muted);
+    margin-top: 0.25rem;
   }
 
   &__link {

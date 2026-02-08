@@ -2,22 +2,535 @@
 
 /**
  * @file
- * Hook implementations for myeventlane_venue module.
+ * MyEventLane Venue module hooks.
  */
 
 declare(strict_types=1);
 
+use Drupal\Core\Url;
+
 /**
  * Implements hook_theme().
  */
-function myeventlane_venue_theme(): array {
+function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
   return [
-    'myeventlane_venue_list' => [
+    'myeventlane_venue_vendor_list' => [
       'variables' => [
         'venues' => [],
-        'vendor' => NULL,
+        'add_url' => NULL,
       ],
-      'template' => 'myeventlane-venue-list',
+      'template' => 'myeventlane-venue-vendor-list',
+    ],
+    'myeventlane_venue' => [
+      'render element' => 'elements',
+    ],
+    // Separate theme hook for VenueIssue to prevent template confusion.
+    'myeventlane_venue_issue' => [
+      'render element' => 'elements',
+      'template' => 'myeventlane-venue-issue',
+    ],
+    // Public venue page template.
+    'myeventlane_venue_page' => [
+      'variables' => [
+        'venue' => NULL,
+        'can_edit' => FALSE,
+        'edit_url' => NULL,
+        'locations' => [],
+        'events' => [],
+      ],
+      'template' => 'myeventlane-venue-page',
     ],
   ];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for vendor profile settings.
+ *
+ * Replaces the placeholder venues tab with actual venue management link.
+ */
+function myeventlane_venue_form_vendor_profile_settings_alter(array &$form, $form_state, $form_id): void {
+  if (!isset($form['venues'])) {
+    return;
+  }
+
+  // Check if the route exists before trying to use it.
+  $route_provider = \Drupal::service('router.route_provider');
+  try {
+    $route_provider->getRouteByName('myeventlane_venue.vendor_venues');
+  }
+  catch (\Exception $e) {
+    // Route doesn't exist yet, skip modification.
+    return;
+  }
+
+  // Replace placeholder with link to venues management.
+  $form['venues']['#description'] = t('Manage your reusable venues to quickly add them to events.');
+
+  $form['venues']['venue_list'] = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['mel-venues-tab-content']],
+  ];
+
+  $form['venues']['venue_list']['intro'] = [
+    '#type' => 'markup',
+    '#markup' => '<p>' . t('Your venues are now managed in a dedicated section. Create reusable venues with multiple locations, share them with other vendors, or make them public.') . '</p>',
+  ];
+
+  $form['venues']['venue_list']['link'] = [
+    '#type' => 'link',
+    '#title' => t('Manage your venues'),
+    '#url' => Url::fromRoute('myeventlane_venue.vendor_venues'),
+    '#attributes' => [
+      'class' => ['mel-btn', 'mel-btn--primary'],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event wizard when/where form.
+ *
+ * Adds venue selection fields to the event wizard with conditional display.
+ */
+function myeventlane_venue_form_event_wizard_when_where_form_alter(array &$form, $form_state, $form_id): void {
+  // Check if venue module is ready.
+  if (!\Drupal::hasService('myeventlane_venue.access_resolver')) {
+    return;
+  }
+
+  // Add venue selection section.
+  $form['venue_section'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Venue'),
+    '#weight' => -50,
+    '#attributes' => [
+      'class' => ['mel-venue-section'],
+    ],
+  ];
+
+  // Venue choice: use existing or create new.
+  $form['venue_section']['venue_choice'] = [
+    '#type' => 'radios',
+    '#title' => t('How would you like to add the venue?'),
+    '#options' => [
+      'existing' => t('Choose an existing venue'),
+      'create' => t('Create a new venue'),
+      'skip' => t('Enter location manually (no venue)'),
+    ],
+    '#default_value' => 'skip',
+    '#attributes' => [
+      'class' => ['mel-venue-choice'],
+    ],
+  ];
+
+  // ---- EXISTING VENUE CONTAINER ----
+  $form['venue_section']['existing_venue'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-venue-existing-container'],
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="venue_choice"]' => ['value' => 'existing'],
+      ],
+    ],
+  ];
+
+  // Venue autocomplete.
+  $form['venue_section']['existing_venue']['venue'] = [
+    '#type' => 'textfield',
+    '#title' => t('Search your venues'),
+    '#autocomplete_route_name' => 'myeventlane_venue.autocomplete',
+    '#attributes' => [
+      'class' => ['mel-input'],
+      'data-venue-autocomplete' => 'true',
+      'placeholder' => t('Type to search your venues...'),
+    ],
+  ];
+
+  // Location select (populated via AJAX when venue is selected).
+  // Note: #validated = TRUE allows dynamically added options from JavaScript.
+  $form['venue_section']['existing_venue']['venue_location'] = [
+    '#type' => 'select',
+    '#title' => t('Location'),
+    '#options' => ['' => t('- Select a venue first -')],
+    '#validated' => TRUE,
+    '#attributes' => [
+      'class' => ['mel-select'],
+      'data-venue-locations-select' => 'true',
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="venue"]' => ['filled' => TRUE],
+      ],
+    ],
+  ];
+
+  // Hidden field to store the selected venue location ID for submit.
+  $form['venue_section']['existing_venue']['selected_venue_location_id'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-selected-venue-location-id'],
+    ],
+  ];
+
+  // ---- CREATE NEW VENUE CONTAINER ----
+  $form['venue_section']['create_venue'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-venue-create-container'],
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="venue_choice"]' => ['value' => 'create'],
+      ],
+    ],
+  ];
+
+  // Location search field to start venue creation.
+  $form['venue_section']['create_venue']['location_search'] = [
+    '#type' => 'textfield',
+    '#title' => t('Search for location'),
+    '#attributes' => [
+      'class' => [
+        'mel-input',
+        'myeventlane-location-address-search',
+        'mel-venue-location-trigger',
+      ],
+      'placeholder' => t('Start typing a venue name or address...'),
+      'data-address-search' => 'true',
+      'autocomplete' => 'off',
+    ],
+    '#description' => t('Search for a place, then complete the venue details.'),
+  ];
+
+  // Hidden fields to capture location data.
+  $form['venue_section']['create_venue']['new_venue_name'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-new-venue-name'],
+    ],
+  ];
+
+  $form['venue_section']['create_venue']['new_venue_address'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-new-venue-address'],
+    ],
+  ];
+
+  $form['venue_section']['create_venue']['new_venue_lat'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-new-venue-lat'],
+    ],
+  ];
+
+  $form['venue_section']['create_venue']['new_venue_lng'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-new-venue-lng'],
+    ],
+  ];
+
+  // Hidden field to store created venue ID after modal submission.
+  $form['venue_section']['create_venue']['created_venue_id'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-created-venue-id'],
+    ],
+  ];
+
+  $form['venue_section']['create_venue']['created_venue_location_id'] = [
+    '#type' => 'hidden',
+    '#attributes' => [
+      'class' => ['mel-created-venue-location-id'],
+    ],
+  ];
+
+  // Button to open venue creation modal with pre-filled data.
+  $form['venue_section']['create_venue']['complete_venue'] = [
+    '#type' => 'link',
+    '#title' => t('Complete venue details'),
+    '#url' => Url::fromRoute('myeventlane_venue.quick_create'),
+    '#attributes' => [
+      'class' => [
+        'use-ajax',
+        'mel-btn',
+        'mel-btn--primary',
+        'mel-complete-venue-btn',
+      ],
+      'data-dialog-type' => 'modal',
+      'data-dialog-options' => json_encode([
+        'width' => '600',
+        'dialogClass' => 'mel-venue-quick-create-dialog',
+      ]),
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="location_search"]' => ['filled' => TRUE],
+      ],
+    ],
+  ];
+
+  // ---- MANUAL ENTRY CONTAINER (skip mode) ----
+  $form['venue_section']['manual_entry'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-venue-manual-container'],
+    ],
+    '#states' => [
+      'visible' => [
+        ':input[name="venue_choice"]' => ['value' => 'skip'],
+      ],
+    ],
+  ];
+
+  // Location search field for manual entry mode.
+  $form['venue_section']['manual_entry']['manual_location_search'] = [
+    '#type' => 'textfield',
+    '#title' => t('Search for address or venue'),
+    '#attributes' => [
+      'class' => [
+        'mel-input',
+        'myeventlane-location-address-search',
+        'mel-manual-location-search',
+      ],
+      'placeholder' => t('Start typing to search for an address...'),
+      'data-address-search' => 'true',
+      'autocomplete' => 'off',
+    ],
+    '#description' => t('Start typing to search for an address. Select from the suggestions to populate the address fields.'),
+  ];
+
+  // ---- HIDE field_location WHEN VENUE IS SELECTED ----
+  // The original field_location should only be visible in "skip" (manual) mode.
+  if (isset($form['field_location'])) {
+    $form['field_location']['#states'] = [
+      'visible' => [
+        ':input[name="venue_choice"]' => ['value' => 'skip'],
+      ],
+    ];
+    // Add a wrapper class for JavaScript targeting.
+    $form['field_location']['#attributes']['class'][] = 'mel-manual-location-fields';
+  }
+
+  // Attach libraries.
+  $form['#attached']['library'][] = 'myeventlane_venue/venue_wizard';
+  $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
+
+  // Attach location module's autocomplete if available.
+  if (\Drupal::hasService('myeventlane_location.provider_manager')) {
+    $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
+    /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $providerManager */
+    $providerManager = \Drupal::service('myeventlane_location.provider_manager');
+    $form['#attached']['drupalSettings']['myeventlaneLocation'] = $providerManager->getFrontendSettings();
+  }
+
+  // Add our submit handler to populate field_location from venue selection.
+  $form['#submit'][] = '_myeventlane_venue_wizard_submit';
+}
+
+/**
+ * Submit handler for venue selection in the Event Wizard.
+ *
+ * Populates field_location from the selected venue location.
+ * Also handles clearing venue data when switching between options.
+ */
+function _myeventlane_venue_wizard_submit(array &$form, $form_state): void {
+  $venue_choice = $form_state->getValue('venue_choice');
+  $event = $form['#event'] ?? NULL;
+
+  if (!$event) {
+    return;
+  }
+
+  // Log the venue choice for debugging.
+  \Drupal::logger('myeventlane_venue')->debug('Venue wizard submit: choice=@choice', ['@choice' => $venue_choice]);
+
+  // If manual entry ("skip"), clear venue reference but keep user-entered location.
+  if ($venue_choice === 'skip') {
+    // Clear any previously linked venue.
+    if ($event->hasField('field_venue')) {
+      $event->set('field_venue', NULL);
+    }
+    // field_location will be handled by the normal form process.
+    return;
+  }
+
+  $venue_location_id = NULL;
+
+  if ($venue_choice === 'existing') {
+    // Get selected venue location from the form.
+    $venue_location_id = $form_state->getValue('selected_venue_location_id');
+    if (empty($venue_location_id)) {
+      // Try to get from venue_location select.
+      $venue_location_id = $form_state->getValue('venue_location');
+    }
+  }
+  elseif ($venue_choice === 'create') {
+    // Get created venue location from hidden field.
+    $venue_location_id = $form_state->getValue('created_venue_location_id');
+  }
+
+  if (empty($venue_location_id)) {
+    \Drupal::logger('myeventlane_venue')->debug('No venue location ID found for choice @choice', ['@choice' => $venue_choice]);
+    return;
+  }
+
+  // Load the venue location and copy its address to field_location.
+  try {
+    $venue_location = \Drupal::entityTypeManager()
+      ->getStorage('myeventlane_venue_location')
+      ->load($venue_location_id);
+
+    if (!$venue_location) {
+      \Drupal::logger('myeventlane_venue')->warning('Venue location @id not found during wizard submit.', ['@id' => $venue_location_id]);
+      return;
+    }
+
+    // Get the address from venue location.
+    // The VenueLocation entity stores address in 'address_text' as a string,
+    // not as a composite address field. We need to parse it or use it directly.
+    $address_text = '';
+    if ($venue_location->hasField('address_text') && !$venue_location->get('address_text')->isEmpty()) {
+      $address_text = $venue_location->get('address_text')->value ?? '';
+    }
+
+    // For the event's field_location, we need to build an address array.
+    // If we only have address_text, put it in address_line1.
+    $address_data = [
+      'country_code' => 'AU',
+      'address_line1' => $address_text,
+      'address_line2' => '',
+      'locality' => '',
+      'administrative_area' => '',
+      'postal_code' => '',
+    ];
+
+    // Try to parse address_text into components (simple parsing).
+    if (!empty($address_text)) {
+      $parts = array_map('trim', explode(',', $address_text));
+      if (count($parts) >= 1) {
+        $address_data['address_line1'] = $parts[0];
+      }
+      if (count($parts) >= 2) {
+        $address_data['locality'] = $parts[1];
+      }
+      if (count($parts) >= 3) {
+        // Try to extract state and postcode from last parts.
+        $last_part = trim(end($parts));
+        // Check if it's a country (Australia, AU, etc.) and skip.
+        if (preg_match('/^(Australia|AU)$/i', $last_part)) {
+          array_pop($parts);
+          $last_part = count($parts) >= 3 ? trim($parts[count($parts) - 1]) : '';
+        }
+        // Try to match state + postcode pattern like "NSW 2000" or just state.
+        if (preg_match('/^([A-Z]{2,3})\s*(\d{4})?$/i', $last_part, $matches)) {
+          $address_data['administrative_area'] = strtoupper($matches[1]);
+          if (!empty($matches[2])) {
+            $address_data['postal_code'] = $matches[2];
+          }
+        }
+      }
+    }
+
+    if (empty($address_data['address_line1'])) {
+      \Drupal::logger('myeventlane_venue')->warning('Venue location @id has no address data.', ['@id' => $venue_location_id]);
+      return;
+    }
+
+    // Set the event's field_location.
+    if ($event->hasField('field_location')) {
+      $location_value = [
+        'address' => $address_data,
+      ];
+
+      // Copy coordinates if available (VenueLocation uses 'lat' and 'lng').
+      if ($venue_location->hasField('lat') && !$venue_location->get('lat')->isEmpty()) {
+        $location_value['latitude'] = (float) $venue_location->get('lat')->value;
+      }
+      if ($venue_location->hasField('lng') && !$venue_location->get('lng')->isEmpty()) {
+        $location_value['longitude'] = (float) $venue_location->get('lng')->value;
+      }
+
+      $event->set('field_location', $location_value);
+
+      \Drupal::logger('myeventlane_venue')->notice('Populated field_location from venue location @id: @address', [
+        '@id' => $venue_location_id,
+        '@address' => $address_data['address_line1'],
+      ]);
+    }
+
+    // Also link the venue to the event if field_venue exists.
+    // VenueLocation uses 'venue_id' field for the parent venue reference.
+    if ($event->hasField('field_venue') && $venue_location->hasField('venue_id')) {
+      $venue = $venue_location->get('venue_id')->entity;
+      if ($venue) {
+        $event->set('field_venue', $venue->id());
+        \Drupal::logger('myeventlane_venue')->debug('Linked venue @vid to event.', ['@vid' => $venue->id()]);
+      }
+    }
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_venue')->error('Error populating location from venue: @message', ['@message' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function myeventlane_venue_entity_type_alter(array &$entity_types): void {
+  // Nothing to alter at this time.
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_venue templates.
+ */
+function myeventlane_venue_preprocess_myeventlane_venue(array &$variables): void {
+  $venue = $variables['elements']['#myeventlane_venue'] ?? NULL;
+  if ($venue) {
+    $variables['venue'] = $venue;
+  }
+}
+
+/**
+ * Implements hook_mail().
+ *
+ * Handles venue-related email notifications.
+ */
+function myeventlane_venue_mail($key, &$message, $params): void {
+  switch ($key) {
+    case 'venue_issue_reported':
+      $message['subject'] = t('Venue Issue Reported: @venue', [
+        '@venue' => $params['venue_name'] ?? 'Unknown venue',
+      ]);
+
+      $body = [];
+      $body[] = t('A new venue issue has been reported and requires your attention.');
+      $body[] = '';
+      $body[] = t('Venue: @venue (ID: @id)', [
+        '@venue' => $params['venue_name'] ?? 'Unknown',
+        '@id' => $params['venue_id'] ?? 'N/A',
+      ]);
+      $body[] = t('Issue Type: @type', [
+        '@type' => $params['issue_type'] ?? 'Unknown',
+      ]);
+      $body[] = t('Reported by: @name (@email)', [
+        '@name' => $params['reporter_name'] ?? 'Unknown',
+        '@email' => $params['reporter_email'] ?? 'N/A',
+      ]);
+      $body[] = '';
+      $body[] = t('Issue Description:');
+      $body[] = $params['message'] ?? '';
+      $body[] = '';
+
+      if (!empty($params['review_url'])) {
+        $body[] = t('Review all venue issues: @url', [
+          '@url' => $params['review_url'],
+        ]);
+      }
+
+      $message['body'] = $body;
+      break;
+  }
 }

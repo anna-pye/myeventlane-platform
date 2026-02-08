@@ -1,24 +1,11 @@
-administer myeventlane venue:
+administer myeventlane venues:
   title: 'Administer venues'
-  description: 'Create, edit, and delete venues. This permission allows full access to venue management.'
-  restrict access: true
+  description: 'Full administrative access to all venues and venue settings.'
 
-view myeventlane venue:
-  title: 'View venues'
-  description: 'View venue entities.'
-  restrict access: false
+access vendor venues:
+  title: 'Access vendor venues'
+  description: 'View and manage venues in the vendor console.'
 
-create myeventlane venue:
-  title: 'Create venues'
-  description: 'Create new venue entities.'
-  restrict access: false
-
-edit myeventlane venue:
-  title: 'Edit venues'
-  description: 'Edit existing venue entities.'
-  restrict access: false
-
-delete myeventlane venue:
-  title: 'Delete venues'
-  description: 'Delete venue entities.'
-  restrict access: false
+flag venue issues:
+  title: 'Flag venue issues'
+  description: 'Report issues or request changes to venues.'

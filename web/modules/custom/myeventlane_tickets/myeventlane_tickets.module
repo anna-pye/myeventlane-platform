@@ -5,7 +5,11 @@
  * Module file for MyEventLane Tickets.
  */
 
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_tickets\Entity\Ticket;
 
 /**
  * Implements hook_theme().
@@ -22,6 +26,7 @@ function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array
         'holder' => NULL,
         'code' => NULL,
         'legacy' => FALSE,
+        'is_rsvp' => FALSE,
       ],
       'template' => 'ticket-pdf',
     ],
@@ -50,4 +55,86 @@ function myeventlane_tickets_form_node_event_edit_form_alter(array &$form, FormS
 function myeventlane_tickets_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Attach event wizard library for Paid/RSVP toggle functionality in wizard.
   $form['#attached']['library'][] = 'myeventlane_tickets/event_wizard';
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Sends "Ticket Ready" email when a ticket is assigned with holder details.
+ */
+function myeventlane_tickets_entity_update(EntityInterface $entity): void {
+  if (!$entity instanceof Ticket) {
+    return;
+  }
+
+  // Get the subscriber service and delegate.
+  if (!\Drupal::hasService('myeventlane_tickets.ticket_assigned_subscriber')) {
+    return;
+  }
+
+  $original = $entity->original ?? NULL;
+  $subscriber = \Drupal::service('myeventlane_tickets.ticket_assigned_subscriber');
+  $subscriber->onTicketAssigned($entity, $original);
+}
+
+/**
+ * Implements hook_mail().
+ *
+ * Handles ticket-related emails.
+ */
+function myeventlane_tickets_mail($key, &$message, $params): void {
+  switch ($key) {
+    case 'ticket_ready':
+      $message['subject'] = t('Your ticket for @event is ready!', [
+        '@event' => $params['event_title'] ?? 'the event',
+      ]);
+
+      $body = [];
+      $body[] = t('Hi @name,', ['@name' => $params['holder_name'] ?? 'there']);
+      $body[] = '';
+      $body[] = t('Great news! Your ticket for @event is ready.', [
+        '@event' => $params['event_title'] ?? 'the event',
+      ]);
+      $body[] = '';
+
+      if (!empty($params['ticket_code'])) {
+        $body[] = t('Ticket Code: @code', ['@code' => $params['ticket_code']]);
+      }
+
+      if (!empty($params['event_date'])) {
+        $body[] = t('Date: @date', ['@date' => $params['event_date']]);
+      }
+
+      if (!empty($params['event_location'])) {
+        $body[] = t('Location: @location', ['@location' => $params['event_location']]);
+      }
+
+      $body[] = '';
+      $body[] = t('Your ticket PDF is attached to this email. Please bring it with you to the event (printed or on your phone).');
+      $body[] = '';
+      $body[] = t('See you there!');
+
+      $message['body'] = $body;
+
+      // Handle attachments.
+      if (!empty($params['attachments']) && is_array($params['attachments'])) {
+        if (!isset($message['params'])) {
+          $message['params'] = [];
+        }
+        if (!isset($message['params']['attachments'])) {
+          $message['params']['attachments'] = [];
+        }
+
+        foreach ($params['attachments'] as $attachment) {
+          if (isset($attachment['filename']) && isset($attachment['content'])) {
+            $message['params']['attachments'][] = [
+              'filecontent' => $attachment['content'],
+              'filename' => $attachment['filename'],
+              'filemime' => $attachment['mime'] ?? 'application/octet-stream',
+            ];
+          }
+        }
+      }
+      break;
+  }
 }

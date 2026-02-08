@@ -1,9 +1,44 @@
-venue_selection:
+vendor_venues:
+  version: VERSION
+  css:
+    theme:
+      css/vendor-venues.css: {}
   js:
-    js/venue-selection.js: {}
+    js/vendor-venues.js: {}
   dependencies:
     - core/drupal
     - core/jquery
-    - core/jquery.once
-    - core/drupal.autocomplete
-    - myeventlane_location/address_autocomplete
+
+quick_create:
+  version: VERSION
+  css:
+    theme:
+      css/quick-create.css: {}
+  js:
+    js/quick-create.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - core/drupal.ajax
+    - core/drupal.dialog.ajax
+
+venue_wizard:
+  version: VERSION
+  css:
+    theme:
+      css/venue-wizard.css: {}
+  js:
+    js/venue-wizard.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - core/drupal.ajax
+    - core/drupal.dialog.ajax
+
+venue_page:
+  version: VERSION
+  css:
+    theme:
+      css/venue-page.css: {}

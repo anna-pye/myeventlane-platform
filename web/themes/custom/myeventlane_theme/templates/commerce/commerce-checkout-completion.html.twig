@@ -14,15 +14,14 @@
 <div class="mel-checkout-confirmation">
   <div class="mel-confirmation-icon">🎉</div>
 
-  <h1 class="mel-confirmation-title">Thank you for your order!</h1>
+  <h1 class="mel-confirmation-title">{{ 'You\'re all set!'|t }}</h1>
 
   <p class="mel-confirmation-order-number">
-    Order number: <strong>{{ order_entity.getOrderNumber }}</strong>
+    {{ 'Order'|t }} <strong>#{{ order_entity.getOrderNumber }}</strong>
   </p>
 
   <p class="mel-confirmation-message">
-    We've sent a confirmation email to <strong>{{ order_entity.getEmail }}</strong>
-    with your tickets, event details, and calendar file.
+    {{ 'A confirmation email is on its way to <strong>@email</strong> with your tickets, event details, and a calendar file.'|t({'@email': order_entity.getEmail})|raw }}
   </p>
 
   {# Event Summary #}
@@ -179,10 +178,10 @@
           <div class="mel-what-next-item">
             <h3 class="mel-what-next-item-title">{{ '📧 Confirmation Email'|t }}</h3>
             <p class="mel-what-next-item-text">
-              {{ 'You\'ll receive a confirmation email shortly at <strong>@email</strong> with your tickets, event details, and calendar file.'|t({'@email': order_entity.getEmail})|raw }}
+              {{ 'A confirmation email is on its way to <strong>@email</strong> with your tickets, event details, and a calendar file.'|t({'@email': order_entity.getEmail})|raw }}
             </p>
             <p class="mel-what-next-item-note">
-              {{ 'If you don\'t see it, please check your spam or junk folder.'|t }}
+              {{ 'It usually arrives within a few minutes. If you don\'t see it, check your spam or junk folder.'|t }}
             </p>
           </div>
 
@@ -191,11 +190,11 @@
             <h3 class="mel-what-next-item-title">{{ '🎫 Your Tickets'|t }}</h3>
             {% if order_entity.getCustomerId() %}
               <p class="mel-what-next-item-text">
-                {{ 'Your tickets are available in your account. You can view and download them anytime.'|t }}
+                {{ 'Your tickets are safe in your account — view or download them whenever you need.'|t }}
               </p>
             {% else %}
               <p class="mel-what-next-item-text">
-                {{ 'Your tickets were sent to your email address. You can also access them using your order number: <strong>@order_number</strong>'|t({'@order_number': order_entity.getOrderNumber})|raw }}
+                {{ 'Your tickets have been sent to your email. You can also look them up using order number <strong>@order_number</strong>.'|t({'@order_number': order_entity.getOrderNumber})|raw }}
               </p>
             {% endif %}
           </div>
@@ -212,7 +211,7 @@
 
           {# Need Help? #}
           <div class="mel-what-next-item">
-            <h3 class="mel-what-next-item-title">{{ '❓ Need Help?'|t }}</h3>
+            <h3 class="mel-what-next-item-title">{{ '💬 Questions?'|t }}</h3>
             {% set vendor_email = null %}
             {% if events|length > 0 %}
               {% for event in events %}
@@ -228,11 +227,11 @@
             
             {% if vendor_email %}
               <p class="mel-what-next-item-text">
-                {{ 'If you have questions about this event, please contact the event organiser at <a href="mailto:@email">@email</a>.'|t({'@email': vendor_email})|raw }}
+                {{ 'For questions about this event, reach out to the organiser at <a href="mailto:@email">@email</a> — they\'re happy to help.'|t({'@email': vendor_email})|raw }}
               </p>
             {% else %}
               <p class="mel-what-next-item-text">
-                {{ 'If you have questions about your order or need assistance, please contact MyEventLane support.'|t }}
+                {{ 'For anything else, MyEventLane support is here for you.'|t }}
               </p>
             {% endif %}
           </div>

@@ -5,15 +5,18 @@ services:
 
   myeventlane_tickets.ticket_pdf_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator
-    arguments: ['@renderer', '@file_system', '@logger.channel.myeventlane_tickets']
+    arguments: ['@renderer']
+
+  # Alias for shorter service name.
+  myeventlane_tickets.pdf_generator:
+    alias: myeventlane_tickets.ticket_pdf_generator
 
   myeventlane_tickets.ticket_issuer:
     class: Drupal\myeventlane_tickets\Ticket\TicketIssuer
     arguments: [
       '@entity_type.manager',
       '@myeventlane_tickets.ticket_code_generator',
-      '@myeventlane_tickets.ticket_pdf_generator',
-      '@logger.channel.myeventlane_tickets'
+      '@logger.factory'
     ]
 
   myeventlane_tickets.ticket_assignment_token:
@@ -33,3 +36,11 @@ services:
     class: Drupal\Core\Logger\LoggerChannel
     factory: ['@logger.factory', 'get']
     arguments: ['myeventlane_tickets']
+
+  myeventlane_tickets.ticket_assigned_subscriber:
+    class: Drupal\myeventlane_tickets\EventSubscriber\TicketAssignedSubscriber
+    arguments:
+      - '@entity_type.manager'
+      - '@plugin.manager.mail'
+      - '@myeventlane_tickets.ticket_pdf_generator'
+      - '@logger.channel.myeventlane_tickets'

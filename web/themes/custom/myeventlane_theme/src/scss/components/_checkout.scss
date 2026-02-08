@@ -759,8 +759,14 @@
   font-size: typography.mel-font-size(xs);
   color: colors.$mel-color-text-muted;
   margin-top: spacing.mel-space(3);
+  line-height: 1.5;
 
   &::before {
+    content: '✓';
+  }
+
+  // Lock variant for security-specific reassurance
+  &--lock::before {
     content: '🔒';
   }
 }

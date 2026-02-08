@@ -190,6 +190,18 @@
   }
 }
 
+// Create Event CTA - prominent header button
+.mel-btn-create-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
 // Ghost - Subtle, outlined
 .mel-btn-ghost {
   background-color: transparent;
@@ -394,4 +406,94 @@ button.mel-btn,
 .mel-btn-icon {
   min-height: 44px;
   min-width: 44px;
+}
+
+// ---------------------------------------------------------------------------
+// Pastel Visual System — Button Enhancements
+// ---------------------------------------------------------------------------
+// Softer shadows, pastel hover glows, and glass button variant.
+// These extend the existing button system without altering its structure.
+
+// Glass button — semi-transparent, blurred background
+.mel-btn--glass {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: colors.$mel-color-text;
+  border-radius: radii.$mel-radius-full;
+  font-weight: typography.$mel-font-bold;
+  box-shadow: 0 4px 16px rgba(100, 80, 140, 0.08);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: rgba(255, 255, 255, 0.82);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(100, 80, 140, 0.12);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+// Pastel gradient button — soft lavender-to-pink CTA
+.mel-btn--pastel {
+  background: linear-gradient(135deg, #ece5f3 0%, #fce4ec 100%);
+  color: colors.$mel-color-text;
+  border: 1px solid rgba(200, 170, 230, 0.3);
+  border-radius: radii.$mel-radius-full;
+  font-weight: typography.$mel-font-bold;
+  box-shadow: 0 4px 16px rgba(140, 110, 180, 0.12);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(140, 110, 180, 0.18);
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+}
+
+// Softer hover shadows for primary buttons (pastel system overlay)
+.mel-btn-primary,
+.mel-btn--primary,
+.button--primary {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: 0 6px 20px rgba(108, 126, 242, 0.28);
+    }
+  }
+}
+
+// Softer hover shadows for CTA buttons
+.mel-btn--cta,
+.button--rsvp,
+.button--ticket {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: 0 6px 20px rgba(242, 109, 91, 0.28);
+    }
+  }
+}
+
+// Drupal form-submit buttons — softer radius + shadow
+.form-submit,
+input.form-submit[type="submit"],
+button[type="submit"] {
+  border-radius: radii.$mel-radius-full;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.8),
+      0 0 0 5px rgba(colors.$mel-color-primary, 0.25);
+  }
 }

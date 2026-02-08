@@ -5,102 +5,147 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_venue\Entity;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\myeventlane_vendor\Entity\Vendor;
 
 /**
  * Access control handler for Venue entities.
  *
- * Enforces vendor-based access: vendors can only access their own venues.
+ * This is the SINGLE SOURCE OF TRUTH for venue access decisions.
+ *
+ * Access rules:
+ * - View: Allowed if public, or if owner, or if explicit access exists.
+ * - Update/Delete: Only allowed for owner.
+ * - Use (for event creation): Allowed if view access is allowed.
  */
 class VenueAccessControlHandler extends EntityAccessControlHandler {
 
   /**
    * {@inheritdoc}
    */
-  protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
-    /** @var \Drupal\myeventlane_venue\Entity\Venue $entity */
-    assert($entity instanceof Venue);
+  protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
+    if (!$entity instanceof Venue) {
+      return AccessResult::neutral();
+    }
 
-    // Admin permission bypasses all checks.
-    if ($account->hasPermission('administer myeventlane venue')) {
+    // Administrators can do anything.
+    if ($account->hasPermission('administer myeventlane venues')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
+    $ownerId = (int) $entity->getOwnerId();
+    $accountId = (int) $account->id();
+    $isOwner = $ownerId > 0 && $ownerId === $accountId;
+
     switch ($operation) {
       case 'view':
-        // Allow viewing if user has permission and venue belongs to their vendor.
-        if ($account->hasPermission('view myeventlane venue')) {
-          if ($this->userCanAccessVenue($entity, $account)) {
-            return AccessResult::allowed()->cachePerUser()->addCacheableDependency($entity);
-          }
-        }
-        return AccessResult::forbidden()->cachePerUser()->addCacheableDependency($entity);
+      case 'use':
+        return $this->checkViewAccess($entity, $account, $isOwner);
 
       case 'update':
       case 'delete':
-        // Allow update/delete if user has permission and venue belongs to their vendor.
-        if ($account->hasPermission('edit myeventlane venue') || $account->hasPermission('delete myeventlane venue')) {
-          if ($this->userCanAccessVenue($entity, $account)) {
-            return AccessResult::allowed()->cachePerUser()->addCacheableDependency($entity);
-          }
+        // Only the owner can update or delete.
+        if ($isOwner) {
+          return AccessResult::allowed()
+            ->cachePerUser()
+            ->addCacheableDependency($entity);
         }
-        return AccessResult::forbidden()->cachePerUser()->addCacheableDependency($entity);
+        return AccessResult::forbidden('Only the venue owner can modify this venue.')
+          ->cachePerUser()
+          ->addCacheableDependency($entity);
     }
 
     return AccessResult::neutral();
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
-    // Allow creation if user has permission.
-    if ($account->hasPermission('create myeventlane venue') || $account->hasPermission('administer myeventlane venue')) {
-      return AccessResult::allowed()->cachePerPermissions();
-    }
-    return AccessResult::forbidden()->cachePerPermissions();
-  }
-
-  /**
-   * Checks if a user can access a venue based on vendor membership.
+   * Checks view access for a venue.
    *
    * @param \Drupal\myeventlane_venue\Entity\Venue $venue
    *   The venue entity.
    * @param \Drupal\Core\Session\AccountInterface $account
-   *   The user account.
+   *   The account to check.
+   * @param bool $isOwner
+   *   Whether the account is the owner.
+   *
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
+   */
+  protected function checkViewAccess(Venue $venue, AccountInterface $account, bool $isOwner): AccessResultInterface {
+    // Owner always has access.
+    if ($isOwner) {
+      return AccessResult::allowed()
+        ->cachePerUser()
+        ->addCacheableDependency($venue);
+    }
+
+    // Public venues are viewable by authenticated users with permission.
+    if ($venue->isPublic()) {
+      return AccessResult::allowedIfHasPermission($account, 'access vendor venues')
+        ->addCacheableDependency($venue);
+    }
+
+    // Shared venues: check for explicit access grant.
+    if ($this->hasExplicitAccess($venue, $account)) {
+      return AccessResult::allowed()
+        ->cachePerUser()
+        ->addCacheableDependency($venue);
+    }
+
+    // No access - venue is not public and user has no explicit grant.
+    return AccessResult::forbidden('You do not have access to this venue.')
+      ->cachePerUser()
+      ->addCacheableDependency($venue);
+  }
+
+  /**
+   * Checks if the account has explicit access to the venue.
+   *
+   * @param \Drupal\myeventlane_venue\Entity\Venue $venue
+   *   The venue entity.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The account to check.
    *
    * @return bool
-   *   TRUE if the user can access the venue, FALSE otherwise.
+   *   TRUE if explicit access exists, FALSE otherwise.
    */
-  protected function userCanAccessVenue(Venue $venue, AccountInterface $account): bool {
-    // If venue has no vendor, deny access (shouldn't happen in normal flow).
-    if ($venue->get('field_vendor')->isEmpty()) {
+  protected function hasExplicitAccess(Venue $venue, AccountInterface $account): bool {
+    if ($account->isAnonymous()) {
       return FALSE;
     }
 
-    $venue_vendor = $venue->get('field_vendor')->entity;
-    if (!$venue_vendor instanceof Vendor) {
+    try {
+      /** @var \Drupal\Core\Entity\EntityStorageInterface $storage */
+      $storage = \Drupal::entityTypeManager()->getStorage('myeventlane_venue_access');
+      $count = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('venue_id', $venue->id())
+        ->condition('uid', $account->id())
+        ->count()
+        ->execute();
+
+      return $count > 0;
+    }
+    catch (\Exception $e) {
+      // Entity type may not exist during installation.
       return FALSE;
     }
+  }
 
-    // Check if user is in the vendor's field_vendor_users.
-    if ($venue_vendor->hasField('field_vendor_users') && !$venue_vendor->get('field_vendor_users')->isEmpty()) {
-      foreach ($venue_vendor->get('field_vendor_users')->getValue() as $item) {
-        if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-          return TRUE;
-        }
-      }
+  /**
+   * {@inheritdoc}
+   */
+  protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL): AccessResultInterface {
+    // Administrators can create venues.
+    if ($account->hasPermission('administer myeventlane venues')) {
+      return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Also check if user is the vendor owner (uid field).
-    if ($venue_vendor->getOwnerId() === (int) $account->id()) {
-      return TRUE;
-    }
-
-    return FALSE;
+    // Users with vendor console access can create venues.
+    return AccessResult::allowedIfHasPermission($account, 'access vendor venues')
+      ->cachePerPermissions();
   }
 
 }

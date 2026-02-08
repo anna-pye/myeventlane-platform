@@ -1,20 +1,138 @@
 {#
 /**
  * @file
- * Featured Events Carousel (homepage block) — grid output.
+ * Featured Events Carousel — horizontal scroll-snap with Liquid Glass overlay.
  *
- * Uses the canonical `.mel-event-grid` wrapper (components/_event-grid.scss)
- * to achieve a 4-across desktop grid with no new CSS/JS.
- *
- * No card markup here; rows already contain themed node output.
- * When there are 0 rows, output nothing so the homepage section can collapse.
+ * Uses SVG feDisplacementMap + feGaussianBlur for true Apple-style
+ * Liquid Glass refraction (Chromium), with CSS blur fallback (Safari/Firefox).
  */
 #}
 
 {% if rows %}
-  <div class="mel-event-grid" aria-label="{{ 'Featured events'|t }}">
-    {% for row in rows %}
-      {{- row.content -}}
-    {% endfor %}
+  {# SVG filter for Liquid Glass refraction — hidden, referenced by CSS #}
+  <svg class="mel-liquid-glass-svg" aria-hidden="true">
+    <defs>
+      <filter id="mel-liquid-glass" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        {# Generate organic displacement pattern #}
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise"/>
+
+        {# Distort the backdrop through the noise pattern — light refraction #}
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+
+        {# Subtle blur on top of displacement for frosted glass feel #}
+        <feGaussianBlur in="displaced" stdDeviation="3" result="blurred"/>
+
+        {# Brighten + saturate the result #}
+        <feColorMatrix in="blurred" type="matrix"
+          values="1.1 0 0 0 0.02
+                  0 1.1 0 0 0.02
+                  0 0 1.1 0 0.02
+                  0 0 0 1 0" result="brightened"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="mel-featured-carousel" aria-label="{{ 'Featured events'|t }}" role="region">
+    <div class="mel-featured-carousel__track" id="featured-carousel-track">
+      {% for row in rows %}
+        <div class="mel-featured-carousel__slide" id="featured-slide-{{ loop.index }}">
+          {{ row.content }}
+        </div>
+      {% endfor %}
+    </div>
+
+    {# Navigation buttons #}
+    <div class="mel-featured-carousel__nav">
+      <button type="button" class="mel-featured-carousel__btn mel-featured-carousel__btn--prev" aria-label="{{ 'Previous'|t }}" data-carousel-prev>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button type="button" class="mel-featured-carousel__btn mel-featured-carousel__btn--next" aria-label="{{ 'Next'|t }}" data-carousel-next>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
   </div>
+
+  <script>
+    (function() {
+      // --- Carousel navigation ---
+      const track = document.getElementById('featured-carousel-track');
+      const prevBtn = document.querySelector('[data-carousel-prev]');
+      const nextBtn = document.querySelector('[data-carousel-next]');
+      if (track && prevBtn && nextBtn) {
+        const getSlideWidth = () => {
+          const slide = track.querySelector('.mel-featured-carousel__slide');
+          return slide ? slide.offsetWidth + 24 : 300;
+        };
+        prevBtn.addEventListener('click', () => {
+          track.scrollBy({ left: -getSlideWidth(), behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', () => {
+          track.scrollBy({ left: getSlideWidth(), behavior: 'smooth' });
+        });
+      }
+
+      // --- Adaptive text contrast based on image brightness ---
+      // Samples the bottom 40% of each card image (where the glass overlay sits)
+      // and toggles between light/dark text for readability.
+      function getImageBrightness(img, card) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Sample at reduced resolution for performance
+        const sampleW = 100;
+        const sampleH = 60;
+        canvas.width = sampleW;
+        canvas.height = sampleH;
+
+        try {
+          // Draw only the bottom 40% of the image (where overlay sits)
+          const srcY = img.naturalHeight * 0.6;
+          const srcH = img.naturalHeight * 0.4;
+          ctx.drawImage(img, 0, srcY, img.naturalWidth, srcH, 0, 0, sampleW, sampleH);
+
+          const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
+          let totalBrightness = 0;
+          const pixelCount = data.length / 4;
+
+          for (let i = 0; i < data.length; i += 4) {
+            // Perceived brightness formula (ITU-R BT.601)
+            totalBrightness += (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+          }
+
+          const avgBrightness = totalBrightness / pixelCount;
+
+          // Threshold: 0-255 scale. Below 140 = dark image = white text
+          if (avgBrightness > 140) {
+            card.classList.add('mel-event-card--light-bg');
+            card.classList.remove('mel-event-card--dark-bg');
+          } else {
+            card.classList.add('mel-event-card--dark-bg');
+            card.classList.remove('mel-event-card--light-bg');
+          }
+        } catch (e) {
+          // CORS or other error — default to white text (dark-bg)
+          card.classList.add('mel-event-card--dark-bg');
+        }
+      }
+
+      // Process all featured carousel cards
+      document.querySelectorAll('.mel-featured-carousel__slide .mel-event-card').forEach(function(card) {
+        const img = card.querySelector('.mel-event-card__image img, .mel-event-card__image-element');
+        if (!img) return;
+
+        if (img.complete && img.naturalWidth > 0) {
+          getImageBrightness(img, card);
+        } else {
+          img.addEventListener('load', function() {
+            getImageBrightness(img, card);
+          });
+        }
+      });
+    })();
+  </script>
 {% endif %}

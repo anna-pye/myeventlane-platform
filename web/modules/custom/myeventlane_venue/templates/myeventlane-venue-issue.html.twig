@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Template for venue issue entities.
+ *
+ * This is a minimal template to prevent template confusion.
+ * Venue issues are primarily managed through the admin list.
+ */
+#}
+<div class="mel-venue-issue">
+  {% if elements %}
+    {% for key, element in elements %}
+      {% if key|first != '#' %}
+        {{ element }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>

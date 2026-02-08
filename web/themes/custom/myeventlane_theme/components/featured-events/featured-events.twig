@@ -6,12 +6,14 @@
  * - title
  * - subtitle
  * - view
+ * - curator_line (optional, e.g. "Curated by MyEventLane")
  */
 #}
 
 <section class="featured-events" aria-labelledby="featured-events-title">
   <div class="featured-events__header">
     <div>
+      <span class="featured-events__curator">{{ curator_line|default('Curated by MyEventLane'|t) }}</span>
       <h2 id="featured-events-title" class="featured-events__title">{{ title }}</h2>
       {% if subtitle %}
         <p class="featured-events__subtitle">{{ subtitle }}</p>

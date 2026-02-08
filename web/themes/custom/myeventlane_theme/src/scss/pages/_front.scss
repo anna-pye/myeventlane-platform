@@ -206,7 +206,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-all-events {
-  margin-top: 48px;
+  margin-top: var(--mel-section-space);
 
   h2 {
     margin-bottom: spacing.mel-space(1);
@@ -232,14 +232,25 @@
 // ---------------------------------------------------------------------------
 
 .mel-home-calendar {
-  margin-top: 64px;
+  margin-top: var(--mel-section-space-lg);
   padding: 32px;
-  background: rgba(110, 126, 242, 0.06);
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--mel-radius-soft, 20px);
+  box-shadow: 0 4px 20px rgba(100, 80, 140, 0.06);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.9);
+  }
 
   @include breakpoints.mel-break(md, max) {
     padding: 24px 16px;
-    margin-top: 48px;
+    margin-top: var(--mel-section-space);
   }
 
   h2 {
@@ -388,13 +399,13 @@
 // ---------------------------------------------------------------------------
 
 .mel-home-cta {
-  margin-top: 64px;
+  margin-top: var(--mel-section-space-lg);
   padding: 32px;
   text-align: center;
 
   @include breakpoints.mel-break(md, max) {
     padding: 24px;
-    margin-top: 48px;
+    margin-top: var(--mel-section-space);
   }
 
   &__content {
@@ -437,8 +448,27 @@
 
 .mel-region-footer {
   margin-top: 0;
-  border-top: 1px solid colors.$mel-color-border;
+  // Soft gradient separator instead of a hard border
+  border-top: none;
   background: colors.$mel-color-surface;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(200, 170, 230, 0.25) 25%,
+      rgba(252, 200, 210, 0.2) 50%,
+      rgba(180, 230, 210, 0.2) 75%,
+      transparent 100%
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -539,11 +569,22 @@
 // ---------------------------------------------------------------------------
 
 .mel-trending-events {
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   margin-left: -(spacing.mel-space(4));
   margin-right: -(spacing.mel-space(4));
   padding: spacing.mel-space(6) spacing.mel-space(4);
   border-radius: radii.$mel-radius-xl;
+  box-shadow: 0 4px 20px rgba(100, 80, 140, 0.06);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
 
   @include breakpoints.mel-break(md) {
     margin-left: 0;
@@ -597,10 +638,20 @@
 // ---------------------------------------------------------------------------
 
 .mel-calendar-section {
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: radii.$mel-radius-xl;
   padding: spacing.mel-space(5);
-  box-shadow: shadows.$mel-shadow-sm;
+  box-shadow: 0 4px 20px rgba(100, 80, 140, 0.06);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
 
   @include breakpoints.mel-break(md) {
     padding: spacing.mel-space(6);
@@ -776,11 +827,22 @@
 // ---------------------------------------------------------------------------
 
 .mel-impact-section {
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: radii.$mel-radius-xl;
   padding: spacing.mel-space(6);
   text-align: center;
-  margin-bottom: spacing.mel-space(8);
+  margin-bottom: var(--mel-section-space);
+  box-shadow: 0 4px 20px rgba(100, 80, 140, 0.06);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
 
   @include breakpoints.mel-break(md) {
     padding: spacing.mel-space(8);
@@ -829,7 +891,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-categories-section {
-  margin-bottom: spacing.mel-space(8);
+  margin-bottom: var(--mel-section-space);
 }
 
 .mel-categories-grid {
@@ -855,15 +917,29 @@
   flex-direction: column;
   align-items: center;
   padding: spacing.mel-space(4);
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: radii.$mel-radius-xl;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: shadows.$mel-shadow-sm;
+  transition:
+    transform var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease),
+    box-shadow var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease),
+    background var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease);
+  box-shadow: 0 4px 16px rgba(100, 80, 140, 0.06);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: shadows.$mel-shadow-md;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 24px rgba(100, 80, 140, 0.1);
   }
 
   &:focus-visible {
@@ -894,4 +970,49 @@
   font-size: typography.mel-font-size(xs);
   color: colors.$mel-color-text-muted;
   margin-top: spacing.mel-space(1);
+}
+
+// ---------------------------------------------------------------------------
+// Section Rhythm — Named section soft separators
+// ---------------------------------------------------------------------------
+// Applies token-driven gradient separators between major named layout sections.
+// Uses --mel-section-divider-opacity for consistency.
+// Does NOT affect event cards, glass panels, or internal section children.
+
+.mel-trending-events,
+.mel-calendar-section,
+.mel-impact-section,
+.mel-home-calendar,
+.mel-home-cta,
+.mel-categories-section,
+.mel-all-events {
+  position: relative;
+
+  // Soft gradient separator above each section (except the first one)
+  & + .mel-trending-events,
+  & + .mel-calendar-section,
+  & + .mel-impact-section,
+  & + .mel-home-calendar,
+  & + .mel-home-cta,
+  & + .mel-categories-section,
+  & + .mel-all-events {
+    &::after {
+      content: '';
+      display: block;
+      position: absolute;
+      top: calc(var(--mel-section-space-sm) * -0.5);
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(200, 170, 230, var(--mel-section-divider-opacity)) 25%,
+        rgba(252, 200, 210, var(--mel-section-divider-opacity)) 50%,
+        rgba(180, 230, 210, var(--mel-section-divider-opacity)) 75%,
+        transparent 100%
+      );
+      pointer-events: none;
+    }
+  }
 }
