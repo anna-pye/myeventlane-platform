@@ -6,14 +6,55 @@
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
 
+// ==========================================================================
+// Hero Component — MEL v2 Pastel Visual System
+// ==========================================================================
+// Large, soft, gradient-backed hero area. Degrades gracefully if image is
+// missing. Gradient text optional via .mel-hero-title--gradient.
+
 .mel-hero {
-  background: transparent;
-  padding: spacing.mel-space(8) 0;
+  position: relative;
+  // Semi-transparent tint — blends into the .mel-page gradient shell.
+  background: var(--mel-gradient-hero);
+  padding: spacing.mel-space(7) 0 spacing.mel-space(8);
   border-radius: 0;
   margin-bottom: spacing.mel-space(4);
+  overflow: hidden;
+
+  // Soft radial depth overlay
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 800px 500px at 20% 30%, rgba(200, 170, 230, 0.18), transparent 60%),
+      radial-gradient(ellipse 600px 400px at 80% 70%, rgba(252, 200, 210, 0.12), transparent 55%);
+    pointer-events: none;
+  }
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(8) 0 spacing.mel-space(9);
+  }
+}
+
+// Optional image overlay variant
+.mel-hero--with-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--mel-gradient-hero-overlay, linear-gradient(160deg, rgba(236, 229, 243, 0.6) 0%, rgba(252, 228, 236, 0.4) 50%, rgba(227, 245, 236, 0.5) 100%));
+    pointer-events: none;
+  }
 }
 
 .mel-hero-inner {
+  position: relative;
+  z-index: 1;
   text-align: center;
 }
 
@@ -25,18 +66,32 @@
 .mel-hero-title {
   font-size: clamp(3rem, 5vw, 4.4rem);
   font-weight: 800;
-  color: colors.$mel-color-primary;
+  color: colors.$mel-color-text;
   letter-spacing: -0.025em;
   line-height: 1.02;
   margin-bottom: spacing.mel-space(4);
   max-width: 16ch;
 }
 
+// Gradient text variant for hero headlines
+.mel-hero-title--gradient {
+  background: var(--mel-gradient-text, linear-gradient(135deg, #{colors.$mel-color-primary} 0%, #{colors.$mel-color-secondary} 100%));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  @media print, (forced-colors: active) {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: colors.$mel-color-primary;
+  }
+}
+
 .mel-hero-subtitle {
   font-size: 1.45rem;
   font-weight: 600;
-  color: colors.$mel-color-primary;
-  opacity: 0.85;
+  color: colors.$mel-color-text;
+  opacity: 0.8;
   margin-top: 0.6rem;
   line-height: 1.4;
 }
@@ -57,14 +112,24 @@
 }
 
 .mel-hero-search-box {
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   padding: spacing.mel-space(2);
   border-radius: radii.$mel-radius-full;
   display: flex;
   gap: spacing.mel-space(2);
-  box-shadow: shadows.$mel-shadow-sm;
+  box-shadow: 0 8px 32px rgba(100, 80, 140, 0.1);
   max-width: 640px;
   margin: 0 auto;
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.94);
+  }
 
   input {
     flex: 1;
@@ -72,24 +137,41 @@
     padding: spacing.mel-space(3);
     border-radius: radii.$mel-radius-full;
     font-size: 1rem;
+    background: transparent;
 
     &:focus {
       outline: none;
+    }
+
+    &::placeholder {
+      color: colors.$mel-color-text-muted;
     }
   }
 
   .mel-hero-search-btn {
     padding: spacing.mel-space(3) spacing.mel-space(5);
-    background: colors.$mel-color-accent-1;
+    background: colors.$mel-color-primary;
     border-radius: radii.$mel-radius-full;
     color: white;
     font-weight: 600;
     border: none;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition:
+      transform var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease),
+      box-shadow var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease);
 
-    &:hover {
-      opacity: 0.9;
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(colors.$mel-color-primary, 0.3);
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.8),
+        0 0 0 5px rgba(colors.$mel-color-primary, 0.3);
     }
   }
 }
@@ -104,19 +186,39 @@
 
 .mel-chip {
   padding: spacing.mel-space(2) spacing.mel-space(4);
-  background: colors.$mel-color-surface;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: radii.$mel-radius-full;
   font-size: 0.9rem;
-  box-shadow: shadows.$mel-shadow-sm;
+  box-shadow: 0 2px 8px rgba(100, 80, 140, 0.08);
   color: colors.$mel-color-text;
   text-decoration: none;
-  transition: background 0.2s;
-  opacity: 0.92;
+  transition:
+    background var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease),
+    transform var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease),
+    box-shadow var(--mel-motion-fast, 150ms) var(--mel-ease-out, ease);
 
-  &:hover {
-    background: color.adjust(colors.$mel-color-surface, $lightness: 4%);
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: rgba(255, 255, 255, 0.82);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(100, 80, 140, 0.12);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.8),
+      0 0 0 5px rgba(colors.$mel-color-primary, 0.25);
   }
 }
+
 .mel-chip-empty {
   opacity: 0.5;
 }

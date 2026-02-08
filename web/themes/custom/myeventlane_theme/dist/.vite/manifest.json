@@ -12,16 +12,16 @@
     "isEntry": true
   },
   "js/main.js": {
-    "file": "assets/main.BMb-ueOv.js",
+    "file": "assets/main.Ba6zEMik.js",
     "name": "main",
     "src": "js/main.js",
     "isEntry": true,
     "css": [
-      "assets/main.KIsmZDxt.css"
+      "assets/main.C43jlJTJ.css"
     ]
   },
   "scss/front.scss": {
-    "file": "assets/front.DTHcFrYm.css",
+    "file": "assets/front.Dmb2xRFA.css",
     "src": "scss/front.scss",
     "isEntry": true,
     "name": "front",

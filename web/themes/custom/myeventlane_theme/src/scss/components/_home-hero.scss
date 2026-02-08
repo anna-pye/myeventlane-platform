@@ -14,11 +14,27 @@
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--mel-cream) 0%, var(--mel-lilac) 100%);
+  // Semi-transparent tint that blends into the page-shell gradient.
+  // NOT opaque — the body/page radials show through, creating continuity.
+  background: var(--mel-gradient-hero);
   padding: clamp(3rem, 6vw, 6rem) 1.5rem;
+  position: relative;
+  overflow: hidden;
+
+  // Soft radial depth — reinforces the gradient in the hero zone
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 700px 400px at 15% 25%, rgba(200, 170, 230, 0.18), transparent 55%),
+      radial-gradient(ellipse 500px 350px at 85% 75%, rgba(252, 200, 210, 0.12), transparent 50%);
+    pointer-events: none;
+  }
 
   &__inner {
     position: relative;
+    z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
     display: flex;

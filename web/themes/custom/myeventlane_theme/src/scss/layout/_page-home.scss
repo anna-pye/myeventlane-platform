@@ -3,10 +3,9 @@
 // ==========================================================================
 
 .mel-region-hero {
-  // Soft pastel wash like the reference screenshot.
-  background: radial-gradient(1200px 600px at 20% 20%, rgba(252, 103, 90, 0.10), transparent 55%),
-    radial-gradient(900px 500px at 80% 30%, rgba(168, 200, 255, 0.18), transparent 55%),
-    #faf7fb;
+  // Hero region is transparent — pastel gradient comes from the page shell.
+  // The hero component adds its own soft tint that blends into the gradient.
+  background: transparent;
 }
 
 .home-hero {

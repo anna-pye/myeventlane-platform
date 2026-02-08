@@ -31,11 +31,6 @@ class VenueQuickCreateForm extends FormBase {
   protected VenueManager $venueManager;
 
   /**
-   * The request stack.
-   */
-  protected RequestStack $requestStack;
-
-  /**
    * The logger.
    */
   protected LoggerInterface $logger;

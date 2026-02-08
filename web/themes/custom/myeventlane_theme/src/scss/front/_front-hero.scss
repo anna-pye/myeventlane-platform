@@ -10,11 +10,12 @@
 // ---------------------------------------------------------------------------
 
 .mel-front {
-  background-color: colors.$mel-color-bg;
+  background-color: colors.$mel-color-pastel-bg;
   background-image:
-    radial-gradient(1200px 640px at 14% 16%, rgba(252, 103, 90, 0.14), transparent 62%),
-    radial-gradient(980px 560px at 84% 10%, rgba(168, 200, 255, 0.22), transparent 60%),
-    radial-gradient(900px 620px at 70% 78%, rgba(244, 185, 239, 0.14), transparent 62%);
+    radial-gradient(ellipse 1200px 640px at 14% 16%, rgba(200, 170, 230, 0.18), transparent 60%),
+    radial-gradient(ellipse 980px 560px at 84% 10%, rgba(252, 200, 210, 0.16), transparent 58%),
+    radial-gradient(ellipse 900px 620px at 70% 78%, rgba(180, 230, 210, 0.14), transparent 55%),
+    radial-gradient(ellipse 600px 400px at 40% 50%, rgba(253, 220, 190, 0.10), transparent 50%);
 }
 
 .mel-front-hero {
@@ -67,16 +68,31 @@
 .mel-hero-title {
   font-size: clamp(2.8rem, 5vw, 4.2rem);
   font-weight: 800;
-  color: colors.$mel-color-primary;
+  color: colors.$mel-color-text;
   letter-spacing: -0.02em;
   line-height: 1.05;
   margin: 0;
+}
+
+// Gradient text variant for front hero
+.mel-hero-title--gradient {
+  background: linear-gradient(135deg, colors.$mel-color-primary 0%, colors.$mel-color-secondary 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  @media print, (forced-colors: active) {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: colors.$mel-color-primary;
+  }
 }
 
 .mel-hero-subtitle {
   font-size: 1.35rem;
   font-weight: 500;
   color: colors.$mel-color-text;
+  opacity: 0.8;
   margin-top: 0.5rem;
 }
 
@@ -105,12 +121,28 @@
 .mel-front-search__input {
   width: 100%;
   border-radius: radii.$mel-radius-full;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   padding: 0.95rem 1rem;
   font-size: 1rem;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(10px);
-  box-shadow: shadows.$mel-shadow-sm;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 4px 16px rgba(100, 80, 140, 0.08);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: colors.$mel-color-primary;
+    box-shadow:
+      0 0 0 2px rgba(255, 255, 255, 0.8),
+      0 0 0 5px rgba(colors.$mel-color-primary, 0.2);
+  }
 }
 
 .mel-front-search__btn {
@@ -195,15 +227,21 @@
 }
 
 .mel-front-value {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.95),
-    rgba(255, 255, 255, 0.75)
-  );
-  border-radius: 18px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
-  border-left: 6px solid colors.$mel-color-primary;
-  padding: 14px 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: var(--mel-radius-soft, 20px);
+  box-shadow: 0 8px 32px rgba(100, 80, 140, 0.08);
+  border-left: 5px solid colors.$mel-color-primary;
+  padding: 18px 16px;
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgba(255, 255, 255, 0.94);
+  }
 }
 
 .mel-front-value:nth-child(2) {
@@ -236,14 +274,19 @@
 .mel-pie-wrap {
   background: radial-gradient(
     circle at center,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0.65)
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.55)
   );
   border-radius: 50%;
   padding: 1.25rem;
   box-shadow:
-    0 30px 60px rgba(0, 0, 0, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    0 20px 48px rgba(100, 80, 140, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 .mel-front-pie path {

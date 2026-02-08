@@ -4,7 +4,49 @@
    ========================================================= */
 
    .mel-home {
-    background: #fff;
+    // Background transparent — body/page pastel radial gradient shows through.
+    // Content sections float as "cards on a canvas" over the gradient.
+    background: transparent;
+  }
+
+  // --------------------------------------------------------------------------
+  // Homepage sections — vertical rhythm & soft separators
+  // --------------------------------------------------------------------------
+  // Uses --mel-section-space-* tokens for editorial-style vertical flow.
+  // Gradient separators use --mel-section-divider-opacity.
+  // Event cards inside are NOT targeted.
+
+  .mel-home-section {
+    padding: calc(var(--mel-section-space-sm) * 0.6) 0 var(--mel-section-space-sm);
+    position: relative;
+
+    // Soft separator: a faint horizontal gradient line between sections.
+    // Uses transparency, not borders, for a pastel-consistent feel.
+    & + .mel-home-section::before {
+      content: '';
+      display: block;
+      width: min(80%, 600px);
+      height: 1px;
+      margin: 0 auto var(--mel-section-space-sm);
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(200, 170, 230, var(--mel-section-divider-opacity)) 30%,
+        rgba(252, 200, 210, var(--mel-section-divider-opacity)) 50%,
+        rgba(180, 230, 210, var(--mel-section-divider-opacity)) 70%,
+        transparent 100%
+      );
+    }
+  }
+
+  @media (min-width: 768px) {
+    .mel-home-section {
+      padding: calc(var(--mel-section-space) * 0.5) 0 var(--mel-section-space);
+
+      & + .mel-home-section::before {
+        margin-bottom: var(--mel-section-space);
+      }
+    }
   }
   
   /* ---------------------------------------------------------
@@ -88,7 +130,7 @@
   .mel-home__discover,
   .mel-home__rows,
   .mel-home__cta {
-    padding: 18px 0;
+    padding: var(--mel-section-space-sm) 0;
   }
   
   .mel-section-head {
@@ -96,12 +138,38 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
   
   .mel-section-head__title {
     margin: 0;
     font-size: 22px;
+  }
+  
+  .mel-section-head__link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--mel-blue);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(108, 126, 242, 0.25);
+    background: rgba(255, 255, 255, 0.5);
+    transition:
+      background var(--mel-motion-fast, 150ms) ease,
+      transform var(--mel-motion-fast, 150ms) ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.8);
+      transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.8),
+        0 0 0 5px rgba(108, 126, 242, 0.25);
+    }
   }
   
   /* ---------------------------------------------------------
@@ -291,11 +359,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    padding: 18px;
-    border-radius: var(--mel-radius-3);
-    border: var(--mel-border);
-    background: var(--mel-paper);
-    box-shadow: var(--mel-shadow-rest);
+    padding: 20px;
+    border-radius: var(--mel-radius-soft, 20px);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 8px 32px rgba(100, 80, 140, 0.08);
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      background: rgba(255, 255, 255, 0.94);
+    }
   }
   
   .mel-cta-card__title {

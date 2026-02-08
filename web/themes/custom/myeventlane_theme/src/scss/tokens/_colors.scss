@@ -86,6 +86,24 @@ $mel-color-info: #3b82f6;             // Blue - informational
 $mel-color-info-bg: #dbeafe;          // Light blue background
 
 // ---------------------------------------------------------------------------
+// Pastel Visual System (Melbourne-inspired)
+// ---------------------------------------------------------------------------
+// Soft, approachable pastels for global UI. These do NOT affect event cards.
+
+$mel-color-pastel-lavender: #ece5f3;
+$mel-color-pastel-pink: #fce4ec;
+$mel-color-pastel-mint: #e3f5ec;
+$mel-color-pastel-peach: #fde8d8;
+$mel-color-pastel-sky: #e3f0fa;
+$mel-color-pastel-bg: #f8f4fb;          // Global page background
+
+// Glass surfaces (NOT applied to event cards)
+$mel-glass-bg: rgba(255, 255, 255, 0.68);
+$mel-glass-bg-strong: rgba(255, 255, 255, 0.82);
+$mel-glass-border-color: rgba(255, 255, 255, 0.45);
+$mel-glass-shadow: 0 8px 32px rgba(100, 80, 140, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+// ---------------------------------------------------------------------------
 // Focus & Accessibility
 // ---------------------------------------------------------------------------
 

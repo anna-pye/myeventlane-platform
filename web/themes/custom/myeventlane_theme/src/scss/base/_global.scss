@@ -2,6 +2,7 @@
 // Global Typography & Base Styles
 // ==========================================================================
 // Mobile-first typography and body defaults using CSS custom properties.
+// Body uses the MEL v2 pastel radial background system.
 
 html {
   font-size: 16px;
@@ -9,7 +10,13 @@ html {
 }
 
 body {
-  background: var(--mel-bg);
+  background-color: var(--mel-pastel-bg, #f8f4fb);
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 10% 20%, rgba(200, 170, 230, 0.16), transparent 60%),
+    radial-gradient(ellipse 1000px 550px at 85% 15%, rgba(252, 200, 210, 0.13), transparent 58%),
+    radial-gradient(ellipse 900px 500px at 50% 85%, rgba(180, 230, 210, 0.12), transparent 55%),
+    radial-gradient(ellipse 600px 400px at 70% 40%, rgba(253, 220, 190, 0.10), transparent 50%);
+  background-attachment: fixed;
   color: var(--mel-ink);
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
@@ -65,4 +72,31 @@ small,
 .mel-muted {
   font-size: 0.9rem;
   color: var(--mel-muted);
+}
+
+// ---------------------------------------------------------------------------
+// Page Shell — pastel gradient continuation
+// ---------------------------------------------------------------------------
+// Reinforced radial gradients on .mel-page so the pastel effect visually
+// continues from the hero through <main> to the footer boundary. Strongest
+// at the top (hero zone), fading toward the bottom. Does NOT affect event
+// cards — they use their own opaque $mel-color-surface background.
+
+.mel-page {
+  position: relative;
+  background-color: transparent;
+  background-image:
+    // Top zone (hero-adjacent): stronger lavender/pink glow
+    radial-gradient(ellipse 1200px 500px at 15% 5%, rgba(200, 170, 230, 0.22), transparent 55%),
+    radial-gradient(ellipse 900px 450px at 80% 3%, rgba(252, 200, 210, 0.18), transparent 50%),
+    // Mid zone: softer mint/peach accents
+    radial-gradient(ellipse 1000px 600px at 60% 35%, rgba(180, 230, 210, 0.12), transparent 55%),
+    radial-gradient(ellipse 800px 500px at 25% 50%, rgba(253, 220, 190, 0.10), transparent 50%),
+    // Bottom zone: very subtle, fades to transparent
+    radial-gradient(ellipse 900px 400px at 50% 80%, rgba(200, 170, 230, 0.06), transparent 50%);
+}
+
+// Main content area — inherits transparent background, no gradient blocking.
+.mel-main {
+  background: transparent;
 }

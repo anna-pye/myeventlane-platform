@@ -1,12 +1,14 @@
 // ==========================================================================
 // Drupal Regions
 // ==========================================================================
-// Styles for theme regions.
+// Styles for theme regions — pastel visual system applied.
 
 @use '../tokens/colors';
 @use '../tokens/spacing';
 @use '../tokens/typography';
 @use '../tokens/breakpoints';
+@use '../tokens/radii';
+@use '../tokens/shadows';
 
 // ---------------------------------------------------------------------------
 // Utility Bar
@@ -33,6 +35,32 @@
 
 .mel-region-hero {
   margin-bottom: spacing.mel-space(6);
+}
+
+// ---------------------------------------------------------------------------
+// Content Region — pastel glass wrapper
+// ---------------------------------------------------------------------------
+// Applies glass panel treatment to the main content region on non-front pages.
+// Front page has its own background in _front-hero.scss.
+
+.mel-region-content {
+  .mel-content-panel {
+    background: colors.$mel-glass-bg-strong;
+    border: 1px solid colors.$mel-glass-border-color;
+    border-radius: radii.$mel-radius-lg;
+    box-shadow: shadows.$mel-shadow-glass;
+    padding: spacing.mel-space(5);
+    margin-bottom: spacing.mel-space(4);
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    @supports not (backdrop-filter: blur(1px)) {
+      background: rgba(255, 255, 255, 0.94);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
