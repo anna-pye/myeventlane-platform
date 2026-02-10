@@ -1,0 +1,23 @@
+enabled: true
+sla_hours:
+  urgent:
+    first_response: 1
+    resolution: 4
+  high:
+    first_response: 4
+    resolution: 24
+  normal:
+    first_response: 8
+    resolution: 72
+  low:
+    first_response: 24
+    resolution: 168
+escalation_thresholds:
+  - hours_past_due: 2
+    level: 1
+  - hours_past_due: 8
+    level: 2
+  - hours_past_due: 24
+    level: 3
+breach_emails:
+  enabled: true

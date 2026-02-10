@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for myeventlane_escalations_sla.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_escalations_sla_install(): void {
+  \Drupal::logger('myeventlane_escalations_sla')->info('SLA module installed. Existing escalations will receive SLA fields on next edit. New escalations will be initialised automatically via presave hook.');
+}

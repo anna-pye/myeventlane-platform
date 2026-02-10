@@ -1,0 +1,4 @@
+manage escalations sla:
+  title: 'Manage Escalations SLA'
+  description: 'Configure SLA policies and view SLA status on escalations.'
+  restrict access: true

@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_sla_resolution_due
+  module:
+    - myeventlane_escalations
+id: escalation.escalation.field_sla_resolution_due
+field_name: field_sla_resolution_due
+entity_type: escalation
+bundle: escalation
+label: 'SLA Resolution Due'
+description: 'Timestamp when resolution is due per SLA policy.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp
