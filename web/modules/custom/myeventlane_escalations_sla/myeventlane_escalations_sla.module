@@ -175,7 +175,10 @@ function _myeventlane_escalations_sla_handle_update(EntityInterface $entity): vo
       $entity->set('field_escalation_level', 0);
     }
     if ($entity->hasField('field_waiting_on')) {
-      $entity->set('field_waiting_on', 'vendor');
+      // Use vendor if assigned, otherwise staff. Matches init logic and
+      // prevents invalid waiting_on state for vendor-less escalations.
+      $has_vendor = $entity->hasField('vendor_id') && !$entity->get('vendor_id')->isEmpty();
+      $entity->set('field_waiting_on', $has_vendor ? 'vendor' : 'staff');
     }
   }
 }

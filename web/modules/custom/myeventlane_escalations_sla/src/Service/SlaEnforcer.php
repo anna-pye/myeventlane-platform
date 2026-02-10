@@ -50,6 +50,19 @@ final class SlaEnforcer {
     $now = time();
     $changed = FALSE;
 
+    // Safety net: if waiting_on is 'vendor' but no vendor is assigned,
+    // correct to 'staff' to prevent invalid SLA enforcement and notifications.
+    if ($escalation->hasField('field_waiting_on')
+      && (string) ($escalation->get('field_waiting_on')->value ?? '') === 'vendor'
+      && $escalation->hasField('vendor_id')
+      && $escalation->get('vendor_id')->isEmpty()) {
+      $escalation->set('field_waiting_on', 'staff');
+      $changed = TRUE;
+      $this->logger->notice('Corrected waiting_on from vendor to staff for escalation {id} (no vendor assigned).', [
+        'id' => $escalation_id,
+      ]);
+    }
+
     // Check first response SLA breach.
     if ($escalation->hasField('field_sla_first_due')
       && !$escalation->get('field_sla_first_due')->isEmpty()

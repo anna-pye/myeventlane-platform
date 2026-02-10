@@ -178,7 +178,9 @@ final class CustomerEscalationController extends ControllerBase {
 
     $entity->set('status', 'in_progress');
     if ($entity->hasField('field_waiting_on')) {
-      $entity->set('field_waiting_on', 'vendor');
+      // Use vendor if assigned, otherwise staff. Avoids invalid state when
+      // no vendor exists (e.g. staff-only escalation).
+      $entity->set('field_waiting_on', $entity->hasAssignedVendor() ? 'vendor' : 'staff');
     }
     $entity->save();
 

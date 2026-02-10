@@ -113,7 +113,8 @@ final class EscalationReplyForm extends FormBase {
 
     if ($escalation->hasField('field_waiting_on')) {
       if ($party === 'customer') {
-        $escalation->set('field_waiting_on', 'vendor');
+        // Customer replied — next action is on vendor (if assigned) or staff.
+        $escalation->set('field_waiting_on', $escalation->hasAssignedVendor() ? 'vendor' : 'staff');
       }
       elseif ($party === 'vendor') {
         $escalation->set('field_waiting_on', 'customer');

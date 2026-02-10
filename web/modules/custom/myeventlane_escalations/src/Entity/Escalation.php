@@ -368,4 +368,11 @@ final class Escalation extends ContentEntityBase implements EscalationInterface 
     return $this;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function hasAssignedVendor(): bool {
+    return $this->hasField('vendor_id') && !$this->get('vendor_id')->isEmpty();
+  }
+
 }
