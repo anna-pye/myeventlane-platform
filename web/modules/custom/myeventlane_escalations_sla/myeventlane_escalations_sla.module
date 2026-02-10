@@ -10,6 +10,20 @@ declare(strict_types=1);
 use Drupal\Core\Entity\EntityInterface;
 
 /**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_sla_theme(): array {
+  return [
+    'escalation_sla_badge' => [
+      'variables' => [
+        'badge' => NULL,
+      ],
+      'template' => 'escalation-sla-badge',
+    ],
+  ];
+}
+
+/**
  * Implements hook_entity_presave().
  *
  * Sets SLA fields on escalation creation and maintains flags on updates.

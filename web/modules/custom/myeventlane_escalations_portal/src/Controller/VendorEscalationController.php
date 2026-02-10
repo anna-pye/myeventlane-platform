@@ -7,9 +7,11 @@ namespace Drupal\myeventlane_escalations_portal\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_escalations\Entity\Escalation;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
+use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -24,6 +26,7 @@ final class VendorEscalationController extends ControllerBase {
     private readonly EscalationPartyResolver $partyResolver,
     private readonly EscalationMailer $mailer,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly EscalationSlaBadgeResolver $badgeResolver,
   ) {}
 
   /**
@@ -35,6 +38,7 @@ final class VendorEscalationController extends ControllerBase {
       $container->get('myeventlane_escalations_portal.party_resolver'),
       $container->get('myeventlane_escalations_portal.mailer'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_escalations_sla.badge_resolver'),
     );
   }
 
@@ -59,6 +63,10 @@ final class VendorEscalationController extends ControllerBase {
     if ($ids) {
       $escalations = $this->entityTypeManager()->getStorage('escalation')->loadMultiple($ids);
       foreach ($escalations as $escalation) {
+        /** @var \Drupal\myeventlane_escalations\Entity\Escalation $escalation */
+        $badge = $this->badgeResolver->resolve($escalation);
+        $waiting_on = $this->resolveWaitingOnLabel($escalation);
+
         $rows[] = [
           'id' => $escalation->id(),
           'subject' => [
@@ -70,7 +78,13 @@ final class VendorEscalationController extends ControllerBase {
           ],
           'status' => $escalation->get('status')->value,
           'priority' => $escalation->get('priority')->value,
-          'waiting_on' => $escalation->hasField('field_waiting_on') ? ($escalation->get('field_waiting_on')->value ?? '-') : '-',
+          'sla' => [
+            'data' => [
+              '#theme' => 'escalation_sla_badge',
+              '#badge' => $badge,
+            ],
+          ],
+          'waiting_on' => $waiting_on,
           'created' => $this->dateFormatter->format((int) $escalation->get('created')->value, 'short'),
         ];
       }
@@ -83,6 +97,7 @@ final class VendorEscalationController extends ControllerBase {
         $this->t('Subject'),
         $this->t('Status'),
         $this->t('Priority'),
+        $this->t('SLA'),
         $this->t('Waiting on'),
         $this->t('Created'),
       ],
@@ -100,9 +115,20 @@ final class VendorEscalationController extends ControllerBase {
       return ['#markup' => $this->t('Escalation not found.')];
     }
 
+    /** @var \Drupal\myeventlane_escalations\Entity\Escalation $entity */
     $build = [];
 
-    // Escalation details (NO internal notes).
+    // SLA badge.
+    $badge = $this->badgeResolver->resolve($entity);
+    $build['sla_badge'] = [
+      '#theme' => 'escalation_sla_badge',
+      '#badge' => $badge,
+      '#prefix' => '<div style="margin-bottom: 12px;">',
+      '#suffix' => '</div>',
+    ];
+
+    // Escalation details (NO internal notes, NO SLA timestamps, NO escalation levels).
+    $waiting_on = $this->resolveWaitingOnLabel($entity);
     $build['details'] = [
       '#type' => 'container',
       '#attributes' => ['style' => 'margin-bottom: 24px; padding: 16px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fafafa;'],
@@ -111,7 +137,7 @@ final class VendorEscalationController extends ControllerBase {
         '#markup' => '<div><strong>' . $this->t('Type:') . '</strong> ' . htmlspecialchars((string) $entity->get('type')->value)
           . ' &nbsp; <strong>' . $this->t('Status:') . '</strong> ' . htmlspecialchars((string) $entity->get('status')->value)
           . ' &nbsp; <strong>' . $this->t('Priority:') . '</strong> ' . htmlspecialchars((string) $entity->get('priority')->value)
-          . ' &nbsp; <strong>' . $this->t('Waiting on:') . '</strong> ' . htmlspecialchars((string) ($entity->hasField('field_waiting_on') ? ($entity->get('field_waiting_on')->value ?? '-') : '-'))
+          . ' &nbsp; <strong>' . $this->t('Waiting on:') . '</strong> ' . htmlspecialchars($waiting_on)
           . '</div>',
       ],
       'description' => [
@@ -209,6 +235,32 @@ final class VendorEscalationController extends ControllerBase {
     $this->messenger()->addStatus($this->t('The escalation has been reopened.'));
 
     return new RedirectResponse('/vendor/support/' . $escalation);
+  }
+
+  /**
+   * Resolves waiting_on field value to a vendor-friendly label.
+   *
+   * Vendors must NEVER see raw field values or SLA mechanics.
+   *
+   * @param \Drupal\myeventlane_escalations\Entity\Escalation $escalation
+   *   The escalation entity.
+   *
+   * @return string
+   *   Friendly label for the current waiting_on state.
+   */
+  private function resolveWaitingOnLabel(Escalation $escalation): string {
+    if (!$escalation->hasField('field_waiting_on') || $escalation->get('field_waiting_on')->isEmpty()) {
+      return '-';
+    }
+
+    $value = (string) $escalation->get('field_waiting_on')->value;
+
+    return match ($value) {
+      'vendor' => (string) $this->t('Waiting on you'),
+      'customer' => (string) $this->t('Waiting on customer'),
+      'staff' => (string) $this->t('Waiting on MyEventLane support'),
+      default => '-',
+    };
   }
 
   /**

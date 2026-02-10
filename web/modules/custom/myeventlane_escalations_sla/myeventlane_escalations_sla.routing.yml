@@ -1,0 +1,9 @@
+myeventlane_escalations_sla.dashboard:
+  path: '/admin/myeventlane/escalations/dashboard'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_sla\Controller\EscalationSlaDashboardController::dashboard'
+    _title: 'Escalation SLA Dashboard'
+  requirements:
+    _permission: 'manage escalations sla'
+  options:
+    _admin_route: TRUE

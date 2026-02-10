@@ -11,6 +11,10 @@ services:
     class: Drupal\myeventlane_escalations_sla\Service\SlaEnforcer
     arguments: ['@myeventlane_escalations_sla.policy', '@entity_type.manager', '@plugin.manager.mail', '@config.factory', '@logger.channel.myeventlane_escalations_sla']
 
+  myeventlane_escalations_sla.badge_resolver:
+    class: Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver
+    arguments: ['@datetime.time']
+
   logger.channel.myeventlane_escalations_sla:
     parent: logger.channel_base
     arguments: ['myeventlane_escalations_sla']

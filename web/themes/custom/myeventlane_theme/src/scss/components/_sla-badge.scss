@@ -1,0 +1,82 @@
+// ==========================================================================
+// SLA Badge
+// ==========================================================================
+// Visual indicator for escalation SLA status.
+// Used in vendor dashboard, staff dashboard, and escalation detail views.
+
+.mel-sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  &__icon {
+    font-size: 0.85rem;
+  }
+
+  &--on_track {
+    background-color: #e8f7ef;
+    color: #216e45;
+  }
+
+  &--due_soon {
+    background-color: #fff6e5;
+    color: #8a5b00;
+  }
+
+  &--overdue {
+    background-color: #fdecea;
+    color: #8a1c1c;
+  }
+
+  &--escalated {
+    background-color: #efe9fb;
+    color: #4b2c83;
+  }
+}
+
+// Friendly status banner for customer portal.
+.mel-escalation-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+
+  &__icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  &--info {
+    background-color: #e8f0fe;
+    color: #1a4d8f;
+    border: 1px solid #c5d9f2;
+  }
+
+  &--waiting {
+    background-color: #fff6e5;
+    color: #6b4400;
+    border: 1px solid #f0deb0;
+  }
+
+  &--resolved {
+    background-color: #e8f7ef;
+    color: #216e45;
+    border: 1px solid #b7e1c7;
+  }
+
+  &--closed {
+    background-color: #f5f5f5;
+    color: #555;
+    border: 1px solid #ddd;
+  }
+}

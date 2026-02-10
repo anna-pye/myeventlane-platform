@@ -6,8 +6,8 @@ namespace Drupal\myeventlane_escalations_portal\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_escalations\Entity\Escalation;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
@@ -63,7 +63,7 @@ final class CustomerEscalationController extends ControllerBase {
               '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_view', ['escalation' => $escalation->id()]),
             ],
           ],
-          'status' => $escalation->get('status')->value,
+          'status' => $this->resolveCustomerStatusLabel($escalation),
           'priority' => $escalation->get('priority')->value,
           'created' => $this->dateFormatter->format((int) $escalation->get('created')->value, 'short'),
         ];
@@ -105,7 +105,11 @@ final class CustomerEscalationController extends ControllerBase {
       return ['#markup' => $this->t('Escalation not found.')];
     }
 
+    /** @var \Drupal\myeventlane_escalations\Entity\Escalation $entity */
     $build = [];
+
+    // Friendly status banner (NO SLA badges for customers).
+    $build['status_banner'] = $this->buildCustomerStatusBanner($entity);
 
     // Escalation details (NO internal notes).
     $build['details'] = [
@@ -114,7 +118,6 @@ final class CustomerEscalationController extends ControllerBase {
       'subject' => ['#markup' => '<h2>' . htmlspecialchars((string) $entity->get('subject')->value) . '</h2>'],
       'meta' => [
         '#markup' => '<div><strong>' . $this->t('Type:') . '</strong> ' . htmlspecialchars((string) $entity->get('type')->value)
-          . ' &nbsp; <strong>' . $this->t('Status:') . '</strong> ' . htmlspecialchars((string) $entity->get('status')->value)
           . ' &nbsp; <strong>' . $this->t('Priority:') . '</strong> ' . htmlspecialchars((string) $entity->get('priority')->value)
           . '</div>',
       ],
@@ -183,6 +186,96 @@ final class CustomerEscalationController extends ControllerBase {
     $this->messenger()->addStatus($this->t('Your escalation has been reopened.'));
 
     return new RedirectResponse('/my/support/escalations/' . $escalation);
+  }
+
+  /**
+   * Builds a friendly status banner for the customer escalation view.
+   *
+   * Customers must NEVER see SLA badges, timestamps, breach flags, or
+   * escalation levels. Only friendly, gender-neutral, respectful copy.
+   *
+   * @param \Drupal\myeventlane_escalations\Entity\Escalation $escalation
+   *   The escalation entity.
+   *
+   * @return array
+   *   Render array for the status banner.
+   */
+  private function buildCustomerStatusBanner(Escalation $escalation): array {
+    $status = (string) $escalation->get('status')->value;
+    $waiting_on = $escalation->hasField('field_waiting_on')
+      ? (string) ($escalation->get('field_waiting_on')->value ?? '')
+      : '';
+
+    // Determine friendly message and visual style.
+    [$message, $variant, $icon] = match (TRUE) {
+      $status === 'resolved' => [
+        (string) $this->t('Resolved — you can reopen this if needed.'),
+        'resolved',
+        "\xE2\x9C\x85",
+      ],
+      $status === 'closed' => [
+        (string) $this->t('This escalation has been closed.'),
+        'closed',
+        "\xF0\x9F\x93\x81",
+      ],
+      $status === 'new' => [
+        (string) $this->t('Your escalation has been received and is being reviewed.'),
+        'info',
+        "\xF0\x9F\x93\xA8",
+      ],
+      $waiting_on === 'vendor' => [
+        (string) $this->t('Waiting for the organiser to respond.'),
+        'waiting',
+        "\xE2\x8F\xB3",
+      ],
+      $waiting_on === 'staff' => [
+        (string) $this->t('MyEventLane support is reviewing this.'),
+        'info',
+        "\xF0\x9F\x94\x8D",
+      ],
+      $waiting_on === 'customer' => [
+        (string) $this->t("We're waiting for your reply."),
+        'waiting',
+        "\xF0\x9F\x92\xAC",
+      ],
+      default => [
+        (string) $this->t('Your escalation is being handled.'),
+        'info',
+        "\xF0\x9F\x93\x8B",
+      ],
+    };
+
+    return [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['mel-escalation-status-banner', 'mel-escalation-status-banner--' . $variant]],
+      '#value' => '<span class="mel-escalation-status-banner__icon" aria-hidden="true">' . $icon . '</span> ' . htmlspecialchars($message),
+    ];
+  }
+
+  /**
+   * Resolves a customer-friendly status label for the list view.
+   *
+   * Customers see simplified status text, not raw field values.
+   *
+   * @param \Drupal\myeventlane_escalations\Entity\Escalation $escalation
+   *   The escalation entity.
+   *
+   * @return string
+   *   Friendly status label.
+   */
+  private function resolveCustomerStatusLabel(Escalation $escalation): string {
+    $status = (string) $escalation->get('status')->value;
+
+    return match ($status) {
+      'new' => (string) $this->t('Received'),
+      'in_progress' => (string) $this->t('In progress'),
+      'waiting_vendor' => (string) $this->t('Awaiting response'),
+      'waiting_customer' => (string) $this->t('Awaiting your reply'),
+      'resolved' => (string) $this->t('Resolved'),
+      'closed' => (string) $this->t('Closed'),
+      default => $status,
+    };
   }
 
   /**
