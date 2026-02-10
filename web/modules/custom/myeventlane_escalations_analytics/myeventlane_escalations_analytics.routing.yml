@@ -1,0 +1,26 @@
+myeventlane_escalations_analytics.staff_dashboard:
+  path: '/admin/myeventlane/escalations/analytics'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_analytics\Controller\StaffAnalyticsController::dashboard'
+    _title: 'Escalation Analytics'
+  requirements:
+    _permission: 'view escalation analytics'
+  options:
+    _admin_route: TRUE
+
+myeventlane_escalations_analytics.staff_export:
+  path: '/admin/myeventlane/escalations/analytics/export'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_analytics\Controller\StaffAnalyticsController::export'
+  requirements:
+    _permission: 'export escalation analytics'
+  options:
+    _admin_route: TRUE
+
+myeventlane_escalations_analytics.vendor_dashboard:
+  path: '/vendor/support/analytics'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_analytics\Controller\VendorAnalyticsController::dashboard'
+    _title: 'Support Analytics'
+  requirements:
+    _permission: 'view vendor escalations'

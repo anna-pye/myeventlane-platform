@@ -1,0 +1,217 @@
+// ==========================================================================
+// Escalation Analytics
+// ==========================================================================
+// KPI cards, vendor table, and health badges for analytics dashboards.
+// Used in staff and vendor escalation analytics views.
+
+// ---------------------------------------------------------------------------
+// Dashboard wrapper
+// ---------------------------------------------------------------------------
+
+.mel-analytics-dashboard {
+  max-width: 1200px;
+}
+
+// ---------------------------------------------------------------------------
+// KPI Cards Row
+// ---------------------------------------------------------------------------
+
+.mel-analytics-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.mel-analytics-kpi {
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: 220px;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1d2939;
+  }
+
+  &__label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #667085;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Section title
+// ---------------------------------------------------------------------------
+
+.mel-analytics-section {
+  margin-bottom: 28px;
+
+  &__title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #1d2939;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Analytics Table
+// ---------------------------------------------------------------------------
+
+.mel-analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  overflow: hidden;
+
+  th,
+  td {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #f2f4f7;
+  }
+
+  th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #475467;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  td {
+    color: #344054;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  // Compact variant for simple breakdowns.
+  &--compact {
+    max-width: 360px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Health Badge
+// ---------------------------------------------------------------------------
+
+.mel-health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+
+  &__icon {
+    font-size: 0.85rem;
+  }
+
+  &--healthy {
+    background-color: #e8f7ef;
+    color: #216e45;
+  }
+
+  &--attention {
+    background-color: #fff6e5;
+    color: #8a5b00;
+  }
+
+  &--risk {
+    background-color: #fdecea;
+    color: #8a1c1c;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Vendor Health Banner (vendor dashboard)
+// ---------------------------------------------------------------------------
+
+.mel-analytics-health-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+
+  &__icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  &__content {
+    flex: 1;
+  }
+
+  &__title {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  &__summary {
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  &--healthy {
+    background-color: #e8f7ef;
+    color: #216e45;
+    border: 1px solid #b7e1c7;
+  }
+
+  &--attention {
+    background-color: #fff6e5;
+    color: #6b4400;
+    border: 1px solid #f0deb0;
+  }
+
+  &--risk {
+    background-color: #fdecea;
+    color: #8a1c1c;
+    border: 1px solid #f3c3bc;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Actions (export button)
+// ---------------------------------------------------------------------------
+
+.mel-analytics-actions {
+  margin-top: 20px;
+}
+
+.mel-analytics-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

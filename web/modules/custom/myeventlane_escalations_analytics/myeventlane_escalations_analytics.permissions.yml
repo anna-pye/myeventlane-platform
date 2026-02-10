@@ -1,0 +1,9 @@
+view escalation analytics:
+  title: 'View escalation analytics'
+  description: 'View escalation analytics dashboards and vendor health metrics.'
+  restrict access: true
+
+export escalation analytics:
+  title: 'Export escalation analytics'
+  description: 'Export escalation analytics data as CSV.'
+  restrict access: true
