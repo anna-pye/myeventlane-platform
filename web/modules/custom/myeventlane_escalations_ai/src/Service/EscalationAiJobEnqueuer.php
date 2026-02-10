@@ -28,11 +28,13 @@ final class EscalationAiJobEnqueuer {
    * @param int $escalation_id
    *   The escalation entity ID.
    * @param string $task
-   *   One of: triage, reply_suggestion, risk_flag, summary.
+   *   One of: triage, reply_suggestion, risk_flag, breach_soon.
    * @param int|null $requested_by_uid
    *   UID of the staff member who triggered this, if applicable.
+   * @param array $metadata
+   *   Optional metadata to include in the queue item (e.g. hours_remaining).
    */
-  public function enqueue(int $escalation_id, string $task, ?int $requested_by_uid = NULL): void {
+  public function enqueue(int $escalation_id, string $task, ?int $requested_by_uid = NULL, array $metadata = []): void {
     $queue = $this->queueFactory->get(self::QUEUE_NAME, TRUE);
 
     $item = [
@@ -40,7 +42,7 @@ final class EscalationAiJobEnqueuer {
       'task' => $task,
       'requested_by_uid' => $requested_by_uid,
       'created' => time(),
-    ];
+    ] + $metadata;
 
     $queue->createItem($item);
 

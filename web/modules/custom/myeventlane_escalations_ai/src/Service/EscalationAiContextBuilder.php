@@ -69,6 +69,80 @@ final class EscalationAiContextBuilder {
   }
 
   /**
+   * Builds a sanitised context with the public comment thread included.
+   *
+   * Use this for tasks that need conversation history (e.g. breach_soon).
+   * Only public messages from field_escalation_thread are included.
+   * Internal notes are NEVER included.
+   *
+   * @param int $escalation_id
+   *   The escalation entity ID.
+   *
+   * @return array
+   *   Context array with a 'thread' key containing sanitised messages.
+   */
+  public function buildWithThread(int $escalation_id): array {
+    $context = $this->build($escalation_id);
+
+    if (isset($context['error'])) {
+      return $context;
+    }
+
+    $context['thread'] = $this->loadSanitizedThread($escalation_id);
+
+    return $context;
+  }
+
+  /**
+   * Loads and sanitises the public comment thread for an escalation.
+   *
+   * @param int $escalation_id
+   *   The escalation entity ID.
+   *
+   * @return array
+   *   Array of sanitised message objects.
+   */
+  private function loadSanitizedThread(int $escalation_id): array {
+    try {
+      $comment_storage = $this->entityTypeManager->getStorage('comment');
+    }
+    catch (\Throwable) {
+      // Comment module not installed or entity type missing.
+      return [];
+    }
+
+    $cids = $comment_storage->getQuery()
+      ->condition('entity_type', 'escalation')
+      ->condition('entity_id', $escalation_id)
+      ->condition('field_name', 'field_escalation_thread')
+      ->sort('created', 'ASC')
+      ->range(0, 20)
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (empty($cids)) {
+      return [];
+    }
+
+    $comments = $comment_storage->loadMultiple($cids);
+    $messages = [];
+
+    foreach ($comments as $comment) {
+      $author = $comment->getOwner();
+      $author_name = $author ? $author->getDisplayName() : 'Unknown';
+      $body = (string) ($comment->get('comment_body')->value ?? '');
+
+      $messages[] = [
+        'author' => $this->sanitizeText((string) $author_name),
+        'body' => $this->sanitizeText($body),
+        'created' => (int) $comment->getCreatedTime(),
+      ];
+    }
+
+    return $messages;
+  }
+
+  /**
    * Sanitises text by masking emails and phone numbers.
    *
    * @param string $text

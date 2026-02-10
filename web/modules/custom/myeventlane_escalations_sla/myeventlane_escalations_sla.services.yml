@@ -15,6 +15,10 @@ services:
     class: Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver
     arguments: ['@datetime.time']
 
+  myeventlane_escalations_sla.risk_detector:
+    class: Drupal\myeventlane_escalations_sla\Service\SlaRiskDetector
+    arguments: ['@datetime.time', '@config.factory']
+
   logger.channel.myeventlane_escalations_sla:
     parent: logger.channel_base
     arguments: ['myeventlane_escalations_sla']

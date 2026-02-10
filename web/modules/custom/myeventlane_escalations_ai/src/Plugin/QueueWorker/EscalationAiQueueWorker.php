@@ -72,7 +72,14 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
     }
 
     // Build sanitised context.
-    $context = $this->contextBuilder->build($escalation_id);
+    // For breach_soon: include conversation thread (public messages only).
+    if ($task === 'breach_soon') {
+      $context = $this->contextBuilder->buildWithThread($escalation_id);
+    }
+    else {
+      $context = $this->contextBuilder->build($escalation_id);
+    }
+
     $context_json = json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     // Truncate if too large.
@@ -93,8 +100,16 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
       return;
     }
 
-    // Compose prompt.
+    // Compose prompt with all available replacements.
     $prompt = str_replace('{{context_json}}', $context_json, $prompt_template);
+
+    // Replace additional metadata tokens (e.g. breach_soon passes hours_remaining).
+    if (isset($data['hours_remaining'])) {
+      $prompt = str_replace('{{hours_remaining}}', (string) $data['hours_remaining'], $prompt);
+    }
+    if (isset($data['waiting_on'])) {
+      $prompt = str_replace('{{waiting_on}}', (string) $data['waiting_on'], $prompt);
+    }
 
     // Call AI provider via AiManager.
     $provider_options = (array) ($settings->get('ai_options.provider_options') ?? []);
@@ -121,6 +136,8 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
 
   /**
    * Stores an AI insight entity (append-only).
+   *
+   * All saves are wrapped in try/catch to fail safely.
    */
   private function storeInsight(
     int $escalation_id,

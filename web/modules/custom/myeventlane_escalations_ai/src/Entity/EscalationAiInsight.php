@@ -57,6 +57,7 @@ final class EscalationAiInsight extends ContentEntityBase implements EscalationA
         'reply_suggestion' => 'Reply suggestion',
         'summary' => 'Summary',
         'risk_flag' => 'Risk flag',
+        'breach_soon' => 'Breach soon advisory',
       ]);
 
     $fields['confidence'] = BaseFieldDefinition::create('string')

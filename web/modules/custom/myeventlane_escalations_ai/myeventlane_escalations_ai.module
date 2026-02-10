@@ -67,6 +67,7 @@ function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void
  * Implements hook_entity_view().
  *
  * Injects a staff-only "AI Insights" panel into the escalation view.
+ * Vendors and customers NEVER see this panel.
  */
 function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
   if ($entity->getEntityTypeId() !== 'escalation') {
@@ -82,7 +83,7 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
   $ids = \Drupal::entityQuery('escalation_ai_insight')
     ->condition('escalation_id', (int) $entity->id())
     ->sort('created', 'DESC')
-    ->range(0, 5)
+    ->range(0, 10)
     ->accessCheck(FALSE)
     ->execute();
 
@@ -97,6 +98,12 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
       $status = (string) $insight->get('status')->value;
       $created = (int) $insight->get('created')->value;
       $payload = (string) $insight->get('payload_json')->value;
+
+      // Breach soon insights get a structured, friendly render.
+      if ($type === 'breach_soon') {
+        $items[] = _myeventlane_escalations_ai_render_breach_soon($insight, $date_formatter, $created, $status, $payload);
+        continue;
+      }
 
       $title = strtoupper($type) . ' — ' . ($status === 'ok' ? 'OK' : 'ERROR') . ' — ' . $date_formatter->format($created, 'short');
 
@@ -158,5 +165,107 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
   $build['myeventlane_ai_insights'] = [
     '#weight' => 99,
     'panel' => $panel,
+  ];
+}
+
+/**
+ * Renders a breach_soon insight with structured display.
+ *
+ * Shows risk_level, reason, and suggested_staff_action in a friendly format.
+ * No action buttons — advisory only.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $insight
+ *   The AI insight entity.
+ * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+ *   The date formatter service.
+ * @param int $created
+ *   Insight creation timestamp.
+ * @param string $status
+ *   ok or error.
+ * @param string $payload
+ *   Raw JSON payload string.
+ *
+ * @return array
+ *   Render array for this insight.
+ */
+function _myeventlane_escalations_ai_render_breach_soon($insight, $date_formatter, int $created, string $status, string $payload): array {
+  $title = 'BREACH SOON — AI advisory — ' . ($status === 'ok' ? 'OK' : 'ERROR') . ' — ' . $date_formatter->format($created, 'short');
+
+  // Parse payload for structured display.
+  $parsed = @json_decode($payload, TRUE);
+  $is_structured = is_array($parsed) && isset($parsed['risk_level']);
+
+  if ($status !== 'ok' || !$is_structured) {
+    // Error or unparseable: fall back to raw display.
+    $error = (string) $insight->get('error_message')->value;
+    return [
+      '#type' => 'details',
+      '#title' => $title,
+      '#open' => ($status === 'error'),
+      'meta' => [
+        '#markup' => '<div class="description" style="margin-bottom: 8px;">'
+          . '<em>AI advisory — staff only</em> &middot; '
+          . '<strong>Provider:</strong> ' . htmlspecialchars((string) $insight->get('provider')->value)
+          . '</div>',
+      ],
+      'error' => $error ? [
+        '#markup' => '<div style="color: #8a1c1c; margin-bottom: 8px;"><strong>Error:</strong> ' . htmlspecialchars($error) . '</div>',
+      ] : [],
+      'payload' => [
+        '#type' => 'html_tag',
+        '#tag' => 'pre',
+        '#value' => htmlspecialchars($payload),
+        '#attributes' => [
+          'style' => 'white-space: pre-wrap; word-break: break-word; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e6e6e6;',
+        ],
+      ],
+    ];
+  }
+
+  // Structured display for successful breach_soon insight.
+  $risk_level = htmlspecialchars((string) ($parsed['risk_level'] ?? 'unknown'));
+  $reason = htmlspecialchars((string) ($parsed['reason'] ?? ''));
+  $action = htmlspecialchars((string) ($parsed['suggested_staff_action'] ?? ''));
+  $draft_chase = htmlspecialchars((string) ($parsed['draft_chase_message'] ?? ''));
+
+  // Risk level color mapping.
+  $risk_colors = [
+    'low' => '#216e45',
+    'medium' => '#8a5b00',
+    'high' => '#b94600',
+    'critical' => '#8a1c1c',
+  ];
+  $risk_color = $risk_colors[$parsed['risk_level'] ?? ''] ?? '#555';
+
+  $body_markup = '<div style="margin-top: 8px;">';
+  $body_markup .= '<div style="margin-bottom: 10px;"><strong>Risk level:</strong> <span style="color: ' . $risk_color . '; font-weight: 600;">' . strtoupper($risk_level) . '</span></div>';
+  if ($reason !== '') {
+    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Reason:</strong> ' . $reason . '</div>';
+  }
+  if ($action !== '') {
+    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Suggested action:</strong> ' . $action . '</div>';
+  }
+  if ($draft_chase !== '') {
+    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Draft chase message:</strong></div>';
+    $body_markup .= '<blockquote style="margin: 4px 0 0 0; padding: 10px 14px; border-left: 3px solid #ccc; background: #f9f9f9; border-radius: 6px;">' . nl2br($draft_chase) . '</blockquote>';
+  }
+  $body_markup .= '</div>';
+
+  return [
+    '#type' => 'details',
+    '#title' => $title,
+    '#open' => TRUE,
+    '#attributes' => [
+      'style' => 'border: 1px solid #e9d9f5; border-radius: 10px; background: rgba(245,240,255,0.5); padding: 2px;',
+    ],
+    'meta' => [
+      '#markup' => '<div class="description" style="margin-bottom: 4px;">'
+        . '<em>AI advisory — staff only — no actions are auto-applied</em> &middot; '
+        . '<strong>Provider:</strong> ' . htmlspecialchars((string) $insight->get('provider')->value)
+        . '</div>',
+    ],
+    'body' => [
+      '#markup' => $body_markup,
+    ],
   ];
 }

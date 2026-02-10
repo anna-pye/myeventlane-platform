@@ -21,3 +21,5 @@ escalation_thresholds:
     level: 3
 breach_emails:
   enabled: true
+risk_detection:
+  threshold_hours: 6

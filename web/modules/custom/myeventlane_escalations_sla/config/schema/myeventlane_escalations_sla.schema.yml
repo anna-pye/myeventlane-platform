@@ -69,3 +69,10 @@ myeventlane_escalations_sla.settings:
         enabled:
           type: boolean
           label: 'Enabled'
+    risk_detection:
+      type: mapping
+      label: 'Risk detection settings'
+      mapping:
+        threshold_hours:
+          type: integer
+          label: 'Hours before SLA due to trigger risk detection'

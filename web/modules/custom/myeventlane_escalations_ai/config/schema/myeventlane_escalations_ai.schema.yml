@@ -39,6 +39,16 @@ myeventlane_escalations_ai.settings:
             template:
               type: string
               label: 'Template'
+        breach_soon:
+          type: mapping
+          label: 'Breach soon advisory prompt'
+          mapping:
+            version:
+              type: string
+              label: 'Version'
+            template:
+              type: string
+              label: 'Template'
     ai_options:
       type: mapping
       label: 'AI options'
