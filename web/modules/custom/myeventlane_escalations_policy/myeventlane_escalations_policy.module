@@ -1,0 +1,107 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations Policy module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+
+/**
+ * Implements hook_cron().
+ *
+ * Runs the vendor policy evaluator once per ISO week.
+ * If the current week has already been evaluated, this is a no-op.
+ * Triggered vendors receive a staff review escalation or staff email,
+ * depending on the configured action_mode.
+ */
+function myeventlane_escalations_policy_cron(): void {
+  /** @var \Drupal\myeventlane_escalations_policy\Service\PolicyWeek $policy_week */
+  $policy_week = \Drupal::service('myeventlane_escalations_policy.policy_week');
+  $current_week = $policy_week->current();
+
+  // Check if we already ran this week.
+  $state = \Drupal::state();
+  $last_run_week = $state->get('myeventlane_escalations_policy.last_run_week', '');
+
+  if ($last_run_week === $current_week) {
+    return;
+  }
+
+  /** @var \Psr\Log\LoggerInterface $logger */
+  $logger = \Drupal::service('logger.channel.myeventlane_escalations_policy');
+  $logger->info('Policy cron: starting weekly evaluation for week {week}.', [
+    'week' => $current_week,
+  ]);
+
+  try {
+    /** @var \Drupal\myeventlane_escalations_policy\Service\VendorPolicyEvaluator $evaluator */
+    $evaluator = \Drupal::service('myeventlane_escalations_policy.evaluator');
+    $decisions = $evaluator->evaluateAll();
+
+    /** @var \Drupal\myeventlane_escalations_policy\Service\PolicyActionHandler $action_handler */
+    $action_handler = \Drupal::service('myeventlane_escalations_policy.action_handler');
+
+    /** @var EntityTypeManagerInterface $entity_type_manager */
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $vendor_storage = $entity_type_manager->getStorage('myeventlane_vendor');
+
+    $triggered_count = 0;
+
+    foreach ($decisions as $vid => $decision) {
+      if (!$decision['trigger']) {
+        continue;
+      }
+
+      $vendor = $vendor_storage->load($vid);
+      $vendor_name = $vendor ? (string) $vendor->label() : 'Unknown (#' . $vid . ')';
+
+      $action_handler->handle(
+        vendor_id: $vid,
+        vendor_name: $vendor_name,
+        risk_streak: $decision['risk_streak'],
+        bucket: $decision['bucket'],
+        metrics: $decision['metrics'],
+      );
+
+      $triggered_count++;
+    }
+
+    // Mark this week as complete.
+    $state->set('myeventlane_escalations_policy.last_run_week', $current_week);
+    $state->set('myeventlane_escalations_policy.last_run_timestamp', \Drupal::time()->getRequestTime());
+
+    $logger->info('Policy cron: completed for week {week}. Evaluated {total} vendors, triggered {triggered}.', [
+      'week' => $current_week,
+      'total' => count($decisions),
+      'triggered' => $triggered_count,
+    ]);
+  }
+  catch (\Throwable $e) {
+    $logger->error('Policy cron: failed with error: {error}', [
+      'error' => $e->getMessage(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function myeventlane_escalations_policy_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'policy_review') {
+    return;
+  }
+
+  $vendor_name = $params['vendor_name'] ?? 'Unknown vendor';
+  $risk_streak = $params['risk_streak'] ?? 0;
+  $summary = $params['summary'] ?? '';
+
+  $message['subject'] = t('Escalation policy review: @vendor (@streak consecutive weeks at risk)', [
+    '@vendor' => $vendor_name,
+    '@streak' => $risk_streak,
+  ]);
+
+  $message['body'][] = $summary;
+}

@@ -1,0 +1,9 @@
+administer escalation policy:
+  title: 'Administer escalation policy'
+  description: 'Configure automated escalation policy settings.'
+  restrict access: true
+
+view escalation policy report:
+  title: 'View escalation policy report'
+  description: 'View vendor risk streak and policy trigger history.'
+  restrict access: true

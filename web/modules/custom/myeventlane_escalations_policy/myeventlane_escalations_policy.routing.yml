@@ -1,0 +1,9 @@
+myeventlane_escalations_policy.report:
+  path: '/admin/myeventlane/escalations/policy'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_policy\Controller\PolicyReportController::report'
+    _title: 'Escalation Policy Report'
+  requirements:
+    _permission: 'view escalation policy report'
+  options:
+    _admin_route: TRUE

@@ -1,0 +1,6 @@
+threshold_weeks: 3
+cooldown_weeks: 4
+evaluation_window_days: 7
+action_mode: create_escalation
+staff_notification_emails: []
+run_day: Monday

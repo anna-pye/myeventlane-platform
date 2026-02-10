@@ -1,0 +1,8 @@
+name: 'MyEventLane Escalations Policy'
+type: module
+description: 'Automated weekly policy evaluation for vendors with sustained at-risk escalation health.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_analytics:myeventlane_escalations_analytics
