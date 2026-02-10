@@ -1,0 +1,7 @@
+name: 'MyEventLane AI'
+type: module
+description: 'Generic AI provider abstraction and utilities for MyEventLane.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - drupal:system

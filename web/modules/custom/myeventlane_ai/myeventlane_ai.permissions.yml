@@ -1,0 +1,4 @@
+administer myeventlane ai:
+  title: 'Administer MyEventLane AI'
+  description: 'Manage AI settings and provider configuration.'
+  restrict access: true

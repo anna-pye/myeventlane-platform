@@ -1,0 +1,39 @@
+myeventlane_ai.settings:
+  type: config_object
+  label: 'MyEventLane AI settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    provider:
+      type: string
+      label: 'Provider'
+    openai:
+      type: mapping
+      label: 'OpenAI settings'
+      mapping:
+        endpoint:
+          type: string
+          label: 'Endpoint'
+        model:
+          type: string
+          label: 'Model'
+        timeout_seconds:
+          type: integer
+          label: 'Timeout seconds'
+        max_tokens:
+          type: integer
+          label: 'Max tokens'
+        temperature:
+          type: float
+          label: 'Temperature'
+    rate_limit:
+      type: mapping
+      label: 'Rate limits'
+      mapping:
+        per_user_per_hour:
+          type: integer
+          label: 'Per user per hour'
+        per_scope_per_10_min:
+          type: integer
+          label: 'Per scope per 10 minutes'
