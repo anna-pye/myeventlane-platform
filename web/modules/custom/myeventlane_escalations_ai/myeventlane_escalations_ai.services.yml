@@ -1,0 +1,12 @@
+services:
+  myeventlane_escalations_ai.context_builder:
+    class: Drupal\myeventlane_escalations_ai\Service\EscalationAiContextBuilder
+    arguments: ['@entity_type.manager', '@current_user', '@logger.channel.myeventlane_escalations_ai']
+
+  myeventlane_escalations_ai.job_enqueuer:
+    class: Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer
+    arguments: ['@queue', '@logger.channel.myeventlane_escalations_ai']
+
+  logger.channel.myeventlane_escalations_ai:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_ai']

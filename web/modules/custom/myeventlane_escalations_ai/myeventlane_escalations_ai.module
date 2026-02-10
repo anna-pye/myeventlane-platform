@@ -1,0 +1,162 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations AI module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Enqueue a triage AI job when a new escalation is created.
+ */
+function myeventlane_escalations_ai_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer $enqueuer */
+  $enqueuer = \Drupal::service('myeventlane_escalations_ai.job_enqueuer');
+  $enqueuer->enqueue((int) $entity->id(), 'triage', (int) \Drupal::currentUser()->id());
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Enqueue a risk_flag AI job when an escalation's description changes
+ * and the escalation is not already resolved/closed (avoid spam).
+ */
+function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if (!$entity->hasField('description')) {
+    return;
+  }
+
+  // Skip resolved/closed escalations.
+  $status = $entity->hasField('status') ? (string) $entity->get('status')->value : '';
+  if (in_array($status, ['resolved', 'closed'], TRUE)) {
+    return;
+  }
+
+  // Compare current description with original to detect actual changes.
+  if (!isset($entity->original)) {
+    return;
+  }
+
+  $old_desc = (string) $entity->original->get('description')->value;
+  $new_desc = (string) $entity->get('description')->value;
+
+  if ($old_desc === $new_desc) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer $enqueuer */
+  $enqueuer = \Drupal::service('myeventlane_escalations_ai.job_enqueuer');
+  $enqueuer->enqueue((int) $entity->id(), 'risk_flag', (int) \Drupal::currentUser()->id());
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Injects a staff-only "AI Insights" panel into the escalation view.
+ */
+function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('view escalation ai insights')) {
+    return;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('escalation_ai_insight');
+  $ids = \Drupal::entityQuery('escalation_ai_insight')
+    ->condition('escalation_id', (int) $entity->id())
+    ->sort('created', 'DESC')
+    ->range(0, 5)
+    ->accessCheck(FALSE)
+    ->execute();
+
+  $items = [];
+  if ($ids) {
+    $insights = $storage->loadMultiple($ids);
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = \Drupal::service('date.formatter');
+
+    foreach ($insights as $insight) {
+      $type = (string) $insight->get('insight_type')->value;
+      $status = (string) $insight->get('status')->value;
+      $created = (int) $insight->get('created')->value;
+      $payload = (string) $insight->get('payload_json')->value;
+
+      $title = strtoupper($type) . ' — ' . ($status === 'ok' ? 'OK' : 'ERROR') . ' — ' . $date_formatter->format($created, 'short');
+
+      $items[] = [
+        '#type' => 'details',
+        '#title' => $title,
+        '#open' => FALSE,
+        'meta' => [
+          '#markup' => '<div class="description"><strong>Prompt:</strong> '
+            . htmlspecialchars((string) $insight->get('prompt_version')->value)
+            . ' <strong>Provider:</strong> '
+            . htmlspecialchars((string) $insight->get('provider')->value)
+            . '</div>',
+        ],
+        'payload' => [
+          '#type' => 'html_tag',
+          '#tag' => 'pre',
+          '#value' => htmlspecialchars($payload),
+          '#attributes' => [
+            'style' => 'white-space: pre-wrap; word-break: break-word; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e6e6e6;',
+          ],
+        ],
+      ];
+    }
+  }
+
+  $generate_url = \Drupal\Core\Url::fromRoute('myeventlane_escalations_ai.generate_draft', ['escalation' => (int) $entity->id()]);
+  $actions = [];
+  if ($account->hasPermission('generate escalation ai drafts')) {
+    $actions = [
+      '#type' => 'link',
+      '#title' => t('Generate AI reply draft'),
+      '#url' => $generate_url,
+      '#attributes' => [
+        'class' => ['button', 'button--small'],
+      ],
+    ];
+  }
+
+  $panel = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-ai-insights'],
+      'style' => 'margin-top: 18px; padding: 16px; border-radius: 14px; border: 1px solid #e9e3f5; background: rgba(250,248,255,0.7);',
+    ],
+    'header' => [
+      '#markup' => '<h3 style="margin:0 0 10px 0;">AI Insights (staff)</h3><div class="description">Suggestions only. Nothing is auto-sent or auto-applied.</div>',
+    ],
+    'actions' => $actions,
+    'list' => [
+      '#type' => 'container',
+      '#attributes' => ['style' => 'margin-top: 12px;'],
+      'items' => $items ?: [
+        '#markup' => '<div class="description">No AI insights yet.</div>',
+      ],
+    ],
+  ];
+
+  $build['myeventlane_ai_insights'] = [
+    '#weight' => 99,
+    'panel' => $panel,
+  ];
+}

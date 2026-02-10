@@ -296,6 +296,16 @@ final class Escalation extends ContentEntityBase implements EscalationInterface 
   }
 
   /**
+   * Gets the creation timestamp.
+   *
+   * @return int
+   *   The UNIX timestamp of when the escalation was created.
+   */
+  public function getCreatedTime(): int {
+    return (int) $this->get('created')->value;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getSubject(): string {
