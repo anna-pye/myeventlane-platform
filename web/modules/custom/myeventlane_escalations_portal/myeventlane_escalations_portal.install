@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall hooks for myeventlane_escalations_portal.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_escalations_portal_install(): void {
+  \Drupal::logger('myeventlane_escalations_portal')->info('Escalations Portal module installed. Comment type escalation_thread created. Customer and vendor portal routes are now available.');
+}

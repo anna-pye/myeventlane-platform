@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+    - myeventlane_escalations
+id: escalation.field_escalation_thread
+field_name: field_escalation_thread
+entity_type: escalation
+type: comment
+settings:
+  comment_type: escalation_thread
+module: comment
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

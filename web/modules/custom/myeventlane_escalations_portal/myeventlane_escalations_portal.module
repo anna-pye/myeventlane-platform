@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations Portal module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_mail().
+ *
+ * All templates: friendly, respectful, gender-neutral, Australian English.
+ */
+function myeventlane_escalations_portal_mail(string $key, array &$message, array $params): void {
+  /** @var \Drupal\Core\Entity\EntityInterface|null $escalation */
+  $escalation = $params['escalation'] ?? NULL;
+  $portal_url = $params['portal_url'] ?? '';
+  $subject_text = $escalation ? (string) $escalation->get('subject')->value : 'Escalation';
+  $escalation_id = $escalation ? (int) $escalation->id() : '?';
+
+  // Build absolute URL.
+  $base_url = \Drupal::request()->getSchemeAndHttpHost();
+  $link = $base_url . $portal_url;
+
+  switch ($key) {
+    case 'escalation_new_vendor':
+      $message['subject'] = t('New support escalation: @subject (#@id)', [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+      ]);
+      $message['body'][] = t("Hello,\n\nA new support escalation has been submitted and assigned to your vendor account.\n\nSubject: @subject\n\nPlease review and respond at your earliest convenience:\n@link\n\nThank you,\nMyEventLane Support", [
+        '@subject' => $subject_text,
+        '@link' => $link,
+      ]);
+      break;
+
+    case 'escalation_comment_customer':
+      $message['subject'] = t('New reply on your escalation: @subject (#@id)', [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+      ]);
+      $message['body'][] = t("Hello,\n\nA new reply has been posted on your support escalation.\n\nSubject: @subject\n\nYou can view the full conversation here:\n@link\n\nKind regards,\nMyEventLane Support", [
+        '@subject' => $subject_text,
+        '@link' => $link,
+      ]);
+      break;
+
+    case 'escalation_comment_vendor':
+      $message['subject'] = t('Customer reply on escalation: @subject (#@id)', [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+      ]);
+      $message['body'][] = t("Hello,\n\nThe customer has posted a new reply on escalation #@id.\n\nSubject: @subject\n\nPlease review and respond:\n@link\n\nThank you,\nMyEventLane Support", [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+        '@link' => $link,
+      ]);
+      break;
+
+    case 'escalation_resolved':
+      $message['subject'] = t('Your escalation has been resolved: @subject (#@id)', [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+      ]);
+      $message['body'][] = t("Hello,\n\nYour support escalation has been marked as resolved.\n\nSubject: @subject\n\nIf you believe this issue is not fully resolved, you can request to reopen it:\n@link\n\nThank you for your patience.\n\nKind regards,\nMyEventLane Support", [
+        '@subject' => $subject_text,
+        '@link' => $link,
+      ]);
+      break;
+
+    case 'escalation_reopened':
+      $message['subject'] = t('Escalation reopened: @subject (#@id)', [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+      ]);
+      $message['body'][] = t("Hello,\n\nEscalation #@id has been reopened and requires your attention.\n\nSubject: @subject\n\nPlease review and respond:\n@link\n\nThank you,\nMyEventLane Support", [
+        '@subject' => $subject_text,
+        '@id' => $escalation_id,
+        '@link' => $link,
+      ]);
+      break;
+  }
+}

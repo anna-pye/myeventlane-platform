@@ -1,0 +1,16 @@
+services:
+  myeventlane_escalations_portal.party_resolver:
+    class: Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver
+    arguments: ['@myeventlane_vendor.current_vendor_resolver', '@logger.channel.myeventlane_escalations_portal']
+
+  myeventlane_escalations_portal.mailer:
+    class: Drupal\myeventlane_escalations_portal\Service\EscalationMailer
+    arguments: ['@plugin.manager.mail', '@entity_type.manager', '@myeventlane_escalations_portal.party_resolver', '@logger.channel.myeventlane_escalations_portal']
+
+  myeventlane_escalations_portal.access:
+    class: Drupal\myeventlane_escalations_portal\Access\EscalationPortalAccess
+    arguments: ['@entity_type.manager', '@myeventlane_escalations_portal.party_resolver']
+
+  logger.channel.myeventlane_escalations_portal:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_portal']

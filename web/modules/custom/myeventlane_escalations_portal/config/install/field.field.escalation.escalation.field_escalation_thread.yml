@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.escalation_thread
+    - field.storage.escalation.field_escalation_thread
+  module:
+    - comment
+id: escalation.escalation.field_escalation_thread
+field_name: field_escalation_thread
+entity_type: escalation
+bundle: escalation
+label: 'Support Thread'
+description: 'Customer and vendor communication thread for this escalation.'
+required: false
+translatable: false
+default_value:
+  - status: 2
+    cid: 0
+    last_comment_timestamp: 0
+    last_comment_name: null
+    last_comment_uid: 0
+    comment_count: 0
+default_value_callback: ''
+settings:
+  default_mode: 1
+  per_page: 50
+  anonymous: 0
+  form_location: true
+  preview: 0
+field_type: comment
