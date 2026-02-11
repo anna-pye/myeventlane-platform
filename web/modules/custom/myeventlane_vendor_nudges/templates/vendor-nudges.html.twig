@@ -1,0 +1,47 @@
+{#
+/**
+ * @file
+ * Template for vendor educational nudges.
+ *
+ * Displays optional, non-punitive helpful tips on the vendor dashboard.
+ * Only rendered for vendors who have explicitly opted in.
+ *
+ * Available variables:
+ * - heading: The section heading (default: "Helpful tips").
+ * - nudges: An array of nudge items, each containing:
+ *   - id: The nudge machine name.
+ *   - label: The nudge title.
+ *   - message: The nudge body text (friendly, neutral Australian English).
+ *   - learn_more_url: Optional URL for further reading.
+ */
+#}
+{% if nudges is not empty %}
+  <aside class="vendor-nudges" role="complementary" aria-label="{{ heading }}">
+    <h3 class="vendor-nudges__heading">{{ heading }}</h3>
+
+    <div class="vendor-nudges__list">
+      {% for nudge in nudges %}
+        <div class="vendor-nudges__card" data-nudge-id="{{ nudge.id }}">
+          <div class="vendor-nudges__card-content">
+            <h4 class="vendor-nudges__card-label">{{ nudge.label }}</h4>
+            <p class="vendor-nudges__card-message">{{ nudge.message }}</p>
+
+            {% if nudge.learn_more_url %}
+              <a href="{{ nudge.learn_more_url }}" class="vendor-nudges__learn-more">
+                {{ 'Learn more'|t }}
+                <span class="visually-hidden">{{ 'about'|t }} {{ nudge.label }}</span>
+              </a>
+            {% endif %}
+          </div>
+
+          <button type="button"
+                  class="vendor-nudges__dismiss"
+                  aria-label="{{ 'Dismiss tip:'|t }} {{ nudge.label }}"
+                  data-nudge-dismiss="{{ nudge.id }}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+  </aside>
+{% endif %}

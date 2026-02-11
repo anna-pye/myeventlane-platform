@@ -1,0 +1,120 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Vendor Nudges module.
+ *
+ * Provides optional, non-punitive educational nudges on vendor dashboards.
+ * All nudges are informational only — no penalties, no scoring, no
+ * behavioural enforcement. Vendors must explicitly opt in.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+
+/**
+ * Implements hook_entity_base_field_info().
+ *
+ * Adds a 'nudges_enabled' boolean field to the Vendor entity, allowing
+ * vendors to explicitly opt in to educational nudges. Defaults to FALSE.
+ */
+function myeventlane_vendor_nudges_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  $fields = [];
+
+  if ($entity_type->id() === 'myeventlane_vendor') {
+    $fields['nudges_enabled'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Enable helpful tips'))
+      ->setDescription(new TranslatableMarkup('Opt in to receive helpful tips on your dashboard.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 100,
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_vendor_nudges_theme(): array {
+  return [
+    'vendor_nudges' => [
+      'variables' => [
+        'nudges' => [],
+        'heading' => 'Helpful tips',
+      ],
+      'template' => 'vendor-nudges',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Injects educational nudges into vendor entity views on vendor
+ * dashboard routes only. Never shown on admin or customer routes.
+ *
+ * HARD RULES:
+ * - Never shows nudges unless vendor opted in (enforced by evaluator).
+ * - Never on admin routes.
+ * - Never on customer-facing routes.
+ * - Only on vendor console dashboard routes.
+ */
+function myeventlane_vendor_nudges_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, string $view_mode): void {
+  if ($entity->getEntityTypeId() !== 'myeventlane_vendor') {
+    return;
+  }
+
+  if (!$entity instanceof Vendor) {
+    return;
+  }
+
+  // Only inject on vendor console dashboard routes.
+  $routeName = \Drupal::routeMatch()->getRouteName();
+  if (!$routeName || !str_starts_with($routeName, 'myeventlane_vendor.console.')) {
+    return;
+  }
+
+  // Never on admin routes.
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return;
+  }
+
+  // Check permission.
+  if (!\Drupal::currentUser()->hasPermission('view vendor nudges')) {
+    return;
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_vendor_nudges\Service\VendorNudgeEvaluator $evaluator */
+    $evaluator = \Drupal::service('myeventlane_vendor_nudges.evaluator');
+    $nudges = $evaluator->evaluate($entity);
+
+    if (empty($nudges)) {
+      return;
+    }
+
+    /** @var \Drupal\myeventlane_vendor_nudges\Service\VendorNudgeRenderer $renderer */
+    $renderer = \Drupal::service('myeventlane_vendor_nudges.renderer');
+    $build['vendor_nudges'] = $renderer->build($nudges);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_vendor_nudges')->error('Failed to render vendor nudges for vendor @id: @error', [
+      '@id' => $entity->id(),
+      '@error' => $e->getMessage(),
+    ]);
+  }
+}

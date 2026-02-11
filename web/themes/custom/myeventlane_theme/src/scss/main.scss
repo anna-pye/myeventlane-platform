@@ -119,6 +119,8 @@
 @use 'vendor/vendor-dashboard-onboarding';
 @use 'components/sla-badge';
 @use 'components/escalation-analytics';
+@use 'components/escalation-capacity';
+@use 'components/vendor-nudges';
 
 // ---------------------------------------------------------------------------
 // 6. Pages

@@ -1,0 +1,44 @@
+services:
+  myeventlane_vendor_nudges.evaluator:
+    class: Drupal\myeventlane_vendor_nudges\Service\VendorNudgeEvaluator
+    arguments:
+      - '@myeventlane_vendor_nudges.registry'
+      - '@myeventlane_escalations_analytics.query'
+      - '@myeventlane_escalations_analytics.metrics'
+      - '@myeventlane_escalations_analytics.health'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_vendor_nudges'
+
+  myeventlane_vendor_nudges.registry:
+    class: Drupal\myeventlane_vendor_nudges\Service\VendorNudgeRegistry
+    arguments:
+      - !tagged_iterator myeventlane_vendor_nudge
+
+  myeventlane_vendor_nudges.renderer:
+    class: Drupal\myeventlane_vendor_nudges\Service\VendorNudgeRenderer
+
+  # Nudge implementations (tagged for automatic collection).
+  myeventlane_vendor_nudges.nudge.response_time:
+    class: Drupal\myeventlane_vendor_nudges\Nudge\ResponseTimeNudge
+    tags:
+      - { name: myeventlane_vendor_nudge }
+
+  myeventlane_vendor_nudges.nudge.refund_clarity:
+    class: Drupal\myeventlane_vendor_nudges\Nudge\RefundClarityNudge
+    tags:
+      - { name: myeventlane_vendor_nudge }
+
+  myeventlane_vendor_nudges.nudge.escalation_volume:
+    class: Drupal\myeventlane_vendor_nudges\Nudge\EscalationVolumeNudge
+    tags:
+      - { name: myeventlane_vendor_nudge }
+
+  myeventlane_vendor_nudges.nudge.policy_setup:
+    class: Drupal\myeventlane_vendor_nudges\Nudge\PolicySetupNudge
+    tags:
+      - { name: myeventlane_vendor_nudge }
+
+  logger.channel.myeventlane_vendor_nudges:
+    parent: logger.channel_base
+    arguments: ['myeventlane_vendor_nudges']
