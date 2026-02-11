@@ -13,38 +13,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_vendor\Entity\Vendor;
-
-/**
- * Implements hook_entity_base_field_info().
- *
- * Adds a 'nudges_enabled' boolean field to the Vendor entity, allowing
- * vendors to explicitly opt in to educational nudges. Defaults to FALSE.
- */
-function myeventlane_vendor_nudges_entity_base_field_info(EntityTypeInterface $entity_type): array {
-  $fields = [];
-
-  if ($entity_type->id() === 'myeventlane_vendor') {
-    $fields['nudges_enabled'] = BaseFieldDefinition::create('boolean')
-      ->setLabel(new TranslatableMarkup('Enable helpful tips'))
-      ->setDescription(new TranslatableMarkup('Opt in to receive helpful tips on your dashboard.'))
-      ->setDefaultValue(FALSE)
-      ->setDisplayOptions('form', [
-        'type' => 'boolean_checkbox',
-        'weight' => 100,
-        'settings' => [
-          'display_label' => TRUE,
-        ],
-      ])
-      ->setDisplayConfigurable('form', TRUE)
-      ->setDisplayConfigurable('view', FALSE);
-  }
-
-  return $fields;
-}
 
 /**
  * Implements hook_theme().

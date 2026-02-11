@@ -221,6 +221,22 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
       ->setDisplayConfigurable('view', FALSE)
       ->setReadOnly(TRUE);
 
+    // Opt-in for educational nudges on the vendor dashboard.
+    // Default OFF — vendors must explicitly enable this.
+    $fields['nudges_enabled'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Enable helpful tips'))
+      ->setDescription(new TranslatableMarkup('Opt in to receive occasional helpful tips in the vendor dashboard.'))
+      ->setDefaultValue(0)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 100,
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
+
     return $fields;
   }
 

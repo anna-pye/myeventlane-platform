@@ -119,8 +119,9 @@ final class VendorNudgeEvaluator {
   /**
    * Builds an aggregate context array for nudge evaluation.
    *
-   * The context contains only aggregate signals — no raw metrics or
-   * individual escalation data are passed to nudges.
+   * Each analytics service call is individually wrapped so that a
+   * signature mismatch or runtime error in any single service fails
+   * closed (safe defaults) without breaking the vendor dashboard.
    *
    * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
    *   The vendor entity.
@@ -144,28 +145,81 @@ final class VendorNudgeEvaluator {
       'has_refund_correlations' => FALSE,
     ];
 
-    // Query escalations for this vendor within the lookback window.
-    $escalations = $this->analyticsQuery->query($vendorId, $from);
+    // --- Query escalations (fail closed: no escalations → no nudges). ---
+    try {
+      $escalations = $this->analyticsQuery->query($vendorId, $from);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Nudge context: EscalationAnalyticsQuery::query() failed for vendor @id — returning safe defaults. Error: @error', [
+        '@id' => $vendorId,
+        '@error' => $e->getMessage(),
+      ]);
+      return $context;
+    }
+
+    if (!is_countable($escalations)) {
+      $this->logger->warning('Nudge context: EscalationAnalyticsQuery::query() returned non-countable for vendor @id — returning safe defaults.', [
+        '@id' => $vendorId,
+      ]);
+      return $context;
+    }
+
     $context['escalation_count'] = count($escalations);
 
     if ($context['escalation_count'] === 0) {
       return $context;
     }
 
-    // Calculate aggregate metrics.
-    $metrics = $this->metricsCalculator->calculate($escalations);
+    // --- Calculate aggregate metrics (fail closed: defaults stand). ---
+    $metrics = [];
+    try {
+      $metrics = $this->metricsCalculator->calculate($escalations);
+      if (!is_array($metrics)) {
+        $metrics = [];
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Nudge context: EscalationMetricsCalculator::calculate() failed for vendor @id — metrics unavailable. Error: @error', [
+        '@id' => $vendorId,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
     $context['avg_first_response_hours'] = $metrics['avg_first_response_hours'] ?? NULL;
 
-    // Evaluate health bucket.
-    $health = $this->healthEvaluator->evaluate($metrics);
-    $context['health_bucket'] = $health['bucket'] ?? 'healthy';
-
-    // Check for refund correlations (order-linked escalations).
-    foreach ($escalations as $escalation) {
-      if ($escalation->hasField('order_id') && !$escalation->get('order_id')->isEmpty()) {
-        $context['has_refund_correlations'] = TRUE;
-        break;
+    // --- Evaluate health bucket (fail closed: stays 'healthy'). ---
+    if (!empty($metrics)) {
+      try {
+        $health = $this->healthEvaluator->evaluate($metrics);
+        if (is_array($health) && isset($health['bucket'])) {
+          $context['health_bucket'] = $health['bucket'];
+        }
       }
+      catch (\Throwable $e) {
+        $this->logger->warning('Nudge context: VendorHealthEvaluator::evaluate() failed for vendor @id — health bucket defaults to healthy. Error: @error', [
+          '@id' => $vendorId,
+          '@error' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    // --- Check for refund correlations (order-linked escalations). ---
+    try {
+      foreach ($escalations as $escalation) {
+        if (is_object($escalation)
+            && method_exists($escalation, 'hasField')
+            && $escalation->hasField('order_id')
+            && !$escalation->get('order_id')->isEmpty()) {
+          $context['has_refund_correlations'] = TRUE;
+          break;
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Nudge context: refund correlation check failed for vendor @id — defaulting to FALSE. Error: @error', [
+        '@id' => $vendorId,
+        '@error' => $e->getMessage(),
+      ]);
     }
 
     return $context;
