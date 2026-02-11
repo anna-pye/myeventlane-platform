@@ -1,0 +1,112 @@
+{#
+/**
+ * @file
+ * Vendor-facing aggregated refund summary dashboard.
+ *
+ * Variables:
+ *   - metrics: Aggregated refund metrics (counts and totals only, no PII).
+ *   - vendor_name: The vendor display name.
+ *   - window_days: Number of days the summary covers.
+ *
+ * NOTE: No customer data, no order IDs, no individual refund details.
+ */
+#}
+
+<div class="mel-vendor-refund-summary">
+
+  <p class="mel-vendor-refund-summary__window">
+    Showing refund activity for the last {{ window_days }} days.
+  </p>
+
+  {# ── KPI cards ── #}
+  <div class="mel-analytics-kpi-row">
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.request_count }}</span>
+      <span class="mel-analytics-kpi__label">Refund requests</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.log_count }}</span>
+      <span class="mel-analytics-kpi__label">Refund logs</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">${{ (metrics.total_completed_cents / 100)|number_format(2) }}</span>
+      <span class="mel-analytics-kpi__label">Total refunded</span>
+    </div>
+    {% if metrics.total_pending_cents > 0 %}
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">${{ (metrics.total_pending_cents / 100)|number_format(2) }}</span>
+        <span class="mel-analytics-kpi__label">Pending</span>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ── Requests by status ── #}
+  {% if metrics.requests_by_status|length > 0 %}
+    <div class="mel-analytics-section">
+      <h3 class="mel-analytics-section__title">Requests by status</h3>
+      <table class="mel-analytics-table mel-analytics-table--compact">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for status, count in metrics.requests_by_status %}
+            <tr>
+              <td>{{ status|capitalize }}</td>
+              <td>{{ count }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {# ── Logs by status ── #}
+  {% if metrics.logs_by_status|length > 0 %}
+    <div class="mel-analytics-section">
+      <h3 class="mel-analytics-section__title">Refunds by status</h3>
+      <table class="mel-analytics-table mel-analytics-table--compact">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for status, count in metrics.logs_by_status %}
+            <tr>
+              <td>{{ status|capitalize }}</td>
+              <td>{{ count }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {# ── Logs by type ── #}
+  {% if metrics.logs_by_type|length > 0 %}
+    <div class="mel-analytics-section">
+      <h3 class="mel-analytics-section__title">Refunds by type</h3>
+      <table class="mel-analytics-table mel-analytics-table--compact">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for type, count in metrics.logs_by_type %}
+            <tr>
+              <td>{{ type|capitalize }}</td>
+              <td>{{ count }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+</div>
