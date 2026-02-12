@@ -1,6 +1,6 @@
 name: MyEventLane Admin Theme
 type: theme
-base theme: Gin 5.0.10
+base theme: gin
 core_version_requirement: ^11
 description: 'Minimal admin UX layer for MyEventLane (Gin-based)'
 version: 1.0.0
