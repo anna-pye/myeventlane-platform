@@ -1,0 +1,340 @@
+/**
+ * @file
+ * Support escalation UI - unified presentation for vendor and customer portals.
+ *
+ * BEM classes: mel-support-*, mel-escalation-*
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/typography' as *;
+
+// ============================================================================
+// SUPPORT PAGE LAYOUT
+// ============================================================================
+
+.mel-support-page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: $spacing-6 0;
+}
+
+.mel-support-header {
+  margin-bottom: $spacing-6;
+
+  h1 {
+    margin: 0 0 $spacing-2;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+}
+
+.mel-support-intro {
+  margin: 0;
+  color: $ml-vendor-slate;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.mel-support-content {
+  // Content region spacing handled by children.
+}
+
+.mel-support-actions {
+  margin-bottom: $spacing-4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+  align-items: center;
+
+  &__item {
+    display: inline-block;
+  }
+}
+
+.mel-support-helper {
+  margin-bottom: $spacing-4;
+  font-size: 0.9375rem;
+  color: $ml-vendor-slate;
+
+  &__link {
+    color: inherit;
+    text-decoration: underline;
+
+    &:hover,
+    &:focus {
+      color: darken($ml-vendor-slate, 15%);
+    }
+  }
+}
+
+.mel-button {
+  padding: $spacing-2 $spacing-4;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border: 1px solid $ml-vendor-border;
+  background: $ml-vendor-bg;
+  color: $ml-vendor-slate;
+
+  &:hover,
+  &:focus {
+    background: rgba(0, 0, 0, 0.05);
+    color: inherit;
+  }
+
+  &--primary {
+    background: $ml-color-accent;
+    border-color: $ml-color-accent;
+    color: #fff;
+
+    &:hover,
+    &:focus {
+      background: darken($ml-color-accent, 8%);
+      border-color: darken($ml-color-accent, 8%);
+      color: #fff;
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+  }
+}
+
+.mel-support-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: $spacing-2 $spacing-4;
+    border-bottom: 1px solid $ml-vendor-border;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    background: $ml-vendor-bg;
+  }
+
+  tr:hover td {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// ============================================================================
+// ESCALATION CARD (detail view)
+// ============================================================================
+
+.mel-escalation-card {
+  margin-bottom: $spacing-6;
+  padding: $spacing-4;
+  border: 1px solid $ml-vendor-border;
+  border-radius: $radius-card;
+  background: $ml-vendor-card;
+
+  &__sla {
+    margin-bottom: $spacing-3;
+  }
+
+  &__description {
+    margin-top: $spacing-3;
+  }
+
+  &__actions {
+    margin-bottom: $spacing-4;
+
+    a {
+      margin-right: $spacing-2;
+    }
+  }
+}
+
+// ============================================================================
+// COMMENT THREAD
+// ============================================================================
+
+.mel-escalation-thread {
+  margin-top: $spacing-6;
+  margin-bottom: $spacing-4;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+.mel-thread-divider {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: $spacing-2;
+}
+
+.mel-escalation-thread__empty {
+  margin: 0;
+  color: $ml-vendor-slate;
+}
+
+// ============================================================================
+// MESSAGE GROUPS (consecutive messages by role)
+// ============================================================================
+
+.mel-message-group {
+  padding: $spacing-4;
+  border: 1px solid $ml-vendor-border;
+  border-radius: $radius-card;
+  background: $ml-vendor-card;
+
+  &--customer {
+    border-left: 4px solid #d1e8ff;
+  }
+
+  &--vendor {
+    border-left: 4px solid #d9f2e6;
+  }
+
+  &--staff {
+    border-left: 4px solid #e8dcff;
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-2;
+    margin-bottom: $spacing-2;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.mel-message-bubble {
+  padding: $spacing-2 0;
+  line-height: 1.5;
+
+  & + & {
+    border-top: 1px solid $ml-vendor-border;
+  }
+}
+
+.mel-meta-time {
+  font-size: 0.8125rem;
+  color: $ml-vendor-slate;
+}
+
+.mel-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+  background: transparent;
+
+  &--customer { color: #1e88e5; }
+  &--vendor { color: #2e7d32; }
+  &--staff { color: #7c5cff; }
+}
+
+// ============================================================================
+// LEGACY INDIVIDUAL MESSAGE (if still used elsewhere)
+// ============================================================================
+
+.mel-escalation-message {
+  padding: $spacing-3;
+  margin-bottom: $spacing-2;
+  border: 1px solid $ml-vendor-border;
+  border-radius: 8px;
+  background: $ml-vendor-card;
+
+  &__header {
+    font-size: 0.85em;
+    color: $ml-vendor-slate;
+    margin-bottom: $spacing-1;
+  }
+
+  &__body {
+    line-height: 1.5;
+  }
+}
+
+// ============================================================================
+// REPLY FORM WRAPPER (legacy)
+// ============================================================================
+
+.mel-escalation-reply {
+  margin-top: $spacing-6;
+  padding-top: $spacing-4;
+  border-top: 1px solid $ml-vendor-border;
+}
+
+// ============================================================================
+// STICKY REPLY SHELL
+// ============================================================================
+
+.mel-reply-shell {
+  position: relative;
+  margin-top: $spacing-6;
+}
+
+// Higher specificity to override theme's button { @extend .mel-btn } styles
+.mel-reply-shell .mel-reply-shell__bar,
+button.mel-reply-shell__bar {
+  position: sticky;
+  bottom: $spacing-3;
+  z-index: 20;
+  width: 100%;
+  min-height: 48px;
+  padding: $spacing-3 $spacing-4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 14px;
+  border: 1px solid $ml-vendor-border;
+  background: $ml-vendor-card;
+  color: $text-primary;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &:focus {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+.mel-reply-shell__form {
+  margin-top: $spacing-3;
+}
+
+[data-mel-reply-shell][data-expanded="0"] .mel-reply-shell__form {
+  display: none;
+}
+
+[data-mel-reply-shell][data-expanded="1"] .mel-reply-shell__form {
+  display: block;
+}
+
+// ============================================================================
+// AI ASSISTANT PLACEHOLDER
+// ============================================================================
+
+.mel-ai-assistant {
+  margin-top: $spacing-6;
+  padding-top: $spacing-4;
+  border-top: 1px solid $ml-vendor-border;
+
+  &__placeholder {
+    min-height: 3rem;
+  }
+}

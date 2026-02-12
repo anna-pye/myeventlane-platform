@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations AI Draft module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_entity_view_alter().
+ *
+ * Adds the AI draft root container and library on admin escalation canonical.
+ */
+function myeventlane_escalations_ai_draft_entity_view_alter(
+  array &$build,
+  EntityInterface $entity,
+  EntityViewDisplayInterface $display,
+  string $view_mode,
+): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if ($view_mode !== 'full') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.escalation.canonical') {
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('generate escalation ai drafts')) {
+    return;
+  }
+
+  $build['mel_ai_draft_root'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'id' => 'mel-ai-draft-root',
+      'data-escalation-id' => (string) $entity->id(),
+      'class' => ['mel-ai-draft-root'],
+    ],
+    '#weight' => 50,
+    '#attached' => [
+      'library' => ['myeventlane_escalations_ai_draft/escalation_ai_draft'],
+    ],
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+      'tags' => ['escalation:' . $entity->id()],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Marks reply textareas for AI draft insert (admin escalation comment form
+ * and portal reply form).
+ */
+function myeventlane_escalations_ai_draft_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Drupal comment add form (admin escalation): comment type escalation_thread.
+  if (str_starts_with($form_id, 'comment_') && isset($form['comment_body']['widget'][0]['value'])) {
+    $form['comment_body']['widget'][0]['value']['#attributes']['data-mel-reply-textarea'] = 'true';
+    $form['comment_body']['widget'][0]['value']['#attributes']['id'] = 'mel-reply-textarea';
+  }
+  // Portal reply form (vendor/customer).
+  if ($form_id === 'myeventlane_escalations_portal_reply_form' && isset($form['message'])) {
+    $form['message']['#attributes']['data-mel-reply-textarea'] = 'true';
+    $form['message']['#attributes']['id'] = 'mel-reply-textarea';
+  }
+}

@@ -1,0 +1,207 @@
+/**
+ * @file
+ * Admin case console layout for entity.escalation.canonical.
+ * Subtle SaaS professional. MEL accent colours on borders/chips only.
+ * Gin typography preserved.
+ */
+
+/* ==========================================================================
+   Layout container
+   ========================================================================== */
+
+.mel-case-console {
+  --mel-border: #e6e8ec;
+  --mel-ink: #293241;
+  --mel-muted: rgba(41, 50, 65, 0.7);
+  --mel-primary: #6c7ef2;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
+.mel-case-console__header {
+  background: #fff;
+  border: 1px solid var(--mel-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.mel-case-console__header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.mel-case-console__header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-case-console__header-right {
+  flex-shrink: 0;
+}
+
+.mel-case-console__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--mel-ink);
+}
+
+.mel-case-console__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Chips inherit from escalation-thread-ux.css (mel-chip, mel-chip--status, etc.) */
+
+/* ==========================================================================
+   Body: two-column layout (Gin, myeventlane_admin, Claro)
+   ========================================================================== */
+
+.mel-case-console__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .mel-case-console__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Page template: full-width content area (no layout-container constraint) */
+.mel-case-console-page-content {
+  width: 100%;
+  max-width: none;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Override theme layouts that constrain width (Gin layout-container, mel-admin-layout) */
+.mel-escalation-admin-page .mel-case-console,
+.mel-admin-theme .mel-case-console,
+.mel-case-console-page-content .mel-case-console {
+  width: 100%;
+  max-width: 100%;
+}
+
+.mel-escalation-admin-page .mel-case-console__body,
+.mel-admin-theme .mel-case-console__body,
+.mel-case-console-page-content .mel-case-console__body {
+  min-width: 0;
+}
+
+/* Force two-column grid when inside mel-admin-main (myeventlane_admin single-col wrapper) */
+.mel-admin-main .mel-case-console__body,
+.layout-content .mel-case-console__body,
+.page-content .mel-case-console__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+/* ==========================================================================
+   Main column
+   ========================================================================== */
+
+.mel-case-console__main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.mel-case-console__main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Sticky composer at bottom of main column */
+.mel-case-console__main .mel-escalation-reply,
+.mel-case-console__main .mel-reply-shell {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--mel-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 1rem;
+}
+
+.mel-composer-tools {
+  min-height: 0;
+}
+
+/* ==========================================================================
+   Sidebar
+   ========================================================================== */
+
+.mel-case-console__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.mel-case-console__card {
+  background: #fff;
+  border: 1px solid var(--mel-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.mel-case-console__order-summary {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9375rem;
+  color: var(--mel-ink);
+}
+
+.mel-case-console__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mel-case-console__helper {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--mel-muted);
+}
+
+.mel-link {
+  font-size: 0.875rem;
+  color: var(--mel-primary);
+  text-decoration: none;
+}
+
+.mel-link:hover {
+  text-decoration: underline;
+}
+
+/* Compact workflow form in header */
+.mel-case-console__header-right .mel-escalation-actions__buttons {
+  margin-top: 0;
+}
+
+.mel-case-console__header-right .mel-button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+}

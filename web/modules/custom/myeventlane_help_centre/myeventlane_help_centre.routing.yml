@@ -1,0 +1,36 @@
+myeventlane_help_centre.public_index:
+  path: '/help'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::publicIndex'
+    _title: 'Help Centre'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.vendor_index:
+  path: '/vendor/help'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorIndex'
+    _title: 'Help Centre'
+  requirements:
+    _permission: 'view vendor help centre'
+
+myeventlane_help_centre.vendor_topic:
+  path: '/vendor/help/topic/{category}'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorTopic'
+    _title: 'Help Centre'
+  requirements:
+    _permission: 'view vendor help centre'
+    category: \d+
+  options:
+    parameters:
+      category:
+        type: entity:taxonomy_term
+
+myeventlane_help_centre.staff_snippet_authoring:
+  path: '/help/internal/staff-snippet-authoring'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::staffSnippetAuthoring'
+    _title: 'Staff Snippet Authoring Guide'
+  requirements:
+    _permission: 'administer escalations'

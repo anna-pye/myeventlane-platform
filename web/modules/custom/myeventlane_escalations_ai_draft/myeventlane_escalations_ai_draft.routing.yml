@@ -1,0 +1,14 @@
+# Path uses /instant-draft to avoid conflict with myeventlane_escalations_ai
+# (which uses /ai/draft for queue-based generation).
+myeventlane_escalations_ai_draft.generate:
+  path: '/admin/myeventlane/escalations/{escalation}/ai/instant-draft'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_ai_draft\Controller\EscalationAiDraftController::generate'
+  requirements:
+    _permission: 'generate escalation ai drafts'
+    _custom_access: 'myeventlane_escalations_ai_draft.access::draftAccess'
+  options:
+    _admin_route: TRUE
+    parameters:
+      escalation:
+        type: integer

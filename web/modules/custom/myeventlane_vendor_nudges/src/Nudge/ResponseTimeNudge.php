@@ -70,4 +70,11 @@ final class ResponseTimeNudge implements VendorNudgeInterface {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getHelpCategory(): ?string {
+    return 'Communication';
+  }
+
 }

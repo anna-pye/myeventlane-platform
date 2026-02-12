@@ -67,4 +67,11 @@ final class PolicySetupNudge implements VendorNudgeInterface {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getHelpCategory(): ?string {
+    return 'Getting Started';
+  }
+
 }

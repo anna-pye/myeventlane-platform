@@ -1,4 +1,28 @@
 services:
+  myeventlane_escalations_portal.route_subscriber:
+    class: Drupal\myeventlane_escalations_portal\Routing\AdminEscalationRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_escalations_portal.admin_case_console_builder:
+    class: Drupal\myeventlane_escalations_portal\Service\AdminCaseConsoleBuilder
+    arguments:
+      - '@date.formatter'
+      - '@module_handler'
+      - '@entity_type.manager'
+      - '@form_builder'
+      - '@myeventlane_escalations_portal.thread_renderer'
+      - '@logger.channel.myeventlane_escalations_portal'
+      - '@?myeventlane_escalations_sla.badge_resolver'
+
+  myeventlane_escalations_portal.thread_renderer:
+    class: Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer
+    arguments:
+      - '@entity_type.manager'
+      - '@date.formatter'
+      - '@myeventlane_escalations_portal.party_resolver'
+      - '@logger.channel.myeventlane_escalations_portal'
+
   myeventlane_escalations_portal.party_resolver:
     class: Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver
     arguments: ['@myeventlane_vendor.current_vendor_resolver', '@logger.channel.myeventlane_escalations_portal']

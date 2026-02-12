@@ -1,0 +1,53 @@
+{#
+  Sidebar panel for staff playbooks on escalation canonical view.
+  Staff-only. Collapsible list with title, excerpt, snippets, and "Open full playbook" link.
+#}
+<div class="staff-playbooks-panel mel-staff-playbooks">
+  <h3 class="staff-playbooks-panel__title">{{ 'Staff playbooks'|t }}</h3>
+  <p class="staff-playbooks-panel__desc">{{ 'Internal resolution guidance. Not visible to vendors or customers.'|t }}</p>
+
+  {% if playbooks is not empty %}
+    <details class="staff-playbooks-panel__list" open>
+      <summary class="staff-playbooks-panel__summary">{{ 'Relevant playbooks'|t }} ({{ playbooks|length }})</summary>
+      <ul class="staff-playbooks-panel__items">
+        {% for item in playbooks %}
+          <li class="staff-playbooks-panel__item">
+            <div class="staff-playbooks-panel__item-title">{{ item.title }}</div>
+            {% if item.excerpt %}
+              <p class="staff-playbooks-panel__item-excerpt">{{ item.excerpt }}</p>
+            {% endif %}
+            {% if item.ai_summary %}
+              <div class="staff-playbooks-panel__item-ai-summary">{{ item.ai_summary|render }}</div>
+            {% endif %}
+            {% if item.snippets is not empty %}
+              <ul class="staff-playbooks-panel__snippets">
+                {% for snippet in item.snippets %}
+                  <li class="staff-playbooks-panel__snippet" id="{{ snippet.id }}">
+                    {% if snippet.title %}
+                      <div class="staff-playbooks-panel__snippet-title">{{ snippet.title }}</div>
+                    {% endif %}
+                    {% set copy_text = snippet.body ? snippet.body : (snippet.title ? snippet.title : '') %}
+                    {% if copy_text %}
+                      <div class="staff-playbooks-panel__snippet-body">
+                        <span class="staff-playbooks-panel__snippet-body-source visually-hidden" data-snippet-body aria-hidden="true">{{ copy_text }}</span>
+                        {% if snippet.body %}
+                          <pre class="staff-playbooks-panel__snippet-text">{{ snippet.body }}</pre>
+                        {% endif %}
+                      </div>
+                      <button type="button" class="staff-playbooks-panel__snippet-copy" data-snippet-copy aria-label="{{ 'Copy snippet'|t }}">
+                        {{ 'Copy'|t }}
+                      </button>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            <a href="{{ item.url }}" class="staff-playbooks-panel__link">{{ 'Open full playbook'|t }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% else %}
+    <p class="staff-playbooks-panel__empty">{{ 'No matching playbooks for this escalation.'|t }}</p>
+  {% endif %}
+</div>

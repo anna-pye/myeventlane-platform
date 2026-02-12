@@ -1,0 +1,80 @@
+{#
+  Staff-only AI Insights panel.
+  Shows structured "Draft Assistant" cards instead of raw JSON.
+#}
+
+<div class="mel-ai-assistant">
+  <div class="mel-ai-assistant__header">
+    <h3 class="mel-ai-assistant__title">{{ title }}</h3>
+    {% if intro %}
+      <p class="mel-ai-assistant__intro">{{ intro }}</p>
+    {% endif %}
+  </div>
+
+  {% if generate_url %}
+    <div class="mel-ai-assistant__cta">
+      <a class="mel-button mel-button--secondary" href="{{ generate_url }}">
+        Generate AI reply draft
+      </a>
+      <p class="mel-ai-assistant__cta-note">
+        Suggestions only. Nothing is auto-sent or auto-applied.
+      </p>
+    </div>
+  {% endif %}
+
+  {% if insights is empty %}
+    <div class="mel-ai-assistant__empty">
+      No AI suggestions yet.
+    </div>
+  {% else %}
+    <div class="mel-ai-assistant__list" data-mel-ai-insights>
+      {% for item in insights %}
+        {{ item }}
+      {% endfor %}
+
+      {% if insights|length > 1 %}
+        <button type="button" class="mel-ai-assistant__toggle" data-mel-ai-toggle>
+          Show previous suggestions
+        </button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="mel-ai-drawer" data-mel-ai-drawer hidden>
+    <div class="mel-ai-drawer__overlay" data-mel-ai-close></div>
+    <div class="mel-ai-drawer__panel">
+      <div class="mel-ai-drawer__header">
+        <h3>Edit draft reply</h3>
+        <button type="button" data-mel-ai-close>×</button>
+      </div>
+
+      <div class="mel-ai-drawer__body">
+        <label class="mel-ai-drawer__label">
+          Tone
+          <select data-mel-ai-tone>
+            <option value="calm">Calm</option>
+            <option value="direct">Direct</option>
+            <option value="formal">Formal</option>
+          </select>
+        </label>
+
+        <textarea class="mel-ai-drawer__textarea"
+                  data-mel-ai-editor></textarea>
+      </div>
+
+      <div class="mel-ai-drawer__actions">
+        <button type="button"
+                class="mel-button mel-button--secondary"
+                data-mel-ai-close>
+          Discard
+        </button>
+
+        <button type="button"
+                class="mel-button mel-button--primary"
+                data-mel-ai-apply>
+          Insert into reply
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,7 @@
+myeventlane_public_trust.page:
+  path: /trust
+  defaults:
+    _controller: '\Drupal\myeventlane_public_trust\Controller\PublicTrustController::page'
+    _title: 'Trust & transparency'
+  requirements:
+    _access: 'TRUE'

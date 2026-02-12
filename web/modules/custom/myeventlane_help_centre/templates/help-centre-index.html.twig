@@ -1,0 +1,86 @@
+{#
+/**
+ * @file
+ * Template for the help centre index page.
+ *
+ * Displays help articles grouped by category in a clean,
+ * documentation-style layout. No comment forms, no tracking,
+ * no analytics injection.
+ *
+ * Available variables:
+ * - heading: The page heading.
+ * - groups: An array of article groups, each containing:
+ *   - term_id: The taxonomy term ID.
+ *   - term_name: The category name.
+ *   - term_url: URL to the category page (vendor only, may be NULL).
+ *   - articles: An array of articles, each containing:
+ *     - nid: The node ID.
+ *     - title: The article title.
+ *     - url: URL to the article.
+ *     - summary: Optional article summary.
+ * - is_vendor: Whether this is the vendor-facing help centre.
+ */
+#}
+<div class="help-centre">
+  <header class="help-centre__header">
+    <h1 class="help-centre__title">{{ heading }}</h1>
+    {% if ask_url is defined and ask_url %}
+      <p class="help-centre__ask">
+        <a href="{{ ask_url }}" class="help-centre__ask-link">{{ 'Ask a question'|t }}</a>
+      </p>
+    {% endif %}
+    {% if is_vendor %}
+      <p class="help-centre__intro">
+        {{ 'Find guides and answers to common questions about managing your events, policies, and account.'|t }}
+      </p>
+    {% else %}
+      <p class="help-centre__intro">
+        {{ 'Find answers to common questions about attending events, bookings, and your account.'|t }}
+      </p>
+    {% endif %}
+  </header>
+
+  {% if groups is empty %}
+    <div class="help-centre__empty">
+      <p>{{ 'No articles are available at the moment. Please check back later.'|t }}</p>
+    </div>
+  {% else %}
+    <div class="help-centre__content">
+      {% for group in groups %}
+        <section class="help-centre__group" aria-labelledby="help-category-{{ group.term_id }}">
+          <h2 id="help-category-{{ group.term_id }}" class="help-centre__group-title">
+            {% if group.term_url %}
+              <a href="{{ group.term_url }}" class="help-centre__group-link">{{ group.term_name }}</a>
+            {% else %}
+              {{ group.term_name }}
+            {% endif %}
+          </h2>
+
+          <ul class="help-centre__article-list" role="list">
+            {% for article in group.articles %}
+              <li class="help-centre__article">
+                <a href="{{ article.url }}" class="help-centre__article-link">
+                  <span class="help-centre__article-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                      <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                  </span>
+                  <span class="help-centre__article-text">
+                    <span class="help-centre__article-title">{{ article.title }}</span>
+                    {% if article.summary %}
+                      <span class="help-centre__article-summary">{{ article.summary }}</span>
+                    {% endif %}
+                  </span>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

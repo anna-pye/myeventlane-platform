@@ -1,0 +1,339 @@
+/**
+ * @file
+ * Support escalation UI - unified presentation for customer portal (/my/support).
+ *
+ * BEM classes: mel-support-*, mel-escalation-*
+ * Shares structure with vendor theme _support.scss.
+ */
+
+// ============================================================================
+// SUPPORT PAGE LAYOUT
+// ============================================================================
+
+.mel-support-page {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 0;
+}
+
+.mel-support-header {
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+}
+
+.mel-support-intro {
+  margin: 0;
+  color: #666;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.mel-support-content {
+  // Content region spacing handled by children.
+}
+
+.mel-support-actions {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+
+  &__item {
+    display: inline-block;
+  }
+}
+
+.mel-support-helper {
+  margin-bottom: 1rem;
+  font-size: 0.9375rem;
+  color: #666;
+
+  &__link {
+    color: inherit;
+    text-decoration: underline;
+
+    &:hover,
+    &:focus {
+      color: #333;
+    }
+  }
+}
+
+.mel-button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  color: #333;
+
+  &:hover,
+  &:focus {
+    background: #eee;
+    color: #222;
+  }
+
+  &--primary {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+
+    &:hover,
+    &:focus {
+      background: #4338ca;
+      border-color: #4338ca;
+      color: #fff;
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+  }
+}
+
+.mel-support-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 600;
+    background: #f5f5f5;
+  }
+
+  tr:hover td {
+    background: #fafafa;
+  }
+}
+
+// ============================================================================
+// ESCALATION CARD (detail view)
+// ============================================================================
+
+.mel-escalation-card {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+
+  &__sla {
+    margin-bottom: 0.75rem;
+  }
+
+  &__description {
+    margin-top: 0.75rem;
+  }
+
+  &__actions {
+    margin-bottom: 1rem;
+
+    a {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+// ============================================================================
+// COMMENT THREAD
+// ============================================================================
+
+.mel-escalation-thread {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mel-thread-divider {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.mel-escalation-thread__empty {
+  margin: 0;
+  color: #666;
+}
+
+// ============================================================================
+// MESSAGE GROUPS (consecutive messages by role)
+// ============================================================================
+
+.mel-message-group {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+
+  &--customer {
+    border-left: 4px solid #d1e8ff;
+  }
+
+  &--vendor {
+    border-left: 4px solid #d9f2e6;
+  }
+
+  &--staff {
+    border-left: 4px solid #e8dcff;
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__items {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.mel-message-bubble {
+  padding: 0.5rem 0;
+  line-height: 1.5;
+
+  & + & {
+    border-top: 1px solid #e0e0e0;
+  }
+}
+
+.mel-meta-time {
+  font-size: 0.8125rem;
+  color: #666;
+}
+
+.mel-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+  background: transparent;
+
+  &--customer { color: #1e88e5; }
+  &--vendor { color: #2e7d32; }
+  &--staff { color: #7c5cff; }
+}
+
+// ============================================================================
+// LEGACY INDIVIDUAL MESSAGE (if still used elsewhere)
+// ============================================================================
+
+.mel-escalation-message {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+
+  &__header {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 0.375rem;
+  }
+
+  &__body {
+    line-height: 1.5;
+  }
+}
+
+// ============================================================================
+// REPLY FORM WRAPPER (legacy)
+// ============================================================================
+
+.mel-escalation-reply {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+// ============================================================================
+// STICKY REPLY SHELL
+// ============================================================================
+
+.mel-reply-shell {
+  position: relative;
+  margin-top: 1.75rem;
+}
+
+.mel-reply-shell .mel-reply-shell__bar,
+button.mel-reply-shell__bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 14px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.mel-reply-shell .mel-reply-shell__bar:hover,
+button.mel-reply-shell__bar:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mel-reply-shell .mel-reply-shell__bar:focus,
+button.mel-reply-shell__bar:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+.mel-reply-shell__form {
+  margin-top: 12px;
+}
+
+[data-mel-reply-shell][data-expanded="0"] .mel-reply-shell__form {
+  display: none;
+}
+
+[data-mel-reply-shell][data-expanded="1"] .mel-reply-shell__form {
+  display: block;
+}
+
+// ============================================================================
+// STATUS BANNER (customer view)
+// ============================================================================
+
+.mel-escalation-status-banner {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+
+  &--resolved { background: #e8f5e9; border: 1px solid #c8e6c9; }
+  &--closed { background: #f5f5f5; border: 1px solid #e0e0e0; }
+  &--info { background: #e3f2fd; border: 1px solid #bbdefb; }
+  &--waiting { background: #fff3e0; border: 1px solid #ffe0b2; }
+}

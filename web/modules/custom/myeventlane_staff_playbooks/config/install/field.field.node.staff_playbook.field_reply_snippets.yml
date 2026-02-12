@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_reply_snippets
+    - filter.format.plain_text
+    - node.type.staff_playbook
+  module:
+    - text
+id: node.staff_playbook.field_reply_snippets
+field_name: field_reply_snippets
+entity_type: node
+bundle: staff_playbook
+label: 'Reply snippets'
+description: 'Copy-paste snippets for replies. Manual copy only, no auto-insert. Tone: calm, neutral, professional. Word limit: aim for 50–150 words per snippet. Structure: title on first line, then body text.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats:
+    - plain_text
+field_type: text_long

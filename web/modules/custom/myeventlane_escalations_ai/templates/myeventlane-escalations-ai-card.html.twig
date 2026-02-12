@@ -1,0 +1,96 @@
+{#
+  Single AI insight card.
+  - Draft reply gets "Insert into reply"
+  - Other insights show structured fields if available.
+#}
+
+<div class="mel-ai-card mel-ai-card--{{ insight_type|clean_class }}" data-mel-ai-card data-insight-type="{{ insight_type }}">
+  <div class="mel-ai-card__top">
+    <div class="mel-ai-card__meta">
+      <span class="mel-ai-chip">AI suggestion</span>
+      {% if timestamp %}
+        <span class="mel-ai-time">{{ timestamp }}</span>
+      {% endif %}
+    </div>
+
+    {% if provider or model %}
+      <div class="mel-ai-card__source">
+        {% if provider %}<span class="mel-ai-source">{{ provider }}</span>{% endif %}
+        {% if model %}<span class="mel-ai-model">{{ model }}</span>{% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if draft_reply %}
+    <div class="mel-ai-card__section">
+      <h4 class="mel-ai-card__h">Suggested reply</h4>
+      <div class="mel-ai-card__reply" data-mel-ai-draft>{{ draft_reply }}</div>
+    </div>
+
+    {% if missing_info %}
+      <div class="mel-ai-card__section">
+        <h5 class="mel-ai-card__h2">Missing information</h5>
+        <ul class="mel-ai-card__list">
+          {% for m in missing_info %}
+            <li>{{ m }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if next_step %}
+      <div class="mel-ai-card__section">
+        <h5 class="mel-ai-card__h2">Next step</h5>
+        <p class="mel-ai-card__p">{{ next_step }}</p>
+      </div>
+    {% endif %}
+
+    <div class="mel-ai-card__actions">
+      <button type="button"
+              class="mel-button mel-button--primary"
+              data-mel-ai-open-drawer>
+        Edit & insert
+      </button>
+      <span class="mel-ai-card__hint">You can edit it before sending.</span>
+    </div>
+  {% elseif draft_chase %}
+    {# Breach soon with draft chase message: show advisory + insertable chase #}
+    {% if risk or reason or suggested_action %}
+      <div class="mel-ai-card__section">
+        {% if risk %}<p class="mel-ai-card__p"><strong>Risk:</strong> {{ risk }}</p>{% endif %}
+        {% if reason %}<p class="mel-ai-card__p"><strong>Reason:</strong> {{ reason }}</p>{% endif %}
+        {% if suggested_action %}<p class="mel-ai-card__p"><strong>Suggested action:</strong> {{ suggested_action }}</p>{% endif %}
+      </div>
+    {% endif %}
+
+    <div class="mel-ai-card__section">
+      <h5 class="mel-ai-card__h2">Draft chase message</h5>
+      <div class="mel-ai-card__reply" data-mel-ai-draft>{{ draft_chase }}</div>
+    </div>
+
+    <div class="mel-ai-card__actions">
+      <button type="button"
+              class="mel-button mel-button--primary"
+              data-mel-ai-open-drawer>
+        Edit & insert
+      </button>
+      <span class="mel-ai-card__hint">You can edit it before sending.</span>
+    </div>
+  {% else %}
+    {# Non-draft insights (triage / breach soon / risk flag) #}
+    {% if risk or reason or suggested_action %}
+      <div class="mel-ai-card__section">
+        {% if risk %}<p class="mel-ai-card__p"><strong>Risk:</strong> {{ risk }}</p>{% endif %}
+        {% if reason %}<p class="mel-ai-card__p"><strong>Reason:</strong> {{ reason }}</p>{% endif %}
+        {% if suggested_action %}<p class="mel-ai-card__p"><strong>Suggested action:</strong> {{ suggested_action }}</p>{% endif %}
+      </div>
+    {% endif %}
+
+    {% if raw_fallback %}
+      <details class="mel-ai-card__details">
+        <summary>View details</summary>
+        <pre class="mel-ai-card__pre">{{ raw_fallback }}</pre>
+      </details>
+    {% endif %}
+  {% endif %}
+</div>

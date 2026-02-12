@@ -1,0 +1,9 @@
+name: MyEventLane Help Centre
+type: module
+description: 'Vendor and public help centre with contextual nudge-linked articles.'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:node
+  - drupal:taxonomy
+  - myeventlane_vendor_nudges:myeventlane_vendor_nudges

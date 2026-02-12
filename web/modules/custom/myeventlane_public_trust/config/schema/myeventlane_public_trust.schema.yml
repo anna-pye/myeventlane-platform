@@ -1,0 +1,26 @@
+myeventlane_public_trust.settings:
+  type: config_object
+  label: 'Public trust signal settings'
+  mapping:
+    cache_days:
+      type: integer
+      label: 'Cache lifetime in days'
+    lookback_days:
+      type: integer
+      label: 'Data lookback window in days'
+    enable_signals:
+      type: mapping
+      label: 'Enabled trust signals'
+      mapping:
+        resolution_confidence:
+          type: boolean
+          label: 'Enable resolution confidence signal'
+        response_confidence:
+          type: boolean
+          label: 'Enable response confidence signal'
+        fairness_statement:
+          type: boolean
+          label: 'Enable fairness statement signal'
+        scale_statement:
+          type: boolean
+          label: 'Enable scale statement signal'

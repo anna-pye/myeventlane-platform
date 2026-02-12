@@ -53,4 +53,11 @@ final class RefundClarityNudge implements VendorNudgeInterface {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getHelpCategory(): ?string {
+    return 'Refunds';
+  }
+
 }

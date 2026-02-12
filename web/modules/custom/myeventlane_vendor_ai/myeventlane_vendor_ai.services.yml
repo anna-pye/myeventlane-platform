@@ -1,0 +1,22 @@
+services:
+  myeventlane_vendor_ai.access:
+    class: Drupal\myeventlane_vendor_ai\Access\VendorAiAccess
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_escalations_portal.party_resolver'
+
+  myeventlane_vendor_ai.context_builder:
+    class: Drupal\myeventlane_vendor_ai\Service\VendorAiContextBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_escalations_sla.badge_resolver'
+      - '@logger.channel.myeventlane_vendor_ai'
+
+  logger.channel.myeventlane_vendor_ai:
+    parent: logger.channel_base
+    arguments: ['myeventlane_vendor_ai']
+
+  myeventlane_vendor_ai.help_retriever:
+    class: Drupal\myeventlane_vendor_ai\Service\HelpArticleRetriever
+    arguments:
+      - '@entity_type.manager'

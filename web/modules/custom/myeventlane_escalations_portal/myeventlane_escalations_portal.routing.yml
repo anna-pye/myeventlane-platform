@@ -18,7 +18,7 @@ myeventlane_escalations_portal.customer_list:
 myeventlane_escalations_portal.customer_add:
   path: '/my/support/escalations/add'
   defaults:
-    _form: '\Drupal\myeventlane_escalations_portal\Form\CustomerEscalationForm'
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::add'
     _title: 'Submit an Escalation'
   requirements:
     _permission: 'create escalation'

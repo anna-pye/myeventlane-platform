@@ -7,6 +7,259 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Wraps a reply form render array in the sticky reply shell markup.
+ *
+ * @param array $form
+ *   The form render array (EscalationReplyForm or Drupal comment form).
+ *
+ * @return array
+ *   Render array with mel-reply-shell wrapper.
+ */
+function _myeventlane_escalations_portal_wrap_reply_shell(array $form): array {
+  return [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-reply-shell'],
+      'data-mel-reply-shell' => '',
+      'data-expanded' => '0',
+    ],
+    'bar' => [
+      '#type' => 'button',
+      '#value' => (string) t('Reply') . ' — ' . (string) t('Tap to write a response'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['mel-reply-shell__bar'],
+        'data-mel-reply-toggle' => '',
+      ],
+      '#button_type' => 'button',
+    ],
+    'form_wrapper' => [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-reply-shell__form'],
+        'data-mel-reply-form' => '',
+      ],
+      'form' => $form,
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ *
+ * Replaces admin escalation comment thread markup with shared BEM structure.
+ * Preserves the comment form. Injects Case Header and Order Console for admin.
+ * Gin-safe (plain CSS).
+ */
+function myeventlane_escalations_portal_entity_view_alter(
+  array &$build,
+  EntityInterface $entity,
+  EntityViewDisplayInterface $display,
+): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if ($display->getMode() !== 'full') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.escalation.canonical') {
+    return;
+  }
+
+  if (!isset($build['field_escalation_thread'])) {
+    return;
+  }
+
+  $original = $build['field_escalation_thread'];
+  /** @var \Drupal\myeventlane_escalations\Entity\EscalationInterface $escalation */
+  $escalation = $entity;
+
+  // Extract comment form from the field output.
+  // Comment formatter returns [0 => ['comments' => ..., 'comment_form' => ...]]
+  // or uses lazy_builder. Do not replace if present.
+  $comment_form = [];
+  if (isset($original[0]['comment_form']) && !empty($original[0]['comment_form'])) {
+    $comment_form = $original[0]['comment_form'];
+  }
+  elseif (isset($original['comment_form']) && !empty($original['comment_form'])) {
+    $comment_form = $original['comment_form'];
+  }
+
+  // Fallback: only when comment form is missing. EscalationReplyForm creates
+  // Comment entities on field_escalation_thread (see submitForm in that class).
+  // Do not replace or duplicate when native form is present.
+  $account = \Drupal::currentUser();
+  $can_manage = $account->hasPermission('access administration pages')
+    && ($account->hasPermission('manage escalation workflow') || $entity->access('update'));
+  if (empty($comment_form) && $can_manage && $entity->access('update')) {
+    try {
+      $comment_form = \Drupal::formBuilder()->getForm(
+        \Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm::class,
+        $escalation,
+      );
+      \Drupal::logger('myeventlane_escalations_portal')->info(
+        'Admin escalation @id: native comment form missing, using EscalationReplyForm fallback.',
+        ['@id' => $escalation->id()],
+      );
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_escalations_portal')->error(
+        'Admin escalation @id: EscalationReplyForm fallback failed: @message',
+        ['@id' => $escalation->id(), '@message' => $e->getMessage()],
+      );
+      $comment_form = [
+        '#type' => 'markup',
+        '#markup' => '<p class="mel-reply-unavailable">' . t('Reply form unavailable. Please use the Escalations edit screen.') . '</p>',
+      ];
+    }
+  }
+
+  /** @var \Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer $renderer */
+  $renderer = \Drupal::service('myeventlane_escalations_portal.thread_renderer');
+  $thread = $renderer->renderThread($escalation);
+
+  // Wrap comment form in sticky reply shell when present. Admin: add mel-escalation-reply for sticky.
+  $reply_content = $comment_form;
+  if (!empty($comment_form)) {
+    $reply_content = _myeventlane_escalations_portal_wrap_reply_shell($comment_form);
+    $build['#attached']['library'][] = 'myeventlane_escalations_portal/escalation_reply_sticky';
+    if ($can_manage) {
+      $reply_content = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-escalation-reply']],
+        'content' => $reply_content,
+      ];
+    }
+  }
+
+  // Build thread container.
+  $thread_container = [
+    '#type' => 'container',
+    '#attributes' => ['class' => ['mel-escalation-console']],
+    'thread' => $thread,
+    'comment_form' => $reply_content,
+  ];
+
+  $build['field_escalation_thread'] = $thread_container;
+  $build['#attached']['library'][] = 'myeventlane_escalations_portal/escalation_thread_ux';
+
+  // Always use the case console layout for admin escalation view.
+  // AdminEscalationActionsForm enforces its own access for workflow buttons.
+  {
+    /** @var \Drupal\myeventlane_escalations_portal\Service\AdminCaseConsoleBuilder $console_builder */
+    $console_builder = \Drupal::service('myeventlane_escalations_portal.admin_case_console_builder');
+    $console = $console_builder->buildConsole($build, $escalation, (string) $escalation->label());
+
+    $existing_cache = $build['#cache'] ?? [];
+    $merged_cache = array_merge_recursive($existing_cache, $console['cache']);
+    if (!empty($console['cache']['contexts'])) {
+      $merged_cache['contexts'] = array_unique(array_merge(
+        $merged_cache['contexts'] ?? [],
+        $console['cache']['contexts']
+      ));
+    }
+    if (!empty($console['cache']['tags'])) {
+      $merged_cache['tags'] = array_unique(array_merge(
+        $merged_cache['tags'] ?? [],
+        $console['cache']['tags']
+      ));
+    }
+
+    $attached = array_merge_recursive($build['#attached'] ?? [], $console['attached'] ?? []);
+    $libs = array_unique(array_merge(
+      $attached['library'] ?? [],
+      [
+        'myeventlane_escalations_portal/admin_case_console',
+        'myeventlane_escalations_portal/escalation_thread_ux',
+      ]
+    ));
+    $attached['library'] = array_values($libs);
+
+    // Preserve keys required by EntityViewController::buildTitle and other callbacks.
+    $build = [
+      '#theme' => 'mel_admin_case_console',
+      '#header_left' => $console['header_left'],
+      '#header_right' => $console['header_right'],
+      '#main' => $console['main'],
+      '#sidebar' => $console['sidebar'],
+      '#attached' => $attached,
+      '#cache' => $merged_cache,
+      '#entity_type' => $build['#entity_type'] ?? 'escalation',
+      '#' . ($build['#entity_type'] ?? 'escalation') => $escalation,
+      '#view_mode' => $build['#view_mode'] ?? 'full',
+    ];
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Ensures admin case console library loads on escalation view.
+ */
+function myeventlane_escalations_portal_page_attachments(array &$attachments): void {
+  if (\Drupal::routeMatch()->getRouteName() === 'entity.escalation.canonical') {
+    $attachments['#attached']['library'][] = 'myeventlane_escalations_portal/admin_case_console';
+    $attachments['#attached']['library'][] = 'myeventlane_escalations_portal/escalation_thread_ux';
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for html.
+ */
+function myeventlane_escalations_portal_preprocess_html(&$variables): void {
+  if (\Drupal::routeMatch()->getRouteName() === 'entity.escalation.canonical') {
+    $variables['attributes']['class'][] = 'mel-escalation-admin-page';
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_page_alter().
+ *
+ * Adds page__entity_escalation_canonical so the escalation admin view uses
+ * a full-width layout for the case console.
+ */
+function myeventlane_escalations_portal_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
+  if (\Drupal::routeMatch()->getRouteName() === 'entity.escalation.canonical') {
+    // Prepend so escalation console page template wins over path-based suggestions.
+    array_unshift($suggestions, 'page__entity_escalation_canonical');
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_portal_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'page__entity_escalation_canonical' => [
+      'base hook' => 'page',
+      'template' => 'page--entity-escalation-canonical',
+    ],
+    'mel_support_layout' => [
+      'variables' => [
+        'title' => '',
+        'intro' => NULL,
+        'content' => [],
+      ],
+      'template' => 'mel-support-layout',
+    ],
+    'mel_admin_case_console' => [
+      'variables' => [
+        'header_left' => [],
+        'header_right' => [],
+        'main' => [],
+        'sidebar' => [],
+      ],
+      'template' => 'mel-admin-case-console',
+    ],
+  ];
+}
+
 /**
  * Implements hook_mail().
  *

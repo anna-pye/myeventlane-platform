@@ -1,0 +1,11 @@
+services:
+  myeventlane_staff_playbooks.matcher:
+    class: Drupal\myeventlane_staff_playbooks\Service\PlaybookMatcher
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_escalations_refunds.resolver'
+      - '@logger.channel.myeventlane_staff_playbooks'
+
+  logger.channel.myeventlane_staff_playbooks:
+    parent: logger.channel_base
+    arguments: ['myeventlane_staff_playbooks']

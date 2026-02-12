@@ -23,3 +23,82 @@ function myeventlane_venue_uninstall(): void {
 
   \Drupal::logger('myeventlane_venue')->notice('MyEventLane Venue module uninstalled.');
 }
+
+/**
+ * Remove legacy location base fields and install new venue fields.
+ *
+ * The venue entity was refactored from a single-location model to a
+ * multi-location architecture (VenueLocation entity). This update:
+ * - Removes six legacy base fields (field_location, field_latitude,
+ *   field_longitude, field_place_id, field_provider, field_vendor).
+ * - Installs four new base fields (uid, visibility, share_token, description).
+ * - Syncs the entity type definition (adds "owner" entity key, removes phantom
+ *   data_table, updates storage class reference).
+ */
+function myeventlane_venue_update_10001(): void {
+  $entity_type_id = 'myeventlane_venue';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $logger = \Drupal::logger('myeventlane_venue');
+
+  // Step 1: Remove legacy base fields that are no longer in the entity class.
+  // These are the EXACT installed field names (verified via
+  // entityLastInstalledSchemaRepository).
+  $fields_to_remove = [
+    'field_location',
+    'field_latitude',
+    'field_longitude',
+    'field_place_id',
+    'field_provider',
+    'field_vendor',
+  ];
+
+  foreach ($fields_to_remove as $field_name) {
+    $field_storage = $update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+    if ($field_storage) {
+      $update_manager->uninstallFieldStorageDefinition($field_storage);
+      $logger->notice('Removed legacy base field @field from @entity.', [
+        '@field' => $field_name,
+        '@entity' => $entity_type_id,
+      ]);
+    }
+  }
+
+  // Step 2: Get the current entity type and field definitions from code.
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $field_definitions = \Drupal\myeventlane_venue\Entity\Venue::baseFieldDefinitions($entity_type);
+
+  // Step 3: Install any base fields present in code but not yet in the DB.
+  foreach ($field_definitions as $field_name => $field_definition) {
+    $installed = $update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+    if (!$installed) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        $entity_type_id,
+        'myeventlane_venue',
+        $field_definition,
+      );
+      $logger->notice('Installed new base field @field on @entity.', [
+        '@field' => $field_name,
+        '@entity' => $entity_type_id,
+      ]);
+    }
+  }
+
+  // Step 4: Sync the entity type definition directly.
+  //
+  // We cannot use $update_manager->updateEntityType() here because the
+  // installed entity type has a phantom data_table ('myeventlane_venue_field_data')
+  // and a different storage class ('VenueStorage'), which causes
+  // SqlContentEntityStorageSchema::hasSharedTableStructureChange() to return
+  // TRUE, triggering a "batch context required" exception.
+  //
+  // Since all actual schema changes (column additions/removals) are already
+  // handled above, we can safely sync the entity type metadata (entity keys,
+  // storage class, data_table) via the installed schema repository.
+  /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $schema_repo */
+  $schema_repo = \Drupal::service('entity.last_installed_schema.repository');
+  $schema_repo->setLastInstalledDefinition($entity_type);
+  $logger->notice('Synced entity type definition for @entity.', [
+    '@entity' => $entity_type_id,
+  ]);
+}

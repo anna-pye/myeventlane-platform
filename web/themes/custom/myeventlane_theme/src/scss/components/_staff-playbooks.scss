@@ -1,0 +1,164 @@
+// ==========================================================================
+// Staff Playbooks Panel
+// ==========================================================================
+// Neutral internal UI styling for staff playbooks sidebar on escalation view.
+// Distinct from AI insights panel (no purple/lavender). Calm, documentation feel.
+
+.staff-playbooks-panel,
+.mel-staff-playbooks {
+  margin-top: 1.125rem;
+  padding: 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--mel-color-border, #e2e2e8);
+  background: var(--mel-color-surface, #fff);
+}
+
+.staff-playbooks-panel__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+.staff-playbooks-panel__desc {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--mel-color-text-secondary, #555);
+  margin: 0 0 0.75rem;
+}
+
+.staff-playbooks-panel__list {
+  margin-top: 0.5rem;
+  border: none;
+  padding: 0;
+
+  summary {
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--mel-color-text-primary, #1a1a2e);
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before {
+      content: '▸ ';
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+  }
+
+  &[open] summary::before {
+    transform: rotate(90deg);
+  }
+}
+
+.staff-playbooks-panel__items {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staff-playbooks-panel__item {
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 0.5rem;
+  border-left: 3px solid var(--mel-color-border, #e2e2e8);
+}
+
+.staff-playbooks-panel__item-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+.staff-playbooks-panel__item-excerpt {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #555);
+  margin: 0 0 0.5rem;
+}
+
+.staff-playbooks-panel__item-ai-summary {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #555);
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+}
+
+.staff-playbooks-panel__snippets {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.staff-playbooks-panel__snippet {
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 0.375rem;
+  border-left: 2px solid var(--mel-color-border, #e2e2e8);
+}
+
+.staff-playbooks-panel__snippet-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+.staff-playbooks-panel__snippet-body {
+  margin-bottom: 0.5rem;
+}
+
+.staff-playbooks-panel__snippet-text {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  color: var(--mel-color-text-secondary, #555);
+}
+
+.staff-playbooks-panel__snippet-copy {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--mel-color-surface, #fff);
+  border: 1px solid var(--mel-color-border, #e2e2e8);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  color: var(--mel-color-primary, #4f46e5);
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(79, 70, 229, 0.08);
+    border-color: var(--mel-color-primary, #4f46e5);
+  }
+}
+
+.staff-playbooks-panel__link {
+  font-size: 0.8125rem;
+  color: var(--mel-color-primary, #4f46e5);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.staff-playbooks-panel__empty {
+  font-size: 0.875rem;
+  color: var(--mel-color-text-secondary, #555);
+  margin: 0;
+  font-style: italic;
+}

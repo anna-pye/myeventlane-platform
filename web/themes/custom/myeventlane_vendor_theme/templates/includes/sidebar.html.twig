@@ -90,6 +90,7 @@
     
     {# Management items - using actual routes from routing.yml #}
     {% set mgmt_items = [
+      { route: 'myeventlane_escalations_portal.vendor_list', label: 'Support'|t, key: 'support', icon: 'support' },
       { route: 'myeventlane_vendor.console.audience', label: 'Audience'|t, key: 'audience', icon: 'users' },
       { route: 'myeventlane_donations.vendor_list', label: 'Donations'|t, key: 'donations', icon: 'heart' },
       { route: 'myeventlane_vendor.console.payouts', label: 'Payouts'|t, key: 'payouts', icon: 'dollar' },
@@ -102,7 +103,11 @@
            class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
            {% if active == item.key %}aria-current="page"{% endif %}>
           <span class="mel-sidebar__link-icon" aria-hidden="true">
-            {% if item.icon == 'users' %}
+            {% if item.icon == 'support' %}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            {% elseif item.icon == 'users' %}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
@@ -151,7 +156,7 @@
       </li>
     {% endfor %}
     
-    {# Settings #}
+    {# Settings & Help #}
     <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
     
     <li class="mel-sidebar__item">
@@ -163,6 +168,19 @@
           </svg>
         </span>
         <span class="mel-sidebar__link-label">{{ 'Settings'|t }}</span>
+      </a>
+    </li>
+
+    <li class="mel-sidebar__item">
+      <a href="{{ path('myeventlane_help_centre.vendor_index') }}"
+         class="mel-sidebar__link{% if active == 'help' %} is-active{% endif %}"
+         {% if active == 'help' %}aria-current="page"{% endif %}>
+        <span class="mel-sidebar__link-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </span>
+        <span class="mel-sidebar__link-label">{{ 'Help centre'|t }}</span>
       </a>
     </li>
   </ul>

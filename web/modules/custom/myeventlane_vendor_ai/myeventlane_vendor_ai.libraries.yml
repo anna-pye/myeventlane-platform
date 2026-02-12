@@ -1,0 +1,6 @@
+assistant:
+  css:
+    theme:
+      css/assistant.css: {}
+  dependencies:
+    - core/drupal

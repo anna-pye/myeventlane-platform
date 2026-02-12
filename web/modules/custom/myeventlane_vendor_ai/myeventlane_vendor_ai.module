@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Vendor AI module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_vendor_ai_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'vendor_ai_assistant' => [
+      'variables' => [
+        'form' => [],
+      ],
+      'template' => 'vendor-ai-assistant',
+    ],
+  ];
+}

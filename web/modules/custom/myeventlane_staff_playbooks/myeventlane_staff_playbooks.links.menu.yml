@@ -1,0 +1,15 @@
+entity.node.add_form.staff_playbook:
+  title: 'Add playbook'
+  description: 'Create a new staff playbook'
+  route_name: entity.node.add_form
+  route_parameters:
+    node_type: staff_playbook
+  parent: entity.escalation.collection
+  weight: 20
+
+myeventlane_staff_playbooks.governance:
+  title: 'Internal Governance'
+  description: 'Staff guides and communication standards'
+  route_name: myeventlane_staff_playbooks.governance_dashboard
+  parent: entity.escalation.collection
+  weight: 25

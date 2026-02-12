@@ -1,0 +1,36 @@
+{#
+  Support Communication Standards panel on escalation canonical view.
+  Admin-only. Collapsible panel with links to guides and playbooks.
+#}
+{% if snippet_guide_url or playbook_urls is not empty or policy_help_url %}
+  <div class="governance-communication-standards mel-governance-panel">
+    <details class="governance-communication-standards__list" open>
+      <summary class="governance-communication-standards__summary">
+        {{ 'Support Communication Standards'|t }}
+      </summary>
+      <ul class="governance-communication-standards__items">
+        {% if snippet_guide_url %}
+          <li class="governance-communication-standards__item">
+            <a href="{{ snippet_guide_url }}" class="governance-communication-standards__link">
+              {{ 'Snippet Authoring Guide'|t }}
+            </a>
+          </li>
+        {% endif %}
+        {% for playbook in playbook_urls %}
+          <li class="governance-communication-standards__item">
+            <a href="{{ playbook.url }}" class="governance-communication-standards__link">
+              {{ 'Staff Playbook:'|t }} {{ playbook.title }}
+            </a>
+          </li>
+        {% endfor %}
+        {% if policy_help_url %}
+          <li class="governance-communication-standards__item">
+            <a href="{{ policy_help_url }}" class="governance-communication-standards__link">
+              {{ 'Internal Policy Help Articles'|t }}
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </details>
+  </div>
+{% endif %}

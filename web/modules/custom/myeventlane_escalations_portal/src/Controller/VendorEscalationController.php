@@ -11,6 +11,7 @@ use Drupal\myeventlane_escalations\Entity\Escalation;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
+use Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer;
 use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -27,6 +28,7 @@ final class VendorEscalationController extends ControllerBase {
     private readonly EscalationMailer $mailer,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly EscalationSlaBadgeResolver $badgeResolver,
+    private readonly EscalationThreadRenderer $threadRenderer,
   ) {}
 
   /**
@@ -39,6 +41,7 @@ final class VendorEscalationController extends ControllerBase {
       $container->get('myeventlane_escalations_portal.mailer'),
       $container->get('date.formatter'),
       $container->get('myeventlane_escalations_sla.badge_resolver'),
+      $container->get('myeventlane_escalations_portal.thread_renderer'),
     );
   }
 
@@ -90,7 +93,7 @@ final class VendorEscalationController extends ControllerBase {
       }
     }
 
-    return [
+    $table = [
       '#type' => 'table',
       '#header' => [
         $this->t('#'),
@@ -103,6 +106,32 @@ final class VendorEscalationController extends ControllerBase {
       ],
       '#rows' => $rows,
       '#empty' => $this->t('No escalations assigned to your vendor.'),
+      '#attributes' => ['class' => ['mel-support-table']],
+    ];
+
+    $helper = [];
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
+      $helper = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-support-helper']],
+        'text' => [
+          '#type' => 'markup',
+          '#markup' => $this->t(
+            '<a href=":url" class="mel-support-helper__link">Browse the Help Centre</a> for guides and policies.',
+            [':url' => Url::fromRoute('myeventlane_help_centre.vendor_index')->toString()],
+          ),
+        ],
+      ];
+    }
+
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => $this->t('Vendor Support'),
+      '#intro' => $this->t('Manage escalations assigned to your vendor.'),
+      '#content' => array_filter([
+        'helper' => $helper,
+        'table' => $table,
+      ]),
     ];
   }
 
@@ -118,39 +147,44 @@ final class VendorEscalationController extends ControllerBase {
     /** @var \Drupal\myeventlane_escalations\Entity\Escalation $entity */
     $build = [];
 
-    // SLA badge.
-    $badge = $this->badgeResolver->resolve($entity);
-    $build['sla_badge'] = [
-      '#theme' => 'escalation_sla_badge',
-      '#badge' => $badge,
-      '#prefix' => '<div style="margin-bottom: 12px;">',
-      '#suffix' => '</div>',
-    ];
-
     // Escalation details (NO internal notes, NO SLA timestamps, NO escalation levels).
     $waiting_on = $this->resolveWaitingOnLabel($entity);
+    $badge = $this->badgeResolver->resolve($entity);
+
     $build['details'] = [
       '#type' => 'container',
-      '#attributes' => ['style' => 'margin-bottom: 24px; padding: 16px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fafafa;'],
+      '#attributes' => ['class' => ['mel-escalation-card']],
       'subject' => ['#markup' => '<h2>' . htmlspecialchars((string) $entity->get('subject')->value) . '</h2>'],
-      'meta' => [
-        '#markup' => '<div><strong>' . $this->t('Type:') . '</strong> ' . htmlspecialchars((string) $entity->get('type')->value)
-          . ' &nbsp; <strong>' . $this->t('Status:') . '</strong> ' . htmlspecialchars((string) $entity->get('status')->value)
-          . ' &nbsp; <strong>' . $this->t('Priority:') . '</strong> ' . htmlspecialchars((string) $entity->get('priority')->value)
-          . ' &nbsp; <strong>' . $this->t('Waiting on:') . '</strong> ' . htmlspecialchars($waiting_on)
-          . '</div>',
-      ],
       'description' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#value' => '<p>' . nl2br(htmlspecialchars((string) $entity->get('description')->value)) . '</p>',
-        '#attributes' => ['style' => 'margin-top: 12px;'],
+        '#attributes' => ['class' => ['mel-escalation-card__description']],
+      ],
+    ];
+
+    // Meta row: status, priority, waiting_on, SLA badge (chips only).
+    $build['meta_row'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-meta-row']],
+      'status' => [
+        '#markup' => '<span class="mel-chip mel-chip--status">' . htmlspecialchars((string) $entity->get('status')->value) . '</span>',
+      ],
+      'priority' => [
+        '#markup' => '<span class="mel-chip mel-chip--priority">' . htmlspecialchars((string) $entity->get('priority')->value) . '</span>',
+      ],
+      'waiting_on' => [
+        '#markup' => '<span class="mel-chip mel-chip--waiting">' . htmlspecialchars($waiting_on) . '</span>',
+      ],
+      'sla_badge' => [
+        '#theme' => 'escalation_sla_badge',
+        '#badge' => $badge,
       ],
     ];
 
     // Action buttons.
     $status = (string) $entity->get('status')->value;
-    $build['actions'] = ['#type' => 'container', '#attributes' => ['style' => 'margin-bottom: 16px;']];
+    $build['actions'] = ['#type' => 'container', '#attributes' => ['class' => ['mel-escalation-card__actions']]];
 
     if (!in_array($status, ['resolved', 'closed'], TRUE)) {
       if ($this->partyResolver->isVendor($this->currentUser(), $entity)) {
@@ -172,17 +206,48 @@ final class VendorEscalationController extends ControllerBase {
       ];
     }
 
-    // Comment thread.
-    $build['thread'] = $this->buildCommentThread($escalation);
+    // Comment thread (shared service).
+    $build['thread'] = $this->threadRenderer->renderThread($entity);
 
     // Reply form (only if not resolved/closed).
     if (!in_array($status, ['resolved', 'closed'], TRUE)) {
       if ($this->currentUser()->hasPermission('comment on vendor escalations')) {
-        $build['reply_form'] = $this->formBuilder()->getForm(EscalationReplyForm::class, $entity);
+        $build['reply_form'] = \_myeventlane_escalations_portal_wrap_reply_shell(
+          $this->formBuilder()->getForm(EscalationReplyForm::class, $entity)
+        );
       }
     }
 
-    return $build;
+    // AI assistant link (only when vendor AI module enabled and user has permission).
+    if ($this->moduleHandler()->moduleExists('myeventlane_vendor_ai')
+      && $this->currentUser()->hasPermission('use vendor ai assistant')) {
+      $build['ai_assistant'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ai-assistant']],
+        'link' => [
+          '#type' => 'link',
+          '#title' => $this->t('Ask MEL Assistant'),
+          '#url' => Url::fromRoute('myeventlane_vendor_ai.assistant', ['escalation' => $escalation]),
+          '#attributes' => [
+            'class' => ['button', 'button--small', 'mel-ai-assistant__link'],
+            'aria-label' => $this->t('Open MEL Assistant for policy questions'),
+          ],
+        ],
+      ];
+    }
+
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => (string) $entity->get('subject')->value,
+      '#intro' => NULL,
+      '#content' => $build,
+      '#attached' => [
+        'library' => [
+          'myeventlane_escalations_portal/escalation_thread_ux',
+          'myeventlane_escalations_portal/escalation_reply_sticky',
+        ],
+      ],
+    ];
   }
 
   /**
@@ -263,49 +328,6 @@ final class VendorEscalationController extends ControllerBase {
       'staff' => (string) $this->t('Waiting on MyEventLane support'),
       default => '-',
     };
-  }
-
-  /**
-   * Builds the comment thread render array.
-   */
-  private function buildCommentThread(int $escalation_id): array {
-    $comment_storage = $this->entityTypeManager()->getStorage('comment');
-    $cids = $comment_storage->getQuery()
-      ->condition('entity_type', 'escalation')
-      ->condition('entity_id', $escalation_id)
-      ->condition('field_name', 'field_escalation_thread')
-      ->sort('created', 'ASC')
-      ->accessCheck(FALSE)
-      ->execute();
-
-    $items = [];
-    if ($cids) {
-      $comments = $comment_storage->loadMultiple($cids);
-      foreach ($comments as $comment) {
-        $author = $comment->getOwner();
-        $author_name = $author ? $author->getDisplayName() : $this->t('Unknown');
-        $body = (string) ($comment->get('comment_body')->value ?? '');
-        $created = $this->dateFormatter->format((int) $comment->getCreatedTime(), 'medium');
-
-        $items[] = [
-          '#type' => 'container',
-          '#attributes' => ['style' => 'padding: 12px; margin-bottom: 8px; border: 1px solid #eee; border-radius: 8px; background: #fff;'],
-          'header' => [
-            '#markup' => '<div style="font-size: 0.85em; color: #666; margin-bottom: 6px;"><strong>' . htmlspecialchars((string) $author_name) . '</strong> &middot; ' . $created . '</div>',
-          ],
-          'body' => [
-            '#markup' => '<div>' . nl2br(htmlspecialchars($body)) . '</div>',
-          ],
-        ];
-      }
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['style' => 'margin-bottom: 16px;'],
-      'title' => ['#markup' => '<h3>' . $this->t('Conversation') . '</h3>'],
-      'items' => $items ?: ['#markup' => '<p>' . $this->t('No messages yet.') . '</p>'],
-    ];
   }
 
 }

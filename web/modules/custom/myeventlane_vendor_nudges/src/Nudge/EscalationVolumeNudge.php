@@ -58,4 +58,11 @@ final class EscalationVolumeNudge implements VendorNudgeInterface {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getHelpCategory(): ?string {
+    return 'Communication';
+  }
+
 }

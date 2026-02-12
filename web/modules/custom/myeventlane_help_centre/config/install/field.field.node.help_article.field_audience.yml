@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_audience
+    - node.type.help_article
+  module:
+    - options
+id: node.help_article.field_audience
+field_name: field_audience
+entity_type: node
+bundle: help_article
+label: 'Audience'
+description: 'Who can see this article. Select one or both audiences.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

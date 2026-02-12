@@ -17,6 +17,10 @@ services:
 
   myeventlane_vendor_nudges.renderer:
     class: Drupal\myeventlane_vendor_nudges\Service\VendorNudgeRenderer
+    arguments:
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor_nudges'
 
   # Nudge implementations (tagged for automatic collection).
   myeventlane_vendor_nudges.nudge.response_time:

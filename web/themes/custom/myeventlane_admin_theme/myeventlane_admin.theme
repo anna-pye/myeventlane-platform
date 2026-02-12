@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * @file
+ * Theme functions for MyEventLane Admin theme.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+
+/**
+ * Implements hook_preprocess_HOOK() for page templates.
+ */
+function myeventlane_admin_theme_preprocess_page(&$variables) {
+  // Add body classes for admin context.
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $variables['attributes']['class'][] = 'mel-admin-theme';
+  
+  // Add route-specific classes.
+  if (strpos($route_name, 'node.add') !== FALSE || strpos($route_name, 'node.edit') !== FALSE) {
+    $variables['attributes']['class'][] = 'mel-node-form';
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function myeventlane_admin_theme_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Add a stable admin form hook class.
+  if (!isset($form['#attributes'])) {
+    $form['#attributes'] = [];
+  }
+  if (!isset($form['#attributes']['class'])) {
+    $form['#attributes']['class'] = [];
+  }
+  $form['#attributes']['class'][] = 'mel-admin-form';
+
+  // Mark actions wrapper for styling (no structural wrappers injected).
+  if (isset($form['actions']) && is_array($form['actions'])) {
+    $form['actions']['#attributes']['class'][] = 'mel-form-actions';
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

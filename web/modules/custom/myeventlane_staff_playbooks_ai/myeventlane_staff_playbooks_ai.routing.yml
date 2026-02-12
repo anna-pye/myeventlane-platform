@@ -1,0 +1,9 @@
+myeventlane_staff_playbooks_ai.summary:
+  path: '/admin/myeventlane/playbooks/{node}/ai/summary'
+  defaults:
+    _controller: '\Drupal\myeventlane_staff_playbooks_ai\Controller\PlaybookAiController::generateSummary'
+  requirements:
+    _permission: 'generate playbook ai summaries'
+    node: \d+
+  options:
+    _admin_route: true

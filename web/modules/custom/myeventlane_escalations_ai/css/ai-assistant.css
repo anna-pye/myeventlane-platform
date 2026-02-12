@@ -1,0 +1,264 @@
+/* Staff-only AI assistant panel (subtle SaaS). */
+
+.mel-ai-assistant {
+  border: 1px solid #e6e8ec;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px;
+}
+
+.mel-ai-assistant__title {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.mel-ai-assistant__intro {
+  margin: 0 0 12px;
+  color: #5b6472;
+}
+
+.mel-ai-assistant__cta {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.mel-ai-assistant__cta-note {
+  margin: 0;
+  font-size: 13px;
+  color: #5b6472;
+}
+
+.mel-ai-assistant__empty {
+  padding: 12px;
+  border-radius: 12px;
+  background: #fafafa;
+  color: #5b6472;
+}
+
+.mel-ai-assistant__list {
+  display: grid;
+  gap: 12px;
+}
+
+/* Cards */
+.mel-ai-card {
+  border: 1px solid #e6e8ec;
+  border-left: 4px solid #f26d5b; /* MEL coral accent */
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+}
+
+.mel-ai-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.mel-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f26d5b;
+  border: 1px solid #f26d5b;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.mel-ai-time {
+  font-size: 12px;
+  color: #5b6472;
+  margin-left: 8px;
+}
+
+.mel-ai-card__source {
+  font-size: 12px;
+  color: #5b6472;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mel-ai-card__h {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.mel-ai-card__h2 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #2c3e50;
+}
+
+.mel-ai-card__reply {
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
+  white-space: pre-wrap;
+}
+
+.mel-ai-card__list {
+  margin: 0;
+  padding-left: 18px;
+  color: #2c3e50;
+}
+
+.mel-ai-card__p {
+  margin: 0 0 8px;
+  color: #2c3e50;
+}
+
+.mel-ai-card__actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mel-ai-card__hint {
+  font-size: 13px;
+  color: #5b6472;
+}
+
+.mel-ai-card__details summary {
+  cursor: pointer;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.mel-ai-card__pre {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #e6e8ec;
+  background: #fafafa;
+  white-space: pre-wrap;
+}
+
+/* Collapse behaviour: only first card shown by default */
+[data-mel-ai-insights][data-expanded="0"] .mel-ai-card:not(:first-child) {
+  display: none;
+}
+
+.mel-ai-assistant__toggle {
+  margin-top: 4px;
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #2c3e50;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.mel-ai-assistant__toggle:hover {
+  text-decoration: underline;
+}
+
+/* Button styles (match existing admin styles) */
+.mel-button {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.mel-button--primary {
+  background: #f26d5b;
+  color: #fff;
+  border-color: #f26d5b;
+}
+
+.mel-button--primary:hover {
+  background: #e55a48;
+  border-color: #e55a48;
+}
+
+.mel-button--secondary {
+  background: #fff;
+  color: #2c3e50;
+  border-color: #e6e8ec;
+}
+
+.mel-button--secondary:hover {
+  background: #fafafa;
+}
+
+/* Flash highlight for insert feedback */
+.mel-ai-flash {
+  outline: 2px solid #f26d5b;
+  outline-offset: 2px;
+}
+
+/* Edit & insert drawer */
+.mel-ai-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.mel-ai-drawer__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+}
+
+.mel-ai-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 520px;
+  max-width: 95%;
+  height: 100%;
+  background: #fff;
+  border-left: 1px solid #e6e8ec;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  animation: melDrawerSlide 0.2s ease-out;
+}
+
+@keyframes melDrawerSlide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mel-ai-drawer__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mel-ai-drawer__label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.mel-ai-drawer__label select {
+  margin-left: 8px;
+}
+
+.mel-ai-drawer__textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: inherit;
+}
+
+body.mel-ai-drawer-open {
+  overflow: hidden;
+}

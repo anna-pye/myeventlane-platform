@@ -1,0 +1,8 @@
+name: MyEventLane Staff Playbooks AI
+type: module
+description: 'AI-assisted summarisation for staff playbooks. Optional submodule. Uses myeventlane_ai (kill switch, rate limiting).'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - myeventlane_staff_playbooks:myeventlane_staff_playbooks
+  - myeventlane_ai:myeventlane_ai

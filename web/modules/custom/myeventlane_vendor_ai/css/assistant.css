@@ -1,0 +1,34 @@
+/**
+ * Vendor AI Assistant panel styling.
+ * Uses mel-ai-panel BEM classes.
+ */
+.mel-ai-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.mel-ai-panel__header {
+  margin-bottom: 1rem;
+}
+
+.mel-ai-panel__intro {
+  margin: 0;
+  color: #666;
+  font-size: 0.9375rem;
+}
+
+.mel-ai-panel__result {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mel-ai-panel__answer {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}

@@ -1,0 +1,71 @@
+/**
+ * Staff escalation AI draft modal styling.
+ */
+
+.mel-ai-draft-root {
+  margin: 1rem 0;
+}
+
+.mel-ai-draft__trigger {
+  margin-right: 0.5rem;
+}
+
+.mel-ai-draft-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1260;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.mel-ai-draft-modal.is-open {
+  display: flex;
+}
+
+.mel-ai-draft-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.mel-ai-draft-modal__content {
+  position: relative;
+  max-width: 36rem;
+  max-height: 80vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.mel-ai-draft-modal__title {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1.125rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mel-ai-draft-modal__body {
+  padding: 1rem 1.25rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.mel-ai-draft-modal__text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.mel-ai-draft-modal__actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+}

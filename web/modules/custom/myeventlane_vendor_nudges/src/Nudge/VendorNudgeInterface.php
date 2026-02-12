@@ -59,4 +59,16 @@ interface VendorNudgeInterface {
    */
   public function render(): array;
 
+  /**
+   * Returns the help category term name linked to this nudge.
+   *
+   * When a matching help category exists, the renderer will produce
+   * a contextual "Learn more" link pointing to the vendor help centre
+   * topic page for that category. Returns NULL if no mapping exists.
+   *
+   * @return string|null
+   *   The help_categories taxonomy term name, or NULL.
+   */
+  public function getHelpCategory(): ?string;
+
 }

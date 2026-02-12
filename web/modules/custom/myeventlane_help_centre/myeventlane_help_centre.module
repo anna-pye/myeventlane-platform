@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Module hooks for MyEventLane Help Centre.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_help_centre_theme(): array {
+  return [
+    'help_centre_index' => [
+      'variables' => [
+        'heading' => NULL,
+        'groups' => [],
+        'is_vendor' => FALSE,
+      ],
+      'template' => 'help-centre-index',
+    ],
+  ];
+}

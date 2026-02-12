@@ -1,0 +1,11 @@
+name: MyEventLane Vendor AI
+type: module
+description: 'Vendor-facing MEL Assistant that answers policy questions using help centre articles. No escalation thread access.'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:user
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_help_centre:myeventlane_help_centre
+  - myeventlane_escalations_portal:myeventlane_escalations_portal
+  - myeventlane_escalations_sla:myeventlane_escalations_sla

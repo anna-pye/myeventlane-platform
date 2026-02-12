@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Staff Playbooks AI module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_entity_view_alter().
+ *
+ * Adds "Generate AI summary" link and ensures field_ai_summary is staff-only.
+ */
+function myeventlane_staff_playbooks_ai_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display): void {
+  if ($entity->getEntityTypeId() !== 'node' || $entity->bundle() !== 'staff_playbook') {
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  $has_view = $account->hasPermission('view staff playbooks');
+  $has_generate = $account->hasPermission('generate playbook ai summaries');
+
+  if (!$has_view && !$has_generate) {
+    unset($build['field_ai_summary']);
+    return;
+  }
+
+  $ai_settings = \Drupal::config('myeventlane_staff_playbooks_ai.settings');
+  $global_ai = \Drupal::config('myeventlane_ai.settings');
+
+  if ($has_generate && $ai_settings->get('enabled') && $global_ai->get('enabled')) {
+    $build['playbook_ai_generate'] = [
+      '#type' => 'link',
+      '#title' => t('Generate AI summary'),
+      '#url' => Url::fromRoute('myeventlane_staff_playbooks_ai.summary', ['node' => $entity->id()]),
+      '#weight' => -10,
+      '#prefix' => '<div class="playbook-ai-generate-link">',
+      '#suffix' => '</div>',
+    ];
+  }
+
+  if (!$has_view) {
+    unset($build['field_ai_summary']);
+  }
+  elseif (!$entity->get('field_ai_summary')->isEmpty() && !isset($build['field_ai_summary'])) {
+    $build['field_ai_summary'] = [
+      '#type' => 'processed_text',
+      '#text' => (string) $entity->get('field_ai_summary')->value,
+      '#format' => (string) ($entity->get('field_ai_summary')->format ?? 'basic_html'),
+      '#weight' => -5,
+      '#prefix' => '<div class="field--name-field-ai-summary"><h4>' . t('AI summary') . '</h4>',
+      '#suffix' => '</div>',
+    ];
+  }
+}

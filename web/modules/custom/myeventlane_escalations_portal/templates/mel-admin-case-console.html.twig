@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Admin case console layout for entity.escalation.canonical (Gin).
+ *
+ * BEM: .mel-case-console
+ */
+#}
+<div class="mel-case-console">
+  <header class="mel-case-console__header">
+    <div class="mel-case-console__header-inner">
+      <div class="mel-case-console__header-left">
+        {{ header_left }}
+      </div>
+      <div class="mel-case-console__header-right">
+        {{ header_right }}
+      </div>
+    </div>
+  </header>
+
+  <div class="mel-case-console__body">
+    <main class="mel-case-console__main">
+      {{ main }}
+    </main>
+
+    <aside class="mel-case-console__sidebar">
+      {{ sidebar }}
+    </aside>
+  </div>
+</div>

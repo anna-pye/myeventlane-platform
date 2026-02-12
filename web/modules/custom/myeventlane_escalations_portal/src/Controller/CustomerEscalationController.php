@@ -8,9 +8,11 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_escalations\Entity\Escalation;
+use Drupal\myeventlane_escalations_portal\Form\CustomerEscalationForm;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
+use Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -23,6 +25,7 @@ final class CustomerEscalationController extends ControllerBase {
     private readonly EscalationPartyResolver $partyResolver,
     private readonly EscalationMailer $mailer,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly EscalationThreadRenderer $threadRenderer,
   ) {}
 
   /**
@@ -33,6 +36,7 @@ final class CustomerEscalationController extends ControllerBase {
       $container->get('myeventlane_escalations_portal.party_resolver'),
       $container->get('myeventlane_escalations_portal.mailer'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_escalations_portal.thread_renderer'),
     );
   }
 
@@ -70,30 +74,80 @@ final class CustomerEscalationController extends ControllerBase {
       }
     }
 
-    $build = [];
-    $build['add_link'] = [
+    $helpBlock = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-support-actions']],
+      '#weight' => -10,
+    ];
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
+      $helpBlock['help_centre'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Help Centre'),
+        '#url' => Url::fromRoute('myeventlane_help_centre.public_index'),
+        '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--secondary']],
+      ];
+    }
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre_ai')) {
+      $helpBlock['ask'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Ask a question'),
+        '#url' => Url::fromRoute('myeventlane_help_centre_ai.ask'),
+        '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--secondary']],
+      ];
+    }
+    $helpBlock['contact'] = [
       '#type' => 'link',
-      '#title' => $this->t('Submit a new escalation'),
+      '#title' => $this->t('Contact support'),
       '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_add'),
-      '#attributes' => ['class' => ['button', 'button--primary']],
-      '#prefix' => '<div style="margin-bottom: 16px;">',
-      '#suffix' => '</div>',
+      '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--primary']],
     ];
 
-    $build['table'] = [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('#'),
-        $this->t('Subject'),
-        $this->t('Status'),
-        $this->t('Priority'),
-        $this->t('Created'),
+    $content = [
+      'help_block' => $helpBlock,
+      'add_link' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-support-actions']],
+        'link' => [
+          '#type' => 'link',
+          '#title' => $this->t('Submit a new escalation'),
+          '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_add'),
+          '#attributes' => ['class' => ['button', 'button--primary']],
+        ],
       ],
-      '#rows' => $rows,
-      '#empty' => $this->t('You have no support escalations yet.'),
+      'table' => [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('#'),
+          $this->t('Subject'),
+          $this->t('Status'),
+          $this->t('Priority'),
+          $this->t('Created'),
+        ],
+        '#rows' => $rows,
+        '#empty' => $this->t('You have no support escalations yet.'),
+        '#attributes' => ['class' => ['mel-support-table']],
+      ],
     ];
 
-    return $build;
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => $this->t('My Support'),
+      '#intro' => $this->t('View and manage your support escalations.'),
+      '#content' => $content,
+    ];
+  }
+
+  /**
+   * Renders the add-escalation form wrapped in the support layout.
+   */
+  public function add(): array {
+    $form = $this->formBuilder()->getForm(CustomerEscalationForm::class);
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => $this->t('Submit an Escalation'),
+      '#intro' => $this->t('Describe your issue and we\'ll get back to you as soon as possible.'),
+      '#content' => $form,
+    ];
   }
 
   /**
@@ -114,7 +168,7 @@ final class CustomerEscalationController extends ControllerBase {
     // Escalation details (NO internal notes).
     $build['details'] = [
       '#type' => 'container',
-      '#attributes' => ['style' => 'margin-bottom: 24px; padding: 16px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fafafa;'],
+      '#attributes' => ['class' => ['mel-escalation-card']],
       'subject' => ['#markup' => '<h2>' . htmlspecialchars((string) $entity->get('subject')->value) . '</h2>'],
       'meta' => [
         '#markup' => '<div><strong>' . $this->t('Type:') . '</strong> ' . htmlspecialchars((string) $entity->get('type')->value)
@@ -125,7 +179,19 @@ final class CustomerEscalationController extends ControllerBase {
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#value' => '<p>' . nl2br(htmlspecialchars((string) $entity->get('description')->value)) . '</p>',
-        '#attributes' => ['style' => 'margin-top: 12px;'],
+        '#attributes' => ['class' => ['mel-escalation-card__description']],
+      ],
+    ];
+
+    // Meta row: status chip, priority chip (customer-friendly labels).
+    $build['meta_row'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-meta-row']],
+      'status' => [
+        '#markup' => '<span class="mel-chip mel-chip--status">' . htmlspecialchars($this->resolveCustomerStatusLabel($entity)) . '</span>',
+      ],
+      'priority' => [
+        '#markup' => '<span class="mel-chip mel-chip--priority">' . htmlspecialchars((string) $entity->get('priority')->value) . '</span>',
       ],
     ];
 
@@ -133,26 +199,41 @@ final class CustomerEscalationController extends ControllerBase {
     $status = (string) $entity->get('status')->value;
     if (in_array($status, ['resolved', 'closed'], TRUE)) {
       $build['reopen'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Request to reopen'),
-        '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_reopen', ['escalation' => $escalation]),
-        '#attributes' => ['class' => ['button', 'button--small']],
-        '#prefix' => '<div style="margin-bottom: 16px;">',
-        '#suffix' => '</div>',
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-escalation-card__actions']],
+        'link' => [
+          '#type' => 'link',
+          '#title' => $this->t('Request to reopen'),
+          '#url' => Url::fromRoute('myeventlane_escalations_portal.customer_reopen', ['escalation' => $escalation]),
+          '#attributes' => ['class' => ['button', 'button--small']],
+        ],
       ];
     }
 
-    // Comment thread.
-    $build['thread'] = $this->buildCommentThread($escalation);
+    // Comment thread (shared service).
+    $build['thread'] = $this->threadRenderer->renderThread($entity);
 
     // Reply form (only if not resolved/closed).
     if (!in_array($status, ['resolved', 'closed'], TRUE)) {
       if ($this->currentUser()->hasPermission('comment on own escalation')) {
-        $build['reply_form'] = $this->formBuilder()->getForm(EscalationReplyForm::class, $entity);
+        $build['reply_form'] = \_myeventlane_escalations_portal_wrap_reply_shell(
+          $this->formBuilder()->getForm(EscalationReplyForm::class, $entity)
+        );
       }
     }
 
-    return $build;
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => (string) $entity->get('subject')->value,
+      '#intro' => NULL,
+      '#content' => $build,
+      '#attached' => [
+        'library' => [
+          'myeventlane_escalations_portal/escalation_thread_ux',
+          'myeventlane_escalations_portal/escalation_reply_sticky',
+        ],
+      ],
+    ];
   }
 
   /**
@@ -278,49 +359,6 @@ final class CustomerEscalationController extends ControllerBase {
       'closed' => (string) $this->t('Closed'),
       default => $status,
     };
-  }
-
-  /**
-   * Builds the comment thread render array.
-   */
-  private function buildCommentThread(int $escalation_id): array {
-    $comment_storage = $this->entityTypeManager()->getStorage('comment');
-    $cids = $comment_storage->getQuery()
-      ->condition('entity_type', 'escalation')
-      ->condition('entity_id', $escalation_id)
-      ->condition('field_name', 'field_escalation_thread')
-      ->sort('created', 'ASC')
-      ->accessCheck(FALSE)
-      ->execute();
-
-    $items = [];
-    if ($cids) {
-      $comments = $comment_storage->loadMultiple($cids);
-      foreach ($comments as $comment) {
-        $author = $comment->getOwner();
-        $author_name = $author ? $author->getDisplayName() : $this->t('Unknown');
-        $body = (string) ($comment->get('comment_body')->value ?? '');
-        $created = $this->dateFormatter->format((int) $comment->getCreatedTime(), 'medium');
-
-        $items[] = [
-          '#type' => 'container',
-          '#attributes' => ['style' => 'padding: 12px; margin-bottom: 8px; border: 1px solid #eee; border-radius: 8px; background: #fff;'],
-          'header' => [
-            '#markup' => '<div style="font-size: 0.85em; color: #666; margin-bottom: 6px;"><strong>' . htmlspecialchars((string) $author_name) . '</strong> &middot; ' . $created . '</div>',
-          ],
-          'body' => [
-            '#markup' => '<div>' . nl2br(htmlspecialchars($body)) . '</div>',
-          ],
-        ];
-      }
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['style' => 'margin-bottom: 16px;'],
-      'title' => ['#markup' => '<h3>' . $this->t('Conversation') . '</h3>'],
-      'items' => $items ?: ['#markup' => '<p>' . $this->t('No messages yet.') . '</p>'],
-    ];
   }
 
 }

@@ -1,0 +1,9 @@
+name: 'MyEventLane Escalations Capacity'
+type: module
+description: 'Staff workload and capacity analytics dashboard for the Escalations system.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - drupal:comment
+  - drupal:user

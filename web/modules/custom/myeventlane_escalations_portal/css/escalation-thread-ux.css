@@ -1,0 +1,281 @@
+/**
+ * @file
+ * Escalation thread UX - unified styling for vendor, customer, and admin (Gin).
+ * Plain CSS, no build step. Works under all themes including Gin.
+ */
+
+/* ==========================================================================
+   Thread container
+   ========================================================================== */
+
+.mel-escalation-thread {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mel-thread-divider {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--mel-ink, #293241);
+  margin-bottom: 0.5rem;
+}
+
+.mel-escalation-thread__empty {
+  margin: 0;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+}
+
+/* ==========================================================================
+   Message groups (consecutive messages by role)
+   ========================================================================== */
+
+.mel-message-group {
+  border: 1px solid var(--mel-border, #e6e8ec);
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff;
+}
+
+/* Role accent: left border */
+.mel-message-group--customer {
+  border-left: 4px solid #d1e8ff;
+}
+
+.mel-message-group--vendor {
+  border-left: 4px solid #d9f2e6;
+}
+
+.mel-message-group--staff {
+  border-left: 4px solid #e8dcff;
+}
+
+.mel-message-group__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mel-message-group__items {
+  display: flex;
+  flex-direction: column;
+}
+
+.mel-message-bubble {
+  padding: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.mel-message-bubble + .mel-message-bubble {
+  border-top: 1px solid var(--mel-border, #e6e8ec);
+}
+
+.mel-meta-time {
+  font-size: 0.8125rem;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+}
+
+/* ==========================================================================
+   Chips (role, status, priority, waiting)
+   ========================================================================== */
+
+.mel-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+  background: transparent;
+}
+
+.mel-chip--customer {
+  color: #1e88e5;
+}
+
+.mel-chip--vendor {
+  color: #2e7d32;
+}
+
+.mel-chip--staff {
+  color: #7c5cff;
+}
+
+.mel-chip--status,
+.mel-chip--priority,
+.mel-chip--waiting {
+  color: var(--mel-ink, #293241);
+}
+
+/* ==========================================================================
+   Meta row (above thread)
+   ========================================================================== */
+
+.mel-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ==========================================================================
+   Reply area (legacy)
+   ========================================================================== */
+
+.mel-escalation-reply {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mel-border, #e6e8ec);
+}
+
+/* ==========================================================================
+   Sticky reply shell
+   ========================================================================== */
+
+.mel-reply-shell {
+  position: relative;
+  margin-top: 28px;
+}
+
+.mel-reply-shell__bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid var(--mel-border, #e6e8ec);
+  background: #fff;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  color: var(--mel-ink, #293241);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.mel-reply-shell__bar:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mel-reply-shell__bar:focus {
+  outline: 2px solid #7c5cff;
+  outline-offset: 2px;
+}
+
+.mel-reply-shell__title {
+  font-weight: 600;
+}
+
+.mel-reply-shell__hint {
+  font-size: 0.875rem;
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+}
+
+/* Collapsed: hide form */
+[data-mel-reply-shell][data-expanded="0"] .mel-reply-shell__form {
+  display: none;
+}
+
+/* Expanded: show form */
+[data-mel-reply-shell][data-expanded="1"] .mel-reply-shell__form {
+  display: block;
+  margin-top: 12px;
+}
+
+/* ==========================================================================
+   Admin Case Console (entity.escalation.canonical only)
+   ========================================================================== */
+
+.mel-escalation-console {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mel-escalation-console__header,
+.mel-escalation-console__order {
+  background: #fff;
+  border: 1px solid #e6e8ec;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.mel-escalation-console__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.mel-escalation-console__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.mel-escalation-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mel-escalation-actions .mel-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: 1px solid var(--mel-border, #e6e8ec);
+  cursor: pointer;
+}
+
+.mel-escalation-actions .mel-button--primary {
+  background: var(--mel-primary, #6c7ef2);
+  color: #fff;
+  border-color: var(--mel-primary, #6c7ef2);
+}
+
+.mel-escalation-actions .mel-button--primary:hover {
+  opacity: 0.9;
+}
+
+.mel-escalation-actions .mel-button--secondary {
+  background: #fff;
+  color: var(--mel-ink, #293241);
+}
+
+.mel-escalation-actions .mel-button--secondary:hover {
+  background: var(--mel-grey-light, #f4f4f4);
+}
+
+/* Sticky reply composer on admin escalation page only */
+body.path-admin .mel-escalation-reply,
+body.mel-admin-body .mel-escalation-reply {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid #e6e8ec;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.mel-reply-unavailable {
+  color: var(--mel-muted, rgba(41, 50, 65, 0.7));
+  font-style: italic;
+  margin: 1rem 0;
+}

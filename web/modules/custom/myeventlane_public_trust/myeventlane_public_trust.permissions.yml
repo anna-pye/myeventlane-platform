@@ -1,0 +1,4 @@
+administer public trust signals:
+  title: 'Administer public trust signals'
+  description: 'Configure settings for public trust signal display.'
+  restrict access: true

@@ -1,0 +1,16 @@
+snippets:
+  js:
+    js/staff-playbook-snippets.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+governance_panel:
+  css:
+    component:
+      css/governance-panel.css: {}
+
+governance_dashboard:
+  css:
+    component:
+      css/governance-dashboard.css: {}

@@ -1,0 +1,15 @@
+services:
+  myeventlane_staff_playbooks_ai.context_builder:
+    class: Drupal\myeventlane_staff_playbooks_ai\Service\PlaybookAiContextBuilder
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_staff_playbooks_ai.job_enqueuer:
+    class: Drupal\myeventlane_staff_playbooks_ai\Service\PlaybookAiJobEnqueuer
+    arguments:
+      - '@queue'
+      - '@logger.channel.myeventlane_staff_playbooks_ai'
+
+  logger.channel.myeventlane_staff_playbooks_ai:
+    parent: logger.channel_base
+    arguments: ['myeventlane_staff_playbooks_ai']

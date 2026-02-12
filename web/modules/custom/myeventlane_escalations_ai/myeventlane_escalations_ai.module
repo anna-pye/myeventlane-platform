@@ -7,8 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_entity_insert().
@@ -64,13 +66,79 @@ function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void
 }
 
 /**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_ai_theme($existing, $type, $theme, $path) {
+  return [
+    'myeventlane_escalations_ai_panel' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => NULL,
+        'insights' => [],
+        'generate_url' => NULL,
+      ],
+      'template' => 'myeventlane-escalations-ai-panel',
+    ],
+    'myeventlane_escalations_ai_card' => [
+      'variables' => [
+        'insight_type' => NULL,
+        'timestamp' => NULL,
+        'provider' => NULL,
+        'model' => NULL,
+        'draft_reply' => NULL,
+        'missing_info' => [],
+        'next_step' => NULL,
+        'risk' => NULL,
+        'reason' => NULL,
+        'suggested_action' => NULL,
+        'draft_chase' => NULL,
+        'raw_fallback' => NULL,
+      ],
+      'template' => 'myeventlane-escalations-ai-card',
+    ],
+  ];
+}
+
+/**
+ * Safely decode insight payload JSON and normalise keys.
+ *
+ * @return array{ok: bool, data: array, error: ?string}
+ */
+function _myeventlane_escalations_ai_decode_payload(?string $json): array {
+  if (!$json) {
+    return ['ok' => FALSE, 'data' => [], 'error' => 'Empty payload'];
+  }
+  try {
+    $data = json_decode($json, TRUE, 512, JSON_THROW_ON_ERROR);
+    if (!is_array($data)) {
+      return ['ok' => FALSE, 'data' => [], 'error' => 'Payload not object'];
+    }
+    return ['ok' => TRUE, 'data' => $data, 'error' => NULL];
+  }
+  catch (\Throwable $e) {
+    return ['ok' => FALSE, 'data' => [], 'error' => $e->getMessage()];
+  }
+}
+
+/**
+ * Escape a string for safe output.
+ */
+function _myeventlane_escalations_ai_esc(?string $value): string {
+  return Html::escape((string) $value);
+}
+
+/**
  * Implements hook_entity_view().
  *
- * Injects a staff-only "AI Insights" panel into the escalation view.
+ * Injects a staff-only "AI Reply Assistant" panel into the escalation view.
  * Vendors and customers NEVER see this panel.
  */
 function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
   if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.escalation.canonical') {
     return;
   }
 
@@ -87,185 +155,142 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
     ->accessCheck(FALSE)
     ->execute();
 
-  $items = [];
+  $cards = [];
   if ($ids) {
     $insights = $storage->loadMultiple($ids);
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
 
     foreach ($insights as $insight) {
-      $type = (string) $insight->get('insight_type')->value;
-      $status = (string) $insight->get('status')->value;
-      $created = (int) $insight->get('created')->value;
-      $payload = (string) $insight->get('payload_json')->value;
-
-      // Breach soon insights get a structured, friendly render.
-      if ($type === 'breach_soon') {
-        $items[] = _myeventlane_escalations_ai_render_breach_soon($insight, $date_formatter, $created, $status, $payload);
-        continue;
-      }
-
-      $title = strtoupper($type) . ' — ' . ($status === 'ok' ? 'OK' : 'ERROR') . ' — ' . $date_formatter->format($created, 'short');
-
-      $items[] = [
-        '#type' => 'details',
-        '#title' => $title,
-        '#open' => FALSE,
-        'meta' => [
-          '#markup' => '<div class="description"><strong>Prompt:</strong> '
-            . htmlspecialchars((string) $insight->get('prompt_version')->value)
-            . ' <strong>Provider:</strong> '
-            . htmlspecialchars((string) $insight->get('provider')->value)
-            . '</div>',
-        ],
-        'payload' => [
-          '#type' => 'html_tag',
-          '#tag' => 'pre',
-          '#value' => htmlspecialchars($payload),
-          '#attributes' => [
-            'style' => 'white-space: pre-wrap; word-break: break-word; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e6e6e6;',
-          ],
-        ],
-      ];
+      $cards[] = _myeventlane_escalations_ai_build_card($insight, $date_formatter);
     }
   }
 
-  $generate_url = \Drupal\Core\Url::fromRoute('myeventlane_escalations_ai.generate_draft', ['escalation' => (int) $entity->id()]);
-  $actions = [];
+  $generate_url = NULL;
   if ($account->hasPermission('generate escalation ai drafts')) {
-    $actions = [
-      '#type' => 'link',
-      '#title' => t('Generate AI reply draft'),
-      '#url' => $generate_url,
-      '#attributes' => [
-        'class' => ['button', 'button--small'],
-      ],
-    ];
+    $generate_url = Url::fromRoute('myeventlane_escalations_ai.generate_draft', ['escalation' => (int) $entity->id()])->toString();
   }
-
-  $panel = [
-    '#type' => 'container',
-    '#attributes' => [
-      'class' => ['mel-ai-insights'],
-      'style' => 'margin-top: 18px; padding: 16px; border-radius: 14px; border: 1px solid #e9e3f5; background: rgba(250,248,255,0.7);',
-    ],
-    'header' => [
-      '#markup' => '<h3 style="margin:0 0 10px 0;">AI Insights (staff)</h3><div class="description">Suggestions only. Nothing is auto-sent or auto-applied.</div>',
-    ],
-    'actions' => $actions,
-    'list' => [
-      '#type' => 'container',
-      '#attributes' => ['style' => 'margin-top: 12px;'],
-      'items' => $items ?: [
-        '#markup' => '<div class="description">No AI insights yet.</div>',
-      ],
-    ],
-  ];
 
   $build['myeventlane_ai_insights'] = [
     '#weight' => 99,
-    'panel' => $panel,
+    'panel' => [
+      '#theme' => 'myeventlane_escalations_ai_panel',
+      '#title' => 'AI Reply Assistant (staff)',
+      '#intro' => 'Draft suggestions only. Nothing is auto-sent. You can edit before replying.',
+      '#insights' => $cards,
+      '#generate_url' => $generate_url,
+      '#attached' => [
+        'library' => ['myeventlane_escalations_ai/ai_assistant'],
+      ],
+      '#cache' => [
+        'contexts' => ['user.permissions'],
+        'tags' => ['escalation:' . $entity->id()],
+      ],
+    ],
   ];
 }
 
 /**
- * Renders a breach_soon insight with structured display.
+ * Builds a themed AI insight card render array from an EscalationAiInsight entity.
  *
- * Shows risk_level, reason, and suggested_staff_action in a friendly format.
- * No action buttons — advisory only.
- *
- * @param \Drupal\Core\Entity\EntityInterface $insight
+ * @param \Drupal\myeventlane_escalations_ai\Entity\EscalationAiInsight $insight
  *   The AI insight entity.
  * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
  *   The date formatter service.
- * @param int $created
- *   Insight creation timestamp.
- * @param string $status
- *   ok or error.
- * @param string $payload
- *   Raw JSON payload string.
  *
  * @return array
- *   Render array for this insight.
+ *   Render array for the themed card.
  */
-function _myeventlane_escalations_ai_render_breach_soon($insight, $date_formatter, int $created, string $status, string $payload): array {
-  $title = 'BREACH SOON — AI advisory — ' . ($status === 'ok' ? 'OK' : 'ERROR') . ' — ' . $date_formatter->format($created, 'short');
+function _myeventlane_escalations_ai_build_card($insight, $date_formatter): array {
+  $insight_type = (string) $insight->get('insight_type')->value;
+  $status = (string) $insight->get('status')->value;
+  $created = (int) $insight->get('created')->value;
+  $payload_raw = (string) $insight->get('payload_json')->value;
+  $provider_field = (string) $insight->get('provider')->value;
 
-  // Parse payload for structured display.
-  $parsed = @json_decode($payload, TRUE);
-  $is_structured = is_array($parsed) && isset($parsed['risk_level']);
-
-  if ($status !== 'ok' || !$is_structured) {
-    // Error or unparseable: fall back to raw display.
-    $error = (string) $insight->get('error_message')->value;
-    return [
-      '#type' => 'details',
-      '#title' => $title,
-      '#open' => ($status === 'error'),
-      'meta' => [
-        '#markup' => '<div class="description" style="margin-bottom: 8px;">'
-          . '<em>AI advisory — staff only</em> &middot; '
-          . '<strong>Provider:</strong> ' . htmlspecialchars((string) $insight->get('provider')->value)
-          . '</div>',
-      ],
-      'error' => $error ? [
-        '#markup' => '<div style="color: #8a1c1c; margin-bottom: 8px;"><strong>Error:</strong> ' . htmlspecialchars($error) . '</div>',
-      ] : [],
-      'payload' => [
-        '#type' => 'html_tag',
-        '#tag' => 'pre',
-        '#value' => htmlspecialchars($payload),
-        '#attributes' => [
-          'style' => 'white-space: pre-wrap; word-break: break-word; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e6e6e6;',
-        ],
-      ],
-    ];
+  // Parse provider:model if present.
+  $provider = $provider_field;
+  $model = NULL;
+  if (str_contains($provider_field, ':')) {
+    [$provider, $model] = explode(':', $provider_field, 2) + [NULL, NULL];
   }
 
-  // Structured display for successful breach_soon insight.
-  $risk_level = htmlspecialchars((string) ($parsed['risk_level'] ?? 'unknown'));
-  $reason = htmlspecialchars((string) ($parsed['reason'] ?? ''));
-  $action = htmlspecialchars((string) ($parsed['suggested_staff_action'] ?? ''));
-  $draft_chase = htmlspecialchars((string) ($parsed['draft_chase_message'] ?? ''));
+  $decoded = _myeventlane_escalations_ai_decode_payload($payload_raw);
+  $data = $decoded['data'];
 
-  // Risk level color mapping.
-  $risk_colors = [
-    'low' => '#216e45',
-    'medium' => '#8a5b00',
-    'high' => '#b94600',
-    'critical' => '#8a1c1c',
-  ];
-  $risk_color = $risk_colors[$parsed['risk_level'] ?? ''] ?? '#555';
+  $timestamp = $date_formatter->format($created, 'short');
+  $draft_reply = NULL;
+  $missing_info = [];
+  $next_step = NULL;
+  $risk = NULL;
+  $reason = NULL;
+  $suggested_action = NULL;
+  $draft_chase = NULL;
+  $raw_fallback = NULL;
 
-  $body_markup = '<div style="margin-top: 8px;">';
-  $body_markup .= '<div style="margin-bottom: 10px;"><strong>Risk level:</strong> <span style="color: ' . $risk_color . '; font-weight: 600;">' . strtoupper($risk_level) . '</span></div>';
-  if ($reason !== '') {
-    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Reason:</strong> ' . $reason . '</div>';
+  if ($decoded['ok'] && $status === 'ok') {
+    switch ($insight_type) {
+      case 'reply_suggestion':
+        $draft_reply = isset($data['draft_reply']) ? (string) $data['draft_reply'] : NULL;
+        $missing_info = is_array($data['missing_info'] ?? NULL) ? array_map('strval', $data['missing_info']) : [];
+        $next_step = isset($data['next_step']) ? (string) $data['next_step'] : NULL;
+        break;
+
+      case 'breach_soon':
+        $risk = isset($data['risk_level']) ? (string) $data['risk_level'] : ($data['risk'] ?? NULL);
+        $reason = isset($data['reason']) ? (string) $data['reason'] : NULL;
+        $suggested_action = isset($data['suggested_staff_action']) ? (string) $data['suggested_staff_action'] : (isset($data['suggested_action']) ? (string) $data['suggested_action'] : (isset($data['action']) ? (string) $data['action'] : NULL));
+        $draft_chase = isset($data['draft_chase_message']) ? (string) $data['draft_chase_message'] : NULL;
+        break;
+
+      case 'risk_flag':
+        $risk = isset($data['risk']) ? (string) $data['risk'] : NULL;
+        $reason = isset($data['reason']) ? (string) $data['reason'] : NULL;
+        $suggested_action = isset($data['suggested_action']) ? (string) $data['suggested_action'] : (isset($data['action']) ? (string) $data['action'] : NULL);
+        break;
+
+      case 'triage':
+        $reason = isset($data['summary']) ? (string) $data['summary'] : NULL;
+        $urgency = isset($data['urgency']) ? (string) $data['urgency'] : NULL;
+        $category = isset($data['category']) ? (string) $data['category'] : NULL;
+        $risk = $urgency ? "Urgency: {$urgency}" : ($category ? "Category: {$category}" : NULL);
+        $key_questions = is_array($data['key_questions'] ?? NULL) ? $data['key_questions'] : [];
+        $suggested_action = !empty($key_questions) ? 'Key questions: ' . implode('; ', array_map('strval', $key_questions)) : NULL;
+        break;
+
+      default:
+        $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
+        break;
+    }
   }
-  if ($action !== '') {
-    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Suggested action:</strong> ' . $action . '</div>';
+
+  // When structured fields are empty or decode failed, use raw fallback.
+  if (!$decoded['ok'] || $status !== 'ok') {
+    $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
+    if ($status === 'error') {
+      $error = (string) $insight->get('error_message')->value;
+      if ($error) {
+        $raw_fallback = _myeventlane_escalations_ai_esc('Error: ' . $error . "\n\n" . $payload_raw);
+      }
+    }
   }
-  if ($draft_chase !== '') {
-    $body_markup .= '<div style="margin-bottom: 10px;"><strong>Draft chase message:</strong></div>';
-    $body_markup .= '<blockquote style="margin: 4px 0 0 0; padding: 10px 14px; border-left: 3px solid #ccc; background: #f9f9f9; border-radius: 6px;">' . nl2br($draft_chase) . '</blockquote>';
+  elseif ($insight_type !== 'reply_suggestion' && !$risk && !$reason && !$suggested_action && !$draft_chase) {
+    $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
   }
-  $body_markup .= '</div>';
 
   return [
-    '#type' => 'details',
-    '#title' => $title,
-    '#open' => TRUE,
-    '#attributes' => [
-      'style' => 'border: 1px solid #e9d9f5; border-radius: 10px; background: rgba(245,240,255,0.5); padding: 2px;',
-    ],
-    'meta' => [
-      '#markup' => '<div class="description" style="margin-bottom: 4px;">'
-        . '<em>AI advisory — staff only — no actions are auto-applied</em> &middot; '
-        . '<strong>Provider:</strong> ' . htmlspecialchars((string) $insight->get('provider')->value)
-        . '</div>',
-    ],
-    'body' => [
-      '#markup' => $body_markup,
-    ],
+    '#theme' => 'myeventlane_escalations_ai_card',
+    '#insight_type' => $insight_type,
+    '#timestamp' => $timestamp,
+    '#provider' => $provider ?: NULL,
+    '#model' => $model,
+    '#draft_reply' => $draft_reply,
+    '#missing_info' => $missing_info,
+    '#next_step' => $next_step,
+    '#risk' => $risk,
+    '#reason' => $reason,
+    '#suggested_action' => $suggested_action,
+    '#draft_chase' => $draft_chase,
+    '#raw_fallback' => $raw_fallback,
   ];
 }

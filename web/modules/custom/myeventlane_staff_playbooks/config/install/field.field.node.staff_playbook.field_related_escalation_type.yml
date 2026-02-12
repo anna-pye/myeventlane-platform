@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_related_escalation_type
+    - node.type.staff_playbook
+id: node.staff_playbook.field_related_escalation_type
+field_name: field_related_escalation_type
+entity_type: node
+bundle: staff_playbook
+label: 'Related escalation type'
+description: 'Which escalation type(s) this playbook matches. Leave empty to match all types.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_values: null
+  allowed_values_function: ''
+field_type: list_string

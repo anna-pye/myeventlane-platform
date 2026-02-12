@@ -613,6 +613,12 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
+    // Support routes.
+    'myeventlane_escalations_portal.vendor_list' => 'support',
+    'myeventlane_escalations_portal.vendor_view' => 'support',
+    // Help centre.
+    'myeventlane_help_centre.vendor_index' => 'help',
+    'myeventlane_help_centre.vendor_topic' => 'help',
   ];
 
   return $mapping[$route_name] ?? 'dashboard';

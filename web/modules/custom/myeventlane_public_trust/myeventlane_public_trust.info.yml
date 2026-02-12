@@ -1,0 +1,9 @@
+name: 'MyEventLane Public Trust'
+type: module
+description: 'Aggregate, marketing-safe trust signals for public users.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations_analytics:myeventlane_escalations_analytics
+  - myeventlane_refunds:myeventlane_refunds
+  - drupal:system

@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_refund_involved
+field_name: field_refund_involved
+entity_type: node
+type: boolean
+settings:
+  on_value: 1
+  off_value: 0
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {}
+persist_with_no_fields: false
+custom_storage: false

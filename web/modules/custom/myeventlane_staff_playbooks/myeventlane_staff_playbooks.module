@@ -1,0 +1,269 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Staff Playbooks module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_node_access().
+ *
+ * Staff playbooks are internal only. Vendors and customers never see them.
+ */
+function myeventlane_staff_playbooks_node_access($node, string $op, $account): \Drupal\Core\Access\AccessResultInterface {
+  if ($node->bundle() !== 'staff_playbook') {
+    return \Drupal\Core\Access\AccessResult::neutral();
+  }
+  $has_staff = $account->hasPermission('view staff playbooks') || $account->hasPermission('administer staff playbooks');
+  return $has_staff ? \Drupal\Core\Access\AccessResult::allowed() : \Drupal\Core\Access\AccessResult::forbidden('Staff playbooks are internal only.');
+}
+
+/**
+ * Implements hook_node_create_access().
+ *
+ * Only staff can create staff_playbook nodes.
+ */
+function myeventlane_staff_playbooks_node_create_access($account, array $context, $entity_bundle): \Drupal\Core\Access\AccessResultInterface {
+  if ($entity_bundle !== 'staff_playbook') {
+    return \Drupal\Core\Access\AccessResult::neutral();
+  }
+  $has_staff = $account->hasPermission('view staff playbooks') || $account->hasPermission('administer staff playbooks');
+  return $has_staff ? \Drupal\Core\Access\AccessResult::allowed() : \Drupal\Core\Access\AccessResult::forbidden('Staff playbooks are internal only.');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_staff_playbooks_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'staff_playbooks_panel' => [
+      'variables' => [
+        'playbooks' => [],
+      ],
+      'template' => 'staff-playbooks-panel',
+    ],
+    'governance_communication_standards' => [
+      'variables' => [
+        'snippet_guide_url' => NULL,
+        'playbook_urls' => [],
+        'policy_help_url' => NULL,
+      ],
+      'template' => 'governance-communication-standards',
+    ],
+    'governance_dashboard' => [
+      'variables' => [
+        'groups' => [],
+        'snippet_guide_url' => NULL,
+        'playbooks_url' => NULL,
+      ],
+      'template' => 'governance-dashboard',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Injects "Communication Guide" help link into escalation reply form and
+ * staff playbook edit form. Visible only to users with administer escalations.
+ */
+function myeventlane_staff_playbooks_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('administer escalations')) {
+    return;
+  }
+
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_help_centre')) {
+    return;
+  }
+
+  try {
+    $route_exists = \Drupal::service('router.route_provider')->getRouteByName('myeventlane_help_centre.staff_snippet_authoring') !== NULL;
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_staff_playbooks')->notice('Could not resolve staff snippet authoring route: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return;
+  }
+
+  if (!$route_exists) {
+    return;
+  }
+
+  $url = Url::fromRoute('myeventlane_help_centre.staff_snippet_authoring');
+  $link = [
+    '#type' => 'link',
+    '#url' => $url,
+    '#title' => t('Communication Guide'),
+    '#attributes' => [
+      'class' => ['mel-communication-guide-link', 'link--help'],
+      'aria-label' => t('Staff snippet authoring guide'),
+    ],
+  ];
+
+  $guide_container = [
+    '#type' => 'container',
+    '#weight' => -10,
+    '#attributes' => ['class' => ['mel-form-help-wrapper']],
+    '#attached' => ['library' => ['myeventlane_staff_playbooks/governance_panel']],
+  ];
+  $guide_container['link'] = $link;
+
+  if ($form_id === 'myeventlane_escalations_portal_reply_form') {
+    $form['communication_guide'] = $guide_container;
+  }
+
+  if ($form_id === 'comment_escalation_thread_form') {
+    $form['communication_guide'] = $guide_container;
+  }
+
+  if ($form_id === 'node_staff_playbook_form') {
+    $form['communication_guide'] = $guide_container;
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Injects a staff-only playbooks sidebar panel on entity.escalation.canonical.
+ * Vendors and customers NEVER see this panel.
+ */
+function myeventlane_staff_playbooks_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if ($view_mode !== 'full') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.escalation.canonical') {
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('view staff playbooks')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations\Entity\Escalation $escalation */
+  $escalation = $entity;
+
+  /** @var \Drupal\myeventlane_staff_playbooks\Service\PlaybookMatcher $matcher */
+  $matcher = \Drupal::service('myeventlane_staff_playbooks.matcher');
+  $playbooks = $matcher->match($escalation);
+
+  $has_snippets = FALSE;
+  $items = [];
+  foreach ($playbooks as $playbook) {
+    $body = $playbook->get('body')->value ?? '';
+    $excerpt = $body !== '' ? mb_substr(strip_tags($body), 0, 150) . (mb_strlen(strip_tags($body)) > 150 ? '…' : '') : '';
+    $snippets = [];
+    if ($playbook->hasField('field_reply_snippets') && !$playbook->get('field_reply_snippets')->isEmpty()) {
+      foreach ($playbook->get('field_reply_snippets') as $delta => $item) {
+        $raw = (string) ($item->value ?? '');
+        if (trim($raw) === '') {
+          continue;
+        }
+        $lines = explode("\n", $raw, 2);
+        $title = trim($lines[0] ?? '');
+        $body_text = trim($lines[1] ?? '');
+        $snippets[] = [
+          'title' => $title,
+          'body' => $body_text,
+          'id' => 'snippet-' . $playbook->id() . '-' . $delta,
+        ];
+        $has_snippets = TRUE;
+      }
+    }
+
+    $ai_summary = [];
+    if ($playbook->hasField('field_ai_summary') && !$playbook->get('field_ai_summary')->isEmpty()) {
+      $item = $playbook->get('field_ai_summary')->first();
+      $ai_summary = [
+        '#type' => 'processed_text',
+        '#text' => (string) ($item->value ?? ''),
+        '#format' => (string) ($item->format ?? 'basic_html'),
+      ];
+    }
+    $items[] = [
+      'title' => $playbook->getTitle(),
+      'excerpt' => $excerpt,
+      'url' => $playbook->toUrl('canonical')->toString(),
+      'snippets' => $snippets,
+      'ai_summary' => $ai_summary,
+    ];
+  }
+
+  $build['myeventlane_staff_playbooks'] = [
+    '#weight' => 98,
+    '#theme' => 'staff_playbooks_panel',
+    '#playbooks' => $items,
+    '#attached' => $has_snippets ? ['library' => ['myeventlane_staff_playbooks/snippets']] : [],
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+      'tags' => [
+        'node_list',
+        'escalation:' . $escalation->id(),
+      ],
+    ],
+  ];
+
+  // Phase C: Support Communication Standards sidebar panel.
+  if (!$account->hasPermission('administer escalations')) {
+    return;
+  }
+
+  $snippet_guide_url = NULL;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_help_centre')) {
+    try {
+      $route = \Drupal::service('router.route_provider')->getRouteByName('myeventlane_help_centre.staff_snippet_authoring');
+      if ($route) {
+        $snippet_guide_url = Url::fromRoute('myeventlane_help_centre.staff_snippet_authoring')->toString();
+      }
+    }
+    catch (\Exception $e) {
+      // Fail silently.
+    }
+  }
+
+  $playbook_urls = [];
+  foreach ($items as $item) {
+    $playbook_urls[] = ['url' => $item['url'], 'title' => $item['title']];
+  }
+
+  $policy_help_url = NULL;
+  try {
+    $route = \Drupal::service('router.route_provider')->getRouteByName('myeventlane_staff_playbooks.governance_dashboard');
+    if ($route) {
+      $policy_help_url = Url::fromRoute('myeventlane_staff_playbooks.governance_dashboard')->toString();
+    }
+  }
+  catch (\Exception $e) {
+    // Fail silently.
+  }
+
+  $build['governance_communication_standards'] = [
+    '#weight' => 97,
+    '#theme' => 'governance_communication_standards',
+    '#snippet_guide_url' => $snippet_guide_url,
+    '#playbook_urls' => $playbook_urls,
+    '#policy_help_url' => $policy_help_url,
+    '#attached' => ['library' => ['myeventlane_staff_playbooks/governance_panel']],
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+      'tags' => [
+        'node_list',
+        'escalation:' . $escalation->id(),
+      ],
+    ],
+  ];
+}

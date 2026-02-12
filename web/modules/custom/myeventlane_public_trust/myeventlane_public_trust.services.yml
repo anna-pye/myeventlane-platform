@@ -1,0 +1,20 @@
+services:
+  myeventlane_public_trust.trust_signal_calculator:
+    class: Drupal\myeventlane_public_trust\Service\TrustSignalCalculator
+    arguments:
+      - '@myeventlane_escalations_analytics.query'
+      - '@entity_type.manager'
+      - '@database'
+      - '@cache.default'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_public_trust'
+
+  myeventlane_public_trust.trust_signal_formatter:
+    class: Drupal\myeventlane_public_trust\Service\TrustSignalFormatter
+    arguments:
+      - '@config.factory'
+
+  logger.channel.myeventlane_public_trust:
+    parent: logger.channel_base
+    arguments: ['myeventlane_public_trust']

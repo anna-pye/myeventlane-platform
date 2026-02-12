@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Staff Playbook
+type: staff_playbook
+description: 'Internal resolution guidance for staff handling escalations. Staff-only content.'
+help: 'Create playbooks to guide staff through common escalation scenarios.'
+new_revision: true
+preview_mode: 1
+display_submitted: false

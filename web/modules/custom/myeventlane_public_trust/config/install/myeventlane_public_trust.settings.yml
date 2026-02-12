@@ -1,0 +1,7 @@
+cache_days: 30
+lookback_days: 90
+enable_signals:
+  resolution_confidence: true
+  response_confidence: true
+  fairness_statement: true
+  scale_statement: true

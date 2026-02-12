@@ -26,3 +26,7 @@ reopen escalations:
   title: 'Reopen escalations'
   description: 'Reopen resolved or closed escalations.'
   restrict access: true
+
+manage escalation workflow:
+  title: 'Manage escalation workflow'
+  description: 'Change escalation status and waiting state via workflow buttons.'

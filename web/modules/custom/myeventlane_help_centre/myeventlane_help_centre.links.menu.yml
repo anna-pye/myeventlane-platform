@@ -1,0 +1,6 @@
+myeventlane_help_centre.vendor_help:
+  title: 'Help centre'
+  description: 'View help articles and guides for vendors.'
+  route_name: myeventlane_help_centre.vendor_index
+  menu_name: account
+  weight: 90

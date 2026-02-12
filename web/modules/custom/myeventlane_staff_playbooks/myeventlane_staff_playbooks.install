@@ -1,0 +1,103 @@
+<?php
+
+/**
+ * @file
+ * Install and update functions for the MyEventLane Staff Playbooks module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Migrate field_playbook_sort_order to field_priority.
+ *
+ * If the module was previously installed with field_playbook_sort_order,
+ * this update copies values to field_priority and removes the old field.
+ */
+function myeventlane_staff_playbooks_update_10001(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $logger = \Drupal::logger('myeventlane_staff_playbooks');
+
+  $old_field = 'field_playbook_sort_order';
+  $new_field = 'field_priority';
+
+  $field_storage_new = $update_manager->getFieldStorageDefinition($new_field, 'node');
+  $field_storage_old = $update_manager->getFieldStorageDefinition($old_field, 'node');
+
+  if (!$field_storage_old) {
+    return 'field_playbook_sort_order was not installed; no migration needed.';
+  }
+
+  // Install field_priority from module config if missing.
+  if (!$field_storage_new) {
+    $extension_path = \Drupal::service('extension.path.resolver')->getPath('module', 'myeventlane_staff_playbooks');
+    $config_factory = \Drupal::configFactory();
+
+    foreach (['field.storage.node.field_priority', 'field.field.node.staff_playbook.field_priority'] as $config_name) {
+      $parts = explode('.', $config_name);
+      $file = $extension_path . '/config/install/' . implode('.', $parts) . '.yml';
+      if (is_readable($file)) {
+        $data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($file));
+        if ($data) {
+          $config_factory->getEditable($config_name)->setData($data)->save();
+        }
+      }
+    }
+    $field_storage_new = $update_manager->getFieldStorageDefinition($new_field, 'node');
+  }
+
+  if (!$field_storage_new) {
+    return 'Could not install field_priority; run config import or reinstall module.';
+  }
+
+  $storage = $entity_type_manager->getStorage('node');
+  $query = $storage->getQuery()->accessCheck(FALSE)
+    ->condition('type', 'staff_playbook')
+    ->exists($old_field);
+
+  $nids = $query->execute();
+  foreach ($nids as $nid) {
+    $node = $storage->load($nid);
+    if (!$node || !$node->hasField($old_field) || $node->get($old_field)->isEmpty()) {
+      continue;
+    }
+    $value = (int) $node->get($old_field)->value;
+    if ($node->hasField($new_field)) {
+      $node->set($new_field, $value);
+      $node->save();
+    }
+  }
+
+  if (!empty($nids)) {
+    $logger->notice('Migrated @count staff playbook(s) from field_playbook_sort_order to field_priority.', [
+      '@count' => count($nids),
+    ]);
+  }
+
+  $update_manager->uninstallFieldStorageDefinition($field_storage_old);
+  $logger->notice('Removed field_playbook_sort_order from node.');
+
+  return 'Migrated staff playbooks to field_priority.';
+}
+
+/**
+ * Add inline help to field_reply_snippets description.
+ *
+ * Appends tone rules, word limit suggestion, and structure format.
+ * Safely appends only if not already present.
+ */
+function myeventlane_staff_playbooks_update_10002(): string {
+  $config = \Drupal::configFactory()->getEditable('field.field.node.staff_playbook.field_reply_snippets');
+  $current = (string) $config->get('description');
+
+  $append = ' Tone: calm, neutral, professional. Word limit: aim for 50–150 words per snippet. Structure: title on first line, then body text.';
+
+  if (str_contains($current, 'Tone: calm, neutral, professional')) {
+    return 'field_reply_snippets description already contains inline help.';
+  }
+
+  $config->set('description', $current . $append)->save();
+  \Drupal::logger('myeventlane_staff_playbooks')->notice('Added inline help to field_reply_snippets description.');
+
+  return 'Added tone, word limit, and structure help to reply snippets field.';
+}

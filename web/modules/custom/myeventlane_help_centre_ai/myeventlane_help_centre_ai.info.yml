@@ -1,0 +1,9 @@
+name: MyEventLane Help Centre AI
+type: module
+description: 'Guardrailed FAQ assistant using public help centre articles only. No user data.'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:user
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_help_centre:myeventlane_help_centre
