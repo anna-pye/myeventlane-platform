@@ -1,0 +1,5 @@
+myeventlane_privacy.settings:
+  title: 'Privacy & Tracking'
+  description: 'Configure tracking IDs (GTM, GA4, Meta Pixel, etc.) for consent-aware injection.'
+  route_name: myeventlane_privacy.settings
+  parent: system.admin_config_system

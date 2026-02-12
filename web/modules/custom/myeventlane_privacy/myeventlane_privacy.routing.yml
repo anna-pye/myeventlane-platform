@@ -1,0 +1,7 @@
+myeventlane_privacy.settings:
+  path: '/admin/config/system/myeventlane-privacy'
+  defaults:
+    _form: '\Drupal\myeventlane_privacy\Form\PrivacySettingsForm'
+    _title: 'Privacy & Tracking'
+  requirements:
+    _permission: 'administer site configuration'

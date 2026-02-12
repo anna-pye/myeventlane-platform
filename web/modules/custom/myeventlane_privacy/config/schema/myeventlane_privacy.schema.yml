@@ -1,0 +1,19 @@
+myeventlane_privacy.settings:
+  type: config_object
+  label: 'MyEventLane Privacy Settings'
+  mapping:
+    gtm_id:
+      type: string
+      label: 'Google Tag Manager ID'
+    ga4_id:
+      type: string
+      label: 'GA4 / gtag ID'
+    meta_pixel_id:
+      type: string
+      label: 'Meta (Facebook) Pixel ID'
+    hotjar_id:
+      type: string
+      label: 'Hotjar Site ID'
+    recaptcha_site_key:
+      type: string
+      label: 'reCAPTCHA v3 Site Key'

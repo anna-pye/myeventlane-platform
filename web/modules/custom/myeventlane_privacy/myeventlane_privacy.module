@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * MyEventLane Privacy: cookie consent wiring and tracking config.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Attaches cookies consent dispatcher and tracking IDs to all pages.
+ * Dispatcher listens for cookiesjsrUserConsent and injects scripts only after consent.
+ */
+function myeventlane_privacy_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'myeventlane_privacy/cookies_consent_dispatcher';
+
+  $config = \Drupal::config('myeventlane_privacy.settings');
+  $ids = [
+    'gtmId' => $config->get('gtm_id') ?? '',
+    'ga4Id' => $config->get('ga4_id') ?? '',
+    'metaPixelId' => $config->get('meta_pixel_id') ?? '',
+    'hotjarId' => $config->get('hotjar_id') ?? '',
+    'recaptchaSiteKey' => $config->get('recaptcha_site_key') ?? '',
+  ];
+
+  $attachments['#attached']['drupalSettings']['myeventlane'] = array_merge(
+    $attachments['#attached']['drupalSettings']['myeventlane'] ?? [],
+    $ids
+  );
+}
