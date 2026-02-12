@@ -1,0 +1,16 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - cookies
+  theme:
+    - myeventlane_theme
+id: cookies_ui
+theme: myeventlane_theme
+region: footer_bottom
+plugin: cookies_ui_block
+weight: 100
+settings:
+  label: ''
+  label_display: '0'
+visibility: {}
