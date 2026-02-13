@@ -4,6 +4,7 @@
 // Condensed 3-column layout (Find events, Host events, About) + compact legal row.
 // No glow, newsletter, CTA, or gradient bands.
 
+@use 'sass:color';
 @use '../tokens/colors';
 @use '../tokens/spacing';
 @use '../tokens/typography';
@@ -108,54 +109,61 @@
   gap: 6px;
 }
 
-/* DIVIDER */
+/* ==============================
+   DARK FOOTER BASE
+============================== */
 
-.mel-footer__divider {
-  height: 1px;
-  background: rgba(0, 0, 0, 0.06);
+.mel-footer__base {
+  width: 100%;
+  background: linear-gradient(180deg, #232b3a 0%, #1f2633 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px 0;
+  margin-top: spacing.mel-space(3);
 }
 
-/* LEGAL ROW */
-
-.mel-footer__legal {
+.mel-footer__base-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 spacing.mel-space(5);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding-top: 6px;
   flex-wrap: wrap;
-  font-size: typography.mel-font-size(xs);
-  color: colors.$mel-color-text-muted;
 }
 
 .mel-footer__brand img {
-  height: 30px;
+  height: 22px;
+  filter: brightness(0) invert(1);
 }
 
 .mel-footer__meta {
   display: flex;
-  gap: spacing.mel-space(3);
-  align-items: center;
+  gap: 20px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .mel-footer__meta a {
-  color: colors.$mel-color-text-muted;
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .mel-footer__meta a:hover {
-  color: colors.$mel-color-primary;
+  color: #ffffff;
 }
 
 .mel-footer__create-link {
-  font-size: typography.mel-font-size(xs);
+  font-size: 13px;
   font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
   text-decoration: none;
-  color: colors.$mel-color-secondary;
+  transition: color 0.15s ease;
 }
 
 .mel-footer__create-link:hover {
-  color: colors.$mel-color-primary;
+  color: color.adjust(colors.$mel-color-primary, $lightness: 8%);
 }
 
 /* RESPONSIVE */
@@ -170,10 +178,10 @@
     grid-column: span 2;
   }
 
-  .mel-footer__legal {
+  .mel-footer__base-inner {
     flex-direction: column;
     align-items: flex-start;
-    gap: spacing.mel-space(2);
+    gap: 14px;
   }
 }
 
