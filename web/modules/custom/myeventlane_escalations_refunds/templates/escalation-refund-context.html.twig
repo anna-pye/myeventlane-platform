@@ -1,0 +1,133 @@
+{#
+/**
+ * @file
+ * Staff-only refund context panel for escalation view.
+ *
+ * Variables:
+ *   - metrics: Refund metrics array (counts, totals, correlation flags).
+ *   - requests: Sanitised refund request rows.
+ *   - logs: Sanitised refund log rows.
+ *   - order: Order summary (order_number, state, total) or NULL.
+ *   - correlation_flags: { refund_after_escalation, request_after_escalation }.
+ */
+#}
+
+<div class="mel-refund-context">
+  <h3 class="mel-refund-context__title">Refund context (staff)</h3>
+
+  {# ── Correlation alerts ── #}
+  {% if correlation_flags.refund_after_escalation or correlation_flags.request_after_escalation %}
+    <div class="mel-refund-context__alert">
+      {% if correlation_flags.refund_after_escalation %}
+        <p><strong>Note:</strong> A refund was completed within {{ metrics.correlation_window_days }} day(s) of this escalation being created.</p>
+      {% endif %}
+      {% if correlation_flags.request_after_escalation %}
+        <p><strong>Note:</strong> A refund request was submitted within {{ metrics.correlation_window_days }} day(s) of this escalation being created.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# ── Order summary ── #}
+  {% if order %}
+    <div class="mel-refund-context__order">
+      <strong>Order:</strong> {{ order.order_number }} &mdash; {{ order.state }} &mdash; {{ order.total }}
+    </div>
+  {% endif %}
+
+  {# ── Metrics summary ── #}
+  <div class="mel-refund-context__metrics">
+    <table>
+      <tbody>
+        <tr>
+          <td>Refund requests</td>
+          <td>{{ metrics.request_count }}</td>
+        </tr>
+        <tr>
+          <td>Total requested</td>
+          <td>${{ (metrics.total_requested_cents / 100)|number_format(2) }}</td>
+        </tr>
+        <tr>
+          <td>Refund logs</td>
+          <td>{{ metrics.log_count }}</td>
+        </tr>
+        <tr>
+          <td>Total completed</td>
+          <td>${{ (metrics.total_completed_cents / 100)|number_format(2) }}</td>
+        </tr>
+        {% if metrics.total_pending_cents > 0 %}
+          <tr>
+            <td>Total pending</td>
+            <td>${{ (metrics.total_pending_cents / 100)|number_format(2) }}</td>
+          </tr>
+        {% endif %}
+        {% if metrics.total_failed_cents > 0 %}
+          <tr>
+            <td>Total failed</td>
+            <td>${{ (metrics.total_failed_cents / 100)|number_format(2) }}</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Refund requests table ── #}
+  {% if requests|length > 0 %}
+    <h4>Refund requests</h4>
+    <table class="mel-refund-context__table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+          <tr>
+            <td>{{ req.id }}</td>
+            <td>{{ req.currency }} {{ (req.amount_cents / 100)|number_format(2) }}</td>
+            <td>{{ req.status|capitalize }}</td>
+            <td>{{ req.created ? req.created|date('d M Y H:i') : '-' }}</td>
+            <td>{{ req.updated ? req.updated|date('d M Y H:i') : '-' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# ── Refund logs table ── #}
+  {% if logs|length > 0 %}
+    <h4>Refund logs</h4>
+    <table class="mel-refund-context__table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Scope</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Completed</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.refund_type|capitalize }}</td>
+            <td>{{ log.refund_scope|replace({'_': ' '})|capitalize }}</td>
+            <td>{{ log.currency }} {{ (log.amount_cents / 100)|number_format(2) }}</td>
+            <td>{{ log.status|capitalize }}</td>
+            <td>{{ log.created ? log.created|date('d M Y H:i') : '-' }}</td>
+            <td>{{ log.completed ? log.completed|date('d M Y H:i') : '-' }}</td>
+            <td>{{ log.error_message ?: '-' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+</div>

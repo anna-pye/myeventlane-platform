@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Help Article
+type: help_article
+description: 'A help centre article providing guidance for vendors or the public.'
+help: 'Create help articles grouped by category. Articles can target public visitors, vendors, or both.'
+new_revision: true
+preview_mode: 1
+display_submitted: false

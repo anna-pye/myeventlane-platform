@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * Public trust signals display.
+ *
+ * Renders aggregate, marketing-safe trust statements. No numbers,
+ * percentages, or promises. Hidden entirely if no signals are available.
+ *
+ * Variables:
+ *   - signals: Array of signal arrays, each containing:
+ *       - type: Signal type key (resolution, response, fairness, scale).
+ *       - label: Short heading for the signal.
+ *       - copy: Marketing-safe description string.
+ */
+#}
+
+{% if signals is not empty %}
+<div class="mel-public-trust">
+  <div class="mel-public-trust__header">
+    <h2 class="mel-public-trust__heading">Trust &amp; transparency</h2>
+    <p class="mel-public-trust__intro">
+      How we support a fair experience for everyone on the platform.
+    </p>
+  </div>
+
+  <div class="mel-public-trust__grid">
+    {% for signal in signals %}
+      <div class="mel-public-trust__card mel-public-trust__card--{{ signal.type }}">
+        <h3 class="mel-public-trust__card-label">{{ signal.label }}</h3>
+        <p class="mel-public-trust__card-copy">{{ signal.copy }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,10 @@
+name: 'MyEventLane Vendor Nudges'
+type: module
+description: 'Optional, supportive educational nudges for vendor dashboards. Non-punitive, informational only.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_escalations_analytics:myeventlane_escalations_analytics
+  - myeventlane_escalations_capacity:myeventlane_escalations_capacity
+  - myeventlane_escalations_refunds:myeventlane_escalations_refunds

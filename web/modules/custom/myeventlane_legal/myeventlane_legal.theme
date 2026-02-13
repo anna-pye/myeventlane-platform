@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Theme hooks for MyEventLane Legal.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_legal_theme($existing, $type, $theme, $module) {
+  return [
+    'myeventlane_legal_cookie_policy' => [
+      'variables' => [
+        'cookie_policy_url' => '',
+        'privacy_url' => '',
+      ],
+      'template' => 'cookie-policy',
+    ],
+    'myeventlane_legal_cookie_banner' => [
+      'variables' => [
+        'cookie_policy_url' => '',
+        'privacy_url' => '',
+      ],
+    ],
+  ];
+}

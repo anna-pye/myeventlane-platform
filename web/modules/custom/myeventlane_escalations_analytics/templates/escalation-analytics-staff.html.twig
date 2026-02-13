@@ -1,0 +1,89 @@
+{#
+/**
+ * @file
+ * Staff escalation analytics dashboard.
+ *
+ * Variables:
+ *   - platform_metrics: Platform-wide metrics array.
+ *   - vendor_rows: Array of vendor objects with metrics and health.
+ *   - export_url: URL for CSV export.
+ */
+#}
+
+<div class="mel-analytics-dashboard mel-analytics-dashboard--staff">
+
+  {# ── KPI summary cards ── #}
+  <div class="mel-analytics-kpi-row">
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ platform_metrics.total_escalations }}</span>
+      <span class="mel-analytics-kpi__label">Total escalations</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ platform_metrics.resolution_rate }}%</span>
+      <span class="mel-analytics-kpi__label">Resolution rate</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ platform_metrics.breach_rate }}%</span>
+      <span class="mel-analytics-kpi__label">SLA breach rate</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ platform_metrics.avg_first_response_hours }}h</span>
+      <span class="mel-analytics-kpi__label">Avg first response</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ platform_metrics.avg_resolution_hours }}h</span>
+      <span class="mel-analytics-kpi__label">Avg resolution time</span>
+    </div>
+  </div>
+
+  {# ── Vendor health table ── #}
+  {% if vendor_rows|length > 0 %}
+    <div class="mel-analytics-section">
+      <h3 class="mel-analytics-section__title">Vendor breakdown</h3>
+
+      <table class="mel-analytics-table">
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th>Total</th>
+            <th>Resolved</th>
+            <th>Breach rate</th>
+            <th>Avg response</th>
+            <th>Avg resolution</th>
+            <th>Health</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in vendor_rows %}
+            <tr>
+              <td>{{ row.vendor_name }}</td>
+              <td>{{ row.metrics.total_escalations }}</td>
+              <td>{{ row.metrics.resolved_count }}</td>
+              <td>{{ row.metrics.breach_rate }}%</td>
+              <td>{{ row.metrics.avg_first_response_hours }}h</td>
+              <td>{{ row.metrics.avg_resolution_hours }}h</td>
+              <td>
+                <span class="mel-health-badge mel-health-badge--{{ row.health.bucket }}">
+                  <span class="mel-health-badge__icon" aria-hidden="true">{{ row.health.icon }}</span>
+                  <span class="mel-health-badge__label">{{ row.health.bucket|capitalize }}</span>
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>{{ 'No vendor escalation data available.'|t }}</p>
+  {% endif %}
+
+  {# ── Export button ── #}
+  {% if export_url %}
+    <div class="mel-analytics-actions">
+      <a href="{{ export_url }}" class="button button--primary mel-analytics-export-btn">
+        Export CSV
+      </a>
+    </div>
+  {% endif %}
+
+</div>

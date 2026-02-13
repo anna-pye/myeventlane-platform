@@ -1,0 +1,11 @@
+myeventlane_vendor_ai.assistant:
+  path: '/vendor/support/{escalation}/ai'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor_ai\Controller\VendorAiAssistantController::panel'
+    _title: 'MEL Assistant'
+  requirements:
+    _custom_access: 'myeventlane_vendor_ai.access::vendorAiAccess'
+  options:
+    parameters:
+      escalation:
+        type: integer

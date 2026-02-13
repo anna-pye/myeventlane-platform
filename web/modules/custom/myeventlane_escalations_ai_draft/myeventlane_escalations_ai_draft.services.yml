@@ -1,0 +1,17 @@
+services:
+  myeventlane_escalations_ai_draft.access:
+    class: Drupal\myeventlane_escalations_ai_draft\Access\EscalationAiDraftAccess
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_escalations_ai_draft.context_builder:
+    class: Drupal\myeventlane_escalations_ai_draft\Service\EscalationDraftContextBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_staff_playbooks.matcher'
+      - '@myeventlane_escalations_sla.badge_resolver'
+      - '@logger.channel.myeventlane_escalations_ai_draft'
+
+  logger.channel.myeventlane_escalations_ai_draft:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_ai_draft']

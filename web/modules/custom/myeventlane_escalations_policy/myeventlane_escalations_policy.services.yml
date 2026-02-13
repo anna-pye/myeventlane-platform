@@ -1,0 +1,32 @@
+services:
+  myeventlane_escalations_policy.policy_week:
+    class: Drupal\myeventlane_escalations_policy\Service\PolicyWeek
+    arguments: ['@datetime.time']
+
+  myeventlane_escalations_policy.streak_store:
+    class: Drupal\myeventlane_escalations_policy\Service\VendorRiskStreakStore
+    arguments: ['@keyvalue']
+
+  myeventlane_escalations_policy.evaluator:
+    class: Drupal\myeventlane_escalations_policy\Service\VendorPolicyEvaluator
+    arguments:
+      - '@myeventlane_escalations_analytics.query'
+      - '@myeventlane_escalations_analytics.metrics'
+      - '@myeventlane_escalations_analytics.health'
+      - '@myeventlane_escalations_policy.streak_store'
+      - '@myeventlane_escalations_policy.policy_week'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_escalations_policy'
+
+  myeventlane_escalations_policy.action_handler:
+    class: Drupal\myeventlane_escalations_policy\Service\PolicyActionHandler
+    arguments:
+      - '@entity_type.manager'
+      - '@plugin.manager.mail'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_escalations_policy'
+
+  logger.channel.myeventlane_escalations_policy:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_policy']

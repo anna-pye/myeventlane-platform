@@ -1,0 +1,11 @@
+name: 'MyEventLane Escalations Portal'
+type: module
+description: 'Customer and vendor support portal with comment threading, email notifications, and resolve/reopen flows.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_sla:myeventlane_escalations_sla
+  - myeventlane_vendor:myeventlane_vendor
+  - drupal:comment
+  - drupal:user

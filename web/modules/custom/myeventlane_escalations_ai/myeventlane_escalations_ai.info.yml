@@ -1,0 +1,8 @@
+name: 'MyEventLane Escalations AI'
+type: module
+description: 'AI suggestions (triage/drafts/flags) for the Escalations system.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_escalations:myeventlane_escalations

@@ -1,0 +1,7 @@
+myeventlane_staff_playbooks.governance_dashboard:
+  path: '/admin/myeventlane/governance'
+  defaults:
+    _controller: '\Drupal\myeventlane_staff_playbooks\Controller\GovernanceDashboardController::build'
+    _title: 'Internal Governance'
+  requirements:
+    _permission: 'administer escalations'

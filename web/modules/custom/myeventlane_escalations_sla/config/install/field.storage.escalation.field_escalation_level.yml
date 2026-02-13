@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+id: escalation.field_escalation_level
+field_name: field_escalation_level
+entity_type: escalation
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

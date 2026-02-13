@@ -1,0 +1,4 @@
+generate playbook ai summaries:
+  title: 'Generate playbook AI summaries'
+  description: 'Trigger AI summary generation for staff playbooks. Internal only.'
+  restrict access: true

@@ -1,0 +1,20 @@
+{#
+  @file
+  Unified support layout for vendor and customer escalation pages.
+
+  Variables:
+  - title: Page title
+  - intro: Optional introductory text
+  - content: Main content render array
+#}
+<div class="mel-support-page">
+  <header class="mel-support-header">
+    <h1>{{ title }}</h1>
+    {% if intro %}
+      <p class="mel-support-intro">{{ intro }}</p>
+    {% endif %}
+  </header>
+  <div class="mel-support-content">
+    {{ content }}
+  </div>
+</div>

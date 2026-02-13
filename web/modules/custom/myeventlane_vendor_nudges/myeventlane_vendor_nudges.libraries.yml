@@ -1,0 +1,5 @@
+vendor-nudges:
+  js:
+    js/vendor-nudges.js: {}
+  dependencies:
+    - core/drupal

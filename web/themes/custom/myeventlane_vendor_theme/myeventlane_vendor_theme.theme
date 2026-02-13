@@ -13,6 +13,22 @@ use Drupal\Core\Form\FormStateInterface;
  * Implements hook_preprocess_page().
  */
 function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
+  // Footer context for internal footer (vendor dashboard).
+  try {
+    $variables['footer_context'] = \Drupal::service('myeventlane_vendor.footer_context')->getContext();
+  }
+  catch (\Exception $e) {
+    $variables['footer_context'] = [
+      'store_name' => NULL,
+      'payout_balance' => 0,
+      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'open_tickets' => 0,
+      'is_vendor' => FALSE,
+      'is_admin' => FALSE,
+    ];
+  }
+  $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
+
   // Get current user info.
   $current_user = \Drupal::currentUser();
   $account = $current_user->getAccount();
@@ -613,6 +629,14 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
+    // Support routes.
+    'myeventlane_escalations_portal.vendor_list' => 'support',
+    'myeventlane_escalations_portal.vendor_view' => 'support',
+    'myeventlane_escalations_refunds.vendor_refund_summary' => 'refunds',
+    'myeventlane_escalations_analytics.vendor_dashboard' => 'support_analytics',
+    // Help centre.
+    'myeventlane_help_centre.vendor_index' => 'help',
+    'myeventlane_help_centre.vendor_topic' => 'help',
   ];
 
   return $mapping[$route_name] ?? 'dashboard';

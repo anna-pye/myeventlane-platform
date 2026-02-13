@@ -114,6 +114,9 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type): array {
     $fields = parent::baseFieldDefinitions($entity_type);
 
+    // Add owner base field from EntityOwnerTrait.
+    $fields += static::ownerBaseFieldDefinitions($entity_type);
+
     // Venue name (label field).
     $fields['name'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Venue name'))

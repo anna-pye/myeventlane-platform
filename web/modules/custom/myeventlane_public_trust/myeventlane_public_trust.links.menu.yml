@@ -1,0 +1,7 @@
+# Public footer: trust and transparency page (About / Trust section).
+myeventlane_public_trust.footer:
+  title: 'Trust & transparency'
+  description: 'Platform trust signals and transparency.'
+  route_name: myeventlane_public_trust.page
+  menu_name: footer
+  weight: 20

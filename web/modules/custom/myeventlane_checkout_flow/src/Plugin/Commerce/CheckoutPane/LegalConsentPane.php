@@ -7,10 +7,11 @@ namespace Drupal\myeventlane_checkout_flow\Plugin\Commerce\CheckoutPane;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides legal consent pane with required checkbox.
+ * Provides legal consent pane with required checkbox and versioning.
  *
  * @CommerceCheckoutPane(
  *   id = "mel_legal_consent",
@@ -22,10 +23,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class LegalConsentPane extends CheckoutPaneBase {
 
   /**
+   * The legal settings service.
+   */
+  private readonly LegalSettingsService $legalSettings;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
-    return parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
+    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
+    $instance->legalSettings = $container->get('myeventlane_legal.settings');
+    return $instance;
   }
 
   /**
@@ -34,7 +42,6 @@ final class LegalConsentPane extends CheckoutPaneBase {
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $order = $this->order;
 
-    // Check if consent already recorded.
     $consent_given = FALSE;
     $consent_timestamp = NULL;
     if ($order->hasField('field_legal_consent_given') && !$order->get('field_legal_consent_given')->isEmpty()) {
@@ -44,11 +51,32 @@ final class LegalConsentPane extends CheckoutPaneBase {
       $consent_timestamp = (int) $order->get('field_legal_consent_timestamp')->value;
     }
 
+    $termsUrl = $this->legalSettings->getCustomerTermsUrl();
+    $privacyUrl = $this->legalSettings->getPrivacyUrl();
+    $refundUrl = $this->legalSettings->getRefundPolicyUrl();
+    $termsLink = $termsUrl ? '<a href="' . htmlspecialchars($termsUrl) . '" target="_blank" rel="noopener">' . $this->t('Terms of Service') . '</a>' : $this->t('Terms of Service');
+    $privacyLink = $privacyUrl ? '<a href="' . htmlspecialchars($privacyUrl) . '" target="_blank" rel="noopener">' . $this->t('Privacy Policy') . '</a>' : $this->t('Privacy Policy');
+    $refundLink = $refundUrl ? '<a href="' . htmlspecialchars($refundUrl) . '" target="_blank" rel="noopener">' . $this->t('Refund Policy') . '</a>' : $this->t('Refund Policy');
+
+    $collection_notice = $this->legalSettings->getCollectionNoticeCheckout();
+
+    if ($collection_notice !== '') {
+      $pane_form['collection_notice'] = [
+        '#type' => 'markup',
+        '#markup' => '<p class="mel-collection-notice">' . nl2br(htmlspecialchars($collection_notice)) . '</p>',
+        '#weight' => -10,
+      ];
+    }
+
     $pane_form['consent_text'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-consent-text']],
       'markup' => [
-        '#markup' => '<p>' . $this->t('By proceeding, you agree to our Terms of Service, Privacy Policy, and Refund Policy.') . '</p>',
+        '#markup' => '<p>' . $this->t('By proceeding, you agree to our @terms, @privacy, and @refund.', [
+          '@terms' => $termsLink,
+          '@privacy' => $privacyLink,
+          '@refund' => $refundLink,
+        ]) . '</p>',
       ],
     ];
 
@@ -63,7 +91,6 @@ final class LegalConsentPane extends CheckoutPaneBase {
       ],
     ];
 
-    // Store timestamp in hidden field for submission.
     $pane_form['consent_timestamp'] = [
       '#type' => 'hidden',
       '#value' => $consent_timestamp ?? time(),
@@ -93,18 +120,28 @@ final class LegalConsentPane extends CheckoutPaneBase {
 
     $consent_given = (bool) ($values['consent_checkbox'] ?? FALSE);
     $consent_timestamp = (int) ($values['consent_timestamp'] ?? time());
+    $customerTermsVersion = $this->legalSettings->getCustomerTermsVersion();
+    $privacyVersion = $this->legalSettings->getPrivacyVersion();
 
-    // Store consent data if fields exist.
-    // Note: These fields should be added to commerce_order entity type via field UI or install hook.
     if ($order->hasField('field_legal_consent_given')) {
       $order->set('field_legal_consent_given', $consent_given);
     }
-
     if ($order->hasField('field_legal_consent_timestamp')) {
       $order->set('field_legal_consent_timestamp', $consent_timestamp);
     }
+    if ($order->hasField('field_customer_terms_version')) {
+      $order->set('field_customer_terms_version', $customerTermsVersion);
+    }
+    if ($order->hasField('field_customer_terms_accepted_at')) {
+      $order->set('field_customer_terms_accepted_at', $consent_timestamp);
+    }
+    if ($order->hasField('field_privacy_version')) {
+      $order->set('field_privacy_version', $privacyVersion);
+    }
+    if ($order->hasField('field_privacy_accepted_at')) {
+      $order->set('field_privacy_accepted_at', $consent_timestamp);
+    }
 
-    // Fallback: store in order data if fields don't exist.
     if (!$order->hasField('field_legal_consent_given')) {
       $order->setData('legal_consent_given', $consent_given);
       $order->setData('legal_consent_timestamp', $consent_timestamp);

@@ -1,0 +1,78 @@
+{#
+/**
+ * @file
+ * Vendor escalation analytics dashboard.
+ *
+ * Variables:
+ *   - metrics: Vendor-scoped metrics array.
+ *   - health: Health evaluation with bucket, summary, icon.
+ *   - vendor_name: The vendor's display name.
+ *
+ * NOTE: No breach rate is shown to vendors — it is considered too punitive.
+ */
+#}
+
+<div class="mel-analytics-dashboard mel-analytics-dashboard--vendor">
+
+  {# ── Health bucket banner ── #}
+  <div class="mel-analytics-health-banner mel-analytics-health-banner--{{ health.bucket }}">
+    <span class="mel-analytics-health-banner__icon" aria-hidden="true">{{ health.icon }}</span>
+    <div class="mel-analytics-health-banner__content">
+      <strong class="mel-analytics-health-banner__title">
+        {% if health.bucket == 'healthy' %}
+          Looking great!
+        {% elseif health.bucket == 'attention' %}
+          Room for improvement
+        {% else %}
+          Needs attention
+        {% endif %}
+      </strong>
+      <p class="mel-analytics-health-banner__summary">{{ health.summary }}</p>
+    </div>
+  </div>
+
+  {# ── KPI cards (no breach rate — too punitive for vendors) ── #}
+  <div class="mel-analytics-kpi-row">
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.total_escalations }}</span>
+      <span class="mel-analytics-kpi__label">Total escalations</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.resolution_rate }}%</span>
+      <span class="mel-analytics-kpi__label">Resolution rate</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.avg_first_response_hours }}h</span>
+      <span class="mel-analytics-kpi__label">Avg first response</span>
+    </div>
+    <div class="mel-analytics-kpi">
+      <span class="mel-analytics-kpi__value">{{ metrics.avg_resolution_hours }}h</span>
+      <span class="mel-analytics-kpi__label">Avg resolution time</span>
+    </div>
+  </div>
+
+  {# ── Status breakdown ── #}
+  {% if metrics.by_status|length > 0 %}
+    <div class="mel-analytics-section">
+      <h3 class="mel-analytics-section__title">By status</h3>
+
+      <table class="mel-analytics-table mel-analytics-table--compact">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for status, count in metrics.by_status %}
+            <tr>
+              <td>{{ status|capitalize }}</td>
+              <td>{{ count }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+</div>

@@ -1,0 +1,29 @@
+services:
+  myeventlane_legal.rsvp_alter:
+    class: Drupal\myeventlane_legal\Service\RsvpLegalAlter
+    arguments:
+      - '@myeventlane_legal.settings'
+      - '@datetime.time'
+
+  myeventlane_legal.registration_alter:
+    class: Drupal\myeventlane_legal\Form\UserRegisterLegalAlter
+    arguments:
+      - '@myeventlane_legal.settings'
+      - '@current_user'
+      - '@datetime.time'
+
+  myeventlane_legal.settings:
+    class: Drupal\myeventlane_legal\Service\LegalSettingsService
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+      - '@datetime.time'
+
+  myeventlane_legal.gatekeeper:
+    class: Drupal\myeventlane_legal\Service\LegalGatekeeper
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_legal.settings'
+      - '@current_user'
+      - '@logger.factory'
+      - '@messenger'

@@ -1,0 +1,6 @@
+myeventlane_escalations_policy.report:
+  title: 'Escalation Policy Report'
+  description: 'View escalation policy report'
+  route_name: myeventlane_escalations_policy.report
+  parent: entity.escalation.collection
+  weight: 15

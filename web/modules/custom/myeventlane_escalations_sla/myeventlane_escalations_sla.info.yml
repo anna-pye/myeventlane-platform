@@ -1,0 +1,8 @@
+name: 'MyEventLane Escalations SLA'
+type: module
+description: 'SLA policy, timers, breach detection, and level escalation for the Escalations system.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - drupal:options

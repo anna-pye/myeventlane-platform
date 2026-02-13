@@ -1,0 +1,6 @@
+myeventlane_escalations_capacity.dashboard:
+  title: 'Escalation Capacity'
+  description: 'View escalation capacity dashboard'
+  route_name: myeventlane_escalations_capacity.dashboard
+  parent: entity.escalation.collection
+  weight: 10

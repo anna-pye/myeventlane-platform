@@ -1,0 +1,22 @@
+services:
+  myeventlane_escalations_refunds.repository:
+    class: Drupal\myeventlane_escalations_refunds\Repository\RefundsCorrelationRepository
+    arguments: ['@database']
+
+  myeventlane_escalations_refunds.resolver:
+    class: Drupal\myeventlane_escalations_refunds\Service\EscalationRefundsResolver
+    arguments:
+      - '@myeventlane_escalations_refunds.repository'
+      - '@entity_type.manager'
+
+  myeventlane_escalations_refunds.metrics:
+    class: Drupal\myeventlane_escalations_refunds\Service\RefundsMetricsCalculator
+    arguments: ['@config.factory']
+
+  myeventlane_escalations_refunds.access_guard:
+    class: Drupal\myeventlane_escalations_refunds\Service\RefundsAccessGuard
+    arguments: ['@current_user']
+
+  logger.channel.myeventlane_escalations_refunds:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_refunds']

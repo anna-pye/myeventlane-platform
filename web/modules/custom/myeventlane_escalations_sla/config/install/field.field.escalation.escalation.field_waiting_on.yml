@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_waiting_on
+  module:
+    - myeventlane_escalations
+    - options
+id: escalation.escalation.field_waiting_on
+field_name: field_waiting_on
+entity_type: escalation
+bundle: escalation
+label: 'Waiting On'
+description: 'Which party the escalation is currently waiting on.'
+required: false
+translatable: false
+default_value:
+  - value: vendor
+default_value_callback: ''
+settings: {  }
+field_type: list_string

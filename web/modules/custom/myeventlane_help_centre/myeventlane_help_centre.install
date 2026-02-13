@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * @file
+ * Install and update functions for MyEventLane Help Centre.
+ */
+
+declare(strict_types=1);
+
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Add 'staff' audience and create Staff Snippet Authoring Guide.
+ */
+function myeventlane_help_centre_update_10001(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  // Add 'staff' to field_audience allowed values.
+  $config = \Drupal::configFactory()->getEditable('field.storage.node.field_audience');
+  $settings = $config->get('settings') ?? [];
+  $allowed = $settings['allowed_values'] ?? [];
+  $has_staff = FALSE;
+  foreach ($allowed as $item) {
+    if (($item['value'] ?? '') === 'staff') {
+      $has_staff = TRUE;
+      break;
+    }
+  }
+  if (!$has_staff) {
+    $allowed[] = ['value' => 'staff', 'label' => 'Staff'];
+    $settings['allowed_values'] = $allowed;
+    $config->set('settings', $settings)->save();
+    $logger->notice('Added "staff" to help article audience field.');
+  }
+
+  // Ensure Internal Governance category exists.
+  $term = \Drupal::entityTypeManager()
+    ->getStorage('taxonomy_term')
+    ->loadByProperties(['vid' => 'help_categories', 'name' => 'Internal Governance']);
+  $term = $term ? reset($term) : NULL;
+
+  if (!$term) {
+    $term = Term::create([
+      'vid' => 'help_categories',
+      'name' => 'Internal Governance',
+      'description' => 'Internal staff governance and communication standards.',
+    ]);
+    $term->save();
+    $logger->notice('Created Internal Governance help category term.');
+  }
+
+  $tid = (int) $term->id();
+
+  // Create Staff Snippet Authoring Guide if not exists.
+  $nodes = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->loadByProperties([
+      'type' => 'help_article',
+      'title' => 'Staff Snippet Authoring Guide',
+    ]);
+
+  if (empty($nodes)) {
+    $values = [
+      'type' => 'help_article',
+      'title' => 'Staff Snippet Authoring Guide',
+      'status' => 1,
+      'field_audience' => ['staff'],
+      'field_help_category' => ['target_id' => $tid],
+      'field_priority' => 1,
+    ];
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $node = $storage->create($values);
+    if ($node->hasField('body')) {
+      $node->set('body', [
+        'value' => '<p>This guide covers how to write effective reply snippets for staff playbooks.</p>'
+          . '<h3>Tone</h3><p>Use a calm, neutral, professional tone. Be empathetic but avoid promises or guarantees.</p>'
+          . '<h3>Word limit</h3><p>Keep snippets concise. Aim for 50–150 words per snippet where possible.</p>'
+          . '<h3>Structure</h3><p>Use a clear format: Title on the first line, then body text. Use paragraphs for longer content.</p>',
+        'format' => 'basic_html',
+      ]);
+    }
+    $node->save();
+    $logger->notice('Created Staff Snippet Authoring Guide help article.');
+    return 'Added staff audience, Internal Governance category, and Staff Snippet Authoring Guide.';
+  }
+
+  return 'Staff audience and Internal Governance already configured.';
+}
+
+/**
+ * Create footer menu if it does not exist (for existing installations).
+ */
+function myeventlane_help_centre_update_10002(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('menu');
+  if ($storage->load('footer') === NULL) {
+    $menu = $storage->create([
+      'id' => 'footer',
+      'label' => 'Footer',
+      'description' => 'Links displayed in the site footer (Help, Trust, etc.).',
+    ]);
+    $menu->save();
+    return 'Created Footer menu for public navigation (Help, Trust links).';
+  }
+  return 'Footer menu already exists.';
+}

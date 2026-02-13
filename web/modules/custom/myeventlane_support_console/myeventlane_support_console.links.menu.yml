@@ -1,0 +1,6 @@
+myeventlane_support_console.dashboard:
+  title: 'Support Console'
+  description: 'Staff support console landing page'
+  route_name: myeventlane_support_console.dashboard
+  parent: entity.escalation.collection
+  weight: -10

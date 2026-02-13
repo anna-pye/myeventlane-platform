@@ -1,0 +1,75 @@
+# Customer routes.
+myeventlane_escalations_portal.customer_support:
+  path: '/my/support'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
+    _title: 'My Support'
+  requirements:
+    _permission: 'view own escalation'
+
+myeventlane_escalations_portal.customer_list:
+  path: '/my/support/escalations'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
+    _title: 'My Escalations'
+  requirements:
+    _permission: 'view own escalation'
+
+myeventlane_escalations_portal.customer_add:
+  path: '/my/support/escalations/add'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::add'
+    _title: 'Submit an Escalation'
+  requirements:
+    _permission: 'create escalation'
+
+myeventlane_escalations_portal.customer_view:
+  path: '/my/support/escalations/{escalation}'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::view'
+    _title_callback: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::viewTitle'
+  requirements:
+    _custom_access: 'myeventlane_escalations_portal.access::customerViewAccess'
+    escalation: '\d+'
+
+myeventlane_escalations_portal.customer_reopen:
+  path: '/my/support/escalations/{escalation}/reopen'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::reopen'
+  requirements:
+    _custom_access: 'myeventlane_escalations_portal.access::customerReopenAccess'
+    escalation: '\d+'
+
+# Vendor routes.
+myeventlane_escalations_portal.vendor_list:
+  path: '/vendor/support'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::list'
+    _title: 'Vendor Support'
+  requirements:
+    _permission: 'view vendor escalations'
+
+myeventlane_escalations_portal.vendor_view:
+  path: '/vendor/support/{escalation}'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::view'
+    _title_callback: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::viewTitle'
+  requirements:
+    _custom_access: 'myeventlane_escalations_portal.access::vendorViewAccess'
+    escalation: '\d+'
+
+myeventlane_escalations_portal.vendor_resolve:
+  path: '/vendor/support/{escalation}/resolve'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::resolve'
+  requirements:
+    _custom_access: 'myeventlane_escalations_portal.access::vendorResolveAccess'
+    escalation: '\d+'
+
+myeventlane_escalations_portal.vendor_reopen:
+  path: '/vendor/support/{escalation}/reopen'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::reopen'
+  requirements:
+    _permission: 'reopen escalations'
+    escalation: '\d+'

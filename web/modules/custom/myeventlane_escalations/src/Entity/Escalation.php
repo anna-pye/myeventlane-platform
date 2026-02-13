@@ -296,6 +296,16 @@ final class Escalation extends ContentEntityBase implements EscalationInterface 
   }
 
   /**
+   * Gets the creation timestamp.
+   *
+   * @return int
+   *   The UNIX timestamp of when the escalation was created.
+   */
+  public function getCreatedTime(): int {
+    return (int) $this->get('created')->value;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getSubject(): string {
@@ -356,6 +366,13 @@ final class Escalation extends ContentEntityBase implements EscalationInterface 
   public function setCustomer(UserInterface $account): EscalationInterface {
     $this->set('user_id', $account->id());
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasAssignedVendor(): bool {
+    return $this->hasField('vendor_id') && !$this->get('vendor_id')->isEmpty();
   }
 
 }

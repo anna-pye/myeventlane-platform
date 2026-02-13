@@ -1,0 +1,10 @@
+escalation_ai_draft:
+  css:
+    theme:
+      css/escalation-ai-draft.css: {}
+  js:
+    js/escalation-ai-draft.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.dialog
+    - core/jquery

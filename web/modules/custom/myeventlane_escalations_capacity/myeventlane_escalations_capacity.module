@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations Capacity module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_capacity_theme(): array {
+  return [
+    'escalation_capacity_dashboard' => [
+      'variables' => [
+        'workload' => [],
+        'activity' => [],
+        'signal' => [],
+        'trend' => [],
+      ],
+      'template' => 'escalation-capacity-dashboard',
+    ],
+  ];
+}

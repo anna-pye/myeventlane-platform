@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
+use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -28,14 +29,21 @@ class CreateEventGatewayController extends ControllerBase {
   private readonly RendererInterface $renderer;
 
   /**
+   * The legal gatekeeper.
+   */
+  private readonly LegalGatekeeper $legalGatekeeper;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     OnboardingManager $onboarding_manager,
     RendererInterface $renderer,
+    LegalGatekeeper $legal_gatekeeper,
   ) {
     $this->onboardingManager = $onboarding_manager;
     $this->renderer = $renderer;
+    $this->legalGatekeeper = $legal_gatekeeper;
   }
 
   /**
@@ -45,6 +53,7 @@ class CreateEventGatewayController extends ControllerBase {
     return new static(
       $container->get('myeventlane_onboarding.manager'),
       $container->get('renderer'),
+      $container->get('myeventlane_legal.gatekeeper'),
     );
   }
 
@@ -155,6 +164,8 @@ class CreateEventGatewayController extends ControllerBase {
     catch (\Throwable $e) {
       $this->getLogger('myeventlane_vendor')->warning('Create-event gateway onboarding flash failed: @m', ['@m' => $e->getMessage()]);
     }
+
+    $this->legalGatekeeper->assertVendorTermsAccepted();
 
     $create_url = Url::fromRoute('myeventlane_event.wizard.create');
     return new RedirectResponse($create_url->toString());

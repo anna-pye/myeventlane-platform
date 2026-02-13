@@ -1,0 +1,9 @@
+ai_assistant:
+  css:
+    theme:
+      css/ai-assistant.css: {}
+  js:
+    js/ai-assistant.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

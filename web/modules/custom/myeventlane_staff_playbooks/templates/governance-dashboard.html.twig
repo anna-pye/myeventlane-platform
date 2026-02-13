@@ -1,0 +1,33 @@
+{#
+  Internal Governance dashboard. Admin-only. Lists staff help articles.
+#}
+<div class="governance-dashboard">
+  <h1 class="governance-dashboard__title">{{ 'Internal Governance'|t }}</h1>
+  <p class="governance-dashboard__intro">{{ 'Internal guides and policies for staff handling escalations and support.'|t }}</p>
+
+  <div class="governance-dashboard__quick-links">
+    {% if snippet_guide_url %}
+      <a href="{{ snippet_guide_url }}" class="governance-dashboard__quick-link">{{ 'Staff Communication Guide'|t }}</a>
+    {% endif %}
+    {% if playbooks_url %}
+      <a href="{{ playbooks_url }}" class="governance-dashboard__quick-link">{{ 'Playbook Writing Guide'|t }}</a>
+    {% endif %}
+  </div>
+
+  {% if groups is not empty %}
+    <div class="governance-dashboard__groups">
+      {% for group in groups %}
+        <section class="governance-dashboard__group">
+          <h2 class="governance-dashboard__group-title">{{ group.name }}</h2>
+          <ul class="governance-dashboard__articles">
+            {% for article in group.articles %}
+              <li>
+                <a href="{{ article.url }}" class="governance-dashboard__article-link">{{ article.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

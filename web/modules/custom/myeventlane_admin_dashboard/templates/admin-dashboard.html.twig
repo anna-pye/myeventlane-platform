@@ -111,6 +111,9 @@
           {% endif %}
         </div>
         <div class="sidebar-action">
+          {% if support_console_url %}
+            <a href="{{ support_console_url }}" class="sidebar-link sidebar-link--action sidebar-link--primary">{{ 'Support Console'|t }}</a>
+          {% endif %}
           <a href="/admin/myeventlane/escalations" class="sidebar-link sidebar-link--action">{{ 'Manage Escalations'|t }}</a>
         </div>
       </div>

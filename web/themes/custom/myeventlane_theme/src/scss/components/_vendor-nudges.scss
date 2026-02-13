@@ -1,0 +1,96 @@
+// ==========================================================================
+// Vendor Nudges — Educational Tips
+// ==========================================================================
+// Calm, non-punitive styling for optional vendor nudges.
+// No warning colours. Pastel background to match MEL dashboard tone.
+
+.vendor-nudges {
+  margin: 1.5rem 0;
+}
+
+.vendor-nudges__heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mel-color-text-secondary, #5a6872);
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.01em;
+}
+
+.vendor-nudges__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vendor-nudges__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--mel-color-nudge-bg, #f0f4f8);
+  border: 1px solid var(--mel-color-nudge-border, #d9e2ec);
+  border-radius: var(--mel-radius-md, 0.5rem);
+  padding: 1rem 1.25rem;
+  transition: opacity 0.2s ease;
+}
+
+.vendor-nudges__card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.vendor-nudges__card-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--mel-color-text-primary, #243b53);
+  margin: 0 0 0.25rem;
+}
+
+.vendor-nudges__card-message {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #5a6872);
+  margin: 0;
+}
+
+.vendor-nudges__learn-more {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--mel-color-link, #2680c2);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.vendor-nudges__dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--mel-radius-sm, 0.25rem);
+  background: transparent;
+  color: var(--mel-color-text-muted, #9fb3c8);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--mel-color-text-secondary, #5a6872);
+    background: var(--mel-color-nudge-dismiss-hover-bg, #d9e2ec);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mel-color-focus, #2680c2);
+    outline-offset: 2px;
+  }
+}

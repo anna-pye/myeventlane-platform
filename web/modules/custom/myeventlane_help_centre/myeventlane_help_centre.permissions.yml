@@ -1,0 +1,7 @@
+view vendor help centre:
+  title: 'View vendor help centre'
+  description: 'Access the vendor-facing help centre and articles.'
+
+administer help articles:
+  title: 'Administer help articles'
+  description: 'Create, edit, and delete help centre articles.'

@@ -1,0 +1,81 @@
+/**
+ * @file
+ * Support Console dashboard styles.
+ */
+
+.support-console-dashboard {
+  max-width: 1200px;
+}
+
+.support-console__title {
+  margin-bottom: 1.5rem;
+}
+
+.support-console__panel {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--mel-surface, #fff);
+  border-radius: var(--mel-radius-2, 10px);
+  border: 1px solid rgba(41, 50, 65, 0.1);
+}
+
+.support-console__panel-title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.support-console__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.support-console__table th,
+.support-console__table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(41, 50, 65, 0.08);
+}
+
+.support-console__kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.support-console__kpi {
+  display: flex;
+  flex-direction: column;
+}
+
+.support-console__kpi-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.support-console__kpi-label {
+  font-size: 0.875rem;
+  color: var(--mel-muted, #666);
+}
+
+.support-console__quick-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.support-console__quick-links li {
+  margin-bottom: 0.5rem;
+}
+
+.support-console__quick-links a {
+  text-decoration: none;
+}
+
+.support-console__quick-links a:hover {
+  text-decoration: underline;
+}
+
+.support-console__empty {
+  color: var(--mel-muted, #666);
+}

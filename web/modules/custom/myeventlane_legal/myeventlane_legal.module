@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Legal: terms, privacy, cookie consent.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function myeventlane_legal_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id === 'user_register_form') {
+    \Drupal::service('myeventlane_legal.registration_alter')->alterForm($form, $form_state);
+  }
+  if ($form_id === 'myeventlane_rsvp_public_form') {
+    \Drupal::service('myeventlane_legal.rsvp_alter')->alterRsvpPublicForm($form, $form_state);
+  }
+  if ($form_id === 'myeventlane_commerce_rsvp_booking_form') {
+    \Drupal::service('myeventlane_legal.rsvp_alter')->alterRsvpBookingForm($form, $form_state);
+  }
+}
+
+/**
+ * Implements hook_entity_presave().
+ *
+ * Applies pending legal consent to new rsvp_submission entities.
+ */
+function myeventlane_legal_entity_presave(\Drupal\Core\Entity\EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'rsvp_submission' || !$entity->isNew()) {
+    return;
+  }
+  $pending = \Drupal\myeventlane_legal\Service\RsvpLegalAlter::$pendingLegalConsent ?? NULL;
+  if ($pending === NULL) {
+    return;
+  }
+
+  \Drupal\myeventlane_legal\Service\RsvpLegalConsentHelper::populateSubmission(
+    $entity,
+    $pending['legal'],
+    $pending['legal_settings'],
+    $pending['timestamp']
+  );
+  \Drupal\myeventlane_legal\Service\RsvpLegalAlter::$pendingLegalConsent = NULL;
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Attaches cookie consent library to all pages so the banner can appear
+ * when consent has not been given.
+ */
+function myeventlane_legal_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'myeventlane_legal/cookie_consent';
+  $attachments['#attached']['drupalSettings']['myeventlane_legal'] = [
+    'preferences_url' => '/cookies/preferences',
+    'cookie_policy_url' => '/cookies',
+  ];
+}

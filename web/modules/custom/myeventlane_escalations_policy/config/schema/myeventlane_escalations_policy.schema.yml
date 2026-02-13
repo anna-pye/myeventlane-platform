@@ -1,0 +1,25 @@
+myeventlane_escalations_policy.settings:
+  type: config_object
+  label: 'Escalation policy settings'
+  mapping:
+    threshold_weeks:
+      type: integer
+      label: 'Consecutive at-risk weeks before triggering staff review'
+    cooldown_weeks:
+      type: integer
+      label: 'Minimum weeks between triggers for the same vendor'
+    evaluation_window_days:
+      type: integer
+      label: 'Number of days to look back when evaluating vendor health'
+    action_mode:
+      type: string
+      label: 'Action mode (create_escalation or email_only)'
+    staff_notification_emails:
+      type: sequence
+      label: 'Staff email addresses for policy notifications'
+      sequence:
+        type: string
+        label: 'Email address'
+    run_day:
+      type: string
+      label: 'Informational preferred run day (cron runs daily, checks week boundary)'

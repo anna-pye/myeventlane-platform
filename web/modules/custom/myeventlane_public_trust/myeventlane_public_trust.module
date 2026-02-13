@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Public Trust module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_public_trust_theme(): array {
+  return [
+    'public_trust' => [
+      'variables' => [
+        'signals' => [],
+      ],
+      'template' => 'public-trust',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Refreshes the trust signal metrics cache. All heavy queries run here,
+ * not during page render.
+ */
+function myeventlane_public_trust_cron(): void {
+  /** @var \Drupal\myeventlane_public_trust\Service\TrustSignalCalculator $calculator */
+  $calculator = \Drupal::service('myeventlane_public_trust.trust_signal_calculator');
+
+  try {
+    $calculator->computeAndCache();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_public_trust')->error(
+      'Cron: failed to compute trust signals: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+}

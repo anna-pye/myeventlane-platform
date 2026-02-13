@@ -19,7 +19,6 @@ use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Controller for the vendor dashboard.
@@ -90,16 +89,6 @@ final class VendorDashboardController extends ControllerBase {
       $vendorContext,
       $vendorMetrics,
       $container->get('request_stack'),
-    );
-  }
-
-  /**
-   * Redirects from old /dashboard path to /vendor/dashboard.
-   */
-  public function legacyRedirect(): RedirectResponse {
-    return new RedirectResponse(
-      Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
-      301
     );
   }
 

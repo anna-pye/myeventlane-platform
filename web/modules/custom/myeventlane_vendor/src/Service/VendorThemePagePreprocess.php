@@ -263,6 +263,12 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_vendor.dashboard' => 'dashboard',
       'myeventlane_vendor.console.dashboard' => 'dashboard',
+      'myeventlane_help_centre.vendor_index' => 'help',
+      'myeventlane_help_centre.vendor_topic' => 'help',
+      'myeventlane_escalations_portal.vendor_list' => 'support',
+      'myeventlane_escalations_portal.vendor_view' => 'support',
+      'myeventlane_escalations_refunds.vendor_refund_summary' => 'refunds',
+      'myeventlane_escalations_analytics.vendor_dashboard' => 'support_analytics',
     ];
     return $mapping[$route_name] ?? 'dashboard';
   }

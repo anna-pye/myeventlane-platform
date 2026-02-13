@@ -117,6 +117,16 @@
 @use 'onboarding/onboarding-forms';
 @use 'onboarding/onboarding-footer';
 @use 'vendor/vendor-dashboard-onboarding';
+@use 'components/sla-badge';
+@use 'components/escalation-analytics';
+@use 'components/escalation-capacity';
+@use 'components/vendor-nudges';
+@use 'components/public-trust';
+@use 'components/help-centre';
+@use 'components/staff-playbooks';
+@use 'components/support';
+@use 'components/ai-panels';
+@use 'components/cookies-consent';
 
 // ---------------------------------------------------------------------------
 // 6. Pages

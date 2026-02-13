@@ -1,0 +1,9 @@
+view staff playbooks:
+  title: 'View staff playbooks'
+  description: 'See relevant playbooks when viewing an escalation. Staff-only.'
+  restrict access: true
+
+administer staff playbooks:
+  title: 'Administer staff playbooks'
+  description: 'Create, edit, and delete staff playbook content.'
+  restrict access: true

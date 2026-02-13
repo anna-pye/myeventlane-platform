@@ -1,0 +1,4 @@
+use vendor ai assistant:
+  title: 'Use vendor AI assistant'
+  description: 'Allows vendors to use the MEL Assistant for policy questions on their escalations.'
+  restrict access: true

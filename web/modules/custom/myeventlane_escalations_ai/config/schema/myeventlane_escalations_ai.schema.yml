@@ -1,0 +1,68 @@
+myeventlane_escalations_ai.settings:
+  type: config_object
+  label: 'MyEventLane Escalations AI settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    prompts:
+      type: mapping
+      label: 'Prompt templates'
+      mapping:
+        triage:
+          type: mapping
+          label: 'Triage prompt'
+          mapping:
+            version:
+              type: string
+              label: 'Version'
+            template:
+              type: string
+              label: 'Template'
+        reply_suggestion:
+          type: mapping
+          label: 'Reply suggestion prompt'
+          mapping:
+            version:
+              type: string
+              label: 'Version'
+            template:
+              type: string
+              label: 'Template'
+        risk_flag:
+          type: mapping
+          label: 'Risk flag prompt'
+          mapping:
+            version:
+              type: string
+              label: 'Version'
+            template:
+              type: string
+              label: 'Template'
+        breach_soon:
+          type: mapping
+          label: 'Breach soon advisory prompt'
+          mapping:
+            version:
+              type: string
+              label: 'Version'
+            template:
+              type: string
+              label: 'Template'
+    ai_options:
+      type: mapping
+      label: 'AI options'
+      mapping:
+        max_context_chars:
+          type: integer
+          label: 'Max context characters'
+        provider_options:
+          type: mapping
+          label: 'Provider options'
+          mapping:
+            max_tokens:
+              type: integer
+              label: 'Max tokens'
+            temperature:
+              type: float
+              label: 'Temperature'

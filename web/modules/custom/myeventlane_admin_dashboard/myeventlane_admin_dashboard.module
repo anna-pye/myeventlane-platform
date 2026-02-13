@@ -19,6 +19,7 @@ function myeventlane_admin_dashboard_theme(): array {
         'user_count' => 0,
         'recent_events' => [],
         'quick_links' => [],
+        'support_console_url' => NULL,
         'revenue_kpis' => [],
         'recent_transactions' => [],
         'top_events' => [],

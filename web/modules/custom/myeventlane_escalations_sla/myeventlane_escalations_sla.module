@@ -1,0 +1,184 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations SLA module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_sla_theme(): array {
+  return [
+    'escalation_sla_badge' => [
+      'variables' => [
+        'badge' => NULL,
+      ],
+      'template' => 'escalation-sla-badge',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_presave().
+ *
+ * Sets SLA fields on escalation creation and maintains flags on updates.
+ */
+function myeventlane_escalations_sla_entity_presave(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_sla\Service\SlaCalculator $calculator */
+  $calculator = \Drupal::service('myeventlane_escalations_sla.calculator');
+
+  if ($entity->isNew()) {
+    _myeventlane_escalations_sla_init_new($entity, $calculator);
+    return;
+  }
+
+  _myeventlane_escalations_sla_handle_update($entity);
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Enqueues active escalations for SLA breach checking.
+ */
+function myeventlane_escalations_sla_cron(): void {
+  /** @var \Drupal\myeventlane_escalations_sla\Service\SlaPolicy $policy */
+  $policy = \Drupal::service('myeventlane_escalations_sla.policy');
+  if (!$policy->isEnabled()) {
+    return;
+  }
+
+  $ids = \Drupal::entityQuery('escalation')
+    ->condition('status', ['resolved', 'closed'], 'NOT IN')
+    ->accessCheck(FALSE)
+    ->execute();
+
+  if (empty($ids)) {
+    return;
+  }
+
+  $queue = \Drupal::queue('myeventlane_escalations_sla.check', TRUE);
+  foreach ($ids as $id) {
+    $queue->createItem(['escalation_id' => (int) $id]);
+  }
+
+  \Drupal::logger('myeventlane_escalations_sla')->info('Queued {count} escalations for SLA check.', [
+    'count' => count($ids),
+  ]);
+}
+
+/**
+ * Implements hook_mail().
+ */
+function myeventlane_escalations_sla_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'sla_breach') {
+    return;
+  }
+
+  $breach_type = $params['breach_type'] ?? 'unknown';
+  $subject = $params['subject'] ?? 'Escalation';
+  $escalation_id = $params['escalation_id'] ?? '?';
+
+  $breach_label = $breach_type === 'first_response' ? 'First Response' : 'Resolution';
+
+  $message['subject'] = t('SLA @type Breach — Escalation #@id: @subject', [
+    '@type' => $breach_label,
+    '@id' => $escalation_id,
+    '@subject' => $subject,
+  ]);
+
+  $message['body'][] = t("Hello,\n\nThis is an automated notification. The @type SLA for escalation #@id has been breached.\n\nSubject: @subject\n\nPlease review this escalation at your earliest convenience.\n\nKind regards,\nMyEventLane Support System", [
+    '@type' => strtolower($breach_label),
+    '@id' => $escalation_id,
+    '@subject' => $subject,
+  ]);
+}
+
+/**
+ * Initialises SLA fields on a new escalation.
+ */
+function _myeventlane_escalations_sla_init_new(EntityInterface $entity, $calculator): void {
+  $priority = $entity->hasField('priority') ? (string) $entity->get('priority')->value : 'normal';
+  if ($priority === '') {
+    $priority = 'normal';
+  }
+
+  $created = time();
+
+  // Set SLA due timestamps.
+  if ($entity->hasField('field_sla_first_due')) {
+    $entity->set('field_sla_first_due', $calculator->computeFirstResponseDue($created, $priority));
+  }
+  if ($entity->hasField('field_sla_resolution_due')) {
+    $entity->set('field_sla_resolution_due', $calculator->computeResolutionDue($created, $priority));
+  }
+
+  // Set breach flags to FALSE.
+  if ($entity->hasField('field_sla_first_breached')) {
+    $entity->set('field_sla_first_breached', 0);
+  }
+  if ($entity->hasField('field_sla_resolution_breached')) {
+    $entity->set('field_sla_resolution_breached', 0);
+  }
+
+  // Set escalation level to 0.
+  if ($entity->hasField('field_escalation_level')) {
+    $entity->set('field_escalation_level', 0);
+  }
+
+  // Set waiting_on: vendor if vendor is assigned, otherwise staff.
+  if ($entity->hasField('field_waiting_on')) {
+    $has_vendor = $entity->hasField('vendor_id') && !$entity->get('vendor_id')->isEmpty();
+    $entity->set('field_waiting_on', $has_vendor ? 'vendor' : 'staff');
+  }
+}
+
+/**
+ * Handles SLA flag maintenance on escalation updates.
+ */
+function _myeventlane_escalations_sla_handle_update(EntityInterface $entity): void {
+  if (!isset($entity->original)) {
+    return;
+  }
+
+  $old_status = (string) $entity->original->get('status')->value;
+  $new_status = (string) $entity->get('status')->value;
+
+  // If reopening from resolved/closed, reset SLA timers.
+  if (in_array($old_status, ['resolved', 'closed'], TRUE) && !in_array($new_status, ['resolved', 'closed'], TRUE)) {
+    /** @var \Drupal\myeventlane_escalations_sla\Service\SlaCalculator $calculator */
+    $calculator = \Drupal::service('myeventlane_escalations_sla.calculator');
+    $priority = $entity->hasField('priority') ? (string) $entity->get('priority')->value : 'normal';
+    $now = time();
+
+    if ($entity->hasField('field_sla_first_due')) {
+      $entity->set('field_sla_first_due', $calculator->computeFirstResponseDue($now, $priority));
+    }
+    if ($entity->hasField('field_sla_resolution_due')) {
+      $entity->set('field_sla_resolution_due', $calculator->computeResolutionDue($now, $priority));
+    }
+    if ($entity->hasField('field_sla_first_breached')) {
+      $entity->set('field_sla_first_breached', 0);
+    }
+    if ($entity->hasField('field_sla_resolution_breached')) {
+      $entity->set('field_sla_resolution_breached', 0);
+    }
+    if ($entity->hasField('field_escalation_level')) {
+      $entity->set('field_escalation_level', 0);
+    }
+    if ($entity->hasField('field_waiting_on')) {
+      // Use vendor if assigned, otherwise staff. Matches init logic and
+      // prevents invalid waiting_on state for vendor-less escalations.
+      $has_vendor = $entity->hasField('vendor_id') && !$entity->get('vendor_id')->isEmpty();
+      $entity->set('field_waiting_on', $has_vendor ? 'vendor' : 'staff');
+    }
+  }
+}

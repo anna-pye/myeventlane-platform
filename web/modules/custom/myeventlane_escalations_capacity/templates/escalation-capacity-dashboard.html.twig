@@ -1,0 +1,140 @@
+{#
+/**
+ * @file
+ * Staff workload and capacity analytics dashboard.
+ *
+ * All data is aggregate — no individual staff identities are shown.
+ *
+ * Variables:
+ *   - workload: Workload metrics (open_count, waiting_on_staff_count, etc.)
+ *   - activity: Staff activity aggregates (total_staff_replies, etc.)
+ *   - signal: Capacity signal (signal, reasons[], icon)
+ *   - trend: Week-on-week deltas for key metrics.
+ */
+#}
+
+<div class="mel-analytics-dashboard mel-analytics-dashboard--capacity">
+
+  {# ── Capacity signal banner ── #}
+  <div class="mel-analytics-health-banner mel-analytics-health-banner--{{ signal.signal == 'ok' ? 'healthy' : (signal.signal == 'watch' ? 'attention' : 'risk') }}">
+    <span class="mel-analytics-health-banner__icon" aria-hidden="true">{{ signal.icon }}</span>
+    <div class="mel-analytics-health-banner__content">
+      <strong class="mel-analytics-health-banner__title">
+        {% if signal.signal == 'ok' %}
+          Capacity: OK
+        {% elseif signal.signal == 'watch' %}
+          Capacity: Watch
+        {% else %}
+          Capacity: Under Pressure
+        {% endif %}
+      </strong>
+      <ul class="mel-capacity-reasons" role="list">
+        {% for reason in signal.reasons %}
+          <li>{{ reason }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {# ── Workload KPI cards ── #}
+  <div class="mel-analytics-section">
+    <h2 class="mel-analytics-section__title">Workload overview</h2>
+
+    <div class="mel-analytics-kpi-row">
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.open_count }}</span>
+        <span class="mel-analytics-kpi__label">Open escalations</span>
+      </div>
+
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.waiting_on_staff_count }}</span>
+        <span class="mel-analytics-kpi__label">Waiting on staff</span>
+      </div>
+
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.new_in_window_count }}</span>
+        <span class="mel-analytics-kpi__label">New (7d)</span>
+        {% if trend.new_in_window is defined %}
+          <span class="mel-capacity-trend mel-capacity-trend--{{ trend.new_in_window.direction }}">
+            {{ trend.new_in_window.label }} vs prior week
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.oldest_open_age_days }}d</span>
+        <span class="mel-analytics-kpi__label">Oldest open</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Staff activity (aggregate) ── #}
+  <div class="mel-analytics-section">
+    <h2 class="mel-analytics-section__title">Staff activity (aggregate)</h2>
+
+    <table class="mel-analytics-table mel-analytics-table--compact">
+      <thead>
+        <tr>
+          <th scope="col">Metric</th>
+          <th scope="col">Value</th>
+          <th scope="col">Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Staff replies (7d)</td>
+          <td>{{ activity.total_staff_replies }}</td>
+          <td>
+            {% if trend.total_staff_replies is defined %}
+              <span class="mel-capacity-trend mel-capacity-trend--{{ trend.total_staff_replies.direction }}">
+                {{ trend.total_staff_replies.label }}
+              </span>
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td>Avg first response</td>
+          <td>{{ activity.avg_first_staff_response_hours }}h</td>
+          <td>
+            {% if trend.avg_first_staff_response_hours is defined %}
+              <span class="mel-capacity-trend mel-capacity-trend--{{ trend.avg_first_staff_response_hours.direction }}">
+                {{ trend.avg_first_staff_response_hours.label }}h
+              </span>
+            {% else %}
+              –
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td>Avg replies per escalation</td>
+          <td>{{ activity.avg_replies_per_escalation }}</td>
+          <td>–</td>
+        </tr>
+        <tr>
+          <td>Escalations with no staff reply</td>
+          <td>{{ activity.escalations_without_staff_reply }}</td>
+          <td>–</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {# ── Age stats ── #}
+  <div class="mel-analytics-section">
+    <h2 class="mel-analytics-section__title">Age overview</h2>
+
+    <div class="mel-analytics-kpi-row">
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.avg_age_days_open }}d</span>
+        <span class="mel-analytics-kpi__label">Avg age (open)</span>
+      </div>
+      <div class="mel-analytics-kpi">
+        <span class="mel-analytics-kpi__value">{{ workload.oldest_open_age_days }}d</span>
+        <span class="mel-analytics-kpi__label">Oldest open</span>
+      </div>
+    </div>
+  </div>
+
+</div>

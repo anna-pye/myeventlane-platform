@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+    - options
+id: escalation.field_waiting_on
+field_name: field_waiting_on
+entity_type: escalation
+type: list_string
+settings:
+  allowed_values:
+    - value: vendor
+      label: 'Vendor'
+    - value: customer
+      label: 'Customer'
+    - value: staff
+      label: 'Staff'
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

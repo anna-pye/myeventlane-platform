@@ -1,0 +1,6 @@
+myeventlane_escalations_analytics.staff_dashboard:
+  title: 'Escalation Analytics'
+  description: 'View escalation analytics dashboard'
+  route_name: myeventlane_escalations_analytics.staff_dashboard
+  parent: entity.escalation.collection
+  weight: 5

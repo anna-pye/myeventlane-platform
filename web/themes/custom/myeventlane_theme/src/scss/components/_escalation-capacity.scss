@@ -1,0 +1,60 @@
+// ==========================================================================
+// Escalation Capacity Dashboard
+// ==========================================================================
+// Styles specific to the staff workload & capacity analytics dashboard.
+// Extends the existing .mel-analytics-* pattern set from _escalation-analytics.scss.
+
+// ---------------------------------------------------------------------------
+// Capacity-specific dashboard wrapper
+// ---------------------------------------------------------------------------
+
+.mel-analytics-dashboard--capacity {
+  max-width: 1200px;
+}
+
+// ---------------------------------------------------------------------------
+// Capacity reasons list (inside health banner)
+// ---------------------------------------------------------------------------
+
+.mel-capacity-reasons {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+
+  li {
+    position: relative;
+    padding-left: 16px;
+    font-size: 0.875rem;
+    line-height: 1.6;
+
+    &::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Trend indicator (week-on-week deltas)
+// ---------------------------------------------------------------------------
+
+.mel-capacity-trend {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 4px;
+
+  &--positive {
+    color: #216e45;
+  }
+
+  &--negative {
+    color: #8a1c1c;
+  }
+
+  &--neutral {
+    color: #667085;
+  }
+}

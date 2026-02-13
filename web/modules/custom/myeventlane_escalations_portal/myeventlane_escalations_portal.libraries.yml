@@ -1,0 +1,16 @@
+escalation_thread_ux:
+  css:
+    theme:
+      css/escalation-thread-ux.css: {}
+
+admin_case_console:
+  css:
+    theme:
+      css/admin-case-console.css: {}
+
+escalation_reply_sticky:
+  js:
+    js/escalation-reply-sticky.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

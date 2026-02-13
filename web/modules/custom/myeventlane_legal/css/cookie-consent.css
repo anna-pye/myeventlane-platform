@@ -1,0 +1,83 @@
+.mel-cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--mel-ink, #293241);
+  color: var(--mel-cream, #fef5ec);
+  padding: 1rem 1.5rem;
+  z-index: 99999;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mel-cookie-banner__content {
+  max-width: 1320px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mel-cookie-banner__text {
+  flex: 1 1 300px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.mel-cookie-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-cookie-banner .mel-btn--secondary {
+  background: transparent;
+  border: 2px solid currentColor;
+  color: inherit;
+}
+
+.mel-cookie-banner .mel-btn--primary {
+  background: var(--mel-coral, #f26d5b);
+  color: #fff;
+  border: none;
+}
+
+.mel-cookie-banner .mel-btn--link {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: underline;
+}
+
+.mel-cookie-policy-page {
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.mel-cookie-policy-page h1 {
+  margin-bottom: 1rem;
+}
+
+.mel-cookie-preferences {
+  margin-top: 2rem;
+}
+
+.mel-cookie-options {
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.mel-cookie-option {
+  margin-bottom: 1rem;
+}
+
+.mel-cookie-option--necessary input {
+  opacity: 0.7;
+}
+
+.mel-cookie-desc {
+  margin: 0.25rem 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--mel-muted, #666);
+}

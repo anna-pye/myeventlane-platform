@@ -1,0 +1,296 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations AI module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Enqueue a triage AI job when a new escalation is created.
+ */
+function myeventlane_escalations_ai_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer $enqueuer */
+  $enqueuer = \Drupal::service('myeventlane_escalations_ai.job_enqueuer');
+  $enqueuer->enqueue((int) $entity->id(), 'triage', (int) \Drupal::currentUser()->id());
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Enqueue a risk_flag AI job when an escalation's description changes
+ * and the escalation is not already resolved/closed (avoid spam).
+ */
+function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if (!$entity->hasField('description')) {
+    return;
+  }
+
+  // Skip resolved/closed escalations.
+  $status = $entity->hasField('status') ? (string) $entity->get('status')->value : '';
+  if (in_array($status, ['resolved', 'closed'], TRUE)) {
+    return;
+  }
+
+  // Compare current description with original to detect actual changes.
+  if (!isset($entity->original)) {
+    return;
+  }
+
+  $old_desc = (string) $entity->original->get('description')->value;
+  $new_desc = (string) $entity->get('description')->value;
+
+  if ($old_desc === $new_desc) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer $enqueuer */
+  $enqueuer = \Drupal::service('myeventlane_escalations_ai.job_enqueuer');
+  $enqueuer->enqueue((int) $entity->id(), 'risk_flag', (int) \Drupal::currentUser()->id());
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_ai_theme($existing, $type, $theme, $path) {
+  return [
+    'myeventlane_escalations_ai_panel' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => NULL,
+        'insights' => [],
+        'generate_url' => NULL,
+      ],
+      'template' => 'myeventlane-escalations-ai-panel',
+    ],
+    'myeventlane_escalations_ai_card' => [
+      'variables' => [
+        'insight_type' => NULL,
+        'timestamp' => NULL,
+        'provider' => NULL,
+        'model' => NULL,
+        'draft_reply' => NULL,
+        'missing_info' => [],
+        'next_step' => NULL,
+        'risk' => NULL,
+        'reason' => NULL,
+        'suggested_action' => NULL,
+        'draft_chase' => NULL,
+        'raw_fallback' => NULL,
+      ],
+      'template' => 'myeventlane-escalations-ai-card',
+    ],
+  ];
+}
+
+/**
+ * Safely decode insight payload JSON and normalise keys.
+ *
+ * @return array{ok: bool, data: array, error: ?string}
+ */
+function _myeventlane_escalations_ai_decode_payload(?string $json): array {
+  if (!$json) {
+    return ['ok' => FALSE, 'data' => [], 'error' => 'Empty payload'];
+  }
+  try {
+    $data = json_decode($json, TRUE, 512, JSON_THROW_ON_ERROR);
+    if (!is_array($data)) {
+      return ['ok' => FALSE, 'data' => [], 'error' => 'Payload not object'];
+    }
+    return ['ok' => TRUE, 'data' => $data, 'error' => NULL];
+  }
+  catch (\Throwable $e) {
+    return ['ok' => FALSE, 'data' => [], 'error' => $e->getMessage()];
+  }
+}
+
+/**
+ * Escape a string for safe output.
+ */
+function _myeventlane_escalations_ai_esc(?string $value): string {
+  return Html::escape((string) $value);
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Injects a staff-only "AI Reply Assistant" panel into the escalation view.
+ * Vendors and customers NEVER see this panel.
+ */
+function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.escalation.canonical') {
+    return;
+  }
+
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('view escalation ai insights')) {
+    return;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('escalation_ai_insight');
+  $ids = \Drupal::entityQuery('escalation_ai_insight')
+    ->condition('escalation_id', (int) $entity->id())
+    ->sort('created', 'DESC')
+    ->range(0, 10)
+    ->accessCheck(FALSE)
+    ->execute();
+
+  $cards = [];
+  if ($ids) {
+    $insights = $storage->loadMultiple($ids);
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = \Drupal::service('date.formatter');
+
+    foreach ($insights as $insight) {
+      $cards[] = _myeventlane_escalations_ai_build_card($insight, $date_formatter);
+    }
+  }
+
+  $generate_url = NULL;
+  if ($account->hasPermission('generate escalation ai drafts')) {
+    $generate_url = Url::fromRoute('myeventlane_escalations_ai.generate_draft', ['escalation' => (int) $entity->id()])->toString();
+  }
+
+  $build['myeventlane_ai_insights'] = [
+    '#weight' => 99,
+    'panel' => [
+      '#theme' => 'myeventlane_escalations_ai_panel',
+      '#title' => 'AI Reply Assistant (staff)',
+      '#intro' => 'Draft suggestions only. Nothing is auto-sent. You can edit before replying.',
+      '#insights' => $cards,
+      '#generate_url' => $generate_url,
+      '#attached' => [
+        'library' => ['myeventlane_escalations_ai/ai_assistant'],
+      ],
+      '#cache' => [
+        'contexts' => ['user.permissions'],
+        'tags' => ['escalation:' . $entity->id()],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Builds a themed AI insight card render array from an EscalationAiInsight entity.
+ *
+ * @param \Drupal\myeventlane_escalations_ai\Entity\EscalationAiInsight $insight
+ *   The AI insight entity.
+ * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+ *   The date formatter service.
+ *
+ * @return array
+ *   Render array for the themed card.
+ */
+function _myeventlane_escalations_ai_build_card($insight, $date_formatter): array {
+  $insight_type = (string) $insight->get('insight_type')->value;
+  $status = (string) $insight->get('status')->value;
+  $created = (int) $insight->get('created')->value;
+  $payload_raw = (string) $insight->get('payload_json')->value;
+  $provider_field = (string) $insight->get('provider')->value;
+
+  // Parse provider:model if present.
+  $provider = $provider_field;
+  $model = NULL;
+  if (str_contains($provider_field, ':')) {
+    [$provider, $model] = explode(':', $provider_field, 2) + [NULL, NULL];
+  }
+
+  $decoded = _myeventlane_escalations_ai_decode_payload($payload_raw);
+  $data = $decoded['data'];
+
+  $timestamp = $date_formatter->format($created, 'short');
+  $draft_reply = NULL;
+  $missing_info = [];
+  $next_step = NULL;
+  $risk = NULL;
+  $reason = NULL;
+  $suggested_action = NULL;
+  $draft_chase = NULL;
+  $raw_fallback = NULL;
+
+  if ($decoded['ok'] && $status === 'ok') {
+    switch ($insight_type) {
+      case 'reply_suggestion':
+        $draft_reply = isset($data['draft_reply']) ? (string) $data['draft_reply'] : NULL;
+        $missing_info = is_array($data['missing_info'] ?? NULL) ? array_map('strval', $data['missing_info']) : [];
+        $next_step = isset($data['next_step']) ? (string) $data['next_step'] : NULL;
+        break;
+
+      case 'breach_soon':
+        $risk = isset($data['risk_level']) ? (string) $data['risk_level'] : ($data['risk'] ?? NULL);
+        $reason = isset($data['reason']) ? (string) $data['reason'] : NULL;
+        $suggested_action = isset($data['suggested_staff_action']) ? (string) $data['suggested_staff_action'] : (isset($data['suggested_action']) ? (string) $data['suggested_action'] : (isset($data['action']) ? (string) $data['action'] : NULL));
+        $draft_chase = isset($data['draft_chase_message']) ? (string) $data['draft_chase_message'] : NULL;
+        break;
+
+      case 'risk_flag':
+        $risk = isset($data['risk']) ? (string) $data['risk'] : NULL;
+        $reason = isset($data['reason']) ? (string) $data['reason'] : NULL;
+        $suggested_action = isset($data['suggested_action']) ? (string) $data['suggested_action'] : (isset($data['action']) ? (string) $data['action'] : NULL);
+        break;
+
+      case 'triage':
+        $reason = isset($data['summary']) ? (string) $data['summary'] : NULL;
+        $urgency = isset($data['urgency']) ? (string) $data['urgency'] : NULL;
+        $category = isset($data['category']) ? (string) $data['category'] : NULL;
+        $risk = $urgency ? "Urgency: {$urgency}" : ($category ? "Category: {$category}" : NULL);
+        $key_questions = is_array($data['key_questions'] ?? NULL) ? $data['key_questions'] : [];
+        $suggested_action = !empty($key_questions) ? 'Key questions: ' . implode('; ', array_map('strval', $key_questions)) : NULL;
+        break;
+
+      default:
+        $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
+        break;
+    }
+  }
+
+  // When structured fields are empty or decode failed, use raw fallback.
+  if (!$decoded['ok'] || $status !== 'ok') {
+    $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
+    if ($status === 'error') {
+      $error = (string) $insight->get('error_message')->value;
+      if ($error) {
+        $raw_fallback = _myeventlane_escalations_ai_esc('Error: ' . $error . "\n\n" . $payload_raw);
+      }
+    }
+  }
+  elseif ($insight_type !== 'reply_suggestion' && !$risk && !$reason && !$suggested_action && !$draft_chase) {
+    $raw_fallback = _myeventlane_escalations_ai_esc($payload_raw);
+  }
+
+  return [
+    '#theme' => 'myeventlane_escalations_ai_card',
+    '#insight_type' => $insight_type,
+    '#timestamp' => $timestamp,
+    '#provider' => $provider ?: NULL,
+    '#model' => $model,
+    '#draft_reply' => $draft_reply,
+    '#missing_info' => $missing_info,
+    '#next_step' => $next_step,
+    '#risk' => $risk,
+    '#reason' => $reason,
+    '#suggested_action' => $suggested_action,
+    '#draft_chase' => $draft_chase,
+    '#raw_fallback' => $raw_fallback,
+  ];
+}

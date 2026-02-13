@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_related_nudge
+    - node.type.help_article
+id: node.help_article.field_related_nudge
+field_name: field_related_nudge
+entity_type: node
+bundle: help_article
+label: 'Related Nudge'
+description: 'Optional nudge machine name this article is linked to (e.g., response_time, refund_clarity).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

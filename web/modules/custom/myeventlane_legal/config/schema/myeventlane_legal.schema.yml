@@ -1,0 +1,41 @@
+myeventlane_legal.settings:
+  type: config_object
+  label: 'Legal settings'
+  mapping:
+    customer_terms_version:
+      type: string
+      label: 'Customer terms version'
+    vendor_terms_version:
+      type: string
+      label: 'Vendor terms version'
+    privacy_version:
+      type: string
+      label: 'Privacy policy version'
+    customer_terms_url:
+      type: uri
+      label: 'Customer terms URL'
+    vendor_terms_url:
+      type: uri
+      label: 'Vendor terms URL'
+    privacy_url:
+      type: uri
+      label: 'Privacy policy URL'
+    refund_policy_url:
+      type: uri
+      label: 'Refund policy URL'
+    cookie_policy_url:
+      type: uri
+      label: 'Cookie policy URL'
+    collection_notice_rsvp:
+      type: string
+      label: 'Collection notice (RSVP)'
+    collection_notice_checkout:
+      type: string
+      label: 'Collection notice (Checkout)'
+    updated_at:
+      type: integer
+      label: 'Config last updated timestamp'
+      nullable: true
+    store_vendor_ip_ua:
+      type: boolean
+      label: 'Store vendor IP and user-agent on terms acceptance'

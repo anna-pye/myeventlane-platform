@@ -1,0 +1,32 @@
+create escalation:
+  title: 'Create escalation'
+  description: 'Submit a new support escalation.'
+
+view own escalation:
+  title: 'View own escalations'
+  description: 'View escalations the user has submitted.'
+
+comment on own escalation:
+  title: 'Comment on own escalation'
+  description: 'Post replies on own support escalations.'
+
+view vendor escalations:
+  title: 'View vendor escalations'
+  description: 'View escalations assigned to the vendor.'
+
+comment on vendor escalations:
+  title: 'Comment on vendor escalations'
+  description: 'Post replies on vendor support escalations.'
+
+resolve vendor escalations:
+  title: 'Resolve vendor escalations'
+  description: 'Mark vendor escalations as resolved.'
+
+reopen escalations:
+  title: 'Reopen escalations'
+  description: 'Reopen resolved or closed escalations.'
+  restrict access: true
+
+manage escalation workflow:
+  title: 'Manage escalation workflow'
+  description: 'Change escalation status and waiting state via workflow buttons.'

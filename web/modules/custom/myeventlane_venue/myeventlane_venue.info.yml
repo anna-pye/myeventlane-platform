@@ -2,6 +2,7 @@ name: MyEventLane Venues
 type: module
 description: 'Vendor-managed reusable venues with multi-location support, sharing, and public directory.'
 package: MyEventLane
+version: 1.0.1
 core_version_requirement: ^10 || ^11
 
 dependencies:

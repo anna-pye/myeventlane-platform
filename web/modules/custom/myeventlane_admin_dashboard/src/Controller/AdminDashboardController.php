@@ -58,6 +58,7 @@ final class AdminDashboardController extends ControllerBase {
       '#user_count' => $this->getUserCount(),
       '#recent_events' => $this->getRecentEvents(),
       '#quick_links' => $this->getQuickLinks(),
+      '#support_console_url' => $this->getSupportConsoleUrl(),
       '#platform_metrics' => $platform_metrics,
       '#revenue_kpis' => $this->getRevenueKpis(),
       '#recent_transactions' => $this->getRecentTransactions(),
@@ -260,6 +261,25 @@ final class AdminDashboardController extends ControllerBase {
     }
 
     return $links;
+  }
+
+  /**
+   * Gets Support Console URL for staff with administer escalations permission.
+   *
+   * @return string|null
+   *   The Support Console URL string, or NULL if inaccessible or module disabled.
+   */
+  protected function getSupportConsoleUrl(): ?string {
+    if (!$this->currentUser()->hasPermission('administer escalations')) {
+      return NULL;
+    }
+    try {
+      $url = Url::fromRoute('myeventlane_support_console.dashboard');
+      return $url->access($this->currentUser()) ? $url->toString() : NULL;
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
   /**

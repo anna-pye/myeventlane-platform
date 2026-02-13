@@ -1,0 +1,92 @@
+{#
+/**
+ * @file
+ * Page template for entity.escalation.canonical (admin escalation view).
+ *
+ * Full-width content area for the case console two-column layout.
+ * Mirrors Gin structure for toolbar/breadcrumb; content breaks out of
+ * layout-container for mel-case-console.
+ *
+ * Available variables: Same as page.html.twig (page, base_path, etc.).
+ * Gin adds: active_admin_theme, active_core_navigation, gin_form_actions,
+ * gin_form_actions_class, entity_edit_url, entity_title.
+ */
+#}
+{% set page_title_block = (active_admin_theme|default('claro')) ~ '_page_title' %}
+{% set local_actions_block = (active_admin_theme|default('claro')) ~ '_local_actions' %}
+{% set gin_class = gin_form_actions_class|default('') %}
+
+{% if active_core_navigation|default(false) %}
+  <header class="region gin--navigation-top-bar--offset {{ gin_class }}">
+    <div class="layout-container region-sticky__items">
+      <div class="region-sticky__items__inner">
+        {{ page.header[page_title_block] }}
+        {% if not active_core_navigation %}
+          {{ page.content[local_actions_block] }}
+        {% endif %}
+        {{ gin_form_actions|default('') }}
+      </div>
+    </div>
+  </header>
+{% else %}
+  <div class="gin-secondary-toolbar layout-container">
+    <div class="gin-breadcrumb-wrapper">
+      {% if route_name|default('') == 'entity.node.canonical' %}
+        <div class="region region-breadcrumb gin-region-breadcrumb">
+          <nav class="breadcrumb" role="navigation" aria-labelledby="system-breadcrumb">
+            <h2 id="system-breadcrumb" class="visually-hidden">{{ 'Breadcrumb'|t }}</h2>
+            <ol class="breadcrumb__list">
+              <li class="breadcrumb__item">
+                {% if entity_edit_url|default(false) and entity_title|default(false) %}
+                  <a class="breadcrumb__link gin-back-to-admin" href="{{ entity_edit_url }}">{{ 'Edit %title'|t({ '%title': entity_title }) }}</a>
+                {% else %}
+                  <a class="breadcrumb__link gin-back-to-admin" href="{{ path('system.admin_content') }}">{{ 'Back to Administration'|t }}</a>
+                {% endif %}
+              </li>
+            </ol>
+          </nav>
+        </div>
+      {% else %}
+        {{ page.breadcrumb }}
+      {% endif %}
+    </div>
+    {{ page.gin_secondary_toolbar|default('') }}
+  </div>
+
+  <div class="region-sticky-watcher"></div>
+
+  <header class="region region-sticky {{ gin_class }}">
+    <div class="layout-container region-sticky__items">
+      <div class="region-sticky__items__inner">
+        {{ page.header[page_title_block] }}
+        {% if not active_core_navigation|default(false) %}
+          {{ page.content[local_actions_block] }}
+        {% endif %}
+        {{ gin_form_actions|default('') }}
+      </div>
+    </div>
+  </header>
+
+  <div class="sticky-shadow"></div>
+{% endif %}
+
+<div class="content-header clearfix">
+  <div class="layout-container">
+    {{ page.header|without(page_title_block) }}
+  </div>
+</div>
+
+{# Full-width content area for mel-case-console. No layout-container max-width. #}
+<div class="mel-case-console-page-content">
+  {{ page.pre_content }}
+  <main class="page-content clearfix" role="main">
+    <div class="visually-hidden"><a id="main-content" tabindex="-1"></a></div>
+    {{ page.highlighted }}
+    {% if page.help %}
+      <div class="help">
+        {{ page.help }}
+      </div>
+    {% endif %}
+    {{ page.content|without(local_actions_block) }}
+  </main>
+</div>

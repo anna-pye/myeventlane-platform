@@ -1,0 +1,9 @@
+name: MyEventLane Staff Playbooks
+type: module
+description: 'Internal resolution guidance (playbooks) for staff working on escalations. Staff-only, no AI, fully cacheable.'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:node
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_refunds:myeventlane_escalations_refunds

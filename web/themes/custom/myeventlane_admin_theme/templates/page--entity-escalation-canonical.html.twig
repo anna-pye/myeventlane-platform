@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * MyEventLane Admin theme: page template for entity.escalation.canonical.
+ *
+ * Full-width content area for the admin case console two-column layout.
+ * Skips mel-admin-layout__grid so mel-case-console controls its own columns.
+ */
+#}
+<div class="mel-admin-layout">
+  {% if page.header %}
+    <header class="mel-admin-header" role="banner">
+      {{ page.header }}
+    </header>
+  {% endif %}
+
+  <main id="main-content" class="mel-admin-content mel-case-console-page-content" role="main">
+    {{ page.content }}
+  </main>
+
+  {% if page.footer %}
+    <footer class="mel-admin-footer" role="contentinfo">
+      {{ page.footer }}
+    </footer>
+  {% endif %}
+</div>

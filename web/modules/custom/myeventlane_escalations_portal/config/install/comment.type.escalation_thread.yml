@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+id: escalation_thread
+label: 'Escalation Thread'
+target_entity_type_id: escalation
+description: 'Threaded messages for escalation support conversations.'

@@ -1,0 +1,4 @@
+view escalation capacity dashboard:
+  title: 'View escalation capacity dashboard'
+  description: 'View the staff workload and capacity analytics dashboard for escalations.'
+  restrict access: true

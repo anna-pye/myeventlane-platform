@@ -1,0 +1,7 @@
+name: 'MyEventLane Privacy'
+type: module
+description: 'Privacy and cookie consent: tracking IDs config, drupalSettings wiring, and consent-aware script injection.'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:cookies

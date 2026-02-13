@@ -1,0 +1,7 @@
+myeventlane_escalations_refunds.vendor_refund_summary:
+  path: '/vendor/support/refunds'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_refunds\Controller\VendorRefundSummaryController::summary'
+    _title: 'Refund Summary'
+  requirements:
+    _permission: 'view vendor refund summary'

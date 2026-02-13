@@ -1,0 +1,16 @@
+services:
+  myeventlane_ai.rate_limiter:
+    class: Drupal\myeventlane_ai\Service\AiRateLimiter
+    arguments: ['@flood', '@config.factory', '@logger.channel.myeventlane_ai']
+
+  myeventlane_ai.provider.openai:
+    class: Drupal\myeventlane_ai\Provider\OpenAiProvider
+    arguments: ['@http_client', '@config.factory', '@logger.channel.myeventlane_ai']
+
+  myeventlane_ai.manager:
+    class: Drupal\myeventlane_ai\Service\AiManager
+    arguments: ['@config.factory', '@logger.channel.myeventlane_ai', '@myeventlane_ai.rate_limiter', '@myeventlane_ai.provider.openai']
+
+  logger.channel.myeventlane_ai:
+    parent: logger.channel_base
+    arguments: ['myeventlane_ai']

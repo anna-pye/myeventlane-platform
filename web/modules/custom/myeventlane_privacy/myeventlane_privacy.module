@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * MyEventLane Privacy: cookie consent wiring and tracking config.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Attaches cookies consent dispatcher and tracking IDs to all pages.
+ * Dispatcher listens for cookiesjsrUserConsent and injects scripts only after consent.
+ *
+ * Tracking IDs (GTM, GA4, Meta Pixel, Hotjar) are suppressed in non-production
+ * environments to prevent analytics bleed. Set $settings['myeventlane_environment']
+ * in settings.php: 'prod' enables tracking, any other value (e.g. 'dev', 'staging')
+ * disables it. Defaults to 'prod' for backwards compatibility.
+ */
+function myeventlane_privacy_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'myeventlane_privacy/cookies_consent_dispatcher';
+
+  $config = \Drupal::config('myeventlane_privacy.settings');
+  $settings = \Drupal::service('settings');
+  $environment = $settings->get('myeventlane_environment', 'prod');
+  $is_prod = $environment === 'prod';
+
+  $ids = [
+    'gtmId' => $is_prod ? ($config->get('gtm_id') ?? '') : '',
+    'ga4Id' => $is_prod ? ($config->get('ga4_id') ?? '') : '',
+    'metaPixelId' => $is_prod ? ($config->get('meta_pixel_id') ?? '') : '',
+    'hotjarId' => $is_prod ? ($config->get('hotjar_id') ?? '') : '',
+    'recaptchaSiteKey' => $config->get('recaptcha_site_key') ?? '',
+    'environment' => $environment,
+  ];
+
+  $attachments['#attached']['drupalSettings']['myeventlane'] = array_merge(
+    $attachments['#attached']['drupalSettings']['myeventlane'] ?? [],
+    $ids
+  );
+}

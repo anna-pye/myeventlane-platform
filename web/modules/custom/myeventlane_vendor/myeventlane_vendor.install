@@ -771,6 +771,43 @@ function myeventlane_vendor_update_10013(): string {
 }
 
 /**
+ * Install nudges_enabled base field on vendor entity.
+ *
+ * Adds a boolean opt-in field so vendors can enable educational nudges on
+ * their dashboard. Default value is 0 (disabled).
+ */
+function myeventlane_vendor_update_10014(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Check if the field storage already exists.
+  $existing = $entity_definition_update_manager->getFieldStorageDefinition('nudges_enabled', 'myeventlane_vendor');
+  if ($existing) {
+    return 'nudges_enabled field already installed — skipped.';
+  }
+
+  // Retrieve the field definition from the entity class.
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
+  $base_field_definitions = Vendor::baseFieldDefinitions($entity_type);
+
+  if (!isset($base_field_definitions['nudges_enabled'])) {
+    throw new \RuntimeException('nudges_enabled base field definition not found in Vendor::baseFieldDefinitions().');
+  }
+
+  $entity_definition_update_manager->installFieldStorageDefinition(
+    'nudges_enabled',
+    'myeventlane_vendor',
+    'myeventlane_vendor',
+    $base_field_definitions['nudges_enabled'],
+  );
+
+  // Clear cached field definitions so Drupal picks up the new column.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return 'Installed nudges_enabled base field on vendor entity.';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

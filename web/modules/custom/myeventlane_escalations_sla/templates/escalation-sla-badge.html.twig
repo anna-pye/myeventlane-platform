@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * SLA badge for escalation entities.
+ *
+ * Available variables:
+ * - badge: Array with keys: key, label, icon, severity.
+ */
+#}
+{% if badge %}
+  <span class="mel-sla-badge mel-sla-badge--{{ badge.key }}">
+    <span class="mel-sla-badge__icon" aria-hidden="true">{{ badge.icon }}</span>
+    <span class="mel-sla-badge__label">{{ badge.label }}</span>
+  </span>
+{% endif %}

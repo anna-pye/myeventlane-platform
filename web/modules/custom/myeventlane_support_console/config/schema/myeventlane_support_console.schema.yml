@@ -1,0 +1,7 @@
+myeventlane_support_console.settings:
+  type: config_object
+  label: 'Support Console settings'
+  mapping:
+    redirect_enabled:
+      type: boolean
+      label: 'Redirect staff to Support Console on front page'

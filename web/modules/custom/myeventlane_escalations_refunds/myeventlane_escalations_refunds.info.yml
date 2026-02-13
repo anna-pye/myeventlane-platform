@@ -1,0 +1,10 @@
+name: 'MyEventLane Escalations Refunds'
+type: module
+description: 'Read-only correlation of escalations with refund requests and refund logs.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_refunds:myeventlane_refunds
+  - commerce_order:commerce_order
+  - commerce_price:commerce_price

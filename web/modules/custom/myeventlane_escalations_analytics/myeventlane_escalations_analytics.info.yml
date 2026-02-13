@@ -1,0 +1,10 @@
+name: 'MyEventLane Escalations Analytics'
+type: module
+description: 'Derived analytics dashboards and vendor health scoring for the Escalations system.'
+package: 'MyEventLane'
+core_version_requirement: '^11'
+dependencies:
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_sla:myeventlane_escalations_sla
+  - myeventlane_vendor:myeventlane_vendor
+  - drupal:comment

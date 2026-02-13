@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_sla_first_breached
+  module:
+    - myeventlane_escalations
+id: escalation.escalation.field_sla_first_breached
+field_name: field_sla_first_breached
+entity_type: escalation
+bundle: escalation
+label: 'SLA First Response Breached'
+description: 'Whether the first response SLA has been breached.'
+required: false
+translatable: false
+default_value:
+  - value: 0
+default_value_callback: ''
+settings: {  }
+field_type: boolean

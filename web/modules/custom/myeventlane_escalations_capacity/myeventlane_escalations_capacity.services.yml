@@ -1,0 +1,16 @@
+services:
+  myeventlane_escalations_capacity.workload_query:
+    class: Drupal\myeventlane_escalations_capacity\Service\EscalationWorkloadQuery
+    arguments: ['@entity_type.manager', '@config.factory', '@datetime.time']
+
+  myeventlane_escalations_capacity.staff_activity_aggregator:
+    class: Drupal\myeventlane_escalations_capacity\Service\StaffActivityAggregator
+    arguments: ['@entity_type.manager', '@config.factory', '@datetime.time', '@logger.channel.myeventlane_escalations_capacity']
+
+  myeventlane_escalations_capacity.signal_evaluator:
+    class: Drupal\myeventlane_escalations_capacity\Service\CapacitySignalEvaluator
+    arguments: ['@config.factory']
+
+  logger.channel.myeventlane_escalations_capacity:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_capacity']

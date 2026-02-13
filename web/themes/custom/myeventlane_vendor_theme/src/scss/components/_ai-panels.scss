@@ -1,0 +1,43 @@
+/**
+ * AI panel styling for vendor theme.
+ * mel-ai-panel classes for MEL Assistant.
+ */
+
+.mel-ai-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+
+  &__header {
+    margin-bottom: 1rem;
+  }
+
+  &__intro {
+    margin: 0;
+    color: #666;
+    font-size: 0.9375rem;
+  }
+
+  &__body {
+    // Content area
+  }
+
+  &__result {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  &__answer {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+}
+
+.mel-ai-assistant__link {
+  // Link button to MEL Assistant
+}

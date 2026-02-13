@@ -1,0 +1,9 @@
+myeventlane_escalations_capacity.dashboard:
+  path: '/admin/myeventlane/escalations/capacity'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_capacity\Controller\CapacityDashboardController::dashboard'
+    _title: 'Escalation Capacity'
+  requirements:
+    _permission: 'view escalation capacity dashboard'
+  options:
+    _admin_route: TRUE

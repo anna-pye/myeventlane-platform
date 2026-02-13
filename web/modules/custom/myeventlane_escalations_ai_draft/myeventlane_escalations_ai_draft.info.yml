@@ -1,0 +1,12 @@
+name: MyEventLane Escalations AI Draft
+type: module
+description: 'Staff-only AI draft reply generation for escalations. Uses thread context (masked), playbooks, and governance standards.'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:user
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_portal:myeventlane_escalations_portal
+  - myeventlane_escalations_sla:myeventlane_escalations_sla
+  - myeventlane_staff_playbooks:myeventlane_staff_playbooks

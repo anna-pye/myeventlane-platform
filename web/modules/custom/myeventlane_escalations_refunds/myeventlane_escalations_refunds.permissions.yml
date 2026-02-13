@@ -1,0 +1,9 @@
+view escalation refund context:
+  title: 'View escalation refund context'
+  description: 'View refund requests and logs linked to an escalation (staff only).'
+  restrict access: true
+
+view vendor refund summary:
+  title: 'View vendor refund summary'
+  description: 'View aggregated refund metrics for a vendor (vendor portal).'
+  restrict access: true

@@ -1,0 +1,9 @@
+view escalation ai insights:
+  title: 'View AI insights for escalations'
+  description: 'View AI-generated triage/drafts/flags for escalations.'
+  restrict access: true
+
+generate escalation ai drafts:
+  title: 'Generate AI reply drafts for escalations'
+  description: 'Queue AI reply suggestions for escalations.'
+  restrict access: true

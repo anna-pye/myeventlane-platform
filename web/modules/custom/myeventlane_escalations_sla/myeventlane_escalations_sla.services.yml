@@ -1,0 +1,24 @@
+services:
+  myeventlane_escalations_sla.policy:
+    class: Drupal\myeventlane_escalations_sla\Service\SlaPolicy
+    arguments: ['@config.factory']
+
+  myeventlane_escalations_sla.calculator:
+    class: Drupal\myeventlane_escalations_sla\Service\SlaCalculator
+    arguments: ['@myeventlane_escalations_sla.policy']
+
+  myeventlane_escalations_sla.enforcer:
+    class: Drupal\myeventlane_escalations_sla\Service\SlaEnforcer
+    arguments: ['@myeventlane_escalations_sla.policy', '@entity_type.manager', '@plugin.manager.mail', '@config.factory', '@logger.channel.myeventlane_escalations_sla']
+
+  myeventlane_escalations_sla.badge_resolver:
+    class: Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver
+    arguments: ['@datetime.time']
+
+  myeventlane_escalations_sla.risk_detector:
+    class: Drupal\myeventlane_escalations_sla\Service\SlaRiskDetector
+    arguments: ['@datetime.time', '@config.factory']
+
+  logger.channel.myeventlane_escalations_sla:
+    parent: logger.channel_base
+    arguments: ['myeventlane_escalations_sla']

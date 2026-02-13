@@ -1,0 +1,4 @@
+generate escalation ai drafts:
+  title: 'Generate escalation AI drafts'
+  description: 'Allows staff to generate draft replies for escalations using AI.'
+  restrict access: true

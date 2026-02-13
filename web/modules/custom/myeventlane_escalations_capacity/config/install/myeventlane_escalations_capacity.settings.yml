@@ -1,0 +1,9 @@
+activity_window_days: 7
+trend_window_days: 7
+staff_roles:
+  - administrator
+  - support
+thresholds:
+  waiting_on_staff: 10
+  avg_first_staff_response_hours: 24
+  oldest_open_escalation_days: 14

@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_sla_first_due
+  module:
+    - myeventlane_escalations
+id: escalation.escalation.field_sla_first_due
+field_name: field_sla_first_due
+entity_type: escalation
+bundle: escalation
+label: 'SLA First Response Due'
+description: 'Timestamp when the first response is due per SLA policy.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

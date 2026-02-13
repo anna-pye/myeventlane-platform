@@ -1,0 +1,6 @@
+ask:
+  css:
+    theme:
+      css/help-centre-ai.css: {}
+  dependencies:
+    - core/drupal

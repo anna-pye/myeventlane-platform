@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Help Categories
+vid: help_categories
+description: 'Categories for organising help centre articles (e.g., Getting Started, Refunds, Communication).'
+weight: 0

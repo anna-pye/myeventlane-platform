@@ -39,9 +39,13 @@
     {# Header Actions #}
     <div class="mel-header-actions">
       {% if logged_in %}
-        <a href="/dashboard" class="btn mel-btn-primary">Dashboard</a>
+        {% if is_vendor|default(false) %}
+          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="btn mel-btn-primary">Dashboard</a>
+        {% else %}
+          <a href="{{ path('myeventlane_account.dashboard') }}" class="btn mel-btn-primary">Dashboard</a>
+        {% endif %}
       {% else %}
-        <a href="/user/login" class="btn mel-btn-ghost">Login</a>
+        <a href="{{ path('user.login') }}" class="btn mel-btn-ghost">Login</a>
       {% endif %}
       <a href="/create-event" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a>
     </div>
@@ -65,9 +69,13 @@
         <li><a href="/vendors">Vendors</a></li>
         <li class="mel-mobile-divider" aria-hidden="true"></li>
         {% if logged_in %}
-          <li><a href="/dashboard">Dashboard</a></li>
+          {% if is_vendor|default(false) %}
+            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">Dashboard</a></li>
+          {% else %}
+            <li><a href="{{ path('myeventlane_account.dashboard') }}">Dashboard</a></li>
+          {% endif %}
         {% else %}
-          <li><a href="/user/login">Login</a></li>
+          <li><a href="{{ path('user.login') }}">Login</a></li>
         {% endif %}
         <li><a href="/create-event" class="btn mel-btn-accent">{{ 'Create Event'|t }}</a></li>
       </ul>

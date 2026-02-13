@@ -1,0 +1,155 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations Refunds module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\myeventlane_escalations\Entity\Escalation;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_refunds_theme(): array {
+  return [
+    'escalation_refund_context' => [
+      'variables' => [
+        'metrics' => [],
+        'requests' => [],
+        'logs' => [],
+        'order' => NULL,
+        'correlation_flags' => [],
+      ],
+      'template' => 'escalation-refund-context',
+    ],
+    'vendor_refund_summary' => [
+      'variables' => [
+        'metrics' => [],
+        'vendor_name' => '',
+        'window_days' => 90,
+      ],
+      'template' => 'vendor-refund-summary',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Injects the Refund Context panel into staff escalation views.
+ */
+function myeventlane_escalations_refunds_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, string $view_mode): void {
+  if ($entity->getEntityTypeId() !== 'escalation') {
+    return;
+  }
+
+  if ($view_mode !== 'full' && $view_mode !== 'default') {
+    return;
+  }
+
+  if (!$entity instanceof Escalation) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_escalations_refunds\Service\RefundsAccessGuard $guard */
+  $guard = \Drupal::service('myeventlane_escalations_refunds.access_guard');
+  if (!$guard->canViewRefundContext()) {
+    return;
+  }
+
+  // Only show on admin escalation view routes.
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if ($route_name !== 'entity.escalation.canonical') {
+    return;
+  }
+
+  // Skip if no commerce linkage.
+  $has_order = !$entity->get('order_id')->isEmpty();
+  $has_event = !$entity->get('event_id')->isEmpty();
+  if (!$has_order && !$has_event) {
+    return;
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_escalations_refunds\Service\EscalationRefundsResolver $resolver */
+    $resolver = \Drupal::service('myeventlane_escalations_refunds.resolver');
+    $context = $resolver->resolve($entity);
+
+    if (empty($context['logs']) && empty($context['requests'])) {
+      return;
+    }
+
+    /** @var \Drupal\myeventlane_escalations_refunds\Service\RefundsMetricsCalculator $calculator */
+    $calculator = \Drupal::service('myeventlane_escalations_refunds.metrics');
+    $metrics = $calculator->calculate($context['logs'], $context['requests'], $entity->getCreatedTime());
+
+    // Build order summary for display (no PII).
+    $order_summary = NULL;
+    if ($context['order']) {
+      $order = $context['order'];
+      $total = $order->get('total_price')->first();
+      $order_summary = [
+        'order_number' => $order->getOrderNumber() ?: '#' . $order->id(),
+        'state' => ucfirst((string) $order->getState()->getLabel()),
+        'total' => $total ? $total->getCurrencyCode() . ' ' . number_format((float) $total->getNumber(), 2) : '-',
+      ];
+    }
+
+    // Sanitise logs for display: truncate error_message, strip PII.
+    $safe_logs = [];
+    foreach ($context['logs'] as $log) {
+      $error = $log['error_message'] ?? '';
+      if (strlen($error) > 120) {
+        $error = substr($error, 0, 120) . '...';
+      }
+      $safe_logs[] = [
+        'id' => $log['id'],
+        'refund_type' => $log['refund_type'] ?? '-',
+        'refund_scope' => $log['refund_scope'] ?? '-',
+        'amount_cents' => (int) ($log['amount_cents'] ?? 0),
+        'currency' => $log['currency'] ?? 'AUD',
+        'status' => $log['status'] ?? '-',
+        'created' => (int) ($log['created'] ?? 0),
+        'completed' => (int) ($log['completed'] ?? 0),
+        'error_message' => htmlspecialchars($error, ENT_QUOTES, 'UTF-8'),
+      ];
+    }
+
+    // Sanitise requests for display.
+    $safe_requests = [];
+    foreach ($context['requests'] as $req) {
+      $safe_requests[] = [
+        'id' => $req['id'],
+        'amount_cents' => (int) ($req['amount_cents'] ?? 0),
+        'currency' => $req['currency'] ?? 'AUD',
+        'status' => $req['status'] ?? '-',
+        'created' => (int) ($req['created'] ?? 0),
+        'updated' => (int) ($req['updated'] ?? 0),
+      ];
+    }
+
+    $build['refund_context'] = [
+      '#theme' => 'escalation_refund_context',
+      '#metrics' => $metrics,
+      '#requests' => $safe_requests,
+      '#logs' => $safe_logs,
+      '#order' => $order_summary,
+      '#correlation_flags' => [
+        'refund_after_escalation' => $metrics['refund_after_escalation'] ?? FALSE,
+        'request_after_escalation' => $metrics['request_after_escalation'] ?? FALSE,
+      ],
+      '#weight' => 90,
+      '#cache' => ['max-age' => 0],
+    ];
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_escalations_refunds')->error('Refund context panel error for escalation {id}: {error}', [
+      'id' => $entity->id(),
+      'error' => $e->getMessage(),
+    ]);
+  }
+}

@@ -1,0 +1,24 @@
+services:
+  myeventlane_support_console.controller:
+    class: Drupal\myeventlane_support_console\Controller\SupportConsoleController
+    arguments:
+      - '@myeventlane_escalations_capacity.workload_query'
+      - '@myeventlane_escalations_capacity.staff_activity_aggregator'
+      - '@myeventlane_escalations_capacity.signal_evaluator'
+      - '@myeventlane_escalations_policy.evaluator'
+      - '@myeventlane_escalations_refunds.repository'
+      - '@myeventlane_escalations_sla.badge_resolver'
+      - '@date.formatter'
+      - '@logger.channel.myeventlane_support_console'
+
+  myeventlane_support_console.redirect_subscriber:
+    class: Drupal\myeventlane_support_console\EventSubscriber\SupportConsoleRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@config.factory'
+    tags:
+      - { name: event_subscriber }
+
+  logger.channel.myeventlane_support_console:
+    parent: logger.channel_base
+    arguments: ['myeventlane_support_console']

@@ -1,0 +1,11 @@
+cookie_consent:
+  version: 1.x
+  js:
+    js/cookie-consent.js: {}
+  css:
+    theme:
+      css/cookie-consent.css: {}
+  drupalSettings:
+    myeventlane_legal:
+      preferences_url: /cookies/preferences
+      cookie_policy_url: /cookies

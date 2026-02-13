@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Escalations Analytics module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_escalations_analytics_theme(): array {
+  return [
+    'escalation_analytics_staff' => [
+      'variables' => [
+        'platform_metrics' => [],
+        'vendor_rows' => [],
+        'export_url' => NULL,
+      ],
+      'template' => 'escalation-analytics-staff',
+    ],
+    'escalation_analytics_vendor' => [
+      'variables' => [
+        'metrics' => [],
+        'health' => [],
+        'vendor_name' => '',
+      ],
+      'template' => 'escalation-analytics-vendor',
+    ],
+  ];
+}

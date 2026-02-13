@@ -686,6 +686,13 @@
 
 .sidebar-action {
   margin-top: var(--mel-admin-spacing);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mel-admin-spacing) / 2);
+}
+
+.sidebar-link--primary {
+  order: -1;
 }
 
 .sidebar-link--action {

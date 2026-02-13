@@ -52,4 +52,15 @@ interface EscalationInterface extends ContentEntityInterface {
    */
   public function setCustomer(UserInterface $account): EscalationInterface;
 
+  /**
+   * Checks whether this escalation has a vendor assigned.
+   *
+   * Used to determine the correct field_waiting_on value on reopen and
+   * reply. Avoids duplicating vendor-existence checks across modules.
+   *
+   * @return bool
+   *   TRUE if a vendor entity reference is set, FALSE otherwise.
+   */
+  public function hasAssignedVendor(): bool;
+
 }

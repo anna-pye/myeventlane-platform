@@ -1,0 +1,6 @@
+myeventlane_escalations_portal.customer_support:
+  title: 'Support'
+  description: 'View and manage your support escalations'
+  route_name: myeventlane_escalations_portal.customer_support
+  menu_name: account
+  weight: 30

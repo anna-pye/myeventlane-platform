@@ -1,0 +1,6 @@
+langcode: en
+status: true
+id: footer
+label: 'Footer'
+description: 'Links displayed in the site footer (Help, Trust, etc.).'
+locked: false

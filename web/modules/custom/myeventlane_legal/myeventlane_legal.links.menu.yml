@@ -1,0 +1,6 @@
+myeventlane_legal.settings:
+  title: 'Legal'
+  description: 'Configure legal policy versions, URLs, and cookie consent.'
+  route_name: myeventlane_legal.settings
+  parent: myeventlane_core.config
+  weight: 25

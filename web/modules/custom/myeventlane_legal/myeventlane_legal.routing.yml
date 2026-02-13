@@ -1,0 +1,42 @@
+myeventlane_legal.settings:
+  path: '/admin/config/myeventlane/legal'
+  defaults:
+    _form: '\Drupal\myeventlane_legal\Form\LegalSettingsForm'
+    _title: 'Legal settings'
+  requirements:
+    _permission: 'administer myeventlane legal'
+  options:
+    _admin_route: TRUE
+
+myeventlane_legal.cookies:
+  path: '/cookies'
+  defaults:
+    _controller: '\Drupal\myeventlane_legal\Controller\CookiePolicyController::page'
+    _title: 'Cookie preferences'
+  requirements:
+    _permission: 'access content'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_legal.vendor_terms:
+  path: '/vendor/onboard/terms'
+  defaults:
+    _form: '\Drupal\myeventlane_legal\Form\VendorTermsForm'
+    _title: 'Vendor terms'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+    _theme: myeventlane_vendor_theme
+
+myeventlane_legal.cookie_preferences:
+  path: '/cookies/preferences'
+  defaults:
+    _controller: '\Drupal\myeventlane_legal\Controller\CookiePreferencesController::update'
+    _title: 'Update cookie preferences'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+  options:
+    _maintenance_access: FALSE

@@ -1,0 +1,7 @@
+myeventlane_vendor_nudges.settings:
+  type: config_object
+  label: 'Vendor Nudges settings'
+  mapping:
+    max_nudges_displayed:
+      type: integer
+      label: 'Maximum nudges displayed at once'

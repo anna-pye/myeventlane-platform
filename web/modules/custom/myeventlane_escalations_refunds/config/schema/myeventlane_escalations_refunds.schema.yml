@@ -1,0 +1,10 @@
+myeventlane_escalations_refunds.settings:
+  type: config_object
+  label: 'Escalation refunds correlation settings'
+  mapping:
+    correlation_window_days:
+      type: integer
+      label: 'Days after escalation creation to flag correlated refund activity'
+    vendor_summary_window_days:
+      type: integer
+      label: 'Days to look back for vendor refund summary aggregation'
