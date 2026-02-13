@@ -1,4 +1,13 @@
 services:
+  myeventlane_vendor.footer_context:
+    class: Drupal\myeventlane_vendor\Service\FooterContextService
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+
   logger.channel.myeventlane_vendor:
     parent: logger.channel_base
     arguments: ['myeventlane_vendor']

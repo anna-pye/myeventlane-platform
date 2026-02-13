@@ -1,0 +1,13 @@
+name: 'MyEventLane Support Console'
+type: module
+description: 'Default landing page for staff with administer escalations permission. Aggregates support signals and action queue.'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:user
+  - myeventlane_escalations:myeventlane_escalations
+  - myeventlane_escalations_capacity:myeventlane_escalations_capacity
+  - myeventlane_escalations_analytics:myeventlane_escalations_analytics
+  - myeventlane_escalations_policy:myeventlane_escalations_policy
+  - myeventlane_escalations_refunds:myeventlane_escalations_refunds
+  - myeventlane_escalations_sla:myeventlane_escalations_sla

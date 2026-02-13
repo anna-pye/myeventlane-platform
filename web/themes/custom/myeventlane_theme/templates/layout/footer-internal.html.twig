@@ -1,0 +1,94 @@
+{#
+/**
+ * @file
+ * Internal footer for authenticated vendor + admin users.
+ * Uses footer_context from FooterContextService; Twig stays dumb.
+ */
+#}
+{% set footer_context = footer_context|default({
+  store_name: null,
+  payout_balance: 0,
+  environment: 'Production',
+  open_tickets: 0,
+  is_vendor: false,
+  is_admin: false
+}) %}
+{% block footer %}
+<footer class="mel-footer mel-footer--internal" role="contentinfo">
+  <div class="mel-footer__container">
+
+    {% if footer_context.store_name %}
+    <div class="mel-footer__status">
+      <div>
+        <strong>{{ footer_context.store_name }}</strong>
+        <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
+      </div>
+      <div class="mel-footer__metrics">
+        <span>{{ 'Payout balance'|t }}: ${{ footer_context.payout_balance }}</span>
+        {% if footer_context.open_tickets > 0 %}
+        <span class="mel-badge mel-badge--alert">{{ footer_context.open_tickets }} {{ 'open support tickets'|t }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% elseif footer_context.environment %}
+    <div class="mel-footer__status">
+      <div>
+        <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mel-footer__internal-grid">
+
+      {% if footer_context.is_vendor %}
+      <div class="mel-footer__accordion">
+        <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Your Events'|t }}</button>
+        <div class="mel-footer__accordion-panel" data-label="{{ 'Your Events'|t }}">
+          <a href="/vendor/dashboard">{{ 'Dashboard'|t }}</a>
+          <a href="/vendor/events">{{ 'Manage events'|t }}</a>
+          <a href="/vendor/analytics">{{ 'Analytics'|t }}</a>
+          <a href="/vendor/payouts">{{ 'Payouts'|t }}</a>
+        </div>
+      </div>
+      <div class="mel-footer__accordion">
+        <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Tools'|t }}</button>
+        <div class="mel-footer__accordion-panel" data-label="{{ 'Tools'|t }}">
+          <a href="/node/add/event">{{ 'Create event'|t }}</a>
+          <a href="/vendor/settings">{{ 'Settings'|t }}</a>
+          <a href="/vendor/support">{{ 'Support'|t }}</a>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if footer_context.is_admin %}
+      <div class="mel-footer__accordion">
+        <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Administration'|t }}</button>
+        <div class="mel-footer__accordion-panel" data-label="{{ 'Administration'|t }}">
+          <a href="/admin/content">{{ 'Content'|t }}</a>
+          <a href="/admin/commerce/orders">{{ 'Orders'|t }}</a>
+          <a href="/admin/config">{{ 'Configuration'|t }}</a>
+        </div>
+      </div>
+      <div class="mel-footer__accordion">
+        <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Platform'|t }}</button>
+        <div class="mel-footer__accordion-panel" data-label="{{ 'Platform'|t }}">
+          <a href="/admin/people">{{ 'Users'|t }}</a>
+          <a href="/admin/structure">{{ 'Structure'|t }}</a>
+          <a href="/admin/modules">{{ 'Modules'|t }}</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mel-footer__accordion">
+        <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Account'|t }}</button>
+        <div class="mel-footer__accordion-panel" data-label="{{ 'Account'|t }}">
+          <a href="/user">{{ 'Profile'|t }}</a>
+          <a href="/user/logout">{{ 'Log out'|t }}</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</footer>
+{% endblock %}

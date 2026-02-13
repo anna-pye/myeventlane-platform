@@ -37,6 +37,13 @@ final class PrivacySettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('myeventlane_privacy.settings');
 
+    // Duplicate tracking guard: GTM + GA4 both configured causes double pageviews.
+    if ($config->get('gtm_id') && $config->get('ga4_id')) {
+      $this->messenger()->addWarning(
+        $this->t('Both Google Tag Manager and GA4 are configured. This may cause duplicate pageview tracking and messy analytics. Use GTM OR GA4, not both.')
+      );
+    }
+
     $cookies_url = Url::fromRoute('entity.cookies_service.collection')->toString();
     $form['description'] = [
       '#markup' => '<p>' . $this->t('Tracking IDs are injected only after user consent via the COOKiES consent banner. Create matching cookie service entities (gtm, gtag, meta_pixel, hotjar, recaptcha) at <a href=":url">COOKiES configuration</a>.', [
@@ -86,6 +93,35 @@ final class PrivacySettingsForm extends ConfigFormBase {
     ];
 
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $gtm = trim((string) $form_state->getValue('gtm_id'));
+    $ga4 = trim((string) $form_state->getValue('ga4_id'));
+    $meta = trim((string) $form_state->getValue('meta_pixel_id'));
+    $hotjar = trim((string) $form_state->getValue('hotjar_id'));
+    $recaptcha = trim((string) $form_state->getValue('recaptcha_site_key'));
+
+    if ($gtm !== '' && !preg_match('/^GTM-[A-Z0-9]+$/', $gtm)) {
+      $form_state->setErrorByName('gtm_id', $this->t('Invalid Google Tag Manager ID format. Example: GTM-XXXXXXX'));
+    }
+    if ($ga4 !== '' && !preg_match('/^G-[A-Z0-9]+$/', $ga4)) {
+      $form_state->setErrorByName('ga4_id', $this->t('Invalid GA4 Measurement ID format. Example: G-XXXXXXXXXX'));
+    }
+    if ($meta !== '' && !preg_match('/^[0-9]+$/', $meta)) {
+      $form_state->setErrorByName('meta_pixel_id', $this->t('Meta Pixel ID must be numeric only.'));
+    }
+    if ($hotjar !== '' && !preg_match('/^[0-9]+$/', $hotjar)) {
+      $form_state->setErrorByName('hotjar_id', $this->t('Hotjar Site ID must be numeric only.'));
+    }
+    if ($recaptcha !== '' && !preg_match('/^[a-zA-Z0-9_-]{20,}$/', $recaptcha)) {
+      $form_state->setErrorByName('recaptcha_site_key', $this->t('reCAPTCHA Site Key appears invalid. Expect alphanumeric string (20+ chars).'));
+    }
+
+    parent::validateForm($form, $form_state);
   }
 
   /**

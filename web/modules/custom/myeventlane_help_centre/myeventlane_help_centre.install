@@ -86,3 +86,20 @@ function myeventlane_help_centre_update_10001(): string {
 
   return 'Staff audience and Internal Governance already configured.';
 }
+
+/**
+ * Create footer menu if it does not exist (for existing installations).
+ */
+function myeventlane_help_centre_update_10002(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('menu');
+  if ($storage->load('footer') === NULL) {
+    $menu = $storage->create([
+      'id' => 'footer',
+      'label' => 'Footer',
+      'description' => 'Links displayed in the site footer (Help, Trust, etc.).',
+    ]);
+    $menu->save();
+    return 'Created Footer menu for public navigation (Help, Trust links).';
+  }
+  return 'Footer menu already exists.';
+}

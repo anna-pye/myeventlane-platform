@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the MyEventLane Support Console module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_support_console_theme(): array {
+  return [
+    'support_console_dashboard' => [
+      'variables' => [
+        'panels' => [],
+      ],
+      'template' => 'support-console-dashboard',
+    ],
+  ];
+}

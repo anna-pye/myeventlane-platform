@@ -364,3 +364,116 @@ function myeventlane_core_update_9110(): void {
     $config->set('checkout_rate_limit_per_minute', 15)->save();
   }
 }
+
+/**
+ * Create footer menus if they do not exist.
+ *
+ * Menus: footer-find, footer-host, footer-about.
+ * Adds starter links only when menu is empty (prevents duplicates).
+ */
+function myeventlane_core_update_9111(): void {
+  $menus = [
+    'footer-find' => 'Footer – Find events',
+    'footer-host' => 'Footer – Host events',
+    'footer-about' => 'Footer – About',
+  ];
+
+  foreach ($menus as $id => $label) {
+    if (!\Drupal::entityTypeManager()->getStorage('menu')->load($id)) {
+      $menu = \Drupal\system\Entity\Menu::create([
+        'id' => $id,
+        'label' => $label,
+        'description' => 'Footer navigation menu',
+      ]);
+      $menu->save();
+    }
+  }
+
+  $links = [
+    'footer-find' => [
+      ['title' => 'Browse events', 'uri' => 'internal:/events'],
+      ['title' => 'Categories', 'uri' => 'internal:/categories'],
+      ['title' => 'Online events', 'uri' => 'internal:/events/online'],
+    ],
+    'footer-host' => [
+      ['title' => 'Create event', 'uri' => 'internal:/node/add/event'],
+      ['title' => 'How it works', 'uri' => 'internal:/how-it-works'],
+      ['title' => 'Fees', 'uri' => 'internal:/fees'],
+    ],
+    'footer-about' => [
+      ['title' => 'Our story', 'uri' => 'internal:/about'],
+      ['title' => 'Contact', 'uri' => 'internal:/contact'],
+      ['title' => 'Trust & safety', 'uri' => 'internal:/trust'],
+    ],
+  ];
+
+  foreach ($links as $menu_name => $items) {
+    $existing = \Drupal::entityTypeManager()
+      ->getStorage('menu_link_content')
+      ->loadByProperties(['menu_name' => $menu_name]);
+
+    if (empty($existing)) {
+      foreach ($items as $weight => $item) {
+        \Drupal\menu_link_content\Entity\MenuLinkContent::create([
+          'title' => $item['title'],
+          'link' => ['uri' => $item['uri']],
+          'menu_name' => $menu_name,
+          'weight' => $weight,
+          'expanded' => FALSE,
+        ])->save();
+      }
+    }
+  }
+}
+
+/**
+ * Fix footer menu links to use working routes.
+ *
+ * Updates URIs for links pointing to non-existent paths.
+ */
+function myeventlane_core_update_9112(): void {
+  $fixes = [
+    'footer-find' => [
+      'Categories' => 'internal:/events',
+      'Online events' => 'internal:/events',
+    ],
+    'footer-host' => [
+      'Create event' => 'internal:/create-event',
+      'How it works' => 'internal:/help',
+      'Fees' => 'internal:/help',
+    ],
+    'footer-about' => [
+      'Our story' => 'internal:/help',
+      'Contact' => 'internal:/help',
+    ],
+  ];
+
+  $storage = \Drupal::entityTypeManager()->getStorage('menu_link_content');
+
+  foreach ($fixes as $menu_name => $title_uri_map) {
+    $links = $storage->loadByProperties(['menu_name' => $menu_name]);
+    foreach ($links as $link) {
+      $title = $link->getTitle();
+      if (isset($title_uri_map[$title])) {
+        $link->set('link', ['uri' => $title_uri_map[$title]]);
+        $link->save();
+      }
+    }
+  }
+}
+
+/**
+ * Fix footer "Our story" link (pointed to /about which may not exist).
+ */
+function myeventlane_core_update_9113(): void {
+  $links = \Drupal::entityTypeManager()
+    ->getStorage('menu_link_content')
+    ->loadByProperties([
+      'menu_name' => 'footer-about',
+      'title' => 'Our story',
+    ]);
+  foreach ($links as $link) {
+    $link->set('link', ['uri' => 'internal:/help']);
+    $link->save();
+  }
+}

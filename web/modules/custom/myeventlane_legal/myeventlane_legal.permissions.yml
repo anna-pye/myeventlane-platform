@@ -1,0 +1,3 @@
+administer myeventlane legal:
+  title: 'Administer MyEventLane legal settings'
+  description: 'Configure legal policy versions and URLs.'

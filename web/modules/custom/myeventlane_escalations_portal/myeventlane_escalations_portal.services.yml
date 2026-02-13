@@ -12,6 +12,7 @@ services:
       - '@entity_type.manager'
       - '@form_builder'
       - '@myeventlane_escalations_portal.thread_renderer'
+      - '@current_user'
       - '@logger.channel.myeventlane_escalations_portal'
       - '@?myeventlane_escalations_sla.badge_resolver'
 

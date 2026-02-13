@@ -2,43 +2,76 @@
 /**
  * @file
  * Main site footer.
- * Always renders structural markup for debugging and CSS recovery.
+ * Condensed 3-column layout (Find events, Host events, About) + compact legal row.
  */
 #}
 
-<footer class="mel-site-footer mel-site-footer--main" role="contentinfo">
-  <div class="mel-site-footer__inner mel-container">
+{% block footer %}
+<footer class="mel-footer" role="contentinfo">
 
-    <div class="mel-footer__top mel-footer-grid">
-      <div class="mel-footer__col mel-footer__col--brand mel-footer-col">
-        {{ page.footer_brand }}
+  <div class="mel-footer__container">
+
+    <div class="mel-footer__nav">
+
+      <div class="mel-footer__col">
+        <h4>{{ 'Find events'|t }}</h4>
+        {{ drupal_menu('footer-find') }}
+        {% if mel_footer_categories %}
+          <ul class="mel-footer__dynamic">
+            {% for item in mel_footer_categories %}
+              <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
       </div>
 
-      <div class="mel-footer__col mel-footer__col--attendees mel-footer-col">
-        {{ page.footer_attendees }}
+      <div class="mel-footer__col">
+        <h4>{{ 'Host events'|t }}</h4>
+        {{ drupal_menu('footer-host') }}
+        {% if mel_is_organiser %}
+          <ul class="mel-footer__dynamic">
+            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Vendor dashboard'|t }}</a></li>
+            <li><a href="{{ path('myeventlane_vendor.console.settings') }}">{{ 'Vendor settings'|t }}</a></li>
+          </ul>
+        {% endif %}
       </div>
 
-      <div class="mel-footer__col mel-footer__col--organisers mel-footer-col">
-        {{ page.footer_organisers }}
+      <div class="mel-footer__col mel-footer__col--wide">
+        <h4>{{ 'About MyEventLane'|t }}</h4>
+        {{ drupal_menu('footer-about') }}
+        <div class="mel-footer__trust">
+          <span>{{ 'Community-first platform'|t }}</span>
+          <span>{{ 'Secure payments via Stripe'|t }}</span>
+          <span>{{ 'Australian-owned'|t }}</span>
+        </div>
       </div>
 
-      <div class="mel-footer__col mel-footer__col--support-legal mel-footer-col">
-        {{ page.footer_support_legal }}
-      </div>
     </div>
 
-    <div class="mel-footer__ack">
-      {{ page.footer_ack }}
-    </div>
+    <div class="mel-footer__divider"></div>
 
-    <div class="mel-footer__payments">
-      {{ page.footer_payments }}
-    </div>
+    <div class="mel-footer__legal">
 
-    <div class="mel-footer__bottom">
-      <a href="#editCookieSettings" class="mel-footer__cookie-settings">{{ 'Privacy &amp; Cookie Settings'|t }}</a>
-      {{ page.footer_bottom }}
+      <div class="mel-footer__brand">
+        <img src="{{ directory }}/images/logo.svg" alt="MyEventLane">
+      </div>
+
+      <div class="mel-footer__meta">
+        <span>© {{ "now"|date("Y") }} MyEventLane</span>
+        <a href="/privacy">{{ 'Privacy'|t }}</a>
+        <a href="/terms">{{ 'Terms'|t }}</a>
+        <a href="{{ path('myeventlane_legal.cookies') }}">{{ 'Cookies'|t }}</a>
+      </div>
+
+      <div class="mel-footer__action">
+        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-footer__create-link">
+          {{ 'Create event'|t }}
+        </a>
+      </div>
+
     </div>
 
   </div>
+
 </footer>
+{% endblock %}

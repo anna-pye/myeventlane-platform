@@ -1,0 +1,9 @@
+name: MyEventLane Legal
+type: module
+description: 'Legal compliance: terms acceptance, privacy, cookie consent, and audit trail.'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:user
+  - drupal:system
+  - myeventlane_core

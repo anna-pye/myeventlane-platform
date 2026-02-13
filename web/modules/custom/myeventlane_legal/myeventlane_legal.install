@@ -1,0 +1,305 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane Legal.
+ */
+
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
+
+/**
+ * Add legal fields to user entity.
+ */
+function _myeventlane_legal_add_user_fields(): void {
+  $fields = [
+    'field_customer_terms_version' => [
+      'type' => 'string',
+      'label' => 'Customer terms version',
+      'cardinality' => 1,
+    ],
+    'field_customer_terms_accepted_at' => [
+      'type' => 'timestamp',
+      'label' => 'Customer terms accepted at',
+      'cardinality' => 1,
+    ],
+    'field_privacy_version' => [
+      'type' => 'string',
+      'label' => 'Privacy version',
+      'cardinality' => 1,
+    ],
+    'field_privacy_accepted_at' => [
+      'type' => 'timestamp',
+      'label' => 'Privacy accepted at',
+      'cardinality' => 1,
+    ],
+    'field_marketing_opt_in' => [
+      'type' => 'boolean',
+      'label' => 'Marketing opt-in',
+      'cardinality' => 1,
+    ],
+    'field_marketing_opt_in_at' => [
+      'type' => 'timestamp',
+      'label' => 'Marketing opt-in at',
+      'cardinality' => 1,
+    ],
+  ];
+
+  foreach ($fields as $field_name => $info) {
+    if (!FieldStorageConfig::loadByName('user', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'user',
+        'type' => $info['type'],
+        'cardinality' => $info['cardinality'],
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('user', 'user', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'user',
+        'bundle' => 'user',
+        'label' => $info['label'],
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Add legal fields to rsvp_submission entity.
+ */
+function _myeventlane_legal_add_rsvp_fields(): void {
+  if (!\Drupal::entityTypeManager()->hasDefinition('rsvp_submission')) {
+    return;
+  }
+
+  $fields = [
+    'field_customer_terms_version' => ['type' => 'string', 'label' => 'Customer terms version'],
+    'field_customer_terms_accepted_at' => ['type' => 'timestamp', 'label' => 'Customer terms accepted at'],
+    'field_privacy_version' => ['type' => 'string', 'label' => 'Privacy version'],
+    'field_privacy_accepted_at' => ['type' => 'timestamp', 'label' => 'Privacy accepted at'],
+    'field_marketing_opt_in' => ['type' => 'boolean', 'label' => 'Marketing opt-in'],
+    'field_marketing_opt_in_at' => ['type' => 'timestamp', 'label' => 'Marketing opt-in at'],
+  ];
+
+  foreach ($fields as $field_name => $info) {
+    if (!FieldStorageConfig::loadByName('rsvp_submission', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'rsvp_submission',
+        'type' => $info['type'],
+        'cardinality' => 1,
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('rsvp_submission', 'rsvp_submission', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'rsvp_submission',
+        'bundle' => 'rsvp_submission',
+        'label' => $info['label'],
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Add legal fields to commerce_order.
+ */
+function _myeventlane_legal_add_commerce_order_fields(): void {
+  if (!\Drupal::entityTypeManager()->hasDefinition('commerce_order')) {
+    return;
+  }
+
+  $fields = [
+    'field_legal_consent_given' => ['type' => 'boolean', 'label' => 'Legal consent given'],
+    'field_legal_consent_timestamp' => ['type' => 'timestamp', 'label' => 'Legal consent timestamp'],
+    'field_customer_terms_version' => ['type' => 'string', 'label' => 'Customer terms version'],
+    'field_customer_terms_accepted_at' => ['type' => 'timestamp', 'label' => 'Customer terms accepted at'],
+    'field_privacy_version' => ['type' => 'string', 'label' => 'Privacy version'],
+    'field_privacy_accepted_at' => ['type' => 'timestamp', 'label' => 'Privacy accepted at'],
+  ];
+
+  foreach ($fields as $field_name => $info) {
+    if (!FieldStorageConfig::loadByName('commerce_order', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'commerce_order',
+        'type' => $info['type'],
+        'cardinality' => 1,
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('commerce_order', 'default', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'commerce_order',
+        'bundle' => 'default',
+        'label' => $info['label'],
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Add vendor terms fields to myeventlane_vendor.
+ */
+function _myeventlane_legal_add_vendor_fields(): void {
+  if (!\Drupal::entityTypeManager()->hasDefinition('myeventlane_vendor')) {
+    return;
+  }
+
+  $fields = [
+    'field_vendor_terms_version' => ['type' => 'string', 'label' => 'Vendor terms version'],
+    'field_vendor_terms_accepted_at' => ['type' => 'timestamp', 'label' => 'Vendor terms accepted at'],
+    'field_vendor_terms_accepted_ip' => ['type' => 'string', 'label' => 'Vendor terms accepted IP'],
+    'field_vendor_terms_accepted_ua' => ['type' => 'string', 'label' => 'Vendor terms accepted user-agent'],
+  ];
+
+  foreach ($fields as $field_name => $info) {
+    if (!FieldStorageConfig::loadByName('myeventlane_vendor', $field_name)) {
+      FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'myeventlane_vendor',
+        'type' => $info['type'],
+        'cardinality' => 1,
+      ])->save();
+    }
+    if (!FieldConfig::loadByName('myeventlane_vendor', 'myeventlane_vendor', $field_name)) {
+      FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => $info['label'],
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_legal_install(): void {
+  _myeventlane_legal_add_user_fields();
+  _myeventlane_legal_add_rsvp_fields();
+  _myeventlane_legal_add_commerce_order_fields();
+  _myeventlane_legal_add_vendor_fields();
+}
+
+/**
+ * Implements hook_update_N().
+ */
+function myeventlane_legal_update_9001(): string {
+  _myeventlane_legal_add_user_fields();
+  _myeventlane_legal_add_rsvp_fields();
+  _myeventlane_legal_add_commerce_order_fields();
+  _myeventlane_legal_add_vendor_fields();
+  drupal_flush_all_caches();
+  return 'Added legal compliance fields to user, rsvp_submission, commerce_order, and myeventlane_vendor.';
+}
+
+/**
+ * Add APP 5 collection notices and refund policy URL to legal config.
+ */
+function myeventlane_legal_update_9002(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_legal.settings');
+  $defaults = [
+    'refund_policy_url' => 'https://myeventlane.com/refund-policy',
+    'collection_notice_rsvp' => 'We collect your name and email to process your RSVP, send confirmation, and manage your booking. Our Privacy Policy explains how we use and protect your information.',
+    'collection_notice_checkout' => 'We collect your contact details to process your order, send tickets and receipts, and manage your booking. Our Privacy Policy explains how we use and protect your information.',
+  ];
+  foreach ($defaults as $key => $value) {
+    if ($config->get($key) === NULL) {
+      $config->set($key, $value);
+    }
+  }
+  $config->save();
+  return 'Added refund_policy_url and APP 5 collection notices to legal settings.';
+}
+
+/**
+ * Create policy pages and align legal config URLs to relative paths.
+ *
+ * Creates/updates nodes at /terms, /vendor-terms, /privacy, /refund-policy,
+ * /cookie-policy. Sets config URLs to these paths. Note: /cookies is occupied
+ * by CookiePolicyController (preferences page); Cookie Policy node uses
+ * /cookie-policy.
+ */
+function myeventlane_legal_update_9003(): string {
+  _myeventlane_legal_create_policy_pages();
+  $config = \Drupal::configFactory()->getEditable('myeventlane_legal.settings');
+  $config
+    ->set('customer_terms_url', '/terms')
+    ->set('vendor_terms_url', '/vendor-terms')
+    ->set('privacy_url', '/privacy')
+    ->set('refund_policy_url', '/refund-policy')
+    ->set('cookie_policy_url', '/cookie-policy')
+    ->save();
+  drupal_flush_all_caches();
+  return 'Policy pages created/updated and legal config URLs aligned.';
+}
+
+/**
+ * Creates or updates policy page nodes.
+ */
+function _myeventlane_legal_create_policy_pages(): void {
+  $node_type = \Drupal::entityTypeManager()->getStorage('node_type')->load('page');
+  if (!$node_type) {
+    return;
+  }
+  $date = date('F j, Y');
+  $placeholder = '<p><em>Full policy content to be inserted by legal.</em></p>';
+  $policies = [
+    '/terms' => [
+      'Customer Terms of Service',
+      '<p>These Terms of Service govern your use of MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
+    ],
+    '/vendor-terms' => [
+      'Vendor Agreement',
+      '<p>This Vendor Agreement sets out the terms under which organisers use MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
+    ],
+    '/privacy' => [
+      'Privacy Policy',
+      '<p>MyEventLane respects your privacy. This policy describes how we collect, use, and protect your information.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
+    ],
+    '/refund-policy' => [
+      'Refund Policy',
+      '<p>This Refund Policy explains how refunds are handled for tickets purchased through MyEventLane.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
+    ],
+    '/cookie-policy' => [
+      'Cookie Policy',
+      '<p>This Cookie Policy explains how MyEventLane uses cookies and similar technologies.</p><p><strong>Last updated:</strong> ' . $date . '</p>' . $placeholder,
+    ],
+  ];
+  $pa_storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  foreach ($policies as $alias => [$title, $body]) {
+    $node = NULL;
+    foreach ($pa_storage->loadByProperties(['alias' => $alias]) as $pa) {
+      if (preg_match('#^/node/(\d+)$#', $pa->getPath(), $m)) {
+        $node = $node_storage->load($m[1]);
+        break;
+      }
+    }
+    if ($node) {
+      $node->set('title', $title);
+      $node->set('body', ['value' => $body, 'format' => 'basic_html']);
+      $node->setPublished();
+      $node->save();
+    }
+    else {
+      $node = \Drupal\node\Entity\Node::create([
+        'type' => 'page',
+        'title' => $title,
+        'body' => ['value' => $body, 'format' => 'basic_html'],
+        'status' => 1,
+        'uid' => 1,
+      ]);
+      $node->save();
+      \Drupal\path_alias\Entity\PathAlias::create([
+        'path' => '/node/' . $node->id(),
+        'alias' => $alias,
+        'langcode' => \Drupal\Core\Language\LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      ])->save();
+    }
+  }
+}

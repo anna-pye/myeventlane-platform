@@ -147,6 +147,9 @@
 
       document.addEventListener('cookiesjsrUserConsent', function (event) {
         const services = event?.detail?.services;
+        if (drupalSettings?.myeventlane?.environment === 'dev') {
+          console.log('[MyEventLane Privacy] Consent state:', services);
+        }
         applyConsent(services);
       });
     },

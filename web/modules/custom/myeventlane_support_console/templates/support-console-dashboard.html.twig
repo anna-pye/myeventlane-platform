@@ -1,0 +1,153 @@
+{#
+/**
+ * @file
+ * Support Console dashboard for staff.
+ *
+ * Variables:
+ *   - panels: Associative array of panel name => panel data.
+ */
+#}
+
+<div class="support-console support-console-dashboard">
+  <h1 class="support-console__title">{{ 'Support Console'|t }}</h1>
+
+  {# Global signal #}
+  {% if panels.global_signal.signal is defined and panels.global_signal.signal is not empty %}
+    <section class="support-console__panel support-console__panel--signal">
+      <h2 class="support-console__panel-title">{{ 'Capacity overview'|t }}</h2>
+      <div class="mel-analytics-health-banner mel-analytics-health-banner--{{ panels.global_signal.signal.signal == 'ok' ? 'healthy' : (panels.global_signal.signal.signal == 'watch' ? 'attention' : 'risk') }}">
+        <span class="mel-analytics-health-banner__icon" aria-hidden="true">{{ panels.global_signal.signal.icon }}</span>
+        <div class="mel-analytics-health-banner__content">
+          <strong class="mel-analytics-health-banner__title">
+            {% if panels.global_signal.signal.signal == 'ok' %}
+              {{ 'Capacity: OK'|t }}
+            {% elseif panels.global_signal.signal.signal == 'watch' %}
+              {{ 'Capacity: Watch'|t }}
+            {% else %}
+              {{ 'Capacity: Under Pressure'|t }}
+            {% endif %}
+          </strong>
+          <ul class="mel-capacity-reasons" role="list">
+            {% for reason in panels.global_signal.signal.reasons %}
+              <li>{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {# Action queue #}
+  <section class="support-console__panel support-console__panel--action-queue">
+    <h2 class="support-console__panel-title">{{ 'Action queue'|t }} ({{ 'waiting on staff'|t }})</h2>
+    {% if panels.action_queue.items is defined and panels.action_queue.items is not empty %}
+      <table class="support-console__table">
+        <thead>
+          <tr>
+            <th scope="col">{{ '#'|t }}</th>
+            <th scope="col">{{ 'Subject'|t }}</th>
+            <th scope="col">{{ 'Priority'|t }}</th>
+            <th scope="col">{{ 'SLA'|t }}</th>
+            <th scope="col">{{ 'Created'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in panels.action_queue.items %}
+            <tr>
+              <td>{{ item.id }}</td>
+              <td><a href="{{ item.url }}">{{ item.subject }}</a></td>
+              <td>{{ item.priority }}</td>
+              <td>
+                {% if item.badge %}
+                  <span class="mel-sla-badge mel-sla-badge--{{ item.badge.key }}">
+                    <span class="mel-sla-badge__icon" aria-hidden="true">{{ item.badge.icon }}</span>
+                    <span class="mel-sla-badge__label">{{ item.badge.label }}</span>
+                  </span>
+                {% else %}
+                  –
+                {% endif %}
+              </td>
+              <td>{{ item.created }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="support-console__empty">{{ 'No escalations waiting on staff.'|t }}</p>
+    {% endif %}
+  </section>
+
+  {# Vendor risk #}
+  {% if panels.vendor_risk is not empty %}
+    <section class="support-console__panel support-console__panel--vendor-risk">
+      <h2 class="support-console__panel-title">{{ 'Vendor risk'|t }}</h2>
+      <div class="support-console__kpi-row">
+        {% if panels.vendor_risk.total_vendors is defined %}
+          <div class="support-console__kpi">
+            <span class="support-console__kpi-value">{{ panels.vendor_risk.total_vendors }}</span>
+            <span class="support-console__kpi-label">{{ 'Vendors with escalations'|t }}</span>
+          </div>
+        {% endif %}
+        {% if panels.vendor_risk.at_risk_count is defined %}
+          <div class="support-console__kpi">
+            <span class="support-console__kpi-value">{{ panels.vendor_risk.at_risk_count }}</span>
+            <span class="support-console__kpi-label">{{ 'At risk'|t }}</span>
+          </div>
+        {% endif %}
+        {% if panels.vendor_risk.trigger_count is defined %}
+          <div class="support-console__kpi">
+            <span class="support-console__kpi-value">{{ panels.vendor_risk.trigger_count }}</span>
+            <span class="support-console__kpi-label">{{ 'Policy triggers'|t }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# Refund watch #}
+  {% if panels.refund_watch is not empty %}
+    <section class="support-console__panel support-console__panel--refund-watch">
+      <h2 class="support-console__panel-title">{{ 'Refund watch'|t }}</h2>
+      {% if panels.refund_watch.note is defined %}
+        <p>{{ panels.refund_watch.note }}</p>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {# Capacity snapshot #}
+  {% if panels.capacity_snapshot.workload is defined and panels.capacity_snapshot.workload is not empty %}
+    <section class="support-console__panel support-console__panel--capacity">
+      <h2 class="support-console__panel-title">{{ 'Capacity snapshot'|t }}</h2>
+      <div class="support-console__kpi-row">
+        <div class="support-console__kpi">
+          <span class="support-console__kpi-value">{{ panels.capacity_snapshot.workload.open_count }}</span>
+          <span class="support-console__kpi-label">{{ 'Open'|t }}</span>
+        </div>
+        <div class="support-console__kpi">
+          <span class="support-console__kpi-value">{{ panels.capacity_snapshot.workload.waiting_on_staff_count }}</span>
+          <span class="support-console__kpi-label">{{ 'Waiting on staff'|t }}</span>
+        </div>
+        <div class="support-console__kpi">
+          <span class="support-console__kpi-value">{{ panels.capacity_snapshot.workload.new_in_window_count }}</span>
+          <span class="support-console__kpi-label">{{ 'New (7d)'|t }}</span>
+        </div>
+        <div class="support-console__kpi">
+          <span class="support-console__kpi-value">{{ panels.capacity_snapshot.workload.oldest_open_age_days }}d</span>
+          <span class="support-console__kpi-label">{{ 'Oldest open'|t }}</span>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  {# Quick links #}
+  {% if panels.quick_links.links is defined and panels.quick_links.links is not empty %}
+    <section class="support-console__panel support-console__panel--quick-links">
+      <h2 class="support-console__panel-title">{{ 'Quick links'|t }}</h2>
+      <ul class="support-console__quick-links">
+        {% for link in panels.quick_links.links %}
+          <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</div>

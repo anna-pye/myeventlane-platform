@@ -8,6 +8,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Module\ModuleHandlerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_escalations\Entity\EscalationInterface;
 use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
@@ -27,6 +28,7 @@ final class AdminCaseConsoleBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
     private readonly EscalationThreadRenderer $threadRenderer,
+    private readonly AccountProxyInterface $currentUser,
     private readonly ?LoggerInterface $logger = NULL,
     private readonly ?EscalationSlaBadgeResolver $slaBadgeResolver = NULL,
   ) {}
@@ -297,6 +299,22 @@ final class AdminCaseConsoleBuilder {
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-case-console__card']],
         'content' => $build['mel_ai_draft_root'],
+      ];
+    }
+
+    // Staff-only: link to capacity dashboard (contextual link for escalation view).
+    if ($this->moduleHandler->moduleExists('myeventlane_escalations_capacity')
+      && $this->currentUser->hasPermission('view escalation capacity dashboard')) {
+      $sidebar['capacity_link'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-case-console__card']],
+        'content' => [
+          '#type' => 'link',
+          '#title' => t('Capacity dashboard'),
+          '#url' => Url::fromRoute('myeventlane_escalations_capacity.dashboard'),
+          '#attributes' => ['class' => ['mel-link']],
+          '#cache' => ['contexts' => ['user.permissions']],
+        ],
       ];
     }
 

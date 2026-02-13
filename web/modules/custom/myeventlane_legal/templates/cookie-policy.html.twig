@@ -1,0 +1,36 @@
+{#
+  Cookie policy page.
+  Variables: cookie_policy_url, privacy_url
+#}
+<div class="mel-cookie-policy-page">
+  <h1>{{ 'Cookie preferences'|t }}</h1>
+  <p>{{ 'You can manage your cookie preferences below. Necessary cookies are required for the site to function.'|t }}</p>
+  {% if cookie_policy_url %}
+    <p><a href="{{ cookie_policy_url }}" target="_blank" rel="noopener">{{ 'Cookie policy'|t }}</a></p>
+  {% endif %}
+  {% if privacy_url %}
+    <p><a href="{{ privacy_url }}" target="_blank" rel="noopener">{{ 'Privacy policy'|t }}</a></p>
+  {% endif %}
+  <div id="mel-cookie-preferences-form" class="mel-cookie-preferences">
+    <h2>{{ 'Your preferences'|t }}</h2>
+    <fieldset class="mel-cookie-options">
+      <legend>{{ 'Cookie categories'|t }}</legend>
+      <div class="mel-cookie-option mel-cookie-option--necessary">
+        <input type="checkbox" id="mel-consent-necessary" checked disabled aria-describedby="mel-consent-necessary-desc">
+        <label for="mel-consent-necessary">{{ 'Necessary'|t }}</label>
+        <p id="mel-consent-necessary-desc" class="mel-cookie-desc">{{ 'Required for the site to function. Cannot be disabled.'|t }}</p>
+      </div>
+      <div class="mel-cookie-option">
+        <input type="checkbox" id="mel-consent-analytics" aria-describedby="mel-consent-analytics-desc">
+        <label for="mel-consent-analytics">{{ 'Analytics'|t }}</label>
+        <p id="mel-consent-analytics-desc" class="mel-cookie-desc">{{ 'Helps us understand how visitors use the site.'|t }}</p>
+      </div>
+      <div class="mel-cookie-option">
+        <input type="checkbox" id="mel-consent-marketing" aria-describedby="mel-consent-marketing-desc">
+        <label for="mel-consent-marketing">{{ 'Marketing'|t }}</label>
+        <p id="mel-consent-marketing-desc" class="mel-cookie-desc">{{ 'Used for advertising and personalisation.'|t }}</p>
+      </div>
+    </fieldset>
+    <button type="button" id="mel-save-cookie-preferences" class="mel-btn mel-btn-primary">{{ 'Save preferences'|t }}</button>
+  </div>
+</div>

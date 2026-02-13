@@ -1,0 +1,9 @@
+myeventlane_support_console.dashboard:
+  path: '/admin/myeventlane/support-console'
+  defaults:
+    _controller: '\Drupal\myeventlane_support_console\Controller\SupportConsoleController::dashboard'
+    _title: 'Support Console'
+  requirements:
+    _permission: 'administer escalations'
+  options:
+    _admin_route: TRUE

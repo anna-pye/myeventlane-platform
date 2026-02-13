@@ -42,6 +42,11 @@ web/sites/*/*settings*.php
 web/sites/*/*services*.yml
 
 ############################################
+# Config sync temp (cookie import script)
+############################################
+config/sync/.cookie-backup/
+
+############################################
 # Database dumps & backups (sensitive)
 ############################################
 *.sql
@@ -116,8 +121,18 @@ web/themes/custom/**/tmp/
 # Archives & local junk
 ############################################
 *.zip
+OneDrive
 OneDrive/
 vendor.bak
+
+############################################
+# Server-specific / staging / deployment
+############################################
+mel@*
+*.gz.enc
+staging-*.conf
+*.staging
+drush/sites/staging.site.yml
 
 ############################################
 # IDE / editor (local only — not for staging)

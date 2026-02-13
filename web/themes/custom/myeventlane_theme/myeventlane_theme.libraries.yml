@@ -1,6 +1,13 @@
 # MyEventLane Theme Libraries
 # Built with Vite; outputs live in dist/.
 
+footer-internal:
+  js:
+    js/footer-accordion.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 global-styling:
   css:
     theme:

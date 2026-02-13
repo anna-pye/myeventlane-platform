@@ -32,9 +32,13 @@
 
     <div class="mel-header-actions">
       {% if logged_in %}
-        <a href="/dashboard" class="mel-btn mel-btn-primary">Dashboard</a>
+        {% if is_vendor %}
+          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn-primary">Dashboard</a>
+        {% else %}
+          <a href="{{ path('myeventlane_account.dashboard') }}" class="mel-btn mel-btn-primary">Dashboard</a>
+        {% endif %}
       {% else %}
-        <a href="/user/login" class="mel-btn mel-btn-ghost">Login</a>
+        <a href="{{ path('user.login') }}" class="mel-btn mel-btn-ghost">Login</a>
       {% endif %}
       <a href="/create-event" class="mel-btn mel-btn-accent mel-btn-create-event">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -66,9 +70,13 @@
         {% endif %}
         <li class="mel-mobile-divider"></li>
         {% if logged_in %}
-          <li><a href="/dashboard">Dashboard</a></li>
+          {% if is_vendor %}
+            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">Dashboard</a></li>
+          {% else %}
+            <li><a href="{{ path('myeventlane_account.dashboard') }}">Dashboard</a></li>
+          {% endif %}
         {% else %}
-          <li><a href="/user/login">Login</a></li>
+          <li><a href="{{ path('user.login') }}">Login</a></li>
         {% endif %}
         <li><a href="/create-event" class="mel-btn-mobile-accent">{{ 'Create a New Event'|t }}</a></li>
       </ul>

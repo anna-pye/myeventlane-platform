@@ -6,6 +6,8 @@
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
 
 // ============================================================================
 // FOOTER
@@ -61,6 +63,189 @@
   }
 }
 
+// ============================================================================
+// Internal footer (vendor dashboard)
+// ============================================================================
+// Full-width control panel footer with status bar and quick links.
+// Wrapper mel-vendor-shell__footer provides containment and border.
+
+.mel-vendor-shell__footer .mel-footer--internal {
+  background: transparent;
+}
+
+.mel-footer--internal .mel-footer__container {
+  max-width: $layout-content-max-width;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.mel-footer__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-4;
+  margin-bottom: $spacing-6;
+  padding: $spacing-4 $spacing-5;
+  background: $ml-vendor-card;
+  border-radius: $radius-lg;
+  border: 1px solid $border-color-light;
+}
+
+.mel-footer__status > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+}
+
+.mel-footer__status strong {
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $ml-vendor-text-dark;
+}
+
+.mel-badge {
+  padding: 5px 12px;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.02em;
+}
+
+.mel-badge--env {
+  background: $ml-vendor-navy;
+  color: #fff;
+}
+
+.mel-badge--alert {
+  background: $ml-accent-coral;
+  color: #fff;
+}
+
+.mel-footer__metrics {
+  display: flex;
+  gap: $spacing-5;
+  align-items: center;
+  font-size: $font-size-sm;
+  color: $ml-vendor-slate;
+}
+
+.mel-footer__internal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-8;
+}
+
+// Accordion: on desktop, toggles are hidden; panels show as link groups.
+.mel-footer__accordion {
+  padding: $spacing-3 0;
+}
+
+.mel-footer__accordion-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-body;
+  color: $ml-vendor-navy;
+  cursor: pointer;
+  text-align: left;
+}
+
+// Section label (desktop) – show as heading above links.
+.mel-footer__accordion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-footer__accordion-panel::before {
+  content: attr(data-label);
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $ml-vendor-slate;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: $spacing-2;
+}
+
+.mel-footer__accordion-panel a {
+  display: inline-block;
+  font-size: $font-size-sm;
+  color: $primary;
+  text-decoration: none;
+  padding: $spacing-1 0;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: $primary-dark;
+    text-decoration: underline;
+  }
+}
+
+// Tablet/mobile: accordion layout with toggles.
+@include respond-down(md) {
+  .mel-footer__internal-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-6;
+  }
+
+  .mel-footer__accordion {
+    border-bottom: 1px solid $border-color-light;
+    padding: $spacing-3 0;
+  }
+
+  .mel-footer__accordion:last-child {
+    border-bottom: none;
+  }
+
+  .mel-footer__accordion-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: $spacing-2 0;
+    font-size: $font-size-sm;
+  }
+
+  .mel-footer__accordion-toggle::after {
+    content: "";
+    width: 16px;
+    height: 16px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .mel-footer__accordion.is-open .mel-footer__accordion-toggle::after {
+    transform: rotate(-135deg);
+  }
+
+  .mel-footer__accordion-panel {
+    display: none;
+    padding-top: $spacing-2;
+  }
+
+  .mel-footer__accordion-panel::before {
+    display: none;
+  }
+
+  .mel-footer__accordion.is-open .mel-footer__accordion-panel {
+    display: flex;
+  }
+}
+
+// Mobile: single column for narrow viewports.
+@include respond-down(sm) {
+  .mel-footer__internal-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
 
 
 

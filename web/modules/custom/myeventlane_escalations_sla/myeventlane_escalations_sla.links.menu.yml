@@ -1,0 +1,6 @@
+myeventlane_escalations_sla.dashboard:
+  title: 'Escalation Dashboard'
+  description: 'View SLA dashboard for escalations'
+  route_name: myeventlane_escalations_sla.dashboard
+  parent: entity.escalation.collection
+  weight: 0

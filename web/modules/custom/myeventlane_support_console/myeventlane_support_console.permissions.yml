@@ -1,0 +1,4 @@
+view support console:
+  title: 'View support console'
+  description: 'Access the staff support console dashboard.'
+  restrict access: true

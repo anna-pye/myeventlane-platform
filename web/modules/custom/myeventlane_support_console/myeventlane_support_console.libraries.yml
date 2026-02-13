@@ -1,0 +1,4 @@
+support_console:
+  css:
+    theme:
+      css/support-console.css: {}

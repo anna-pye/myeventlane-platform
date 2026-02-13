@@ -32,6 +32,29 @@
   margin-right: auto;
 }
 
+/* Settings layer (modal dialog) – ensure visible content area */
+#cookiesjsr .cookiesjsr-layer {
+  background: #ffffff !important;
+  --layer-header-bg-color: #ffffff;
+  --layer-body-bg-color: #ffffff;
+  --layer-footer-bg-color: #f8f9fa;
+  --layer-border-color: #dee2e6;
+  --layer-header-font-color: #293241;
+  --layer-footer-font-color: #293241;
+}
+
+#cookiesjsr .cookiesjsr-layer--body {
+  background: #ffffff !important;
+  overflow-y: auto;
+}
+
+#cookiesjsr .cookiesjsr-service-groups,
+#cookiesjsr .cookiesjsr-layer--body ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+
 #cookiesjsr .cookiesjsr-banner h2,
 #cookiesjsr .cookiesjsr-dialog h2,
 #cookiesjsr .cookiesjsr--banner h2,
@@ -77,6 +100,18 @@
   background: rgba(255, 255, 255, 0.92) !important;
   border: 1px solid rgba(0, 0, 0, 0.14) !important;
   color: inherit !important;
+}
+
+/* Preferences / Settings button (opens cookie settings dialog) */
+#cookiesjsr .cookiesjsr-btn.cookiesjsr-settings {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  color: #293241 !important;
+}
+
+#cookiesjsr .cookiesjsr-btn.cookiesjsr-settings:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
 }
 
 #cookiesjsr a {

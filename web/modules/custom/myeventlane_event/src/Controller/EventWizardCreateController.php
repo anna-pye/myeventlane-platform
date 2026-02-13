@@ -10,6 +10,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -29,6 +30,11 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * The legal gatekeeper.
+   */
+  private readonly LegalGatekeeper $legalGatekeeper;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -36,9 +42,11 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
     EntityTypeManagerInterface $entity_type_manager,
+    LegalGatekeeper $legal_gatekeeper,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entity_type_manager;
+    $this->legalGatekeeper = $legal_gatekeeper;
   }
 
   /**
@@ -50,6 +58,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
       $container->get('current_user'),
       $container->get('messenger'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_legal.gatekeeper'),
     );
   }
 
@@ -59,6 +68,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
   public function createDraft(): RedirectResponse {
     $this->assertVendorAccess();
     $this->assertStripeConnected();
+    $this->legalGatekeeper->assertVendorTermsAccepted();
 
     $event = $this->getOrCreateDraftEvent();
     $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event->id()]);

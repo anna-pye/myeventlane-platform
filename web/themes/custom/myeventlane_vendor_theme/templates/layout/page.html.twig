@@ -46,7 +46,9 @@
       {% endif %}
     </main>
 
-    {% include '@myeventlane_vendor_theme/includes/footer.html.twig' with { page: page } only %}
+    <div class="mel-vendor-shell__footer">
+      {% include '@myeventlane_theme/layout/footer-internal.html.twig' %}
+    </div>
   </div>
 </div>
 
