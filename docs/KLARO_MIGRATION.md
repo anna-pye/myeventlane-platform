@@ -19,24 +19,31 @@ This document describes the migration from `drupal/cookies` (COOKiES + cookiesjs
 
 ## Installation Steps
 
-### 1. Run Composer
+**Important:** Uninstall COOKiES *before* running `composer update`. Composer removes the cookies module from the codebase, and Drush cannot uninstall a module that no longer exists.
+
+### 1. Uninstall COOKiES
+
+```bash
+drush pmu cookies -y
+```
+
+### 2. Run Composer
 
 ```bash
 composer update
 ```
 
 This will:
+- Remove `drupal/cookies` from the codebase
 - Install `drupal/klaro` and its dependency `drupal/klaro_js`
-- Remove `drupal/cookies`
 
-### 2. Uninstall COOKiES and enable Klaro
+### 3. Enable Klaro and myeventlane_privacy
 
 ```bash
-drush pmu cookies -y
 drush en klaro myeventlane_privacy -y
 ```
 
-### 3. Import configuration
+### 4. Import configuration
 
 ```bash
 drush cim -y
@@ -44,7 +51,7 @@ drush cim -y
 
 This will remove the old cookies config and block placements from active config.
 
-### 4. Configure Klaro services
+### 5. Configure Klaro services
 
 1. Go to **Configuration → User interface → Klaro** (`/admin/config/user-interface/klaro`)
 2. Create Klaro **services** with these IDs to match the consent dispatcher:
@@ -56,7 +63,7 @@ This will remove the old cookies config and block placements from active config.
 
 3. Assign services to appropriate **purposes** (e.g. Marketing, Analytics)
 
-### 5. Rebuild theme assets
+### 6. Rebuild theme assets
 
 ```bash
 cd web/themes/custom/myeventlane_theme && npm run build
@@ -64,11 +71,20 @@ cd web/themes/custom/myeventlane_vendor_theme && npm run build
 cd web/themes/custom/myeventlane_radix && npm run build
 ```
 
-### 6. Clear cache
+### 7. Clear cache
 
 ```bash
 drush cr
 ```
+
+### Troubleshooting: I already ran composer update before uninstalling
+
+If you ran `composer update` first, the cookies module code is no longer in the codebase, so `drush pmu cookies` will fail. To recover:
+
+1. Temporarily re-add cookies: `composer require drupal/cookies:^1.2`
+2. Uninstall: `drush pmu cookies -y`
+3. Remove cookies again: `composer remove drupal/cookies`
+4. Continue from Step 3 above (Enable Klaro and myeventlane_privacy)
 
 ## Footer and Cookie Links
 

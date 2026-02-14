@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\myeventlane_ai\Service\AiUsageTracker;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -71,6 +73,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected EventStateResolverInterface $eventStateResolver;
 
   /**
+   * AI usage tracker (optional, for vendor AI panel).
+   */
+  protected ?AiUsageTracker $aiUsageTracker;
+
+  /**
+   * Config factory (optional, for daily_vendor_token_limit).
+   */
+  protected ?ConfigFactoryInterface $configFactory;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -85,6 +97,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
+    ?AiUsageTracker $ai_usage_tracker = NULL,
+    ?ConfigFactoryInterface $config_factory = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->rsvpStats = $rsvp_stats;
@@ -95,6 +109,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
     $this->eventStateResolver = $event_state_resolver;
+    $this->aiUsageTracker = $ai_usage_tracker;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -113,6 +129,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
+      $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
+      $container->get('config.factory'),
     );
   }
 
@@ -190,9 +208,22 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ];
     }
 
+    $aiUsagePanel = NULL;
+    if ($vendor && $this->aiUsageTracker && $this->configFactory) {
+      $usage = $this->aiUsageTracker->getVendorUsage((int) $vendor->id());
+      $limit = (int) ($this->configFactory->get('myeventlane_ai.settings')->get('daily_vendor_token_limit') ?? 200000);
+      $aiEnabled = $vendor->isAiEnabled();
+      $aiUsagePanel = [
+        'tokens_used' => (int) ($usage['tokens'] ?? 0),
+        'token_limit' => $limit,
+        'ai_enabled' => $aiEnabled,
+      ];
+    }
+
     $pageVars = [
       'vendor' => $vendor,
       'vendor_edit_url' => $vendorEditUrl,
+      'ai_usage_panel' => $aiUsagePanel,
       'kpis' => $kpis,
       'charts' => $charts,
       'events' => $events,

@@ -1,0 +1,11 @@
+name: 'MyEventLane Platform Summary'
+type: module
+description: 'Pre-aggregated platform metrics for the Platform Control Centre dashboard. Populated by cron; dashboard reads only.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - drupal:system
+  - commerce_order:commerce_order
+  - myeventlane_core:myeventlane_core

@@ -18,6 +18,17 @@ use Psr\Log\LoggerInterface;
  */
 final class OpenAiProvider implements AiProviderInterface {
 
+  /**
+   * Estimated cost per 1K tokens (USD). Used for minimal observability only.
+   */
+  private const MODEL_COSTS = [
+    'gpt-4o-mini' => ['input' => 0.00015, 'output' => 0.0006],
+    'gpt-4o' => ['input' => 0.0025, 'output' => 0.01],
+    'gpt-4' => ['input' => 0.03, 'output' => 0.06],
+    'gpt-3.5-turbo' => ['input' => 0.0005, 'output' => 0.0015],
+    'default' => ['input' => 0.0002, 'output' => 0.0008],
+  ];
+
   public function __construct(
     private readonly ClientInterface $httpClient,
     private readonly ConfigFactoryInterface $configFactory,
@@ -47,6 +58,11 @@ final class OpenAiProvider implements AiProviderInterface {
       return AiResult::error('Missing myeventlane_ai.api_key in settings.php', '', $this->getName(), $model);
     }
 
+    $messages = $options['_messages'] ?? NULL;
+    if (!is_array($messages) || empty($messages)) {
+      $messages = [['role' => 'user', 'content' => $prompt]];
+    }
+
     try {
       $response = $this->httpClient->request('POST', $endpoint, [
         'timeout' => $timeout,
@@ -58,9 +74,7 @@ final class OpenAiProvider implements AiProviderInterface {
           'model' => $model,
           'temperature' => $temperature,
           'max_tokens' => $max_tokens,
-          'messages' => [
-            ['role' => 'user', 'content' => $prompt],
-          ],
+          'messages' => $messages,
         ],
       ]);
 
@@ -70,6 +84,27 @@ final class OpenAiProvider implements AiProviderInterface {
       $content = '';
       if (is_array($decoded) && isset($decoded['choices'][0]['message']['content'])) {
         $content = (string) $decoded['choices'][0]['message']['content'];
+      }
+
+      $token_counts = NULL;
+      $estimated_cost_usd = NULL;
+
+      if (is_array($decoded) && isset($decoded['usage'])) {
+        $usage = $decoded['usage'];
+        $prompt_tokens = (int) ($usage['prompt_tokens'] ?? 0);
+        $completion_tokens = (int) ($usage['completion_tokens'] ?? 0);
+        $total_tokens = (int) ($usage['total_tokens'] ?? $prompt_tokens + $completion_tokens);
+
+        if ($total_tokens > 0) {
+          $token_counts = [
+            'prompt_tokens' => $prompt_tokens,
+            'completion_tokens' => $completion_tokens,
+            'total_tokens' => $total_tokens,
+          ];
+          $costs = self::MODEL_COSTS[$model] ?? self::MODEL_COSTS['default'];
+          $estimated_cost_usd = ($prompt_tokens / 1000 * $costs['input']) + ($completion_tokens / 1000 * $costs['output']);
+          $this->logUsage($token_counts, $estimated_cost_usd, $model, $options);
+        }
       }
 
       // Attempt JSON parse if the response looks like JSON.
@@ -82,12 +117,35 @@ final class OpenAiProvider implements AiProviderInterface {
         }
       }
 
-      return AiResult::ok($content !== '' ? $content : $body, $json, $this->getName(), $model);
+      return AiResult::ok($content !== '' ? $content : $body, $json, $this->getName(), $model, $token_counts, $estimated_cost_usd);
     }
     catch (\Throwable $e) {
       $this->logger->error('OpenAI provider error: {msg}', ['msg' => $e->getMessage()]);
       return AiResult::error('Provider request failed: ' . $e->getMessage(), '', $this->getName(), $model);
     }
+  }
+
+  /**
+   * Logs token usage and estimated cost at NOTICE level.
+   *
+   * Does not log prompt content or AI output.
+   */
+  private function logUsage(array $token_counts, float $estimated_cost_usd, string $model, array $options): void {
+    $context = [
+      'model' => $model,
+      'prompt_tokens' => $token_counts['prompt_tokens'],
+      'completion_tokens' => $token_counts['completion_tokens'],
+      'total_tokens' => $token_counts['total_tokens'],
+      'estimated_cost_usd' => round($estimated_cost_usd, 6),
+    ];
+    if (isset($options['_log_uid'])) {
+      $context['user_id'] = $options['_log_uid'];
+    }
+    if (isset($options['_log_scope'])) {
+      $context['scope'] = $options['_log_scope'];
+    }
+
+    $this->logger->notice('AI usage: model={model} prompt_tokens={prompt_tokens} completion_tokens={completion_tokens} total_tokens={total_tokens} estimated_cost_usd={estimated_cost_usd}', $context);
   }
 
 }

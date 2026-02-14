@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_help_centre_ai\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_ai\Service\AiJobEnqueueService;
 use Drupal\myeventlane_help_centre_ai\Service\HelpCentreAiRetriever;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -15,13 +15,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Form for Help Centre AI FAQ search.
  *
- * Anonymous users allowed. Rate limited by IP via scope_id.
+ * On submit: creates ai_job, enqueues; async worker executes.
+ * Frontend polls for result.
  */
 final class HelpCentreAiForm extends FormBase {
 
   public function __construct(
     private readonly HelpCentreAiRetriever $retriever,
-    private readonly AiManager $aiManager,
+    private readonly AiJobEnqueueService $jobEnqueue,
     private readonly RequestStack $requestStack,
   ) {}
 
@@ -31,7 +32,7 @@ final class HelpCentreAiForm extends FormBase {
   public static function create(ContainerInterface $container): self {
     return new self(
       $container->get('myeventlane_help_centre_ai.retriever'),
-      $container->get('myeventlane_ai.manager'),
+      $container->get('myeventlane_ai.job_enqueue'),
       $container->get('request_stack'),
     );
   }
@@ -66,25 +67,42 @@ final class HelpCentreAiForm extends FormBase {
       '#attributes' => ['class' => ['button', 'button--primary']],
     ];
 
-    $result = $form_state->get('ai_result');
-    if ($result) {
+    $job_id = $form_state->get('ai_job_id');
+    if ($job_id) {
       $form['result'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['help-centre-ai-result']],
         '#weight' => 100,
       ];
-      $form['result']['answer'] = [
+      $form['result']['disclosure'] = [
         '#type' => 'markup',
-        '#markup' => '<div class="help-centre-ai-result__answer">' . nl2br(htmlspecialchars($result['answer'])) . '</div>',
+        '#markup' => '<p class="help-centre-ai-result__disclosure">' . htmlspecialchars($this->t('This is an AI-generated response based on available help articles. For formal support, contact our team.')) . '</p>',
+        '#weight' => -10,
       ];
+      $form['result']['generating'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['help-centre-ai-result__generating'],
+          'data-job-id' => (string) $job_id,
+          'data-poll-url' => Url::fromRoute('myeventlane_ai.job_poll', ['ai_job' => $job_id])->toString(),
+        ],
+        'text' => [
+          '#markup' => '<p>' . $this->t('Generating…') . '</p>',
+        ],
+      ];
+      $form['result']['answer'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['help-centre-ai-result__answer'], 'hidden' => 'true', 'aria-hidden' => 'true'],
+      ];
+      $articles = $form_state->get('ai_articles') ?? [];
       $items = [];
-      foreach ($result['articles'] ?? [] as $art) {
+      foreach ($articles as $art) {
         $url = str_starts_with($art['url'] ?? '', '/')
           ? Url::fromUserInput($art['url'])
           : Url::fromUri($art['url']);
         $items[] = [
           '#type' => 'link',
-          '#title' => $art['title'],
+          '#title' => $art['title'] ?? '',
           '#url' => $url,
         ];
       }
@@ -93,6 +111,7 @@ final class HelpCentreAiForm extends FormBase {
         '#title' => $this->t('Relevant articles'),
         '#items' => $items,
       ];
+      $form['#attached']['library'][] = 'myeventlane_ai/ai_poll';
     }
 
     return $form;
@@ -118,45 +137,8 @@ final class HelpCentreAiForm extends FormBase {
     $supportUrl = '/my/support';
     try {
       $supportUrl = Url::fromRoute('myeventlane_escalations_portal.customer_add')->toString();
-    }
-    catch (\Exception $e) {
+    } catch (\Exception $e) {
       // Ignore.
-    }
-
-    $request = $this->requestStack->getCurrentRequest();
-    $ip = $request ? $request->getClientIp() : '0.0.0.0';
-    $scopeId = 'help_centre_ai:ip:' . $ip;
-
-    // For anonymous: no user rate limit. For authenticated: use uid.
-    $uid = $this->currentUser()->isAuthenticated() ? (int) $this->currentUser()->id() : NULL;
-
-    $prompt = $this->buildPrompt($question, $articles, $supportUrl);
-
-    $aiResult = $this->aiManager->analyze($prompt, [], $uid, $scopeId);
-
-    if ($aiResult->ok) {
-      $form_state->set('ai_result', [
-        'answer' => trim($aiResult->raw),
-        'articles' => $articles,
-      ]);
-    }
-    else {
-      $form_state->set('ai_result', [
-        'answer' => $this->t('I couldn\'t process your question right now. Please try again later or contact support here: @link', [
-          '@link' => $supportUrl,
-        ]),
-        'articles' => [],
-      ]);
-    }
-
-    $form_state->setRebuild();
-  }
-
-  private function buildPrompt(string $question, array $articles, string $supportUrl = ''): string {
-    $excerpts = '';
-    foreach ($articles as $i => $art) {
-      $excerpts .= "\n--- Article " . ($i + 1) . ": " . ($art['title'] ?? '') . " ---\n";
-      $excerpts .= ($art['excerpt'] ?? '') . "\n";
     }
 
     $fallback = "I can't confirm from our Help Centre yet. You can contact support here for personalised assistance.";
@@ -164,13 +146,42 @@ final class HelpCentreAiForm extends FormBase {
       $fallback .= " " . $supportUrl;
     }
 
-    $system = "You are the MyEventLane Help Centre assistant. Answer ONLY based on the provided Help Centre excerpts. "
-      . "Use Australian English. Be calm, gender-neutral, and concise. "
-      . "If the excerpts do not contain enough information to answer, respond with exactly: \""
-      . $fallback
-      . "\" Do not make up information. Keep answers to 2–4 short paragraphs.";
+    $excerpts = '';
+    foreach ($articles as $i => $art) {
+      $excerpts .= "\n--- Article " . ($i + 1) . ": " . ($art['title'] ?? '') . " ---\n";
+      $excerpts .= ($art['excerpt'] ?? '') . "\n";
+    }
 
-    return $system . "\n\nHelp Centre excerpts:" . ($excerpts ?: ' (none)') . "\n\nQuestion: " . $question . "\n\nAnswer:";
+    $placeholders = [
+      'fallback' => $fallback,
+      'excerpts' => $excerpts ?: ' (none)',
+      'question' => $question,
+    ];
+
+    $request = $this->requestStack->getCurrentRequest();
+    $ip = $request ? $request->getClientIp() : '0.0.0.0';
+    $scopeId = 'help_centre_ai:ip:' . $ip;
+
+    $uid = (int) $this->currentUser()->id();
+    if ($uid === 0) {
+      $this->messenger()->addError($this->t('Please log in to use the AI assistant.'));
+      $form_state->setRebuild();
+      return;
+    }
+
+    $job = $this->jobEnqueue->enqueue(
+      'help_centre.answer',
+      'v1',
+      $placeholders,
+      [],
+      $uid,
+      $scopeId,
+      NULL,
+    );
+
+    $form_state->set('ai_job_id', (int) $job->id());
+    $form_state->set('ai_articles', $articles);
+    $form_state->setRebuild();
   }
 
 }

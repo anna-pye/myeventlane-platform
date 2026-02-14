@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_staff_playbooks\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Url;
 use Psr\Log\LoggerInterface;
@@ -19,6 +20,7 @@ final class GovernanceDashboardController extends ControllerBase {
 
   public function __construct(
     private readonly RouteProviderInterface $routeProvider,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -28,6 +30,7 @@ final class GovernanceDashboardController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('router.route_provider'),
+      $container->get('entity_field.manager'),
       $container->get('logger.factory')->get('myeventlane_staff_playbooks'),
     );
   }
@@ -86,6 +89,14 @@ final class GovernanceDashboardController extends ControllerBase {
    */
   private function loadStaffArticles(): array {
     if (!$this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
+      return [];
+    }
+
+    $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
+    if (!isset($storageDefinitions['field_audience']) || !isset($storageDefinitions['field_priority'])) {
+      $this->logger->error(
+        'GovernanceDashboardController: field_audience or field_priority missing from node field storage. Run config:import or verify myeventlane_help_centre is correctly installed.'
+      );
       return [];
     }
 

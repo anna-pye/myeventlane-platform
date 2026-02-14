@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Operational alerts for the Platform Control Centre.
+ * Always renders: real alerts or "No alerts right now".
+ */
+#}
+<div class="pcc-alerts">
+  {% if alerts is empty %}
+    <p class="pcc-alerts__empty">{{ 'No alerts right now.'|t }}</p>
+  {% else %}
+    <ul class="pcc-alerts__list">
+      {% for alert in alerts %}
+        <li class="pcc-alerts__item pcc-alerts__item--{{ alert.severity }}">
+          <span class="pcc-alerts__title">{{ alert.title }} ({{ alert.count }})</span>
+          <a href="{{ alert.url }}" class="pcc-alerts__link">{{ 'View'|t }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

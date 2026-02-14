@@ -808,6 +808,37 @@ function myeventlane_vendor_update_10014(): string {
 }
 
 /**
+ * Install ai_enabled base field on vendor entity (Phase 2B).
+ */
+function myeventlane_vendor_update_10015(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $existing = $entity_definition_update_manager->getFieldStorageDefinition('ai_enabled', 'myeventlane_vendor');
+  if ($existing) {
+    return 'ai_enabled field already installed — skipped.';
+  }
+
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
+  $base_field_definitions = Vendor::baseFieldDefinitions($entity_type);
+
+  if (!isset($base_field_definitions['ai_enabled'])) {
+    throw new \RuntimeException('ai_enabled base field definition not found in Vendor::baseFieldDefinitions().');
+  }
+
+  $entity_definition_update_manager->installFieldStorageDefinition(
+    'ai_enabled',
+    'myeventlane_vendor',
+    'myeventlane_vendor',
+    $base_field_definitions['ai_enabled'],
+  );
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return 'Installed ai_enabled base field on vendor entity.';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

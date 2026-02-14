@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Revenue trend snapshot for the Platform Control Centre.
+ * Always renders: real bars or "Data updating…" placeholder.
+ */
+#}
+<div class="pcc-trend">
+  <h3 class="pcc-trend__title">{{ 'Revenue (last 6 months)'|t }}</h3>
+  {% if trend.empty or trend.months is empty %}
+    <p class="pcc-trend__empty">{{ 'Data updating…'|t }}</p>
+  {% else %}
+    <div class="pcc-trend__bars">
+      {% for m in trend.months %}
+        <div class="pcc-trend__bar-wrap">
+          {% set height = trend.max_revenue > 0 ? (m.revenue / trend.max_revenue * 100) : 0 %}
+          <div class="pcc-trend__bar" style="height: {{ height }}%" title="${{ m.revenue|number_format(0) }}" role="img" aria-label="{{ m.month }}: ${{ m.revenue|number_format(0) }}"></div>
+          <span class="pcc-trend__label">{{ m.month }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <a href="/admin/myeventlane/reports" class="pcc-trend__link">{{ 'View full report'|t }} →</a>
+</div>

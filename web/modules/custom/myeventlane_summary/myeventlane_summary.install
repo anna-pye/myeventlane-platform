@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Platform Summary module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_summary_schema() {
+  $schema['platform_daily_summary'] = [
+    'description' => 'Pre-aggregated daily platform metrics. Populated by cron.',
+    'fields' => [
+      'date' => [
+        'description' => 'Date (Y-m-d). Primary key.',
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+      ],
+      'revenue_gross' => [
+        'description' => 'Total order value (completed orders only).',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'revenue_net' => [
+        'description' => 'Revenue minus platform fees.',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'platform_fees' => [
+        'description' => 'Platform fee amount.',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'orders_completed' => [
+        'description' => 'Count of completed orders.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'orders_failed' => [
+        'description' => 'Count of failed/canceled orders.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'escalations_open' => [
+        'description' => 'Count of open escalations (status not resolved/closed).',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'escalations_urgent' => [
+        'description' => 'Count of urgent-priority open escalations.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['date'],
+    'indexes' => [
+      'date' => ['date'],
+    ],
+  ];
+
+  return $schema;
+}

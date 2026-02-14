@@ -1,0 +1,5 @@
+ai_poll:
+  js:
+    js/ai-poll.js: {}
+  dependencies:
+    - core/drupal

@@ -237,6 +237,22 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', FALSE);
 
+    // Opt-in for AI assistant (Vendor AI in escalation context).
+    // Default OFF — vendors must explicitly enable. Admin can override.
+    $fields['ai_enabled'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Enable AI assistant'))
+      ->setDescription(new TranslatableMarkup('Allow the AI assistant to help with escalation questions in the vendor portal.'))
+      ->setDefaultValue(0)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 95,
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', FALSE);
+
     return $fields;
   }
 
@@ -308,6 +324,19 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
   public function setApiKeyHash(string $hash): static {
     $this->set('api_key_hash', $hash);
     return $this;
+  }
+
+  /**
+   * Whether AI assistant is enabled for this vendor.
+   *
+   * @return bool
+   *   TRUE if AI is enabled.
+   */
+  public function isAiEnabled(): bool {
+    if (!$this->hasField('ai_enabled') || $this->get('ai_enabled')->isEmpty()) {
+      return FALSE;
+    }
+    return (bool) $this->get('ai_enabled')->value;
   }
 
 }

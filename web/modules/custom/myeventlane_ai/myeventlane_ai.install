@@ -1,0 +1,208 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane AI.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_ai_install(): void {
+  myeventlane_ai_install_ai_job_entity();
+  myeventlane_ai_ensure_expires_at_index();
+}
+
+/**
+ * Installs the ai_job entity type and schema (shared between install and update).
+ */
+function myeventlane_ai_install_ai_job_entity(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $entity_last_installed = \Drupal::service('entity.last_installed_schema.repository');
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $entity_type_manager->clearCachedDefinitions();
+  $entity_field_manager->clearCachedFieldDefinitions();
+
+  if ($entity_last_installed->getLastInstalledDefinition('ai_job') !== NULL) {
+    return;
+  }
+
+  $entity_type = $entity_type_manager->getDefinition('ai_job');
+  $field_storage_definitions = $entity_field_manager->getFieldStorageDefinitions('ai_job');
+  $update_manager->installFieldableEntityType($entity_type, $field_storage_definitions);
+
+  $entity_type_manager->clearCachedDefinitions();
+  $entity_field_manager->clearCachedFieldDefinitions();
+}
+
+/**
+ * Adds index on ai_job.expires_at for cleanup queries (Phase 2C).
+ *
+ * Safe to call multiple times; skips if index exists.
+ */
+function myeventlane_ai_ensure_expires_at_index(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ai_job')) {
+    return;
+  }
+  if ($schema->indexExists('ai_job', 'ai_job_expires_at')) {
+    return;
+  }
+  $spec = [
+    'fields' => [
+      'expires_at' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp for cleanup later.',
+      ],
+    ],
+    'indexes' => [
+      'ai_job_expires_at' => ['expires_at'],
+    ],
+  ];
+  $schema->addIndex('ai_job', 'ai_job_expires_at', ['expires_at'], $spec);
+}
+
+/**
+ * Add Phase 2A guardrail config keys for existing installs.
+ */
+function myeventlane_ai_update_9001(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_ai.settings');
+  $defaults = [
+    'daily_user_token_limit' => 50000,
+    'daily_vendor_token_limit' => 200000,
+    'daily_cost_ceiling_usd' => 10.0,
+    'cb_failure_threshold' => 10,
+    'cb_window_seconds' => 600,
+    'cb_cost_trip_seconds' => 86400,
+    'usage_retention_days' => 7,
+  ];
+  foreach ($defaults as $key => $value) {
+    if ($config->get($key) === NULL) {
+      $config->set($key, $value);
+    }
+  }
+  $config->save();
+  return 'Added Phase 2A guardrail config (token quotas, circuit breaker, retention).';
+}
+
+/**
+ * Add cost-ceiling trip duration for existing installs.
+ */
+function myeventlane_ai_update_9002(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_ai.settings');
+  if ($config->get('cb_cost_trip_seconds') === NULL) {
+    $config->set('cb_cost_trip_seconds', 86400);
+    $config->save();
+  }
+  return 'Added cb_cost_trip_seconds (cost-ceiling trip duration).';
+}
+
+/**
+ * Install ai_job entity type and schema (Phase 2B).
+ */
+function myeventlane_ai_update_9003(): string {
+  $entity_last_installed = \Drupal::service('entity.last_installed_schema.repository');
+
+  if ($entity_last_installed->getLastInstalledDefinition('ai_job') !== NULL) {
+    return 'ai_job entity type and schema already installed.';
+  }
+
+  myeventlane_ai_install_ai_job_entity();
+  return 'Installed ai_job entity type and schema.';
+}
+
+/**
+ * Add Phase 2D prompt_key and prompt_version to ai_job entity.
+ */
+function myeventlane_ai_update_9005(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $entity_type = $entity_type_manager->getDefinition('ai_job');
+  $storage_definitions = $entity_field_manager->getFieldStorageDefinitions('ai_job');
+
+  $new_fields = [];
+  if (!isset($storage_definitions['prompt_key'])) {
+    $new_fields['prompt_key'] = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt key'))
+      ->setSettings(['max_length' => 128])
+      ->setReadOnly(TRUE);
+  }
+  if (!isset($storage_definitions['prompt_version'])) {
+    $new_fields['prompt_version'] = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt version'))
+      ->setSettings(['max_length' => 32])
+      ->setReadOnly(TRUE);
+  }
+
+  foreach ($new_fields as $name => $definition) {
+    $update_manager->installFieldStorageDefinition($name, 'ai_job', 'myeventlane_ai', $definition);
+  }
+
+  $entity_type_manager->clearCachedDefinitions();
+  $entity_field_manager->clearCachedFieldDefinitions();
+
+  return 'Added prompt_key and prompt_version to ai_job entity (Phase 2D).';
+}
+
+/**
+ * Install Phase 2D prompt configs for existing installs.
+ */
+function myeventlane_ai_update_9006(): string {
+  $config_factory = \Drupal::configFactory();
+  $extension_path = \Drupal::service('extension.path.resolver')->getPath('module', 'myeventlane_ai');
+  $prompt_configs = [
+    'myeventlane_ai.prompt.vendor_ai_answer_v1',
+    'myeventlane_ai.prompt.help_centre_answer_v1',
+    'myeventlane_ai.prompt.escalation_draft_v1',
+    'myeventlane_ai.prompt.escalation_triage_v1',
+    'myeventlane_ai.prompt.escalation_reply_suggestion_v1',
+    'myeventlane_ai.prompt.escalation_risk_flag_v1',
+    'myeventlane_ai.prompt.escalation_breach_soon_v1',
+    'myeventlane_ai.prompt.playbook_summary_v1',
+  ];
+
+  $installed = 0;
+  foreach ($prompt_configs as $name) {
+    if ($config_factory->get($name)->isNew()) {
+      $file = $extension_path . '/config/install/' . $name . '.yml';
+      if (file_exists($file)) {
+        $data = \Drupal\Core\Serialization\Yaml::decode(file_get_contents($file));
+        if (is_array($data)) {
+          $config_factory->getEditable($name)->setData($data)->save(TRUE);
+          $installed++;
+        }
+      }
+    }
+  }
+
+  return $installed > 0
+    ? "Installed {$installed} prompt configs (Phase 2D)."
+    : 'Prompt configs already present (Phase 2D).';
+}
+
+/**
+ * Add Phase 2C AI job retention config and expires_at index.
+ */
+function myeventlane_ai_update_9004(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_ai.settings');
+  $defaults = [
+    'ai_job_retention_days' => 7,
+    'ai_job_error_retention_days' => 14,
+  ];
+  foreach ($defaults as $key => $value) {
+    if ($config->get($key) === NULL) {
+      $config->set($key, $value);
+    }
+  }
+  $config->save();
+
+  myeventlane_ai_ensure_expires_at_index();
+
+  return 'Added ai_job retention config (ai_job_retention_days, ai_job_error_retention_days) and expires_at index.';
+}

@@ -37,3 +37,59 @@ myeventlane_ai.settings:
         per_scope_per_10_min:
           type: integer
           label: 'Per scope per 10 minutes'
+    daily_user_token_limit:
+      type: integer
+      label: 'Daily token limit per user'
+    daily_vendor_token_limit:
+      type: integer
+      label: 'Daily token limit per vendor'
+    daily_cost_ceiling_usd:
+      type: float
+      label: 'Daily cost ceiling (USD)'
+    cb_failure_threshold:
+      type: integer
+      label: 'Circuit breaker failure threshold'
+    cb_window_seconds:
+      type: integer
+      label: 'Circuit breaker window (seconds)'
+    cb_cost_trip_seconds:
+      type: integer
+      label: 'Circuit breaker cost-ceiling trip duration (seconds)'
+    usage_retention_days:
+      type: integer
+      label: 'Usage key retention (days)'
+    ai_job_retention_days:
+      type: integer
+      label: 'AI job retention (days, done jobs)'
+    ai_job_error_retention_days:
+      type: integer
+      label: 'AI job retention (days, errored jobs)'
+
+# Prompt registry config objects (simple config, not config entity).
+myeventlane_ai.prompt.*:
+  type: config_object
+  label: 'Prompt definition'
+  mapping:
+    key:
+      type: string
+      label: 'Prompt key'
+    version:
+      type: string
+      label: 'Version'
+    system:
+      type: text
+      label: 'System message'
+    template:
+      type: text
+      label: 'User message template'
+    placeholders:
+      type: sequence
+      sequence:
+        type: string
+      label: 'Placeholder names'
+    status:
+      type: string
+      label: 'Status (active/inactive)'
+    notes:
+      type: string
+      label: 'Internal description'

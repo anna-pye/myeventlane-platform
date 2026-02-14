@@ -2,3 +2,18 @@ administer myeventlane ai:
   title: 'Administer MyEventLane AI'
   description: 'Manage AI settings and provider configuration.'
   restrict access: true
+
+view own ai jobs:
+  title: 'View own AI jobs'
+  description: 'View AI jobs created by the user.'
+  restrict access: true
+
+view vendor ai jobs:
+  title: 'View vendor AI jobs'
+  description: 'View AI jobs for the vendor the user belongs to.'
+  restrict access: true
+
+administer ai jobs:
+  title: 'Administer AI jobs'
+  description: 'View all AI jobs (admin/staff).'
+  restrict access: true

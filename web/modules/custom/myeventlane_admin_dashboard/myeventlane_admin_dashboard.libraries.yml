@@ -4,3 +4,10 @@ admin_dashboard:
   css:
     theme:
       css/admin-dashboard.css: {}
+
+# Platform Control Centre dashboard.
+platform_control_centre:
+  version: VERSION
+  css:
+    theme:
+      css/platform-control-centre.css: {}

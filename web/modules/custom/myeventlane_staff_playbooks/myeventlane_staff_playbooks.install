@@ -101,3 +101,61 @@ function myeventlane_staff_playbooks_update_10002(): string {
 
   return 'Added tone, word limit, and structure help to reply snippets field.';
 }
+
+/**
+ * Remove field_playbook_sort_order from form/view displays.
+ *
+ * Update 10001 uninstalled the field but did not update entity_form_display
+ * and entity_view_display configs. Those still reference the removed field,
+ * causing "field needs to be installed" status errors.
+ */
+function myeventlane_staff_playbooks_update_10003(): string {
+  $config_factory = \Drupal::configFactory();
+  $logger = \Drupal::logger('myeventlane_staff_playbooks');
+  $old_field = 'field_playbook_sort_order';
+  $new_field = 'field_priority';
+
+  foreach (
+    [
+      'core.entity_form_display.node.staff_playbook.default',
+      'core.entity_view_display.node.staff_playbook.default',
+    ] as $config_name
+  ) {
+    $config = $config_factory->getEditable($config_name);
+    if ($config->isNew()) {
+      continue;
+    }
+    $content = $config->get('content') ?? [];
+
+    if (isset($content[$old_field])) {
+      unset($content[$old_field]);
+    }
+
+    if (!isset($content[$new_field])) {
+      $content[$new_field] = $config_name === 'core.entity_form_display.node.staff_playbook.default'
+        ? [
+          'type' => 'number',
+          'weight' => 6,
+          'region' => 'content',
+          'settings' => ['placeholder' => ''],
+          'third_party_settings' => [],
+        ]
+        : [
+          'type' => 'number_integer',
+          'weight' => 6,
+          'region' => 'content',
+          'settings' => [
+            'thousand_separator' => '',
+            'prefix_suffix' => TRUE,
+          ],
+          'third_party_settings' => [],
+        ];
+    }
+
+    $config->set('content', $content)->save();
+  }
+
+  $logger->notice('Removed field_playbook_sort_order from staff_playbook displays.');
+
+  return 'Cleaned field_playbook_sort_order from form/view displays.';
+}

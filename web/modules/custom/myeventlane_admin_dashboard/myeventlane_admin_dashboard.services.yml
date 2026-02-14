@@ -1,0 +1,47 @@
+services:
+  myeventlane_admin_dashboard.platform_control_centre_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PlatformControlCentreController
+    arguments:
+      - '@myeventlane_admin_dashboard.dashboard_renderer'
+
+  myeventlane_admin_dashboard.dashboard_renderer:
+    class: Drupal\myeventlane_admin_dashboard\Service\DashboardRenderer
+    arguments:
+      - '@myeventlane_admin_dashboard.platform_kpi'
+      - '@myeventlane_admin_dashboard.platform_alert'
+      - '@myeventlane_admin_dashboard.platform_trend'
+      - '@myeventlane_admin_dashboard.platform_recent_activity'
+
+  myeventlane_admin_dashboard.platform_kpi:
+    class: Drupal\myeventlane_admin_dashboard\Service\PlatformKpiService
+    arguments:
+      - '@myeventlane_summary.reader'
+      - '@myeventlane_admin_dashboard.platform_alert'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_admin_dashboard'
+
+  myeventlane_admin_dashboard.platform_alert:
+    class: Drupal\myeventlane_admin_dashboard\Service\PlatformAlertService
+    arguments:
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+
+  myeventlane_admin_dashboard.platform_trend:
+    class: Drupal\myeventlane_admin_dashboard\Service\PlatformTrendService
+    arguments:
+      - '@myeventlane_summary.reader'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_admin_dashboard'
+
+  myeventlane_admin_dashboard.platform_recent_activity:
+    class: Drupal\myeventlane_admin_dashboard\Service\PlatformRecentActivityService
+    arguments:
+      - '@database'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_admin_dashboard'
+
+  logger.channel.myeventlane_admin_dashboard:
+    parent: logger.channel_base
+    arguments: ['myeventlane_admin_dashboard']

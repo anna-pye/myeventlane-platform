@@ -65,7 +65,8 @@
         "mglaman/drupal-check": "^1.5",
         "phpoffice/phpspreadsheet": "^5.3",
         "psy/psysh": "^0.12.19",
-        "rlanvin/php-rrule": "^2.0"
+        "rlanvin/php-rrule": "^2.0",
+        "symfony/config": "^7.4"
     },
     "conflict": {
         "drupal/drupal": "*"

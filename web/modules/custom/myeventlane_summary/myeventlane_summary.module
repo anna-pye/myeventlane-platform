@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Platform Summary module.
+ */
+
+use Drupal\Core\Cron;
+
+/**
+ * Implements hook_cron().
+ */
+function myeventlane_summary_cron() {
+  \Drupal::service('myeventlane_summary.aggregator')->aggregate();
+}

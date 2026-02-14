@@ -9,3 +9,12 @@ openai:
 rate_limit:
   per_user_per_hour: 10
   per_scope_per_10_min: 5
+daily_user_token_limit: 50000
+daily_vendor_token_limit: 200000
+daily_cost_ceiling_usd: 10
+cb_failure_threshold: 10
+cb_window_seconds: 600
+cb_cost_trip_seconds: 86400
+usage_retention_days: 7
+ai_job_retention_days: 7
+ai_job_error_retention_days: 14

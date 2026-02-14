@@ -1,0 +1,48 @@
+/**
+ * @file
+ * Platform Control Centre styles – SCSS source.
+ *
+ * Compiled output lives in myeventlane_admin_dashboard/css/platform-control-centre.css.
+ * Import this in admin.scss if using theme-level compilation.
+ */
+
+$pcc-spacing: 1rem;
+$pcc-radius: 8px;
+$pcc-severity-green: #198754;
+$pcc-severity-amber: #fd7e14;
+$pcc-severity-red: #dc3545;
+$pcc-severity-neutral: #6c757d;
+
+.pcc--wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: $pcc-spacing;
+}
+
+.pcc__section {
+  margin-bottom: $pcc-spacing * 2;
+}
+
+.pcc-kpis__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $pcc-spacing;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 960px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.pcc-recent__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $pcc-spacing * 2;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

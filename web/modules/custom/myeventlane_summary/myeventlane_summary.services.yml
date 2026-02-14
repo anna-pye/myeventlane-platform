@@ -1,0 +1,18 @@
+services:
+  myeventlane_summary.aggregator:
+    class: Drupal\myeventlane_summary\Service\PlatformSummaryAggregator
+    arguments:
+      - '@database'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_summary'
+      - '@cache.default'
+
+  myeventlane_summary.reader:
+    class: Drupal\myeventlane_summary\Service\PlatformSummaryReader
+    arguments:
+      - '@database'
+      - '@logger.channel.myeventlane_summary'
+
+  logger.channel.myeventlane_summary:
+    parent: logger.channel_base
+    arguments: ['myeventlane_summary']

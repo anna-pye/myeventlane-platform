@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Import Klaro cookie consent config when config/sync is sparse or out of sync.
 # Run from repo root: ./scripts/import-cookie-config.sh
-# Requires: ddev, Klaro module installed (see docs/KLARO_MIGRATION.md)
+# Requires: ddev, Klaro module installed.
+#
+# For migration from COOKiES: follow docs/KLARO_MIGRATION.md first.
+# Uninstall cookies before composer update, or drush pmu will fail.
 
 set -e
 

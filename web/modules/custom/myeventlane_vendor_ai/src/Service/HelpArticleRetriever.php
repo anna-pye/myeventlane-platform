@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor_ai\Service;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Query\QueryException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Retrieves help article excerpts for vendor AI context.
@@ -15,6 +18,8 @@ final class HelpArticleRetriever {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -33,6 +38,14 @@ final class HelpArticleRetriever {
    *   Array of ['nid' => int, 'title' => string, 'url' => string, 'excerpt' => string].
    */
   public function retrieve(string $query, string $audience = 'vendor', int $limit = 5, int $excerptLength = 400): array {
+    $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
+    if (!isset($storageDefinitions['field_audience']) || !isset($storageDefinitions['field_priority'])) {
+      $this->logger->error(
+        'HelpArticleRetriever: field_audience or field_priority missing from node field storage. Run config:import or verify myeventlane_help_centre is correctly installed.'
+      );
+      return [];
+    }
+
     $nodeStorage = $this->entityTypeManager->getStorage('node');
 
     $q = $nodeStorage->getQuery()
@@ -53,7 +66,17 @@ final class HelpArticleRetriever {
       ->sort('title', 'ASC')
       ->range(0, $limit * 2);
 
-    $nids = $q->execute();
+    try {
+      $nids = $q->execute();
+    }
+    catch (QueryException $e) {
+      $this->logger->error(
+        'HelpArticleRetriever query failed: @message',
+        ['@message' => $e->getMessage()]
+      );
+      return [];
+    }
+
     if (empty($nids)) {
       return [];
     }

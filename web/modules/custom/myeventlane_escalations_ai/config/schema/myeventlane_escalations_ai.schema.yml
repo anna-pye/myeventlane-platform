@@ -7,7 +7,7 @@ myeventlane_escalations_ai.settings:
       label: 'Enabled'
     prompts:
       type: mapping
-      label: 'Prompt templates'
+      label: 'Prompt templates (deprecated; use myeventlane_ai prompt registry)'
       mapping:
         triage:
           type: mapping
