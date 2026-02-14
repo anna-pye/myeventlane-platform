@@ -1,0 +1,44 @@
+{#
+/**
+ * @file
+ * Platform Control Centre – executive dashboard layout.
+ *
+ * Sections are lazy-built; placeholders render above-the-fold first.
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Platform Control Centre'|t }}">
+  <header class="pcc__header">
+    <h1 class="pcc__title">{{ 'Platform Control Centre'|t }}</h1>
+    <p class="pcc__subtitle">
+      {{ 'Last updated'|t }}: {{ 'Data updates periodically'|t }}
+      <a href="/admin/myeventlane/reports" class="pcc__link">{{ 'Reports'|t }} →</a>
+    </p>
+  </header>
+
+  <section class="pcc__section pcc__section--kpis" aria-labelledby="pcc-kpis-heading">
+    <h2 id="pcc-kpis-heading" class="visually-hidden">{{ 'Key metrics'|t }}</h2>
+    {{ kpi_tiles }}
+  </section>
+
+  <section class="pcc__section pcc__section--alerts" aria-labelledby="pcc-alerts-heading">
+    <h2 id="pcc-alerts-heading" class="visually-hidden">{{ 'Operational alerts'|t }}</h2>
+    {{ alerts }}
+  </section>
+
+  <section class="pcc__section pcc__section--trend" aria-labelledby="pcc-trend-heading">
+    <h2 id="pcc-trend-heading" class="visually-hidden">{{ 'Revenue trend'|t }}</h2>
+    {{ trend }}
+  </section>
+
+  <section class="pcc__section pcc__section--recent" aria-labelledby="pcc-recent-heading">
+    <h2 id="pcc-recent-heading" class="visually-hidden">{{ 'Recent activity'|t }}</h2>
+    {{ recent_activity }}
+  </section>
+
+  <nav class="pcc__quick-actions" aria-label="{{ 'Quick actions'|t }}">
+    <a href="/admin/content" class="pcc__action-link">{{ 'Manage Events'|t }}</a>
+    <a href="/admin/structure/myeventlane/vendor" class="pcc__action-link">{{ 'Vendors'|t }}</a>
+    <a href="/admin/myeventlane/escalations" class="pcc__action-link">{{ 'Escalations'|t }}</a>
+    <a href="/admin/myeventlane/reports" class="pcc__action-link">{{ 'Reports'|t }}</a>
+  </nav>
+</div>

@@ -119,6 +119,19 @@ class VendorForm extends ContentEntityForm {
       $form['field_vendor_users']['#group'] = 'contact_visibility';
     }
 
+    // AI assistant and tips (vendor preferences).
+    $form['preferences'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('AI assistant and tips'),
+      '#weight' => 95,
+    ];
+    if (isset($form['ai_enabled'])) {
+      $form['ai_enabled']['#group'] = 'preferences';
+    }
+    if (isset($form['nudges_enabled'])) {
+      $form['nudges_enabled']['#group'] = 'preferences';
+    }
+
     // Store and Stripe section (admin-only).
     $account = $this->currentUser();
     if ($account->hasPermission('administer myeventlane vendor')) {

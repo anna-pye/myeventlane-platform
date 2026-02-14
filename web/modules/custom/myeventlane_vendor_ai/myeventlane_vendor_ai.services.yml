@@ -20,3 +20,5 @@ services:
     class: Drupal\myeventlane_vendor_ai\Service\HelpArticleRetriever
     arguments:
       - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@logger.channel.myeventlane_vendor_ai'

@@ -1,0 +1,23 @@
+myeventlane_ai.usage_guardrails:
+  path: '/admin/config/myeventlane/ai-usage'
+  defaults:
+    _form: '\Drupal\myeventlane_ai\Form\AiUsageGuardrailsForm'
+    _title: 'AI Usage & Guardrails'
+  requirements:
+    _permission: 'administer myeventlane ai'
+  options:
+    _admin_route: TRUE
+
+myeventlane_ai.job_poll:
+  path: '/ai/job/{ai_job}'
+  defaults:
+    _controller: '\Drupal\myeventlane_ai\Controller\AiJobPollController::poll'
+  requirements:
+    _entity_access: 'ai_job.view'
+    _user_is_logged_in: 'TRUE'
+  methods: [GET]
+  options:
+    no_cache: TRUE
+    parameters:
+      ai_job:
+        type: entity:ai_job

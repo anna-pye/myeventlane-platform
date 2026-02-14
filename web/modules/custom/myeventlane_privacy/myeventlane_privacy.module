@@ -10,8 +10,8 @@ declare(strict_types=1);
 /**
  * Implements hook_page_attachments().
  *
- * Attaches cookies consent dispatcher and tracking IDs to all pages.
- * Dispatcher listens for cookiesjsrUserConsent and injects scripts only after consent.
+ * Attaches consent dispatcher and tracking IDs to all pages.
+ * Dispatcher integrates with Klaro! (drupal/klaro) and injects scripts only after consent.
  *
  * Tracking IDs (GTM, GA4, Meta Pixel, Hotjar) are suppressed in non-production
  * environments to prevent analytics bleed. Set $settings['myeventlane_environment']
@@ -19,7 +19,7 @@ declare(strict_types=1);
  * disables it. Defaults to 'prod' for backwards compatibility.
  */
 function myeventlane_privacy_page_attachments(array &$attachments): void {
-  $attachments['#attached']['library'][] = 'myeventlane_privacy/cookies_consent_dispatcher';
+  $attachments['#attached']['library'][] = 'myeventlane_privacy/consent_dispatcher';
 
   $config = \Drupal::config('myeventlane_privacy.settings');
   $settings = \Drupal::service('settings');

@@ -4,4 +4,4 @@ myeventlane_help_centre_ai.ask:
     _controller: '\Drupal\myeventlane_help_centre_ai\Controller\HelpCentreAiController::ask'
     _title: 'Ask a question'
   requirements:
-    _access: 'TRUE'
+    _permission: 'use help centre ai'

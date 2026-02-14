@@ -1,16 +1,15 @@
 /**
  * @file
  * Staff escalation AI draft: button, modal, insert into reply textarea.
+ * Uses async job + polling.
  */
 
 (function (Drupal, drupalSettings, fetch) {
   'use strict';
 
-  /**
-   * Selectors for reply textarea. Tried in order.
-   * Admin escalation uses Drupal comment form: edit-comment-body-0-value
-   * EscalationReplyForm (vendor/customer): edit-message
-   */
+  const POLL_INTERVAL = 1500;
+  const MAX_POLLS = 20;
+
   const TEXTAREA_SELECTORS = [
     '#mel-reply-textarea',
     '[data-mel-reply-textarea="true"]',
@@ -37,6 +36,10 @@
 
   function getDraftUrl(escalationId) {
     return `/admin/myeventlane/escalations/${escalationId}/ai/instant-draft`;
+  }
+
+  function getPollUrl(jobId) {
+    return `/ai/job/${jobId}`;
   }
 
   function showModal(draft, onInsert) {
@@ -87,6 +90,43 @@
     dialog.querySelector('.mel-ai-draft-modal__insert').focus();
   }
 
+  function pollForDraft(jobId, onDone, onError) {
+    let attempts = 0;
+
+    const tick = () => {
+      attempts += 1;
+      if (attempts > MAX_POLLS) {
+        onError(Drupal.t('Request timed out. Please try again.'));
+        return;
+      }
+
+      fetch(getPollUrl(jobId), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === 'done') {
+            onDone(data.result_text || '');
+          } else if (data.status === 'error') {
+            onError(data.error_message || Drupal.t('Could not generate draft.'));
+          } else {
+            setTimeout(tick, POLL_INTERVAL);
+          }
+        })
+        .catch(() => {
+          if (attempts > MAX_POLLS) {
+            onError(Drupal.t('Request failed. Please try again.'));
+          } else {
+            setTimeout(tick, POLL_INTERVAL);
+          }
+        });
+    };
+
+    setTimeout(tick, POLL_INTERVAL);
+  }
+
   function init() {
     const root = document.getElementById('mel-ai-draft-root');
     if (!root) return;
@@ -116,15 +156,19 @@
 
         const data = await res.json();
 
-        if (data.ok && data.draft) {
-          showModal(data.draft, () => {
-            const textarea = findReplyTextarea();
-            if (textarea) {
-              const before = textarea.value;
-              const after = before ? before + '\n\n' + data.draft : data.draft;
-              textarea.value = after;
-              textarea.dispatchEvent(new Event('input', { bubbles: true }));
-            }
+        if (data.ok && data.job_id) {
+          pollForDraft(data.job_id, (draft) => {
+            showModal(draft, () => {
+              const textarea = findReplyTextarea();
+              if (textarea) {
+                const before = textarea.value;
+                const after = before ? before + '\n\n' + draft : draft;
+                textarea.value = after;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            });
+          }, (err) => {
+            alert(err);
           });
         } else {
           alert(data.error || Drupal.t('Could not generate draft. Please try again.'));

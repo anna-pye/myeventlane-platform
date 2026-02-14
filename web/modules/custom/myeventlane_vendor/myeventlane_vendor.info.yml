@@ -22,3 +22,4 @@ dependencies:
 optional_dependencies:
   - pathauto:pathauto
   - myeventlane_capacity:myeventlane_capacity
+  - myeventlane_ai:myeventlane_ai

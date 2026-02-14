@@ -5,19 +5,21 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_escalations_ai_draft\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_ai\Service\AiJobEnqueueService;
 use Drupal\myeventlane_escalations_ai_draft\Service\EscalationDraftContextBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Controller for staff escalation AI draft generation (AJAX).
+ * Controller for staff escalation AI draft generation (async via job).
+ *
+ * POST: creates ai_job, enqueues; returns job_id for polling.
  */
 final class EscalationAiDraftController extends ControllerBase {
 
   public function __construct(
-    private readonly AiManager $aiManager,
+    private readonly AiJobEnqueueService $jobEnqueue,
     private readonly EscalationDraftContextBuilder $contextBuilder,
   ) {}
 
@@ -26,13 +28,13 @@ final class EscalationAiDraftController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): self {
     return new self(
-      $container->get('myeventlane_ai.manager'),
+      $container->get('myeventlane_ai.job_enqueue'),
       $container->get('myeventlane_escalations_ai_draft.context_builder'),
     );
   }
 
   /**
-   * Generates a draft reply via AI. Returns JSON for AJAX.
+   * Starts draft generation. Returns job_id for polling.
    */
   public function generate(Request $request, int $escalation): JsonResponse {
     if (!$request->isMethod('POST')) {
@@ -45,34 +47,10 @@ final class EscalationAiDraftController extends ControllerBase {
         'ok' => FALSE,
         'error' => $this->t('Could not build context.'),
         'draft' => '',
+        'job_id' => NULL,
       ]);
     }
 
-    $prompt = $this->buildPrompt($context);
-
-    $aiResult = $this->aiManager->analyze(
-      $prompt,
-      ['max_tokens' => 800],
-      (int) $this->currentUser()->id(),
-      'escalation_draft:' . $escalation,
-    );
-
-    if (!$aiResult->ok) {
-      return new JsonResponse([
-        'ok' => FALSE,
-        'error' => $aiResult->error ?? $this->t('AI service unavailable.'),
-        'draft' => '',
-      ]);
-    }
-
-    return new JsonResponse([
-      'ok' => TRUE,
-      'draft' => trim($aiResult->raw),
-      'error' => NULL,
-    ]);
-  }
-
-  private function buildPrompt(array $context): string {
     $thread = '';
     foreach ($context['thread'] ?? [] as $msg) {
       $thread .= "\n[" . ($msg['author'] ?? '') . "]: " . ($msg['body'] ?? '');
@@ -89,19 +67,36 @@ final class EscalationAiDraftController extends ControllerBase {
       }
     }
 
-    $system = "You are a helpful staff assistant drafting reply messages for customer support escalations. "
-      . "Your draft will be reviewed and edited by staff before sending. "
-      . $context['governance_standards'] . " "
-      . "Output ONLY the draft reply text, no preamble or meta-commentary.";
+    $meta = $context['meta'] ?? [];
 
-    $user = "Escalation:\nSubject: " . ($context['subject'] ?? '') . "\nDescription: " . ($context['description'] ?? '')
-      . "\nStatus: " . ($context['meta']['status'] ?? '') . ", Priority: " . ($context['meta']['priority'] ?? '')
-      . ", Waiting on: " . ($context['meta']['waiting_on'] ?? '') . ", SLA: " . ($context['meta']['sla_label'] ?? '')
-      . "\n\nConversation thread:" . ($thread ?: ' (none yet)')
-      . "\n\nRelevant playbooks and snippets:" . ($playbooks ?: ' (none)')
-      . "\n\nDraft a reply the staff member can use or edit:";
+    $placeholders = [
+      'governance_standards' => $context['governance_standards'] ?? '',
+      'subject' => $context['subject'] ?? '',
+      'description' => $context['description'] ?? '',
+      'status' => $meta['status'] ?? '',
+      'priority' => $meta['priority'] ?? '',
+      'waiting_on' => $meta['waiting_on'] ?? '',
+      'sla_label' => $meta['sla_label'] ?? '',
+      'thread' => $thread ?: ' (none yet)',
+      'playbooks' => $playbooks ?: ' (none)',
+    ];
 
-    return $system . "\n\n" . $user;
+    $job = $this->jobEnqueue->enqueue(
+      'escalation.draft',
+      'v1',
+      $placeholders,
+      ['max_tokens' => 800],
+      (int) $this->currentUser()->id(),
+      'escalation_draft:' . $escalation,
+      NULL,
+    );
+
+    return new JsonResponse([
+      'ok' => TRUE,
+      'job_id' => (int) $job->id(),
+      'draft' => '',
+      'error' => NULL,
+    ]);
   }
 
 }

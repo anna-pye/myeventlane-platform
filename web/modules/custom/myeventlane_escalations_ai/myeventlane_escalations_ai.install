@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane Escalations AI.
+ */
+
+/**
+ * Add prompt_key to escalation_ai_insight entity (Phase 2D).
+ */
+function myeventlane_escalations_ai_update_9001(): string {
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  $storage_definitions = $entity_field_manager->getFieldStorageDefinitions('escalation_ai_insight');
+
+  if (!isset($storage_definitions['prompt_key'])) {
+    $definition = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt key'))
+      ->setSetting('max_length', 128)
+      ->setDefaultValue('');
+    $update_manager->installFieldStorageDefinition('prompt_key', 'escalation_ai_insight', 'myeventlane_escalations_ai', $definition);
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    $entity_field_manager->clearCachedFieldDefinitions();
+    return 'Added prompt_key to escalation_ai_insight entity (Phase 2D).';
+  }
+
+  return 'prompt_key already exists on escalation_ai_insight.';
+}

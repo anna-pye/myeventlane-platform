@@ -1,12 +1,13 @@
 /**
  * @file
- * COOKiES/cookiesjsr consent dispatcher.
+ * Klaro consent dispatcher.
  *
- * cookiesjsr triggers: document.addEventListener('cookiesjsrUserConsent', ...)
- * Consent map: event.detail.services (object of { serviceId: boolean })
+ * Integrates with Klaro! Consent Manager (drupal/klaro).
+ * Uses klaro.getManager(config).watch() for consent changes and
+ * getConsent(name) for current state.
  *
- * Scripts are injected only after consent. Service IDs must match COOKiES
- * cookie service entity IDs (gtm, gtag, meta_pixel, hotjar, recaptcha).
+ * Service IDs must match Klaro service entity IDs:
+ * gtm, gtag, meta_pixel, hotjar, recaptcha.
  */
 
 (function (Drupal, drupalSettings) {
@@ -130,27 +131,61 @@
     },
   };
 
-  const applyConsent = (services) => {
-    const map = (services && typeof services === 'object') ? services : {};
+  const applyConsent = (consentMap) => {
+    const map = consentMap && typeof consentMap === 'object' ? consentMap : {};
     Object.keys(features).forEach((id) => {
       const allowed = map[id] === true;
-      if (allowed) features[id].enable();
-      else features[id].disable();
+      if (allowed) {
+        features[id].enable();
+      } else {
+        features[id].disable();
+      }
     });
   };
 
-  // ---- Drupal behavior: attach listener once ----
-  Drupal.behaviors.myeventlaneCookiesConsent = {
+  // ---- Drupal behavior: integrate with Klaro ----
+  Drupal.behaviors.myeventlaneConsentDispatcher = {
     attach: function attach() {
-      if (window.__melCookiesConsentBound) return;
-      window.__melCookiesConsentBound = true;
+      if (window.__melConsentDispatcherBound) return;
+      window.__melConsentDispatcherBound = true;
 
-      document.addEventListener('cookiesjsrUserConsent', function (event) {
-        const services = event?.detail?.services;
-        if (drupalSettings?.myeventlane?.environment === 'dev') {
-          console.log('[MyEventLane Privacy] Consent state:', services);
-        }
-        applyConsent(services);
+      // Klaro may not be loaded on all pages (disabled URIs, etc.).
+      if (typeof window.klaro === 'undefined') {
+        return;
+      }
+
+      // Klaro config: Drupal module may expose as klaro.config or root klaro.
+      const config = drupalSettings?.klaro?.config ?? drupalSettings?.klaro ?? window.klaroConfig;
+      if (!config) {
+        return;
+      }
+
+      const manager = window.klaro.getManager(config);
+      if (!manager) {
+        return;
+      }
+
+      // Apply current consent state immediately.
+      const initialConsents = {};
+      Object.keys(features).forEach((id) => {
+        initialConsents[id] = manager.getConsent(id) === true;
+      });
+      applyConsent(initialConsents);
+
+      if (drupalSettings?.myeventlane?.environment === 'dev') {
+        console.log('[MyEventLane Privacy] Initial consent:', initialConsents);
+      }
+
+      // React to consent changes.
+      manager.watch({
+        update: function (obj, name, data) {
+          if (name === 'consents' && data) {
+            if (drupalSettings?.myeventlane?.environment === 'dev') {
+              console.log('[MyEventLane Privacy] Consent update:', data);
+            }
+            applyConsent(data);
+          }
+        },
       });
     },
   };

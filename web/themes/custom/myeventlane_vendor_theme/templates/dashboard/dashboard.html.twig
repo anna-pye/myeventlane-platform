@@ -249,6 +249,25 @@
 
     {# Right Column: Stripe + Account + Help #}
     <div class="mel-dashboard__secondary">
+      {# AI usage panel (tokens only) #}
+      {% if ai_usage_panel is defined and ai_usage_panel %}
+        <div class="mel-card mel-card--ai-usage">
+          <div class="mel-card__header mel-card__header--no-border">
+            <h3 class="mel-card__title">{{ 'AI Assistant'|t }}</h3>
+          </div>
+          <div class="mel-card__body">
+            {% if ai_usage_panel.ai_enabled %}
+              <p class="mel-ai-usage__stats">
+                {{ 'Tokens used today: @used of @limit'|t({'@used': ai_usage_panel.tokens_used|number_format, '@limit': ai_usage_panel.token_limit|number_format}) }}
+              </p>
+            {% else %}
+              <p class="mel-ai-usage__disabled">{{ 'AI is disabled'|t }}</p>
+              <p class="mel-muted mel-ai-usage__hint">{{ 'Enable in your profile settings to use the AI assistant.'|t }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
       {# Stripe Panel #}
       <div class="mel-card">
         <div class="mel-card__body mel-card__body--flush">

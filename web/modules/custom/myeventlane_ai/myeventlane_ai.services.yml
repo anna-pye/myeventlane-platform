@@ -3,13 +3,45 @@ services:
     class: Drupal\myeventlane_ai\Service\AiRateLimiter
     arguments: ['@flood', '@config.factory', '@logger.channel.myeventlane_ai']
 
+  myeventlane_ai.usage_store:
+    class: Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+    factory: ['@keyvalue.expirable', 'get']
+    arguments: ['myeventlane_ai.usage']
+
+  myeventlane_ai.usage_tracker:
+    class: Drupal\myeventlane_ai\Service\AiUsageTracker
+    arguments: ['@myeventlane_ai.usage_store', '@config.factory', '@lock', '@logger.channel.myeventlane_ai']
+
+  myeventlane_ai.circuit_breaker:
+    class: Drupal\myeventlane_ai\Service\AiCircuitBreaker
+    arguments: ['@state', '@config.factory', '@logger.channel.myeventlane_ai']
+
   myeventlane_ai.provider.openai:
     class: Drupal\myeventlane_ai\Provider\OpenAiProvider
     arguments: ['@http_client', '@config.factory', '@logger.channel.myeventlane_ai']
 
   myeventlane_ai.manager:
     class: Drupal\myeventlane_ai\Service\AiManager
-    arguments: ['@config.factory', '@logger.channel.myeventlane_ai', '@myeventlane_ai.rate_limiter', '@myeventlane_ai.provider.openai']
+    arguments:
+      $configFactory: '@config.factory'
+      $logger: '@logger.channel.myeventlane_ai'
+      $rateLimiter: '@myeventlane_ai.rate_limiter'
+      $usageTracker: '@myeventlane_ai.usage_tracker'
+      $circuitBreaker: '@myeventlane_ai.circuit_breaker'
+      $provider: '@myeventlane_ai.provider.openai'
+      $entityTypeManager: '@entity_type.manager'
+
+  myeventlane_ai.prompt_registry:
+    class: Drupal\myeventlane_ai\Service\PromptRegistry
+    arguments: ['@config.factory', '@logger.channel.myeventlane_ai']
+
+  myeventlane_ai.job_enqueue:
+    class: Drupal\myeventlane_ai\Service\AiJobEnqueueService
+    arguments: ['@entity_type.manager', '@queue']
+
+  myeventlane_ai.job_cleanup:
+    class: Drupal\myeventlane_ai\Service\AiJobCleanupService
+    arguments: ['@entity_type.manager', '@logger.channel.myeventlane_ai']
 
   logger.channel.myeventlane_ai:
     parent: logger.channel_base

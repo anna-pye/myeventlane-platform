@@ -1,0 +1,6 @@
+myeventlane_ai.usage_guardrails:
+  title: 'AI Usage & Guardrails'
+  description: 'View AI usage totals and configure token quotas, circuit breaker, and retention.'
+  route_name: myeventlane_ai.usage_guardrails
+  parent: myeventlane_core.config
+  weight: 30

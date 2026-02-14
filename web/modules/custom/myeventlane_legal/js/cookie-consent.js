@@ -76,6 +76,8 @@
   }
 
   function initBanner() {
+    // When Klaro (drupal/klaro) is the consent manager, do not show our banner.
+    if (drupalSettings.klaro) return;
     const consent = getConsent();
     if (consent) return;
     if (sessionStorage.getItem(BANNER_DISMISSED)) return;
@@ -85,6 +87,11 @@
   function initPreferencesPage() {
     const form = document.getElementById('mel-cookie-preferences-form');
     if (!form) return;
+    // When Klaro is the consent manager, hide the legacy form (preferences managed via Klaro).
+    if (drupalSettings.klaro) {
+      form.closest('.mel-cookie-preferences')?.classList.add('mel-cookie-preferences--klaro-only');
+      return;
+    }
 
     const consent = getConsent();
     const analyticsCheck = form.querySelector('#mel-consent-analytics');

@@ -1,0 +1,90 @@
+{#
+/**
+ * @file
+ * Recent escalations and orders tables for the Platform Control Centre.
+ * Always renders both tables: real rows or empty-state rows.
+ */
+#}
+<div class="pcc-recent">
+  <div class="pcc-recent__grid">
+    <div class="pcc-recent__table-wrap">
+      <h3 class="pcc-recent__title">{{ 'Recent escalations'|t }}</h3>
+      {% if activity.escalations_empty %}
+        <table class="pcc-recent__table" role="grid">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Subject'|t }}</th>
+              <th scope="col">{{ 'Status'|t }}</th>
+              <th scope="col">{{ 'Priority'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="3" class="pcc-recent__empty-cell">{{ 'No recent activity'|t }}</td>
+            </tr>
+          </tbody>
+        </table>
+      {% else %}
+        <table class="pcc-recent__table" role="grid">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Subject'|t }}</th>
+              <th scope="col">{{ 'Status'|t }}</th>
+              <th scope="col">{{ 'Priority'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in activity.escalations %}
+              <tr>
+                <td><a href="{{ row.url }}">{{ row.subject }}</a></td>
+                <td>{{ row.status }}</td>
+                <td><span class="pcc-recent__badge pcc-recent__badge--{{ row.priority }}">{{ row.priority }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+      <a href="/admin/myeventlane/escalations" class="pcc-recent__link">{{ 'Manage all'|t }} →</a>
+    </div>
+
+    <div class="pcc-recent__table-wrap">
+      <h3 class="pcc-recent__title">{{ 'Recent orders'|t }}</h3>
+      {% if activity.orders_empty %}
+        <table class="pcc-recent__table" role="grid">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Order'|t }}</th>
+              <th scope="col">{{ 'Amount'|t }}</th>
+              <th scope="col">{{ 'Date'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="3" class="pcc-recent__empty-cell">{{ 'No recent activity'|t }}</td>
+            </tr>
+          </tbody>
+        </table>
+      {% else %}
+        <table class="pcc-recent__table" role="grid">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Order'|t }}</th>
+              <th scope="col">{{ 'Amount'|t }}</th>
+              <th scope="col">{{ 'Date'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in activity.orders %}
+              <tr>
+                <td><a href="/admin/commerce/orders/{{ row.order_id }}">{{ row.order_number }}</a></td>
+                <td>${{ row.amount|number_format(2) }}</td>
+                <td>{{ row.placed|date('M j, Y') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+      <a href="/admin/myeventlane/reports" class="pcc-recent__link">{{ 'Reports'|t }} →</a>
+    </div>
+  </div>
+</div>

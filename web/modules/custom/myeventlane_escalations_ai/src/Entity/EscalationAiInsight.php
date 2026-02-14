@@ -74,6 +74,11 @@ final class EscalationAiInsight extends ContentEntityBase implements EscalationA
       ->setLabel(new TranslatableMarkup('Payload (JSON/text)'))
       ->setRequired(TRUE);
 
+    $fields['prompt_key'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Prompt key'))
+      ->setSetting('max_length', 128)
+      ->setDefaultValue('');
+
     $fields['prompt_version'] = BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Prompt version'))
       ->setSetting('max_length', 32)

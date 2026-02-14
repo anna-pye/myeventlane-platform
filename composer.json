@@ -27,7 +27,6 @@
         "drupal/commerce_paypal": "^2.0",
         "drupal/commerce_stripe": "^1.0",
         "drupal/conditional_fields": "^4.0@alpha",
-        "drupal/cookies": "^1.2",
         "drupal/core": "^11",
         "drupal/core-composer-scaffold": "^11.2",
         "drupal/core-project-message": "^11.2",
@@ -45,6 +44,7 @@
         "drupal/honeypot": "^2.2",
         "drupal/image_widget_crop": "^3.0",
         "drupal/inline_entity_form": "^3.0@rc",
+        "drupal/klaro": "^3.0",
         "drupal/mailsystem": "^4.5",
         "drupal/menu_link_attributes": "^1.5",
         "drupal/metatag": "^2.2",
@@ -65,7 +65,8 @@
         "mglaman/drupal-check": "^1.5",
         "phpoffice/phpspreadsheet": "^5.3",
         "psy/psysh": "^0.12.19",
-        "rlanvin/php-rrule": "^2.0"
+        "rlanvin/php-rrule": "^2.0",
+        "symfony/config": "^7.4"
     },
     "conflict": {
         "drupal/drupal": "*"

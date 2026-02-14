@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * KPI tiles for the Platform Control Centre.
+ * Always renders 4 tiles: real data or "Data updating…" placeholders.
+ */
+#}
+<div class="pcc-kpis">
+  <div class="pcc-kpis__grid">
+    {% if kpis is not empty %}
+      {% for kpi in kpis %}
+        <div class="pcc-kpis__tile pcc-kpis__tile--{{ kpi.severity }}">
+          <div class="pcc-kpis__label">{{ kpi.label }}</div>
+          <div class="pcc-kpis__value">{{ kpi.value }}</div>
+          {% if kpi.url %}
+            <a href="{{ kpi.url }}" class="pcc-kpis__link">{{ 'View'|t }} →</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      {# Never blank: 4 skeleton placeholders when data is missing #}
+      {% for i in 1..4 %}
+        <div class="pcc-kpis__tile pcc-kpis__tile--neutral pcc-kpis__tile--skeleton">
+          <div class="pcc-kpis__label">{{ 'Data updating…'|t }}</div>
+          <div class="pcc-kpis__value">—</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>

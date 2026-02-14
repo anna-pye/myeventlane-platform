@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_ai\Service\PromptRegistry;
 use Drupal\myeventlane_escalations_ai\Service\EscalationAiContextBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -24,6 +25,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class EscalationAiQueueWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
+  private const TASK_TO_KEY = [
+    'triage' => 'escalation.triage',
+    'reply_suggestion' => 'escalation.reply_suggestion',
+    'risk_flag' => 'escalation.risk_flag',
+    'breach_soon' => 'escalation.breach_soon',
+  ];
+
   public function __construct(
     array $configuration,
     $plugin_id,
@@ -32,6 +40,7 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EscalationAiContextBuilder $contextBuilder,
     private readonly AiManager $aiManager,
+    private readonly PromptRegistry $promptRegistry,
     private readonly LoggerInterface $logger,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -49,6 +58,7 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
       $container->get('entity_type.manager'),
       $container->get('myeventlane_escalations_ai.context_builder'),
       $container->get('myeventlane_ai.manager'),
+      $container->get('myeventlane_ai.prompt_registry'),
       $container->get('logger.channel.myeventlane_escalations_ai'),
     );
   }
@@ -71,8 +81,12 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
       return;
     }
 
-    // Build sanitised context.
-    // For breach_soon: include conversation thread (public messages only).
+    $prompt_key = self::TASK_TO_KEY[$task] ?? NULL;
+    if ($prompt_key === NULL) {
+      $this->logger->warning('Unknown escalation AI task: {task}', ['task' => $task]);
+      return;
+    }
+
     if ($task === 'breach_soon') {
       $context = $this->contextBuilder->buildWithThread($escalation_id);
     }
@@ -82,7 +96,6 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
 
     $context_json = json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    // Truncate if too large.
     $max_context = (int) ($settings->get('ai_options.max_context_chars') ?? 8000);
     if (is_string($context_json) && strlen($context_json) > $max_context) {
       $context_json = substr($context_json, 0, $max_context);
@@ -91,58 +104,48 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
       $context_json = '{"error":"context_encode_failed"}';
     }
 
-    // Load prompt template.
-    $prompt_template = (string) ($settings->get('prompts.' . $task . '.template') ?? '');
-    $prompt_version = (string) ($settings->get('prompts.' . $task . '.version') ?? 'v1');
+    $placeholders = ['context_json' => $context_json];
+    if ($task === 'breach_soon') {
+      $placeholders['hours_remaining'] = (string) ($data['hours_remaining'] ?? '');
+      $placeholders['waiting_on'] = (string) ($data['waiting_on'] ?? '');
+    }
 
-    if ($prompt_template === '') {
-      $this->storeInsight($escalation_id, $task, 'error', $prompt_version, 'Missing prompt template for task: ' . $task, '{}', NULL, NULL);
+    $definition = $this->promptRegistry->render($prompt_key, $placeholders, 'v1');
+    if ($definition === NULL) {
+      $this->storeInsight($escalation_id, $task, 'error', $prompt_key, 'v1', 'Missing or invalid prompt config for task: ' . $task, '{}', NULL, NULL);
       return;
     }
 
-    // Compose prompt with all available replacements.
-    $prompt = str_replace('{{context_json}}', $context_json, $prompt_template);
-
-    // Replace additional metadata tokens (e.g. breach_soon passes hours_remaining).
-    if (isset($data['hours_remaining'])) {
-      $prompt = str_replace('{{hours_remaining}}', (string) $data['hours_remaining'], $prompt);
-    }
-    if (isset($data['waiting_on'])) {
-      $prompt = str_replace('{{waiting_on}}', (string) $data['waiting_on'], $prompt);
-    }
-
-    // Call AI provider via AiManager.
     $provider_options = (array) ($settings->get('ai_options.provider_options') ?? []);
     $result = $this->aiManager->analyze(
-      $prompt,
+      $definition,
       $provider_options,
       $requested_by_uid,
-      'escalation:' . $escalation_id
+      'escalation:' . $escalation_id,
+      NULL,
     );
 
     if (!$result->ok) {
-      $this->storeInsight($escalation_id, $task, 'error', $prompt_version, (string) $result->error, (string) $result->raw, $result->provider, $result->model);
+      $this->storeInsight($escalation_id, $task, 'error', $prompt_key, 'v1', (string) $result->error, (string) $result->raw, $result->provider, $result->model);
       return;
     }
 
-    // Prefer normalised JSON if available.
     $payload = $result->raw;
     if (is_array($result->json)) {
       $payload = json_encode($result->json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $result->raw;
     }
 
-    $this->storeInsight($escalation_id, $task, 'ok', $prompt_version, '', (string) $payload, $result->provider, $result->model);
+    $this->storeInsight($escalation_id, $task, 'ok', $prompt_key, 'v1', '', (string) $payload, $result->provider, $result->model);
   }
 
   /**
    * Stores an AI insight entity (append-only).
-   *
-   * All saves are wrapped in try/catch to fail safely.
    */
   private function storeInsight(
     int $escalation_id,
     string $task,
     string $status,
+    string $prompt_key,
     string $prompt_version,
     string $error_message,
     string $payload,
@@ -159,6 +162,7 @@ final class EscalationAiQueueWorker extends QueueWorkerBase implements Container
         'confidence' => '0',
         'is_internal' => TRUE,
         'payload_json' => $payload,
+        'prompt_key' => $prompt_key,
         'prompt_version' => $prompt_version,
         'provider' => trim(($provider ?? '') . ($model ? ':' . $model : '')),
         'status' => $status,

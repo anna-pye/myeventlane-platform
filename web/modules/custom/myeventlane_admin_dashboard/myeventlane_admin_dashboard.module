@@ -34,5 +34,44 @@ function myeventlane_admin_dashboard_theme(): array {
       ],
       'template' => 'admin-dashboard',
     ],
+    'platform_control_centre' => [
+      'variables' => [
+        'kpi_tiles' => NULL,
+        'alerts' => NULL,
+        'trend' => NULL,
+        'recent_activity' => NULL,
+        'links' => NULL,
+      ],
+      'template' => 'platform-control-centre',
+    ],
+    'platform_control_centre__kpi_tiles' => [
+      'variables' => [
+        'kpis' => [],
+      ],
+      'template' => 'platform-control-centre--kpi-tiles',
+    ],
+    'platform_control_centre__alerts' => [
+      'variables' => [
+        'alerts' => [],
+      ],
+      'template' => 'platform-control-centre--alerts',
+    ],
+    'platform_control_centre__trend' => [
+      'variables' => [
+        'trend' => ['months' => [], 'max_revenue' => 0.0, 'empty' => TRUE],
+      ],
+      'template' => 'platform-control-centre--trend',
+    ],
+    'platform_control_centre__recent_activity' => [
+      'variables' => [
+        'activity' => [
+          'escalations' => [],
+          'orders' => [],
+          'escalations_empty' => TRUE,
+          'orders_empty' => TRUE,
+        ],
+      ],
+      'template' => 'platform-control-centre--recent-activity',
+    ],
   ];
 }

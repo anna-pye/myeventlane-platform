@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_help_centre\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 use Psr\Log\LoggerInterface;
@@ -20,6 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class HelpCentreController extends ControllerBase {
 
   public function __construct(
+    private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -28,6 +30,7 @@ final class HelpCentreController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
+      $container->get('entity_field.manager'),
       $container->get('logger.factory')->get('myeventlane_help_centre'),
     );
   }
@@ -187,6 +190,14 @@ final class HelpCentreController extends ControllerBase {
    *   - 'articles': Array of article data.
    */
   private function loadGroupedArticles(string $audience, ?TermInterface $category = NULL): array {
+    $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
+    if (!isset($storageDefinitions['field_audience']) || !isset($storageDefinitions['field_priority'])) {
+      $this->logger->error(
+        'HelpCentreController: field_audience or field_priority missing from node field storage. Run config:import or verify myeventlane_help_centre is correctly installed.'
+      );
+      return [];
+    }
+
     try {
       $nodeStorage = $this->entityTypeManager()->getStorage('node');
 

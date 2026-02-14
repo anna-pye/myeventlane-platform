@@ -2,8 +2,8 @@
 myeventlane_admin_dashboard.overview:
   path: '/admin/myeventlane'
   defaults:
-    _controller: '\Drupal\myeventlane_admin_dashboard\Controller\AdminDashboardController::overview'
-    _title: 'MyEventLane Overview'
+    _controller: 'myeventlane_admin_dashboard.platform_control_centre_controller:overview'
+    _title: 'Platform Control Centre'
   requirements:
     _permission: 'access admin dashboard'
   options:

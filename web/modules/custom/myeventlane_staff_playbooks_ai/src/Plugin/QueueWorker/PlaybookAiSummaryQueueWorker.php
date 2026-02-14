@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_ai\Service\PromptRegistry;
 use Drupal\myeventlane_staff_playbooks_ai\Service\PlaybookAiContextBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -33,6 +34,7 @@ final class PlaybookAiSummaryQueueWorker extends QueueWorkerBase implements Cont
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly PlaybookAiContextBuilder $contextBuilder,
     private readonly AiManager $aiManager,
+    private readonly PromptRegistry $promptRegistry,
     private readonly LoggerInterface $logger,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -50,6 +52,7 @@ final class PlaybookAiSummaryQueueWorker extends QueueWorkerBase implements Cont
       $container->get('entity_type.manager'),
       $container->get('myeventlane_staff_playbooks_ai.context_builder'),
       $container->get('myeventlane_ai.manager'),
+      $container->get('myeventlane_ai.prompt_registry'),
       $container->get('logger.channel.myeventlane_staff_playbooks_ai'),
     );
   }
@@ -95,13 +98,18 @@ final class PlaybookAiSummaryQueueWorker extends QueueWorkerBase implements Cont
         $ai_opts['model'] = $model;
       }
 
-      $prompt = $this->buildPrompt($context);
+      $definition = $this->promptRegistry->render('playbook.summary', ['context' => $context], 'v1');
+      if ($definition === NULL) {
+        $this->logger->error('Playbook AI: prompt config missing for playbook.summary');
+        return;
+      }
 
       $result = $this->aiManager->analyze(
-        $prompt,
+        $definition,
         $ai_opts,
         $requested_by_uid,
-        'playbook:' . $node_id
+        'playbook:' . $node_id,
+        NULL,
       );
 
       if (!$result->ok) {
@@ -128,35 +136,6 @@ final class PlaybookAiSummaryQueueWorker extends QueueWorkerBase implements Cont
         '@message' => $e->getMessage(),
       ]);
     }
-  }
-
-  /**
-   * Builds the prompt for playbook summarisation.
-   *
-   * Enforces: AU English, gender neutral, politically correct.
-   * Output structure: Situation, Tone, Steps, Avoid, Escalate if.
-   */
-  private function buildPrompt(string $context): string {
-    return <<<PROMPT
-You are an internal staff support assistant. Summarise the following staff playbook into a short, structured summary.
-
-Requirements:
-- Use Australian English spelling and conventions.
-- Be gender neutral and politically correct.
-- Be friendly and professional.
-- Output must use these exact headings:
-  - Situation
-  - Tone
-  - Steps
-  - Avoid
-  - Escalate if
-
-Playbook content:
-
-{$context}
-
-Provide the summary with the headings above. Keep each section concise (1–3 sentences). Use plain text; no markdown or HTML.
-PROMPT;
   }
 
 }

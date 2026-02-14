@@ -1,136 +1,75 @@
-# COOKiES Consent Implementation — Setup
+# Cookie Consent Setup (Klaro)
 
 **Branch:** `feature/cookies-consent`
+
+## Overview
+
+MyEventLane uses [Klaro!](https://www.drupal.org/project/klaro) (drupal/klaro) for cookie consent management.
+
+For migration from the previous COOKiES implementation, see [KLARO_MIGRATION.md](./KLARO_MIGRATION.md).
 
 ## Prerequisites
 
 - Drupal 11
-- `drupal/cookies:^1.2` (already in composer.json)
-- `web/libraries/cookiesjsr` (present)
+- `drupal/klaro:^3.0` (in composer.json)
+- `drupal/klaro_js` (installed as Klaro dependency)
 
 ## Installation Steps
 
-### 1. Enable modules
+### 1. Run Composer
 
 ```bash
-drush en cookies myeventlane_privacy -y
+composer update
 ```
 
-Optional (for WYSIWYG iframe/script blocking):
+### 2. Enable modules
 
 ```bash
-drush en cookies_filter -y
+drush en klaro myeventlane_privacy -y
 ```
 
-### 2. Import configuration
-
-If `config/sync` only has the cookie files (sparse sync), a full `drush cim` will try to delete all other config and uninstall modules. Use one of these approaches:
-
-**Option A: Partial import (try first)**
+### 3. Import configuration
 
 ```bash
-ddev drush cim -y --partial
+drush cim -y
 ```
 
-**Option B: Full sync + cookie config** (required when Option A fails due to sparse sync)
+Or use the import script:
 
 ```bash
-# Run the script from repo root:
 ./scripts/import-cookie-config.sh
 ```
 
-Or manually:
+### 4. Build theme assets
 
 ```bash
-# 1. Enable modules first (so they appear in core.extension)
-ddev drush en cookies myeventlane_privacy -y
-
-# 2. Backup cookie config
-mkdir -p config/sync/.cookie-backup
-cp config/sync/cookies.config.yml config/sync/block.block.*.cookies_ui.yml config/sync/.cookie-backup/
-
-# 3. Export active config (populates sync with full site config)
-ddev drush cex -y
-
-# 4. Restore our cookie config over the export
-cp config/sync/.cookie-backup/*.yml config/sync/
-
-# 5. Import
-ddev drush cim -y
-
-# 6. Clear cache
-ddev drush cr
-```
-
-**Option C: Enable modules first, then import only cookie config**
-
-```bash
-# 1. Enable modules (creates their config in active)
-ddev drush en cookies myeventlane_privacy -y
-
-# 2. Import just our cookie config via partial
-ddev drush cim -y --partial
-```
-
-This applies:
-
-- `cookies.config` (deny all, #editCookieSettings, etc.)
-- Block placement for myeventlane_theme, myeventlane_radix, myeventlane_vendor_theme
-
-### 3. Build theme assets
-
-Rebuild SCSS so cookie consent overrides are compiled:
-
-```bash
-# From theme directory, e.g.:
 cd web/themes/custom/myeventlane_theme && npm run build
 cd web/themes/custom/myeventlane_vendor_theme && npm run build
-cd web/themes/custom/myeventlane_radix && npm run build  # if used
+cd web/themes/custom/myeventlane_radix && npm run build
 ```
 
-### 4. Clear cache
+### 5. Configure Klaro services
 
-```bash
-drush cr
-```
+1. Go to **Configuration → User interface → Klaro** (`/admin/config/user-interface/klaro`)
+2. Create services with IDs: `gtm`, `gtag`, `meta_pixel`, `hotjar`, `recaptcha`
+3. Assign to purposes (Analytics, Marketing, etc.)
 
-### 5. Configure tracking (optional)
+### 6. Configure tracking (optional)
 
 1. Go to **Configuration → System → Privacy & Tracking**
-2. Enter GTM, GA4, Meta Pixel, Hotjar, or reCAPTCHA IDs as needed
-3. Create matching cookie services in **Configuration → System → COOKiES → Cookie services** with IDs: `gtm`, `gtag`, `meta_pixel`, `hotjar`, `recaptcha`
+2. Enter GTM, GA4, Meta Pixel, Hotjar, or reCAPTCHA IDs
 
-## Blank preferences dialog?
+### 7. Environment-based tracking
 
-If the settings dialog opens but shows no content (empty categories), ensure cookie services exist:
+Set `$settings['myeventlane_environment']` in settings.php:
 
-1. Go to **Configuration → System → COOKiES → Cookie services**
-2. If empty, the cookies module default config may not have been imported. Run `drush cim` again after the full sync (Option B), or create at least one cookie service group and service.
-
-### 6. Environment-based tracking (hardening)
-
-Set `$settings['myeventlane_environment']` in `settings.php`:
-
-- **`prod`** — Tracking IDs are exposed; scripts load after consent.
-- **`dev`** or **`staging`** — GTM/GA4/Meta/Hotjar suppressed; no analytics bleed. reCAPTCHA still available.
-
-`example.settings.local.php` sets `myeventlane_environment = 'dev'` for local development. Production must set `'prod'`.
+- **`prod`** — Tracking IDs exposed; scripts load after consent.
+- **`dev`** or **`staging`** — GTM/GA4/Meta/Hotjar suppressed.
 
 ## Verification
 
-1. **Incognito + DevTools Network:** Load site → no requests to googletagmanager.com, connect.facebook.net, hotjar.com before consent
-2. **Banner:** Cookie banner appears on first visit
-3. **Preferences button:** White/light pill button labeled "Cookie settings" or "Preferences" – clearly visible on dark banner
-4. **Footer link:** Click "Privacy & Cookie Settings" → settings dialog opens (#editCookieSettings)
-5. **Dialog content:** Service groups (Necessary, Marketing, etc.) and toggles are visible
-6. **Accept all:** After consent, tracking scripts load (if configured)
-7. **Deny all:** No tracking requests
-
-## Files Changed / Added
-
-- `config/sync/cookies.config.yml` — COOKiES config
-- `config/sync/block.block.*.cookies_ui.yml` — Block placement (3 themes)
-- `web/modules/custom/myeventlane_privacy/` — Privacy module (dispatcher, config form)
-- `web/themes/custom/*/templates/includes/footer.html.twig` — Privacy & Cookie Settings link
-- `web/themes/custom/*/src/scss/components/_cookies-consent.scss` — Theme overrides
-- `docs/privacy/tracking-audit.md` — Audit results
+1. **Incognito + DevTools Network:** No tracking requests before consent
+2. **Banner:** Klaro consent notice on first visit
+3. **Footer link:** "Privacy & Cookie Settings" opens Klaro modal
+4. **Accept all:** Tracking scripts load
+5. **Deny all:** No tracking requests

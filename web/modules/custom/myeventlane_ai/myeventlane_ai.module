@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Module hooks for MyEventLane AI.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_cron().
+ *
+ * Deletes expired AI jobs (done/error). Never deletes queued or running jobs.
+ * Batch limited to 100 per run. Never blocks cron execution.
+ */
+function myeventlane_ai_cron(): void {
+  try {
+    \Drupal::service('myeventlane_ai.job_cleanup')->run();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_ai')->error('AI job cleanup failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+}

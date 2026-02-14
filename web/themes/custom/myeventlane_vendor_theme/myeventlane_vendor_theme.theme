@@ -460,6 +460,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'show_welcome' => FALSE,
         'vendor_kpis' => NULL,
         'onboarding_panel' => NULL,
+        'ai_usage_panel' => NULL,
       ],
       'template' => 'dashboard/dashboard',
     ],

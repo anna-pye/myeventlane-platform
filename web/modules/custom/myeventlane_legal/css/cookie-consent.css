@@ -62,6 +62,13 @@
   margin-top: 2rem;
 }
 
+/* When Klaro is the consent manager, hide the legacy checkbox form */
+.mel-cookie-preferences--klaro-only .mel-cookie-options,
+.mel-cookie-preferences--klaro-only #mel-save-cookie-preferences,
+.mel-cookie-preferences--klaro-only h2 {
+  display: none;
+}
+
 .mel-cookie-options {
   border: none;
   padding: 0;
