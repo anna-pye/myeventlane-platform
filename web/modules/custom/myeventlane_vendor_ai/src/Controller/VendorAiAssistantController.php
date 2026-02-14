@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class VendorAiAssistantController extends ControllerBase {
 
   public function __construct(
-    private readonly FormBuilderInterface $formBuilder,
+    private readonly FormBuilderInterface $formBuilderService,
   ) {}
 
   /**
@@ -36,7 +36,7 @@ final class VendorAiAssistantController extends ControllerBase {
       return ['#markup' => '<p>' . $this->t('Escalation not found.') . '</p>'];
     }
 
-    $form = $this->formBuilder->getForm(VendorAiAssistantForm::class, $escalation);
+    $form = $this->formBuilderService->getForm(VendorAiAssistantForm::class, $escalation);
 
     return [
       '#theme' => 'mel_support_layout',
