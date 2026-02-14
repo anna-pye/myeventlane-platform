@@ -1,0 +1,156 @@
+// ==========================================================================
+// Klaro! (drupal/klaro) consent manager styling.
+// Markup: .klaro, .cookie-notice, .cookie-modal, .cm-btn, etc.
+// MyEventLane pastel brand + WCAG AA.
+// ==========================================================================
+
+@use '../tokens/colors';
+
+.klaro {
+  /* Ensure it floats above dialogs/overlays but below admin toolbars if present */
+  position: relative;
+  z-index: 600;
+  font-family: inherit;
+  color: inherit;
+
+  /* MyEventLane primary (lavender) */
+  --klaro-primary-color: #{colors.$mel-color-primary};
+  --klaro-link-color: #{colors.$mel-color-primary};
+  --klaro-link-color-hover: #{colors.$mel-color-primary-hover};
+  --klaro-button-bg: rgba(108, 126, 242, 0.95);
+  --klaro-button-text-color: #{colors.$mel-color-text};
+  --klaro-button-border: 1px solid rgba(0, 0, 0, 0.08);
+  --klaro-button-border-radius: 999px;
+  --klaro-button-padding: 0.7rem 1.05rem;
+  --klaro-button-font-weight: 600;
+  --klaro-button-bg-hover: rgba(108, 126, 242, 1);
+  --klaro-button-text-color-hover: #{colors.$mel-color-text};
+  --klaro-button-border-hover: 1px solid rgba(0, 0, 0, 0.08);
+  --klaro-slider-bg: #{colors.$mel-color-grey-light};
+  --klaro-slider-bg-active: #{colors.$mel-color-primary};
+  --klaro-slider-bg-required: #{colors.$mel-color-primary};
+}
+
+/* Banner and modal containers */
+.klaro .cookie-notice,
+.klaro .cookie-modal .cm-modal,
+.klaro .context-notice {
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Modal body */
+.klaro .cookie-modal .cm-body,
+.klaro .cm-modal .cm-body {
+  background: #ffffff !important;
+  overflow-y: auto;
+}
+
+/* List styling */
+.klaro .cm-services,
+.klaro .cm-purposes,
+.klaro .cookie-modal ul,
+.klaro .context-notice ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+
+/* Headings and text */
+.klaro .cookie-notice h2,
+.klaro .cookie-modal h2,
+.klaro .context-notice h2,
+.klaro .cm-modal h1.title {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  margin: 0 0 0.5rem 0;
+}
+
+.klaro .cookie-notice p,
+.klaro .cookie-modal p,
+.klaro .context-notice p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+}
+
+/* Buttons */
+.klaro button.cm-btn,
+.klaro .cm-btn,
+.klaro a.cm-link {
+  border-radius: 999px !important;
+  padding: 0.7rem 1.05rem !important;
+  font-weight: 600;
+  line-height: 1;
+  min-height: 44px; /* touch target */
+}
+
+/* Accept / primary */
+.klaro .cm-btn-success,
+.klaro .cm-btn.cm-btn-success {
+  background: rgba(108, 126, 242, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #{colors.$mel-color-text} !important;
+}
+
+/* Decline / secondary */
+.klaro .cm-btn-decline,
+.klaro .cm-btn.cm-btn-decline {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(0, 0, 0, 0.14) !important;
+  color: inherit !important;
+}
+
+/* Settings / info button */
+.klaro .cm-btn-info,
+.klaro .cm-btn.cm-btn-info {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  color: #{colors.$mel-color-navy} !important;
+}
+
+/* Links */
+.klaro a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Focus visibility (WCAG AA) */
+.klaro a:focus-visible,
+.klaro button:focus-visible,
+.klaro input:focus-visible {
+  outline: 3px solid rgba(108, 126, 242, 0.9);
+  outline-offset: 3px;
+}
+
+/* Service toggles */
+.klaro .cm-service,
+.klaro .cm-purpose,
+.klaro .cm-list-item {
+  padding: 0.5rem 0;
+}
+
+.klaro .slider,
+.klaro .cm-list-input + .cm-list-label .slider {
+  min-width: 44px;
+  min-height: 24px;
+}
+
+/* Mobile layout */
+@media (max-width: 480px) {
+  .klaro .cookie-notice,
+  .klaro .cookie-modal .cm-modal,
+  .klaro .context-notice {
+    border-radius: 14px;
+    margin: 0 12px;
+  }
+
+  .klaro button.cm-btn,
+  .klaro .cm-btn {
+    width: 100%;
+  }
+}

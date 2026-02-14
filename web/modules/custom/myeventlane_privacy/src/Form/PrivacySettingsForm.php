@@ -12,7 +12,7 @@ use Drupal\Core\Url;
  * Privacy & tracking ID configuration form.
  *
  * Values are passed to drupalSettings.myeventlane for the consent dispatcher.
- * Service IDs must match COOKiES cookie service entities (gtm, gtag, meta_pixel,
+ * Service IDs must match Klaro service entity IDs (gtm, gtag, meta_pixel,
  * hotjar, recaptcha) for consent-aware injection to work.
  */
 final class PrivacySettingsForm extends ConfigFormBase {
@@ -44,10 +44,10 @@ final class PrivacySettingsForm extends ConfigFormBase {
       );
     }
 
-    $cookies_url = Url::fromRoute('entity.cookies_service.collection')->toString();
+    $klaro_services_url = Url::fromUri('internal:/admin/config/user-interface/klaro/services')->toString();
     $form['description'] = [
-      '#markup' => '<p>' . $this->t('Tracking IDs are injected only after user consent via the COOKiES consent banner. Create matching cookie service entities (gtm, gtag, meta_pixel, hotjar, recaptcha) at <a href=":url">COOKiES configuration</a>.', [
-        ':url' => $cookies_url,
+      '#markup' => '<p>' . $this->t('Tracking IDs are injected only after user consent via the Klaro! consent banner. Create matching Klaro services (gtm, gtag, meta_pixel, hotjar, recaptcha) at <a href=":url">Klaro services</a>.', [
+        ':url' => $klaro_services_url,
       ]) . '</p>',
       '#weight' => -100,
     ];
@@ -55,7 +55,7 @@ final class PrivacySettingsForm extends ConfigFormBase {
     $form['gtm_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Google Tag Manager ID'),
-      '#description' => $this->t('e.g. GTM-XXXXXXX. Requires cookie service ID "gtm" in COOKiES.'),
+      '#description' => $this->t('e.g. GTM-XXXXXXX. Requires Klaro service ID "gtm".'),
       '#default_value' => $config->get('gtm_id') ?? '',
       '#maxlength' => 32,
     ];
@@ -63,7 +63,7 @@ final class PrivacySettingsForm extends ConfigFormBase {
     $form['ga4_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('GA4 / gtag ID'),
-      '#description' => $this->t('e.g. G-XXXXXXXXXX. Use only if not using GTM. Requires cookie service ID "gtag".'),
+      '#description' => $this->t('e.g. G-XXXXXXXXXX. Use only if not using GTM. Requires Klaro service ID "gtag".'),
       '#default_value' => $config->get('ga4_id') ?? '',
       '#maxlength' => 32,
     ];
@@ -71,7 +71,7 @@ final class PrivacySettingsForm extends ConfigFormBase {
     $form['meta_pixel_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Meta (Facebook) Pixel ID'),
-      '#description' => $this->t('Numeric Pixel ID. Requires cookie service ID "meta_pixel".'),
+      '#description' => $this->t('Numeric Pixel ID. Requires Klaro service ID "meta_pixel".'),
       '#default_value' => $config->get('meta_pixel_id') ?? '',
       '#maxlength' => 32,
     ];
@@ -79,7 +79,7 @@ final class PrivacySettingsForm extends ConfigFormBase {
     $form['hotjar_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Hotjar Site ID'),
-      '#description' => $this->t('Numeric Hotjar ID. Requires cookie service ID "hotjar".'),
+      '#description' => $this->t('Numeric Hotjar ID. Requires Klaro service ID "hotjar".'),
       '#default_value' => $config->get('hotjar_id') ?? '',
       '#maxlength' => 16,
     ];
@@ -87,7 +87,7 @@ final class PrivacySettingsForm extends ConfigFormBase {
     $form['recaptcha_site_key'] = [
       '#type' => 'textfield',
       '#title' => $this->t('reCAPTCHA v3 Site Key'),
-      '#description' => $this->t('Site key for reCAPTCHA v3. Requires cookie service ID "recaptcha".'),
+      '#description' => $this->t('Site key for reCAPTCHA v3. Requires Klaro service ID "recaptcha".'),
       '#default_value' => $config->get('recaptcha_site_key') ?? '',
       '#maxlength' => 64,
     ];

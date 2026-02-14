@@ -1,6 +1,7 @@
-cookies_consent_dispatcher:
+consent_dispatcher:
   js:
     js/cookies-consent-dispatcher.js: {}
   dependencies:
     - core/drupal
     - core/drupalSettings
+    - klaro/klaro

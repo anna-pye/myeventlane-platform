@@ -4,4 +4,4 @@ description: 'Privacy and cookie consent: tracking IDs config, drupalSettings wi
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
-  - drupal:cookies
+  - drupal:klaro
