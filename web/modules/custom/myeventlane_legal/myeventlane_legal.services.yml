@@ -27,3 +27,4 @@ services:
       - '@current_user'
       - '@logger.factory'
       - '@messenger'
+      - '@string_translation'

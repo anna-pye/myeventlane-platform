@@ -187,8 +187,10 @@ final class VendorOnboardProfileController extends ControllerBase {
       }
     }
 
-    // Redirect to next step.
-    $form_state->setRedirect('myeventlane_vendor.onboard.stripe');
+    // Redirect to Stripe connect (use stripe/connect, not onboard/stripe).
+    $form_state->setRedirect('myeventlane_vendor.stripe_connect', [], [
+      'query' => ['destination' => '/vendor/onboard/first-event'],
+    ]);
   }
 
   /**

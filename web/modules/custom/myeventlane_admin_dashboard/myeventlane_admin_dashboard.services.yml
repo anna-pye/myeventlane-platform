@@ -19,6 +19,7 @@ services:
       - '@myeventlane_admin_dashboard.platform_alert'
       - '@cache.default'
       - '@logger.channel.myeventlane_admin_dashboard'
+      - '@url_generator'
 
   myeventlane_admin_dashboard.platform_alert:
     class: Drupal\myeventlane_admin_dashboard\Service\PlatformAlertService
@@ -27,6 +28,7 @@ services:
       - '@cache.default'
       - '@datetime.time'
       - '@logger.channel.myeventlane_admin_dashboard'
+      - '@url_generator'
 
   myeventlane_admin_dashboard.platform_trend:
     class: Drupal\myeventlane_admin_dashboard\Service\PlatformTrendService
@@ -41,6 +43,7 @@ services:
       - '@database'
       - '@cache.default'
       - '@logger.channel.myeventlane_admin_dashboard'
+      - '@url_generator'
 
   logger.channel.myeventlane_admin_dashboard:
     parent: logger.channel_base

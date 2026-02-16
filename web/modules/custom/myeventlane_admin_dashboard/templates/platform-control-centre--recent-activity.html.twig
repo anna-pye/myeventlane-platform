@@ -44,7 +44,7 @@
           </tbody>
         </table>
       {% endif %}
-      <a href="/admin/myeventlane/escalations" class="pcc-recent__link">{{ 'Manage all'|t }} →</a>
+      <a href="{{ path('entity.escalation.collection') }}" class="pcc-recent__link">{{ 'Manage all'|t }} →</a>
     </div>
 
     <div class="pcc-recent__table-wrap">
@@ -76,7 +76,7 @@
           <tbody>
             {% for row in activity.orders %}
               <tr>
-                <td><a href="/admin/commerce/orders/{{ row.order_id }}">{{ row.order_number }}</a></td>
+                <td><a href="{{ row.url }}">{{ row.order_number }}</a></td>
                 <td>${{ row.amount|number_format(2) }}</td>
                 <td>{{ row.placed|date('M j, Y') }}</td>
               </tr>
@@ -84,7 +84,7 @@
           </tbody>
         </table>
       {% endif %}
-      <a href="/admin/myeventlane/reports" class="pcc-recent__link">{{ 'Reports'|t }} →</a>
+      <a href="{{ path('myeventlane_reporting.admin.overview') }}" class="pcc-recent__link">{{ 'Reports'|t }} →</a>
     </div>
   </div>
 </div>

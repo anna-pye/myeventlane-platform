@@ -1,4 +1,3 @@
-# Permissions for MyEventLane Admin Dashboard module.
 access admin dashboard:
   title: 'Access MyEventLane admin dashboard'
   description: 'View the MyEventLane admin overview and dashboard pages.'

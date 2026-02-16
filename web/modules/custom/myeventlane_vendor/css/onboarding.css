@@ -84,6 +84,82 @@
 }
 
 /* ==========================================================================
+   Onboarding Progress Component (STAGE_ORDER, Stripe + Terms locked)
+   ========================================================================== */
+.mel-onboarding-progress {
+  margin-bottom: 3rem;
+}
+
+.mel-onboarding-progress__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mel-onboarding-progress__item {
+  display: flex;
+  align-items: center;
+}
+
+.mel-onboarding-progress__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  transition: color 0.2s, background 0.2s;
+}
+
+.mel-onboarding-progress__link:hover {
+  color: #1a1a2e;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.mel-onboarding-progress__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  background: #e5e5e5;
+}
+
+.mel-onboarding-progress__item--complete .mel-onboarding-progress__marker {
+  background: #22c55e;
+  color: white;
+}
+
+.mel-onboarding-progress__item--current .mel-onboarding-progress__link {
+  color: #ff6f61;
+  background: rgba(255, 111, 97, 0.1);
+}
+
+.mel-onboarding-progress__item--current .mel-onboarding-progress__marker {
+  background: #ff6f61;
+  color: white;
+}
+
+.mel-onboarding-progress__link--disabled,
+.mel-onboarding-progress__item--locked .mel-onboarding-progress__link {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.mel-onboarding-progress__item--locked .mel-onboarding-progress__marker {
+  background: #d1d5db;
+}
+
+/* ==========================================================================
    Step Header
    ========================================================================== */
 .mel-onboard-header {

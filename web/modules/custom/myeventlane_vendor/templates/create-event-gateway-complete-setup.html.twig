@@ -1,0 +1,46 @@
+{#
+/**
+ * @file
+ * "Complete your organiser setup" page shown when vendor visits /create-event
+ * before onboarding is complete.
+ *
+ * Variables:
+ * - title: Page title (string)
+ * - incomplete_stages: Array of stage labels still to complete
+ * - next_url: URL string for primary CTA
+ * - auto_url: URL string for secondary "Auto-continue" link
+ */
+#}
+<div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
+  <div class="mel-container mel-container--onboard">
+
+    <div class="mel-onboard-header">
+      <h1 class="mel-onboard-title">{{ title }}</h1>
+      <p class="mel-onboard-description">
+        {{ "Before you can create events, please finish setting up your organiser account. The steps below are still outstanding."|t }}
+      </p>
+    </div>
+
+    <div class="mel-onboard-content">
+      {% if incomplete_stages %}
+        <div class="mel-gateway-setup-steps">
+          <ul class="mel-gateway-setup-steps__list">
+            {% for stage in incomplete_stages %}
+              <li>{{ stage }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="mel-gateway-setup-actions">
+        <a href="{{ next_url }}" class="mel-btn mel-btn-primary mel-btn-lg">
+          {{ 'Continue setup'|t }}
+        </a>
+        <a href="{{ auto_url }}" class="mel-btn mel-btn-ghost mel-gateway-setup-auto">
+          {{ 'Auto-continue'|t }}
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>

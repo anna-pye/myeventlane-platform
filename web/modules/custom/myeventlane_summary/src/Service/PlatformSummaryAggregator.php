@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_summary\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Psr\Log\LoggerInterface;
@@ -38,6 +39,7 @@ final class PlatformSummaryAggregator {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
     private readonly CacheBackendInterface $cache,
+    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {}
 
   /**
@@ -82,6 +84,12 @@ final class PlatformSummaryAggregator {
     }
 
     $this->populateRecentOrdersCache();
+
+    $this->cacheTagsInvalidator->invalidateTags([
+      'platform:summary',
+      'escalation_list',
+      'commerce_order_list',
+    ]);
   }
 
   /**
@@ -193,7 +201,7 @@ final class PlatformSummaryAggregator {
    */
   private function upsertDay(string $date, array $row): void {
     $this->database->merge('platform_daily_summary')
-      ->key(['date' => $date])
+      ->keys(['date' => $date])
       ->fields([
         'revenue_gross' => $row['revenue_gross'],
         'revenue_net' => $row['revenue_net'],

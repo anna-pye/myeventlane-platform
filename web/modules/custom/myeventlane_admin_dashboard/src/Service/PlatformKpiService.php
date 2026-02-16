@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_admin_dashboard\Service;
 
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\myeventlane_summary\Service\PlatformSummaryReader;
 use Psr\Log\LoggerInterface;
 
@@ -33,6 +34,7 @@ final class PlatformKpiService {
     private readonly PlatformAlertService $alertService,
     private readonly CacheBackendInterface $cache,
     private readonly LoggerInterface $logger,
+    private readonly UrlGeneratorInterface $urlGenerator,
   ) {}
 
   /**
@@ -53,47 +55,63 @@ final class PlatformKpiService {
   }
 
   /**
+   * Returns placeholder KPI tiles when data is unavailable.
+   *
+   * @return array<int, array{label: string, value: string, delta: array|null, severity: string, url: string|null}>
+   */
+  private function buildPlaceholderKpis(): array {
+    return [
+      [
+        'label' => 'Revenue (30d)',
+        'value' => '—',
+        'delta' => NULL,
+        'severity' => 'neutral',
+        'url' => NULL,
+      ],
+      [
+        'label' => 'Orders (30d)',
+        'value' => '—',
+        'delta' => NULL,
+        'severity' => 'neutral',
+        'url' => NULL,
+      ],
+      [
+        'label' => 'Open escalations',
+        'value' => '—',
+        'delta' => NULL,
+        'severity' => 'neutral',
+        'url' => NULL,
+      ],
+      [
+        'label' => 'SLA at risk',
+        'value' => '—',
+        'delta' => NULL,
+        'severity' => 'neutral',
+        'url' => NULL,
+      ],
+    ];
+  }
+
+  /**
    * Builds KPI data from summary or placeholder.
+   *
+   * @return array<int, array{label: string, value: string, delta: array|null, severity: string, url: string|null}>
    */
   private function buildKpis(): array {
     if (!$this->summaryReader->hasData()) {
       $this->logger->warning('Platform summary has no data; KPI service returning placeholders.');
-      return [
-        [
-          'label' => 'Revenue (30d)',
-          'value' => '—',
-          'delta' => NULL,
-          'severity' => 'neutral',
-          'url' => NULL,
-        ],
-        [
-          'label' => 'Orders (30d)',
-          'value' => '—',
-          'delta' => NULL,
-          'severity' => 'neutral',
-          'url' => NULL,
-        ],
-        [
-          'label' => 'Open escalations',
-          'value' => '—',
-          'delta' => NULL,
-          'severity' => 'neutral',
-          'url' => NULL,
-        ],
-        [
-          'label' => 'SLA at risk',
-          'value' => '—',
-          'delta' => NULL,
-          'severity' => 'neutral',
-          'url' => NULL,
-        ],
-      ];
+      return $this->buildPlaceholderKpis();
     }
 
     $totals = $this->summaryReader->getTotalsLastNDays(self::DAYS_30);
     if ($totals === NULL) {
-      return $this->buildKpis();
+      $this->logger->warning('Platform summary totals are NULL; KPI service returning placeholders.');
+      return $this->buildPlaceholderKpis();
     }
+
+    $reports_url = $this->urlGenerator->generateFromRoute('myeventlane_reporting.admin.overview');
+    $escalations_url = $this->urlGenerator->generateFromRoute('entity.escalation.collection');
+    $sla_at_risk = $this->alertService->getSlaAtRiskCount();
 
     return [
       [
@@ -101,28 +119,28 @@ final class PlatformKpiService {
         'value' => '$' . number_format($totals['revenue_gross'], 2),
         'delta' => NULL,
         'severity' => 'green',
-        'url' => '/admin/myeventlane/reports',
+        'url' => $reports_url,
       ],
       [
         'label' => 'Orders (30d)',
         'value' => (string) $totals['orders_completed'],
         'delta' => NULL,
         'severity' => 'green',
-        'url' => '/admin/myeventlane/reports',
+        'url' => $reports_url,
       ],
       [
         'label' => 'Open escalations',
         'value' => (string) $totals['escalations_open'],
         'delta' => NULL,
         'severity' => $totals['escalations_open'] > 0 ? 'amber' : 'green',
-        'url' => '/admin/myeventlane/escalations',
+        'url' => $escalations_url,
       ],
       [
         'label' => 'SLA at risk',
-        'value' => (string) $this->alertService->getSlaAtRiskCount(),
+        'value' => (string) $sla_at_risk,
         'delta' => NULL,
-        'severity' => $this->alertService->getSlaAtRiskCount() > 0 ? 'red' : 'green',
-        'url' => '/admin/myeventlane/escalations',
+        'severity' => $sla_at_risk > 0 ? 'red' : 'green',
+        'url' => $escalations_url,
       ],
     ];
   }

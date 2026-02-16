@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_admin_dashboard\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -38,6 +39,7 @@ final class PlatformAlertService {
     private readonly CacheBackendInterface $cache,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
+    private readonly UrlGeneratorInterface $urlGenerator,
   ) {}
 
   /**
@@ -82,7 +84,7 @@ final class PlatformAlertService {
    */
   private function buildAlerts(): array {
     $alerts = [];
-    $escalation_url = '/admin/myeventlane/escalations';
+    $escalation_url = $this->urlGenerator->generateFromRoute('entity.escalation.collection');
 
     if (!$this->entityTypeManager->hasDefinition('escalation')) {
       return [];

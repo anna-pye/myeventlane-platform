@@ -79,3 +79,16 @@ function myeventlane_summary_schema() {
 
   return $schema;
 }
+
+/**
+ * Creates platform_daily_summary table for existing installations.
+ *
+ * @see myeventlane_summary_schema()
+ */
+function myeventlane_summary_update_10001(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_summary_schema();
+  if (!$schema->tableExists('platform_daily_summary')) {
+    $schema->createTable('platform_daily_summary', $full['platform_daily_summary']);
+  }
+}

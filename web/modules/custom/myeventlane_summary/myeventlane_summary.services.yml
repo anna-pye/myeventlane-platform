@@ -6,6 +6,7 @@ services:
       - '@config.factory'
       - '@logger.channel.myeventlane_summary'
       - '@cache.default'
+      - '@cache_tags.invalidator'
 
   myeventlane_summary.reader:
     class: Drupal\myeventlane_summary\Service\PlatformSummaryReader

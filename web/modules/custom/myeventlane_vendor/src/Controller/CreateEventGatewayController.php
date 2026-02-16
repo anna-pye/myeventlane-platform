@@ -7,11 +7,13 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Gateway controller for event creation that enforces vendor onboarding.
@@ -34,16 +36,23 @@ class CreateEventGatewayController extends ControllerBase {
   private readonly LegalGatekeeper $legalGatekeeper;
 
   /**
+   * The request stack.
+   */
+  private readonly RequestStack $requestStack;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     OnboardingManager $onboarding_manager,
     RendererInterface $renderer,
     LegalGatekeeper $legal_gatekeeper,
+    RequestStack $request_stack,
   ) {
     $this->onboardingManager = $onboarding_manager;
     $this->renderer = $renderer;
     $this->legalGatekeeper = $legal_gatekeeper;
+    $this->requestStack = $request_stack;
   }
 
   /**
@@ -54,24 +63,24 @@ class CreateEventGatewayController extends ControllerBase {
       $container->get('myeventlane_onboarding.manager'),
       $container->get('renderer'),
       $container->get('myeventlane_legal.gatekeeper'),
+      $container->get('request_stack'),
     );
   }
 
   /**
-   * Redirects users based on their vendor status.
+   * Redirects or renders based on vendor onboarding status.
    *
    * Logic:
    * - Anonymous users → login with destination back to /create-event
-   * - Logged-in users without vendor → /vendor/onboard (vendor setup)
-   * - Logged-in users with vendor → event creation wizard.
+   * - No state → redirect to profile
+   * - Incomplete + ?auto=1 → redirect to next onboarding step
+   * - Incomplete (no auto) → render explanatory "Complete setup" page
+   * - Complete → ensure vendor, assert terms, redirect to wizard
    *
-   * Option A: When user has vendor but onboarding incomplete, adds a flash
-   * onboarding panel message on the destination (status).
-   *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   A redirect response.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
+   *   Redirect or render array.
    */
-  public function gateway(): RedirectResponse {
+  public function gateway(): RedirectResponse|array {
     $current_user = $this->currentUser();
 
     // Anonymous users: redirect to login with destination and vendor intent.
@@ -104,10 +113,22 @@ class CreateEventGatewayController extends ControllerBase {
 
     $is_complete = $state->getStage() === 'complete' && $state->isCompleted();
 
-    // In progress: always route to onboarding start (never to vendor wizard).
+    // In progress: redirect if ?auto=1, else render explanatory page.
     if (!$is_complete) {
-      $onboard_url = Url::fromRoute('myeventlane_vendor.onboard.profile');
-      return new RedirectResponse($onboard_url->toString());
+      $request = $this->requestStack->getCurrentRequest();
+      $auto_redirect = $request && (string) $request->query->get('auto') === '1';
+
+      $next_route = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
+      $next_route = $next_route ?: 'myeventlane_vendor.onboard.profile';
+
+      if ($auto_redirect) {
+        $redirect_url = $next_route === 'myeventlane_vendor.onboard.stripe'
+          ? Url::fromRoute('myeventlane_vendor.stripe_connect', [], ['query' => ['destination' => '/create-event']])
+          : Url::fromRoute($next_route);
+        return new RedirectResponse($redirect_url->toString());
+      }
+
+      return $this->buildCompleteSetupPage($state, $next_route);
     }
 
     // Completed: ensure vendor entity exists, ensure vendor role, then redirect.
@@ -169,6 +190,60 @@ class CreateEventGatewayController extends ControllerBase {
 
     $create_url = Url::fromRoute('myeventlane_event.wizard.create');
     return new RedirectResponse($create_url->toString());
+  }
+
+  /**
+   * Builds the "Complete your organiser setup" explanatory page.
+   *
+   * @param \Drupal\myeventlane_core\Entity\OnboardingStateInterface $state
+   *   The vendor onboarding state.
+   * @param string $next_route
+   *   Route for the next onboarding step.
+   *
+   * @return array
+   *   Render array.
+   */
+  private function buildCompleteSetupPage(OnboardingStateInterface $state, string $next_route): array {
+    $stage_labels = [
+      'probe' => $this->t('Get started'),
+      'present' => $this->t('Profile'),
+      'listen' => $this->t('Payments'),
+      'ask' => $this->t('First event'),
+      'invite' => $this->t('Boost'),
+      'complete' => $this->t('Complete'),
+    ];
+    $stage_order = OnboardingStateInterface::STAGE_ORDER;
+    $current_idx = array_search($state->getStage(), $stage_order, TRUE);
+    $current_idx = $current_idx !== FALSE ? $current_idx : 0;
+
+    $incomplete_stages = [];
+    foreach (array_slice($stage_order, $current_idx, NULL, TRUE) as $stage) {
+      if ($stage !== 'complete') {
+        $incomplete_stages[] = (string) ($stage_labels[$stage] ?? $stage);
+      }
+    }
+
+    // When next step is Stripe, link directly to stripe/connect (functional) instead
+    // of vendor/onboard/stripe (which may not work in some setups).
+    $next_url = $next_route === 'myeventlane_vendor.onboard.stripe'
+      ? Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+          'query' => ['destination' => '/create-event'],
+        ])->toString()
+      : Url::fromRoute($next_route)->toString();
+
+    return [
+      '#theme' => 'create_event_gateway_complete_setup',
+      '#attached' => [
+        'library' => ['myeventlane_vendor/onboarding'],
+      ],
+      '#title' => $this->t('Complete your organiser setup')->render(),
+      '#incomplete_stages' => $incomplete_stages,
+      '#next_route' => $next_route,
+      '#next_url' => $next_url,
+      '#auto_url' => Url::fromRoute('myeventlane_vendor.create_event_gateway', [], [
+        'query' => ['auto' => '1'],
+      ])->toString(),
+    ];
   }
 
   /**

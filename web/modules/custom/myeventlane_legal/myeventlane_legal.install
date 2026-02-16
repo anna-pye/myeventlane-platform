@@ -329,7 +329,7 @@ function myeventlane_legal_update_9005(): string {
   $field_storage_storage = $entity_type_manager->getStorage('field_storage_config');
   $field_config_storage = $entity_type_manager->getStorage('field_config');
 
-  if (!$field_storage_storage->loadByName('node', 'field_last_updated')) {
+  if (!FieldStorageConfig::loadByName('node', 'field_last_updated')) {
     $field_storage_storage->create([
       'field_name' => 'field_last_updated',
       'entity_type' => 'node',
@@ -340,7 +340,7 @@ function myeventlane_legal_update_9005(): string {
     ])->save();
   }
 
-  if (!$field_config_storage->loadByName('node', 'page', 'field_last_updated')) {
+  if (!FieldConfig::loadByName('node', 'page', 'field_last_updated')) {
     $field_config_storage->create([
       'field_name' => 'field_last_updated',
       'entity_type' => 'node',

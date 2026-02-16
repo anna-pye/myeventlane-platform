@@ -82,6 +82,25 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       ],
       'template' => 'vendor-console-page',
     ],
+    // Celebration page at /vendor/onboard/complete (no ?auto=1).
+    'vendor_onboard_complete_celebration' => [
+      'variables' => [
+        'create_event_url' => NULL,
+        'dashboard_url' => NULL,
+      ],
+      'template' => 'vendor-onboard-complete-celebration',
+    ],
+    // "Complete your organiser setup" page when onboarding incomplete at gateway.
+    'create_event_gateway_complete_setup' => [
+      'variables' => [
+        'title' => '',
+        'incomplete_stages' => [],
+        'next_route' => NULL,
+        'next_url' => NULL,
+        'auto_url' => NULL,
+      ],
+      'template' => 'create-event-gateway-complete-setup',
+    ],
     // Used in onboarding flash/CTA contexts. Must be available even when the
     // vendor theme is not the active theme to avoid theme hook warnings.
     'myeventlane_vendor_onboarding_panel' => [
