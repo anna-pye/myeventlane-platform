@@ -1,0 +1,88 @@
+{#
+/**
+ * @file
+ * Theme override for orders in the 'user' view mode.
+ *
+ * Styled for MyEventLane with cards, typography, and consistent spacing.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - order: The rendered order fields.
+ * - order_entity: The order entity.
+ */
+#}
+<div{{ attributes.addClass('mel-order-detail') }}>
+  {# Customer & Billing #}
+  <div class="mel-order-detail__section mel-order-detail__customer mel-card mel-mb-4">
+    <div class="mel-card-body">
+      <h2 class="mel-order-detail__section-title">{{ 'Order information'|t }}</h2>
+      <div class="mel-order-detail__customer-fields">
+        {% if order.mail %}
+          <div class="mel-order-detail__field mel-order-detail__field--mail">
+            {{ order.mail }}
+          </div>
+        {% endif %}
+        {% if order.billing_profile is defined and order.billing_profile|render|striptags|trim %}
+          <div class="mel-order-detail__field mel-order-detail__field--billing">
+            {{ order.billing_profile }}
+          </div>
+        {% elseif order.billing_information is defined and order.billing_information|render|striptags|trim %}
+          <div class="mel-order-detail__field mel-order-detail__field--billing">
+            <div class="field__label">{{ 'Billing information'|t }}</div>
+            {{ order.billing_information }}
+          </div>
+        {% endif %}
+        {% if order.shipping_information is defined and order.shipping_information|render|striptags|trim %}
+          <div class="mel-order-detail__field mel-order-detail__field--shipping">
+            <div class="field__label">{{ 'Shipping information'|t }}</div>
+            {{ order.shipping_information }}
+          </div>
+        {% endif %}
+      </div>
+      {# Status & dates: order_number, completed, placed, state (inline) #}
+      <div class="mel-order-detail__meta">
+        {% if order.order_number is defined and order.order_number|render|striptags|trim %}
+          {{ order.order_number }}
+        {% endif %}
+        {% if order.completed is defined and order.completed|render|striptags|trim %}
+          {{ order.completed }}
+        {% endif %}
+        {% if order.placed is defined and order.placed|render|striptags|trim %}
+          {{ order.placed }}
+        {% endif %}
+        {% if order.state is defined and order.state|render|striptags|trim %}
+          {{ order.state }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Order items table #}
+  {% if order.order_items is defined and order.order_items|render|striptags|trim %}
+    <div class="mel-order-detail__section mel-order-detail__items mel-card mel-mb-4">
+      <div class="mel-card-body">
+        <h2 class="mel-order-detail__section-title">{{ 'Order items'|t }}</h2>
+        {{ order.order_items }}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Order totals #}
+  {% if order.total_price is defined and order.total_price|render|striptags|trim %}
+    <div class="mel-order-detail__section mel-order-detail__totals mel-card mel-mb-4">
+      <div class="mel-card-body">
+        {{ order.total_price }}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Any remaining fields (coupons, customer_comments, balance). Exclude 'activity' (order log from commerce_log). #}
+  {% set remainder = order|without('mail', 'billing_profile', 'billing_information', 'shipping_information', 'order_number', 'completed', 'placed', 'state', 'order_items', 'total_price', 'activity') %}
+  {% if remainder|render|striptags|trim %}
+    <div class="mel-order-detail__section mel-order-detail__extra mel-card mel-mb-4">
+      <div class="mel-card-body">
+        {{ remainder }}
+      </div>
+    </div>
+  {% endif %}
+</div>

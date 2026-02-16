@@ -7,6 +7,7 @@ lifecycle: stable
 
 dependencies:
   - myeventlane_core:myeventlane_core
+  - myeventlane_rsvp:myeventlane_rsvp
   - myeventlane_schema:myeventlane_schema
   - myeventlane_event:myeventlane_event
   - myeventlane_capacity:myeventlane_capacity

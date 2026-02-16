@@ -570,10 +570,128 @@
   margin-bottom: spacing.mel-space(5);
 }
 
+// ---------------------------------------------------------------------------
+// RSVP Sidebar (event book page)
+// Single clean card, sticky on desktop, stacked on mobile.
+// ---------------------------------------------------------------------------
+
+.mel-rsvp-sidebar {
+  position: sticky;
+  top: 100px;
+
+  @include breakpoints.mel-break(lg, max) {
+    position: static;
+    margin-top: spacing.mel-space(5);
+  }
+}
+
+.mel-rsvp-card {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-xl;
+  padding: spacing.mel-space(5);
+  box-shadow: shadows.$mel-shadow-sm;
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(6);
+  }
+}
+
+.mel-rsvp-title {
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+  margin: 0 0 spacing.mel-space(4);
+  color: colors.$mel-color-text;
+}
+
+.mel-rsvp-section {
+  margin-bottom: spacing.mel-space(4);
+}
+
+.mel-rsvp-section--collapsed {
+  border-top: 1px solid colors.$mel-color-border;
+  padding-top: spacing.mel-space(3);
+}
+
+.mel-rsvp-toggle {
+  background: none;
+  border: none;
+  width: 100%;
+  font-weight: typography.$mel-font-semibold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: typography.mel-font-size(md);
+  color: colors.$mel-color-text;
+
+  &:hover {
+    color: colors.$mel-color-primary;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  .mel-chevron {
+    font-size: typography.mel-font-size(lg);
+    line-height: 1;
+  }
+}
+
+.mel-rsvp-collapsible {
+  display: none;
+  margin-top: spacing.mel-space(3);
+
+  &.is-open {
+    display: block;
+  }
+}
+
+.mel-divider {
+  margin: spacing.mel-space(4) 0;
+  border: none;
+  height: 1px;
+  background: colors.$mel-color-border;
+}
+
+.mel-rsvp-legal {
+  background: colors.$mel-color-bg;
+  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+
+  .mel-legal-text {
+    margin: 0 0 spacing.mel-space(3);
+    color: colors.$mel-color-text-muted;
+  }
+
+  .form-type-checkbox {
+    margin-bottom: spacing.mel-space(2);
+  }
+}
+
+.mel-rsvp-submit {
+  margin-top: spacing.mel-space(4);
+
+  .button,
+  .form-submit,
+  input[type='submit'] {
+    width: 100%;
+    padding: spacing.mel-space(4);
+    border-radius: radii.$mel-radius-pill;
+    font-weight: typography.$mel-font-semibold;
+    font-size: typography.mel-font-size(md);
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 @media (prefers-reduced-motion: reduce) {
   .mel-ticket-item,
   .mel-rsvp-option-label,
-  .mel-quantity-btn {
+  .mel-quantity-btn,
+  .mel-rsvp-toggle {
     transition: none;
   }
 }

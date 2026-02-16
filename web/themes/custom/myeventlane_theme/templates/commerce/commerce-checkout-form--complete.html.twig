@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Theme override for checkout completion step.
+ *
+ * Replaces the default Commerce completion form output with the enhanced
+ * confirmation page (events, tickets, donations, calendar, etc.).
+ *
+ * Available variables:
+ * - form: The checkout form (not used; we render custom completion content).
+ * - order_entity: The order entity (from preprocess).
+ */
+#}
+{% if order_entity %}
+  {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
+    order_entity: order_entity,
+    order_totals: order_totals|default(null),
+  } %}
+{% else %}
+  {# Fallback if order not available #}
+  <div class="mel-checkout mel-checkout--complete">
+    {{ form }}
+  </div>
+{% endif %}

@@ -7,6 +7,7 @@
 
 use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderType;
+use Drupal\field\Entity\FieldConfig;
 
 /**
  * Creates Commerce order types and order item types for donations.
@@ -87,5 +88,144 @@ function myeventlane_donations_uninstall(): void {
     if ($orderType) {
       $orderType->delete();
     }
+  }
+}
+
+
+/**
+ * Ensures field_target_event is attached to rsvp_donation order item type.
+ *
+ * The field config lives in myeventlane_schema config/install but only runs
+ * on fresh install. This hook ensures existing sites get the field.
+ */
+function myeventlane_donations_update_9001(array &$sandbox): void {
+  if (isset($sandbox['_field_attached'])) {
+    myeventlane_donations_update_9001_verification($sandbox);
+    return;
+  }
+
+  $field_config_storage = \Drupal::entityTypeManager()->getStorage('field_config');
+  $existing = $field_config_storage->load('commerce_order_item.rsvp_donation.field_target_event');
+
+  if ($existing) {
+    $sandbox['_field_attached'] = TRUE;
+    myeventlane_donations_update_9001_verification($sandbox);
+    return;
+  }
+
+  // Field storage must exist (from default/boost bundles).
+  $field_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load('commerce_order_item.field_target_event');
+  if (!$field_storage) {
+    // Storage missing - try importing from myeventlane_schema.
+    if (\Drupal::moduleHandler()->moduleExists('myeventlane_schema')) {
+      $path = \Drupal::service('extension.list.module')->getPath('myeventlane_schema');
+      $storage_file = $path . '/config/install/field.storage.commerce_order_item.field_target_event.yml';
+      if (file_exists($storage_file)) {
+        $data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($storage_file));
+        \Drupal::configFactory()->getEditable('field.storage.commerce_order_item.field_target_event')->setData($data)->save(TRUE);
+      }
+    }
+  }
+
+  // Attach field to rsvp_donation bundle via entity API (ConfigFactory does not
+  // reliably register the field with the entity system).
+  FieldConfig::create([
+    'field_name' => 'field_target_event',
+    'entity_type' => 'commerce_order_item',
+    'bundle' => 'rsvp_donation',
+    'label' => 'Target Event',
+    'description' => 'The event this RSVP donation is associated with.',
+    'required' => TRUE,
+    'translatable' => FALSE,
+    'settings' => [
+      'handler' => 'default:node',
+      'handler_settings' => [
+        'target_bundles' => ['event' => 'event'],
+        'sort' => ['field' => 'title', 'direction' => 'asc'],
+        'auto_create' => FALSE,
+      ],
+    ],
+  ])->save();
+
+  drupal_flush_all_caches();
+
+  $sandbox['_field_attached'] = TRUE;
+  myeventlane_donations_update_9001_verification($sandbox);
+}
+
+/**
+ * Verification pass: log counts of rsvp_donation items by attribution status.
+ *
+ * Does NOT backfill or guess event attribution for historic items.
+ */
+function myeventlane_donations_update_9001_verification(array &$sandbox): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $logger = \Drupal::logger('myeventlane_donations');
+  $storage = $entity_type_manager->getStorage('commerce_order_item');
+
+  if (!isset($sandbox['ids'])) {
+    $sandbox['ids'] = array_values($storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'rsvp_donation')
+      ->execute());
+    $sandbox['total'] = count($sandbox['ids']);
+    $sandbox['processed'] = 0;
+    $sandbox['with_event'] = 0;
+    $sandbox['missing_event'] = 0;
+    $sandbox['no_field'] = 0;
+  }
+
+  if ($sandbox['total'] === 0) {
+    $logger->info('RSVP donation verification: 0 rsvp_donation order items found.');
+    $sandbox['#finished'] = 1;
+    return;
+  }
+
+  $batch_size = 50;
+  $slice = array_slice($sandbox['ids'], $sandbox['processed'], $batch_size);
+
+  if (!$slice) {
+    $logger->info('RSVP donation verification: total=@total, with field_target_event=@with, missing=@missing, field not attached=@no_field', [
+      '@total' => $sandbox['total'],
+      '@with' => $sandbox['with_event'],
+      '@missing' => $sandbox['missing_event'],
+      '@no_field' => $sandbox['no_field'],
+    ]);
+    $sandbox['#finished'] = 1;
+    return;
+  }
+
+  /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $items */
+  $items = $storage->loadMultiple($slice);
+
+  foreach ($items as $item) {
+    if (!$item->hasField('field_target_event')) {
+      $sandbox['no_field']++;
+      if ($sandbox['no_field'] === 1) {
+        $logger->warning('RSVP donation order item @id has no field_target_event attached. Run config import (drush cim) then updb.', [
+          '@id' => $item->id(),
+        ]);
+      }
+      continue;
+    }
+
+    if ($item->get('field_target_event')->isEmpty()) {
+      $sandbox['missing_event']++;
+    }
+    else {
+      $sandbox['with_event']++;
+    }
+  }
+
+  $sandbox['processed'] += count($slice);
+  $sandbox['#finished'] = min(1, $sandbox['processed'] / max(1, $sandbox['total']));
+
+  if ($sandbox['#finished'] >= 1) {
+    $logger->info('RSVP donation verification: total=@total, with field_target_event=@with, missing=@missing, field not attached=@no_field', [
+      '@total' => $sandbox['total'],
+      '@with' => $sandbox['with_event'],
+      '@missing' => $sandbox['missing_event'],
+      '@no_field' => $sandbox['no_field'],
+    ]);
   }
 }

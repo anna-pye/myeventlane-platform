@@ -1,0 +1,74 @@
+{#
+/**
+ * @file
+ * Theme override for RSVP public form (event book page).
+ *
+ * Single clean card: core fields, collapsible Accessibility + Support, compact legal.
+ */
+#}
+<form{{ attributes }}>
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+  {{ form.event_id }}
+
+  <div class="mel-rsvp-sidebar">
+    <div class="mel-rsvp-card">
+
+      <h3 class="mel-rsvp-title">{{ 'RSVP for this event'|t }}</h3>
+
+      <div class="mel-rsvp-section mel-rsvp-core">
+        {{ form.name }}
+        {{ form.email }}
+        {{ form.phone }}
+        {{ form.guests }}
+      </div>
+
+      {% if form.accessibility_needs %}
+        <div class="mel-rsvp-section mel-rsvp-section--collapsed">
+          <button type="button" class="mel-rsvp-toggle" data-target="accessibility" aria-expanded="false" aria-controls="mel-rsvp-accessibility">
+            {{ 'Accessibility needs (optional)'|t }}
+            <span class="mel-chevron" aria-hidden="true">+</span>
+          </button>
+          <div class="mel-rsvp-collapsible" id="mel-rsvp-accessibility">
+            {{ form.accessibility_needs }}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if form.donation_section %}
+        <div class="mel-rsvp-section mel-rsvp-section--collapsed">
+          <button type="button" class="mel-rsvp-toggle" data-target="support" aria-expanded="false" aria-controls="mel-rsvp-support">
+            {{ 'Support this event (optional)'|t }}
+            <span class="mel-chevron" aria-hidden="true">+</span>
+          </button>
+          <div class="mel-rsvp-collapsible" id="mel-rsvp-support">
+            {{ form.donation_section }}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if form.donation is defined %}
+        {{ form.donation }}
+      {% endif %}
+
+      <hr class="mel-divider">
+
+      <div class="mel-rsvp-legal">
+        <p class="mel-legal-text">
+          {{ 'We collect your name and email to process your RSVP. Read our Privacy Policy for details.'|t }}
+        </p>
+        {% if form.legal_consent %}
+          {{ form.legal_consent }}
+        {% endif %}
+      </div>
+
+      <div class="mel-rsvp-submit">
+        {{ form.actions }}
+      </div>
+
+    </div>
+  </div>
+
+  {{ form|without('form_build_id', 'form_token', 'form_id', 'event_id', 'name', 'email', 'phone', 'guests', 'accessibility_needs', 'donation_section', 'donation', 'legal_consent', 'actions', 'intro', 'error') }}
+</form>

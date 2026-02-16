@@ -50,27 +50,28 @@ configuration:
       wrapper_element: container
       always_display: true
       require_payment_method: false
-    # SIDEBAR REGION
-    grouped_order_summary:
-      display_label: null
-      step: _sidebar
-      weight: 0
-      wrapper_element: fieldset
+    # SIDEBAR REGION (single summary + coupon only)
     coupon_redemption:
       step: _sidebar
-      weight: 1
+      weight: 0
       allow_multiple: false
-    mel_fee_transparency:
-      display_label: 'Order summary'
-      step: _sidebar
-      weight: 2
-      wrapper_element: fieldset
     order_summary:
       display_label: null
       step: _sidebar
-      weight: 3
+      weight: 1
       wrapper_element: container
       view: commerce_checkout_order_summary
+    # DISABLED - Duplicate/empty summary panes; grouped view missing
+    grouped_order_summary:
+      display_label: null
+      step: _disabled
+      weight: 98
+      wrapper_element: fieldset
+    mel_fee_transparency:
+      display_label: 'Order summary'
+      step: _disabled
+      weight: 99
+      wrapper_element: fieldset
     # DISABLED - Legacy panes we don't want
     contact_information:
       step: _disabled

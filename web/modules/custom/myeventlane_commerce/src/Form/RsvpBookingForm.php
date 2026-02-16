@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_rsvp\Service\RsvpSubmissionManager;
 use Drupal\paragraphs\Entity\Paragraph;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -19,6 +20,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class RsvpBookingForm extends FormBase {
 
   /**
+   * RSVP submission manager (centralised submit logic).
+   */
+  private readonly RsvpSubmissionManager $submissionManager;
+
+  /**
    * Constructs RsvpBookingForm.
    */
   public function __construct(
@@ -26,7 +32,10 @@ final class RsvpBookingForm extends FormBase {
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
     private readonly ModuleHandlerInterface $moduleHandler,
-  ) {}
+    RsvpSubmissionManager $submissionManager,
+  ) {
+    $this->submissionManager = $submissionManager;
+  }
 
   /**
    * {@inheritdoc}
@@ -36,7 +45,8 @@ final class RsvpBookingForm extends FormBase {
       $container->get('entity_type.manager'),
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('myeventlane_rsvp.submission_manager')
     );
     // Set services provided by FormBase traits.
     $form->setConfigFactory($container->get('config.factory'));
@@ -342,31 +352,22 @@ final class RsvpBookingForm extends FormBase {
       try {
         if (\Drupal::hasService('myeventlane_donations.rsvp')) {
           $event = $this->entityTypeManager->getStorage('node')->load($event_id);
-          if ($event) {
-            // Create RSVP submission first (for tracking).
-            $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
+          if ($event instanceof \Drupal\node\NodeInterface) {
+            $capacity = $event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()
+              ? (int) $event->get('field_capacity')->value
+              : NULL;
 
-            // Anonymous users should store user_id as 0.
-            $user_id = $this->currentUser()->id() ?: 0;
-
-            $submission = $rsvpStorage->create([
-              'event_id' => ['target_id' => $event_id],
-              'attendee_name' => ($values['first_name'] ?? '') . ' ' . ($values['last_name'] ?? ''),
-              'name' => ($values['first_name'] ?? '') . ' ' . ($values['last_name'] ?? ''),
+            $submission = $this->submissionManager->submitOrUpdate($event, [
+              'name' => trim(($values['first_name'] ?? '') . ' ' . ($values['last_name'] ?? '')),
               'email' => $values['email'] ?? '',
               'phone' => $values['phone'] ?? '',
               'guests' => 1,
               'donation' => (float) $donationAmount,
-              'status' => 'confirmed',
-              'user_id' => $user_id,
-            ]);
-            $submission->save();
+            ], $capacity);
 
-            // Create donation order.
             $rsvpDonationService = \Drupal::service('myeventlane_donations.rsvp');
             $donationOrder = $rsvpDonationService->createDonationOrder($submission, $event, $donationAmount);
             if ($donationOrder) {
-              // Redirect to checkout for donation payment.
               $form_state->setRedirect('commerce_checkout.form', [
                 'commerce_order' => $donationOrder->id(),
               ]);
@@ -375,8 +376,15 @@ final class RsvpBookingForm extends FormBase {
           }
         }
       }
+      catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
+        $this->messenger()->addError($this->t('This event is full.'));
+        return;
+      }
+      catch (\RuntimeException $e) {
+        $this->messenger()->addError($e->getMessage());
+        return;
+      }
       catch (\Exception $e) {
-        // Log error but don't fail RSVP submission.
         $this->getLogger('myeventlane_commerce')->error('Failed to process RSVP donation: @message', [
           '@message' => $e->getMessage(),
         ]);

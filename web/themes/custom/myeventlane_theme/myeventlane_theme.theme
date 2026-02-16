@@ -303,6 +303,85 @@ function myeventlane_theme_preprocess_region__header(array &$variables): void {
 }
 
 /**
+ * Implements hook_theme_suggestions_form_alter().
+ *
+ * Adds form__{form_id} suggestion so form--{form-id}.html.twig templates
+ * (e.g. form--myeventlane-rsvp-public-form.html.twig) are used.
+ */
+function myeventlane_theme_theme_suggestions_form_alter(array &$suggestions, array $variables): void {
+  $element = $variables['element'] ?? [];
+  $form_id = $element['#form_id'] ?? NULL;
+  if (is_string($form_id) && $form_id !== '') {
+    $suggestions[] = 'form__' . $form_id;
+  }
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK() for commerce_checkout_form.
+ */
+function myeventlane_theme_theme_suggestions_commerce_checkout_form(array $variables): array {
+  $suggestions = [];
+  $step_id = $variables['form']['#step_id'] ?? NULL;
+  if ($step_id === 'complete') {
+    $suggestions[] = 'commerce_checkout_form__complete';
+  }
+  return $suggestions;
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_checkout_form.
+ */
+function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables): void {
+  $step_id = $variables['form']['#step_id'] ?? NULL;
+  if ($step_id === 'complete') {
+    $form = &$variables['form'];
+    // Resolve order: route param, sidebar pane, or view arguments.
+    $order = \Drupal::routeMatch()->getParameter('commerce_order')
+      ?? $form['#order_entity']
+      ?? ($form['sidebar']['order_summary']['#order_entity'] ?? NULL);
+    // order_summary pane uses a view when configured; order ID is in #arguments.
+    if (!$order && isset($form['sidebar']['order_summary']['summary']['#arguments'][0])) {
+      $order = $form['sidebar']['order_summary']['summary']['#arguments'][0];
+    }
+    if ($order && is_numeric($order)) {
+      $order = \Drupal::entityTypeManager()
+        ->getStorage('commerce_order')
+        ->load($order);
+    }
+    if ($order && $order instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+      $variables['order_entity'] = $order;
+      $variables['order_totals'] = \Drupal::service('commerce_order.order_total_summary')
+        ->buildTotals($order);
+      // Build attendee names per order item (avoids referencedEntities() in Twig sandbox).
+      $order_items_attendees = [];
+      foreach ($order->getItems() as $item) {
+        if (!$item->hasField('field_ticket_holder') || $item->get('field_ticket_holder')->isEmpty()) {
+          continue;
+        }
+        $attendees = [];
+        foreach ($item->get('field_ticket_holder')->referencedEntities() as $holder) {
+          $first = $holder->hasField('field_first_name') && !$holder->get('field_first_name')->isEmpty()
+            ? trim((string) $holder->get('field_first_name')->value) : '';
+          $last = $holder->hasField('field_last_name') && !$holder->get('field_last_name')->isEmpty()
+            ? trim((string) $holder->get('field_last_name')->value) : '';
+          $email = $holder->hasField('field_email') && !$holder->get('field_email')->isEmpty()
+            ? trim((string) $holder->get('field_email')->value) : '';
+          $attendees[] = [
+            'first_name' => $first,
+            'last_name' => $last,
+            'email' => $email,
+          ];
+        }
+        if (!empty($attendees)) {
+          $order_items_attendees[(int) $item->id()] = $attendees;
+        }
+      }
+      $variables['order_items_attendees'] = $order_items_attendees;
+    }
+  }
+}
+
+/**
  * Implements hook_preprocess_html().
  */
 function myeventlane_theme_preprocess_html(array &$variables): void {
@@ -310,8 +389,8 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
   $route_name = $route_match ? $route_match->getRouteName() : '';
 
   if (is_string($route_name) && $route_name !== '') {
-    // Scope all Commerce cart/checkout styling.
-    if (str_starts_with($route_name, 'commerce_cart.') || str_starts_with($route_name, 'commerce_checkout.')) {
+    // Scope all Commerce cart/checkout/order-detail styling.
+    if (str_starts_with($route_name, 'commerce_cart.') || str_starts_with($route_name, 'commerce_checkout.') || $route_name === 'entity.commerce_order.user_view') {
       $variables['attributes']['class'][] = 'mel-commerce';
     }
 
@@ -321,6 +400,10 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
 
     if (str_starts_with($route_name, 'commerce_checkout.')) {
       $variables['attributes']['class'][] = 'mel-commerce-checkout';
+    }
+
+    if ($route_name === 'entity.commerce_order.user_view') {
+      $variables['attributes']['class'][] = 'mel-commerce-order-detail';
     }
   }
 }
@@ -1966,6 +2049,22 @@ function myeventlane_theme_preprocess_mimemail_message(array &$variables): void 
   $theme_path = $extension_list->getPath($default_theme ?: 'myeventlane_theme');
   $base_url = \Drupal::request()->getSchemeAndHttpHost() . \Drupal::request()->getBasePath();
   $variables['logo_path'] = rtrim($base_url, '/') . '/' . $theme_path . '/images/logo.svg';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for RSVP forms.
+ *
+ * Attaches accordion JS for Accessibility + Support collapsible sections.
+ */
+function myeventlane_theme_preprocess_form__myeventlane_rsvp_public_form(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_theme/rsvp_sidebar';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for RSVP booking form.
+ */
+function myeventlane_theme_preprocess_form__myeventlane_commerce_rsvp_booking_form(array &$variables): void {
+  $variables['#attached']['library'][] = 'myeventlane_theme/rsvp_sidebar';
 }
 
 /**

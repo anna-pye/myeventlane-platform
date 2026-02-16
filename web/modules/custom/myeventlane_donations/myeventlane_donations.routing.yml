@@ -76,3 +76,14 @@ myeventlane_donations.admin_export:
   options:
     _admin_route: TRUE
 
+# Unattributed RSVP donations report (items missing field_target_event).
+myeventlane_donations.unattributed:
+  path: '/admin/reports/myeventlane/donations/unattributed'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\DonationReportController::unattributed'
+    _title: 'Unattributed RSVP donations'
+  requirements:
+    _permission: 'administer myeventlane donations'
+  options:
+    _admin_route: TRUE
+

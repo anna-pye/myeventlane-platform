@@ -2,7 +2,7 @@ services:
 
   myeventlane_rsvp.user_rsvp_repository:
     class: Drupal\myeventlane_rsvp\Service\UserRsvpRepository
-    arguments: ['@database', '@current_user']
+    arguments: ['@database', '@entity_type.manager']
 
   myeventlane_rsvp.mailer:
     class: Drupal\myeventlane_rsvp\Service\RsvpMailer
@@ -25,7 +25,7 @@ services:
 
   myeventlane_rsvp.capacity:
     class: Drupal\myeventlane_rsvp\Service\RsvpCapacityService
-    arguments: ['@database']
+    arguments: ['@entity_type.manager']
 
   myeventlane_rsvp.calendar_buttons:
     class: Drupal\myeventlane_rsvp\Service\CalendarButtonBuilder
@@ -55,7 +55,20 @@ services:
 
   myeventlane_rsvp.vendor_event_access:
     class: Drupal\myeventlane_rsvp\Access\VendorEventAccess
-    arguments: ['@current_user', '@entity_type.manager']
+
+  myeventlane_rsvp.rsvp_cancel_access:
+    class: Drupal\myeventlane_rsvp\Access\RsvpCancelAccess
+    arguments: ['@entity_type.manager', '@config.factory', '@request_stack']
+
+  myeventlane_rsvp.submission_manager:
+    class: Drupal\myeventlane_rsvp\Service\RsvpSubmissionManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_rsvp.capacity'
+      - '@flood'
+      - '@lock'
+      - '@current_user'
+      - '@request_stack'
 
   myeventlane_rsvp.pdf_generator:
     class: Drupal\myeventlane_rsvp\Service\RsvpPdfGenerator

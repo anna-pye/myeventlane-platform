@@ -29,9 +29,14 @@
             📅 {{ event.get('field_event_start').value|date('F j, Y') }}
           </span>
           {% if event.hasField('field_location') and not event.get('field_location').isEmpty() %}
-            <span class="mel-event-location">
-              📍 {{ event.get('field_location').value }}
-            </span>
+            {% set loc = event.get('field_location')[0] %}
+            {% if loc %}
+              {% set loc_parts = [] %}
+              {% if loc.address_line1 %}{% set loc_parts = loc_parts|merge([loc.address_line1]) %}{% endif %}
+              {% if loc.locality %}{% set loc_parts = loc_parts|merge([loc.locality]) %}{% endif %}
+              {% if loc.administrative_area %}{% set loc_parts = loc_parts|merge([loc.administrative_area]) %}{% endif %}
+              <span class="mel-event-location">📍 {{ loc_parts|join(', ') }}</span>
+            {% endif %}
           {% endif %}
         </div>
       {% endif %}

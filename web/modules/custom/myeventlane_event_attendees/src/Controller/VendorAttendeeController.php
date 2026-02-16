@@ -42,6 +42,9 @@ final class VendorAttendeeController extends ControllerBase {
 
   /**
    * Access check for vendor attendee routes.
+   *
+   * Aligned with VendorEventAccess: owner, vendor users (field_event_vendor →
+   * field_vendor_users), or admin can access.
    */
   public function access(NodeInterface $node, AccountInterface $account): AccessResultInterface {
     // Must be an event node.
@@ -54,13 +57,29 @@ final class VendorAttendeeController extends ControllerBase {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Check if user is the event author.
-    $isOwner = (int) $node->getOwnerId() === (int) $account->id();
+    if (!$account->hasPermission('view own event attendees')) {
+      return AccessResult::forbidden('You do not have access to view attendees for this event.');
+    }
 
-    if ($isOwner && $account->hasPermission('view own event attendees')) {
+    // Event owner.
+    if ((int) $node->getOwnerId() === (int) $account->id()) {
       return AccessResult::allowed()
         ->cachePerUser()
         ->addCacheableDependency($node);
+    }
+
+    // Vendor user via field_event_vendor → field_vendor_users (aligns with VendorEventAccess).
+    if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
+      $vendor = $node->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_users')) {
+        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
+          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
+            return AccessResult::allowed()
+              ->cachePerUser()
+              ->addCacheableDependency($node);
+          }
+        }
+      }
     }
 
     return AccessResult::forbidden('You do not have access to view attendees for this event.');
@@ -68,6 +87,8 @@ final class VendorAttendeeController extends ControllerBase {
 
   /**
    * Access check for single attendee operations.
+   *
+   * Reuses same policy as access(): owner, vendor users, or admin.
    */
   public function accessAttendee(EventAttendee $event_attendee, AccountInterface $account): AccessResultInterface {
     $event = $event_attendee->getEvent();
@@ -76,21 +97,7 @@ final class VendorAttendeeController extends ControllerBase {
       return AccessResult::forbidden('Event not found.');
     }
 
-    // Admin can manage all.
-    if ($account->hasPermission('administer event attendees')) {
-      return AccessResult::allowed()->cachePerPermissions();
-    }
-
-    // Check if user is the event author.
-    $isOwner = (int) $event->getOwnerId() === (int) $account->id();
-
-    if ($isOwner && $account->hasPermission('manage own event attendees')) {
-      return AccessResult::allowed()
-        ->cachePerUser()
-        ->addCacheableDependency($event);
-    }
-
-    return AccessResult::forbidden();
+    return $this->access($event, $account);
   }
 
   /**
@@ -407,6 +414,9 @@ final class VendorAttendeeController extends ControllerBase {
 
     $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', '0');
 
     return $response;
   }

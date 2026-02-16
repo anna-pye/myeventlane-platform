@@ -535,17 +535,22 @@
 // ---------------------------------------------------------------------------
 
 .mel-commerce-checkout {
-  /* Checkout: page-wide (target all possible wrappers) */
+  /* Checkout: max-width 1200px on desktop; centered */
   .region-content,
-  .region-content > *,
   .layout-content,
-  .layout-content > *,
-  main.mel-main,
-  main.mel-main > * {
-    max-width: none !important;
+  main.mel-main {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  /* Main content area: minimal horizontal padding, full width */
+  /* Remove width constraint from main column to allow flexible layout */
+  .layout-region-checkout-main {
+    width: auto;
+    max-width: none;
+  }
+
+  /* Main content area: minimal horizontal padding */
   main.mel-main {
     padding-left: space-tokens.mel-space(4);
     padding-right: space-tokens.mel-space(4);
@@ -567,43 +572,49 @@
     margin: 0;
   }
 
-  /* Desktop checkout layout: two columns — calmness pass: wider gap */
+  /* Desktop checkout layout: two columns */
+  .mel-checkout__grid,
   .mel-checkout__layout,
   .layout-checkout-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 420px;
-    gap: space-tokens.mel-space(5);
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: space-tokens.mel-space(3);
     align-items: start;
   }
 
   @media (min-width: 1400px) {
+    .mel-checkout__grid,
     .mel-checkout__layout,
     .layout-checkout-form {
-      grid-template-columns: minmax(0, 1fr) 480px;
+      grid-template-columns: minmax(0, 1fr) 420px;
     }
   }
 
   @include breakpoints.mel-break(lg, max) {
+    .mel-checkout__grid,
     .mel-checkout__layout,
     .layout-checkout-form {
       grid-template-columns: 1fr;
     }
   }
 
-  /* Ensure the sidebar itself doesn't collapse */
+  /* Ensure aside doesn't collapse */
+  .mel-checkout__aside,
   .mel-checkout__sidebar,
   .layout-region-checkout-secondary {
-    width: 420px;
+    width: 380px;
   }
 
   @media (min-width: 1400px) {
+    .mel-checkout__aside,
     .mel-checkout__sidebar,
     .layout-region-checkout-secondary {
-      width: 480px;
+      width: 420px;
     }
   }
 
   @include breakpoints.mel-break(lg, max) {
+    .mel-checkout__aside,
     .mel-checkout__sidebar,
     .layout-region-checkout-secondary {
       width: auto;
@@ -660,8 +671,8 @@
     line-height: 1.3;
   }
 
-  /* Sticky sidebar summary on desktop — glass panel (pastel visual system) */
-  /* Calmness pass: increased internal spacing and gap for readability */
+  /* Sticky aside on desktop — glass panel (pastel visual system) */
+  .mel-checkout__aside,
   .mel-checkout__sidebar,
   .layout-region-checkout-secondary {
     position: sticky;
@@ -992,5 +1003,134 @@
       color: colors.$mel-color-text;
       box-shadow: 0 2px 8px rgba(108, 126, 242, 0.12);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Order Detail Page: /user/{user}/orders/{order}
+// ---------------------------------------------------------------------------
+// Styled order view for customers (entity.commerce_order.user_view).
+
+.mel-commerce-order-detail {
+  .region-content {
+    padding-top: space-tokens.mel-space(5);
+    padding-bottom: space-tokens.mel-space(8);
+  }
+
+  .mel-order-detail {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .mel-order-detail__section-title {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    margin: 0 0 space-tokens.mel-space(4) 0;
+    padding-bottom: space-tokens.mel-space(2);
+    border-bottom: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-order-detail__customer-fields,
+  .mel-order-detail__meta {
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+
+    .field__label,
+    .field--label-inline .field__label {
+      font-weight: typography.$mel-font-semibold;
+      color: colors.$mel-color-text-muted;
+      margin-right: space-tokens.mel-space(1);
+    }
+
+    .field__item,
+    .field--label-inline .field__item {
+      color: colors.$mel-color-text;
+    }
+
+    .field--label-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: space-tokens.mel-space(1);
+    }
+  }
+
+  .mel-order-detail__meta {
+    margin-top: space-tokens.mel-space(4);
+    padding-top: space-tokens.mel-space(4);
+    border-top: 1px solid colors.$mel-color-border;
+    font-size: typography.mel-font-size(sm);
+  }
+
+  /* Order items table */
+  .mel-order-detail__items {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: typography.mel-font-size(sm);
+
+      th {
+        text-align: left;
+        font-weight: typography.$mel-font-semibold;
+        color: colors.$mel-color-text-muted;
+        padding: space-tokens.mel-space(3) space-tokens.mel-space(2);
+        border-bottom: 1px solid colors.$mel-color-border;
+      }
+
+      td {
+        padding: space-tokens.mel-space(3) space-tokens.mel-space(2);
+        border-bottom: 1px solid rgba(colors.$mel-color-border, 0.6);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+
+  /* Order totals */
+  .mel-order-detail__totals {
+    .order-total-line,
+    .commerce-order-total-summary__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: space-tokens.mel-space(2) 0;
+      gap: space-tokens.mel-space(4);
+    }
+
+    .order-total-line__total,
+    .commerce-order-total-summary__total {
+      font-size: typography.mel-font-size(lg);
+      font-weight: typography.$mel-font-bold;
+      color: colors.$mel-color-text;
+      padding-top: space-tokens.mel-space(3);
+      margin-top: space-tokens.mel-space(2);
+      border-top: 2px solid colors.$mel-color-border;
+    }
+
+    .order-total-line-label,
+    .commerce-order-total-summary__label {
+      font-weight: typography.$mel-font-medium;
+      color: colors.$mel-color-text-muted;
+    }
+
+    .order-total-line-value,
+    .commerce-order-total-summary__value {
+      font-weight: typography.$mel-font-semibold;
+      color: colors.$mel-color-text;
+    }
+  }
+
+  /* Card consistency with checkout */
+  .mel-order-detail .mel-card {
+    border-radius: radii.$mel-radius-lg;
+    border: 1px solid colors.$mel-color-border;
+    box-shadow: shadows.$mel-shadow-sm;
+  }
+
+  .mel-order-detail .mel-card-body {
+    padding: space-tokens.mel-space(5);
   }
 }

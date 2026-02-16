@@ -1,13 +1,14 @@
 {#
 /**
  * @file
- * Safe override for Commerce checkout form.
+ * Checkout Shell layout for Commerce checkout form.
  *
- * Goals:
- * - Zero Twig syntax errors
- * - No inline PHP-style logic
- * - Compatible with Drupal 10/11 + Commerce
- * - MEL styling hook points only
+ * BEM: .mel-checkout, .mel-checkout__grid, .mel-checkout__main,
+ * .mel-checkout__aside, .mel-checkout__actions
+ *
+ * - Two-column layout: main left, aside right (desktop)
+ * - Actions directly beneath main column
+ * - No empty sidebar container when sidebar has no children
  */
 #}
 
@@ -23,25 +24,25 @@
     </div>
   {% endif %}
 
-  <div class="mel-checkout__layout">
-
+  <div class="mel-checkout__grid">
     <div class="mel-checkout__main">
       {{ form|without('progress', 'sidebar', 'actions') }}
+      {% if form.actions %}
+        <div class="mel-checkout__actions">
+          {{ form.actions }}
+        </div>
+        <p class="mel-checkout-security">{{ 'You\'ll have a chance to review everything before completing your order.'|t }}</p>
+      {% endif %}
     </div>
 
-    {% if form.sidebar %}
-      <aside class="mel-checkout__sidebar">
-        {{ form.sidebar }}
-      </aside>
+    {% if form.sidebar is defined %}
+      {% set sidebar_content = form.sidebar|render %}
+      {% if sidebar_content|striptags|trim is not empty %}
+        <aside class="mel-checkout__aside">
+          {{ sidebar_content }}
+        </aside>
+      {% endif %}
     {% endif %}
-
   </div>
-
-  {% if form.actions %}
-    <div class="mel-checkout__actions">
-      {{ form.actions }}
-    </div>
-    <p class="mel-checkout-security">{{ 'You\'ll have a chance to review everything before completing your order.'|t }}</p>
-  {% endif %}
 
 </div>

@@ -1,0 +1,48 @@
+{#
+/**
+ * @file
+ * Theme override for checkout form with sidebar.
+ *
+ * When step is 'complete' and order_entity is available, renders our custom
+ * confirmation page. Otherwise uses the default Commerce layout.
+ *
+ * Available variables:
+ * - form: The checkout form.
+ * - order_entity: The order entity (from preprocess, complete step only).
+ * - order_totals: Order totals (from preprocess, complete step only).
+ * - order_items_attendees: Map of order item ID => attendee arrays (from preprocess).
+ */
+#}
+{% if form['#step_id'] is defined and form['#step_id'] == 'complete' and order_entity %}
+  {# Custom completion page: main content + sidebar + actions #}
+  <div class="layout-checkout-form clearfix mel-checkout mel-checkout--complete">
+    <div class="layout-region layout-region-checkout-main">
+      {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
+        order_entity: order_entity,
+        order_totals: order_totals|default(null),
+        order_items_attendees: order_items_attendees|default({}),
+      } %}
+    </div>
+    <div class="layout-region layout-region-checkout-secondary">
+      <h3>{% trans %}Order summary{% endtrans %}</h3>
+      {{ form.sidebar }}
+    </div>
+    <div class="layout-region layout-region-checkout-footer">
+      {{ form.actions }}
+    </div>
+  </div>
+{% else %}
+  {# Default Commerce layout #}
+  <div class="layout-checkout-form clearfix">
+    <div class="layout-region layout-region-checkout-main">
+      {{ form|without('sidebar', 'actions') }}
+    </div>
+    <div class="layout-region layout-region-checkout-secondary">
+      <h3>{% trans %}Order summary{% endtrans %}</h3>
+      {{ form.sidebar }}
+    </div>
+    <div class="layout-region layout-region-checkout-footer">
+      {{ form.actions }}
+    </div>
+  </div>
+{% endif %}

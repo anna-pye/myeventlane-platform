@@ -16,7 +16,10 @@
 <div class="mel-donation-report">
   <div class="mel-donation-report__header">
     <h1>{{ 'Donation Reports'|t }}</h1>
-    <a href="{{ export_url }}" class="mel-btn mel-btn-primary">{{ 'Export CSV'|t }}</a>
+    <div class="mel-donation-report__actions">
+      <a href="{{ unattributed_url }}" class="mel-btn mel-btn-secondary">{{ 'Unattributed RSVP donations'|t }}</a>
+      <a href="{{ export_url }}" class="mel-btn mel-btn-primary">{{ 'Export CSV'|t }}</a>
+    </div>
   </div>
 
   <div class="mel-donation-report__summary">

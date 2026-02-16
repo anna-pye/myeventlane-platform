@@ -47,7 +47,7 @@ myeventlane_rsvp.cancel_confirm:
     _form: '\Drupal\myeventlane_rsvp\Form\RsvpCancelConfirmForm'
     _title: 'Cancel RSVP'
   requirements:
-    _permission: 'access content'
+    _custom_access: 'myeventlane_rsvp.rsvp_cancel_access:access'
 
 # ICS calendar download for event.
 myeventlane_rsvp.ics_download:
@@ -178,11 +178,11 @@ myeventlane_rsvp.checkin_scan:
       event:
         type: entity:node
 
-# QR validation endpoint (AJAX).
+# QR validation endpoint (AJAX). Requires vendor permission.
 myeventlane_rsvp.checkin_validate:
   path: '/vendor/qr/validate'
   defaults:
     _controller: '\Drupal\myeventlane_rsvp\Controller\QrCheckinController::validate'
   requirements:
-    _permission: 'access content'
+    _permission: 'manage own event rsvps'
   methods: [POST]

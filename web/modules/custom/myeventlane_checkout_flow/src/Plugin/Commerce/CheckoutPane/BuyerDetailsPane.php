@@ -88,11 +88,14 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       ],
     ];
 
+    $mobile_default = ($billing_profile->hasField('field_phone') && !$billing_profile->get('field_phone')->isEmpty())
+      ? $billing_profile->get('field_phone')->value
+      : '';
     $pane_form['mobile'] = [
       '#type' => 'tel',
       '#title' => $this->t('Mobile number'),
       '#description' => $this->t('Optional. We may use this to contact you about your order.'),
-      '#default_value' => $billing_profile->get('field_phone')?->value ?? '',
+      '#default_value' => $mobile_default,
       '#attributes' => [
         'autocomplete' => 'tel',
         'class' => ['mel-buyer-mobile'],
@@ -148,8 +151,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
 
     $address = $billing_profile->get('address')->first();
     if (!$address) {
-      $address = $billing_profile->get('address')->create();
-      $billing_profile->set('address', $address);
+      $address = $billing_profile->get('address')->appendItem();
     }
 
     $address->set('given_name', $values['first_name']);

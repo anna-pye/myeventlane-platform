@@ -3,37 +3,58 @@
 namespace Drupal\myeventlane_rsvp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Flood\FloodInterface;
+use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
 use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- *
+ * QR code scan and validation for RSVP check-in.
  */
 final class QrCheckinController extends ControllerBase {
 
+  /**
+   * Flood limit: requests per identifier per window.
+   */
+  private const FLOOD_LIMIT = 30;
+
+  /**
+   * Flood window in seconds.
+   */
+  private const FLOOD_WINDOW = 60;
+
+  /**
+   * Constructs QrCheckinController.
+   */
   public function __construct(
     private readonly UserRsvpRepository $repo,
     private readonly EntityTypeManagerInterface $em,
     private readonly ConfigFactoryInterface $config,
+    private readonly FloodInterface $flood,
+    private readonly AccountProxyInterface $account,
   ) {}
 
   /**
-   *
+   * {@inheritdoc}
    */
   public static function create(ContainerInterface $c): self {
     return new self(
       $c->get('myeventlane_rsvp.user_rsvp_repository'),
       $c->get('entity_type.manager'),
       $c->get('config.factory'),
+      $c->get('flood'),
+      $c->get('current_user'),
     );
   }
 
   /**
-   *
+   * Renders the QR scan page for an event.
    */
   public function scanPage($event): array {
     return [
@@ -48,49 +69,106 @@ final class QrCheckinController extends ControllerBase {
   }
 
   /**
+   * Validates QR code and marks RSVP as checked in.
    *
+   * Requires manage own event rsvps. Verifies user can access the event.
+   * Rate-limited by IP. Response is uncacheable.
    */
   public function validate(Request $req): JsonResponse {
+    $identifier = 'myeventlane_rsvp.qr_validate:' . $req->getClientIp();
+    if (!$this->flood->isAllowed('myeventlane_rsvp.qr_validate', self::FLOOD_LIMIT, self::FLOOD_WINDOW, $identifier)) {
+      $this->getLogger('myeventlane_rsvp')->notice('QR validate flood limit exceeded');
+      throw new AccessDeniedHttpException('Too many requests.');
+    }
+    $this->flood->register('myeventlane_rsvp.qr_validate', self::FLOOD_WINDOW, $identifier);
+
     $data = json_decode($req->getContent(), TRUE);
     $code = $data['code'] ?? '';
 
-    // Format: mel:rsvp:ID:HASH.
     if (!preg_match('/^mel:rsvp:(\d+):([a-f0-9]{64})$/', $code, $m)) {
-      return new JsonResponse(['status' => 'invalid', 'message' => 'Bad QR format']);
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'Bad QR format']);
     }
 
     $rsvp_id = (int) $m[1];
     $hash = $m[2];
 
     $rsvp = $this->em->getStorage('rsvp_submission')->load($rsvp_id);
-    if (!$rsvp) {
-      return new JsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
+    if (!$rsvp instanceof RsvpSubmission) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
     }
 
-    $event_id = $rsvp->get('field_event')->target_id;
-    $secret = $this->config->get('myeventlane_rsvp.settings')->get('private_qr_key');
+    $event = $rsvp->getEvent();
+    if (!$event) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'Event not found']);
+    }
 
+    // Verify current user can manage this event.
+    if (!$this->canManageEvent($event)) {
+      throw new AccessDeniedHttpException('You do not have access to check in for this event.');
+    }
+
+    $event_id = $rsvp->getEventId();
+    $secret = $this->config->get('myeventlane_rsvp.settings')->get('private_qr_key') ?: 'mel-rsvp-qr';
     $expected = hash('sha256', $event_id . ':' . $rsvp_id . ':' . $secret);
-    if ($hash !== $expected) {
-      return new JsonResponse(['status' => 'invalid', 'message' => 'Invalid QR']);
+    if (!hash_equals($expected, $hash)) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'Invalid QR']);
     }
 
-    if ($rsvp->get('field_checked_in')->value) {
-      return new JsonResponse([
+    if ($rsvp->isCheckedIn()) {
+      return $this->jsonResponse([
         'status' => 'repeat',
         'message' => 'Already checked in',
       ]);
     }
 
-    // Mark as checked in.
-    $rsvp->set('field_checked_in', 1);
+    $rsvp->checkIn();
     $rsvp->save();
 
-    return new JsonResponse([
+    $name = $rsvp->get('attendee_name')->value ?? $rsvp->get('name')->value ?? '';
+
+    return $this->jsonResponse([
       'status' => 'success',
       'message' => 'Checked in',
-      'name' => $rsvp->get('field_first_name')->value . ' ' . $rsvp->get('field_last_name')->value,
+      'name' => $name,
     ]);
+  }
+
+  /**
+   * Checks if the current user can manage the event (owner or vendor).
+   */
+  private function canManageEvent(\Drupal\node\NodeInterface $event): bool {
+    $account = $this->account->getAccount();
+    if ($account->hasPermission('administer rsvps') || $account->hasPermission('administer nodes')) {
+      return TRUE;
+    }
+    if (!$account->hasPermission('manage own event rsvps')) {
+      return FALSE;
+    }
+    if ((int) $event->getOwnerId() === (int) $account->id()) {
+      return TRUE;
+    }
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_users')) {
+        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
+          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
+            return TRUE;
+          }
+        }
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns a JSON response with uncacheable headers.
+   */
+  private function jsonResponse(array $data): JsonResponse {
+    $response = new JsonResponse($data);
+    $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', '0');
+    return $response;
   }
 
 }

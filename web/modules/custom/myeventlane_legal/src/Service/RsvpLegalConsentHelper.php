@@ -28,12 +28,14 @@ final class RsvpLegalConsentHelper {
       '#type' => 'fieldset',
       '#title' => t('Legal agreements'),
       '#weight' => 50,
+      '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-legal-consent', 'mel-rsvp-legal-consent']],
       'customer_terms_agreed' => [
         '#type' => 'checkbox',
         '#title' => t('I agree to the @terms', ['@terms' => $termsLink]),
         '#required' => TRUE,
         '#default_value' => FALSE,
+        '#return_value' => 1,
         '#attributes' => ['class' => ['mel-consent-terms'], 'aria-required' => 'true'],
       ],
       'privacy_agreed' => [
@@ -41,6 +43,7 @@ final class RsvpLegalConsentHelper {
         '#title' => t('I have read the @privacy', ['@privacy' => $privacyLink]),
         '#required' => TRUE,
         '#default_value' => FALSE,
+        '#return_value' => 1,
         '#attributes' => ['class' => ['mel-consent-privacy'], 'aria-required' => 'true'],
       ],
       'marketing_opt_in' => [
@@ -48,6 +51,7 @@ final class RsvpLegalConsentHelper {
         '#title' => t('Send me updates, tips and event news'),
         '#required' => FALSE,
         '#default_value' => FALSE,
+        '#return_value' => 1,
         '#attributes' => ['class' => ['mel-consent-marketing']],
       ],
     ];
@@ -57,6 +61,7 @@ final class RsvpLegalConsentHelper {
         '#type' => 'fieldset',
         '#title' => t('Legal agreements'),
         '#weight' => 50,
+        '#tree' => TRUE,
         '#attributes' => ['class' => ['mel-legal-consent', 'mel-rsvp-legal-consent']],
         'collection_notice' => [
           '#type' => 'markup',
@@ -77,10 +82,10 @@ final class RsvpLegalConsentHelper {
    */
   public static function validate(array $legal, string $prefix = 'legal_consent'): array {
     $errors = [];
-    if (!($legal['customer_terms_agreed'] ?? FALSE)) {
+    if (empty($legal['customer_terms_agreed'])) {
       $errors[] = [$prefix . '][customer_terms_agreed', t('You must agree to the Terms of Service.')];
     }
-    if (!($legal['privacy_agreed'] ?? FALSE)) {
+    if (empty($legal['privacy_agreed'])) {
       $errors[] = [$prefix . '][privacy_agreed', t('You must confirm you have read the Privacy Policy.')];
     }
     return $errors;

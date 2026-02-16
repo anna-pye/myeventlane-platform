@@ -58,37 +58,40 @@
       </main>
 
       <aside class="mel-event-book__sidebar" role="complementary">
-        <section class="mel-event-book__form mel-card mel-card--surface" aria-labelledby="mel-event-book-form-title">
-          <div class="mel-event-book__form-head">
-            <h2 class="mel-event-book__form-title" id="mel-event-book-form-title">
-              {% if event_mode == 'rsvp' %}
-                {{ 'RSVP for this event'|t }}
-              {% elseif event_mode == 'paid' %}
-                {{ 'Buy tickets'|t }}
-              {% elseif event_mode == 'external' %}
-                {{ 'Get tickets'|t }}
-              {% else %}
-                {{ 'Registration'|t }}
-              {% endif %}
-            </h2>
-          </div>
-
-          <div class="mel-event-book__form-body">
-            {% if matrix_form %}
-              {{ matrix_form }}
-            {% elseif rsvp_form %}
-              {{ rsvp_form }}
-            {% else %}
-              <div class="mel-alert mel-alert--info" role="status">
-                {% if event_mode == 'none' %}
-                  {{ 'Registration opens soon.'|t }}
+        {% if event_mode == 'rsvp' and matrix_form %}
+          {# RSVP: form template provides mel-rsvp-sidebar + mel-rsvp-card (single clean card). #}
+          {{ matrix_form }}
+        {% else %}
+          <section class="mel-event-book__form mel-card mel-card--surface" aria-labelledby="mel-event-book-form-title">
+            <div class="mel-event-book__form-head">
+              <h2 class="mel-event-book__form-title" id="mel-event-book-form-title">
+                {% if event_mode == 'paid' %}
+                  {{ 'Buy tickets'|t }}
+                {% elseif event_mode == 'external' %}
+                  {{ 'Get tickets'|t }}
                 {% else %}
-                  {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                  {{ 'Registration'|t }}
                 {% endif %}
-              </div>
-            {% endif %}
-          </div>
-        </section>
+              </h2>
+            </div>
+
+            <div class="mel-event-book__form-body">
+              {% if matrix_form %}
+                {{ matrix_form }}
+              {% elseif rsvp_form %}
+                {{ rsvp_form }}
+              {% else %}
+                <div class="mel-alert mel-alert--info" role="status">
+                  {% if event_mode == 'none' %}
+                    {{ 'Registration opens soon.'|t }}
+                  {% else %}
+                    {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
       </aside>
     </div>
 

@@ -126,12 +126,15 @@ final class WaitlistManagementController extends ControllerBase {
     fclose($output);
 
     $response = new Response($csvContent);
-    $response->headers->set('Content-Type', 'text/csv');
+    $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
     $response->headers->set('Content-Disposition', sprintf(
       'attachment; filename="waitlist-%s-%s.csv"',
       $node->id(),
       date('Y-m-d')
     ));
+    $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', '0');
 
     return $response;
   }

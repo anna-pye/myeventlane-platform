@@ -7,6 +7,29 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_form_FORM_ID_alter() for commerce_checkout_flow_mel_event_checkout.
+ */
+function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkout_alter(array &$form, FormStateInterface $form_state): void {
+  $step_id = $form['#step_id'] ?? NULL;
+  if ($step_id !== 'checkout') {
+    return;
+  }
+  // Add "Back to cart" link when there is no previous checkout step.
+  if (isset($form['actions']['next'])) {
+    $back_link = Link::fromTextAndUrl(
+      t('Back to cart'),
+      Url::fromRoute('commerce_cart.page'),
+      ['attributes' => ['class' => ['link--previous', 'mel-checkout-back']]]
+    );
+    $form['actions']['next']['#suffix'] = $back_link->toString();
+  }
+}
+
 /**
  * Implements hook_theme().
  */

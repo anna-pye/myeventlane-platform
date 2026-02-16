@@ -86,6 +86,14 @@ mel_toasts:
   dependencies:
     - core/drupal
 
+# RSVP sidebar accordion (Accessibility + Support sections on event book page).
+rsvp_sidebar:
+  js:
+    js/rsvp-accordion.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Auth pages: login, register, password reset. Styled for Gin Login + MEL branding.
 # Attached only on user.login, user.register, user.pass.
 auth_pages:

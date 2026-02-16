@@ -67,10 +67,10 @@ final class RsvpCheckinController extends ControllerBase {
    *
    */
   public function getEventRsvpsByStatus(int $event_id, string $status): array {
-    return array_filter(
-        $this->getEventRsvps($event_id),
-        fn($r) => strtolower($r['status']) === strtolower($status)
-    );
+    return array_values(array_filter(
+      $this->repo->getEventRsvps($event_id),
+      fn ($r) => strtolower((string) $r['status']) === strtolower($status)
+    ));
   }
 
 }

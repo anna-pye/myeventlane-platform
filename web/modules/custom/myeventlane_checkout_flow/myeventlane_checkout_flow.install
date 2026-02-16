@@ -5,6 +5,8 @@
  * Install, update and uninstall functions for MyEventLane Checkout Flow.
  */
 
+
+
 /**
  * Creates the checkout flow and order item type configurations.
  */
@@ -69,24 +71,29 @@ function myeventlane_checkout_flow_install() {
         'always_display' => TRUE,
         'require_payment_method' => FALSE,
       ],
-      'grouped_order_summary' => [
-        'display_label' => NULL,
+      'coupon_redemption' => [
         'step' => '_sidebar',
         'weight' => 0,
-        'wrapper_element' => 'fieldset',
-      ],
-      'mel_fee_transparency' => [
-        'display_label' => 'Order summary',
-        'step' => '_sidebar',
-        'weight' => 1,
-        'wrapper_element' => 'fieldset',
+        'allow_multiple' => FALSE,
       ],
       'order_summary' => [
         'display_label' => NULL,
         'step' => '_sidebar',
-        'weight' => 2,
+        'weight' => 1,
         'wrapper_element' => 'container',
         'view' => 'commerce_checkout_order_summary',
+      ],
+      'grouped_order_summary' => [
+        'display_label' => NULL,
+        'step' => '_disabled',
+        'weight' => 98,
+        'wrapper_element' => 'fieldset',
+      ],
+      'mel_fee_transparency' => [
+        'display_label' => 'Order summary',
+        'step' => '_disabled',
+        'weight' => 99,
+        'wrapper_element' => 'fieldset',
       ],
       'contact_information' => [
         'step' => '_disabled',

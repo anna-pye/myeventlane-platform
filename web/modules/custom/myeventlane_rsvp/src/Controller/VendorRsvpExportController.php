@@ -48,14 +48,18 @@ final class VendorRsvpExportController extends ControllerBase {
       );
     }
 
-    return new Response(
+    $response = new Response(
       $csv,
       200,
       [
-        'Content-Type' => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="rsvps.csv"',
+        'Content-Type' => 'text/csv; charset=utf-8',
+        'Content-Disposition' => 'attachment; filename="rsvps-' . $event . '.csv"',
       ]
     );
+    $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $response->headers->set('Expires', '0');
+    return $response;
   }
 
 }

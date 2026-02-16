@@ -1,0 +1,7 @@
+services:
+  myeventlane_donations.commands:
+    class: Drupal\myeventlane_donations\Commands\DonationCommands
+    arguments:
+      - '@entity_type.manager'
+    tags:
+      - { name: drush.command }

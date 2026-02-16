@@ -29,6 +29,7 @@ function myeventlane_donations_theme(array $existing, string $type, string $them
         'count_platform' => 0,
         'count_rsvp' => 0,
         'export_url' => '',
+        'unattributed_url' => '',
       ],
       'template' => 'myeventlane-donation-report',
     ],
