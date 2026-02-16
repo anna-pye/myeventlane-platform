@@ -1,0 +1,109 @@
+/* ========================================
+   MyEventLane v2 – Basic Page
+======================================== */
+
+/* Narrow container modifier (extends .mel-container) */
+
+.mel-container--narrow {
+  max-width: 760px;
+}
+
+/* Page Wrapper */
+
+.mel-basic-page {
+  padding-block: 4rem 6rem;
+  background: #fafafa;
+}
+
+/* Header */
+
+.mel-basic-page__header {
+  margin-bottom: 3rem;
+}
+
+.mel-basic-page__title {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+}
+
+.mel-basic-page__meta {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Content Card */
+
+.mel-basic-page__body {
+  background: #fafafa;
+}
+
+.mel-content {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #374151;
+
+  > * + * {
+    margin-top: 1.25rem;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  ul,
+  ol {
+    padding-left: 1.25rem;
+  }
+
+  li + li {
+    margin-top: 0.5rem;
+  }
+
+  a {
+    color: #f25c54;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+
+    &:focus-visible {
+      outline: 3px solid #f25c54;
+      outline-offset: 2px;
+    }
+  }
+
+  blockquote {
+    padding: 1.25rem;
+    background: #fff6f5;
+    border-left: 4px solid #f25c54;
+    border-radius: 8px;
+  }
+
+  hr {
+    margin: 3rem 0;
+    border: none;
+    height: 1px;
+    background: #e5e7eb;
+  }
+}

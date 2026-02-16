@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Theme override for Basic Page (node--page).
+ * MyEventLane v2
+ */
+#}
+
+<article{{ attributes.addClass('mel-basic-page') }}>
+
+  <header class="mel-basic-page__header">
+    <div class="mel-container mel-container--narrow">
+      <h1 class="mel-basic-page__title">
+        {{ label }}
+      </h1>
+
+      {% if content.field_last_updated %}
+        <div class="mel-basic-page__meta">
+          {{ content.field_last_updated }}
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="mel-basic-page__body">
+    <div class="mel-container mel-container--narrow">
+      <div class="mel-content">
+        {{ content.body }}
+      </div>
+    </div>
+  </div>
+
+</article>
