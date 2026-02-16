@@ -221,17 +221,17 @@ abstract class VendorConsoleBaseController {
     }
 
     $vendor = $this->getCurrentVendorOrNull();
+    $stripeConnectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect');
+
     if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
-      $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
+      throw new EnforcedResponseException(new TrustedRedirectResponse($stripeConnectUrl->toString()));
     }
 
     $store = $vendor->get('field_vendor_store')->entity;
     if (!$store) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
-      $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
+      throw new EnforcedResponseException(new TrustedRedirectResponse($stripeConnectUrl->toString()));
     }
 
     // Check if Stripe is connected.
@@ -246,8 +246,7 @@ abstract class VendorConsoleBaseController {
 
     if (!$connected) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));
-      $url = Url::fromRoute('myeventlane_vendor.onboard.stripe');
-      throw new EnforcedResponseException(new TrustedRedirectResponse($url->toString()));
+      throw new EnforcedResponseException(new TrustedRedirectResponse($stripeConnectUrl->toString()));
     }
   }
 

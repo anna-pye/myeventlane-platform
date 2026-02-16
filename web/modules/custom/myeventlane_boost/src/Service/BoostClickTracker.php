@@ -98,7 +98,7 @@ final class BoostClickTracker {
       $now = $this->time->getRequestTime();
 
       $query = $this->database->merge('myeventlane_boost_stats')
-        ->key([
+        ->keys([
           'boost_order_item_id' => $boost_order_item_id,
           'placement' => $placement,
         ])

@@ -156,8 +156,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $kpis = $this->buildKpiCards($userId, $userEvents);
     $events = $this->getEventsTableData($userEvents);
     $bestEvent = $this->getBestPerformingEvent($userEvents);
-    $stripeStatus = $this->getStripeConnectStatus($userId);
-    $notifications = $this->getNotifications($userId, $userEvents);
+    $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
+    $notifications = $this->getNotifications($userId, $userEvents, $vendor);
     $accountSummary = $this->getAccountSummary($userId);
     $quickActions = $this->getQuickActions();
     $upcomingCount = $this->getUpcomingEventsCount($userEvents);
@@ -250,19 +250,25 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $pageVars['vendor_kpis'] = $vendorKpis;
     }
 
-    // Onboarding panel: only when vendor exists and not yet invite-ready.
-    // Hide when completed OR when all Ask steps done (invite-ready).
+    // Onboarding panel and badge: only when vendor exists and not yet complete.
     $pageVars['onboarding_panel'] = NULL;
+    $pageVars['show_onboarding_badge'] = FALSE;
+    $pageVars['next_onboarding_route'] = NULL;
     if ($vendor && $vendor->id()) {
       try {
         $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
         if ($user instanceof UserInterface) {
           $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
           $this->onboardingManager->refreshFlags($state);
-          $show_panel = !$this->onboardingManager->isCompleted($state)
-            && !$this->onboardingManager->isInviteReady($state);
-          if ($show_panel) {
+          $is_complete = $this->onboardingManager->isCompleted($state);
+          $show_panel = !$is_complete && !$this->onboardingManager->isInviteReady($state);
+          if (!$is_complete) {
             $next_route = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
+            $pageVars['show_onboarding_badge'] = TRUE;
+            $pageVars['next_onboarding_route'] = $next_route ?: 'myeventlane_vendor.onboard.profile';
+          }
+          if ($show_panel) {
+            $next_route = $pageVars['next_onboarding_route'] ?? $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
             $resume_url = $next_route
               ? Url::fromRoute($next_route)->toString()
               : Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
@@ -911,8 +917,20 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   /**
    * Get Stripe Connect status for vendor.
+   *
+   * Uses same criteria as assertStripeConnected: vendor's store must have
+   * field_stripe_connected or field_stripe_charges_enabled. Account ID alone
+   * is insufficient (callback may not have run).
+   *
+   * @param int $userId
+   *   The user ID.
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor
+   *   The vendor entity, or NULL.
+   *
+   * @return array
+   *   Status array with connected, status, status_label, account_id, etc.
    */
-  private function getStripeConnectStatus(int $userId): array {
+  private function getStripeConnectStatus(int $userId, $vendor = NULL): array {
     $status = [
       'connected' => FALSE,
       'status' => 'not_connected',
@@ -925,32 +943,32 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'connect_url' => '/vendor/stripe/connect',
     ];
 
-    // Check for Stripe Connect entity or commerce_store.
     try {
-      $user = $this->entityTypeManager->getStorage('user')->load($userId);
-      if ($user instanceof UserInterface) {
-        // Check if user has a Stripe account field.
-        if ($user->hasField('field_stripe_account_id') && !$user->get('field_stripe_account_id')->isEmpty()) {
-          $status['connected'] = TRUE;
-          $status['status'] = 'connected';
-          $status['status_label'] = 'Connected';
-          $status['account_id'] = $user->get('field_stripe_account_id')->value;
-          $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
-        }
+      $store = NULL;
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+      }
+      if (!$store) {
+        $stores = $this->entityTypeManager->getStorage('commerce_store')
+          ->loadByProperties(['uid' => $userId]);
+        $store = !empty($stores) ? reset($stores) : NULL;
       }
 
-      // Try to get from commerce_store.
-      $stores = $this->entityTypeManager->getStorage('commerce_store')
-        ->loadByProperties(['uid' => $userId]);
+      if ($store && $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+        $status['account_id'] = $store->get('field_stripe_account_id')->value;
+        $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
 
-      if (!empty($stores)) {
-        $store = reset($stores);
-        if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+        $connected = FALSE;
+        if ($store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()) {
+          $connected = (bool) $store->get('field_stripe_connected')->value;
+        }
+        if (!$connected && $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
+          $connected = (bool) $store->get('field_stripe_charges_enabled')->value;
+        }
+        if ($connected) {
           $status['connected'] = TRUE;
           $status['status'] = 'connected';
           $status['status_label'] = 'Connected';
-          $status['account_id'] = $store->get('field_stripe_account_id')->value;
-          $status['stripe_dashboard_url'] = 'https://dashboard.stripe.com';
         }
       }
     }
@@ -963,8 +981,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   /**
    * Get notifications/alerts for vendor.
+   *
+   * @param int $userId
+   *   The user ID.
+   * @param array $userEvents
+   *   Event IDs for the user.
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor
+   *   Optional vendor entity for Stripe status check.
+   *
+   * @return array
+   *   List of notification items.
    */
-  private function getNotifications(int $userId, array $userEvents): array {
+  private function getNotifications(int $userId, array $userEvents, $vendor = NULL): array {
     $notifications = [];
 
     if (empty($userEvents)) {
@@ -1032,7 +1060,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     // Check Stripe status.
-    $stripeStatus = $this->getStripeConnectStatus($userId);
+    $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
     if (!$stripeStatus['connected']) {
       $notifications[] = [
         'type' => 'warning',

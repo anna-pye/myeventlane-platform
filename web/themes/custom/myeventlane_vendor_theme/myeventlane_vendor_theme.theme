@@ -429,6 +429,148 @@ function myeventlane_vendor_theme_preprocess_form__vendor_onboard_profile_form(a
     6 => 'myeventlane_vendor.onboard.boost',
     default => NULL,
   };
+  $variables['onboarding_stages'] = _myeventlane_vendor_theme_build_onboarding_stages('myeventlane_vendor.onboard.profile');
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for vendor_onboard_step.
+ *
+ * Builds onboarding stages for the progress indicator.
+ */
+function myeventlane_vendor_theme_preprocess_vendor_onboard_step(array &$variables): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  // Branding route treats current stage as listen.
+  $effective_route = ($route === 'myeventlane_vendor.onboard.branding')
+    ? 'myeventlane_vendor.onboard.stripe'
+    : $route;
+  $variables['onboarding_stages'] = _myeventlane_vendor_theme_build_onboarding_stages($effective_route);
+}
+
+/**
+ * Builds onboarding stages array for progress indicator.
+ *
+ * Uses STAGE_ORDER, OnboardingManager, LegalGatekeeper. Applies Stripe + Terms
+ * locking for steps after listen.
+ *
+ * @param string $current_route
+ *   The effective current route (branding maps to stripe).
+ *
+ * @return array<int, array{key: string, label: string, url: string, is_complete: bool, is_current: bool, is_locked: bool}>
+ *   Stages for the progress component.
+ */
+function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route): array {
+  $stage_order = \Drupal\myeventlane_core\Entity\OnboardingStateInterface::STAGE_ORDER;
+  $route_to_stage = [
+    'myeventlane_vendor.onboard.account' => 'probe',
+    'myeventlane_vendor.onboard.profile' => 'present',
+    'myeventlane_vendor.onboard.stripe' => 'listen',
+    'myeventlane_vendor.onboard.first_event' => 'ask',
+    'myeventlane_vendor.onboard.boost' => 'invite',
+    'myeventlane_vendor.onboard.complete' => 'complete',
+  ];
+  $stage_labels = [
+    'probe' => t('Get started'),
+    'present' => t('Profile'),
+    'listen' => t('Payments'),
+    'ask' => t('First event'),
+    'invite' => t('Boost'),
+    'complete' => t('Complete'),
+  ];
+  $stage_routes = [
+    'probe' => 'myeventlane_vendor.onboard.account',
+    'present' => 'myeventlane_vendor.onboard.profile',
+    'listen' => 'myeventlane_vendor.onboard.stripe',
+    'ask' => 'myeventlane_vendor.onboard.first_event',
+    'invite' => 'myeventlane_vendor.onboard.boost',
+    'complete' => 'myeventlane_vendor.onboard.complete',
+  ];
+
+  $current_stage = $route_to_stage[$current_route] ?? 'probe';
+  $listen_index = array_search('listen', $stage_order, TRUE);
+  $listen_index = $listen_index !== FALSE ? $listen_index : 2;
+
+  $flags = ['stripe_connected' => FALSE];
+  $terms_accepted = FALSE;
+  $state = NULL;
+
+  $current_user = \Drupal::currentUser();
+  $vendor = NULL;
+  if ($current_user->isAuthenticated()) {
+    $onboarding_manager = \Drupal::service('myeventlane_onboarding.manager');
+    $legal_gatekeeper = \Drupal::service('myeventlane_legal.gatekeeper');
+    $uid = (int) $current_user->id();
+    $state = $onboarding_manager->loadVendorStateByUid($uid);
+    $etm = \Drupal::entityTypeManager();
+    if ($etm->hasDefinition('myeventlane_vendor')) {
+      $vendor_storage = $etm->getStorage('myeventlane_vendor');
+      $vendor = NULL;
+      $owner_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('uid', $uid)->range(0, 1)->execute();
+      if (!empty($owner_ids)) {
+        $vendor = $vendor_storage->load(reset($owner_ids));
+      }
+      if (!$vendor) {
+        $user_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('field_vendor_users', $uid)->range(0, 1)->execute();
+        if (!empty($user_ids)) {
+          $vendor = $vendor_storage->load(reset($user_ids));
+        }
+      }
+    }
+    if ($state && $vendor instanceof \Drupal\myeventlane_vendor\Entity\Vendor) {
+      $user = $etm->getStorage('user')->load($uid);
+      if ($user instanceof \Drupal\user\UserInterface) {
+        $state = $onboarding_manager->loadOrCreateVendor($user, $vendor);
+        $onboarding_manager->refreshFlags($state);
+        $flags = $state->getFlags();
+      }
+    }
+    $terms_accepted = $legal_gatekeeper->hasVendorAcceptedTerms();
+  }
+
+  $stripe_connected = !empty($flags['stripe_connected']);
+
+  $stages = [];
+  $current_stage_index = array_search($current_stage, $stage_order, TRUE);
+  $current_stage_index = $current_stage_index !== FALSE ? $current_stage_index : 0;
+
+  foreach ($stage_order as $index => $key) {
+    $stage_current = ($key === $current_stage);
+    $stage_complete = FALSE;
+    if ($state) {
+      if ($state->isCompleted()) {
+        $stage_complete = TRUE;
+      }
+      else {
+        $state_stage_index = array_search($state->getStage(), $stage_order, TRUE);
+        $stage_complete = ($state_stage_index !== FALSE && $index < $state_stage_index);
+      }
+    }
+    // Stripe lock: stage index > listen AND !stripe_connected.
+    $stripe_locked = ($index > $listen_index) && !$stripe_connected;
+    // Terms lock: stage index > listen AND stripe_connected AND !terms_accepted.
+    $terms_locked = ($index > $listen_index) && $stripe_connected && !$terms_accepted;
+    $is_locked = $stripe_locked || $terms_locked;
+
+    $url = '';
+    if (isset($stage_routes[$key])) {
+      try {
+        $url = \Drupal\Core\Url::fromRoute($stage_routes[$key])->toString();
+      }
+      catch (\Exception $e) {
+        $url = '';
+      }
+    }
+
+    $stages[] = [
+      'key' => $key,
+      'label' => $stage_labels[$key] ?? $key,
+      'url' => $url,
+      'is_complete' => $stage_complete,
+      'is_current' => $stage_current,
+      'is_locked' => $is_locked,
+    ];
+  }
+
+  return $stages;
 }
 
 /**
@@ -460,6 +602,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'show_welcome' => FALSE,
         'vendor_kpis' => NULL,
         'onboarding_panel' => NULL,
+        'show_onboarding_badge' => FALSE,
+        'next_onboarding_route' => NULL,
         'ai_usage_panel' => NULL,
       ],
       'template' => 'dashboard/dashboard',

@@ -303,3 +303,78 @@ function _myeventlane_legal_create_policy_pages(): void {
     }
   }
 }
+
+/**
+ * Ensure vendor terms fields exist.
+ *
+ * 9001 may have run before myeventlane_vendor was available. This update
+ * ensures the vendor terms fields are created if missing.
+ */
+function myeventlane_legal_update_9004(): string {
+  _myeventlane_legal_add_vendor_fields();
+  drupal_flush_all_caches();
+  return 'Ensured vendor terms fields exist on myeventlane_vendor.';
+}
+
+/**
+ * Add field_last_updated to Basic Page (node.page) for policy/legal pages.
+ *
+ * Machine name: field_last_updated
+ * Type: Date
+ * Display format: "F j, Y"
+ * Label: Hidden on view
+ */
+function myeventlane_legal_update_9005(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $field_storage_storage = $entity_type_manager->getStorage('field_storage_config');
+  $field_config_storage = $entity_type_manager->getStorage('field_config');
+
+  if (!FieldStorageConfig::loadByName('node', 'field_last_updated')) {
+    $field_storage_storage->create([
+      'field_name' => 'field_last_updated',
+      'entity_type' => 'node',
+      'type' => 'datetime',
+      'module' => 'datetime',
+      'settings' => ['datetime_type' => 'date'],
+      'cardinality' => 1,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'page', 'field_last_updated')) {
+    $field_config_storage->create([
+      'field_name' => 'field_last_updated',
+      'entity_type' => 'node',
+      'bundle' => 'page',
+      'label' => 'Last updated',
+    ])->save();
+  }
+
+  // Add to form display.
+  $form_display = $entity_type_manager->getStorage('entity_form_display')->load('node.page.default');
+  if ($form_display && !$form_display->getComponent('field_last_updated')) {
+    $form_display->setComponent('field_last_updated', [
+      'type' => 'datetime_default',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [],
+    ])->save();
+  }
+
+  // Add to view display with label hidden and format "F j, Y".
+  $view_display = $entity_type_manager->getStorage('entity_view_display')->load('node.page.default');
+  if ($view_display && !$view_display->getComponent('field_last_updated')) {
+    $view_display->setComponent('field_last_updated', [
+      'type' => 'datetime_custom',
+      'label' => 'hidden',
+      'weight' => 5,
+      'region' => 'content',
+      'settings' => [
+        'date_format' => 'F j, Y',
+        'timezone_override' => '',
+      ],
+    ])->save();
+  }
+
+  drupal_flush_all_caches();
+  return 'Added field_last_updated to Basic Page content type.';
+}

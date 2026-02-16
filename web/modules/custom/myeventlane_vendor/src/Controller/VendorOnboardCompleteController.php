@@ -10,6 +10,7 @@ use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Controller for vendor onboarding completion.
@@ -21,6 +22,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
    */
   public function __construct(
     private readonly OnboardingManager $onboardingManager,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -29,16 +31,20 @@ final class VendorOnboardCompleteController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_onboarding.manager'),
+      $container->get('request_stack'),
     );
   }
 
   /**
-   * Step 6: Onboarding complete - promote and redirect.
+   * Step 6: Onboarding complete - celebration page or redirect.
    *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect response.
+   * With ?auto=1: redirects to wizard.create.
+   * Otherwise: renders celebration page with CTA to create first event.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
+   *   Redirect or render array.
    */
-  public function complete(): RedirectResponse {
+  public function complete(): RedirectResponse|array {
     $currentUser = $this->currentUser();
 
     if ($currentUser->isAnonymous()) {
@@ -75,10 +81,23 @@ final class VendorOnboardCompleteController extends ControllerBase {
     // Grant vendor role (idempotent) at completion only.
     $this->onboardingManager->ensureVendorAccess($currentUser->getAccount());
 
-    // After completion, route directly to event creation wizard.
-    return new RedirectResponse(
-      Url::fromRoute('myeventlane_event.wizard.create')->toString()
-    );
+    $request = $this->requestStack->getCurrentRequest();
+    $auto_redirect = $request && (string) $request->query->get('auto') === '1';
+
+    if ($auto_redirect) {
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_event.wizard.create')->toString()
+      );
+    }
+
+    return [
+      '#theme' => 'vendor_onboard_complete_celebration',
+      '#attached' => [
+        'library' => ['myeventlane_vendor/onboarding'],
+      ],
+      '#create_event_url' => Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString(),
+      '#dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
+    ];
   }
 
   /**

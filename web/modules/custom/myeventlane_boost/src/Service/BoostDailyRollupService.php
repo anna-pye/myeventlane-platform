@@ -88,7 +88,7 @@ final class BoostDailyRollupService {
     $created = $now;
     foreach ($aggregated as $agg) {
       $merge = $this->database->merge('myeventlane_boost_stats_daily')
-        ->key([
+        ->keys([
           'boost_order_item_id' => $agg['boost_order_item_id'],
           'placement' => $agg['placement'],
           'date' => $agg['date'],

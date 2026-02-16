@@ -54,9 +54,6 @@ final class VendorTermsForm extends FormBase {
     $vendorUrl = $this->legalSettings->getVendorTermsUrl();
     $privacyUrl = $this->legalSettings->getPrivacyUrl();
 
-    $vendorLink = $vendorUrl ? '<a href="' . htmlspecialchars($vendorUrl) . '" target="_blank" rel="noopener">' . $this->t('Vendor Terms of Service') . '</a>' : $this->t('Vendor Terms of Service');
-    $privacyLink = $privacyUrl ? '<a href="' . htmlspecialchars($privacyUrl) . '" target="_blank" rel="noopener">' . $this->t('Privacy Policy') . '</a>' : $this->t('Privacy Policy');
-
     $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
 
     $form['legal'] = [
@@ -66,14 +63,18 @@ final class VendorTermsForm extends FormBase {
     ];
     $form['legal']['vendor_terms_agreed'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I agree to the @terms', ['@terms' => $vendorLink]),
+      '#title' => $vendorUrl
+        ? $this->t('I agree to the <a href=":url" target="_blank" rel="noopener">Vendor Terms of Service</a>', [':url' => $vendorUrl])
+        : $this->t('I agree to the Vendor Terms of Service'),
       '#required' => TRUE,
       '#default_value' => FALSE,
       '#attributes' => ['aria-required' => 'true'],
     ];
     $form['legal']['privacy_acknowledged'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I have read the @privacy', ['@privacy' => $privacyLink]),
+      '#title' => $privacyUrl
+        ? $this->t('I have read the <a href=":url" target="_blank" rel="noopener">Privacy Policy</a>', [':url' => $privacyUrl])
+        : $this->t('I have read the Privacy Policy'),
       '#required' => TRUE,
       '#default_value' => FALSE,
       '#attributes' => ['aria-required' => 'true'],
@@ -93,8 +94,9 @@ final class VendorTermsForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    $vendorAgreed = (bool) $form_state->getValue(['legal', 'vendor_terms_agreed']);
-    $privacyAck = (bool) $form_state->getValue(['legal', 'privacy_acknowledged']);
+    // Form root has #tree = FALSE by default, so values are flat (not under 'legal').
+    $vendorAgreed = (bool) $form_state->getValue('vendor_terms_agreed');
+    $privacyAck = (bool) $form_state->getValue('privacy_acknowledged');
     if (!$vendorAgreed) {
       $form_state->setError($form['legal']['vendor_terms_agreed'], $this->t('You must agree to the Vendor Terms of Service.'));
     }

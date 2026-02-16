@@ -10,6 +10,8 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 
 /**
@@ -20,6 +22,8 @@ use Drupal\Core\Url;
  */
 final class LegalGatekeeper {
 
+  use StringTranslationTrait;
+
   /**
    * Constructs the gatekeeper.
    */
@@ -29,7 +33,10 @@ final class LegalGatekeeper {
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MessengerInterface $messenger,
-  ) {}
+    TranslationInterface $stringTranslation,
+  ) {
+    $this->setStringTranslation($stringTranslation);
+  }
 
   /**
    * Asserts the current user's vendor has accepted vendor terms.

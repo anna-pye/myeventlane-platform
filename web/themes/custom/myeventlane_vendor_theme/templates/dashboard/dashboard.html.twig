@@ -36,6 +36,13 @@
           <p class="mel-dashboard__subtitle">{{ 'Your event control centre'|t }}</p>
         </div>
       </div>
+
+      {# Setup incomplete badge #}
+      {% if show_onboarding_badge and next_onboarding_route %}
+        <a href="{{ path(next_onboarding_route) }}" class="mel-dashboard__setup-badge">
+          {{ 'Setup incomplete'|t }}
+        </a>
+      {% endif %}
       
       {# Stripe Status Badge #}
       {% if stripe.status_label is defined %}
@@ -88,7 +95,7 @@
         </div>
       </div>
       <div class="mel-welcome-banner__actions">
-        <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Create Your First Event'|t }}</a>
+        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Create Event'|t }}</a>
       </div>
     </div>
   {% endif %}

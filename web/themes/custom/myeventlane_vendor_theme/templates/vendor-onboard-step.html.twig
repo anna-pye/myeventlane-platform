@@ -1,23 +1,31 @@
 {#
 /**
  * @file
- * Theme override for vendor onboarding profile form.
+ * Theme override for vendor onboarding step pages.
  *
- * Uses default form rendering (children) so form_build_id, form_token, form_id
- * and field name attributes render correctly. Wraps in onboarding layout.
+ * Uses onboarding-progress component with STAGE_ORDER-based stages.
  *
- * Available variables:
- * - attributes: Form HTML attributes.
- * - children: Pre-rendered form children (form_build_id, form_token, form_id,
- *   step_content).
- * - step_number: Current step (from preprocess).
- * - total_steps: Total steps (from preprocess).
- * - step_title: Step title (from preprocess).
- * - step_description: Step description (from preprocess).
- * - back_route: Route for Back link (from preprocess).
+ * Available: form (the element with #step_number, #step_title, etc., and
+ * optionally form.form_build_id, form.form_token, form.form_id, form.step_content).
+ * - onboarding_stages: From preprocess (Stripe + Terms locked).
  */
 #}
-{% set back_route = back_route ?? null %}
+{% set step_number = form['#step_number'] ?? 1 %}
+{% set total_steps = form['#total_steps'] ?? 5 %}
+{% set step_title = form['#step_title'] ?? '' %}
+{% set step_description = form['#step_description'] ?? null %}
+{% set back_route = null %}
+{% if step_number == 2 %}
+  {% set back_route = 'myeventlane_vendor.onboard.account' %}
+{% elseif step_number == 3 %}
+  {% set back_route = 'myeventlane_vendor.onboard.profile' %}
+{% elseif step_number == 4 %}
+  {% set back_route = 'myeventlane_vendor.onboard.stripe' %}
+{% elseif step_number == 5 %}
+  {% set back_route = 'myeventlane_vendor.onboard.first_event' %}
+{% elseif step_number == 6 %}
+  {% set back_route = 'myeventlane_vendor.onboard.boost' %}
+{% endif %}
 <div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
   <div class="mel-container mel-container--onboard">
 
@@ -45,14 +53,15 @@
       {% endif %}
     </div>
 
-    {# Form - children are pre-rendered with correct name/value attributes #}
+    {# Step content - render form children in context (form_build_id, form_token, form_id, step_content) or #content for controllers #}
     <div class="mel-onboard-content">
-      <form{{ attributes }}>
-        {{ children }}
-      </form>
+      {% if form.form_build_id is defined %}{{ form.form_build_id }}{% endif %}
+      {% if form.form_token is defined %}{{ form.form_token }}{% endif %}
+      {% if form.form_id is defined %}{{ form.form_id }}{% endif %}
+      {{ form.step_content|default(form['#content']) }}
     </div>
 
-    {# Navigation #}
+    {# Navigation (if needed) #}
     {% if back_route %}
       <div class="mel-onboard-nav">
         <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">

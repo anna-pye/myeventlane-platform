@@ -321,6 +321,24 @@
   min-width: 0;
 }
 
+.mel-dashboard__setup-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(245, 158, 11, 0.25);
+    color: #b45309;
+  }
+}
+
 .mel-dashboard__stripe-badge {
   display: flex;
   align-items: center;

@@ -81,17 +81,24 @@ final class VendorOnboardStripeController extends ControllerBase {
     }
 
     // Check if Stripe is already connected.
+    // charges_enabled is sufficient for event creation (same as assertStripeConnected).
+    // Payouts can be disabled initially; user can fix in Stripe dashboard.
     $isConnected = FALSE;
     if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
       $accountId = $store->get('field_stripe_account_id')->value;
       if (!empty($accountId)) {
-        // Check status.
-        try {
-          $status = $this->stripeService->getAccountStatus($accountId);
-          $isConnected = $status['status'] === 'complete' && $status['charges_enabled'];
+        // Prefer store fields (set by callback) to avoid unnecessary API calls.
+        if ($store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
+          $isConnected = (bool) $store->get('field_stripe_charges_enabled')->value;
         }
-        catch (\Exception $e) {
-          // If we can't verify, assume not connected.
+        if (!$isConnected) {
+          try {
+            $status = $this->stripeService->getAccountStatus($accountId);
+            $isConnected = $status['charges_enabled'];
+          }
+          catch (\Exception $e) {
+            // API failed; rely on store fields if set.
+          }
         }
       }
     }
@@ -165,12 +172,17 @@ final class VendorOnboardStripeController extends ControllerBase {
         ],
       ];
 
+      $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => [
+          'destination' => '/vendor/onboard/stripe',
+          't' => (string) time(),
+        ],
+        'absolute' => TRUE,
+      ]);
       $content['connect'] = [
         '#type' => 'link',
         '#title' => $this->t('Connect Stripe account'),
-        '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-          'query' => ['destination' => '/vendor/onboard/stripe'],
-        ]),
+        '#url' => $connectUrl,
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
         ],

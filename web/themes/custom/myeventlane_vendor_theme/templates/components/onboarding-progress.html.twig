@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Onboarding progress indicator component.
+ *
+ * Renders stages from STAGE_ORDER with completion, current, and lock states.
+ *
+ * Variables:
+ * - stages: Array of { key, label, url, is_complete, is_current, is_locked }
+ * - current_key: (optional) Current stage key for aria.
+ */
+#}
+<nav class="mel-onboarding-progress" aria-label="{{ 'Onboarding progress'|t }}">
+  <ol class="mel-onboarding-progress__list" role="list">
+    {% for stage in stages %}
+      <li class="mel-onboarding-progress__item mel-onboarding-progress__item--{{ stage.key }}{{ stage.is_current ? ' mel-onboarding-progress__item--current' : '' }}{{ stage.is_complete ? ' mel-onboarding-progress__item--complete' : '' }}{{ stage.is_locked ? ' mel-onboarding-progress__item--locked' : '' }}"{{ stage.is_current ? ' aria-current="step"' : '' }}>
+        {% if stage.url and not stage.is_locked %}
+          <a href="{{ stage.url }}" class="mel-onboarding-progress__link">
+            <span class="mel-onboarding-progress__marker">{{ stage.is_complete ? '✓' : loop.index }}</span>
+            <span class="mel-onboarding-progress__label">{{ stage.label }}</span>
+          </a>
+        {% else %}
+          <span class="mel-onboarding-progress__link mel-onboarding-progress__link--disabled">
+            <span class="mel-onboarding-progress__marker">{{ stage.is_complete ? '✓' : loop.index }}</span>
+            <span class="mel-onboarding-progress__label">{{ stage.label }}{% if stage.is_locked %} ({{ 'locked'|t }}){% endif %}</span>
+          </span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>

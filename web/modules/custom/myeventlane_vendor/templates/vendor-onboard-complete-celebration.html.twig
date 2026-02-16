@@ -1,0 +1,42 @@
+{#
+/**
+ * @file
+ * Celebration page shown when vendor completes onboarding (no ?auto=1).
+ *
+ * Variables:
+ * - create_event_url: URL string for primary CTA
+ * - dashboard_url: URL string for secondary link
+ */
+#}
+<div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
+  <div class="mel-container mel-container--onboard">
+
+    <div class="mel-onboard-header mel-onboard-celebration">
+      <h1 class="mel-onboard-title">{{ "You're ready to publish"|t }}</h1>
+      <p class="mel-onboard-description">
+        {{ "Congratulations! Your organiser account is all set. Create your first event and start selling tickets."|t }}
+      </p>
+    </div>
+
+    <div class="mel-onboard-content">
+      <div class="mel-onboard-celebration-actions">
+        <a href="{{ create_event_url }}" class="mel-btn mel-btn-primary mel-btn-lg">
+          {{ "Create your first event"|t }}
+        </a>
+        <a href="{{ dashboard_url }}" class="mel-btn mel-btn-ghost">
+          {{ "Go to dashboard"|t }}
+        </a>
+      </div>
+
+      <div class="mel-onboard-celebration-tips">
+        <h3 class="mel-onboard-celebration-tips-title">{{ "Quick tips"|t }}</h3>
+        <ul>
+          <li>{{ "Add eye-catching images to boost engagement"|t }}</li>
+          <li>{{ "Connect Stripe to receive payouts from ticket sales"|t }}</li>
+          <li>{{ "Use Boost to get featured on the homepage"|t }}</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -64,8 +64,9 @@ final class DashboardRenderer implements TrustedCallbackInterface {
       '#theme' => 'platform_control_centre__kpi_tiles',
       '#kpis' => $kpis,
       '#cache' => [
-        'tags' => $meta['tags'],
-        'max-age' => $meta['max-age'],
+        'contexts' => ['user.permissions'],
+        'tags' => $meta['tags'] ?? [],
+        'max-age' => $meta['max-age'] ?? 0,
       ],
     ];
   }
@@ -83,8 +84,9 @@ final class DashboardRenderer implements TrustedCallbackInterface {
       '#theme' => 'platform_control_centre__alerts',
       '#alerts' => $alerts,
       '#cache' => [
-        'tags' => $meta['tags'],
-        'max-age' => $meta['max-age'],
+        'contexts' => ['user.permissions'],
+        'tags' => $meta['tags'] ?? [],
+        'max-age' => $meta['max-age'] ?? 0,
       ],
     ];
   }
@@ -102,8 +104,9 @@ final class DashboardRenderer implements TrustedCallbackInterface {
       '#theme' => 'platform_control_centre__trend',
       '#trend' => $trend,
       '#cache' => [
-        'tags' => $meta['tags'],
-        'max-age' => $meta['max-age'],
+        'contexts' => ['user.permissions'],
+        'tags' => $meta['tags'] ?? [],
+        'max-age' => $meta['max-age'] ?? 0,
       ],
     ];
   }
@@ -121,8 +124,9 @@ final class DashboardRenderer implements TrustedCallbackInterface {
       '#theme' => 'platform_control_centre__recent_activity',
       '#activity' => $activity,
       '#cache' => [
-        'tags' => $meta['tags'],
-        'max-age' => $meta['max-age'],
+        'contexts' => ['user.permissions'],
+        'tags' => $meta['tags'] ?? [],
+        'max-age' => $meta['max-age'] ?? 0,
       ],
     ];
   }

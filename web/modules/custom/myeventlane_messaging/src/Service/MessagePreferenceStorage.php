@@ -97,7 +97,7 @@ final class MessagePreferenceStorage {
     $update['updated'] = $now;
 
     $this->connection->merge('myeventlane_message_preference')
-      ->key(['recipient_type' => $recipientType, 'recipient' => $recipient])
+      ->keys(['recipient_type' => $recipientType, 'recipient' => $recipient])
       ->fields(array_merge([
         'recipient' => $recipient,
         'recipient_type' => $recipientType,

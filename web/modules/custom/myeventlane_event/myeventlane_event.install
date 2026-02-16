@@ -1035,6 +1035,52 @@ function myeventlane_event_update_11017(): void {
 }
 
 /**
+ * Clears field_event_image on events where the referenced file is missing on disk.
+ *
+ * Prevents ResponsiveImageBuilder LogicException during Search API cron indexing.
+ */
+function myeventlane_event_update_11018(): void {
+  if (!\Drupal::database()->schema()->tableExists('node__field_event_image')) {
+    return;
+  }
+
+  $connection = \Drupal::database();
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  $file_storage = \Drupal::entityTypeManager()->getStorage('file');
+  $affected = [];
+
+  $rows = $connection->query(
+    "SELECT n.entity_id, n.field_event_image_target_id
+     FROM {node__field_event_image} n
+     INNER JOIN {file_managed} f ON n.field_event_image_target_id = f.fid
+     WHERE n.bundle = 'event'"
+  )->fetchAll();
+
+  foreach ($rows as $row) {
+    $file = $file_storage->load($row->field_event_image_target_id);
+    if (!$file) {
+      continue;
+    }
+    $uri = $file->getFileUri();
+    $realpath = \Drupal::service('file_system')->realpath($uri);
+    if ($realpath && !is_file($realpath)) {
+      $node = $node_storage->load($row->entity_id);
+      if ($node && $node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+        $node->set('field_event_image', []);
+        $node->save();
+        $affected[] = $row->entity_id;
+      }
+    }
+  }
+
+  if (!empty($affected)) {
+    \Drupal::logger('myeventlane_event')->info('Cleared field_event_image on node(s) with missing files: @nids', [
+      '@nids' => implode(', ', array_unique($affected)),
+    ]);
+  }
+}
+
+/**
  * Testing checklist (for reference):
  *
  * Commands:
