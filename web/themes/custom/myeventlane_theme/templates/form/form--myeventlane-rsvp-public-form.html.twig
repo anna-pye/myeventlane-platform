@@ -61,8 +61,6 @@
         </div>
       </div>
     </div>
-
-    {{ form|without('form_build_id', 'form_token', 'form_id', 'event_id', 'name', 'email', 'phone', 'guests', 'accessibility_needs', 'donation_section', 'donation', 'legal_consent', 'actions', 'intro', 'error') }}
   {% else %}
     {{ children }}
   {% endif %}

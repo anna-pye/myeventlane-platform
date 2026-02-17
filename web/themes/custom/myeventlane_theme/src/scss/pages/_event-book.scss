@@ -33,11 +33,12 @@
 
 .mel-event-book__layout {
   display: grid;
+  grid-template-columns: 1fr;
   gap: spacing.mel-space(4);
 
   @include breakpoints.mel-break(lg) {
     // Make event context the visual anchor; keep sidebar supportive.
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 500px;
     align-items: start;
   }
 }

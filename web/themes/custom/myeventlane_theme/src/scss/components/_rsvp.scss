@@ -591,8 +591,8 @@
   padding: spacing.mel-space(5);
   box-shadow: shadows.$mel-shadow-sm;
 
-  @include breakpoints.mel-break(md) {
-    padding: spacing.mel-space(6);
+  @media (min-width: 768px) {
+    padding: 1rem;
   }
 }
 
