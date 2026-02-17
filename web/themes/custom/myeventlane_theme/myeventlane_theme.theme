@@ -2055,8 +2055,10 @@ function myeventlane_theme_preprocess_mimemail_message(array &$variables): void 
  * Implements hook_preprocess_HOOK() for RSVP forms.
  *
  * Attaches accordion JS for Accessibility + Support collapsible sections.
+ * Exposes element as 'form' so form--*.html.twig templates can use {{ form.field }}.
  */
 function myeventlane_theme_preprocess_form__myeventlane_rsvp_public_form(array &$variables): void {
+  $variables['form'] = $variables['element'];
   $variables['#attached']['library'][] = 'myeventlane_theme/rsvp_sidebar';
 }
 
@@ -2064,6 +2066,7 @@ function myeventlane_theme_preprocess_form__myeventlane_rsvp_public_form(array &
  * Implements hook_preprocess_HOOK() for RSVP booking form.
  */
 function myeventlane_theme_preprocess_form__myeventlane_commerce_rsvp_booking_form(array &$variables): void {
+  $variables['form'] = $variables['element'];
   $variables['#attached']['library'][] = 'myeventlane_theme/rsvp_sidebar';
 }
 
