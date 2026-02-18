@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_legal\Service;
 
+use Drupal\Component\Render\Markup;
+
 /**
  * Helper to build legal consent form elements for RSVP forms.
  */
@@ -32,7 +34,7 @@ final class RsvpLegalConsentHelper {
       '#attributes' => ['class' => ['mel-legal-consent', 'mel-rsvp-legal-consent']],
       'customer_terms_agreed' => [
         '#type' => 'checkbox',
-        '#title' => t('I agree to the @terms', ['@terms' => $termsLink]),
+        '#title' => t('I agree to the !terms', ['!terms' => Markup::create($termsLink)]),
         '#required' => TRUE,
         '#default_value' => FALSE,
         '#return_value' => 1,
@@ -40,7 +42,7 @@ final class RsvpLegalConsentHelper {
       ],
       'privacy_agreed' => [
         '#type' => 'checkbox',
-        '#title' => t('I have read the @privacy', ['@privacy' => $privacyLink]),
+        '#title' => t('I have read the !privacy', ['!privacy' => Markup::create($privacyLink)]),
         '#required' => TRUE,
         '#default_value' => FALSE,
         '#return_value' => 1,

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_legal\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Component\Render\Markup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
-use Drupal\Component\Datetime\TimeInterface;
 
 /**
  * Adds legal consent fields to user registration form.
@@ -46,7 +47,7 @@ final class UserRegisterLegalAlter {
 
     $form['legal_consent']['customer_terms_agreed'] = [
       '#type' => 'checkbox',
-      '#title' => t('I agree to the @terms', ['@terms' => $termsLink]),
+      '#title' => t('I agree to the !terms', ['!terms' => Markup::create($termsLink)]),
       '#required' => TRUE,
       '#default_value' => FALSE,
       '#attributes' => ['class' => ['mel-consent-terms'], 'aria-required' => 'true'],
@@ -54,7 +55,7 @@ final class UserRegisterLegalAlter {
 
     $form['legal_consent']['privacy_agreed'] = [
       '#type' => 'checkbox',
-      '#title' => t('I have read the @privacy', ['@privacy' => $privacyLink]),
+      '#title' => t('I have read the !privacy', ['!privacy' => Markup::create($privacyLink)]),
       '#required' => TRUE,
       '#default_value' => FALSE,
       '#attributes' => ['class' => ['mel-consent-privacy'], 'aria-required' => 'true'],
