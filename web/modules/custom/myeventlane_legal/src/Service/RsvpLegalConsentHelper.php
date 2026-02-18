@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_legal\Service;
 
-use Drupal\Component\Render\Markup;
+use Drupal\Core\Render\Markup;
 
 /**
  * Helper to build legal consent form elements for RSVP forms.
