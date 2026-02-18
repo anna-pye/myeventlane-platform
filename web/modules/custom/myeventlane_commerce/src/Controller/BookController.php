@@ -117,7 +117,7 @@ final class BookController extends ControllerBase {
       '#event_mode' => $ctaType,
       '#event' => $node,
       '#cache' => [
-        'contexts' => ['route', 'user.roles', 'url.query_args'],
+        'contexts' => ['route', 'user.roles', 'url.query_args', 'session'],
         'tags' => $node->getCacheTags(),
       ],
     ];

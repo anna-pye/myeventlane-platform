@@ -28,7 +28,7 @@ class RsvpPublicForm extends FormBase {
    *
    */
   public function getFormId(): string {
-    return 'myeventlane_rsvp_public_form';
+    return 'myeventlane_event_attendees_public_rsvp_form';
   }
 
   /**
