@@ -34,7 +34,7 @@ final class RsvpLegalConsentHelper {
       '#attributes' => ['class' => ['mel-legal-consent', 'mel-rsvp-legal-consent']],
       'customer_terms_agreed' => [
         '#type' => 'checkbox',
-        '#title' => t('I agree to the !terms', ['!terms' => Markup::create($termsLink)]),
+        '#title' => t('I agree to the :terms', [':terms' => Markup::create($termsLink)]),
         '#required' => TRUE,
         '#default_value' => FALSE,
         '#return_value' => 1,
@@ -42,7 +42,7 @@ final class RsvpLegalConsentHelper {
       ],
       'privacy_agreed' => [
         '#type' => 'checkbox',
-        '#title' => t('I have read the !privacy', ['!privacy' => Markup::create($privacyLink)]),
+        '#title' => t('I have read the :privacy', [':privacy' => Markup::create($privacyLink)]),
         '#required' => TRUE,
         '#default_value' => FALSE,
         '#return_value' => 1,
