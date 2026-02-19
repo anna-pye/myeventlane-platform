@@ -101,35 +101,61 @@ final class DonationReportController extends ControllerBase {
       ->range(0, 200)
       ->execute();
 
+    $items = $orderItemStorage->loadMultiple($orderItemIds);
+
+    $orderIds = [];
+    foreach ($items as $item) {
+      if (!$item->hasField('field_target_event') || !$item->get('field_target_event')->isEmpty()) {
+        continue;
+      }
+      $oid = (int) $item->getOrderId();
+      if ($oid) {
+        $orderIds[$oid] = $oid;
+      }
+    }
+    /** @var \Drupal\commerce_order\Entity\OrderInterface[] $orders */
+    $orders = $orderIds ? $orderStorage->loadMultiple($orderIds) : [];
+
+    $storeIds = [];
+    foreach ($orders as $order) {
+      $sid = (int) $order->getStoreId();
+      if ($sid) {
+        $storeIds[$sid] = $sid;
+      }
+    }
+    /** @var \Drupal\commerce_store\Entity\StoreInterface[] $stores */
+    $stores = $storeIds ? $storeStorage->loadMultiple($storeIds) : [];
+
     $rows = [];
-    foreach ($orderItemStorage->loadMultiple($orderItemIds) as $item) {
+    foreach ($items as $item) {
       if (!$item->hasField('field_target_event') || !$item->get('field_target_event')->isEmpty()) {
         continue;
       }
 
-      $order = NULL;
-      $orderId = $item->getOrderId();
-      if ($orderId) {
-        $order = $orderStorage->load($orderId);
-      }
+      $orderId = (int) $item->getOrderId();
+      $order = $orderId && isset($orders[$orderId]) ? $orders[$orderId] : NULL;
 
       $storeLabel = '';
-      if ($order && $order->getStoreId()) {
-        $store = $storeStorage->load($order->getStoreId());
-        $storeLabel = $store ? $store->label() : (string) $order->getStoreId();
-      }
-
-      $orderState = $order ? $order->getState()->getLabel() : '-';
-      $created = $item->getCreatedTime();
-      $amount = $item->getUnitPrice() ? (float) $item->getUnitPrice()->getNumber() : 0;
-
+      $orderState = $order ? (string) $order->getState()->getLabel() : '-';
       $orderLink = '-';
+
       if ($order) {
+        $sid = (int) $order->getStoreId();
+        if ($sid && isset($stores[$sid])) {
+          $storeLabel = (string) $stores[$sid]->label();
+        }
+        else {
+          $storeLabel = $sid ? (string) $sid : '';
+        }
+
         $orderLink = Link::fromTextAndUrl(
           (string) $orderId,
           Url::fromRoute('entity.commerce_order.canonical', ['commerce_order' => $orderId])
         )->toString();
       }
+
+      $amount = $item->getUnitPrice() ? (float) $item->getUnitPrice()->getNumber() : 0;
+      $created = $item->getCreatedTime();
 
       $rows[] = [
         $item->id(),
@@ -145,6 +171,9 @@ final class DonationReportController extends ControllerBase {
       '#type' => 'markup',
       '#markup' => '<p>' . $this->t('RSVP donation order items that lack event attribution (field_target_event). Historic items cannot be deterministically backfilled. New donations are attributed by RsvpDonationService.') . '</p>',
       '#weight' => 0,
+      '#cache' => [
+        'max-age' => 0,
+      ],
     ];
 
     $build['table'] = [

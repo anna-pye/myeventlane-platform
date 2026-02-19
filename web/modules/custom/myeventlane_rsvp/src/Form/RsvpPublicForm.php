@@ -197,6 +197,9 @@ final class RsvpPublicForm extends FormBase {
       '#button_type' => 'primary',
     ];
 
+    // Presentation-only library for the RSVP public form.
+    $form['#attached']['library'][] = 'myeventlane_rsvp/rsvp_form';
+
     return $form;
   }
 
@@ -232,11 +235,35 @@ final class RsvpPublicForm extends FormBase {
       else {
         $form_state->setErrorByName('donation_preset', $this->t('Please select a donation amount.'));
       }
+      $donationAmount = number_format($donationAmount, 2, '.', '');
     }
     else {
-      $donationAmount = (float) ($form_state->getValue('donation_amount') ?? 0);
-      if ($donationAmount < 0) {
-        $form_state->setErrorByName('donation_amount', $this->t('Donation must be 0 or greater.'));
+      // Always treat monetary values as strings. Never use float for currency.
+      // Canonicalise to a 2dp decimal string ("10.00") after validation.
+      $donationAmountRaw = (string) ($form_state->getValue('donation_amount') ?? '');
+      $donationAmountRaw = trim($donationAmountRaw);
+
+      // Accept digits with optional decimal point, up to 2dp. Reject anything else.
+      if ($donationAmountRaw !== '' && !preg_match('/^\d+(?:\.\d{1,2})?$/', $donationAmountRaw)) {
+        $form_state->setErrorByName('donation_amount', $this->t('Donation amount must be a valid number with up to 2 decimal places.'));
+        return;
+      }
+
+      // Convert to canonical "X.YY" string without float arithmetic.
+      $donationAmount = $donationAmountRaw;
+      if ($donationAmount !== '') {
+        [$whole, $frac] = array_pad(explode('.', $donationAmount, 2), 2, '');
+        $whole = ltrim($whole, '0');
+        $whole = $whole === '' ? '0' : $whole;
+        $frac = substr(str_pad($frac, 2, '0'), 0, 2);
+        $donationAmount = $whole . '.' . $frac;
+      }
+
+      // Negative values are already rejected by the regex above, but keep the guard
+      // in case other code paths set this value.
+      if ($donationAmount !== '' && str_starts_with($donationAmount, '-')) {
+        $form_state->setErrorByName('donation_amount', $this->t('Donation amount cannot be negative.'));
+        return;
       }
     }
     $form_state->set('donation_amount', $donationAmount);
@@ -260,7 +287,7 @@ final class RsvpPublicForm extends FormBase {
     }
 
     $eventId = (int) $event->id();
-    $donationAmount = (float) ($form_state->get('donation_amount') ?? 0);
+    $donationAmount = (string) ($form_state->get('donation_amount') ?? '0.00');
 
     try {
       $capacity = $event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()
@@ -273,6 +300,7 @@ final class RsvpPublicForm extends FormBase {
         'email' => $values['email'] ?? '',
         'phone' => $values['phone'] ?? '',
         'guests' => (int) ($values['guests'] ?? 1),
+        // Store as canonical decimal string. Never use float for currency.
         'donation' => $donationAmount,
       ], $capacity);
 
@@ -288,7 +316,9 @@ final class RsvpPublicForm extends FormBase {
     }
 
     // Donation path: go to checkout first, then confirm on Thank You page.
-    if ($donationAmount > 0) {
+    // $donationAmount is canonical "X.YY" (or empty when no donation path is used).
+    // Avoid bccomp(): BCMath may not be installed.
+    if ($donationAmount !== '' && $donationAmount !== '0.00') {
       if (!$this->rsvpDonationService) {
         $this->logger->error('Donation requested but myeventlane_donations.rsvp service is not available.', [
           'event_id' => $eventId,

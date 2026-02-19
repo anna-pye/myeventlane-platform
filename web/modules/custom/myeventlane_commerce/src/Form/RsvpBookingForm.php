@@ -279,10 +279,23 @@ final class RsvpBookingForm extends FormBase {
         $form_state->setErrorByName('donation_preset', $this->t('Please select a donation amount.'));
       }
 
+      // Canonicalise preset donation amount as string without float arithmetic.
+      $donationAmount = (string) $donationAmount;
+      $donationAmount = trim($donationAmount);
+      if ($donationAmount !== '' && preg_match('/^\d+(?:\.\d{1,2})?$/', $donationAmount)) {
+        [$whole, $frac] = array_pad(explode('.', $donationAmount, 2), 2, '');
+        $whole = ltrim($whole, '0');
+        $whole = $whole === '' ? '0' : $whole;
+        $frac = substr(str_pad($frac, 2, '0'), 0, 2);
+        $donationAmount = $whole . '.' . $frac;
+      }
+      else {
+        $donationAmount = '0.00';
+      }
       $form_state->set('donation_amount', $donationAmount);
     }
     else {
-      $form_state->set('donation_amount', 0);
+      $form_state->set('donation_amount', '0.00');
     }
   }
 
@@ -294,7 +307,7 @@ final class RsvpBookingForm extends FormBase {
     $product_id = $values['product_id'];
     $variation_id = $values['variation_id'];
     $event_id = $values['event_id'];
-    $donationAmount = $form_state->get('donation_amount') ?? 0;
+    $donationAmount = (string) ($form_state->get('donation_amount') ?? '0.00');
 
     // Load product variation.
     $variation = $this->entityTypeManager
@@ -348,7 +361,8 @@ final class RsvpBookingForm extends FormBase {
     $this->cartManager->addOrderItem($cart, $order_item);
 
     // Process donation payment if amount > 0.
-    if ($donationAmount > 0) {
+    // $donationAmount is canonical "X.YY". Avoid bccomp(): BCMath may not be installed.
+    if ($donationAmount !== '0.00') {
       try {
         if (\Drupal::hasService('myeventlane_donations.rsvp')) {
           $event = $this->entityTypeManager->getStorage('node')->load($event_id);
@@ -362,7 +376,7 @@ final class RsvpBookingForm extends FormBase {
               'email' => $values['email'] ?? '',
               'phone' => $values['phone'] ?? '',
               'guests' => 1,
-              'donation' => (float) $donationAmount,
+              'donation' => $donationAmount,
             ], $capacity);
 
             $rsvpDonationService = \Drupal::service('myeventlane_donations.rsvp');

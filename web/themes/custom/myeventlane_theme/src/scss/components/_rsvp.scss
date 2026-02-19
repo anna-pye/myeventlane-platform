@@ -20,13 +20,9 @@
   background: colors.$mel-color-surface;
   border: 1px solid colors.$mel-color-border;
   border-radius: radii.$mel-radius-xl;
-  padding: spacing.mel-space(5);
+  padding: 0;
   box-shadow: shadows.$mel-shadow-sm;
   margin-bottom: spacing.mel-space(6);
-
-  @include breakpoints.mel-break(md) {
-    padding: spacing.mel-space(6);
-  }
 }
 
 .mel-rsvp-form-header,

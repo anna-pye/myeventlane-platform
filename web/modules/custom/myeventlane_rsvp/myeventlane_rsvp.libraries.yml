@@ -2,6 +2,16 @@ checkin:
   css:
     theme:
       css/checkin.css: {}
+rsvp_form:
+  version: 1.x
+  css:
+    theme:
+      css/rsvp-form.css: {}
+  js:
+    js/rsvp-form.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
 qrscan:
   js:
     js/qrscan.js: {}

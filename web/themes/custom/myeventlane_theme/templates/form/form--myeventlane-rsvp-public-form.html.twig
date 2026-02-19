@@ -1,100 +1,35 @@
 {#
 /**
  * @file
- * Theme override for RSVP public form (event book page).
+ * RSVP public form wrapper.
  *
- * Uses element (exposed as form via preprocess). Falls back to rendering all
- * form children when expected structure (myeventlane_rsvp) is missing, e.g.
- * when myeventlane_event_attendees provides different fields.
+ * IMPORTANT:
+ * - Render the form exactly once to avoid duplicate buttons.
+ * - Styling and sticky CTA are handled via CSS/JS by targeting .form-actions.
+ *
+ * Available variables:
+ * - form: The form render array.
+ * - attributes: Form attributes.
  */
 #}
+
 <form{{ attributes }}>
-  {% if form is defined and form is iterable %}
-    {{ form.form_build_id }}
-    {{ form.form_token }}
-    {{ form.form_id }}
-    {{ form.event_id }}
+  <div class="mel-rsvp">
+    <div class="mel-rsvp__shell">
+      <header class="mel-rsvp__header" role="banner">
+        <div class="mel-rsvp__title">{{ 'RSVP for this event'|t }}</div>
+        <div class="mel-rsvp__subtitle">{{ 'Please complete your details below.'|t }}</div>
+      </header>
 
-    {% if form.error is defined and form.error %}
-      {{ form.error }}
-    {% endif %}
-
-    {% if form.name is defined or form.first_name is defined %}
-      <div class="mel-rsvp-sidebar">
-        <div class="mel-rsvp-card">
-          <h3 class="mel-rsvp-title">{{ 'RSVP for this event'|t }}</h3>
-          <div class="mel-rsvp-section mel-rsvp-core">
-            {% if form.name is defined %}
-              {{ form.name }}
-            {% endif %}
-            {% if form.first_name is defined %}
-              {{ form.first_name }}
-            {% endif %}
-            {% if form.last_name is defined %}
-              {{ form.last_name }}
-            {% endif %}
-            {% if form.email is defined %}
-              {{ form.email }}
-            {% endif %}
-            {% if form.phone is defined %}
-              {{ form.phone }}
-            {% endif %}
-            {% if form.guests is defined %}
-              {{ form.guests }}
-            {% endif %}
-            {% if form.custom_questions is defined %}
-              {{ form.custom_questions }}
-            {% endif %}
-          </div>
-          {% if form.accessibility_needs is defined and form.accessibility_needs %}
-            <div class="mel-rsvp-section mel-rsvp-section--collapsed">
-              <button type="button" class="mel-rsvp-toggle" data-target="accessibility" aria-expanded="false" aria-controls="mel-rsvp-accessibility">
-                {{ 'Accessibility needs (optional)'|t }}
-                <span class="mel-chevron" aria-hidden="true">+</span>
-              </button>
-              <div class="mel-rsvp-collapsible" id="mel-rsvp-accessibility">
-                {{ form.accessibility_needs }}
-              </div>
-            </div>
-          {% endif %}
-          {% if form.donation_section is defined and form.donation_section %}
-            <div class="mel-rsvp-section mel-rsvp-section--collapsed">
-              <button type="button" class="mel-rsvp-toggle" data-target="support" aria-expanded="false" aria-controls="mel-rsvp-support">
-                {{ 'Support this event (optional)'|t }}
-                <span class="mel-chevron" aria-hidden="true">+</span>
-              </button>
-              <div class="mel-rsvp-collapsible" id="mel-rsvp-support">
-                {{ form.donation_section }}
-              </div>
-            </div>
-          {% endif %}
-          {% if form.donation is defined %}
-            {{ form.donation }}
-          {% endif %}
-          <hr class="mel-divider">
-          <div class="mel-rsvp-legal">
-            <p class="mel-legal-text">
-              {{ 'We collect your name and email to process your RSVP. Read our Privacy Policy for details.'|t }}
-            </p>
-            {% if form.legal_consent is defined and form.legal_consent %}
-              {{ form.legal_consent }}
-            {% endif %}
-          </div>
-          <div class="mel-rsvp-submit">
-            {{ form.actions }}
-          </div>
+      <div class="mel-rsvp__card">
+        <div class="mel-rsvp__content">
+          {{ form }}
         </div>
       </div>
-    {% else %}
-      {# Fallback: render all remaining form elements (different form structure). #}
-      <div class="mel-rsvp-sidebar">
-        <div class="mel-rsvp-card">
-          <h3 class="mel-rsvp-title">{{ 'RSVP for this event'|t }}</h3>
-          {{ form|without('form_build_id', 'form_token', 'form_id', 'event_id', 'error') }}
-        </div>
+
+      <div class="mel-rsvp__fineprint" aria-hidden="true">
+        {{ 'We respect your privacy. Your details are used only for event administration.'|t }}
       </div>
-    {% endif %}
-  {% else %}
-    {{ children }}
-  {% endif %}
+    </div>
+  </div>
 </form>

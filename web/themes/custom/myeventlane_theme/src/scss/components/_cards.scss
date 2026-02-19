@@ -19,6 +19,10 @@
   border-radius: radii.$mel-radius-lg;
   box-shadow: shadows.$mel-shadow-sm;
   overflow: hidden;
+
+  @include breakpoints.mel-break(md, max) {
+    padding: 0;
+  }
 }
 
 .mel-card-body {

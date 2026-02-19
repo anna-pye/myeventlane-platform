@@ -1,0 +1,252 @@
+/* MyEventLane RSVP Form — Full mobile-first redesign
+   Scope strictly to the RSVP form wrapper + Drupal form classes.
+*/
+
+/* --- Mobile de-constrain: only affects pages containing .mel-rsvp --- */
+@media (max-width: 768px) {
+  /* Common Drupal/theme wrappers that often impose narrow max-widths. */
+  .mel-rsvp,
+  .mel-rsvp * {
+    box-sizing: border-box;
+  }
+
+  /* If any ancestor containers are constraining width, neutralize it locally. */
+  .mel-rsvp {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* These selectors are intentionally broad but scoped by presence of .mel-rsvp. */
+  .mel-rsvp__shell,
+  .mel-rsvp__card,
+  .mel-rsvp__content {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Some themes wrap blocks/views with fixed widths; ensure the form can expand. */
+  .mel-rsvp .block,
+  .mel-rsvp .block-content,
+  .mel-rsvp .content,
+  .mel-rsvp .layout__region,
+  .mel-rsvp .region,
+  .mel-rsvp .container,
+  .mel-rsvp .layout-container {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.mel-rsvp {
+  padding: 0;
+}
+
+.mel-rsvp__shell {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.mel-rsvp__header {
+  padding: 14px 12px 10px;
+}
+
+.mel-rsvp__title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mel-rsvp__subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  opacity: 0.8;
+  line-height: 1.35;
+}
+
+.mel-rsvp__card {
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.mel-rsvp__content {
+  padding: 16px 14px 12px;
+}
+
+/* Drupal form structure */
+.mel-rsvp .form-item {
+  margin: 0 0 14px;
+}
+
+.mel-rsvp label {
+  display: inline-block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+/* Help text */
+.mel-rsvp .description {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.8;
+}
+
+/* Inputs — consistent, iOS zoom safe */
+.mel-rsvp input[type="text"],
+.mel-rsvp input[type="email"],
+.mel-rsvp input[type="tel"],
+.mel-rsvp input[type="number"],
+.mel-rsvp input[type="url"],
+.mel-rsvp input[type="password"],
+.mel-rsvp select,
+.mel-rsvp textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: rgba(0,0,0,0.02);
+  font-size: 16px; /* iOS no-zoom */
+  line-height: 1.2;
+  outline: none;
+}
+
+.mel-rsvp textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.mel-rsvp input:focus,
+.mel-rsvp select:focus,
+.mel-rsvp textarea:focus {
+  border-color: rgba(122, 105, 255, 0.85);
+  box-shadow: 0 0 0 4px rgba(122, 105, 255, 0.15);
+  background: #fff;
+}
+
+/* Fieldsets / groups */
+.mel-rsvp fieldset {
+  border: 0;
+  padding: 0;
+  margin: 18px 0 10px;
+}
+
+.mel-rsvp fieldset > legend {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+/* Radios + checkboxes */
+.mel-rsvp .form-type-checkbox,
+.mel-rsvp .form-type-radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 10px 0;
+}
+
+.mel-rsvp .form-type-checkbox input,
+.mel-rsvp .form-type-radio input {
+  margin-top: 2px;
+}
+
+.mel-rsvp .form-type-checkbox label,
+.mel-rsvp .form-type-radio label {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Error styling (works with core) */
+.mel-rsvp .form-item--error-message,
+.mel-rsvp .form-item--error {
+  color: inherit;
+}
+
+.mel-rsvp .messages--error,
+.mel-rsvp .form-item--error-message {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* Sticky submit area: target Drupal's actual actions container */
+.mel-rsvp .form-actions {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  margin: 16px -14px -12px; /* stretch to card edges on mobile */
+}
+
+/* Make submit button full-width and consistent */
+.mel-rsvp .form-actions .button,
+.mel-rsvp .form-actions input[type="submit"],
+.mel-rsvp .form-actions button {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Primary button — pastel purple */
+.mel-rsvp .form-actions .button--primary,
+.mel-rsvp .form-actions input[type="submit"] {
+  background: rgba(122, 105, 255, 0.95);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(122, 105, 255, 0.25);
+}
+
+.mel-rsvp .form-actions .button--primary:hover,
+.mel-rsvp .form-actions input[type="submit"]:hover {
+  filter: brightness(0.98);
+}
+
+.mel-rsvp .form-actions .button:focus,
+.mel-rsvp .form-actions input[type="submit"]:focus {
+  box-shadow: 0 0 0 4px rgba(122, 105, 255, 0.22);
+  outline: none;
+}
+
+.mel-rsvp__fineprint {
+  padding: 14px 10px 0;
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.3;
+}
+
+/* Desktop refinements */
+@media (min-width: 768px) {
+  .mel-rsvp {
+    padding: 24px;
+  }
+  .mel-rsvp__content {
+    padding: 18px 18px 14px;
+  }
+  .mel-rsvp .form-actions {
+    position: static;
+    margin: 18px 0 0;
+    padding: 0;
+    border-top: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+  .mel-rsvp .form-actions .button,
+  .mel-rsvp .form-actions input[type="submit"],
+  .mel-rsvp .form-actions button {
+    width: auto;
+    min-width: 220px;
+  }
+}
+
+.mel-rsvp__textarea--compact { min-height: 88px; }

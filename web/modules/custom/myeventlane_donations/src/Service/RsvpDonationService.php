@@ -40,8 +40,11 @@ final class RsvpDonationService {
 
   /**
    * Creates a donation order for an RSVP submission.
+   *
+   * @param string $amount
+   *   Canonical decimal string (e.g. "10.00"). Do not pass float for currency.
    */
-  public function createDonationOrder(RsvpSubmission $submission, NodeInterface $event, float $amount): ?OrderInterface {
+  public function createDonationOrder(RsvpSubmission $submission, NodeInterface $event, string $amount): ?OrderInterface {
     $this->logger()->info('Creating RSVP donation order: event=@event_id, submission=@submission_id, amount=@amount', [
       '@event_id' => $event->id(),
       '@submission_id' => $submission->id(),
@@ -92,20 +95,26 @@ final class RsvpDonationService {
     $this->logger()->info('Created RSVP donation order @order_id for submission @submission_id: $@amount', [
       '@order_id' => $order->id(),
       '@submission_id' => $submission->id(),
-      '@amount' => number_format($amount, 2),
+      '@amount' => $amount,
     ]);
 
     return $order;
   }
 
-  private function createDonationOrderItem(float $amount, NodeInterface $event, RsvpSubmission $submission): OrderItemInterface {
+  /**
+   * Creates the donation order item.
+   *
+   * IMPORTANT: $amount must be a canonical decimal string (e.g. "10.00").
+   * Do not accept float currency amounts.
+   */
+  private function createDonationOrderItem(string $amount, NodeInterface $event, RsvpSubmission $submission): OrderItemInterface {
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
 
     /** @var \Drupal\commerce_order\Entity\OrderItemInterface $orderItem */
     $orderItem = $orderItemStorage->create([
       'type' => 'rsvp_donation',
       'title' => 'Donation for ' . $event->label(),
-      'unit_price' => new Price((string) $amount, 'AUD'),
+      'unit_price' => new Price($amount, 'AUD'),
       'quantity' => 1,
     ]);
 

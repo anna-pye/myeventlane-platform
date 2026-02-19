@@ -8,7 +8,6 @@
 use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderType;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\field\Entity\FieldConfig;
 
 /**
  * Creates Commerce order types and order item types for donations.
@@ -114,36 +113,47 @@ function myeventlane_donations_update_9001(array &$sandbox): void {
     return;
   }
 
-  // Field storage must exist (from default/boost bundles).
-  $field_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load('commerce_order_item.field_target_event');
+  // Ensure field storage exists using the FieldStorageConfig entity API.
+  /** @var \Drupal\field\FieldStorageConfigStorage $field_storage_storage */
+  $field_storage_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  /** @var \Drupal\field\Entity\FieldStorageConfig|null $field_storage */
+  $field_storage = $field_storage_storage->load('commerce_order_item.field_target_event');
+
   if (!$field_storage) {
-    // Storage missing - try importing from myeventlane_schema.
-    if (\Drupal::moduleHandler()->moduleExists('myeventlane_schema')) {
-      $path = \Drupal::service('extension.list.module')->getPath('myeventlane_schema');
-      $storage_file = $path . '/config/install/field.storage.commerce_order_item.field_target_event.yml';
-      if (file_exists($storage_file)) {
-        $data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($storage_file));
-        \Drupal::configFactory()->getEditable('field.storage.commerce_order_item.field_target_event')->setData($data)->save(TRUE);
-      }
-    }
+    // Create an entity_reference field storage for commerce_order_item -> node (event).
+    // Do NOT write raw YAML into active config.
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_target_event',
+      'entity_type' => 'commerce_order_item',
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'settings' => [
+        'target_type' => 'node',
+      ],
+      'translatable' => FALSE,
+      'locked' => FALSE,
+      'persist_with_no_fields' => FALSE,
+      // Keep ownership consistent with the canonical schema module if present.
+      // This avoids config drift between fresh installs (optional config) and updates.
+      'module' => \Drupal::moduleHandler()->moduleExists('myeventlane_schema') ? 'myeventlane_schema' : 'myeventlane_donations',
+    ]);
+    $field_storage->save();
   }
 
-  // Attach field to rsvp_donation bundle via entity API (ConfigFactory does not
-  // reliably register the field with the entity system).
-  FieldConfig::create([
+  // Attach field to rsvp_donation bundle via entity API.
+  // Ensure handler targets the event bundle.
+  \Drupal\field\Entity\FieldConfig::create([
     'field_name' => 'field_target_event',
     'entity_type' => 'commerce_order_item',
     'bundle' => 'rsvp_donation',
-    'label' => 'Target Event',
-    'description' => 'The event this RSVP donation is associated with.',
-    'required' => TRUE,
-    'translatable' => FALSE,
+    'label' => 'Target event',
+    'required' => FALSE,
     'settings' => [
       'handler' => 'default:node',
       'handler_settings' => [
-        'target_bundles' => ['event' => 'event'],
-        'sort' => ['field' => 'title', 'direction' => 'asc'],
-        'auto_create' => FALSE,
+        'target_bundles' => [
+          'event' => 'event',
+        ],
       ],
     ],
   ])->save();

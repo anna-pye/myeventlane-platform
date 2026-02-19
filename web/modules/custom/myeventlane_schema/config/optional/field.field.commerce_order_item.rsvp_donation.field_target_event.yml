@@ -1,5 +1,6 @@
 langcode: en
 status: true
+uuid: 7a8b9c0d-1e2f-4a5b-8c9d-0e1f2a3b4c5d
 dependencies:
   config:
     - commerce_order.commerce_order_item_type.rsvp_donation
@@ -9,9 +10,9 @@ id: commerce_order_item.rsvp_donation.field_target_event
 field_name: field_target_event
 entity_type: commerce_order_item
 bundle: rsvp_donation
-label: 'Target Event'
+label: 'Target event'
 description: 'The event this RSVP donation is associated with.'
-required: true
+required: false
 translatable: false
 default_value: {  }
 default_value_callback: ''
@@ -20,8 +21,4 @@ settings:
   handler_settings:
     target_bundles:
       event: event
-    sort:
-      field: title
-      direction: asc
-    auto_create: false
 field_type: entity_reference
