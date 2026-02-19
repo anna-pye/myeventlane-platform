@@ -6,8 +6,9 @@
  */
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Implements hook_theme().
@@ -90,4 +91,78 @@ function myeventlane_donations_entity_access(EntityInterface $entity, $operation
 
   // For non-draft orders, let Commerce handle access normally.
   return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Redirects rsvp_donation orders to the RSVP thank-you page after checkout
+ * completion, so the confirmation and email flow run correctly.
+ */
+function myeventlane_donations_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if (!isset($form['#id']) || !str_contains((string) $form['#id'], 'commerce-checkout')) {
+    return;
+  }
+
+  $form['#submit'][] = 'myeventlane_donations_rsvp_donation_checkout_redirect';
+}
+
+/**
+ * Submit handler: redirect rsvp_donation orders to thank-you after completion.
+ */
+function myeventlane_donations_rsvp_donation_checkout_redirect(array &$form, FormStateInterface $form_state): void {
+  $redirect = $form_state->getRedirect();
+  if (!$redirect instanceof \Drupal\Core\Url) {
+    return;
+  }
+
+  if ($redirect->getRouteName() !== 'commerce_checkout.form') {
+    return;
+  }
+
+  $route_params = $redirect->getRouteParameters();
+  $step = $route_params['step'] ?? NULL;
+  if ($step !== 'complete') {
+    return;
+  }
+
+  $order_id = (int) ($route_params['commerce_order'] ?? 0);
+  if ($order_id <= 0) {
+    return;
+  }
+
+  $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id);
+  if (!$order || $order->bundle() !== 'rsvp_donation') {
+    return;
+  }
+
+  if ($order->getState()->getId() === 'draft') {
+    return;
+  }
+
+  $event_id = NULL;
+  foreach ($order->getItems() as $item) {
+    if ($item->bundle() !== 'rsvp_donation') {
+      continue;
+    }
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      $event_id = (int) $item->get('field_target_event')->target_id;
+      break;
+    }
+    if ($item->hasField('field_attendee_data') && !$item->get('field_attendee_data')->isEmpty()) {
+      $data = json_decode((string) $item->get('field_attendee_data')->value, TRUE);
+      if (!empty($data['event_id'])) {
+        $event_id = (int) $data['event_id'];
+        break;
+      }
+    }
+  }
+
+  if ($event_id && \Drupal::moduleHandler()->moduleExists('myeventlane_rsvp')) {
+    $form_state->setRedirect('myeventlane_rsvp.thankyou', [
+      'event' => $event_id,
+    ], [
+      'query' => ['order' => $order_id],
+    ]);
+  }
 }

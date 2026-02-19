@@ -1,4 +1,12 @@
 services:
+  myeventlane_rsvp.donation_confirmation_subscriber:
+    class: Drupal\myeventlane_rsvp\EventSubscriber\RsvpDonationConfirmationSubscriber
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_rsvp.mailer'
+      - '@logger.channel.myeventlane_rsvp'
+    tags:
+      - { name: event_subscriber }
 
   myeventlane_rsvp.user_rsvp_repository:
     class: Drupal\myeventlane_rsvp\Service\UserRsvpRepository
@@ -16,6 +24,16 @@ services:
   myeventlane_rsvp.ics_controller:
     class: Drupal\myeventlane_rsvp\Controller\IcsController
     arguments: ['@myeventlane_rsvp.ics_generator']
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_rsvp.thank_you_controller:
+    class: Drupal\myeventlane_rsvp\Controller\RsvpThankYouController
+    arguments:
+      - '@entity_type.manager'
+      - '@request_stack'
+      - '@logger.factory'
+      - '@myeventlane_rsvp.mailer'
     tags:
       - { name: controller.service_arguments }
 

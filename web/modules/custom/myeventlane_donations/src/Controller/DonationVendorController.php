@@ -129,12 +129,7 @@ final class DonationVendorController extends ControllerBase {
       if (!empty($orderItemIds)) {
         $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
         foreach ($orderItems as $orderItem) {
-          if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
-            continue;
-          }
-
-          // Safely load the order entity to avoid getOrder() warnings.
-          $order_id = $orderItem->get('order_id')->target_id;
+          $order_id = $orderItem->getOrderId();
           if (!$order_id) {
             continue;
           }
@@ -143,7 +138,8 @@ final class DonationVendorController extends ControllerBase {
             $order = $this->entityTypeManager()
               ->getStorage('commerce_order')
               ->load($order_id);
-            if ($order && $order->getState()->getId() === 'completed') {
+            $state = $order ? $order->getState()->getId() : '';
+            if ($order && in_array($state, ['completed', 'placed', 'fulfilled'], TRUE)) {
               $user = $order->getCustomer();
               $donations[] = [
                 'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),

@@ -30,7 +30,7 @@ myeventlane_rsvp.public_rsvp_form:
 myeventlane_rsvp.thankyou:
   path: '/event/{event}/rsvp/thank-you'
   defaults:
-    _controller: '\Drupal\myeventlane_rsvp\Controller\RsvpThankYouController::page'
+    _controller: 'myeventlane_rsvp.thank_you_controller:page'
     _title: 'RSVP Confirmed'
   requirements:
     _permission: 'access content'

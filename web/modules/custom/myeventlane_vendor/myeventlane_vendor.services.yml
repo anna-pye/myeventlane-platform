@@ -68,6 +68,7 @@ services:
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_metrics.service'
       - '@myeventlane_boost.metrics'
+      - '@?myeventlane_donations.service'
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService

@@ -3,6 +3,7 @@
 namespace Drupal\myeventlane_rsvp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -32,8 +33,9 @@ final class VendorRsvpExportController extends ControllerBase {
    * use VendorMetricsService to guarantee parity with the vendor dashboard.
    * Do not reimplement metrics here.
    */
-  public function export(int $event): Response {
-    $rows = $this->repo->getEventRsvps($event);
+  public function export(NodeInterface $event): Response {
+    $event_id = (int) $event->id();
+    $rows = $this->repo->getEventRsvps($event_id);
 
     $csv = "First Name,Last Name,Email,Status,Created\n";
 
@@ -53,7 +55,7 @@ final class VendorRsvpExportController extends ControllerBase {
       200,
       [
         'Content-Type' => 'text/csv; charset=utf-8',
-        'Content-Disposition' => 'attachment; filename="rsvps-' . $event . '.csv"',
+        'Content-Disposition' => 'attachment; filename="rsvps-' . $event_id . '.csv"',
       ]
     );
     $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');

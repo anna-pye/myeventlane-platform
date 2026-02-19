@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_rsvp\Service;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -14,26 +15,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Centralized RSVP submission logic.
- *
- * Single place for: rate limiting, lock, capacity check, deduplication.
  */
 final class RsvpSubmissionManager {
 
-  /**
-   * Flood limit for anonymous RSVP submissions per IP per hour.
-   */
   private const FLOOD_LIMIT = 10;
-
-  /**
-   * Flood window in seconds.
-   */
   private const FLOOD_WINDOW = 3600;
 
-  /**
-   * Constructs RsvpSubmissionManager.
-   */
   public function __construct(
-    private readonly \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly RsvpCapacityService $capacityService,
     private readonly FloodInterface $flood,
     private readonly LockBackendInterface $lock,
@@ -41,29 +30,12 @@ final class RsvpSubmissionManager {
     private readonly RequestStack $requestStack,
   ) {}
 
-  /**
-   * Submits or updates an RSVP (idempotent by event+email or event+uid).
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   * @param array $data
-   *   Keys: name, email, phone (optional), guests (optional), donation (optional).
-   * @param int|null $capacity
-   *   Event capacity limit. NULL to skip capacity check.
-   *
-   * @return \Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface
-   *   The submission entity (new or updated).
-   *
-   * @throws \Drupal\myeventlane_capacity\Exception\CapacityExceededException
-   *   When at capacity.
-   * @throws \RuntimeException
-   *   When flood limit exceeded.
-   */
   public function submitOrUpdate(NodeInterface $event, array $data, ?int $capacity = NULL): RsvpSubmissionInterface {
     $event_id = (int) $event->id();
     $uid = (int) $this->currentUser->id();
     $email = trim((string) ($data['email'] ?? ''));
     $name = trim((string) ($data['name'] ?? ''));
+    $donation = (float) ($data['donation'] ?? 0);
 
     if ($email === '') {
       throw new \InvalidArgumentException('Email is required.');
@@ -88,6 +60,12 @@ final class RsvpSubmissionManager {
       $existing = $this->findExisting($event_id, $uid, $email);
       if ($existing) {
         $this->updateSubmission($existing, $data);
+
+        // RSVP is confirmed regardless of donation; donation is optional.
+        if ($existing->hasField('status')) {
+          $existing->set('status', 'confirmed');
+        }
+
         $existing->save();
         if ($identifier !== NULL) {
           $this->flood->register('myeventlane_rsvp.submit', self::FLOOD_WINDOW, $identifier);
@@ -102,6 +80,9 @@ final class RsvpSubmissionManager {
         throw new \RuntimeException('This event is at capacity.');
       }
 
+      // RSVP is confirmed regardless of donation amount; donation is optional.
+      $status = 'confirmed';
+
       $values = [
         'event_id' => ['target_id' => $event_id],
         'attendee_name' => $name,
@@ -109,12 +90,12 @@ final class RsvpSubmissionManager {
         'email' => $email,
         'phone' => trim((string) ($data['phone'] ?? '')),
         'guests' => (int) ($data['guests'] ?? 1),
-        'donation' => (float) ($data['donation'] ?? 0),
-        'status' => 'confirmed',
+        'donation' => $donation,
+        'status' => $status,
+        'user_id' => ['target_id' => $uid > 0 ? $uid : 0],
       ];
-      if ($uid > 0) {
-        $values['user_id'] = ['target_id' => $uid];
-      }
+
+      /** @var \Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface $submission */
       $submission = $storage->create($values);
       $submission->save();
 
@@ -129,9 +110,6 @@ final class RsvpSubmissionManager {
     }
   }
 
-  /**
-   * Finds existing RSVP by event + identity.
-   */
   private function findExisting(int $event_id, int $uid, string $email): ?RsvpSubmissionInterface {
     $storage = $this->entityTypeManager->getStorage('rsvp_submission');
 
@@ -140,7 +118,6 @@ final class RsvpSubmissionManager {
         ->accessCheck(FALSE)
         ->condition('event_id', $event_id)
         ->condition('user_id', $uid)
-        ->condition('status', 'confirmed')
         ->range(0, 1)
         ->execute();
       if ($ids) {
@@ -154,19 +131,17 @@ final class RsvpSubmissionManager {
       ->accessCheck(FALSE)
       ->condition('event_id', $event_id)
       ->condition('email', $email)
-      ->condition('status', 'confirmed')
       ->range(0, 1)
       ->execute();
+
     if ($ids) {
       $entity = $storage->load(reset($ids));
       return $entity instanceof RsvpSubmissionInterface ? $entity : NULL;
     }
+
     return NULL;
   }
 
-  /**
-   * Updates an existing submission with new data.
-   */
   private function updateSubmission(RsvpSubmissionInterface $submission, array $data): void {
     if (!$submission instanceof RsvpSubmission) {
       return;

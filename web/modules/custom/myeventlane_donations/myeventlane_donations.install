@@ -7,6 +7,7 @@
 
 use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderType;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
 
 /**
@@ -228,4 +229,31 @@ function myeventlane_donations_update_9001_verification(array &$sandbox): void {
       '@no_field' => $sandbox['no_field'],
     ]);
   }
+}
+
+/**
+ * Ensure RSVP donation checkout works: assign checkout flow and access permission.
+ *
+ * - Assigns mel_event_checkout to rsvp_donation order type so donation checkout
+ *   uses the same flow as ticket purchases.
+ * - Ensures anonymous users have 'access checkout' so they can complete RSVP
+ *   donations. Commerce grants this on install, but config sync may have
+ *   overridden it.
+ */
+function myeventlane_donations_update_9002(): void {
+  // Assign mel_event_checkout to rsvp_donation order type.
+  $order_type = OrderType::load('rsvp_donation');
+  if ($order_type) {
+    $flow_id = 'default';
+    if (\Drupal::entityTypeManager()->getStorage('commerce_checkout_flow')->load('mel_event_checkout')) {
+      $flow_id = 'mel_event_checkout';
+    }
+    $order_type->setThirdPartySetting('commerce_checkout', 'checkout_flow', $flow_id);
+    $order_type->save();
+  }
+
+  // Ensure anonymous can access checkout (required for RSVP donation flow).
+  user_role_grant_permissions(AccountInterface::ANONYMOUS_ROLE, ['access checkout']);
+
+  drupal_flush_all_caches();
 }

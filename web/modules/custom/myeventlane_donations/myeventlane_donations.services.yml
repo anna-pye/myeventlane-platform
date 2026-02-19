@@ -1,4 +1,10 @@
 services:
+  myeventlane_donations.rsvp_checkout_redirect_subscriber:
+    class: Drupal\myeventlane_donations\EventSubscriber\RsvpDonationCheckoutRedirectSubscriber
+    arguments: ['@current_route_match', '@entity_type.manager']
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_donations.service:
     class: Drupal\myeventlane_donations\Service\DonationService
     arguments: ['@entity_type.manager', '@config.factory', '@logger.factory']
@@ -9,7 +15,7 @@ services:
 
   myeventlane_donations.rsvp:
     class: Drupal\myeventlane_donations\Service\RsvpDonationService
-    arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@commerce_cart.cart_session', '@logger.factory', '@module_handler']
+    arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@commerce_cart.cart_session', '@logger.factory', '@module_handler', '@current_user']
 
   myeventlane_donations.donation_access:
     class: Drupal\myeventlane_donations\Access\DonationAccess

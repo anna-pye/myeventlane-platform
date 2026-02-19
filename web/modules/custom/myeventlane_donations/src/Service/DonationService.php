@@ -14,6 +14,11 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 final class DonationService {
 
   /**
+   * Order states considered "completed" for donation counting.
+   */
+  private const VALID_ORDER_STATES = ['completed', 'placed', 'fulfilled'];
+
+  /**
    * Constructs a DonationService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -45,7 +50,7 @@ final class DonationService {
     try {
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
 
-      // Find all RSVP donation order items for this event.
+      // Primary: items with field_target_event set.
       $orderItemIds = $orderItemStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('type', 'rsvp_donation')
@@ -55,21 +60,16 @@ final class DonationService {
       if (!empty($orderItemIds)) {
         $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
         foreach ($orderItems as $orderItem) {
-          if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
-            continue;
-          }
-
-          // Safely load the order entity to avoid getOrder() warnings.
-          $order_id = $orderItem->get('order_id')->target_id;
+          $order_id = $orderItem->getOrderId();
           if (!$order_id) {
             continue;
           }
-
           try {
             $order = $this->entityTypeManager
               ->getStorage('commerce_order')
               ->load($order_id);
-            if ($order && $order->getState()->getId() === 'completed') {
+            $state = $order ? $order->getState()->getId() : '';
+            if ($order && in_array($state, self::VALID_ORDER_STATES, TRUE)) {
               $totalPrice = $orderItem->getTotalPrice();
               if ($totalPrice) {
                 $total += (float) $totalPrice->getNumber();
@@ -151,11 +151,11 @@ final class DonationService {
 
     try {
       $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
-      $orderIds = $orderStorage->getQuery()
+      $query = $orderStorage->getQuery()
         ->accessCheck(FALSE)
-        ->condition('type', 'rsvp_donation')
-        ->condition('state', 'completed')
-        ->execute();
+        ->condition('type', 'rsvp_donation');
+      $query->condition('state', self::VALID_ORDER_STATES, 'IN');
+      $orderIds = $query->execute();
 
       if (!empty($orderIds)) {
         $orders = $orderStorage->loadMultiple($orderIds);

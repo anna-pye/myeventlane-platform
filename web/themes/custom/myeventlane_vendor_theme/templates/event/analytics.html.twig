@@ -40,6 +40,17 @@
         <div class="mel-stat__value">{{ overview.rsvps.total|default(0) }}</div>
       </div>
     </div>
+
+    {# RSVP Donations (when any) #}
+    {% if overview.donations.count|default(0) > 0 %}
+    <div class="mel-card mel-card--stat">
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'RSVP Donations'|t }}</div>
+        <div class="mel-stat__value">${{ overview.donations.total|default(0)|number_format(2) }}</div>
+        <div class="mel-stat__sublabel">{{ overview.donations.count }} {{ 'donation(s)'|t }}</div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   {# Charts Section #}

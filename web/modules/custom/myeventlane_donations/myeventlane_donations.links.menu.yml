@@ -1,0 +1,7 @@
+# Admin config: Donation settings (under MyEventLane section).
+myeventlane_donations.settings:
+  title: 'Donations'
+  description: 'Configure platform and RSVP attendee donation settings.'
+  route_name: myeventlane_donations.settings
+  parent: myeventlane_core.config
+  weight: 12

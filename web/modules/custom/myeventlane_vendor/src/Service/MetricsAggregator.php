@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\myeventlane_boost\Service\BoostMetricsService;
+use Drupal\myeventlane_donations\Service\DonationService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Aggregates metrics across ticket sales, RSVPs, audience, and boost.
+ * Aggregates metrics across ticket sales, RSVPs, donations, audience, and boost.
  *
  * This service ONLY orchestrates calls to other services.
  * It does NOT perform calculations or queries directly.
@@ -35,6 +36,7 @@ final class MetricsAggregator {
     private readonly BoostStatusService $boostStatusService,
     private readonly EventMetricsServiceInterface $eventMetricsService,
     private readonly BoostMetricsService $boostMetricsService,
+    private readonly ?DonationService $donationService = NULL,
   ) {}
 
   /**
@@ -143,6 +145,7 @@ final class MetricsAggregator {
           'expires' => NULL,
         ],
         'tickets' => [],
+        'donations' => ['total' => 0.0, 'count' => 0],
       ];
     }
 
@@ -229,6 +232,17 @@ final class MetricsAggregator {
       $capacityTotal = 0;
     }
 
+    // Orchestrate call to DonationService for RSVP donation stats (when available).
+    $donationStats = ['total' => 0.0, 'count' => 0];
+    if ($this->donationService) {
+      try {
+        $donationStats = $this->donationService->getEventDonationStats($event_id);
+      }
+      catch (\Exception $e) {
+        // Ignore; donations remain zero.
+      }
+    }
+
     return [
       'attendees' => [
         'total' => $attendeeCount,
@@ -250,6 +264,7 @@ final class MetricsAggregator {
       'boost' => $boost,
       'boost_metrics' => $boostMetrics,
       'tickets' => $ticketBreakdown,
+      'donations' => $donationStats,
     ];
   }
 

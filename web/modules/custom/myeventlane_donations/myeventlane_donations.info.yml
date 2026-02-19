@@ -10,6 +10,7 @@ dependencies:
   - myeventlane_commerce:myeventlane_commerce
   - myeventlane_rsvp:myeventlane_rsvp
   - drupal:commerce
+  - drupal:commerce_checkout
   - drupal:commerce_order
   - drupal:commerce_payment
   - drupal:node
