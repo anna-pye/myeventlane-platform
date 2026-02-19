@@ -162,6 +162,7 @@ abstract class AnalyticsKernelTestBase extends KernelTestBase {
     return new AnalyticsQueryService(
       $this->createScopeResolver(),
       $this->createGuard(),
+      new \Drupal\myeventlane_analytics\Service\OrderItemClassifier(),
     );
   }
 
@@ -218,6 +219,7 @@ abstract class AnalyticsKernelTestBase extends KernelTestBase {
     require_once $module_root . '/src/Phase7/Service/AnalyticsQueryServiceInterface.php';
     require_once $module_root . '/src/Phase7/Guard/AnalyticsQueryGuard.php';
     require_once $module_root . '/src/Phase7/Scope/AnalyticsScopeResolver.php';
+    require_once $module_root . '/src/Service/OrderItemClassifier.php';
     require_once $module_root . '/src/Phase7/Service/AnalyticsQueryService.php';
   }
 

@@ -2,7 +2,9 @@ services:
   # BAS Report Service.
   myeventlane_finance.bas_report:
     class: Drupal\myeventlane_finance\Service\BasReportService
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_analytics.order_item_classifier'
 
   # BAS CSV Export Service.
   myeventlane_finance.bas_csv_export:

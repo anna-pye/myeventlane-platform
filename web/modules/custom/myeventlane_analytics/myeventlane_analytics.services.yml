@@ -1,8 +1,12 @@
 services:
+  # Canonical order item classifier (donation/boost exclusion).
+  myeventlane_analytics.order_item_classifier:
+    class: Drupal\myeventlane_analytics\Service\OrderItemClassifier
+
   # Analytics data service.
   myeventlane_analytics.data:
     class: Drupal\myeventlane_analytics\Service\AnalyticsDataService
-    arguments: ['@entity_type.manager', '@database']
+    arguments: ['@entity_type.manager', '@database', '@myeventlane_analytics.order_item_classifier']
 
   # Sales analytics service.
   myeventlane_analytics.sales:
@@ -40,7 +44,10 @@ services:
 
   myeventlane_analytics.phase7.query:
     class: Drupal\myeventlane_analytics\Phase7\Service\AnalyticsQueryService
-    arguments: ['@myeventlane_analytics.phase7.scope_resolver', '@myeventlane_analytics.phase7.guard']
+    arguments:
+      - '@myeventlane_analytics.phase7.scope_resolver'
+      - '@myeventlane_analytics.phase7.guard'
+      - '@myeventlane_analytics.order_item_classifier'
 
   myeventlane_analytics.admin_revenue_query:
     class: Drupal\myeventlane_analytics\Phase7\Service\AdminRevenueQueryService
@@ -52,6 +59,7 @@ services:
       - '@database'
       - '@datetime.time'
       - '@logger.factory'
+      - '@myeventlane_analytics.order_item_classifier'
 
   myeventlane_analytics.trending_categories:
     class: Drupal\myeventlane_analytics\Service\TrendingCategoriesService

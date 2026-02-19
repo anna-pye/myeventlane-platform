@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -15,6 +16,15 @@ use Psr\Log\LoggerInterface;
  *
  * Runs on cron. Uses database aggregates only; never loads entities.
  * Scope: last 90 days. Only aggregates changed days.
+ *
+ * Revenue streams (derived from order items, not order total):
+ * - vendor_ticket_revenue: Eligible ticket items (excludes donations, Boost).
+ * - donation_revenue: checkout_donation, platform_donation, rsvp_donation.
+ * - boost_revenue: boost order items.
+ * - application_fees: Derived from vendor_ticket_revenue * fee rate.
+ *
+ * Platform revenue = donation_revenue + boost_revenue + application_fees.
+ * Vendor revenue = vendor_ticket_revenue - refunds (not aggregated here).
  *
  * @internal
  */
@@ -26,9 +36,6 @@ final class PlatformSummaryAggregator {
 
   private const DEFAULT_FEE_PERCENT = 5.0;
 
-  /**
-   * Resolved escalation statuses (not open).
-   */
   private const RESOLVED_STATUSES = ['resolved', 'closed'];
 
   /**
@@ -40,12 +47,11 @@ final class PlatformSummaryAggregator {
     private readonly LoggerInterface $logger,
     private readonly CacheBackendInterface $cache,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
    * Aggregates last N days into platform_daily_summary.
-   *
-   * Uses commerce_order and escalation tables via SQL. No entity loading.
    */
   public function aggregate(): void {
     if (!$this->database->schema()->tableExists('commerce_order')) {
@@ -74,7 +80,6 @@ final class PlatformSummaryAggregator {
       $row['escalations_open'] = 0;
       $row['escalations_urgent'] = 0;
 
-      // Escalation counts: only meaningful for "today" (current snapshot).
       if ($date === date('Y-m-d')) {
         $row['escalations_open'] = $this->getOpenEscalationCount();
         $row['escalations_urgent'] = $this->getUrgentEscalationCount();
@@ -121,56 +126,130 @@ final class PlatformSummaryAggregator {
   }
 
   /**
-   * Aggregates Commerce order data for one day.
+   * Aggregates Commerce order item data for one day.
    *
-   * Uses placed timestamp for date grouping. No entity loading.
+   * Derives revenue from order items by type (not order total).
    */
   private function aggregateDay(int $day_start, int $day_end, string $currency, float $feeRate): array {
-    $revenue_gross = 0.0;
-    $orders_completed = 0;
-    $orders_failed = 0;
+    $vendorTicketRevenue = 0.0;
+    $donationRevenue = 0.0;
+    $boostRevenue = 0.0;
+    $ordersCompleted = 0;
+    $ordersFailed = 0;
 
-    // Completed orders: sum total_price, count.
-    $q_completed = $this->database->select('commerce_order', 'o');
-    $q_completed->addExpression('COALESCE(SUM(o.total_price__number), 0)', 'revenue');
-    $q_completed->addExpression('COUNT(o.order_id)', 'cnt');
-    $q_completed->condition('o.state', 'completed');
-    $q_completed->condition('o.placed', $day_start, '>=');
-    $q_completed->condition('o.placed', $day_end, '<=');
-    $q_completed->condition('o.total_price__currency_code', $currency);
+    $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+    $donationTypes = $this->orderItemClassifier->getDonationTypes();
 
-    $result = $q_completed->execute()->fetchObject();
-    if ($result) {
-      $revenue_gross = (float) $result->revenue;
-      $orders_completed = (int) $result->cnt;
+    if (!$this->database->schema()->tableExists('commerce_order_item')) {
+      return $this->emptyDayRow(0, 0, 0, $feeRate, $ordersCompleted, $ordersFailed);
     }
 
-    $platform_fees = round($revenue_gross * $feeRate, 2);
-    $revenue_net = round($revenue_gross - $platform_fees, 2);
+    // Sum order item amounts by type. Use unit_price * quantity for total.
+    $oi_table = $this->database->schema()->tableExists('commerce_order_item_field_data')
+      ? 'commerce_order_item_field_data'
+      : 'commerce_order_item';
+    $amount_expr = 'COALESCE(SUM(oi.unit_price__number * oi.quantity), 0)';
 
-    // Failed/canceled orders. Commerce uses 'canceled' (US spelling).
+    // Vendor ticket revenue: types NOT IN excluded.
+    $q_vendor = $this->database->select($oi_table, 'oi');
+    $q_vendor->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+    $q_vendor->addExpression($amount_expr, 'revenue');
+    $q_vendor->condition('o.state', 'completed');
+    $q_vendor->condition('o.placed', $day_start, '>=');
+    $q_vendor->condition('o.placed', $day_end, '<=');
+    $q_vendor->condition('oi.type', $excludedTypes, 'NOT IN');
+    if ($this->database->schema()->fieldExists($oi_table, 'unit_price__currency_code')) {
+      $q_vendor->condition('oi.unit_price__currency_code', $currency);
+    }
+    $vendorTicketRevenue = (float) $q_vendor->execute()->fetchField();
+
+    // Donation revenue.
+    if (!empty($donationTypes)) {
+      $q_donation = $this->database->select($oi_table, 'oi');
+      $q_donation->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+      $q_donation->addExpression($amount_expr, 'revenue');
+      $q_donation->condition('o.state', 'completed');
+      $q_donation->condition('o.placed', $day_start, '>=');
+      $q_donation->condition('o.placed', $day_end, '<=');
+      $q_donation->condition('oi.type', $donationTypes, 'IN');
+      if ($this->database->schema()->fieldExists($oi_table, 'unit_price__currency_code')) {
+        $q_donation->condition('oi.unit_price__currency_code', $currency);
+      }
+      $donationRevenue = (float) $q_donation->execute()->fetchField();
+    }
+
+    // Boost revenue.
+    $q_boost = $this->database->select($oi_table, 'oi');
+    $q_boost->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+    $q_boost->addExpression($amount_expr, 'revenue');
+    $q_boost->condition('o.state', 'completed');
+    $q_boost->condition('o.placed', $day_start, '>=');
+    $q_boost->condition('o.placed', $day_end, '<=');
+    $q_boost->condition('oi.type', 'boost');
+    if ($this->database->schema()->fieldExists($oi_table, 'unit_price__currency_code')) {
+      $q_boost->condition('oi.unit_price__currency_code', $currency);
+    }
+    $boostRevenue = (float) $q_boost->execute()->fetchField();
+
+    // Order count (completed).
+    $q_orders = $this->database->select('commerce_order', 'o');
+    $q_orders->addExpression('COUNT(o.order_id)', 'cnt');
+    $q_orders->condition('o.state', 'completed');
+    $q_orders->condition('o.placed', $day_start, '>=');
+    $q_orders->condition('o.placed', $day_end, '<=');
+    $q_orders->condition('o.total_price__currency_code', $currency);
+    $ordersCompleted = (int) $q_orders->execute()->fetchField();
+
+    // Application fees on vendor ticket revenue.
+    $platformFees = round($vendorTicketRevenue * $feeRate, 2);
+    $revenueNet = round($vendorTicketRevenue - $platformFees, 2);
+    $revenueGross = round($vendorTicketRevenue + $donationRevenue + $boostRevenue, 2);
+
+    // Failed/canceled orders.
     $q_failed = $this->database->select('commerce_order', 'o');
     $q_failed->addExpression('COUNT(o.order_id)', 'cnt');
     $q_failed->condition('o.state', ['canceled', 'cancelled'], 'IN');
     $q_failed->condition('o.placed', $day_start, '>=');
     $q_failed->condition('o.placed', $day_end, '<=');
-
-    $result_failed = $q_failed->execute()->fetchObject();
-    if ($result_failed) {
-      $orders_failed = (int) $result_failed->cnt;
+    $resultFailed = $q_failed->execute()->fetchObject();
+    if ($resultFailed) {
+      $ordersFailed = (int) $resultFailed->cnt;
     }
 
     return [
-      'revenue_gross' => $revenue_gross,
-      'revenue_net' => $revenue_net,
-      'platform_fees' => $platform_fees,
-      'orders_completed' => $orders_completed,
-      'orders_failed' => $orders_failed,
+      'revenue_gross' => $revenueGross,
+      'revenue_net' => $revenueNet,
+      'platform_fees' => $platformFees,
+      'vendor_ticket_revenue' => round($vendorTicketRevenue, 2),
+      'donation_revenue' => round($donationRevenue, 2),
+      'boost_revenue' => round($boostRevenue, 2),
+      'orders_completed' => $ordersCompleted,
+      'orders_failed' => $ordersFailed,
     ];
   }
 
   /**
-   * Counts open escalations (status not resolved/closed).
+   * Returns empty day row structure.
+   */
+  private function emptyDayRow(float $vendor, float $donation, float $boost, float $feeRate, int $ordersCompleted, int $ordersFailed): array {
+    $platformFees = round($vendor * $feeRate, 2);
+    $revenueNet = round($vendor - $platformFees, 2);
+    $revenueGross = round($vendor + $donation + $boost, 2);
+
+    return [
+      'revenue_gross' => $revenueGross,
+      'revenue_net' => $revenueNet,
+      'platform_fees' => $platformFees,
+      'vendor_ticket_revenue' => round($vendor, 2),
+      'donation_revenue' => round($donation, 2),
+      'boost_revenue' => round($boost, 2),
+      'orders_completed' => $ordersCompleted,
+      'orders_failed' => $ordersFailed,
+    ];
+  }
+
+  /**
+   * Counts open escalations.
    */
   private function getOpenEscalationCount(): int {
     if (!$this->database->schema()->tableExists('escalation')) {
@@ -200,24 +279,30 @@ final class PlatformSummaryAggregator {
    * Upserts one day into platform_daily_summary.
    */
   private function upsertDay(string $date, array $row): void {
+    $fields = [
+      'revenue_gross' => $row['revenue_gross'],
+      'revenue_net' => $row['revenue_net'],
+      'platform_fees' => $row['platform_fees'],
+      'orders_completed' => $row['orders_completed'],
+      'orders_failed' => $row['orders_failed'],
+      'escalations_open' => $row['escalations_open'],
+      'escalations_urgent' => $row['escalations_urgent'],
+    ];
+
+    if ($this->database->schema()->fieldExists('platform_daily_summary', 'vendor_ticket_revenue')) {
+      $fields['vendor_ticket_revenue'] = $row['vendor_ticket_revenue'];
+      $fields['donation_revenue'] = $row['donation_revenue'];
+      $fields['boost_revenue'] = $row['boost_revenue'];
+    }
+
     $this->database->merge('platform_daily_summary')
       ->keys(['date' => $date])
-      ->fields([
-        'revenue_gross' => $row['revenue_gross'],
-        'revenue_net' => $row['revenue_net'],
-        'platform_fees' => $row['platform_fees'],
-        'orders_completed' => $row['orders_completed'],
-        'orders_failed' => $row['orders_failed'],
-        'escalations_open' => $row['escalations_open'],
-        'escalations_urgent' => $row['escalations_urgent'],
-      ])
+      ->fields($fields)
       ->execute();
   }
 
   /**
    * Returns default currency from first store or constant.
-   *
-   * Commerce store uses default_currency_target_id (entity reference to currency).
    */
   private function getDefaultCurrency(): string {
     if (!$this->database->schema()->tableExists('commerce_store')) {

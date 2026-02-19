@@ -69,6 +69,11 @@ final class PlatformSummaryReader {
     $q->addExpression('COALESCE(SUM(p.platform_fees), 0)', 'platform_fees');
     $q->addExpression('COALESCE(SUM(p.orders_completed), 0)', 'orders_completed');
     $q->addExpression('COALESCE(SUM(p.orders_failed), 0)', 'orders_failed');
+    if ($this->database->schema()->fieldExists('platform_daily_summary', 'vendor_ticket_revenue')) {
+      $q->addExpression('COALESCE(SUM(p.vendor_ticket_revenue), 0)', 'vendor_ticket_revenue');
+      $q->addExpression('COALESCE(SUM(p.donation_revenue), 0)', 'donation_revenue');
+      $q->addExpression('COALESCE(SUM(p.boost_revenue), 0)', 'boost_revenue');
+    }
     $q->condition('p.date', $cutoff, '>=');
 
     $row = $q->execute()->fetchAssoc();
@@ -85,6 +90,16 @@ final class PlatformSummaryReader {
       'escalations_open' => 0,
       'escalations_urgent' => 0,
     ];
+
+    if ($this->database->schema()->fieldExists('platform_daily_summary', 'vendor_ticket_revenue')) {
+      $donation = (float) ($row['donation_revenue'] ?? 0);
+      $boost = (float) ($row['boost_revenue'] ?? 0);
+      $fees = (float) $row['platform_fees'];
+      $out['vendor_ticket_revenue'] = (float) ($row['vendor_ticket_revenue'] ?? 0);
+      $out['donation_revenue'] = $donation;
+      $out['boost_revenue'] = $boost;
+      $out['platform_revenue'] = $donation + $boost + $fees;
+    }
 
     // Open/urgent are stored only for "today"; get from most recent row.
     $latest = $this->database->select('platform_daily_summary', 'p')

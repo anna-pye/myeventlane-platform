@@ -35,7 +35,31 @@ function myeventlane_summary_schema() {
         'not null' => TRUE,
       ],
       'platform_fees' => [
-        'description' => 'Platform fee amount.',
+        'description' => 'Application fees on vendor ticket revenue.',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'vendor_ticket_revenue' => [
+        'description' => 'Vendor-eligible ticket revenue (excludes donations, Boost).',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'donation_revenue' => [
+        'description' => 'Donation order item revenue (platform revenue).',
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+      ],
+      'boost_revenue' => [
+        'description' => 'Boost order item revenue (platform revenue).',
         'type' => 'numeric',
         'precision' => 14,
         'scale' => 2,
@@ -90,5 +114,48 @@ function myeventlane_summary_update_10001(): void {
   $full = myeventlane_summary_schema();
   if (!$schema->tableExists('platform_daily_summary')) {
     $schema->createTable('platform_daily_summary', $full['platform_daily_summary']);
+  }
+}
+
+/**
+ * Adds vendor_ticket_revenue, donation_revenue, boost_revenue columns.
+ */
+function myeventlane_summary_update_10002(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('platform_daily_summary')) {
+    return;
+  }
+
+  $new_columns = [
+    'vendor_ticket_revenue' => [
+      'description' => 'Vendor-eligible ticket revenue (excludes donations, Boost).',
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+    'donation_revenue' => [
+      'description' => 'Donation order item revenue (platform revenue).',
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+    'boost_revenue' => [
+      'description' => 'Boost order item revenue (platform revenue).',
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+  ];
+
+  foreach ($new_columns as $name => $spec) {
+    if (!$schema->fieldExists('platform_daily_summary', $name)) {
+      $schema->addField('platform_daily_summary', $name, $spec);
+    }
   }
 }

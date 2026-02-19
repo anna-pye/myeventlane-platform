@@ -52,15 +52,22 @@ final class PopularEventsService {
    */
   private $logger;
 
+  /**
+   * @var \Drupal\myeventlane_analytics\Service\OrderItemClassifier
+   */
+  private OrderItemClassifier $orderItemClassifier;
+
   public function __construct(
     Connection $database,
     TimeInterface $time,
-    LoggerChannelFactoryInterface $logger_factory
+    LoggerChannelFactoryInterface $logger_factory,
+    OrderItemClassifier $orderItemClassifier,
   ) {
     $this->database = $database;
     $this->time = $time;
     $this->schema = $database->schema();
     $this->logger = $logger_factory->get('myeventlane_analytics');
+    $this->orderItemClassifier = $orderItemClassifier;
   }
 
   /**
@@ -206,8 +213,8 @@ final class PopularEventsService {
       ':event_type' => 'event',
     ]);
 
-    // Exclude Boost order items (platform-only).
-    $query->condition('oi.type', 'boost', '<>');
+    // Exclude donation and Boost order items (platform revenue only).
+    $query->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
 
     // Exclude carts/drafts: cart flag is the safest no-guess constraint.
     if ($this->schema->fieldExists($order_table, 'cart')) {

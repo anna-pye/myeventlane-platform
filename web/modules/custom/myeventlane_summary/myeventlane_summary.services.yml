@@ -7,6 +7,7 @@ services:
       - '@logger.channel.myeventlane_summary'
       - '@cache.default'
       - '@cache_tags.invalidator'
+      - '@myeventlane_analytics.order_item_classifier'
 
   myeventlane_summary.reader:
     class: Drupal\myeventlane_summary\Service\PlatformSummaryReader

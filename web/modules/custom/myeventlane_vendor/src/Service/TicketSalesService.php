@@ -6,13 +6,14 @@ namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\node\NodeInterface;
 
 /**
  * Ticket sales data provider for vendor console.
  *
  * Queries real Commerce order data for accurate sales metrics.
- * Excludes Boost purchases (admin revenue only).
+ * Excludes Boost and donation order items (platform revenue only).
  */
 final class TicketSalesService {
 
@@ -21,47 +22,15 @@ final class TicketSalesService {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
-
-  /**
-   * Checks if an order item is a Boost purchase.
-   *
-   * Boost purchases are admin revenue and must be excluded from vendor metrics.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
-   *   The order item.
-   *
-   * @return bool
-   *   TRUE if the item is a Boost purchase, FALSE otherwise.
-   */
-  private function isBoostItem(OrderItemInterface $item): bool {
-    // Boost order items have bundle 'boost'.
-    if ($item->bundle() === 'boost') {
-      return TRUE;
-    }
-
-    // Also check the purchased entity's product/variation type.
-    $purchasedEntity = $item->getPurchasedEntity();
-    if ($purchasedEntity) {
-      $product = $purchasedEntity->getProduct();
-      if ($product && $product->bundle() === 'boost_upgrade') {
-        return TRUE;
-      }
-      if ($purchasedEntity->bundle() === 'boost_duration') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
-  }
 
   /**
    * Returns a sales summary for an event.
    *
    * Counts: Completed orders only (order state='completed').
    * Excludes: Draft/cancelled/refunded orders.
-   * Tables: commerce_order_item, commerce_order.
-   * NOTE: Does not check if event is published - caller should filter drafts.
+   * Excludes: Boost and donation order items.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -87,8 +56,7 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
@@ -96,7 +64,6 @@ final class TicketSalesService {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         $order_id = $item->get('order_id')->target_id;
         if (!$order_id) {
           continue;
@@ -123,17 +90,11 @@ final class TicketSalesService {
       // Commerce module may not be available.
     }
 
-    // Calculate tickets available from product variations.
     $ticketsAvailable = $this->getTicketsAvailable($event);
-
-    // Platform fee rate: 5% total fees (2.9% + $0.30 Stripe + platform fee).
-    // NOTE: This is hardcoded - should be configurable in production.
     $feeRate = 0.05;
     $fees = $gross * $feeRate;
     $net = $gross - $fees;
 
-    // Calculate conversion (tickets sold / available).
-    // Handle 'Unlimited' string or zero cases - conversion is 0 if unlimited or no tickets.
     $conversion = 0;
     if (is_numeric($ticketsAvailable) && (int) $ticketsAvailable > 0) {
       $conversion = $ticketsSold / (int) $ticketsAvailable;
@@ -155,24 +116,16 @@ final class TicketSalesService {
   /**
    * Returns ticket type breakdown for an event.
    *
-   * Aggregates by product variation from completed order items.
-   * Groups by: oi.purchased_entity (variation ID)
-   * Sums: oi.quantity, oi.total_price__number
-   * Filters: o.state = 'completed', field_target_event = eventId.
-   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
    * @return array
-   *   Array of ticket types, each with: label (variation title), price (formatted),
-   *   sold (int), available (int|string), revenue (formatted), revenue_raw (float).
-   *   Returns empty array if no product or on error.
+   *   Array of ticket types with label, price, sold, available, revenue.
    */
   public function getTicketBreakdown(NodeInterface $event): array {
     $eventId = (int) $event->id();
     $breakdown = [];
 
-    // Get the linked product for variation metadata (price, stock, title).
     if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
       return [];
     }
@@ -187,13 +140,10 @@ final class TicketSalesService {
       $variationStorage = $this->entityTypeManager->getStorage('commerce_product_variation');
       $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
 
-      // Query order items for this event (base query).
       $orderItems = $orderItemStorage->loadByProperties([
         'field_target_event' => $eventId,
       ]);
 
-      // Group by variation ID and aggregate.
-      // Key: variation_id, Value: ['sold' => int, 'revenue' => float, 'variation' => entity].
       $variationAggregates = [];
 
       foreach ($orderItems as $item) {
@@ -201,12 +151,10 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
-        // Get purchased entity (variation).
         $purchasedEntity = $item->getPurchasedEntity();
         if (!$purchasedEntity) {
           continue;
@@ -214,7 +162,6 @@ final class TicketSalesService {
 
         $variationId = $purchasedEntity->id();
 
-        // Verify order is completed.
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
           continue;
         }
@@ -234,32 +181,25 @@ final class TicketSalesService {
           continue;
         }
 
-        // Initialize variation aggregate if not seen.
         if (!isset($variationAggregates[$variationId])) {
-          // Load variation to get title, price, stock.
           $variation = $variationStorage->load($variationId);
           if (!$variation) {
             continue;
           }
 
-          // Exclude Boost variations.
           if ($variation->bundle() === 'boost_duration') {
             continue;
           }
 
-          // Verify variation belongs to the event's product.
           $variationProduct = $variation->getProduct();
           if (!$variationProduct || $variationProduct->id() !== $product->id()) {
             continue;
           }
 
-          // Get variation title from title field directly.
           $variationTitle = '';
           if ($variation->hasField('title') && !$variation->get('title')->isEmpty()) {
             $variationTitle = $variation->get('title')->value;
           }
-
-          // Fallback to label() if title field is empty.
           if (empty($variationTitle)) {
             $variationTitle = $variation->label();
           }
@@ -267,7 +207,6 @@ final class TicketSalesService {
           $price = $variation->getPrice();
           $priceNumber = $price ? (float) $price->getNumber() : 0.0;
 
-          // Get stock if available.
           $stock = 'Unlimited';
           if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
             $stock = (int) $variation->get('field_stock')->value;
@@ -283,7 +222,6 @@ final class TicketSalesService {
           ];
         }
 
-        // Aggregate: SUM(quantity), SUM(total_price__number).
         $variationAggregates[$variationId]['sold'] += (int) $item->getQuantity();
         $totalPrice = $item->getTotalPrice();
         if ($totalPrice) {
@@ -291,7 +229,6 @@ final class TicketSalesService {
         }
       }
 
-      // Convert to final breakdown format.
       foreach ($variationAggregates as $data) {
         $available = is_int($data['stock']) ? max(0, $data['stock'] - $data['sold']) : $data['stock'];
 
@@ -315,24 +252,16 @@ final class TicketSalesService {
   /**
    * Returns daily sales series for charts (last 14 days).
    *
-   * Counts: Completed orders only (order state='completed').
-   * Excludes: Draft/cancelled/refunded orders.
-   * Time range: Last 14 days (based on order completion time).
-   * Tables: commerce_order_item, commerce_order.
-   * NOTE: Does not check if event is published - caller should filter drafts.
-   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
    * @return array
-   *   Array of daily sales data, each with: date (formatted), amount (float),
-   *   tickets (int). Always returns 14 days (may have zero values).
+   *   Array of daily sales data with date, amount, tickets.
    */
   public function getDailySalesSeries(NodeInterface $event): array {
     $eventId = (int) $event->id();
     $series = [];
 
-    // Initialize last 14 days with zero values.
     $days = [];
     for ($i = 13; $i >= 0; $i--) {
       $date = date('Y-m-d', strtotime("-{$i} days"));
@@ -350,8 +279,7 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
@@ -359,7 +287,6 @@ final class TicketSalesService {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         $order_id = $item->get('order_id')->target_id;
         if (!$order_id) {
           continue;
@@ -391,7 +318,6 @@ final class TicketSalesService {
       // Commerce may not be available.
     }
 
-    // Convert to series format.
     foreach ($days as $date => $data) {
       $series[] = [
         'date' => date('M j', strtotime($date)),
@@ -405,12 +331,6 @@ final class TicketSalesService {
 
   /**
    * Gets total available tickets for an event.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return int|string
-   *   Total tickets available or 'Unlimited'.
    */
   private function getTicketsAvailable(NodeInterface $event): int|string {
     if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
@@ -428,7 +348,6 @@ final class TicketSalesService {
       $hasUnlimited = FALSE;
 
       foreach ($variations as $variation) {
-        // Exclude Boost variations (admin revenue only).
         if ($variation->bundle() === 'boost_duration') {
           continue;
         }
@@ -451,18 +370,11 @@ final class TicketSalesService {
   /**
    * Gets total revenue for a vendor (all published events).
    *
-   * Counts: Completed orders only (order state='completed').
-   * Excludes: Draft events, cancelled/refunded orders.
-   * Tables: commerce_order_item, commerce_order, node (event).
-   * Fee rate: 5% (hardcoded, should be configurable).
-   *
    * @param int $userId
    *   The vendor user ID.
    *
    * @return array
-   *   Revenue summary with keys: gross, net, fees (formatted strings),
-   *   gross_raw (float), tickets (int).
-   *   Returns zeros if no events, invalid user, or on error.
+   *   Revenue summary with gross, net, fees, gross_raw, tickets.
    */
   public function getVendorRevenue(int $userId): array {
     if ($userId <= 0) {
@@ -479,8 +391,6 @@ final class TicketSalesService {
     $totalTickets = 0;
 
     try {
-      // Get all published events owned by this user.
-      // NOTE: Only published events are included in vendor analytics.
       $nodeStorage = $this->entityTypeManager->getStorage('node');
       $eventIds = $nodeStorage->getQuery()
         ->accessCheck(FALSE)
@@ -509,8 +419,7 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
@@ -518,7 +427,6 @@ final class TicketSalesService {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         $order_id = $item->get('order_id')->target_id;
         if (!$order_id) {
           continue;
@@ -545,7 +453,6 @@ final class TicketSalesService {
       // Commerce may not be available.
     }
 
-    // Platform fee rate: 5% total fees (hardcoded, should be configurable).
     $feeRate = 0.05;
     $fees = $totalGross * $feeRate;
     $net = $totalGross - $fees;
@@ -562,15 +469,11 @@ final class TicketSalesService {
   /**
    * Gets total order count for a vendor (all published events).
    *
-   * Counts: Completed orders only (order state='completed').
-   * Excludes: Draft events, cancelled/refunded orders.
-   * Tables: commerce_order_item, commerce_order, node (event).
-   *
    * @param int $userId
    *   The vendor user ID.
    *
    * @return int
-   *   Total order count. Returns 0 if no orders, invalid user, or on error.
+   *   Total order count.
    */
   public function getVendorOrderCount(int $userId): int {
     if ($userId <= 0) {
@@ -578,7 +481,6 @@ final class TicketSalesService {
     }
 
     try {
-      // Get all published events owned by this user.
       $nodeStorage = $this->entityTypeManager->getStorage('node');
       $eventIds = $nodeStorage->getQuery()
         ->accessCheck(FALSE)
@@ -602,8 +504,7 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
@@ -611,7 +512,6 @@ final class TicketSalesService {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         $order_id = $item->get('order_id')->target_id;
         if (!$order_id) {
           continue;
@@ -643,10 +543,6 @@ final class TicketSalesService {
   /**
    * Gets revenue for a vendor within a time range.
    *
-   * Counts: Completed orders only (order state='completed').
-   * Excludes: Draft events, cancelled/refunded orders, orders outside time range.
-   * Tables: commerce_order_item, commerce_order, node (event).
-   *
    * @param int $userId
    *   The vendor user ID.
    * @param int $startTimestamp
@@ -655,7 +551,7 @@ final class TicketSalesService {
    *   End timestamp (inclusive). NULL for no upper limit.
    *
    * @return float
-   *   Total revenue amount. Returns 0.0 if no revenue, invalid user, or on error.
+   *   Total revenue amount.
    */
   public function getVendorRevenueInRange(int $userId, int $startTimestamp, ?int $endTimestamp = NULL): float {
     if ($userId <= 0) {
@@ -663,7 +559,6 @@ final class TicketSalesService {
     }
 
     try {
-      // Get all published events owned by this user.
       $nodeStorage = $this->entityTypeManager->getStorage('node');
       $eventIds = $nodeStorage->getQuery()
         ->accessCheck(FALSE)
@@ -687,8 +582,7 @@ final class TicketSalesService {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($item)) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
           continue;
         }
 
@@ -696,7 +590,6 @@ final class TicketSalesService {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         $order_id = $item->get('order_id')->target_id;
         if (!$order_id) {
           continue;

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_analytics\Phase7\Service;
 
 use Drupal\Core\Database\Database;
 use Drupal\myeventlane_analytics\Phase7\Guard\AnalyticsQueryGuard;
+use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\myeventlane_analytics\Phase7\Guard\AnalyticsQueryGuardInterface;
 use Drupal\myeventlane_analytics\Phase7\Exception\InvariantViolationException;
 use Drupal\myeventlane_analytics\Phase7\Scope\AnalyticsScopeResolverInterface;
@@ -33,10 +34,13 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
    *   The scope resolver.
    * @param \Drupal\myeventlane_analytics\Phase7\Guard\AnalyticsQueryGuardInterface $guard
    *   The guardrails service.
+   * @param \Drupal\myeventlane_analytics\Service\OrderItemClassifier $orderItemClassifier
+   *   The order item classifier (donation/boost exclusion).
    */
   public function __construct(
     private readonly AnalyticsScopeResolverInterface $scopeResolver,
     private readonly AnalyticsQueryGuardInterface $guard,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -85,7 +89,7 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $mismatch->condition('o.placed', $start, '>=');
     $mismatch->condition('o.placed', $end, '<=');
     $mismatch->condition('oi.unit_price__number', '0', '>');
-    $mismatch->condition('oi.type', 'boost', '<>');
+    $mismatch->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
     $mismatch->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
     $or = $mismatch->orConditionGroup()
       ->condition('oi.unit_price__currency_code', $currency, '<>')
@@ -119,7 +123,7 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $q->condition('o.placed', $end, '<=');
     $q->condition('oi.unit_price__number', '0', '>');
     $q->condition('oi.unit_price__currency_code', $currency);
-    $q->condition('oi.type', 'boost', '<>');
+    $q->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
     $q->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
 
     $q->groupBy('nes.field_event_store_target_id');
@@ -277,8 +281,8 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $q->condition('o.placed', $start, '>=');
     $q->condition('o.placed', $end, '<=');
     $q->condition('oi.unit_price__number', '0', '>');
-    // Exclude non-ticket admin-revenue items that may also target events.
-    $q->condition('oi.type', 'boost', '<>');
+    // Exclude donation and Boost order items (platform revenue only).
+    $q->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
 
     // Store isolation: enforce via event->store linkage.
     $q->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
@@ -373,7 +377,7 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $ticket_items->addField('oi', 'order_id', 'order_id');
     $ticket_items->addField('lnk', 'field_target_event_target_id', 'event_id');
     $ticket_items->condition('oi.unit_price__number', '0', '>');
-    $ticket_items->condition('oi.type', 'boost', '<>');
+    $ticket_items->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
     $ticket_items->distinct();
 
     // Fail-closed if there are completed refund rows in scope that cannot be

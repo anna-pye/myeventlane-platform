@@ -7,3 +7,4 @@ services:
       - '@myeventlane_attendee.repository_resolver'
       - '@cache.default'
       - '@datetime.time'
+      - '@myeventlane_analytics.order_item_classifier'

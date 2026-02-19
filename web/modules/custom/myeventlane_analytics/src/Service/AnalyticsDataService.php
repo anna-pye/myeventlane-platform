@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * Core analytics data service.
  *
  * Provides aggregated data for analytics dashboards.
+ * Excludes donation and Boost order items from vendor revenue and ticket counts.
  */
 final class AnalyticsDataService {
 
@@ -20,6 +21,7 @@ final class AnalyticsDataService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly Connection $database,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -38,7 +40,6 @@ final class AnalyticsDataService {
    *   Array of data points with 'date', 'ticket_count', 'revenue'.
    */
   public function getSalesTimeSeries(int $eventId, string $period = 'day', ?int $startDate = NULL, ?int $endDate = NULL): array {
-    // Get all order items for this event.
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
     $orderItems = $orderItemStorage->loadByProperties([
       'field_target_event' => $eventId,
@@ -48,10 +49,12 @@ final class AnalyticsDataService {
       return [];
     }
 
-    // Group by date period.
     $grouped = [];
     foreach ($orderItems as $item) {
-      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+        continue;
+      }
+
       if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
         continue;
       }
@@ -81,7 +84,6 @@ final class AnalyticsDataService {
         continue;
       }
 
-      // Group by period.
       $dateKey = $this->getDateKey($completedTime, $period);
       if (!isset($grouped[$dateKey])) {
         $grouped[$dateKey] = [
@@ -100,9 +102,7 @@ final class AnalyticsDataService {
       }
     }
 
-    // Sort by date.
     ksort($grouped);
-
     return array_values($grouped);
   }
 
@@ -124,7 +124,10 @@ final class AnalyticsDataService {
     $breakdown = [];
 
     foreach ($orderItems as $item) {
-      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+        continue;
+      }
+
       if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
         continue;
       }
@@ -152,7 +155,6 @@ final class AnalyticsDataService {
       }
 
       $variationTitle = $purchasedEntity->label();
-      // Extract ticket type from variation title.
       $ticketType = $variationTitle;
       if (strpos($variationTitle, ' – ') !== FALSE) {
         $parts = explode(' – ', $variationTitle, 2);
@@ -189,14 +191,11 @@ final class AnalyticsDataService {
    *   Array with funnel stages and counts.
    */
   public function getConversionFunnel(int $eventId): array {
-    // Get event node views (approximate from page views).
-    // Note: This requires page view tracking. For now, we'll estimate.
     $eventNode = $this->entityTypeManager->getStorage('node')->load($eventId);
     if (!$eventNode) {
       return [];
     }
 
-    // Get cart additions (order items in cart state).
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
     $allOrderItems = $orderItemStorage->loadByProperties([
       'field_target_event' => $eventId,
@@ -207,7 +206,10 @@ final class AnalyticsDataService {
     $completed = 0;
 
     foreach ($allOrderItems as $item) {
-      // Safely load the order entity to avoid getOrder() warnings.
+      if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+        continue;
+      }
+
       if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
         continue;
       }
@@ -241,8 +243,6 @@ final class AnalyticsDataService {
       }
     }
 
-    // Estimate views (this is approximate - would need proper tracking).
-    // Rough estimate.
     $views = max($completed * 10, 100);
 
     return [
@@ -255,27 +255,13 @@ final class AnalyticsDataService {
 
   /**
    * Gets date key for grouping.
-   *
-   * @param int $timestamp
-   *   Unix timestamp.
-   * @param string $period
-   *   Period: 'day', 'week', or 'month'.
-   *
-   * @return string
-   *   Date key string.
    */
   private function getDateKey(int $timestamp, string $period): string {
-    switch ($period) {
-      case 'week':
-        return date('Y-W', $timestamp);
-
-      case 'month':
-        return date('Y-m', $timestamp);
-
-      case 'day':
-      default:
-        return date('Y-m-d', $timestamp);
-    }
+    return match ($period) {
+      'week' => date('Y-W', $timestamp),
+      'month' => date('Y-m', $timestamp),
+      default => date('Y-m-d', $timestamp),
+    };
   }
 
 }

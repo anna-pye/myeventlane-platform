@@ -9,6 +9,7 @@ use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\node\NodeInterface;
@@ -31,6 +32,8 @@ final class EventMetricsService implements EventMetricsServiceInterface {
    *   The cache backend.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
+   * @param \Drupal\myeventlane_analytics\Service\OrderItemClassifier $orderItemClassifier
+   *   The order item classifier.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -38,6 +41,7 @@ final class EventMetricsService implements EventMetricsServiceInterface {
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly CacheBackendInterface $cache,
     private readonly TimeInterface $time,
+    private readonly OrderItemClassifier $orderItemClassifier,
   ) {}
 
   /**
@@ -107,7 +111,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
 
     $eventId = (int) $event->id();
     $totalAmount = 0.0;
-    // @todo Get from event or config.
     $currencyCode = 'AUD';
 
     try {
@@ -121,12 +124,11 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($orderItem)) {
+        // Exclude Boost and donations (platform revenue only).
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($orderItem)) {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
           continue;
         }
@@ -158,7 +160,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
       // Commerce not available or error.
     }
 
-    // If no revenue, return NULL (e.g., for RSVP-only events).
     if ($totalAmount === 0.0) {
       $result = NULL;
     }
@@ -194,12 +195,11 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           continue;
         }
 
-        // Exclude Boost purchases (admin revenue only).
-        if ($this->isBoostItem($orderItem)) {
+        // Exclude Boost and donations (platform revenue only).
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($orderItem)) {
           continue;
         }
 
-        // Safely load the order entity to avoid getOrder() warnings.
         if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
           continue;
         }
@@ -221,9 +221,7 @@ final class EventMetricsService implements EventMetricsServiceInterface {
             continue;
           }
 
-          // Get variation title and extract ticket type part.
           $variationTitle = $purchasedEntity->label();
-          // Extract ticket type from variation title (e.g., "Event Name – General" -> "General").
           $label = $variationTitle;
           if (strpos($variationTitle, ' – ') !== FALSE) {
             $parts = explode(' – ', $variationTitle, 2);
@@ -233,7 +231,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
           $quantity = (int) $orderItem->getQuantity();
           $totalPrice = $orderItem->getTotalPrice();
 
-          // Get stock/available from variation.
           $stock = 'Unlimited';
           if ($purchasedEntity->hasField('field_stock') && !$purchasedEntity->get('field_stock')->isEmpty()) {
             $stock = (int) $purchasedEntity->get('field_stock')->value;
@@ -262,7 +259,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
       // Commerce not available or error.
     }
 
-    // Format breakdown for template (add available and formatted revenue).
     $formatted = [];
     foreach ($breakdown as $item) {
       $available = is_int($item['stock']) ? max(0, $item['stock'] - $item['sold']) : $item['stock'];
@@ -304,7 +300,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
     foreach ($prefixes as $prefix) {
       $this->cache->delete($this->getCacheKeyById($eventId, $prefix));
     }
-    // Also invalidate capacity cache.
     if (method_exists($this->capacityService, 'invalidateCache')) {
       $this->capacityService->invalidateCache($eventId);
     }
@@ -312,14 +307,6 @@ final class EventMetricsService implements EventMetricsServiceInterface {
 
   /**
    * Gets cache key for an event metric.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   * @param string $metric
-   *   The metric name.
-   *
-   * @return string
-   *   The cache key.
    */
   private function getCacheKey(NodeInterface $event, string $metric): string {
     return $this->getCacheKeyById((int) $event->id(), $metric);
@@ -327,59 +314,15 @@ final class EventMetricsService implements EventMetricsServiceInterface {
 
   /**
    * Gets cache key by event ID.
-   *
-   * @param int $eventId
-   *   The event node ID.
-   * @param string $metric
-   *   The metric name.
-   *
-   * @return string
-   *   The cache key.
    */
   private function getCacheKeyById(int $eventId, string $metric): string {
     return "myeventlane_metrics:{$eventId}:{$metric}";
   }
 
   /**
-   * Checks if an order item is a Boost purchase.
-   *
-   * Boost purchases are admin revenue and must be excluded from vendor metrics.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderItemInterface $item
-   *   The order item.
-   *
-   * @return bool
-   *   TRUE if the item is a Boost purchase, FALSE otherwise.
-   */
-  private function isBoostItem(OrderItemInterface $item): bool {
-    // Boost order items have bundle 'boost'.
-    if ($item->bundle() === 'boost') {
-      return TRUE;
-    }
-
-    // Also check the purchased entity's product/variation type.
-    $purchasedEntity = $item->getPurchasedEntity();
-    if ($purchasedEntity) {
-      $product = $purchasedEntity->getProduct();
-      if ($product && $product->bundle() === 'boost_upgrade') {
-        return TRUE;
-      }
-      if ($purchasedEntity->bundle() === 'boost_duration') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
-  }
-
-  /**
    * Gets cache tags for an event.
    *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array
-   *   Array of cache tags.
+   * @return array<string>
    */
   private function getCacheTags(NodeInterface $event): array {
     return [

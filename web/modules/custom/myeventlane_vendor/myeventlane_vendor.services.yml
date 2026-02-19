@@ -39,7 +39,9 @@ services:
 
   myeventlane_vendor.service.ticket_sales:
     class: Drupal\myeventlane_vendor\Service\TicketSalesService
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_analytics.order_item_classifier'
 
   myeventlane_vendor.service.rsvp_stats:
     class: Drupal\myeventlane_vendor\Service\RsvpStatsService
