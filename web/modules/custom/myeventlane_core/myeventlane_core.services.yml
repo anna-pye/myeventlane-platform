@@ -23,6 +23,17 @@ services:
       - '@entity_type.manager'
       - '@logger.factory'
 
+  myeventlane_core.raw_card_data_guard:
+    class: Drupal\myeventlane_core\EventSubscriber\RawCardDataRequestGuard
+    arguments:
+      - '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
+  logger.channel.myeventlane_core:
+    parent: logger.channel_base
+    arguments: ['myeventlane_core']
+
   myeventlane_core.category_digest_generator:
     class: Drupal\myeventlane_core\Service\CategoryDigestGenerator
     arguments:
