@@ -121,6 +121,56 @@ final class VendorStripeService {
   }
 
   /**
+   * Gets available Stripe balance formatted as currency (e.g. "$1,234.56").
+   *
+   * Uses balance API; consider caching result (e.g. 5 min) when called on
+   * page load to avoid repeated Stripe calls.
+   */
+  public function getAvailableBalanceFormatted(StoreInterface $store): string {
+    $accountId = $this->getStripeAccountId($store);
+    if ($accountId === '') {
+      return '$0.00';
+    }
+
+    $secret = $this->resolveStripeSecretKey();
+    if ($secret === '') {
+      return '$0.00';
+    }
+
+    if (!class_exists(StripeClient::class)) {
+      return '$0.00';
+    }
+
+    try {
+      $client = new StripeClient($secret);
+      $balance = $client->balance->retrieve([], ['stripe_account' => $accountId]);
+
+      $availableTotal = 0;
+      foreach ($balance->available ?? [] as $entry) {
+        if (strtolower((string) ($entry->currency ?? '')) === 'aud') {
+          $availableTotal += (int) ($entry->amount ?? 0);
+        }
+      }
+
+      return '$' . number_format($availableTotal / 100, 2);
+    }
+    catch (ApiErrorException $e) {
+      $this->logger->error('Stripe balance fetch failed for store @id: @m', [
+        '@id' => $store->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return '$0.00';
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Stripe balance fetch failed for store @id: @m', [
+        '@id' => $store->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return '$0.00';
+    }
+  }
+
+  /**
    * Reads Stripe account ID from the store.
    */
   private function getStripeAccountId(StoreInterface $store): string {

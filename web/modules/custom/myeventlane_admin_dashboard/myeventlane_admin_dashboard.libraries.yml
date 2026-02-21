@@ -11,3 +11,16 @@ platform_control_centre:
   css:
     theme:
       css/platform-control-centre.css: {}
+  js:
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js: { type: external, minified: true }
+    js/platform-control-centre-chart.js: {}
+    js/payout-bulk-select.js: {}
+  dependencies:
+    - core/drupal
+
+# Sidebar navigation block.
+sidebar_nav:
+  version: VERSION
+  css:
+    theme:
+      css/sidebar-nav.css: {}

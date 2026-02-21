@@ -1,0 +1,38 @@
+<div class="mel-dashboard">
+  <div class="mel-kpi-grid">
+    <div class="mel-kpi-card">
+      <h3>{{ 'Vendors'|t }}</h3>
+      <div class="value">{{ metrics.vendors }}</div>
+    </div>
+    <div class="mel-kpi-card">
+      <h3>{{ 'Orders (30 days)'|t }}</h3>
+      <div class="value">{{ metrics.orders_30_days }}</div>
+    </div>
+    <div class="mel-kpi-card">
+      <h3>{{ 'Gross Revenue'|t }}</h3>
+      <div class="value">${{ metrics.gross_30_days }}</div>
+    </div>
+    <div class="mel-kpi-card">
+      <h3>{{ 'Open Escalations'|t }}</h3>
+      <div class="value">
+        {% if escalations_url %}
+          <a href="{{ escalations_url }}">{{ metrics.open_escalations }}</a>
+        {% else %}
+          {{ metrics.open_escalations }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="mel-views-section">
+    {% if admin_recent_orders %}
+      <div class="mel-view-block">{{ admin_recent_orders }}</div>
+    {% endif %}
+    {% if escalations_url %}
+      <div class="mel-view-block">
+        <h3 class="mel-view-block__title">{{ 'Open Escalations'|t }}</h3>
+        <p class="mel-view-block__link"><a href="{{ escalations_url }}">{{ 'Manage all escalations'|t }} →</a></p>
+      </div>
+    {% endif %}
+  </div>
+</div>

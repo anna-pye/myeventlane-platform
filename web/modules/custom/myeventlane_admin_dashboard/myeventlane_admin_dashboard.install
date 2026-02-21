@@ -1,0 +1,342 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall hooks for MyEventLane Admin Dashboard.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_admin_dashboard_schema(): array {
+  $schema['myeventlane_payout_ledger'] = [
+    'description' => 'Tracks payout status per order for vendor liability.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order ID.',
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce store ID (vendor).',
+      ],
+      'gross' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+        'description' => 'Order gross amount.',
+      ],
+      'commission' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+        'description' => 'Commission amount.',
+      ],
+      'net' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'default' => 0,
+        'not null' => TRUE,
+        'description' => 'Net to vendor (gross - commission).',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'unpaid',
+        'description' => 'Workflow status: unpaid, pending, approved, or paid.',
+      ],
+      'transfer_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Stripe transfer ID when paid.',
+      ],
+      'paid_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when paid.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_id' => ['order_id'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'status' => ['status'],
+      'created' => ['created'],
+    ],
+  ];
+
+  $schema['myeventlane_payout_batch'] = [
+    'description' => 'Payout approval batches grouping ledger rows for multi-step workflow.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'batch_uuid' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Unique batch identifier.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'draft',
+        'description' => 'Batch status: draft, pending, approved, executed, cancelled.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when created.',
+      ],
+      'created_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'UID of user who created the batch.',
+      ],
+      'approved' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when approved.',
+      ],
+      'approved_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'UID of user who approved the batch.',
+      ],
+      'executed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when executed.',
+      ],
+      'executed_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'UID of user who executed the batch.',
+      ],
+      'notes' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Execution notes (errors, skips, etc.).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'batch_uuid' => ['batch_uuid'],
+    ],
+    'indexes' => [
+      'status' => ['status'],
+      'created' => ['created'],
+    ],
+  ];
+
+  $schema['myeventlane_payout_batch_item'] = [
+    'description' => 'Per-vendor line items within a payout batch.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'batch_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'References myeventlane_payout_batch.id.',
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce store ID (vendor).',
+      ],
+      'ledger_ids' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of ledger row IDs.',
+      ],
+      'total_net' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'not null' => TRUE,
+        'description' => 'Aggregated net amount for this vendor group.',
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => TRUE,
+        'default' => 'AUD',
+        'description' => 'Currency code.',
+      ],
+      'stripe_transfer_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Stripe transfer ID on successful execution.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Item status: pending, skipped, executed, failed.',
+      ],
+      'error_message' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Error details if skipped or failed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'batch_store' => ['batch_id', 'store_id'],
+    ],
+    'indexes' => [
+      'batch_id' => ['batch_id'],
+      'store_id' => ['store_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Creates myeventlane_payout_ledger table for existing installations.
+ */
+function myeventlane_admin_dashboard_update_10001(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_admin_dashboard_schema();
+  if (!$schema->tableExists('myeventlane_payout_ledger')) {
+    $schema->createTable('myeventlane_payout_ledger', $full['myeventlane_payout_ledger']);
+  }
+}
+
+/**
+ * Ensures myeventlane_admin_dashboard.settings config exists.
+ */
+function myeventlane_admin_dashboard_update_10002(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_admin_dashboard.settings');
+  if ($config->get('commission_rate') === NULL) {
+    $config->set('commission_rate', 0.10)->save();
+  }
+}
+
+/**
+ * Adds gross, commission, net columns to myeventlane_payout_ledger.
+ * Backfills existing rows from commerce_order.
+ */
+function myeventlane_admin_dashboard_update_10003(): void {
+  $db = \Drupal::database();
+  $schema = $db->schema();
+  if (!$schema->tableExists('myeventlane_payout_ledger')) {
+    return;
+  }
+  $columns = [
+    'gross' => [
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+    'commission' => [
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+    'net' => [
+      'type' => 'numeric',
+      'precision' => 14,
+      'scale' => 2,
+      'default' => 0,
+      'not null' => TRUE,
+    ],
+  ];
+  foreach ($columns as $name => $spec) {
+    if (!$schema->fieldExists('myeventlane_payout_ledger', $name)) {
+      $schema->addField('myeventlane_payout_ledger', $name, $spec);
+    }
+  }
+
+  $commissionRate = (float) (\Drupal::config('myeventlane_admin_dashboard.settings')->get('commission_rate') ?? 0.10);
+  if (!$schema->tableExists('commerce_order')) {
+    return;
+  }
+  $rows = $db->select('myeventlane_payout_ledger', 'l')
+    ->fields('l', ['order_id', 'id'])
+    ->execute()
+    ->fetchAll();
+  foreach ($rows as $r) {
+    $orderRow = $db->select('commerce_order', 'o')
+      ->fields('o', ['total_price__number'])
+      ->condition('o.order_id', $r->order_id)
+      ->execute()
+      ->fetchObject();
+    if (!$orderRow) {
+      continue;
+    }
+    $gross = round((float) ($orderRow->total_price__number ?? 0), 2);
+    $commission = round($gross * $commissionRate, 2);
+    $net = round($gross - $commission, 2);
+    $db->update('myeventlane_payout_ledger')
+      ->fields(['gross' => $gross, 'commission' => $commission, 'net' => $net])
+      ->condition('id', $r->id)
+      ->execute();
+  }
+}
+
+/**
+ * Creates payout batch and batch item tables for the approval workflow.
+ */
+function myeventlane_admin_dashboard_update_10004(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_admin_dashboard_schema();
+
+  if (!$schema->tableExists('myeventlane_payout_batch')) {
+    $schema->createTable('myeventlane_payout_batch', $full['myeventlane_payout_batch']);
+  }
+  if (!$schema->tableExists('myeventlane_payout_batch_item')) {
+    $schema->createTable('myeventlane_payout_batch_item', $full['myeventlane_payout_batch_item']);
+  }
+}

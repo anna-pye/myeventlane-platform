@@ -20,7 +20,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   catch (\Exception $e) {
     $variables['footer_context'] = [
       'store_name' => NULL,
-      'payout_balance' => 0,
+      'payout_balance' => '$0.00',
       'environment' => getenv('SITE_ENV') ?: 'Production',
       'open_tickets' => 0,
       'is_vendor' => FALSE,

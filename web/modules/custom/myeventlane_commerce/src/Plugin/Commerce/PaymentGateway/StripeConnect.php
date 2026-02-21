@@ -54,15 +54,20 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
    */
   public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL) {
     /** @var array $intent_attributes */
-    // Get Connect parameters for this order.
     $connectParams = $this->stripeConnectPayment->getConnectPaymentIntentParams($order);
 
-    // Merge Connect parameters into intent attributes.
     if (!empty($connectParams)) {
+      // Deep-merge metadata so we never overwrite keys set by Commerce or
+      // contrib modules (e.g. payment_intent_id added by commerce_stripe).
+      if (isset($connectParams['metadata']) && isset($intent_attributes['metadata'])) {
+        $connectParams['metadata'] = array_merge(
+          (array) $intent_attributes['metadata'],
+          $connectParams['metadata'],
+        );
+      }
       $intent_attributes = array_merge($intent_attributes, $connectParams);
     }
 
-    // Call parent to create the PaymentIntent with Connect parameters.
     return parent::createPaymentIntent($order, $intent_attributes, $payment);
   }
 

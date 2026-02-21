@@ -5,28 +5,26 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_admin_dashboard\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 use Drupal\myeventlane_admin_dashboard\Service\DashboardRenderer;
+use Drupal\myeventlane_admin_dashboard\Service\PlatformMetricsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Platform Control Centre – high-performance executive dashboard.
  *
- * Replaces the legacy admin dashboard. All heavy logic runs in cron;
- * this controller only builds the page skeleton and delegates to lazy builders.
+ * Provides KPIs, revenue chart, vendor ranking, payout liability, and links.
  */
 final class PlatformControlCentreController extends ControllerBase {
 
   /**
-   * The dashboard renderer service.
-   */
-  protected DashboardRenderer $dashboardRenderer;
-
-  /**
    * Constructs the controller.
    */
-  public function __construct(DashboardRenderer $dashboardRenderer) {
-    $this->dashboardRenderer = $dashboardRenderer;
-  }
+  public function __construct(
+    protected DashboardRenderer $dashboardRenderer,
+    protected PlatformMetricsService $metricsService,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -34,6 +32,7 @@ final class PlatformControlCentreController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('myeventlane_admin_dashboard.dashboard_renderer'),
+      $container->get('myeventlane_admin_dashboard.metrics'),
     );
   }
 
@@ -41,32 +40,49 @@ final class PlatformControlCentreController extends ControllerBase {
    * Returns the Platform Control Centre page.
    *
    * @return array
-   *   Render array with lazy-built sections.
+   *   Render array.
    */
-  public function overview(): array {
+  public function overview(Request $request): array {
+    $days = $this->sanitizeDays($request);
+    $kpis = $this->metricsService->getKpis($days);
+    $series = $this->metricsService->getRevenueSeriesDaily($days);
+    $vendorRanking = $this->metricsService->getVendorRanking($days, 10);
+    $payoutSummary = $this->metricsService->getPayoutLiabilitySummary($days);
+
+    $exportUrl = Url::fromRoute('myeventlane_admin_dashboard.financial_export', [], [
+      'query' => ['days' => $days],
+    ])->toString();
+
+    $currentRoute = 'myeventlane_admin_dashboard.platform_control';
+
     $build = [
       '#theme' => 'platform_control_centre',
+      '#kpis' => $kpis,
+      '#series' => $series,
+      '#vendor_ranking' => $vendorRanking,
+      '#payout_summary' => $payoutSummary,
+      '#export_url' => $exportUrl,
+      '#days' => $days,
+      '#filter_url_30' => Url::fromRoute($currentRoute, [], ['query' => ['days' => 30]])->toString(),
+      '#filter_url_90' => Url::fromRoute($currentRoute, [], ['query' => ['days' => 90]])->toString(),
       '#attached' => [
         'library' => [
           'myeventlane_admin_dashboard/platform_control_centre',
         ],
+        'drupalSettings' => [
+          'myeventlaneAdminDashboard' => [
+            'revenueSeries' => [
+              'labels' => $series['labels'],
+              'gross' => $series['gross'],
+              'commission' => $series['commission'],
+              'net' => $series['net'],
+            ],
+          ],
+        ],
       ],
       '#cache' => [
-        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list'],
-        'contexts' => ['user.permissions'],
-        'max-age' => 60,
-      ],
-    ];
-
-    $build['kpi_tiles'] = [
-      '#lazy_builder' => [
-        'myeventlane_admin_dashboard.dashboard_renderer:renderKpis',
-        [],
-      ],
-      '#create_placeholder' => TRUE,
-      '#cache' => [
-        'contexts' => ['user.permissions'],
-        'tags' => ['platform:summary'],
+        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list', 'myeventlane_payout_ledger'],
+        'contexts' => ['user.roles', 'url.query_args:days'],
         'max-age' => 300,
       ],
     ];
@@ -84,19 +100,6 @@ final class PlatformControlCentreController extends ControllerBase {
       ],
     ];
 
-    $build['trend'] = [
-      '#lazy_builder' => [
-        'myeventlane_admin_dashboard.dashboard_renderer:renderTrend',
-        [],
-      ],
-      '#create_placeholder' => TRUE,
-      '#cache' => [
-        'contexts' => ['user.permissions'],
-        'tags' => ['platform:summary'],
-        'max-age' => 3600,
-      ],
-    ];
-
     $build['recent_activity'] = [
       '#lazy_builder' => [
         'myeventlane_admin_dashboard.dashboard_renderer:renderRecentActivity',
@@ -111,6 +114,14 @@ final class PlatformControlCentreController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Sanitizes the days query parameter to allowed values.
+   */
+  private function sanitizeDays(Request $request): int {
+    $days = (int) $request->query->get('days', 30);
+    return in_array($days, [7, 30, 90], TRUE) ? $days : 30;
   }
 
 }

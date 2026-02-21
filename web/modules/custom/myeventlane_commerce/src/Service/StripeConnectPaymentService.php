@@ -326,6 +326,9 @@ final class StripeConnectPaymentService {
         // and donations remain with platform.
         'amount' => $ticketRevenue,
       ],
+      'metadata' => [
+        'order_id' => (string) $order->id(),
+      ],
     ];
 
     // Log for debugging.

@@ -1,0 +1,11 @@
+myeventlane_admin_dashboard.settings:
+  type: config_object
+  label: 'Platform Control Centre settings'
+  mapping:
+    commission_rate:
+      type: float
+      label: 'Commission rate (0-1, e.g. 0.10 for 10%). Used when no stored adjustments.'
+      default: 0.10
+    stripe_webhook_secret:
+      type: string
+      label: 'Stripe webhook signing secret for payout transfer events (whsec_…).'

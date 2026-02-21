@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Platform Control Centre – Vendors tab.
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Vendors'|t }}">
+  <header class="pcc__header">
+    <h1 class="pcc__title">{{ 'Vendors'|t }}</h1>
+    <p class="pcc__subtitle">
+      <a href="{{ vendor_url }}" class="pcc__link">{{ 'Manage vendors'|t }} →</a>
+    </p>
+  </header>
+  <section class="pcc__section">
+    <p>{{ 'Manage vendor accounts, stores, and Stripe Connect setup.'|t }}</p>
+    <a href="{{ vendor_url }}" class="pcc__action-link">{{ 'View vendor list'|t }}</a>
+  </section>
+</div>

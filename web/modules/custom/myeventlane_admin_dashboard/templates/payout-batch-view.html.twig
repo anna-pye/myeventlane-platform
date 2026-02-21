@@ -1,0 +1,128 @@
+{#
+/**
+ * @file
+ * Payout batch detail/view page.
+ *
+ * Variables:
+ *   - batch: batch object
+ *   - items: array of batch item objects
+ *   - store_labels: keyed by store_id => label
+ *   - user_labels: keyed by uid => display name
+ *   - csrf_token: CSRF token for batch actions
+ *   - can_request, can_approve, can_execute, can_cancel: permission flags
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Payout batch detail'|t }}">
+  <header class="pcc__header">
+    <h1 class="pcc__title">
+      {{ 'Batch #@id'|t({'@id': batch.id}) }}
+      <span class="pcc-payout__status pcc-payout__status--{{ batch.status }}">{{ batch.status }}</span>
+    </h1>
+  </header>
+
+  {# Summary metadata #}
+  <section class="pcc__section">
+    <div class="pcc-panel">
+      <dl class="pcc-batch__meta">
+        <dt>{{ 'UUID'|t }}</dt>
+        <dd><code>{{ batch.batch_uuid }}</code></dd>
+
+        <dt>{{ 'Status'|t }}</dt>
+        <dd><span class="pcc-payout__status pcc-payout__status--{{ batch.status }}">{{ batch.status }}</span></dd>
+
+        <dt>{{ 'Created'|t }}</dt>
+        <dd>{{ batch.created|date('Y-m-d H:i') }} {{ 'by'|t }} {{ user_labels[batch.created_uid] ?? ('UID ' ~ batch.created_uid) }}</dd>
+
+        {% if batch.approved %}
+          <dt>{{ 'Approved'|t }}</dt>
+          <dd>{{ batch.approved|date('Y-m-d H:i') }} {{ 'by'|t }} {{ user_labels[batch.approved_uid] ?? ('UID ' ~ batch.approved_uid) }}</dd>
+        {% endif %}
+
+        {% if batch.executed %}
+          <dt>{{ 'Executed'|t }}</dt>
+          <dd>{{ batch.executed|date('Y-m-d H:i') }} {{ 'by'|t }} {{ user_labels[batch.executed_uid] ?? ('UID ' ~ batch.executed_uid) }}</dd>
+        {% endif %}
+
+        {% if batch.notes %}
+          <dt>{{ 'Notes'|t }}</dt>
+          <dd><pre class="pcc-batch__notes">{{ batch.notes }}</pre></dd>
+        {% endif %}
+      </dl>
+    </div>
+  </section>
+
+  {# Workflow action buttons #}
+  <section class="pcc__section pcc-batch__actions">
+    {% if batch.status == 'draft' and can_request %}
+      <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_submit', {'batch_id': batch.id}) }}" class="pcc-payout__action-form pcc-payout__bulk-inline">
+        <input type="hidden" name="token" value="{{ csrf_token }}">
+        <button type="submit" class="pcc-payout__btn pcc-payout__btn--submit" onclick="return confirm('{{ 'Submit this batch for approval?'|t }}');">{{ 'Submit for approval'|t }}</button>
+      </form>
+    {% endif %}
+
+    {% if batch.status == 'pending' and can_approve %}
+      <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_approve', {'batch_id': batch.id}) }}" class="pcc-payout__action-form pcc-payout__bulk-inline">
+        <input type="hidden" name="token" value="{{ csrf_token }}">
+        <button type="submit" class="pcc-payout__btn pcc-payout__btn--approve" onclick="return confirm('{{ 'Approve this batch? Ledger rows will be marked as approved.'|t }}');">{{ 'Approve'|t }}</button>
+      </form>
+    {% endif %}
+
+    {% if batch.status == 'approved' and can_execute %}
+      <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_execute', {'batch_id': batch.id}) }}" class="pcc-payout__action-form pcc-payout__bulk-inline">
+        <input type="hidden" name="token" value="{{ csrf_token }}">
+        <button type="submit" class="pcc-payout__btn pcc-payout__btn--batch" onclick="return confirm('{{ 'Execute this batch? Stripe transfers will be created for approved vendors.'|t }}');">{{ 'Execute payout'|t }}</button>
+      </form>
+    {% endif %}
+
+    {% if batch.status in ['draft', 'pending', 'approved'] and can_cancel %}
+      <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_cancel', {'batch_id': batch.id}) }}" class="pcc-payout__action-form pcc-payout__bulk-inline">
+        <input type="hidden" name="token" value="{{ csrf_token }}">
+        <button type="submit" class="pcc-payout__btn pcc-payout__btn--reverse" onclick="return confirm('{{ 'Cancel this batch? All ledger rows will revert to unpaid.'|t }}');">{{ 'Cancel batch'|t }}</button>
+      </form>
+    {% endif %}
+
+    <a href="{{ path('myeventlane_admin_dashboard.payout_batches') }}" class="pcc-payout__btn pcc-payout__btn--view">&larr; {{ 'Back to batches'|t }}</a>
+  </section>
+
+  {# Vendor items table #}
+  <section class="pcc__section" aria-labelledby="pcc-batch-items-heading">
+    <h2 id="pcc-batch-items-heading" class="pcc-panel__title">{{ 'Vendor items'|t }}</h2>
+
+    {% if items is not empty %}
+      <div class="pcc-panel">
+        <div class="pcc-payout__table-wrap">
+          <table class="pcc-table">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'Store'|t }}</th>
+                <th scope="col" class="pcc-table__num">{{ 'Total net'|t }}</th>
+                <th scope="col">{{ 'Currency'|t }}</th>
+                <th scope="col">{{ 'Ledger rows'|t }}</th>
+                <th scope="col">{{ 'Status'|t }}</th>
+                <th scope="col">{{ 'Transfer ID'|t }}</th>
+                <th scope="col">{{ 'Error'|t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+                <tr>
+                  <td>{{ store_labels[item.store_id] ?? ('Store #' ~ item.store_id) }}</td>
+                  <td class="pcc-table__num">${{ item.total_net|number_format(2) }}</td>
+                  <td>{{ item.currency }}</td>
+                  <td><code>{{ item.ledger_ids }}</code></td>
+                  <td><span class="pcc-payout__status pcc-payout__status--{{ item.status }}">{{ item.status }}</span></td>
+                  <td class="pcc-payout__transfer-cell">{{ item.stripe_transfer_id|default('—') }}</td>
+                  <td>{{ item.error_message|default('—') }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="pcc-panel">
+        <p class="pcc-panel__empty">{{ 'No items in this batch.'|t }}</p>
+      </div>
+    {% endif %}
+  </section>
+</div>

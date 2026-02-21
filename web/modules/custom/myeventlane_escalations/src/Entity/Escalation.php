@@ -38,6 +38,7 @@ use Drupal\user\UserInterface;
  *   handlers = {
  *     "list_builder" = "Drupal\myeventlane_escalations\EscalationListBuilder",
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+ *     "views_data" = "Drupal\views\EntityViewsData",
  *     "form" = {
  *       "default" = "Drupal\myeventlane_escalations\Form\EscalationForm",
  *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",

@@ -8,6 +8,15 @@
 #}
 
 <div class="mel-admin-layout">
+  {% if pcc_utility_links is defined and pcc_utility_links %}
+  <div class="mel-pcc-utility-bar" role="navigation" aria-label="{{ 'Quick links'|t }}">
+    <a href="{{ pcc_utility_links.main_site_url }}" class="mel-pcc-utility-bar__link">{{ 'Main Site'|t }}</a>
+    <span class="mel-pcc-utility-bar__sep" aria-hidden="true">|</span>
+    <a href="{{ pcc_utility_links.vendor_dashboard_url }}" class="mel-pcc-utility-bar__link">{{ 'Vendor Dashboard'|t }}</a>
+    <span class="mel-pcc-utility-bar__sep" aria-hidden="true">|</span>
+    <a href="{{ pcc_utility_links.platform_control_url }}" class="mel-pcc-utility-bar__link">{{ 'Platform Control Centre'|t }}</a>
+  </div>
+  {% endif %}
   {% if page.header %}
     <header class="mel-admin-header" role="banner">
       {{ page.header }}

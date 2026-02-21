@@ -1,0 +1,43 @@
+/**
+ * @file
+ * MEL Admin Sidebar Navigation – Gin-compatible, neutral styling.
+ */
+
+.mel-sidebar-nav {
+  padding: 0.5rem 0;
+}
+
+.mel-sidebar-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-sidebar-nav__item {
+  margin: 0;
+  border-left: 3px solid transparent;
+}
+
+.mel-sidebar-nav__item--active {
+  border-left-color: #003eaa;
+  background: rgba(0, 62, 170, 0.06);
+}
+
+.mel-sidebar-nav__link {
+  display: block;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #333;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.mel-sidebar-nav__link:hover {
+  background: rgba(0, 0, 0, 0.04);
+  text-decoration: none;
+}
+
+.mel-sidebar-nav__link--active {
+  font-weight: 600;
+  color: #003eaa;
+}

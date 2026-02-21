@@ -1,0 +1,8 @@
+services:
+  mel_admin_dashboard.metrics:
+    class: Drupal\mel_admin_dashboard\Service\DashboardMetricsService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@cache.default'
+      - '@datetime.time'

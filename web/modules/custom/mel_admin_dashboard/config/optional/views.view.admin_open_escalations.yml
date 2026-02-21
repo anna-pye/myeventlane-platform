@@ -1,0 +1,123 @@
+uuid: null
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+    - user
+id: admin_open_escalations
+label: 'Admin: Open Escalations'
+module: views
+description: 'Open escalations for the Platform Control Centre.'
+tag: Admin
+base_table: escalation
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Master
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Open Escalations'
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 10
+      exposed_form:
+        type: basic
+      access:
+        type: perm
+        options:
+          perm: 'administer escalations'
+      cache:
+        type: tag
+      sorts:
+        id:
+          id: id
+          table: escalation
+          field: id
+          relationship: none
+          order: DESC
+          expose:
+            label: ''
+          exposed: false
+      filters:
+        status:
+          id: status
+          table: escalation
+          field: status
+          relationship: none
+          operator: 'not in'
+          value:
+            - resolved
+            - closed
+          expose:
+            operator: ''
+          exposed: false
+      fields:
+        subject:
+          id: subject
+          table: escalation
+          field: subject
+          relationship: none
+          label: 'Subject'
+          plugin_id: field
+          settings:
+            link_to_entity: true
+        status:
+          id: status
+          table: escalation
+          field: status
+          relationship: none
+          label: 'Status'
+          plugin_id: field
+        priority:
+          id: priority
+          table: escalation
+          field: priority
+          relationship: none
+          label: 'Priority'
+          plugin_id: field
+        created:
+          id: created
+          table: escalation
+          field: created
+          relationship: none
+          label: 'Created'
+          plugin_id: field
+          settings:
+            date_format: short
+      style:
+        type: table
+      row:
+        type: fields
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          empty: true
+          content: 'No open escalations.'
+          plugin_id: text_custom
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {}
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {}
+      block_description: 'Admin: Open Escalations'
+      block_category: Admin
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {}

@@ -1,7 +1,7 @@
-# Admin menu link for MyEventLane section.
-myeventlane_admin_dashboard.overview:
-  title: 'MyEventLane'
+# Admin menu link – Platform Control Centre (top-level).
+myeventlane_admin_dashboard.platform_control:
+  title: 'Platform Control Centre'
   description: 'Platform overview and administration for MyEventLane.'
-  route_name: myeventlane_admin_dashboard.overview
+  route_name: myeventlane_admin_dashboard.platform_control
   parent: system.admin
-  weight: -5
+  weight: -10

@@ -7,6 +7,43 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match->getRouteName();
+  if (!$route_name) {
+    return;
+  }
+  $pcc_routes = [
+    'myeventlane_admin_dashboard.platform_control',
+    'myeventlane_admin_dashboard.financials',
+    'myeventlane_admin_dashboard.vendors',
+    'myeventlane_admin_dashboard.payouts',
+    'myeventlane_admin_dashboard.reports',
+    'myeventlane_admin_dashboard.payout_batches',
+    'myeventlane_admin_dashboard.payout_batch_view',
+    'entity.escalation.collection',
+    'entity.escalation.canonical',
+    'entity.escalation.add_form',
+    'entity.escalation.edit_form',
+  ];
+  $is_pcc = in_array($route_name, $pcc_routes, TRUE)
+    || str_starts_with((string) $route_name, 'myeventlane_reporting.admin');
+  if (!$is_pcc) {
+    return;
+  }
+  $variables['pcc_utility_links'] = [
+    'main_site_url' => Url::fromRoute('<front>')->toString(),
+    'vendor_dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
+    'platform_control_url' => Url::fromRoute('myeventlane_admin_dashboard.platform_control')->toString(),
+  ];
+}
+
 /**
  * Implements hook_theme().
  */
@@ -36,11 +73,18 @@ function myeventlane_admin_dashboard_theme(): array {
     ],
     'platform_control_centre' => [
       'variables' => [
-        'kpi_tiles' => NULL,
+        'kpis' => [],
+        'series' => ['labels' => [], 'gross' => [], 'commission' => [], 'net' => []],
+        'vendor_ranking' => [],
+        'payout_summary' => ['unpaid_total' => 0.0, 'paid_total' => 0.0, 'unpaid_by_store' => []],
+        'export_url' => '',
+        'reports_url' => '',
+        'escalations_url' => '',
         'alerts' => NULL,
-        'trend' => NULL,
         'recent_activity' => NULL,
-        'links' => NULL,
+        'days' => 30,
+        'filter_url_30' => '',
+        'filter_url_90' => '',
       ],
       'template' => 'platform-control-centre',
     ],
@@ -73,5 +117,200 @@ function myeventlane_admin_dashboard_theme(): array {
       ],
       'template' => 'platform-control-centre--recent-activity',
     ],
+    'platform_control_centre_financials' => [
+      'variables' => [
+        'kpis' => [],
+        'series' => ['labels' => [], 'gross' => [], 'commission' => [], 'net' => []],
+        'vendor_ranking' => [],
+        'payout_summary' => ['unpaid_total' => 0.0, 'paid_total' => 0.0, 'unpaid_by_store' => []],
+        'export_url' => '',
+        'days' => 30,
+        'filter_url_30' => '',
+        'filter_url_90' => '',
+      ],
+      'template' => 'platform-control-centre--financials',
+    ],
+    'platform_control_centre_vendors' => [
+      'variables' => [
+        'vendor_url' => '',
+      ],
+      'template' => 'platform-control-centre--vendors',
+    ],
+    'platform_control_centre_payouts' => [
+      'variables' => [
+        'payout_summary' => ['unpaid_total' => 0.0, 'paid_total' => 0.0, 'unpaid_by_store' => []],
+        'ledger_rows' => [],
+        'csrf_token' => '',
+        'can_manage' => FALSE,
+        'can_reverse' => FALSE,
+        'can_execute' => FALSE,
+        'can_batch' => FALSE,
+        'can_request' => FALSE,
+        'days' => 30,
+        'filter_url_30' => '',
+        'filter_url_90' => '',
+      ],
+      'template' => 'platform-control-centre--payouts',
+    ],
+    'payout_batch_list' => [
+      'variables' => [
+        'batches' => [],
+        'user_labels' => [],
+        'batch_summaries' => [],
+        'status_filter' => NULL,
+      ],
+      'template' => 'payout-batch-list',
+    ],
+    'payout_batch_view' => [
+      'variables' => [
+        'batch' => NULL,
+        'items' => [],
+        'store_labels' => [],
+        'user_labels' => [],
+        'csrf_token' => '',
+        'can_request' => FALSE,
+        'can_approve' => FALSE,
+        'can_execute' => FALSE,
+        'can_cancel' => FALSE,
+      ],
+      'template' => 'payout-batch-view',
+    ],
+    'myeventlane_admin_sidebar_nav' => [
+      'variables' => [
+        'links' => [],
+        'current_route' => '',
+      ],
+      'template' => 'myeventlane-admin-sidebar-nav',
+    ],
   ];
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * Hides PCC tabs the current user lacks permission to view.
+ * Route-level access is the real security boundary; this is UX refinement.
+ */
+function myeventlane_admin_dashboard_menu_local_tasks_alter(array &$data, string $route_name, RefinableCacheableDependencyInterface &$cacheability): void {
+  $tab_permissions = [
+    'myeventlane_admin_dashboard.financials_tab' => 'view myeventlane financials',
+    'myeventlane_admin_dashboard.vendors_tab' => 'view myeventlane vendors',
+    'myeventlane_admin_dashboard.escalations_tab' => 'view myeventlane escalations',
+    'myeventlane_admin_dashboard.payouts_tab' => 'view myeventlane payouts',
+    'myeventlane_admin_dashboard.reports_tab' => 'view myeventlane reports',
+  ];
+
+  $account = \Drupal::currentUser();
+
+  foreach ($tab_permissions as $task_id => $permission) {
+    if (isset($data['tabs'][0][$task_id]) && !$account->hasPermission($permission)) {
+      unset($data['tabs'][0][$task_id]);
+    }
+  }
+
+  // Second-level tabs (e.g. Ledger / Batches under Payouts).
+  $subtab_permissions = [
+    'myeventlane_admin_dashboard.payouts_batches_subtab' => 'view myeventlane payouts',
+  ];
+
+  foreach ($subtab_permissions as $task_id => $permission) {
+    if (isset($data['tabs'][1][$task_id]) && !$account->hasPermission($permission)) {
+      unset($data['tabs'][1][$task_id]);
+    }
+  }
+
+  $cacheability->addCacheContexts(['user.permissions']);
+}
+
+/**
+ * Implements hook_toolbar().
+ */
+function myeventlane_admin_dashboard_toolbar(): array {
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('access myeventlane platform control centre')) {
+    return [];
+  }
+
+  $links = [];
+
+  $links['pcc'] = [
+    'title' => t('Platform Control Centre'),
+    'url' => Url::fromRoute('myeventlane_admin_dashboard.platform_control'),
+    'attributes' => ['title' => t('Platform Control Centre overview')],
+  ];
+
+  try {
+    $vendor_add_url = Url::fromRoute('entity.myeventlane_vendor.add_form');
+    if ($account->hasPermission('administer myeventlane vendor')) {
+      $links['create_vendor'] = [
+        'title' => t('Create Vendor'),
+        'url' => $vendor_add_url,
+        'attributes' => ['title' => t('Add a new vendor')],
+      ];
+    }
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_admin_dashboard')->notice('Vendor add route not available for toolbar.');
+  }
+
+  if ($account->hasPermission('view myeventlane reports')) {
+    $links['create_report'] = [
+      'title' => t('Reports'),
+      'url' => Url::fromRoute('myeventlane_admin_dashboard.reports'),
+      'attributes' => ['title' => t('View platform reports')],
+    ];
+  }
+
+  try {
+    if ($account->hasPermission('administer escalations')) {
+      $links['support_console'] = [
+        'title' => t('Support Console'),
+        'url' => Url::fromRoute('myeventlane_support_console.dashboard'),
+        'attributes' => ['title' => t('Customer support console')],
+      ];
+    }
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_admin_dashboard')->notice('Support console route not available for toolbar.');
+  }
+
+  $link_items = [];
+  foreach ($links as $link) {
+    $link_items[] = [
+      '#type' => 'link',
+      '#title' => $link['title'],
+      '#url' => $link['url'],
+      '#attributes' => $link['attributes'] ?? [],
+    ];
+  }
+
+  $items = [];
+  $items['myeventlane_admin_dashboard'] = [
+    '#type' => 'toolbar_item',
+    '#weight' => -15,
+    'tab' => [
+      '#type' => 'link',
+      '#title' => t('MyEventLane'),
+      '#url' => Url::fromRoute('myeventlane_admin_dashboard.platform_control'),
+      '#attributes' => [
+        'title' => t('MyEventLane Platform Control Centre'),
+        'class' => ['toolbar-icon', 'toolbar-icon-myeventlane'],
+      ],
+    ],
+    'tray' => [
+      '#heading' => t('MyEventLane actions'),
+      'links' => [
+        '#theme' => 'item_list',
+        '#items' => $link_items,
+        '#attributes' => [
+          'class' => ['toolbar-menu'],
+        ],
+      ],
+    ],
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+    ],
+  ];
+
+  return $items;
 }

@@ -1,10 +1,231 @@
-# Admin overview page - serves as landing page for /admin/myeventlane section.
-myeventlane_admin_dashboard.overview:
+# Platform Control Centre – base route (Overview tab).
+myeventlane_admin_dashboard.platform_control:
   path: '/admin/myeventlane'
   defaults:
     _controller: 'myeventlane_admin_dashboard.platform_control_centre_controller:overview'
     _title: 'Platform Control Centre'
   requirements:
-    _permission: 'access admin dashboard'
+    _permission: 'access myeventlane platform control centre'
   options:
     _admin_route: TRUE
+
+# Financials tab.
+myeventlane_admin_dashboard.financials:
+  path: '/admin/myeventlane/financials'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.financial_controller:overview'
+    _title: 'Financials'
+  requirements:
+    _permission: 'view myeventlane financials'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Vendors tab.
+myeventlane_admin_dashboard.vendors:
+  path: '/admin/myeventlane/vendors'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.vendor_controller:overview'
+    _title: 'Vendors'
+  requirements:
+    _permission: 'view myeventlane vendors'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Payouts tab.
+myeventlane_admin_dashboard.payouts:
+  path: '/admin/myeventlane/payouts'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_controller:overview'
+    _title: 'Payouts'
+  requirements:
+    _permission: 'view myeventlane payouts'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Reports tab (delegates to myeventlane_reporting).
+myeventlane_admin_dashboard.reports:
+  path: '/admin/myeventlane/reports'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.reports_controller:overview'
+    _title: 'Reports'
+  requirements:
+    _permission: 'view myeventlane reports'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Financial CSV export.
+myeventlane_admin_dashboard.financial_export:
+  path: '/admin/myeventlane/export/financial'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.financial_export_controller:export'
+    _title: 'Financial export'
+  requirements:
+    _permission: 'export myeventlane financials'
+  options:
+    _admin_route: TRUE
+
+# Payout actions – POST only.
+myeventlane_admin_dashboard.payout_mark_paid:
+  path: '/admin/myeventlane/payout/{ledger_id}/mark-paid'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_action_controller:markPaid'
+    _title: 'Mark payout paid'
+  requirements:
+    _permission: 'manage myeventlane payouts'
+    ledger_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+myeventlane_admin_dashboard.payout_mark_unpaid:
+  path: '/admin/myeventlane/payout/{ledger_id}/mark-unpaid'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_action_controller:markUnpaid'
+    _title: 'Reverse payout'
+  requirements:
+    _permission: 'reverse myeventlane payouts'
+    ledger_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+myeventlane_admin_dashboard.payout_bulk_mark_paid:
+  path: '/admin/myeventlane/payout/bulk-mark-paid'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_action_controller:bulkMarkPaid'
+    _title: 'Bulk mark paid'
+  requirements:
+    _permission: 'manage myeventlane payouts'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+myeventlane_admin_dashboard.payout_create_transfer:
+  path: '/admin/myeventlane/payout/{ledger_id}/create-transfer'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_transfer_controller:createTransfer'
+    _title: 'Create payout transfer'
+  requirements:
+    _permission: 'execute myeventlane payouts'
+    ledger_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+myeventlane_admin_dashboard.payout_batch_transfer:
+  path: '/admin/myeventlane/payout/batch-transfer'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_controller:executeBatch'
+    _title: 'Batch payout transfer'
+  requirements:
+    _permission: 'execute myeventlane payout batches'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+# Stripe payout webhook — public endpoint, no CSRF, signature-verified in controller.
+myeventlane_admin_dashboard.stripe_payout_webhook:
+  path: '/stripe/webhook/payout'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.stripe_webhook_controller:handle'
+    _title: 'Stripe Payout Webhook'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
+# -----------------------------------------------------------------------
+# Payout Batch Approval Workflow
+# -----------------------------------------------------------------------
+
+# Batch list.
+myeventlane_admin_dashboard.payout_batches:
+  path: '/admin/myeventlane/payouts/batches'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:list'
+    _title: 'Payout batches'
+  requirements:
+    _permission: 'view myeventlane payouts'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Create batch from selected ledger rows.
+myeventlane_admin_dashboard.payout_batch_create:
+  path: '/admin/myeventlane/payouts/batches/create'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:createFromLedgerSelection'
+    _title: 'Create payout batch'
+  requirements:
+    _permission: 'request myeventlane payouts'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+# View batch detail.
+myeventlane_admin_dashboard.payout_batch_view:
+  path: '/admin/myeventlane/payouts/batches/{batch_id}'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:view'
+    _title_callback: 'myeventlane_admin_dashboard.payout_batch_ui_controller:viewTitle'
+  requirements:
+    _permission: 'view myeventlane payouts'
+    batch_id: '\d+'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Submit batch for approval.
+myeventlane_admin_dashboard.payout_batch_submit:
+  path: '/admin/myeventlane/payouts/batches/{batch_id}/submit'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:submit'
+    _title: 'Submit payout batch'
+  requirements:
+    _permission: 'request myeventlane payouts'
+    batch_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+# Approve batch.
+myeventlane_admin_dashboard.payout_batch_approve:
+  path: '/admin/myeventlane/payouts/batches/{batch_id}/approve'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:approve'
+    _title: 'Approve payout batch'
+  requirements:
+    _permission: 'approve myeventlane payouts'
+    batch_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+# Execute batch.
+myeventlane_admin_dashboard.payout_batch_execute:
+  path: '/admin/myeventlane/payouts/batches/{batch_id}/execute'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:execute'
+    _title: 'Execute payout batch'
+  requirements:
+    _permission: 'execute myeventlane payouts'
+    batch_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]
+
+# Cancel batch.
+myeventlane_admin_dashboard.payout_batch_cancel:
+  path: '/admin/myeventlane/payouts/batches/{batch_id}/cancel'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.payout_batch_ui_controller:cancel'
+    _title: 'Cancel payout batch'
+  requirements:
+    _permission: 'cancel myeventlane payouts'
+    batch_id: '\d+'
+  options:
+    _admin_route: TRUE
+  methods: [POST]

@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * MEL Admin Dashboard – Platform Control Centre for MyEventLane.
+ */
+
+/**
+ * Implements hook_uninstall().
+ *
+ * Removes module-provided views so re-enabling does not trigger
+ * PreExistingConfigException.
+ */
+function mel_admin_dashboard_uninstall(): void {
+  $config_names = [
+    'views.view.admin_recent_orders',
+    'views.view.admin_open_escalations',
+  ];
+  $config_factory = \Drupal::configFactory();
+  foreach ($config_names as $name) {
+    $config = $config_factory->getEditable($name);
+    if (!$config->isNew()) {
+      $config->delete();
+    }
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function mel_admin_dashboard_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'mel_admin_dashboard' => [
+      'variables' => [
+        'metrics' => [],
+        'admin_recent_orders' => NULL,
+        'escalations_url' => '',
+      ],
+      'template' => 'mel-admin-dashboard',
+    ],
+  ];
+}

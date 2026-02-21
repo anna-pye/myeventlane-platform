@@ -1,0 +1,86 @@
+{#
+/**
+ * @file
+ * Payout batch list page.
+ *
+ * Variables:
+ *   - batches: array of batch objects
+ *   - user_labels: keyed by uid => display name
+ *   - batch_summaries: keyed by batch_id => {vendor_count, total_net}
+ *   - status_filter: current filter value or NULL
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Payout batches'|t }}">
+  <header class="pcc__header">
+    <h1 class="pcc__title">{{ 'Payout batches'|t }}</h1>
+  </header>
+
+  {# Status filter #}
+  <div class="pcc-filter" role="navigation" aria-label="{{ 'Status filter'|t }}">
+    <span class="pcc-filter__label">{{ 'Filter:'|t }}</span>
+    <a href="{{ path('myeventlane_admin_dashboard.payout_batches') }}" class="pcc-filter__link{{ status_filter is null ? ' pcc-filter__link--active' : '' }}">{{ 'All'|t }}</a>
+    {% for s in ['draft', 'pending', 'approved', 'executed', 'cancelled'] %}
+      <a href="{{ path('myeventlane_admin_dashboard.payout_batches', {}, {'query': {'status': s}}) }}" class="pcc-filter__link{{ status_filter == s ? ' pcc-filter__link--active' : '' }}">{{ s|capitalize }}</a>
+    {% endfor %}
+  </div>
+
+  {% if batches is not empty %}
+    <div class="pcc-panel">
+      <div class="pcc-payout__table-wrap">
+        <table class="pcc-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'ID'|t }}</th>
+              <th scope="col">{{ 'UUID'|t }}</th>
+              <th scope="col">{{ 'Status'|t }}</th>
+              <th scope="col">{{ 'Vendors'|t }}</th>
+              <th scope="col" class="pcc-table__num">{{ 'Total'|t }}</th>
+              <th scope="col">{{ 'Created'|t }}</th>
+              <th scope="col">{{ 'Created by'|t }}</th>
+              <th scope="col">{{ 'Approved'|t }}</th>
+              <th scope="col">{{ 'Executed'|t }}</th>
+              <th scope="col">{{ 'Actions'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in batches %}
+              {% set summary = batch_summaries[batch.id] ?? {'vendor_count': 0, 'total_net': 0} %}
+              <tr>
+                <td>{{ batch.id }}</td>
+                <td><code>{{ batch.batch_uuid|length > 24 ? batch.batch_uuid[:24] ~ '…' : batch.batch_uuid }}</code></td>
+                <td><span class="pcc-payout__status pcc-payout__status--{{ batch.status }}">{{ batch.status }}</span></td>
+                <td>{{ summary.vendor_count }}</td>
+                <td class="pcc-table__num">${{ summary.total_net|number_format(2) }}</td>
+                <td>{{ batch.created ? batch.created|date('Y-m-d H:i') : '—' }}</td>
+                <td>{{ user_labels[batch.created_uid] ?? ('UID ' ~ batch.created_uid) }}</td>
+                <td>
+                  {% if batch.approved %}
+                    {{ batch.approved|date('Y-m-d H:i') }}
+                    <br><small>{{ user_labels[batch.approved_uid] ?? ('UID ' ~ batch.approved_uid) }}</small>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  {% if batch.executed %}
+                    {{ batch.executed|date('Y-m-d H:i') }}
+                    <br><small>{{ user_labels[batch.executed_uid] ?? ('UID ' ~ batch.executed_uid) }}</small>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ path('myeventlane_admin_dashboard.payout_batch_view', {'batch_id': batch.id}) }}" class="pcc-payout__btn pcc-payout__btn--view">{{ 'View'|t }}</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="pcc-panel">
+      <p class="pcc-panel__empty">{{ 'No payout batches found.'|t }}</p>
+    </div>
+  {% endif %}
+</div>

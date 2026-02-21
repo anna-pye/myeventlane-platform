@@ -24,3 +24,4 @@ optional_dependencies:
   - myeventlane_capacity:myeventlane_capacity
   - myeventlane_ai:myeventlane_ai
   - myeventlane_donations:myeventlane_donations
+  - myeventlane_stripe:myeventlane_stripe

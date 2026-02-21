@@ -1,0 +1,12 @@
+name: MEL Admin Dashboard
+type: module
+description: 'Platform Control Centre for MyEventLane. Replace myeventlane_admin_dashboard by disabling it before enabling this module (same route /admin/myeventlane).'
+core_version_requirement: ^11
+package: MyEventLane
+dependencies:
+  - drupal:system
+  - drupal:user
+  - drupal:views
+  - commerce:commerce
+  - commerce:commerce_order
+  - myeventlane_escalations:myeventlane_escalations

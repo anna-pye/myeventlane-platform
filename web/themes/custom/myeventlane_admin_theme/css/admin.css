@@ -44,6 +44,28 @@
   min-width: 0;
 }
 
+/* PCC utility bar - Main Site | Vendor Dashboard | Platform Control Centre */
+.mel-pcc-utility-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+.mel-pcc-utility-bar__link {
+  color: var(--gin-color-text, #0d1219);
+  text-decoration: none;
+}
+.mel-pcc-utility-bar__link:hover {
+  text-decoration: underline;
+}
+.mel-pcc-utility-bar__sep {
+  color: var(--gin-color-text-light, #5c677d);
+  pointer-events: none;
+}
+
 /* Validation feedback (JS adds classes). */
 .mel-admin-form.mel-was-validated .mel-is-invalid {
   border-color: #d7263d;

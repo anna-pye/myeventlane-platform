@@ -1,8 +1,95 @@
 services:
+  myeventlane_admin_dashboard.metrics:
+    class: Drupal\myeventlane_admin_dashboard\Service\PlatformMetricsService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@cache.default'
+      - '@config.factory'
+      - '@datetime.time'
+
+  myeventlane_admin_dashboard.financial_export_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\FinancialExportController
+    arguments:
+      - '@myeventlane_admin_dashboard.metrics'
+
   myeventlane_admin_dashboard.platform_control_centre_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PlatformControlCentreController
     arguments:
       - '@myeventlane_admin_dashboard.dashboard_renderer'
+      - '@myeventlane_admin_dashboard.metrics'
+
+  myeventlane_admin_dashboard.financial_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\FinancialController
+    arguments:
+      - '@myeventlane_admin_dashboard.metrics'
+
+  myeventlane_admin_dashboard.vendor_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\VendorController
+    arguments: []
+
+  myeventlane_admin_dashboard.payout_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PayoutController
+    arguments:
+      - '@myeventlane_admin_dashboard.metrics'
+      - '@database'
+      - '@csrf_token'
+
+  myeventlane_admin_dashboard.payout_action_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PayoutActionController
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+      - '@csrf_token'
+
+  myeventlane_admin_dashboard.payout_transfer_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PayoutTransferController
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+      - '@csrf_token'
+      - '@myeventlane_core.stripe'
+
+  myeventlane_admin_dashboard.payout_batch_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PayoutBatchController
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+      - '@csrf_token'
+      - '@myeventlane_core.stripe'
+
+  myeventlane_admin_dashboard.stripe_webhook_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\StripeWebhookController
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+      - '@config.factory'
+      - '@myeventlane_core.stripe'
+
+  myeventlane_admin_dashboard.reports_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\ReportsController
+    arguments:
+      - '@myeventlane_reporting.admin_reports'
+
+  myeventlane_admin_dashboard.payout_batch_workflow:
+    class: Drupal\myeventlane_admin_dashboard\Service\PayoutBatchWorkflowService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_admin_dashboard'
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@myeventlane_core.stripe'
+
+  myeventlane_admin_dashboard.payout_batch_ui_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PayoutBatchUiController
+    arguments:
+      - '@myeventlane_admin_dashboard.payout_batch_workflow'
+      - '@csrf_token'
 
   myeventlane_admin_dashboard.dashboard_renderer:
     class: Drupal\myeventlane_admin_dashboard\Service\DashboardRenderer
@@ -48,3 +135,8 @@ services:
   logger.channel.myeventlane_admin_dashboard:
     parent: logger.channel_base
     arguments: ['myeventlane_admin_dashboard']
+
+  myeventlane_admin_dashboard.route_subscriber:
+    class: Drupal\myeventlane_admin_dashboard\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

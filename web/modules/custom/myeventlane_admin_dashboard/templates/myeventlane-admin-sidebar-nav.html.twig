@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Admin sidebar contextual navigation for Platform Control Centre.
+ *
+ * Variables:
+ *   - links: array of {label, url, active}
+ *   - current_route: the active route name
+ */
+#}
+{% if links is not empty %}
+<nav class="mel-sidebar-nav" aria-label="{{ 'Platform Control Centre navigation'|t }}">
+  <ul class="mel-sidebar-nav__list">
+    {% for link in links %}
+      <li class="mel-sidebar-nav__item{{ link.active ? ' mel-sidebar-nav__item--active' : '' }}">
+        <a href="{{ link.url }}" class="mel-sidebar-nav__link{{ link.active ? ' mel-sidebar-nav__link--active' : '' }}"{% if link.active %} aria-current="page"{% endif %}>
+          {{ link.label }}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}

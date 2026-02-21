@@ -1,0 +1,46 @@
+# Local task tabs for Platform Control Centre.
+# Single base_route (platform_control) — all PCC, escalation, and reporting
+# pages use _menu_base_route so only one tab set is shown.
+myeventlane_admin_dashboard.platform_control_tab:
+  route_name: myeventlane_admin_dashboard.platform_control
+  title: 'Overview'
+  base_route: myeventlane_admin_dashboard.platform_control
+
+myeventlane_admin_dashboard.financials_tab:
+  route_name: myeventlane_admin_dashboard.financials
+  title: 'Financials'
+  base_route: myeventlane_admin_dashboard.platform_control
+
+myeventlane_admin_dashboard.vendors_tab:
+  route_name: myeventlane_admin_dashboard.vendors
+  title: 'Vendors'
+  base_route: myeventlane_admin_dashboard.platform_control
+
+myeventlane_admin_dashboard.escalations_tab:
+  route_name: entity.escalation.collection
+  title: 'Escalations'
+  base_route: myeventlane_admin_dashboard.platform_control
+  weight: 50
+
+myeventlane_admin_dashboard.payouts_tab:
+  route_name: myeventlane_admin_dashboard.payouts
+  title: 'Payouts'
+  base_route: myeventlane_admin_dashboard.platform_control
+
+myeventlane_admin_dashboard.reports_tab:
+  route_name: myeventlane_admin_dashboard.reports
+  title: 'Reports'
+  base_route: myeventlane_admin_dashboard.platform_control
+
+# Second-level tabs under the Payouts section.
+myeventlane_admin_dashboard.payouts_ledger_subtab:
+  route_name: myeventlane_admin_dashboard.payouts
+  title: 'Ledger'
+  base_route: myeventlane_admin_dashboard.payouts
+  weight: 0
+
+myeventlane_admin_dashboard.payouts_batches_subtab:
+  route_name: myeventlane_admin_dashboard.payout_batches
+  title: 'Batches'
+  base_route: myeventlane_admin_dashboard.payouts
+  weight: 10

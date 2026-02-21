@@ -1,0 +1,5 @@
+mel_admin_dashboard.platform_control:
+  title: 'Platform Control Centre'
+  route_name: mel_admin_dashboard.platform_control
+  parent: system.admin
+  weight: -10

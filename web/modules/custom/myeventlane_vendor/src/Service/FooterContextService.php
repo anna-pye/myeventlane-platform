@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -13,12 +14,18 @@ use Psr\Log\LoggerInterface;
 /**
  * Provides footer context data for authenticated vendor/admin users.
  *
- * Centralizes data retrieval; Twig stays dumb.
+ * Centralizes data retrieval; Twig stays dumb. Payout balance via optional
+ * Stripe service, cached 5 minutes to avoid heavy API calls on page load.
  */
 final class FooterContextService {
 
+  private const BALANCE_CACHE_TTL = 300;
+
   /**
    * Constructs the service.
+   *
+   * @param object|null $vendorStripe
+   *   Optional myeventlane_stripe.vendor_stripe. When enabled, provides payout balance.
    */
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
@@ -26,6 +33,8 @@ final class FooterContextService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerInterface $logger,
+    private readonly CacheBackendInterface $cache,
+    private readonly ?object $vendorStripe = NULL,
   ) {}
 
   /**
@@ -33,7 +42,7 @@ final class FooterContextService {
    *
    * @return array{
    *   store_name: string|null,
-   *   payout_balance: float,
+   *   payout_balance: string,
    *   environment: string,
    *   open_tickets: int,
    *   is_vendor: bool,
@@ -43,7 +52,7 @@ final class FooterContextService {
   public function getContext(): array {
     $context = [
       'store_name' => NULL,
-      'payout_balance' => 0,
+      'payout_balance' => '$0.00',
       'environment' => getenv('SITE_ENV') ?: 'Production',
       'open_tickets' => 0,
       'is_vendor' => $this->currentUser->hasRole('vendor'),
@@ -58,14 +67,35 @@ final class FooterContextService {
       $store = $this->getStoreForCurrentUser();
       if ($store instanceof StoreInterface) {
         $context['store_name'] = $store->label();
+        $context['payout_balance'] = $this->getPayoutBalanceFormatted($store);
       }
 
       $context['open_tickets'] = $this->countOpenEscalations();
-      // Payout balance: no myeventlane_payouts table; Stripe API too heavy.
-      // Extend via optional VendorStripeService injection if needed.
     }
 
     return $context;
+  }
+
+  /**
+   * Gets Stripe payout balance, cached to avoid heavy API calls on page load.
+   */
+  private function getPayoutBalanceFormatted(StoreInterface $store): string {
+    if ($this->vendorStripe === NULL || !method_exists($this->vendorStripe, 'getAvailableBalanceFormatted')) {
+      return '$0.00';
+    }
+
+    $cid = 'footer_balance:' . $store->id();
+    $cached = $this->cache->get($cid);
+    if ($cached !== FALSE && isset($cached->data)) {
+      return (string) $cached->data;
+    }
+
+    $balance = (string) $this->vendorStripe->getAvailableBalanceFormatted($store);
+    $this->cache->set($cid, $balance, time() + self::BALANCE_CACHE_TTL, [
+      'commerce_store:' . $store->id(),
+    ]);
+
+    return $balance;
   }
 
   /**

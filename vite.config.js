@@ -17,7 +17,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: '/var/www/html/web/themes/custom/myeventlane_theme/src/js/main.js',
+        main: path.resolve(__dirname, 'web/themes/custom/myeventlane_theme/src/js/main.js'),
       },
       output: {
         entryFileNames: '[name].js',

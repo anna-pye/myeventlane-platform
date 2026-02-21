@@ -1,0 +1,121 @@
+uuid: null
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce
+    - commerce_order
+    - commerce_price
+    - state_machine
+    - user
+id: admin_recent_orders
+label: 'Admin: Recent Orders'
+module: views
+description: 'Recent completed orders for the Platform Control Centre.'
+tag: Admin
+base_table: commerce_order
+base_field: order_id
+display:
+  default:
+    id: default
+    display_title: Master
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Recent Orders'
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 10
+      exposed_form:
+        type: basic
+      access:
+        type: perm
+        options:
+          perm: 'administer site configuration'
+      cache:
+        type: tag
+      sorts:
+        order_id:
+          id: order_id
+          table: commerce_order
+          field: order_id
+          relationship: none
+          order: DESC
+          expose:
+            label: ''
+          exposed: false
+      filters:
+        state:
+          id: state
+          table: commerce_order
+          field: state
+          relationship: none
+          operator: in
+          value:
+            completed: completed
+          expose:
+            operator: ''
+          exposed: false
+          entity_type: commerce_order
+          entity_field: state
+          plugin_id: state_machine_state
+      fields:
+        order_number:
+          id: order_number
+          table: commerce_order
+          field: order_number
+          relationship: none
+          label: 'Order'
+          plugin_id: field
+          settings:
+            link_to_entity: true
+        placed:
+          id: placed
+          table: commerce_order
+          field: placed
+          relationship: none
+          label: 'Date'
+          plugin_id: field
+          settings:
+            date_format: short
+        total_price__number:
+          id: total_price__number
+          table: commerce_order
+          field: total_price__number
+          relationship: none
+          label: 'Total'
+          plugin_id: field
+      style:
+        type: table
+      row:
+        type: fields
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          empty: true
+          content: 'No recent orders.'
+          plugin_id: text_custom
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {}
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {}
+      block_description: 'Admin: Recent Orders'
+      block_category: Admin
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {}

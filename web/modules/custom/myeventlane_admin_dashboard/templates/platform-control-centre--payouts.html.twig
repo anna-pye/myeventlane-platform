@@ -1,0 +1,177 @@
+{#
+/**
+ * @file
+ * Platform Control Centre – Payouts tab.
+ *
+ * Variables:
+ *   - payout_summary: {unpaid_total, paid_total, unpaid_by_store}
+ *   - ledger_rows: array of ledger row data
+ *   - csrf_token: CSRF token for payout actions
+ *   - can_manage: bool – user can mark paid
+ *   - can_reverse: bool – user can reverse to unpaid
+ *   - can_execute: bool – user can create Stripe transfers
+ *   - can_batch: bool – user can execute vendor batch payouts
+ *   - can_request: bool – user can create payout batches for approval
+ *   - days: active time window (30 or 90)
+ *   - filter_url_30, filter_url_90: URLs for quick filter toggle
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Payouts'|t }}">
+  <header class="pcc__header">
+    <h1 class="pcc__title">{{ 'Payouts'|t }}</h1>
+  </header>
+
+  {# Quick filter toggle #}
+  <div class="pcc-filter" role="navigation" aria-label="{{ 'Time range filter'|t }}">
+    <span class="pcc-filter__label">{{ 'Show:'|t }}</span>
+    <a href="{{ filter_url_30 }}" class="pcc-filter__link{{ days == 30 ? ' pcc-filter__link--active' : '' }}"{% if days == 30 %} aria-current="true"{% endif %}>{{ 'Last 30 days'|t }}</a>
+    <a href="{{ filter_url_90 }}" class="pcc-filter__link{{ days == 90 ? ' pcc-filter__link--active' : '' }}"{% if days == 90 %} aria-current="true"{% endif %}>{{ 'Last 90 days'|t }}</a>
+  </div>
+
+  {# Summary KPIs #}
+  <section class="pcc__section pcc__section--tables">
+    <div class="pcc-panel pcc-panel--liability">
+      <h2 class="pcc-panel__title">{{ 'Payout liability (@days d)'|t({'@days': days}) }}</h2>
+      <div class="pcc-liability">
+        <div class="pcc-liability__row">
+          <span class="pcc-liability__label">{{ 'Unpaid total'|t }}</span>
+          <span class="pcc-liability__value pcc-liability__value--coral">${{ payout_summary.unpaid_total|number_format(2) }}</span>
+        </div>
+        <div class="pcc-liability__row">
+          <span class="pcc-liability__label">{{ 'Paid total'|t }}</span>
+          <span class="pcc-liability__value">${{ payout_summary.paid_total|number_format(2) }}</span>
+        </div>
+      </div>
+      {% if payout_summary.unpaid_by_store is not empty %}
+        <h3 class="pcc-liability__subtitle">{{ 'Unpaid by store (top 10)'|t }}</h3>
+        <ul class="pcc-liability__list">
+          {% for item in payout_summary.unpaid_by_store %}
+            <li class="pcc-liability__item">
+              <span class="pcc-liability__store">{{ item.store_label }}</span>
+              <span class="pcc-liability__amount">${{ item.unpaid|number_format(2) }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </section>
+
+  {# Payout ledger table with actions #}
+  <section class="pcc__section" aria-labelledby="pcc-ledger-heading">
+    <h2 id="pcc-ledger-heading" class="pcc-panel__title">{{ 'Payout ledger'|t }}</h2>
+
+    {% if ledger_rows is not empty %}
+      {# Bulk action bar #}
+      {% if can_manage or can_batch or can_request %}
+        <div class="pcc-payout__bulk-bar">
+          {% if can_request %}
+            <form id="pcc-create-batch-form" method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_create') }}" class="pcc-payout__bulk-inline" onsubmit="return confirm('{{ 'Create a payout batch from selected unpaid rows?'|t }}');">
+              <input type="hidden" name="token" value="{{ csrf_token }}">
+              <input type="hidden" name="days" value="{{ days }}">
+              <button type="submit" class="pcc-payout__btn pcc-payout__btn--submit">{{ 'Create payout batch'|t }}</button>
+            </form>
+          {% endif %}
+          {% if can_manage %}
+            <form id="pcc-bulk-form" method="post" action="{{ path('myeventlane_admin_dashboard.payout_bulk_mark_paid') }}" class="pcc-payout__bulk-inline">
+              <input type="hidden" name="token" value="{{ csrf_token }}">
+              <input type="hidden" name="days" value="{{ days }}">
+              <button type="submit" class="pcc-payout__btn pcc-payout__btn--bulk">{{ 'Mark selected as paid'|t }}</button>
+            </form>
+          {% endif %}
+          {% if can_batch %}
+            <form id="pcc-batch-form" method="post" action="{{ path('myeventlane_admin_dashboard.payout_batch_transfer') }}" class="pcc-payout__bulk-inline" onsubmit="return confirm('{{ 'This will create one Stripe transfer per vendor for selected unpaid rows. Continue?'|t }}');">
+              <input type="hidden" name="token" value="{{ csrf_token }}">
+              <input type="hidden" name="days" value="{{ days }}">
+              <button type="submit" class="pcc-payout__btn pcc-payout__btn--batch">{{ 'Execute vendor batch payout'|t }}</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div class="pcc-panel">
+        <div class="pcc-payout__table-wrap">
+          <table class="pcc-table pcc-payout__table">
+            <thead>
+              <tr>
+                {% if can_manage or can_batch or can_request %}
+                  <th scope="col" class="pcc-payout__col-check">
+                    <input type="checkbox" id="pcc-check-all" aria-label="{{ 'Select all unpaid'|t }}">
+                  </th>
+                {% endif %}
+                <th scope="col">{{ 'ID'|t }}</th>
+                <th scope="col">{{ 'Order'|t }}</th>
+                <th scope="col">{{ 'Store'|t }}</th>
+                <th scope="col" class="pcc-table__num">{{ 'Gross'|t }}</th>
+                <th scope="col" class="pcc-table__num">{{ 'Commission'|t }}</th>
+                <th scope="col" class="pcc-table__num">{{ 'Net'|t }}</th>
+                <th scope="col">{{ 'Status'|t }}</th>
+                <th scope="col">{{ 'Transfer ID'|t }}</th>
+                <th scope="col">{{ 'Paid at'|t }}</th>
+                {% if can_manage or can_reverse or can_execute %}
+                  <th scope="col">{{ 'Actions'|t }}</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in ledger_rows %}
+                <tr class="pcc-payout__row pcc-payout__row--{{ row.status }}">
+                  {% if can_manage or can_batch or can_request %}
+                    <td class="pcc-payout__col-check">
+                      {% if row.status == 'unpaid' %}
+                        <input type="checkbox" name="ledger_ids[]" value="{{ row.id }}" form="{{ can_manage ? 'pcc-bulk-form' : (can_request ? 'pcc-create-batch-form' : 'pcc-batch-form') }}" class="pcc-payout__checkbox" aria-label="{{ 'Select payout @id'|t({'@id': row.id}) }}">
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                  <td>{{ row.id }}</td>
+                  <td>{{ row.order_id }}</td>
+                  <td>{{ row.store_label }}</td>
+                  <td class="pcc-table__num">${{ row.gross|number_format(2) }}</td>
+                  <td class="pcc-table__num">${{ row.commission|number_format(2) }}</td>
+                  <td class="pcc-table__num">${{ row.net|number_format(2) }}</td>
+                  <td>
+                    <span class="pcc-payout__status pcc-payout__status--{{ row.status }}">{{ row.status }}</span>
+                  </td>
+                  <td class="pcc-payout__transfer-cell">{{ row.transfer_id|default('—') }}</td>
+                  <td>{{ row.paid_at ? row.paid_at|date('Y-m-d H:i') : '—' }}</td>
+                  {% if can_manage or can_reverse or can_execute %}
+                    <td class="pcc-payout__actions">
+                      {% if row.status == 'unpaid' %}
+                        {% if can_execute and not row.transfer_id %}
+                          <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_create_transfer', {'ledger_id': row.id}) }}" class="pcc-payout__action-form">
+                            <input type="hidden" name="token" value="{{ csrf_token }}">
+                            <input type="hidden" name="days" value="{{ days }}">
+                            <button type="submit" class="pcc-payout__btn pcc-payout__btn--transfer" onclick="return confirm('{{ 'Create Stripe transfer for payout #@id ($@net)?'|t({'@id': row.id, '@net': row.net|number_format(2)}) }}');">{{ 'Create transfer'|t }}</button>
+                          </form>
+                        {% endif %}
+                        {% if can_manage %}
+                          <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_mark_paid', {'ledger_id': row.id}) }}" class="pcc-payout__action-form">
+                            <input type="hidden" name="token" value="{{ csrf_token }}">
+                            <input type="hidden" name="days" value="{{ days }}">
+                            <input type="text" name="transfer_id" placeholder="tr_…" maxlength="128" class="pcc-payout__transfer-input" aria-label="{{ 'Transfer ID for payout @id'|t({'@id': row.id}) }}">
+                            <button type="submit" class="pcc-payout__btn pcc-payout__btn--paid">{{ 'Mark paid'|t }}</button>
+                          </form>
+                        {% endif %}
+                      {% elseif row.status == 'paid' and can_reverse %}
+                        <form method="post" action="{{ path('myeventlane_admin_dashboard.payout_mark_unpaid', {'ledger_id': row.id}) }}" class="pcc-payout__action-form">
+                          <input type="hidden" name="token" value="{{ csrf_token }}">
+                          <input type="hidden" name="days" value="{{ days }}">
+                          <button type="submit" class="pcc-payout__btn pcc-payout__btn--reverse" onclick="return confirm('{{ 'Reverse this payout to unpaid?'|t }}');">{{ 'Reverse'|t }}</button>
+                        </form>
+                      {% elseif row.status in ['pending', 'approved'] %}
+                        <span class="pcc-payout__info">{{ 'In batch'|t }}</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <div class="pcc-panel">
+        <p class="pcc-panel__empty">{{ 'No payout ledger entries for this period.'|t }}</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
