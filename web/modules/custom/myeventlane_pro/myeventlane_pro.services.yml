@@ -4,9 +4,16 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_pro']
 
+  myeventlane_pro.entitlement_reconciler:
+    class: Drupal\myeventlane_pro\Service\ProEntitlementReconciler
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_pro'
+
   myeventlane_pro.pro_subscription_subscriber:
     class: Drupal\myeventlane_pro\EventSubscriber\ProSubscriptionSubscriber
     arguments:
+      - '@myeventlane_pro.entitlement_reconciler'
       - '@logger.channel.myeventlane_pro'
     tags:
       - { name: event_subscriber }

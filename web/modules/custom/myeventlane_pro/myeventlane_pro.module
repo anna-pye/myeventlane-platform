@@ -6,3 +6,24 @@ declare(strict_types=1);
  * @file
  * Bootstrap file for MyEventLane Pro.
  */
+
+/**
+ * Implements hook_cron().
+ *
+ * Runs Pro entitlement reconciliation once per day.
+ */
+function myeventlane_pro_cron(): void {
+  $state = \Drupal::state();
+  $lastRun = (int) $state->get('myeventlane_pro.last_reconcile', 0);
+  $interval = 86400;
+
+  if (\Drupal::time()->getRequestTime() - $lastRun < $interval) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_pro\Service\ProEntitlementReconciler $reconciler */
+  $reconciler = \Drupal::service('myeventlane_pro.entitlement_reconciler');
+  $reconciler->reconcile();
+
+  $state->set('myeventlane_pro.last_reconcile', \Drupal::time()->getRequestTime());
+}

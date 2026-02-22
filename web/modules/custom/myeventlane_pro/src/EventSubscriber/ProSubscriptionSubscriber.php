@@ -8,27 +8,21 @@ use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\commerce_recurring\Event\RecurringEvents;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
 use Drupal\user\UserInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Manages Pro Organiser role based on subscription lifecycle.
+ * Reacts to subscription lifecycle events and delegates to the reconciler.
  *
  * Hybrid logic: subscription-managed role grants coexist with manual admin
- * assignment. The field_pro_subscription_managed flag tracks whether the role
- * was granted by subscription, ensuring manual admin assignments are never
- * revoked on subscription cancellation.
- *
- * Uses commerce entity lifecycle events (not state_machine transitions) because
- * commerce_recurring's OrderSubscriber bypasses the workflow for initial
- * activation via setState() rather than applyTransitionById().
+ * assignment. All entitlement decisions are made by ProEntitlementReconciler,
+ * which checks for remaining active Pro subscriptions before revoking.
  */
 final class ProSubscriptionSubscriber implements EventSubscriberInterface {
 
-  private const PRO_ROLE = 'pro_organiser';
-  private const MANAGED_FIELD = 'field_pro_subscription_managed';
-
   public function __construct(
+    private readonly ProEntitlementReconciler $reconciler,
     private readonly LoggerChannelInterface $logger,
   ) {}
 
@@ -51,7 +45,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
   public function onSubscriptionInsert(SubscriptionEvent $event): void {
     $subscription = $event->getSubscription();
     if ($subscription->getState()->getId() === 'active') {
-      $this->grantProRole($subscription);
+      $this->reconcileForSubscription($subscription);
     }
   }
 
@@ -70,92 +64,24 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    if ($currentState === 'active') {
-      $this->grantProRole($subscription);
-      return;
-    }
-
-    if (in_array($currentState, ['canceled', 'expired'], TRUE)) {
-      $this->revokeProRole($subscription);
+    if (in_array($currentState, ['active', 'canceled', 'expired'], TRUE)) {
+      $this->reconcileForSubscription($subscription);
     }
   }
 
   /**
-   * Grants pro_organiser role and marks it as subscription-managed.
+   * Delegates entitlement check to the reconciler for the subscription's owner.
    */
-  private function grantProRole(SubscriptionInterface $subscription): void {
+  private function reconcileForSubscription(SubscriptionInterface $subscription): void {
     $user = $subscription->getCustomer();
     if (!$user instanceof UserInterface || $user->isAnonymous()) {
-      $this->logger->warning('Cannot grant Pro role: no valid user on subscription @id.', [
+      $this->logger->warning('Cannot reconcile: no valid user on subscription @id.', [
         '@id' => $subscription->id(),
       ]);
       return;
     }
 
-    if (!$user->hasField(self::MANAGED_FIELD)) {
-      $this->logger->error('User entity missing @field field. Run database updates.', [
-        '@field' => self::MANAGED_FIELD,
-      ]);
-      return;
-    }
-
-    $changed = FALSE;
-
-    if (!$user->hasRole(self::PRO_ROLE)) {
-      $user->addRole(self::PRO_ROLE);
-      $changed = TRUE;
-    }
-
-    if (!(bool) $user->get(self::MANAGED_FIELD)->value) {
-      $user->set(self::MANAGED_FIELD, TRUE);
-      $changed = TRUE;
-    }
-
-    if ($changed) {
-      $user->save();
-      $this->logger->notice('Granted @role to user @uid via subscription @sid.', [
-        '@role' => self::PRO_ROLE,
-        '@uid' => $user->id(),
-        '@sid' => $subscription->id(),
-      ]);
-    }
-  }
-
-  /**
-   * Revokes pro_organiser role only if it was subscription-managed.
-   */
-  private function revokeProRole(SubscriptionInterface $subscription): void {
-    $user = $subscription->getCustomer();
-    if (!$user instanceof UserInterface || $user->isAnonymous()) {
-      return;
-    }
-
-    if (!$user->hasField(self::MANAGED_FIELD)) {
-      $this->logger->error('User entity missing @field field. Run database updates.', [
-        '@field' => self::MANAGED_FIELD,
-      ]);
-      return;
-    }
-
-    if (!(bool) $user->get(self::MANAGED_FIELD)->value) {
-      $this->logger->info('Skipping role revocation for user @uid: role not subscription-managed.', [
-        '@uid' => $user->id(),
-      ]);
-      return;
-    }
-
-    if ($user->hasRole(self::PRO_ROLE)) {
-      $user->removeRole(self::PRO_ROLE);
-    }
-
-    $user->set(self::MANAGED_FIELD, FALSE);
-    $user->save();
-
-    $this->logger->notice('Revoked @role from user @uid: subscription @sid state changed.', [
-      '@role' => self::PRO_ROLE,
-      '@uid' => $user->id(),
-      '@sid' => $subscription->id(),
-    ]);
+    $this->reconciler->reconcileUser($user);
   }
 
 }

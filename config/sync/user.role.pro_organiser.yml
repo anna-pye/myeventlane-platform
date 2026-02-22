@@ -4,6 +4,6 @@ status: true
 dependencies: {  }
 id: pro_organiser
 label: 'Pro Organiser'
-weight: 0
+weight: -6
 is_admin: false
 permissions: {  }
