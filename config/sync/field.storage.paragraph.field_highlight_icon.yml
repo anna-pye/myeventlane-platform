@@ -1,0 +1,39 @@
+uuid: c39f7285-7e51-4019-a988-ae4b0d6347a3
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - paragraphs
+id: paragraph.field_highlight_icon
+field_name: field_highlight_icon
+entity_type: paragraph
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: music
+      label: Music
+    -
+      value: star
+      label: Star
+    -
+      value: clock
+      label: Clock
+    -
+      value: food
+      label: Food
+    -
+      value: info
+      label: Info
+    -
+      value: access
+      label: Accessibility
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

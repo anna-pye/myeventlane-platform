@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_dietary_requirements
+vid: accessibility
+name: 'Dietary Requirements Accommodated'
+description: 'Event can accommodate various dietary requirements and restrictions.'
+weight: 10
+parent: {  }

@@ -1,0 +1,22 @@
+uuid: 09d2f1ea-58db-4f88-8831-bc001751386b
+langcode: en
+status: false
+dependencies:
+  module:
+    - system
+  theme:
+    - myeventlane_admin
+_core:
+  default_config_hash: VhBzWb7lMRtIOg9G7VSw_0uopi-7zXeHq4vXqqV1HFE
+id: myeventlane_admin_breadcrumbs
+theme: myeventlane_admin
+region: header
+weight: 0
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  label_display: '0'
+  provider: system
+visibility: {  }

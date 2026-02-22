@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_ticket_label_preset
+    - paragraphs.paragraphs_type.ticket_type_config
+  module:
+    - options
+id: paragraph.ticket_type_config.field_ticket_label_preset
+field_name: field_ticket_label_preset
+entity_type: paragraph
+bundle: ticket_type_config
+label: 'Preset Label'
+description: 'Select a preset label for this ticket type.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

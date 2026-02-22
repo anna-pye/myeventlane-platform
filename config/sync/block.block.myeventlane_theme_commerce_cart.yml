@@ -1,0 +1,22 @@
+uuid: c3d4e5f6-a7b8-6c7d-0e1f-2a3b4c5d6e7f
+langcode: en
+status: false
+dependencies:
+  module:
+    - commerce_cart
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_commerce_cart
+theme: myeventlane_theme
+region: header_right
+weight: -8
+provider: null
+plugin: commerce_cart
+settings:
+  id: commerce_cart
+  label: Cart
+  label_display: '0'
+  provider: commerce_cart
+  dropdown: false
+  show_if_empty: false
+visibility: {  }

@@ -1,0 +1,23 @@
+uuid: d4e5f6a7-b8c9-7d8e-1f2a-3b4c5d6e7f8a
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_footer_brand
+theme: myeventlane_theme
+region: footer_brand
+weight: -5
+provider: null
+plugin: system_branding_block
+settings:
+  id: system_branding_block
+  label: 'Site branding (footer)'
+  label_display: '0'
+  provider: system
+  use_site_logo: true
+  use_site_name: false
+  use_site_slogan: true
+visibility: {  }

@@ -1,0 +1,33 @@
+uuid: 05655432-aa40-4b73-82c9-7630e6432147
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_refund_policy
+field_name: field_refund_policy
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: no_refunds
+      label: 'No refunds'
+    -
+      value: refund_24h
+      label: 'Refunds up to 24 hours before'
+    -
+      value: refund_7d
+      label: 'Refunds up to 7 days before'
+    -
+      value: case_by_case
+      label: 'Refunds case-by-case'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

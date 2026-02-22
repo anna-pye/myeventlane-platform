@@ -1,0 +1,26 @@
+uuid: 395a7d0c-ef02-484d-99c5-fcb71cef1e4c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_sla_first_breached
+  module:
+    - myeventlane_escalations
+_core:
+  default_config_hash: o-VMo_X-U-Y9U3ZCuvY0lfiO8W_yfxUcXNlQD636v40
+id: escalation.escalation.field_sla_first_breached
+field_name: field_sla_first_breached
+entity_type: escalation
+bundle: escalation
+label: 'SLA First Response Breached'
+description: 'Whether the first response SLA has been breached.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

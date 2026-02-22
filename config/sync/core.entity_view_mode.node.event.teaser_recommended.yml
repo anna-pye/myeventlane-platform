@@ -1,0 +1,13 @@
+uuid: 1755bc78-3337-45b5-bc68-e3339de171e9
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+_core:
+  default_config_hash: ''
+id: node.event.teaser_recommended
+label: 'Teaser – Recommended'
+description: null
+targetEntityType: node
+cache: true

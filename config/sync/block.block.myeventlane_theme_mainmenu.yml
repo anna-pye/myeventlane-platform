@@ -1,0 +1,25 @@
+uuid: 6fcabd94-a145-430b-8c3c-fb09e0770b22
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.main
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_mainmenu
+theme: myeventlane_theme
+region: header_center
+weight: -8
+provider: null
+plugin: 'system_menu_block:main'
+settings:
+  id: 'system_menu_block:main'
+  label: 'Main Menu'
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

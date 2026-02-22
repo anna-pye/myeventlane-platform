@@ -1,0 +1,13 @@
+uuid: 5b4c225b-c36e-4c3c-b44c-663699fc8f90
+langcode: en
+status: true
+dependencies: {  }
+id: mel_pro_subscription
+label: 'MEL Pro Subscription'
+traits: {  }
+locked: false
+description: 'Subscription product type for MEL Pro recurring billing.'
+variationTypes:
+  - mel_pro_subscription_variation
+multipleVariations: false
+injectVariationFields: true

@@ -1,0 +1,16 @@
+enabled: true
+subject: 'Refund request received – {{ event_title }}'
+body_html: |-
+  Hi there,
+
+  Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been received.
+
+  We'll notify you once the event organiser has reviewed your request.
+
+  <a href="{{ my_tickets_url }}">View your tickets</a>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_requested_buyer

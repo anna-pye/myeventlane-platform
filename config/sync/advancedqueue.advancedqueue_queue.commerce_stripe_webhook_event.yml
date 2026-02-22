@@ -1,0 +1,19 @@
+uuid: 2eab6664-8018-49bf-8799-0d163a9a5703
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: QU9EZb4UvA7sWG4nsu1K-h2uFrYthiVXcKGMk8LL1js
+id: commerce_stripe_webhook_event
+label: 'Commerce Stripe webhook event'
+backend: database
+backend_configuration:
+  lease_time: 300
+processor: cron
+processing_time: 180
+threshold:
+  type: 0
+  limit: 0
+  state: all
+locked: false
+stop_when_empty: true

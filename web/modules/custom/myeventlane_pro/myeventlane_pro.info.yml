@@ -8,3 +8,4 @@ lifecycle: experimental
 dependencies:
   - drupal:user
   - drupal:system
+  - commerce_recurring:commerce_recurring

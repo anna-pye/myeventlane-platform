@@ -1,0 +1,11 @@
+uuid: c5d45994-590a-40c4-862c-9684f30a6755
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.wizard_step_5
+label: 'Wizard Step 5'
+description: null
+targetEntityType: node
+cache: true

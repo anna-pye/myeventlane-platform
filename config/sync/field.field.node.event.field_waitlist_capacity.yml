@@ -1,0 +1,23 @@
+uuid: 7e12eeef-4da6-4442-832d-be0acabde972
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_waitlist_capacity
+    - node.type.event
+id: node.event.field_waitlist_capacity
+field_name: field_waitlist_capacity
+entity_type: node
+bundle: event
+label: 'Waitlist capacity'
+description: 'Maximum number of people allowed on the waitlist. Leave empty for unlimited.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

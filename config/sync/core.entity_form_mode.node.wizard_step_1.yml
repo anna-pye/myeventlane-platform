@@ -1,0 +1,11 @@
+uuid: f0b8876c-674c-42fa-a911-04fc9d738357
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.wizard_step_1
+label: 'Wizard Step 1'
+description: null
+targetEntityType: node
+cache: true

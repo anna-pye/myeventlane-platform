@@ -1,0 +1,30 @@
+uuid: 5ba57270-49ac-43c5-a8aa-910e4e4e7092
+langcode: en
+status: true
+dependencies:
+  module:
+    - file
+    - image
+    - myeventlane_vendor
+id: myeventlane_vendor.field_msg_logo
+field_name: field_msg_logo
+entity_type: myeventlane_vendor
+type: image
+settings:
+  target_type: file
+  display_field: false
+  display_default: false
+  uri_scheme: public
+  default_image:
+    uuid: ''
+    alt: ''
+    title: ''
+    width: null
+    height: null
+module: image
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

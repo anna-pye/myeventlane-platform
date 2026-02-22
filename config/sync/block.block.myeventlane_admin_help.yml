@@ -1,0 +1,22 @@
+uuid: 7e1b8f7e-b608-447a-842b-e3c8138138f1
+langcode: en
+status: false
+dependencies:
+  module:
+    - help
+  theme:
+    - myeventlane_admin
+_core:
+  default_config_hash: VfPFqqxfkomud5CO8DUijw85QIl9GIxh_nIxLOYESxg
+id: myeventlane_admin_help
+theme: myeventlane_admin
+region: header
+weight: 0
+provider: null
+plugin: help_block
+settings:
+  id: help_block
+  label: Help
+  label_display: '0'
+  provider: help
+visibility: {  }

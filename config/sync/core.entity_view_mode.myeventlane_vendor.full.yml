@@ -1,0 +1,9 @@
+uuid: d4042a24-f3f6-409f-8325-54820b956fa8
+langcode: en
+status: true
+dependencies: {  }
+id: myeventlane_vendor.full
+label: Full
+description: null
+targetEntityType: myeventlane_vendor
+cache: true

@@ -1,0 +1,13 @@
+uuid: 91b2358f-acc8-4468-a4dc-c6ecf4732886
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+_core:
+  default_config_hash: ''
+id: node.event.teaser_featured
+label: 'Teaser – Featured'
+description: null
+targetEntityType: node
+cache: true

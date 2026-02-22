@@ -1,0 +1,25 @@
+uuid: 220d454b-6b14-4a5b-ab4e-d8a247b1d0d2
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.help_article
+  module:
+    - user
+id: node.help_article.default
+targetEntityType: node
+bundle: help_article
+mode: default
+content:
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  search_api_excerpt:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  langcode: true

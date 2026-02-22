@@ -1,0 +1,24 @@
+uuid: d492809c-fd31-4180-b0a2-90f1671c122a
+langcode: en
+status: true
+dependencies: {  }
+id: mel_pro_monthly
+label: 'MEL Pro Monthly'
+displayLabel: 'Monthly subscription'
+billingType: prepaid
+combineSubscriptions: false
+retrySchedule:
+  - 1
+  - 3
+  - 5
+unpaidSubscriptionState: canceled
+plugin: fixed
+configuration:
+  trial_interval: {  }
+  interval:
+    number: 1
+    unit: month
+  start_month: 1
+  start_day: 1
+prorater: proportional
+proraterConfiguration: {  }

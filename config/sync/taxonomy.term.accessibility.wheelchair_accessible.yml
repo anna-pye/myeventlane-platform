@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_wheelchair_accessible
+vid: accessibility
+name: 'Wheelchair Accessible'
+description: 'Venue has wheelchair accessible entrances, pathways, and seating areas.'
+weight: 0
+parent: {  }

@@ -1,0 +1,12 @@
+enabled: true
+subject: 'Refund approved – {{ event_title }}'
+body_html: |-
+  You approved the refund request for Order {{ order_number }} ({{ refunded_amount }}).
+
+  The refund is being processed.
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_approved_vendor

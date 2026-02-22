@@ -1,0 +1,47 @@
+uuid: a33fad92-b833-4886-bcdb-1cdf61b41211
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+_core:
+  default_config_hash: El_5nO_EbAkLZ-mu22jeTLLx88wWiky_knwEQ35U5kE
+id: node.field_playbook_type
+field_name: field_playbook_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: payment
+      label: 'Payment Issue'
+    -
+      value: refund
+      label: 'Refund Request'
+    -
+      value: ticket
+      label: 'Ticket Issue'
+    -
+      value: event
+      label: 'Event Related'
+    -
+      value: vendor
+      label: 'Vendor Dispute'
+    -
+      value: customer
+      label: 'Customer Complaint'
+    -
+      value: technical
+      label: 'Technical Issue'
+    -
+      value: other
+      label: Other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

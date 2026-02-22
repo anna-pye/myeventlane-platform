@@ -1,0 +1,25 @@
+uuid: f07e1464-c699-41c2-ba22-a96f2c9342da
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_waiting_on
+  module:
+    - myeventlane_escalations
+    - options
+_core:
+  default_config_hash: zHr1CyTyHCZqpKb5_WL2jRhO8ZjadsEMuQ1BqB--vIY
+id: escalation.escalation.field_waiting_on
+field_name: field_waiting_on
+entity_type: escalation
+bundle: escalation
+label: 'Waiting On'
+description: 'Which party the escalation is currently waiting on.'
+required: false
+translatable: false
+default_value:
+  -
+    value: vendor
+default_value_callback: ''
+settings: {  }
+field_type: list_string

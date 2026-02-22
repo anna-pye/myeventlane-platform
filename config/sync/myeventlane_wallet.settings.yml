@@ -1,0 +1,8 @@
+apple_enabled: 0
+apple_team_id: ''
+apple_pass_type_id: ''
+apple_organisation_name: ''
+google_enabled: 1
+google_issuer_id: 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
+show_wallet_buttons: 1
+show_wallet_in_email: 1

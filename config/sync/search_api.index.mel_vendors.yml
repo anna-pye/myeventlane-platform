@@ -1,0 +1,43 @@
+uuid: a64fc73d-9254-49cf-b870-3522789ea70c
+langcode: en
+status: true
+dependencies:
+  config:
+    - search_api.server.myeventlane_db
+  module:
+    - commerce_store
+_core:
+  default_config_hash: ivz-_NM9s74QXSi9X_7q6OMIkxVvjpDcYgMHiKWFj60
+id: mel_vendors
+name: 'MEL Vendors'
+description: 'Vendors (Commerce Store) index: name.'
+read_only: false
+field_settings:
+  name:
+    label: Name
+    type: text
+    datasource_id: 'entity:commerce_store'
+    property_path: name
+datasource_settings:
+  'entity:commerce_store':
+    bundles:
+      default: false
+      selected:
+        - online
+processor_settings:
+  add_url:
+    weights:
+      preprocess_index: -30
+  ignorecase:
+    weights:
+      preprocess_index: -5
+      preprocess_query: -8
+tracker_settings:
+  default:
+    indexing_order: fifo
+options:
+  cron_limit: 50
+  index_directly: false
+  delete_on_fail: true
+  track_changes_in_references: true
+server: myeventlane_db

@@ -1,0 +1,18 @@
+uuid: 4038bdf5-dc16-4b7b-81a5-8337e596aeed
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.field_pref_email_on_order
+field_name: field_pref_email_on_order
+entity_type: myeventlane_vendor
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

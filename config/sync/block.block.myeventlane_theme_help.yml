@@ -1,0 +1,31 @@
+uuid: e998ef76-c67a-45b6-b847-edb606d6f227
+langcode: en
+status: false
+dependencies:
+  module:
+    - help
+    - user
+  theme:
+    - myeventlane_theme
+_core:
+  default_config_hash: VfPFqqxfkomud5CO8DUijw85QIl9GIxh_nIxLOYESxg
+id: myeventlane_theme_help
+theme: myeventlane_theme
+region: header_left
+weight: 0
+provider: null
+plugin: help_block
+settings:
+  id: help_block
+  label: Help
+  label_display: '0'
+  provider: help
+visibility:
+  user_role:
+    id: user_role
+    negate: false
+    context_mapping:
+      user: '@user.current_user_context:current_user'
+    roles:
+      vendor: vendor
+      administrator: administrator

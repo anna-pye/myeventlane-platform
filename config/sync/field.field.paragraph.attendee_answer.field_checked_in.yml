@@ -1,0 +1,23 @@
+uuid: b89c3a80-ce1b-4690-a10f-3e2111f78843
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_checked_in
+    - paragraphs.paragraphs_type.attendee_answer
+id: paragraph.attendee_answer.field_checked_in
+field_name: field_checked_in
+entity_type: paragraph
+bundle: attendee_answer
+label: 'Checked in'
+description: 'Whether this attendee has been checked in to the event.'
+required: false
+translatable: true
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

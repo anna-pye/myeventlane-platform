@@ -1,0 +1,33 @@
+uuid: bcd34a15-4348-4622-be92-336b243447e4
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_age_restriction
+field_name: field_age_restriction
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: all_ages
+      label: 'All ages'
+    -
+      value: u18_with_guardian
+      label: 'Under 18 with guardian'
+    -
+      value: 16_plus
+      label: 16+
+    -
+      value: 18_plus
+      label: 18+
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

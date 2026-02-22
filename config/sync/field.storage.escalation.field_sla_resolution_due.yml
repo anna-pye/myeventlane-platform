@@ -1,0 +1,20 @@
+uuid: d267059a-31fb-4dd4-b12b-9123ef7fb65a
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+_core:
+  default_config_hash: T_mK9pShSN01ChJWS3LOJSIArRYO9kmDrwmUSaJ_JjI
+id: escalation.field_sla_resolution_due
+field_name: field_sla_resolution_due
+entity_type: escalation
+type: timestamp
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

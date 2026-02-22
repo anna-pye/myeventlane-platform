@@ -1,0 +1,21 @@
+uuid: 4eee78b7-3ca9-415d-b028-b84b8cfd24b0
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.field_abn
+field_name: field_abn
+entity_type: myeventlane_vendor
+type: string
+settings:
+  max_length: 14
+  case_sensitive: false
+  is_ascii: true
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

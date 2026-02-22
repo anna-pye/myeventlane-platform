@@ -1,0 +1,20 @@
+uuid: ef44dfd5-882c-44aa-994f-e6cfa8b13f02
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_store
+    - node
+id: node.field_event_store
+field_name: field_event_store
+entity_type: node
+type: entity_reference
+settings:
+  target_type: commerce_store
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

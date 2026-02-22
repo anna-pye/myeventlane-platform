@@ -1,0 +1,11 @@
+uuid: d0d180bb-a1bd-41c8-9b2d-450cd780aa65
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_tickets
+id: ticket_code.token
+label: Token
+description: null
+targetEntityType: ticket_code
+cache: true

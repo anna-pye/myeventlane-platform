@@ -1,0 +1,133 @@
+uuid: 054c15a3-007e-45c0-851e-d312374b0b3a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.escalation.escalation.field_escalation_level
+    - field.field.escalation.escalation.field_escalation_thread
+    - field.field.escalation.escalation.field_sla_first_breached
+    - field.field.escalation.escalation.field_sla_first_due
+    - field.field.escalation.escalation.field_sla_resolution_breached
+    - field.field.escalation.escalation.field_sla_resolution_due
+    - field.field.escalation.escalation.field_waiting_on
+  module:
+    - comment
+    - myeventlane_escalations
+    - options
+    - text
+    - user
+id: escalation.escalation.default
+targetEntityType: escalation
+bundle: escalation
+mode: default
+content:
+  description:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  event_id:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 7
+    region: content
+  field_escalation_thread:
+    type: comment_default
+    label: above
+    settings:
+      view_mode: default
+      pager_id: 0
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  notes:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 9
+    region: content
+  order_id:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 8
+    region: content
+  priority:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  resolved_at:
+    type: timestamp
+    label: inline
+    settings:
+      date_format: medium
+      custom_date_format: ''
+      timezone: ''
+      tooltip:
+        date_format: long
+        custom_date_format: ''
+      time_diff:
+        enabled: false
+        future_format: '@interval hence'
+        past_format: '@interval ago'
+        granularity: 2
+        refresh: 60
+    third_party_settings: {  }
+    weight: 11
+    region: content
+  status:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  subject:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  type:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  user_id:
+    type: author
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  vendor_id:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 6
+    region: content
+hidden:
+  field_escalation_level: true
+  field_sla_first_breached: true
+  field_sla_first_due: true
+  field_sla_resolution_breached: true
+  field_sla_resolution_due: true
+  field_waiting_on: true
+  search_api_excerpt: true

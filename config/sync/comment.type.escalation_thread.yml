@@ -1,0 +1,10 @@
+uuid: 0f418fe1-d984-4ea6-b8fb-3da33910a044
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: J-ven4ZxnlTN0nLaBeFWv5pUYZ_0I_71-GifPiI5rwg
+id: escalation_thread
+label: 'Escalation Thread'
+target_entity_type_id: escalation
+description: 'Threaded messages for escalation support conversations.'

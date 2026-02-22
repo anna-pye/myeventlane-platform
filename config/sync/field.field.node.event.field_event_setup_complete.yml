@@ -1,0 +1,23 @@
+uuid: c5da824d-5549-4dd8-8d36-41da333e6be7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_setup_complete
+    - node.type.event
+id: node.event.field_event_setup_complete
+field_name: field_event_setup_complete
+entity_type: node
+bundle: event
+label: 'Setup Complete'
+description: 'Flag indicating the event was successfully published through the wizard. Used to distinguish wizard drafts from intentionally unpublished events.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Setup complete'
+  off_label: 'Setup incomplete'
+field_type: boolean

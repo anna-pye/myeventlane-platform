@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_pro
+id: user.field_pro_subscription_managed
+field_name: field_pro_subscription_managed
+entity_type: user
+type: boolean
+settings: {  }
+module: core
+locked: true
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

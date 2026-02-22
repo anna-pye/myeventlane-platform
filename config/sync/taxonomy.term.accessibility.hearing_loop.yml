@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_hearing_loop
+vid: accessibility
+name: 'Hearing Loop Available'
+description: 'Hearing loop or assistive listening system is available at the venue.'
+weight: 3
+parent: {  }

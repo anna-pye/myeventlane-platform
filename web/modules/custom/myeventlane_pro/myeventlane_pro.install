@@ -33,3 +33,40 @@ function myeventlane_pro_uninstall(): void {
     \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role removed.');
   }
 }
+
+/**
+ * Add field_pro_subscription_managed boolean field to user entities.
+ */
+function myeventlane_pro_update_10001(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  $field_storage_config = $entity_type_manager->getStorage('field_storage_config');
+  if (!$field_storage_config->load('user.field_pro_subscription_managed')) {
+    $field_storage_config->create([
+      'field_name' => 'field_pro_subscription_managed',
+      'entity_type' => 'user',
+      'type' => 'boolean',
+      'cardinality' => 1,
+      'locked' => TRUE,
+      'translatable' => FALSE,
+      'settings' => [],
+      'module' => 'core',
+    ])->save();
+  }
+
+  $field_config = $entity_type_manager->getStorage('field_config');
+  if (!$field_config->load('user.user.field_pro_subscription_managed')) {
+    $field_config->create([
+      'field_name' => 'field_pro_subscription_managed',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Pro subscription managed',
+      'description' => 'Internal flag. TRUE when Pro role is managed by subscription lifecycle.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'default_value' => [['value' => 0]],
+      'settings' => [],
+      'field_type' => 'boolean',
+    ])->save();
+  }
+}

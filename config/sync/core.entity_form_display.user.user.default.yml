@@ -1,0 +1,100 @@
+uuid: 24414ad2-c680-44af-b556-d842e8fe596f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.user.user.commerce_remote_id
+    - field.field.user.user.field_accessibility_preferences
+    - field.field.user.user.field_city
+    - field.field.user.user.field_display_name
+    - field.field.user.user.field_mel_account_type
+    - field.field.user.user.field_pro_subscription_managed
+    - field.field.user.user.field_pronouns
+    - field.field.user.user.user_picture
+    - image.style.thumbnail
+  module:
+    - image
+    - path
+    - text
+    - user
+_core:
+  default_config_hash: FaQ9Ptcpxpg30AtiqRDtl_8zbJArHP1LPfug_s59TOA
+id: user.user.default
+targetEntityType: user
+bundle: user
+mode: default
+content:
+  account:
+    weight: -10
+    region: content
+    third_party_settings: {  }
+  contact:
+    weight: 5
+    region: content
+    third_party_settings: {  }
+  field_accessibility_preferences:
+    type: text_textarea
+    weight: 7
+    region: content
+    settings:
+      rows: 4
+      placeholder: ''
+    third_party_settings: {  }
+  field_city:
+    type: string_textfield
+    weight: -7
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_display_name:
+    type: string_textfield
+    weight: -9
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_pronouns:
+    type: string_textfield
+    weight: -8
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. they/them, she/her, he/him'
+    third_party_settings: {  }
+  language:
+    weight: 0
+    region: content
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 30
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  social_auth:
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  timezone:
+    weight: 6
+    region: content
+    third_party_settings: {  }
+  user_picture:
+    type: image_image
+    weight: -1
+    region: content
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+hidden:
+  commerce_remote_id: true
+  customer_profiles: true
+  field_mel_account_type: true
+  field_pro_subscription_managed: true
+  langcode: true
+  vendor_profiles: true

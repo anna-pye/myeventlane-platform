@@ -1,0 +1,30 @@
+uuid: 3006ae93-8376-4c5f-b78a-b04a7e62cf3f
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.featured_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_spotlight
+theme: myeventlane_theme
+region: header_left
+weight: 0
+provider: null
+plugin: 'views_block:featured_events-block_spotlight'
+settings:
+  id: 'views_block:featured_events-block_spotlight'
+  label: Spotlight
+  label_display: '0'
+  provider: views
+  views_label: Spotlight
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

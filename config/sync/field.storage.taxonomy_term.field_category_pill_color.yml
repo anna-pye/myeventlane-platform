@@ -1,0 +1,42 @@
+uuid: a1b2c3d4-e5f6-4789-a012-3456789abc02
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.field_category_pill_color
+field_name: field_category_pill_color
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: blue
+      label: Blue
+    -
+      value: pink
+      label: Pink
+    -
+      value: coral
+      label: Coral
+    -
+      value: green
+      label: Green
+    -
+      value: purple
+      label: Purple
+    -
+      value: mint
+      label: Mint
+    -
+      value: yellow
+      label: Yellow
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,23 @@
+uuid: d135515d-3a18-41f9-92c3-de53525b2892
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+_core:
+  default_config_hash: 2Ty-r3P5drNfqV1a8urq1tXD8AiJpBMyHCmIj839uJo
+id: user.field_pronouns
+field_name: field_pronouns
+entity_type: user
+type: string
+settings:
+  max_length: 64
+  is_ascii: false
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

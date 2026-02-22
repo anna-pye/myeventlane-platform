@@ -1,0 +1,7 @@
+_core:
+  default_config_hash: Kmfe5YNvoIe74qb0z8c_rFt3M4UhZMWKbOEkF-4l0XQ
+langcode: en
+status: true
+dependencies: {  }
+enabled: false
+window_days: 14

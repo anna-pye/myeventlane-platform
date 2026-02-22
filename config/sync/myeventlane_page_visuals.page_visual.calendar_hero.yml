@@ -1,0 +1,12 @@
+uuid: d815bb1b-be22-4432-93f2-238fb952c8a0
+langcode: en
+status: true
+dependencies: {  }
+id: calendar_hero
+label: 'Calendar Hero '
+route_name: view.events_calendar.page_calendar
+media_uuid_desktop: f4d2cbae-0193-4e89-afe8-3c6c68c74436
+media_uuid_mobile: eceaab72-191d-4eef-83e6-b1f617fb2083
+hide_on_mobile: false
+alt_text: 'My EvenLane Calendar '
+enabled: true

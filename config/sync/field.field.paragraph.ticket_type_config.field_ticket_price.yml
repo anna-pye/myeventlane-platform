@@ -1,0 +1,27 @@
+uuid: null
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_ticket_price
+    - paragraphs.paragraphs_type.ticket_type_config
+  module:
+    - decimal
+id: paragraph.ticket_type_config.field_ticket_price
+field_name: field_ticket_price
+entity_type: paragraph
+bundle: ticket_type_config
+label: Price
+description: 'Price per ticket in the default currency. Enter 0 for free tickets.'
+required: true
+translatable: false
+default_value:
+  -
+    value: 0.0
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: 999999.99
+  prefix: ''
+  suffix: ''
+field_type: decimal

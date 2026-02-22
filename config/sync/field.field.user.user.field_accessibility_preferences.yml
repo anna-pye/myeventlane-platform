@@ -1,0 +1,24 @@
+uuid: 8388acd0-05d7-49a4-b491-5189f8a949cf
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_accessibility_preferences
+  module:
+    - text
+    - user
+_core:
+  default_config_hash: 31eIM-5nKb9KLyL12QvPaABVbdKBldYnrlwOsEUx7Ho
+id: user.user.field_accessibility_preferences
+field_name: field_accessibility_preferences
+entity_type: user
+bundle: user
+label: 'Accessibility preferences'
+description: "Let us know if there's anything that helps you have a better experience. This is private and only used to improve accessibility where possible."
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

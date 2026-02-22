@@ -1,0 +1,5 @@
+pdf_enabled: true
+pdf_expiry_days: '365'
+include_qr_code: true
+show_ticket_code: true
+ticket_code_format: short

@@ -1,0 +1,27 @@
+uuid: c4d5fcc2-7c58-4ab0-8a6c-2eac23f1547c
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_cart
+    - commerce_checkout
+third_party_settings:
+  commerce_cart:
+    cart_block_view: commerce_cart_block
+    cart_form_view: commerce_cart_form
+    cart_expiration: {  }
+    enable_cart_message: true
+  commerce_checkout:
+    checkout_flow: default
+id: platform_donation
+label: 'Platform Donation'
+traits: {  }
+locked: false
+workflow: order_default
+showOrderEditLinks: true
+numberPattern: order_default
+refresh_mode: always
+refresh_frequency: 1
+sendReceipt: true
+receiptBcc: ''
+receiptSubject: 'Thank you for your donation to MyEventLane'

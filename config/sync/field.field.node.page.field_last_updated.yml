@@ -1,0 +1,21 @@
+uuid: 40a4707f-a848-47bb-9187-ef3523531edf
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_last_updated
+    - node.type.page
+  module:
+    - datetime
+id: node.page.field_last_updated
+field_name: field_last_updated
+entity_type: node
+bundle: page
+label: 'Last updated'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

@@ -1,0 +1,16 @@
+enabled: true
+subject: 'Refund approved – {{ event_title }}'
+body_html: |-
+  Hi there,
+
+  Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been approved and is being processed.
+
+  You should see the refund ({{ refunded_amount }}) within 2–5 business days.
+
+  <a href="{{ my_tickets_url }}">View your tickets</a>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_approved_buyer

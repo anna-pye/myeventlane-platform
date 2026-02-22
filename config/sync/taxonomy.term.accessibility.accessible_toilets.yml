@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_accessible_toilets
+vid: accessibility
+name: 'Accessible Toilets'
+description: 'Venue has accessible toilet facilities available.'
+weight: 1
+parent: {  }

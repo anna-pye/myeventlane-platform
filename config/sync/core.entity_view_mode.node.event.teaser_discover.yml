@@ -1,0 +1,13 @@
+uuid: bb3d73af-d789-4508-9816-9a85a2073f31
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+_core:
+  default_config_hash: ''
+id: node.event.teaser_discover
+label: 'Teaser – Discover'
+description: null
+targetEntityType: node
+cache: true

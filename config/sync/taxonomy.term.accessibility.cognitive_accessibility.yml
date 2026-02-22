@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_cognitive_accessibility
+vid: accessibility
+name: 'Cognitive Accessibility'
+description: 'Event is designed to be accessible for people with cognitive disabilities, with clear communication and simplified processes.'
+weight: 9
+parent: {  }

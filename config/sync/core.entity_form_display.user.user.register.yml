@@ -1,0 +1,79 @@
+uuid: 9f3b531f-c9fc-4f69-b691-a67efb906c25
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.user.register
+    - field.field.user.user.commerce_remote_id
+    - field.field.user.user.field_accessibility_preferences
+    - field.field.user.user.field_city
+    - field.field.user.user.field_display_name
+    - field.field.user.user.field_mel_account_type
+    - field.field.user.user.field_pro_subscription_managed
+    - field.field.user.user.field_pronouns
+    - field.field.user.user.user_picture
+    - image.style.thumbnail
+  module:
+    - image
+    - path
+    - profile
+    - user
+_core:
+  default_config_hash: FaQ9Ptcpxpg30AtiqRDtl_8zbJArHP1LPfug_s59TOA
+id: user.user.register
+targetEntityType: user
+bundle: user
+mode: register
+content:
+  account:
+    weight: -10
+    region: content
+    third_party_settings: {  }
+  contact:
+    weight: 5
+    region: content
+    third_party_settings: {  }
+  language:
+    weight: 0
+    region: content
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 30
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  social_auth:
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  timezone:
+    weight: 6
+    region: content
+    third_party_settings: {  }
+  user_picture:
+    type: image_image
+    weight: -1
+    region: content
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+  vendor_profiles:
+    type: profile_form
+    weight: 90
+    region: content
+    settings:
+      form_mode: default
+    third_party_settings: {  }
+hidden:
+  commerce_remote_id: true
+  customer_profiles: true
+  field_accessibility_preferences: true
+  field_city: true
+  field_display_name: true
+  field_mel_account_type: true
+  field_pro_subscription_managed: true
+  field_pronouns: true
+  langcode: true

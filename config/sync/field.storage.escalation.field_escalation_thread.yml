@@ -1,0 +1,22 @@
+uuid: 6aa7f88f-ea67-46a8-9c7f-2cc9373ce148
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+    - myeventlane_escalations
+_core:
+  default_config_hash: EUL1w-3lpiafQsY30ONW2lyRsr_YhE07BYIugyqtePg
+id: escalation.field_escalation_thread
+field_name: field_escalation_thread
+entity_type: escalation
+type: comment
+settings:
+  comment_type: escalation_thread
+module: comment
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

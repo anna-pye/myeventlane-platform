@@ -1,0 +1,18 @@
+uuid: e3cbc358-57e8-4e5a-a3a4-028545bcba4e
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+id: commerce_store.field_stripe_payouts_enabled
+field_name: field_stripe_payouts_enabled
+entity_type: commerce_store
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

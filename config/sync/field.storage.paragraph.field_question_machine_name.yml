@@ -1,0 +1,21 @@
+uuid: 0cfc4bbb-f1f9-48c5-9e89-af5c0d3b5ebd
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: paragraph.field_question_machine_name
+field_name: field_question_machine_name
+entity_type: paragraph
+type: string
+settings:
+  max_length: 128
+  case_sensitive: false
+  is_ascii: true
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

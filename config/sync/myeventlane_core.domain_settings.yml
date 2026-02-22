@@ -1,0 +1,5 @@
+public_domain: 'https://myeventlane.ddev.site'
+vendor_domain: 'https://vendor.myeventlane.ddev.site'
+admin_domain: 'https://admin.myeventlane.ddev.site'
+force_redirects: true
+allow_admin_override: true

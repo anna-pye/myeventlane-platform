@@ -1,0 +1,121 @@
+uuid: 4f2fa5e9-5938-4a2b-8aba-49e2777ce79a
+langcode: en
+status: true
+dependencies:
+  config:
+    - filter.format.basic_html
+    - node.type.event
+    - taxonomy.vocabulary.tags
+  module:
+    - comment
+    - commerce_checkout
+    - commerce_order
+    - commerce_payment
+    - commerce_product
+    - commerce_stripe
+    - contextual
+    - file
+    - filter
+    - myeventlane_analytics
+    - myeventlane_attendee
+    - myeventlane_automation
+    - myeventlane_boost
+    - myeventlane_checkin
+    - myeventlane_dashboard
+    - myeventlane_donations
+    - myeventlane_escalations_portal
+    - myeventlane_event_attendees
+    - myeventlane_event_state
+    - myeventlane_finance
+    - myeventlane_messaging
+    - myeventlane_refunds
+    - myeventlane_rsvp
+    - myeventlane_vendor
+    - myeventlane_venue
+    - node
+    - paragraphs
+    - paragraphs_type_permissions
+    - path
+    - profile
+    - social_auth
+    - taxonomy
+    - toolbar
+id: vendor
+label: Vendor
+weight: -7
+is_admin: false
+permissions:
+  - 'access analytics dashboard'
+  - 'access attendee repository'
+  - 'access check-in'
+  - 'access checkout'
+  - 'access commerce_order overview'
+  - 'access content overview'
+  - 'access contextual links'
+  - 'access files overview'
+  - 'access toolbar'
+  - 'access user profiles'
+  - 'access vendor console'
+  - 'access vendor dashboard'
+  - 'access vendor venues'
+  - 'administer myeventlane donations'
+  - 'administer myeventlane messaging'
+  - 'administer url aliases'
+  - cancel_event
+  - cancel_events
+  - 'change own username'
+  - 'comment on vendor escalations'
+  - 'create customer profile'
+  - 'create event content'
+  - 'create paragraph content attendee_answer'
+  - 'create paragraph content attendee_extra_field'
+  - 'create paragraph content ticket_type_config'
+  - 'create terms in tags'
+  - 'create ticket commerce_product'
+  - 'create url aliases'
+  - 'delete default commerce_order'
+  - 'delete own event content'
+  - 'delete own social auth profile'
+  - 'delete own ticket commerce_product'
+  - 'delete paragraph content attendee_extra_field'
+  - 'delete paragraph content event_highlight'
+  - 'delete paragraph content ticket_type_config'
+  - 'edit own comments'
+  - 'edit own event content'
+  - 'manage boost commerce_order_item'
+  - 'manage default commerce_order_item'
+  - 'manage own commerce_payment_method'
+  - 'manage own event attendees'
+  - 'manage own event rsvps'
+  - 'manage rsvp_donation commerce_order_item'
+  - manage_refunds
+  - 'purchase boost for events'
+  - request_refunds
+  - 'resolve vendor escalations'
+  - 'unlock orders'
+  - 'update default commerce_order'
+  - 'update own boost_upgrade commerce_product'
+  - 'update own customer profile'
+  - 'update own ticket commerce_product'
+  - 'update paragraph content attendee_extra_field'
+  - 'update paragraph content event_highlight'
+  - 'update paragraph content ticket_type_config'
+  - 'use text format basic_html'
+  - 'view any profile'
+  - 'view automation dispatch log'
+  - 'view boost_upgrade commerce_product'
+  - 'view commerce_product'
+  - 'view own commerce_order'
+  - 'view own event attendees'
+  - 'view own profile'
+  - 'view own unpublished commerce_product'
+  - 'view own unpublished content'
+  - 'view paragraph content attendee_answer'
+  - 'view paragraph content attendee_extra_field'
+  - 'view rsvp_donation commerce_order'
+  - 'view stripe dashboard links'
+  - 'view ticket commerce_product'
+  - 'view unpublished paragraphs'
+  - 'view user email addresses'
+  - 'view vendor bas reports'
+  - 'view vendor escalations'

@@ -1,0 +1,9 @@
+uuid: 3436e232-0f33-4c4c-bc55-eb0ed42f6f06
+langcode: en
+status: true
+dependencies: {  }
+id: pro_organiser
+label: 'Pro Organiser'
+weight: 0
+is_admin: false
+permissions: {  }

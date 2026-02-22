@@ -1,0 +1,12 @@
+enabled: true
+subject: 'Refund rejected – {{ event_title }}'
+body_html: |-
+  You rejected the refund request for Order {{ order_number }}.
+
+  The buyer has been notified.
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_rejected_vendor

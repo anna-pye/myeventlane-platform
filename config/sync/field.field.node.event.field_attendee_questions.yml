@@ -1,0 +1,31 @@
+uuid: 67fd0030-2ea1-4138-b57a-3e3c04796e6e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_attendee_questions
+    - node.type.event
+    - paragraphs.paragraphs_type.attendee_extra_field
+  module:
+    - entity_reference_revisions
+id: node.event.field_attendee_questions
+field_name: field_attendee_questions
+entity_type: node
+bundle: event
+label: 'Attendee Questions'
+description: 'Custom questions to ask attendees during RSVP or checkout.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:paragraph'
+  handler_settings:
+    target_bundles:
+      attendee_extra_field: attendee_extra_field
+    negate: 0
+    target_bundles_drag_drop:
+      attendee_extra_field:
+        weight: 0
+        enabled: true
+field_type: entity_reference_revisions

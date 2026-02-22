@@ -1,0 +1,10 @@
+uuid: 423f6799-2095-4ac3-b80f-c80470818603
+langcode: en
+status: true
+dependencies: {  }
+id: attendee_answer
+label: 'Attendee Answer'
+icon_uuid: null
+icon_default: null
+description: 'Stores attendee information for tickets'
+behavior_plugins: {  }

@@ -1,0 +1,28 @@
+uuid: ad079d7d-078a-45f7-910b-dfd44ebede2a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_venue
+    - node.type.event
+  module:
+    - myeventlane_venue
+id: node.event.field_venue
+field_name: field_venue
+entity_type: node
+bundle: event
+label: Venue
+description: 'The venue where this event takes place.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:myeventlane_venue'
+  handler_settings:
+    target_bundles: null
+    sort:
+      field: name
+      direction: ASC
+    auto_create: false
+field_type: entity_reference

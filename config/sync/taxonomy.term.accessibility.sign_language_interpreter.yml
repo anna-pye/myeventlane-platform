@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_sign_language_interpreter
+vid: accessibility
+name: 'Sign Language Interpreter Available'
+description: 'Sign language interpreter services are available for this event.'
+weight: 2
+parent: {  }

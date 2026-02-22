@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_step_free_access
+vid: accessibility
+name: 'Step-Free Access'
+description: 'Venue has step-free access from entrance to all event areas.'
+weight: 7
+parent: {  }

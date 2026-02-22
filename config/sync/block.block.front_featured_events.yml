@@ -1,0 +1,30 @@
+uuid: 2cc53d11-d71b-4eed-a198-bacf79ac6acb
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.front_featured_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: front_featured_events
+theme: myeventlane_theme
+region: header_left
+weight: 0
+provider: null
+plugin: 'views_block:front_featured_events-block_featured'
+settings:
+  id: 'views_block:front_featured_events-block_featured'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

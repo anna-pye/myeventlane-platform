@@ -1,0 +1,22 @@
+uuid: 0135223e-84f6-40ac-88c4-a426ee5f892f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_summary
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.myeventlane_vendor.field_summary
+field_name: field_summary
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: Summary
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text

@@ -1,0 +1,4 @@
+_core:
+  default_config_hash: 088yAuFtXgjJ-BjbjEytiy3mmPutvDo7FznOlM6jGlY
+rate_limit_hourly: 5
+rate_limit_daily: 20

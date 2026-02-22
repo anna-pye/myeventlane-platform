@@ -1,0 +1,13 @@
+uuid: 1bb02663-9d30-49f0-a577-e28347ec109e
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: Z0Mb9mB2CWVr6Mv8sioUeM7S7w--j3Zj8L7gAf7zqgA
+name: 'Help Article'
+type: help_article
+description: 'A help centre article providing guidance for vendors or the public.'
+help: 'Create help articles grouped by category. Articles can target public visitors, vendors, or both.'
+new_revision: true
+preview_mode: 1
+display_submitted: false

@@ -1,0 +1,20 @@
+uuid: d572fd2b-d7b3-4da0-8518-a07732fbb867
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_venue
+    - node
+id: node.field_venue
+field_name: field_venue
+entity_type: node
+type: entity_reference
+settings:
+  target_type: myeventlane_venue
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
