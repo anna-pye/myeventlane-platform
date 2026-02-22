@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_pro_install(): void {
+  $role_id = 'pro_organiser';
+
+  if (!Role::load($role_id)) {
+    $role = Role::create([
+      'id' => $role_id,
+      'label' => 'Pro Organiser',
+    ]);
+    $role->save();
+
+    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role created.');
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_pro_uninstall(): void {
+  $role_id = 'pro_organiser';
+  $role = Role::load($role_id);
+
+  if ($role) {
+    $role->delete();
+    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role removed.');
+  }
+}

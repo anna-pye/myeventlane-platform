@@ -1,0 +1,5 @@
+services:
+
+  logger.channel.myeventlane_pro:
+    parent: logger.channel_base
+    arguments: ['myeventlane_pro']

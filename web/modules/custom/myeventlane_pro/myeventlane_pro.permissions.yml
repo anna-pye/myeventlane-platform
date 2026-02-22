@@ -1,0 +1,4 @@
+administer myeventlane pro settings:
+  title: 'Administer MyEventLane Pro settings'
+  description: 'Manage MyEventLane Pro configuration.'
+  restrict access: true

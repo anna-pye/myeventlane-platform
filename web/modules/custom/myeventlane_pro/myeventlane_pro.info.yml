@@ -1,0 +1,10 @@
+name: 'MyEventLane Pro'
+type: module
+description: 'Professional subscription feature layer for MyEventLane.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: experimental
+
+dependencies:
+  - drupal:user
+  - drupal:system
