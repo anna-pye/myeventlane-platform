@@ -1,0 +1,291 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_pro\Plugin\AdvancedQueue\JobType;
+
+use Drupal\advancedqueue\Attribute\AdvancedQueueJobType;
+use Drupal\advancedqueue\Job;
+use Drupal\advancedqueue\JobResult;
+use Drupal\advancedqueue\Plugin\AdvancedQueue\JobType\JobTypeBase;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Mail\MailManagerInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
+use Drupal\myeventlane_messaging\Service\MessagingManager;
+use Drupal\myeventlane_pro\Service\ProEntitlementManager;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+/**
+ * Sends Pro abandoned-cart reminders from tracking rows.
+ */
+#[AdvancedQueueJobType(
+  id: 'pro_abandoned_cart_job',
+  label: new TranslatableMarkup('Pro abandoned cart reminder'),
+  max_retries: 2,
+  retry_delay: 300,
+)]
+final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * Constructs the job type.
+   */
+  public function __construct(
+    array $configuration,
+    mixed $plugin_id,
+    mixed $plugin_definition,
+    private readonly Connection $database,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TimeInterface $time,
+    private readonly LoggerInterface $logger,
+    private readonly ProEntitlementManager $entitlementManager,
+    private readonly ConfigFactoryInterface $configFactory,
+    private readonly MailManagerInterface $mailManager,
+    private readonly ?MessagingManager $messagingManager = NULL,
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): self {
+    return new self(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('database'),
+      $container->get('entity_type.manager'),
+      $container->get('datetime.time'),
+      $container->get('logger.channel.myeventlane_pro'),
+      $container->get('myeventlane_pro.entitlement'),
+      $container->get('config.factory'),
+      $container->get('plugin.manager.mail'),
+      $container->has('myeventlane_messaging.manager') ? $container->get('myeventlane_messaging.manager') : NULL,
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function process(Job $job): JobResult {
+    $trackingId = (int) ($job->getPayload()['tracking_id'] ?? 0);
+    if ($trackingId <= 0) {
+      return JobResult::failure('Missing tracking_id payload.');
+    }
+
+    $row = $this->loadTrackingRow($trackingId);
+    if ($row === NULL) {
+      return JobResult::failure("Tracking row {$trackingId} not found.");
+    }
+
+    if ($row['status'] !== 'scheduled') {
+      return JobResult::success("Tracking row {$trackingId} already processed.");
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) $row['order_id']);
+    if (!$order instanceof OrderInterface) {
+      $this->markTrackingRow($trackingId, 'failed', 'Order missing.');
+      return JobResult::failure("Order {$row['order_id']} not found.");
+    }
+
+    $eligibility = $this->validateSendEligibility($order);
+    if ($eligibility !== TRUE) {
+      $this->markTrackingRow($trackingId, 'skipped', $eligibility);
+      return JobResult::success("Tracking row {$trackingId} skipped: {$eligibility}");
+    }
+
+    $recipient = $this->resolveRecipientEmail($order);
+    if ($recipient === NULL) {
+      $this->markTrackingRow($trackingId, 'failed', 'No recipient email.');
+      return JobResult::failure("Order {$row['order_id']} has no recipient email.");
+    }
+
+    $step = (string) $row['step'];
+    $sent = $this->sendReminder($order, $step, $recipient);
+    if (!$sent) {
+      $this->markTrackingRow($trackingId, 'failed', 'Send failed.');
+      return JobResult::failure("Failed to send reminder for order {$row['order_id']}.");
+    }
+
+    $this->markTrackingRow($trackingId, 'sent', NULL);
+    return JobResult::success("Sent abandoned cart {$step} reminder for order {$row['order_id']}.");
+  }
+
+  /**
+   * Re-checks eligibility before dispatching email.
+   */
+  private function validateSendEligibility(OrderInterface $order): bool|string {
+    $state = $order->getState()->getId();
+    if (in_array($state, ['completed', 'placed', 'fulfilled', 'canceled', 'cancelled'], TRUE)) {
+      return 'Order no longer abandoned.';
+    }
+
+    if (!(bool) $order->get('cart')->value && !in_array($state, ['draft', 'cart'], TRUE)) {
+      return 'Order not in abandoned-cart state.';
+    }
+
+    $hasItems = FALSE;
+    foreach ($order->getItems() as $orderItem) {
+      if ((float) $orderItem->getQuantity() > 0) {
+        $hasItems = TRUE;
+        break;
+      }
+    }
+    if (!$hasItems) {
+      return 'Order has no items.';
+    }
+
+    $store = $order->getStore();
+    if (!$store instanceof StoreInterface) {
+      return 'Order has no store.';
+    }
+
+    $owner = $this->resolveStoreOwner($store);
+    if ($owner === NULL || !$this->entitlementManager->isPro($owner)) {
+      return 'Store owner is not Pro.';
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Sends reminder via MessagingManager template or fallback mail.
+   */
+  private function sendReminder(OrderInterface $order, string $step, string $recipient): bool {
+    $template = $step === 'w2' ? 'pro_cart_abandoned_w2' : 'pro_cart_abandoned_w1';
+    $cartUrl = Url::fromRoute('commerce_cart.page', [], ['absolute' => TRUE])->toString();
+
+    $firstName = 'there';
+    $customer = $order->getCustomer();
+    if ($customer && $customer->getDisplayName() !== '') {
+      $firstName = $customer->getDisplayName();
+    }
+
+    $context = [
+      'first_name' => $firstName,
+      'cart_url' => $cartUrl,
+      'order_id' => (int) $order->id(),
+      'step' => $step,
+      'item_count' => count($order->getItems()),
+    ];
+
+    $templateConfig = $this->configFactory->get("myeventlane_messaging.template.{$template}");
+    $templateEnabled = (bool) $templateConfig->get('enabled');
+    if ($templateEnabled && $this->messagingManager instanceof MessagingManager) {
+      $messageId = $this->messagingManager->queue($template, $recipient, $context, [
+        'langcode' => $order->language()->getId(),
+      ]);
+      if ($messageId !== NULL) {
+        return TRUE;
+      }
+    }
+
+    $subject = 'Finish your booking on MyEventLane';
+    $body = [
+      "Hi {$firstName},",
+      '',
+      'You left tickets in your cart.',
+      "Return to your cart: {$cartUrl}",
+    ];
+    $result = $this->mailManager->mail(
+      'myeventlane_pro',
+      'myeventlane_pro_abandoned_cart',
+      $recipient,
+      $order->language()->getId(),
+      [
+        'subject' => $subject,
+        'body' => $body,
+      ],
+      NULL,
+      TRUE,
+    );
+
+    return !empty($result['result']);
+  }
+
+  /**
+   * Resolves recipient email from order mail or customer account.
+   */
+  private function resolveRecipientEmail(OrderInterface $order): ?string {
+    $email = trim((string) $order->getEmail());
+    if ($email !== '') {
+      return $email;
+    }
+
+    $customer = $order->getCustomer();
+    if ($customer && $customer->getEmail() !== '') {
+      return trim((string) $customer->getEmail());
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Resolves store owner from store uid or vendor linkage.
+   */
+  private function resolveStoreOwner(StoreInterface $store): ?object {
+    $owner = $store->getOwner();
+    if ($owner && (int) $owner->id() > 0) {
+      return $owner;
+    }
+
+    if ($store->hasField('field_vendor_reference') && !$store->get('field_vendor_reference')->isEmpty()) {
+      $vendor = $store->get('field_vendor_reference')->entity;
+      if ($vendor instanceof Vendor) {
+        $vendorOwner = $vendor->getOwner();
+        if ($vendorOwner && (int) $vendorOwner->id() > 0) {
+          return $vendorOwner;
+        }
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Loads one tracking row.
+   *
+   * @return array<string, mixed>|null
+   *   Tracking row or NULL.
+   */
+  private function loadTrackingRow(int $trackingId): ?array {
+    $row = $this->database->select('myeventlane_pro_abandoned_cart', 't')
+      ->fields('t')
+      ->condition('id', $trackingId)
+      ->execute()
+      ->fetchAssoc();
+    return is_array($row) ? $row : NULL;
+  }
+
+  /**
+   * Marks a tracking row as final.
+   */
+  private function markTrackingRow(int $trackingId, string $status, ?string $message): void {
+    $this->database->update('myeventlane_pro_abandoned_cart')
+      ->fields([
+        'status' => $status,
+        'processed' => $this->time->getRequestTime(),
+        'message' => $message,
+      ])
+      ->condition('id', $trackingId)
+      ->execute();
+
+    if ($status === 'failed') {
+      $this->logger->error('Pro abandoned cart row @id failed: @message', [
+        '@id' => $trackingId,
+        '@message' => $message ?? 'Unknown error',
+      ]);
+    }
+  }
+
+}
+

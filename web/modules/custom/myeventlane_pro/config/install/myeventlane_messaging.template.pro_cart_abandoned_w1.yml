@@ -1,0 +1,16 @@
+enabled: true
+subject: "You left tickets in your cart"
+preheader: "Your tickets are waiting — complete your booking before they're gone."
+body_html: |
+  <p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p>
+  <p style="font-size:15px;color:#444;">It looks like you started booking tickets but didn't finish. No worries — your cart is still waiting for you.</p>
+  <p style="text-align:center;margin:28px 0;">
+    <a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Return to your cart</a>
+  </p>
+  <p style="font-size:14px;color:#888;">If you have any questions, just reply to this email.</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: cart
+    utm_campaign: pro_abandoned_w1

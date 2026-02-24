@@ -8,3 +8,16 @@ myeventlane_pro.settings:
     pro_price:
       type: integer
       label: 'Monthly Pro price'
+    abandoned_cart:
+      type: mapping
+      label: 'Abandoned cart reminders'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Enabled'
+        delay_wave_1:
+          type: integer
+          label: 'Wave 1 delay (seconds)'
+        delay_wave_2:
+          type: integer
+          label: 'Wave 2 delay (seconds)'

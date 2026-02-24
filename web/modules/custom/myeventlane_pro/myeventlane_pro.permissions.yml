@@ -2,3 +2,8 @@ administer myeventlane pro settings:
   title: 'Administer MyEventLane Pro settings'
   description: 'Manage MyEventLane Pro configuration.'
   restrict access: true
+
+view pro reporting:
+  title: 'View Pro subscription reporting'
+  description: 'Access Pro subscription metrics and vendor detail report.'
+  restrict access: true

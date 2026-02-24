@@ -10,6 +10,22 @@ services:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_pro'
 
+  myeventlane_pro.entitlement:
+    class: Drupal\myeventlane_pro\Service\ProEntitlementManager
+    public: false
+
+  myeventlane_pro.product_resolver:
+    class: Drupal\myeventlane_pro\Service\ProProductResolver
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_pro.reporting:
+    class: Drupal\myeventlane_pro\Service\ProReportingService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_pro'
+      - '@datetime.time'
+
   myeventlane_pro.pro_subscription_subscriber:
     class: Drupal\myeventlane_pro\EventSubscriber\ProSubscriptionSubscriber
     arguments:
@@ -17,3 +33,19 @@ services:
       - '@logger.channel.myeventlane_pro'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_pro.abandoned_cart_scheduler:
+    class: Drupal\myeventlane_pro\Service\AbandonedCartScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_pro.entitlement'
+
+  myeventlane_pro.brand_gate:
+    class: Drupal\myeventlane_pro\Service\ProBrandGate
+    decorates: myeventlane_messaging.vendor_brand_resolver
+    arguments:
+      - '@.inner'
+      - '@entity_type.manager'

@@ -8,4 +8,11 @@ lifecycle: experimental
 dependencies:
   - drupal:user
   - drupal:system
+  - commerce_store:commerce_store
+  - drupal:image
+  - drupal:text
   - commerce_recurring:commerce_recurring
+  - commerce_cart:commerce_cart
+  - advancedqueue:advancedqueue
+  - myeventlane_messaging:myeventlane_messaging
+  - myeventlane_vendor:myeventlane_vendor

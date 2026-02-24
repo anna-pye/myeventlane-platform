@@ -1,0 +1,55 @@
+myeventlane_pro.overview:
+  path: '/vendor/pro'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProOverviewController::overview'
+    _title: 'MyEventLane Pro'
+  requirements:
+    _role: 'vendor'
+
+myeventlane_pro.subscribe:
+  path: '/vendor/pro/subscribe'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProSubscribeForm'
+    _title: 'Subscribe to Pro'
+  requirements:
+    _role: 'vendor'
+
+myeventlane_pro.success:
+  path: '/vendor/pro/success'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProOverviewController::success'
+    _title: 'Welcome to Pro'
+  requirements:
+    _role: 'vendor'
+
+myeventlane_pro.manage:
+  path: '/vendor/pro/manage'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProOverviewController::manage'
+    _title: 'Manage Pro Subscription'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
+myeventlane_pro.cancel:
+  path: '/vendor/pro/cancel'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProCancelConfirmForm'
+    _title: 'Cancel Pro Subscription'
+  requirements:
+    _role: 'vendor'
+
+myeventlane_pro.branding:
+  path: '/vendor/settings/branding'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProBrandingController::settings'
+    _title: 'Branding'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProBrandingController::access'
+
+myeventlane_pro.admin_report:
+  path: '/admin/platform/pro'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProAdminReportController::report'
+    _title: 'Pro subscriptions'
+  requirements:
+    _permission: 'view pro reporting'

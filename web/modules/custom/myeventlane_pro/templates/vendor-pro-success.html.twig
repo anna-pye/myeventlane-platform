@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * Template for the Pro subscription success page.
+ *
+ * Variables:
+ * - features: Array of unlocked feature descriptions.
+ */
+#}
+<div class="mel-pro-success">
+
+  <div class="mel-pro-success__hero">
+    <div class="mel-pro-success__icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8E7CFF" stroke-width="1.5">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+    </div>
+    <h1 class="mel-pro-success__title">{{ "You're now a Pro Organiser."|t }}</h1>
+    <p class="mel-pro-success__subtitle">{{ 'Your Pro features are now active. Here is what you have unlocked:'|t }}</p>
+  </div>
+
+  {% if features %}
+    <ul class="mel-pro-success__features">
+      {% for feature in features %}
+        <li class="mel-pro-success__feature">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <span>{{ feature }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="mel-pro-success__actions">
+    <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Go to Dashboard'|t }}</a>
+    <a href="{{ path('myeventlane_pro.manage') }}" class="mel-btn mel-btn--secondary">{{ 'Manage Subscription'|t }}</a>
+  </div>
+
+</div>

@@ -2,7 +2,101 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Database\Database;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_pro_schema(): array {
+  $schema['myeventlane_pro_cart_reminder'] = [
+    'description' => 'Tracks abandoned cart reminder waves sent per order.',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The commerce_order ID.',
+      ],
+      'wave' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Reminder wave number (1 or 2).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the reminder job was enqueued.',
+      ],
+    ],
+    'primary key' => ['order_id', 'wave'],
+    'indexes' => [
+      'order_id' => ['order_id'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_abandoned_cart'] = [
+    'description' => 'Tracking rows for Pro abandoned cart reminder workflow.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'scheduled' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'processed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+      'message' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'status' => ['status'],
+      'scheduled' => ['scheduled'],
+    ],
+  ];
+
+  return $schema;
+}
 
 /**
  * Implements hook_install().
@@ -18,6 +112,10 @@ function myeventlane_pro_install(): void {
     $role->save();
 
     \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role created.');
+  }
+
+  if (\Drupal::entityTypeManager()->hasDefinition('escalation')) {
+    _myeventlane_pro_install_escalation_pro_field();
   }
 }
 
@@ -69,4 +167,201 @@ function myeventlane_pro_update_10001(): void {
       'field_type' => 'boolean',
     ])->save();
   }
+}
+
+/**
+ * Install field_is_pro_support base field on escalation entities.
+ */
+function myeventlane_pro_update_10002(): void {
+  if (!\Drupal::entityTypeManager()->hasDefinition('escalation')) {
+    return;
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getFieldStorageDefinition('field_is_pro_support', 'escalation')) {
+    return;
+  }
+
+  _myeventlane_pro_install_escalation_pro_field();
+}
+
+/**
+ * Create abandoned cart reminder tracking table and config.
+ */
+function myeventlane_pro_update_10003(): void {
+  $schema = Database::getConnection()->schema();
+
+  if (!$schema->tableExists('myeventlane_pro_cart_reminder')) {
+    $schema->createTable('myeventlane_pro_cart_reminder', [
+      'description' => 'Tracks abandoned cart reminder waves sent per order.',
+      'fields' => [
+        'order_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The commerce_order ID.',
+        ],
+        'wave' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Reminder wave number (1 or 2).',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Timestamp when the reminder job was enqueued.',
+        ],
+      ],
+      'primary key' => ['order_id', 'wave'],
+      'indexes' => [
+        'order_id' => ['order_id'],
+      ],
+    ]);
+  }
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_pro.settings');
+  if ($config->get('abandoned_cart') === NULL) {
+    $config->set('abandoned_cart', [
+      'enabled' => TRUE,
+      'delay_wave_1' => 7200,
+      'delay_wave_2' => 86400,
+    ])->save();
+  }
+
+  $etm = \Drupal::entityTypeManager();
+
+  if ($etm->hasDefinition('advancedqueue_queue')) {
+    $queueStorage = $etm->getStorage('advancedqueue_queue');
+    if (!$queueStorage->load('pro_abandoned_cart')) {
+      $queueStorage->create([
+        'id' => 'pro_abandoned_cart',
+        'label' => 'Pro Abandoned Cart',
+        'backend' => 'database',
+        'backend_configuration' => ['lease_time' => 300],
+        'processor' => 'cron',
+        'processing_time' => 90,
+        'threshold' => ['state' => 'failure', 'limit' => 500],
+        'locked' => FALSE,
+      ])->save();
+    }
+  }
+
+  $cf = \Drupal::configFactory();
+  if (!$cf->get('myeventlane_messaging.template.pro_cart_abandoned_w1')->get('enabled')) {
+    $cf->getEditable('myeventlane_messaging.template.pro_cart_abandoned_w1')->setData([
+      'enabled' => TRUE,
+      'subject' => 'You left tickets in your cart',
+      'preheader' => "Your tickets are waiting — complete your booking before they're gone.",
+      'body_html' => '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">It looks like you started booking tickets but didn\'t finish. No worries — your cart is still waiting for you.</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Return to your cart</a></p><p style="font-size:14px;color:#888;">If you have any questions, just reply to this email.</p>',
+      'utm' => ['enable' => TRUE, 'params' => ['utm_source' => 'email', 'utm_medium' => 'cart', 'utm_campaign' => 'pro_abandoned_w1']],
+    ])->save();
+  }
+  if (!$cf->get('myeventlane_messaging.template.pro_cart_abandoned_w2')->get('enabled')) {
+    $cf->getEditable('myeventlane_messaging.template.pro_cart_abandoned_w2')->setData([
+      'enabled' => TRUE,
+      'subject' => 'Your tickets are almost gone!',
+      'preheader' => "Don't miss out — finish your booking now.",
+      'body_html' => '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">Just a friendly reminder — you still have tickets waiting in your cart. Popular events sell out fast, so don\'t leave it too long!</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Complete your booking</a></p><p style="font-size:14px;color:#888;">This is our last reminder. If you\'ve already completed your purchase, please disregard this email.</p>',
+      'utm' => ['enable' => TRUE, 'params' => ['utm_source' => 'email', 'utm_medium' => 'cart', 'utm_campaign' => 'pro_abandoned_w2']],
+    ])->save();
+  }
+}
+
+/**
+ * Adds tracking table for Pro abandoned cart engine.
+ */
+function myeventlane_pro_update_10004(): void {
+  $schema = Database::getConnection()->schema();
+  if ($schema->tableExists('myeventlane_pro_abandoned_cart')) {
+    return;
+  }
+
+  $schema->createTable('myeventlane_pro_abandoned_cart', [
+    'description' => 'Tracking rows for Pro abandoned cart reminder workflow.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'scheduled' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'processed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+      'message' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'status' => ['status'],
+      'scheduled' => ['scheduled'],
+    ],
+  ]);
+}
+
+/**
+ * Installs the field_is_pro_support base field on the escalation entity.
+ *
+ * Shared by hook_install() and update_10002().
+ */
+function _myeventlane_pro_install_escalation_pro_field(): void {
+  $field = BaseFieldDefinition::create('boolean')
+    ->setLabel(new TranslatableMarkup('Pro Support'))
+    ->setDescription(new TranslatableMarkup('Whether this escalation was submitted by a Pro subscriber.'))
+    ->setDefaultValue(FALSE)
+    ->setDisplayOptions('view', [
+      'label' => 'inline',
+      'type' => 'boolean',
+      'weight' => 15,
+      'settings' => [
+        'format' => 'yes-no',
+      ],
+    ])
+    ->setDisplayConfigurable('view', TRUE);
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition(
+      'field_is_pro_support',
+      'escalation',
+      'myeventlane_pro',
+      $field,
+    );
+
+  \Drupal::logger('myeventlane_pro')->notice('Installed field_is_pro_support on escalation entity.');
 }

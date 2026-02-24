@@ -12,13 +12,11 @@ retrySchedule:
   - 3
   - 5
 unpaidSubscriptionState: canceled
-plugin: fixed
+plugin: rolling
 configuration:
   trial_interval: {  }
   interval:
     number: 1
     unit: month
-  start_month: 1
-  start_day: 1
 prorater: proportional
 proraterConfiguration: {  }

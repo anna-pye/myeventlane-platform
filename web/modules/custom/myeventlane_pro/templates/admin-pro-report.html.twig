@@ -1,0 +1,89 @@
+{#
+/**
+ * @file
+ * Admin Pro subscription report page.
+ *
+ * Variables:
+ *   - metrics: {active_count, cancelled_30d_count, mrr, arr}
+ *   - rows: array of vendor subscription detail rows
+ */
+#}
+<div class="mel-pro-report">
+
+  <div class="mel-pro-report__metrics">
+    <div class="mel-pro-report__tile mel-pro-report__tile--green">
+      <div class="mel-pro-report__label">{{ 'Active subscriptions'|t }}</div>
+      <div class="mel-pro-report__value">{{ metrics.active_count }}</div>
+    </div>
+    <div class="mel-pro-report__tile mel-pro-report__tile--blue">
+      <div class="mel-pro-report__label">{{ 'MRR'|t }}</div>
+      <div class="mel-pro-report__value">${{ metrics.mrr|number_format(2) }}</div>
+    </div>
+    <div class="mel-pro-report__tile mel-pro-report__tile--purple">
+      <div class="mel-pro-report__label">{{ 'ARR'|t }}</div>
+      <div class="mel-pro-report__value">${{ metrics.arr|number_format(2) }}</div>
+    </div>
+    <div class="mel-pro-report__tile mel-pro-report__tile--amber">
+      <div class="mel-pro-report__label">{{ 'Cancelled (30 d)'|t }}</div>
+      <div class="mel-pro-report__value">{{ metrics.cancelled_30d_count }}</div>
+    </div>
+  </div>
+
+  {% if rows is not empty %}
+    <table class="mel-pro-report__table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'Username'|t }}</th>
+          <th scope="col">{{ 'Email'|t }}</th>
+          <th scope="col">{{ 'Sub ID'|t }}</th>
+          <th scope="col">{{ 'State'|t }}</th>
+          <th scope="col">{{ 'Next renewal'|t }}</th>
+          <th scope="col">{{ 'Created'|t }}</th>
+          <th scope="col">{{ 'Managed'|t }}</th>
+          <th scope="col">{{ 'Pro role'|t }}</th>
+          <th scope="col">{{ 'Actions'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr class="mel-pro-report__row mel-pro-report__row--{{ row.subscription_state_id }}">
+            <td>
+              {% if row.user_edit_url %}
+                <a href="{{ row.user_edit_url }}">{{ row.username }}</a>
+              {% else %}
+                {{ row.username|default('—') }}
+              {% endif %}
+            </td>
+            <td>{{ row.email|default('—') }}</td>
+            <td>
+              {% if row.subscription_url %}
+                <a href="{{ row.subscription_url }}">#{{ row.subscription_id }}</a>
+              {% else %}
+                #{{ row.subscription_id }}
+              {% endif %}
+            </td>
+            <td>
+              <span class="mel-pro-report__state mel-pro-report__state--{{ row.subscription_state_id }}">
+                {{ row.subscription_state }}
+              </span>
+            </td>
+            <td>{{ row.next_renewal|default('—') }}</td>
+            <td>{{ row.created }}</td>
+            <td>{{ row.is_managed ? '✓'|t : '✗'|t }}</td>
+            <td>{{ row.has_pro_role ? '✓'|t : '✗'|t }}</td>
+            <td>
+              {% if row.user_edit_url %}
+                <a href="{{ row.user_edit_url }}" class="mel-pro-report__action">{{ 'Edit user'|t }}</a>
+              {% endif %}
+              {% if row.subscription_url %}
+                <a href="{{ row.subscription_url }}" class="mel-pro-report__action">{{ 'View sub'|t }}</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="mel-pro-report__empty">{{ 'No Pro subscriptions found.'|t }}</p>
+  {% endif %}
+</div>
