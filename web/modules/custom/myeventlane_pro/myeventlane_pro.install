@@ -90,8 +90,76 @@ function myeventlane_pro_schema(): array {
     ],
     'indexes' => [
       'store_id' => ['store_id'],
-      'status' => ['status'],
+      'status_scheduled' => ['status', 'scheduled'],
       'scheduled' => ['scheduled'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_recovery_attribution'] = [
+    'description' => 'Deterministic attribution rows for Pro abandoned cart recovery.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'tracking_step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'recovered_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'order_total' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'not null' => FALSE,
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => FALSE,
+      ],
+      'recovered' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'tracking_step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'recovered' => ['recovered'],
+      'recovered_at' => ['recovered_at'],
+      'store_recovered' => ['store_id', 'recovered'],
     ],
   ];
 
@@ -329,10 +397,119 @@ function myeventlane_pro_update_10004(): void {
     ],
     'indexes' => [
       'store_id' => ['store_id'],
-      'status' => ['status'],
+      'status_scheduled' => ['status', 'scheduled'],
       'scheduled' => ['scheduled'],
     ],
   ]);
+}
+
+/**
+ * Adds Pro recovery attribution table and hardening indexes.
+ */
+function myeventlane_pro_update_10005(): void {
+  $connection = Database::getConnection();
+  $schema = $connection->schema();
+
+  if (!$schema->tableExists('myeventlane_pro_recovery_attribution')) {
+    $schema->createTable('myeventlane_pro_recovery_attribution', [
+      'description' => 'Deterministic attribution rows for Pro abandoned cart recovery.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'order_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'store_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'tracking_step' => [
+          'type' => 'varchar',
+          'length' => 16,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'recovered_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'order_total' => [
+          'type' => 'numeric',
+          'precision' => 14,
+          'scale' => 2,
+          'not null' => FALSE,
+        ],
+        'currency' => [
+          'type' => 'varchar',
+          'length' => 8,
+          'not null' => FALSE,
+        ],
+        'recovered' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'order_step' => ['order_id', 'tracking_step'],
+      ],
+      'indexes' => [
+        'store_id' => ['store_id'],
+        'recovered' => ['recovered'],
+        'recovered_at' => ['recovered_at'],
+        'store_recovered' => ['store_id', 'recovered'],
+      ],
+    ]);
+  }
+
+  if ($schema->tableExists('myeventlane_pro_abandoned_cart')) {
+    if ($schema->indexExists('myeventlane_pro_abandoned_cart', 'status')) {
+      $schema->dropIndex('myeventlane_pro_abandoned_cart', 'status');
+    }
+    if (!$schema->indexExists('myeventlane_pro_abandoned_cart', 'status_scheduled')) {
+      $spec = [
+        'fields' => [
+          'status' => [
+            'type' => 'varchar',
+            'length' => 16,
+            'not null' => TRUE,
+          ],
+          'scheduled' => [
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ],
+        ],
+        'indexes' => [
+          'status_scheduled' => ['status', 'scheduled'],
+        ],
+      ];
+      $schema->addIndex(
+        'myeventlane_pro_abandoned_cart',
+        'status_scheduled',
+        ['status', 'scheduled'],
+        $spec,
+      );
+    }
+  }
 }
 
 /**

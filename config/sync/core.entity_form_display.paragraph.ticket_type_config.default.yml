@@ -14,8 +14,6 @@ dependencies:
     - paragraphs.paragraphs_type.ticket_type_config
   module:
     - datetime
-    - decimal
-    - integer
     - options
     - text
 id: paragraph.ticket_type_config.default
