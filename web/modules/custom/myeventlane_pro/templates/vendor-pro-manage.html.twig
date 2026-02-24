@@ -8,6 +8,7 @@
  * - started_date: Formatted start date string.
  * - next_billing_date: Formatted next billing date string or NULL.
  * - cancel_url: URL to the cancel confirmation form.
+ * - roi_summary: ROI summary array or NULL.
  */
 #}
 <div class="mel-pro-manage">
@@ -38,6 +39,13 @@
         <div class="mel-pro-manage__row">
           <span class="mel-pro-manage__label">{{ 'Next billing date'|t }}</span>
           <span class="mel-pro-manage__value">{{ next_billing_date }}</span>
+        </div>
+      {% endif %}
+
+      {% if roi_summary %}
+        <div class="mel-pro-manage__row">
+          <span class="mel-pro-manage__label">{{ 'ROI this month'|t }}</span>
+          <span class="mel-pro-manage__value">{{ 'Pro paid for itself @times times this month.'|t({'@times': roi_summary.roi_multiple|number_format(2)}) }}</span>
         </div>
       {% endif %}
 

@@ -42,6 +42,25 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_pro'
       - '@myeventlane_pro.entitlement'
+      - '@state'
+      - '@plugin.manager.workflow'
+
+  myeventlane_pro.recovery_analytics:
+    class: Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.recovery_attribution_subscriber:
+    class: Drupal\myeventlane_pro\EventSubscriber\ProRecoveryAttributionSubscriber
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+    tags:
+      - { name: event_subscriber }
 
   myeventlane_pro.brand_gate:
     class: Drupal\myeventlane_pro\Service\ProBrandGate

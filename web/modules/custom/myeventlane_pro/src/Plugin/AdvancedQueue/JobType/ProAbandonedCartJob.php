@@ -9,6 +9,7 @@ use Drupal\advancedqueue\Job;
 use Drupal\advancedqueue\JobResult;
 use Drupal\advancedqueue\Plugin\AdvancedQueue\JobType\JobTypeBase;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderTypeInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -16,11 +17,13 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_pro\Service\ProEntitlementManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\state_machine\WorkflowManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -34,6 +37,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
   retry_delay: 300,
 )]
 final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryPluginInterface {
+
+  private const STATUS_SCHEDULED = 'scheduled';
+  private const STATUS_QUEUED = 'queued';
+  private const STATUS_SENT = 'sent';
+  private const STATUS_SKIPPED = 'skipped';
+  private const STATUS_FAILED = 'failed';
+
+  /**
+   * Cached terminal states keyed by workflow id.
+   *
+   * @var array<string, array<string, bool>>
+   */
+  private array $terminalStatesByWorkflow = [];
 
   /**
    * Constructs the job type.
@@ -49,6 +65,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     private readonly ProEntitlementManager $entitlementManager,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly MailManagerInterface $mailManager,
+    private readonly WorkflowManagerInterface $workflowManager,
     private readonly ?MessagingManager $messagingManager = NULL,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -69,6 +86,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       $container->get('myeventlane_pro.entitlement'),
       $container->get('config.factory'),
       $container->get('plugin.manager.mail'),
+      $container->get('plugin.manager.workflow'),
       $container->has('myeventlane_messaging.manager') ? $container->get('myeventlane_messaging.manager') : NULL,
     );
   }
@@ -87,47 +105,63 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       return JobResult::failure("Tracking row {$trackingId} not found.");
     }
 
-    if ($row['status'] !== 'scheduled') {
+    if (!in_array((string) $row['status'], [self::STATUS_SCHEDULED, self::STATUS_QUEUED], TRUE)) {
       return JobResult::success("Tracking row {$trackingId} already processed.");
     }
 
+    $orderId = (int) ($row['order_id'] ?? 0);
     $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) $row['order_id']);
     if (!$order instanceof OrderInterface) {
-      $this->markTrackingRow($trackingId, 'failed', 'Order missing.');
-      return JobResult::failure("Order {$row['order_id']} not found.");
+      $this->markTrackingRow($trackingId, self::STATUS_FAILED, 'Order missing.');
+      return JobResult::failure("Order {$orderId} not found.");
+    }
+
+    if ($order->isNew() || $order->isEmpty()) {
+      $this->markTrackingRow($trackingId, self::STATUS_SKIPPED, 'Order entity is not persisted.');
+      return JobResult::success("Tracking row {$trackingId} skipped: Order entity is not persisted.");
     }
 
     $eligibility = $this->validateSendEligibility($order);
     if ($eligibility !== TRUE) {
-      $this->markTrackingRow($trackingId, 'skipped', $eligibility);
+      $this->markTrackingRow($trackingId, self::STATUS_SKIPPED, $eligibility);
       return JobResult::success("Tracking row {$trackingId} skipped: {$eligibility}");
     }
 
     $recipient = $this->resolveRecipientEmail($order);
     if ($recipient === NULL) {
-      $this->markTrackingRow($trackingId, 'failed', 'No recipient email.');
-      return JobResult::failure("Order {$row['order_id']} has no recipient email.");
+      $this->markTrackingRow($trackingId, self::STATUS_FAILED, 'No recipient email.');
+      return JobResult::failure("Order {$orderId} has no recipient email.");
     }
 
     $step = (string) $row['step'];
     $sent = $this->sendReminder($order, $step, $recipient);
     if (!$sent) {
-      $this->markTrackingRow($trackingId, 'failed', 'Send failed.');
-      return JobResult::failure("Failed to send reminder for order {$row['order_id']}.");
+      $this->markTrackingRow($trackingId, self::STATUS_FAILED, 'Reminder dispatch failed.');
+      unset($order);
+      return JobResult::failure("Failed to send reminder for order {$orderId}.");
     }
 
-    $this->markTrackingRow($trackingId, 'sent', NULL);
-    return JobResult::success("Sent abandoned cart {$step} reminder for order {$row['order_id']}.");
+    $storeId = (int) ($row['store_id'] ?? 0);
+    $this->recordAttribution($orderId, $storeId, $step);
+    $this->markTrackingRow($trackingId, self::STATUS_SENT, NULL);
+
+    unset($order);
+    return JobResult::success("Sent abandoned cart {$step} reminder for order {$orderId}.");
   }
 
   /**
    * Re-checks eligibility before dispatching email.
    */
   private function validateSendEligibility(OrderInterface $order): bool|string {
-    $state = $order->getState()->getId();
-    if (in_array($state, ['completed', 'placed', 'fulfilled', 'canceled', 'cancelled'], TRUE)) {
+    if ($order->isNew() || $order->isEmpty()) {
+      return 'Order entity is not persisted.';
+    }
+
+    if ($this->isTerminalState($order)) {
       return 'Order no longer abandoned.';
     }
+
+    $state = $order->getState()->getId();
 
     if (!(bool) $order->get('cart')->value && !in_array($state, ['draft', 'cart'], TRUE)) {
       return 'Order not in abandoned-cart state.';
@@ -232,9 +266,9 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
   /**
    * Resolves store owner from store uid or vendor linkage.
    */
-  private function resolveStoreOwner(StoreInterface $store): ?object {
+  private function resolveStoreOwner(StoreInterface $store): ?AccountInterface {
     $owner = $store->getOwner();
-    if ($owner && (int) $owner->id() > 0) {
+    if ($owner instanceof AccountInterface && (int) $owner->id() > 0) {
       return $owner;
     }
 
@@ -242,7 +276,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       $vendor = $store->get('field_vendor_reference')->entity;
       if ($vendor instanceof Vendor) {
         $vendorOwner = $vendor->getOwner();
-        if ($vendorOwner && (int) $vendorOwner->id() > 0) {
+        if ($vendorOwner instanceof AccountInterface && (int) $vendorOwner->id() > 0) {
           return $vendorOwner;
         }
       }
@@ -279,12 +313,113 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       ->condition('id', $trackingId)
       ->execute();
 
-    if ($status === 'failed') {
+    if ($status === self::STATUS_FAILED) {
       $this->logger->error('Pro abandoned cart row @id failed: @message', [
         '@id' => $trackingId,
         '@message' => $message ?? 'Unknown error',
       ]);
     }
+  }
+
+  /**
+   * Inserts/updates deterministic attribution rows for reminder sends.
+   */
+  private function recordAttribution(int $orderId, int $storeId, string $trackingStep): void {
+    if ($orderId <= 0 || $storeId <= 0) {
+      $this->logger->error(
+        'Attribution write skipped due to invalid identifiers. order_id=@order_id store_id=@store_id step=@step',
+        [
+          '@order_id' => $orderId,
+          '@store_id' => $storeId,
+          '@step' => $trackingStep,
+        ],
+      );
+      return;
+    }
+
+    $now = $this->time->getRequestTime();
+
+    try {
+      $this->database->merge('myeventlane_pro_recovery_attribution')
+        ->key([
+          'order_id' => $orderId,
+          'tracking_step' => $trackingStep,
+        ])
+        ->insertFields([
+          'order_id' => $orderId,
+          'store_id' => $storeId,
+          'tracking_step' => $trackingStep,
+          'sent_at' => $now,
+          'recovered' => 0,
+          'created' => $now,
+        ])
+        ->updateFields([
+          'store_id' => $storeId,
+          'sent_at' => $now,
+        ])
+        ->execute();
+    }
+    catch (\Throwable $exception) {
+      $this->logger->error('Failed to persist recovery attribution for order @order_id: @message', [
+        '@order_id' => $orderId,
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Determines whether the order is currently in a terminal workflow state.
+   */
+  private function isTerminalState(OrderInterface $order): bool {
+    $orderType = $order->getType();
+    if (!$orderType instanceof OrderTypeInterface) {
+      return FALSE;
+    }
+
+    $workflowId = $orderType->getWorkflowId();
+    if ($workflowId === '') {
+      return FALSE;
+    }
+
+    if (!isset($this->terminalStatesByWorkflow[$workflowId])) {
+      $this->terminalStatesByWorkflow[$workflowId] = $this->discoverTerminalStates($workflowId);
+    }
+
+    return isset($this->terminalStatesByWorkflow[$workflowId][$order->getState()->getId()]);
+  }
+
+  /**
+   * Discovers terminal states for a workflow id.
+   *
+   * @return array<string, bool>
+   *   Terminal state id lookup.
+   */
+  private function discoverTerminalStates(string $workflowId): array {
+    $terminalStates = [];
+
+    try {
+      $workflow = $this->workflowManager->createInstance($workflowId);
+      $states = $workflow->getGroup()->getStates();
+      $fromStates = [];
+
+      foreach ($workflow->getTransitions() as $transition) {
+        $fromStates[$transition->getFromStateId()] = TRUE;
+      }
+
+      foreach (array_keys($states) as $stateId) {
+        if (!isset($fromStates[$stateId])) {
+          $terminalStates[$stateId] = TRUE;
+        }
+      }
+    }
+    catch (\Throwable $exception) {
+      $this->logger->error('Failed terminal-state discovery for workflow "@workflow": @message', [
+        '@workflow' => $workflowId,
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+
+    return $terminalStates;
   }
 
 }

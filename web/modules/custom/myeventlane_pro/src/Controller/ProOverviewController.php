@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_pro\Controller;
 
+use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -18,6 +19,8 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_pro\Form\ProSubscribeForm;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
+use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -39,6 +42,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
     private readonly FormBuilderInterface $formBuilder,
     private readonly MessengerInterface $messenger,
     private readonly LoggerChannelInterface $logger,
+    private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
   ) {}
 
   /**
@@ -53,6 +57,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       $container->get('form_builder'),
       $container->get('messenger'),
       $container->get('logger.channel.myeventlane_pro'),
+      $container->get('myeventlane_pro.recovery_analytics'),
     );
   }
 
@@ -153,6 +158,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
     }
 
     $cancelUrl = Url::fromRoute('myeventlane_pro.cancel')->toString();
+    $roiSummary = $this->buildRoiSummary();
 
     return [
       '#theme' => 'vendor_pro_manage',
@@ -160,6 +166,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       '#started_date' => $startedDate,
       '#next_billing_date' => $nextBilling,
       '#cancel_url' => $cancelUrl,
+      '#roi_summary' => $roiSummary,
       '#attached' => [
         'library' => ['myeventlane_pro/pro'],
       ],
@@ -187,7 +194,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
   /**
    * Loads the current user's active Pro subscription.
    */
-  private function loadActiveSubscription(): ?object {
+  private function loadActiveSubscription(): ?SubscriptionInterface {
     $ids = $this->entityTypeManager->getStorage('commerce_subscription')
       ->getQuery()
       ->accessCheck(FALSE)
@@ -202,9 +209,47 @@ final class ProOverviewController implements ContainerInjectionInterface {
       return NULL;
     }
 
-    return $this->entityTypeManager
+    $subscription = $this->entityTypeManager
       ->getStorage('commerce_subscription')
       ->load(reset($ids));
+
+    return $subscription instanceof SubscriptionInterface ? $subscription : NULL;
+  }
+
+  /**
+   * Builds the ROI summary for the current Pro vendor.
+   *
+   * @return array{pro_cost: float, recovered_revenue: float, roi_multiple: float}|null
+   *   ROI summary payload, or NULL when no vendor store is resolvable.
+   */
+  private function buildRoiSummary(): ?array {
+    $uid = (int) $this->currentUser->id();
+    if ($uid <= 0) {
+      return NULL;
+    }
+
+    $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    $vendorIds = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $uid)
+      ->range(0, 1)
+      ->execute();
+
+    if ($vendorIds === []) {
+      return NULL;
+    }
+
+    $vendor = $vendorStorage->load((int) reset($vendorIds));
+    if (!$vendor instanceof Vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+      return NULL;
+    }
+
+    $store = $vendor->get('field_vendor_store')->entity;
+    if (!$store || $store->id() === NULL) {
+      return NULL;
+    }
+
+    return $this->recoveryAnalyticsService->estimateProROI((int) $store->id(), 1);
   }
 
 }

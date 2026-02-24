@@ -48,6 +48,7 @@ function myeventlane_pro_theme(): array {
         'started_date' => NULL,
         'next_billing_date' => NULL,
         'cancel_url' => NULL,
+        'roi_summary' => NULL,
       ],
       'template' => 'vendor-pro-manage',
     ],
@@ -84,14 +85,17 @@ function myeventlane_pro_cron(): void {
   try {
     /** @var \Drupal\myeventlane_pro\Service\AbandonedCartScheduler $scheduler */
     $scheduler = \Drupal::service('myeventlane_pro.abandoned_cart_scheduler');
+    $scheduled = 0;
+    $enqueued = 0;
 
     // Keep scanning lightweight by running once per hour.
     $lastScan = (int) $state->get('myeventlane_pro.abandoned_cart_scan', 0);
     if ($now - $lastScan >= 3600) {
-      $scheduler->scanRecentCartsAndSchedule();
+      $scheduled = $scheduler->scanRecentCartsAndSchedule(1000);
       $state->set('myeventlane_pro.abandoned_cart_scan', $now);
     }
-    $scheduler->enqueueDueRows();
+    $enqueued = $scheduler->enqueueDueRows(1000);
+    $scheduler->logRunSummary($scheduled, $enqueued);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_pro')->error('Abandoned cart scheduler failed: @msg', [
@@ -145,6 +149,60 @@ function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variabl
   }
 
   $variables['show_pro_prompt'] = $showProPrompt;
+
+  try {
+    /** @var \Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService $analytics */
+    $analytics = \Drupal::service('myeventlane_pro.recovery_analytics');
+
+    if ($isPro) {
+      $storeId = 0;
+      $vendor = $variables['vendor'] ?? NULL;
+      if ($vendor instanceof Vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface && $store->id() !== NULL) {
+          $storeId = (int) $store->id();
+        }
+      }
+
+      if ($storeId > 0) {
+        $variables['pro_recovery_stats'] = $analytics->getStoreRecoveryStats($storeId, 30);
+        $variables['pro_recovery_roi'] = $analytics->estimateProROI($storeId, 1);
+      }
+      else {
+        $variables['pro_recovery_stats'] = [
+          'reminders_sent' => 0,
+          'recovered_orders' => 0,
+          'recovery_rate' => 0.0,
+          'recovered_revenue' => 0.0,
+          'avg_order_value' => 0.0,
+        ];
+        $variables['pro_recovery_roi'] = [
+          'pro_cost' => 49.0,
+          'recovered_revenue' => 0.0,
+          'roi_multiple' => 0.0,
+        ];
+      }
+    }
+    else {
+      $platformStats = $analytics->getPlatformRecoveryStats(30);
+      $variables['pro_recovery_locked_preview'] = $platformStats;
+    }
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->error('Failed to build vendor recovery dashboard stats: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $variables['#cache']['contexts'][] = 'user';
+  $variables['#cache']['contexts'][] = 'route';
+  $variables['#cache']['tags'][] = 'commerce_order_list';
+  $variables['#cache']['tags'][] = 'commerce_store_list';
+  $variables['#cache']['max-age'] = 300;
+
   $variables['#attached']['library'][] = 'myeventlane_pro/pro';
 }
 

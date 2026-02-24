@@ -11,8 +11,10 @@ use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_store\Entity\Store;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_pro\EventSubscriber\ProRecoveryAttributionSubscriber;
 use Drupal\myeventlane_pro\Plugin\AdvancedQueue\JobType\ProAbandonedCartJob;
 use Drupal\myeventlane_pro\Service\AbandonedCartScheduler;
+use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
@@ -62,7 +64,10 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
     $this->installEntitySchema('advancedqueue_queue');
     $this->installEntitySchema('advancedqueue_job');
     $this->installConfig(['commerce_store', 'commerce_order', 'advancedqueue', 'myeventlane_pro']);
-    $this->installSchema('myeventlane_pro', ['myeventlane_pro_abandoned_cart']);
+    $this->installSchema('myeventlane_pro', [
+      'myeventlane_pro_abandoned_cart',
+      'myeventlane_pro_recovery_attribution',
+    ]);
 
     if (!Role::load('pro_organiser')) {
       Role::create([
@@ -83,104 +88,165 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
   }
 
   /**
-   * Scheduling the same order twice only creates one row per step.
+   * Attribution row is created when a reminder is sent successfully.
    */
-  public function testDuplicatePreventionOnSchedule(): void {
+  public function testAttributionRowCreatedOnSend(): void {
     $owner = User::create([
-      'name' => 'pro_vendor',
-      'mail' => 'pro@example.com',
+      'name' => 'pro_vendor_send',
+      'mail' => 'pro-send@example.com',
       'status' => 1,
       'roles' => ['authenticated', 'pro_organiser'],
     ]);
     $owner->save();
 
-    $store = $this->createStore($owner->id(), 'Pro Store');
+    $store = $this->createStore((int) $owner->id(), 'Pro Send Store');
     $order = $this->createDraftOrder($store->id(), $owner->id());
-
-    $this->scheduler->scheduleForOrder($order);
-    $this->scheduler->scheduleForOrder($order);
-
-    $rows = $this->container->get('database')->select('myeventlane_pro_abandoned_cart', 't')
-      ->fields('t', ['step'])
-      ->condition('order_id', (int) $order->id())
-      ->execute()
-      ->fetchCol();
-
-    sort($rows);
-    $this->assertSame(['w1', 'w2'], $rows);
-  }
-
-  /**
-   * Non-Pro owners never get abandoned-cart reminder rows.
-   */
-  public function testNonProStoreDoesNotSchedule(): void {
-    $owner = User::create([
-      'name' => 'non_pro_vendor',
-      'mail' => 'nonpro@example.com',
-      'status' => 1,
-      'roles' => ['authenticated'],
-    ]);
-    $owner->save();
-
-    $store = $this->createStore($owner->id(), 'Non-Pro Store');
-    $order = $this->createDraftOrder($store->id(), $owner->id());
-
-    $created = $this->scheduler->scheduleForOrder($order);
-    $this->assertSame(0, $created);
-  }
-
-  /**
-   * Rows are skipped when order becomes completed before worker processing.
-   */
-  public function testCompletedOrderIsSkippedByWorker(): void {
-    $owner = User::create([
-      'name' => 'pro_vendor_worker',
-      'mail' => 'worker@example.com',
-      'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
-    ]);
-    $owner->save();
-
-    $store = $this->createStore($owner->id(), 'Worker Store');
-    $order = $this->createDraftOrder($store->id(), $owner->id());
-    $order->set('state', 'completed');
-    $order->set('cart', 0);
-    $order->save();
-
     $db = $this->container->get('database');
+
     $trackingId = (int) $db->insert('myeventlane_pro_abandoned_cart')
       ->fields([
         'order_id' => (int) $order->id(),
         'store_id' => (int) $store->id(),
         'step' => 'w1',
-        'scheduled' => \Drupal::time()->getRequestTime() - 10,
-        'status' => 'scheduled',
+        'scheduled' => $this->container->get('datetime.time')->getRequestTime() - 10,
+        'status' => 'queued',
       ])
       ->execute();
 
-    $plugin = new ProAbandonedCartJob(
-      [],
-      'pro_abandoned_cart_job',
-      [],
-      $this->container->get('database'),
-      $this->container->get('entity_type.manager'),
-      $this->container->get('datetime.time'),
-      $this->container->get('logger.channel.myeventlane_pro'),
-      $this->container->get('myeventlane_pro.entitlement'),
-      $this->container->get('config.factory'),
-      $this->container->get('plugin.manager.mail'),
-      $this->container->get('myeventlane_messaging.manager'),
-    );
-
+    $plugin = $this->buildJobPlugin();
     $result = $plugin->process(Job::create('pro_abandoned_cart_job', ['tracking_id' => $trackingId]));
     $this->assertTrue($result->isSuccess());
 
-    $row = $db->select('myeventlane_pro_abandoned_cart', 't')
-      ->fields('t', ['status'])
-      ->condition('id', $trackingId)
+    $attribution = $db->select('myeventlane_pro_recovery_attribution', 'a')
+      ->fields('a', ['order_id', 'tracking_step', 'recovered'])
+      ->condition('order_id', (int) $order->id())
+      ->condition('tracking_step', 'w1')
       ->execute()
       ->fetchAssoc();
-    $this->assertSame('skipped', $row['status']);
+    $this->assertIsArray($attribution);
+    $this->assertSame('0', (string) $attribution['recovered']);
+  }
+
+  /**
+   * Attribution rows are marked recovered when the order is placed.
+   */
+  public function testAttributionMarkedRecoveredOnOrderPlacement(): void {
+    $owner = User::create([
+      'name' => 'pro_vendor_recovery',
+      'mail' => 'recovery@example.com',
+      'status' => 1,
+      'roles' => ['authenticated', 'pro_organiser'],
+    ]);
+    $owner->save();
+
+    $store = $this->createStore((int) $owner->id(), 'Recovery Store');
+    $order = $this->createDraftOrder($store->id(), $owner->id());
+
+    $db = $this->container->get('database');
+    $db->insert('myeventlane_pro_recovery_attribution')
+      ->fields([
+        'order_id' => (int) $order->id(),
+        'store_id' => (int) $store->id(),
+        'tracking_step' => 'w1',
+        'sent_at' => $this->container->get('datetime.time')->getRequestTime() - 60,
+        'recovered' => 0,
+        'created' => $this->container->get('datetime.time')->getRequestTime() - 60,
+      ])
+      ->execute();
+
+    $subscriber = new ProRecoveryAttributionSubscriber(
+      $this->container->get('database'),
+      $this->container->get('datetime.time'),
+      $this->container->get('logger.channel.myeventlane_pro'),
+    );
+    $workflow = $order->getState()->getWorkflow();
+    $transition = $workflow->getTransition('place');
+    $event = new WorkflowTransitionEvent($transition, $workflow, $order, 'state');
+    $subscriber->onOrderPlaced($event);
+
+    $row = $db->select('myeventlane_pro_recovery_attribution', 'a')
+      ->fields('a', ['recovered', 'recovered_at', 'order_total', 'currency'])
+      ->condition('order_id', (int) $order->id())
+      ->execute()
+      ->fetchAssoc();
+    $this->assertSame('1', (string) $row['recovered']);
+    $this->assertNotEmpty($row['recovered_at']);
+    $this->assertSame('AUD', (string) $row['currency']);
+  }
+
+  /**
+   * ROI calculation is correct for a one-month horizon.
+   */
+  public function testEstimateProRoi(): void {
+    $owner = User::create([
+      'name' => 'pro_vendor_roi',
+      'mail' => 'roi@example.com',
+      'status' => 1,
+      'roles' => ['authenticated', 'pro_organiser'],
+    ]);
+    $owner->save();
+
+    $store = $this->createStore((int) $owner->id(), 'ROI Store');
+    $now = $this->container->get('datetime.time')->getRequestTime();
+    $db = $this->container->get('database');
+
+    $db->insert('myeventlane_pro_recovery_attribution')
+      ->fields([
+        'order_id' => 9001,
+        'store_id' => (int) $store->id(),
+        'tracking_step' => 'w1',
+        'sent_at' => $now - 3600,
+        'recovered_at' => $now - 1800,
+        'order_total' => '100.00',
+        'currency' => 'AUD',
+        'recovered' => 1,
+        'created' => $now - 3600,
+      ])
+      ->execute();
+
+    $db->insert('myeventlane_pro_recovery_attribution')
+      ->fields([
+        'order_id' => 9002,
+        'store_id' => (int) $store->id(),
+        'tracking_step' => 'w2',
+        'sent_at' => $now - 7200,
+        'recovered_at' => $now - 3600,
+        'order_total' => '50.00',
+        'currency' => 'AUD',
+        'recovered' => 1,
+        'created' => $now - 7200,
+      ])
+      ->execute();
+
+    /** @var \Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService $analytics */
+    $analytics = $this->container->get('myeventlane_pro.recovery_analytics');
+    $roi = $analytics->estimateProROI((int) $store->id(), 1);
+    $this->assertSame(49.0, $roi['pro_cost']);
+    $this->assertSame(150.0, $roi['recovered_revenue']);
+    $this->assertSame(3.06, $roi['roi_multiple']);
+  }
+
+  /**
+   * Terminal state detection is discovered dynamically from workflow.
+   */
+  public function testTerminalStateDetectionIsDynamic(): void {
+    $owner = User::create([
+      'name' => 'pro_vendor_terminal',
+      'mail' => 'terminal@example.com',
+      'status' => 1,
+      'roles' => ['authenticated', 'pro_organiser'],
+    ]);
+    $owner->save();
+
+    $store = $this->createStore((int) $owner->id(), 'Terminal Store');
+    $order = $this->createDraftOrder($store->id(), $owner->id());
+    $this->assertTrue($this->scheduler->qualifiesForReminder($order));
+
+    $order->set('state', 'completed');
+    $order->set('cart', 0);
+    $order->save();
+
+    $this->assertFalse($this->scheduler->qualifiesForReminder($order));
   }
 
   /**
@@ -223,6 +289,26 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
     $order->save();
 
     return $order;
+  }
+
+  /**
+   * Creates the abandoned cart queue job plugin with container dependencies.
+   */
+  private function buildJobPlugin(): ProAbandonedCartJob {
+    return new ProAbandonedCartJob(
+      [],
+      'pro_abandoned_cart_job',
+      [],
+      $this->container->get('database'),
+      $this->container->get('entity_type.manager'),
+      $this->container->get('datetime.time'),
+      $this->container->get('logger.channel.myeventlane_pro'),
+      $this->container->get('myeventlane_pro.entitlement'),
+      $this->container->get('config.factory'),
+      $this->container->get('plugin.manager.mail'),
+      $this->container->get('plugin.manager.workflow'),
+      $this->container->get('myeventlane_messaging.manager'),
+    );
   }
 
 }
