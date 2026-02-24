@@ -6,6 +6,7 @@ backend_configuration:
 processor: cron
 processing_time: 90
 threshold:
+  type: 0
   state: failure
   limit: 500
 locked: false
