@@ -175,6 +175,7 @@ final class VendorCancelEventForm extends FormBase {
       $queue->createItem([
         'event_id' => $event->id(),
         'vendor_uid' => $this->currentUser()->id(),
+        'last_processed_order_item_id' => 0,
       ]);
     }
 

@@ -9,6 +9,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,6 +34,8 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
    *   The mail manager.
    * @param \Drupal\myeventlane_boost\BoostManager $boostManager
    *   The boost manager.
+   * @param \Drupal\myeventlane_boost\Service\BoostEntitlementManager $entitlementManager
+   *   The entitlement manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -40,6 +43,7 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
     private readonly LoggerInterface $logger,
     private readonly MailManagerInterface $mailManager,
     private readonly BoostManager $boostManager,
+    private readonly BoostEntitlementManager $entitlementManager,
   ) {}
 
   /**
@@ -52,6 +56,7 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       $container->get('logger.channel.myeventlane_boost'),
       $container->get('plugin.manager.mail'),
       $container->get('myeventlane_boost.manager'),
+      $container->get('myeventlane_boost.entitlement_manager'),
     );
   }
 
@@ -74,17 +79,11 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
     /** @var \Drupal\node\NodeInterface[] $nodes */
     $nodeStorage = $this->entityTypeManager->getStorage('node');
     $nodes = $nodeStorage->loadMultiple($nids);
-    $count = 0;
 
+    $count = $this->entitlementManager->expireEndedEntitlements();
     foreach ($nodes as $node) {
-      // Clear boost status.
-      $node->set('field_promoted', 0);
-      $node->set('field_promo_expires', NULL);
-      $node->save();
-
       // Notify vendor.
       $this->notifyVendor($node);
-      $count++;
     }
 
     if ($count > 0) {

@@ -1,0 +1,10 @@
+uuid: 9699b589-e6e2-4f66-8872-1ecef87059c2
+langcode: en
+status: true
+dependencies: {  }
+id: boost_upgrade
+label: 'Boost Upgrade'
+traits: {  }
+locked: false
+orderItemType: default
+generateTitle: true

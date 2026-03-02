@@ -1,0 +1,14 @@
+enabled: true
+subject: "Reminder: your Pro payment is still due"
+preheader: "Please update your payment method to avoid suspension."
+body_html: |
+  <p>Hi {{ first_name|default('there') }},</p>
+  <p>This is a reminder that your Pro subscription payment is still outstanding.</p>
+  <p>Update your payment method as soon as possible to prevent service interruption.</p>
+  <p>We are still holding your Pro access during grace period.</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: lifecycle
+    utm_campaign: pro_payment_failed_day_3

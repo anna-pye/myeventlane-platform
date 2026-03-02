@@ -21,6 +21,7 @@ use Drupal\myeventlane_pro\Form\ProSubscribeForm;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
 use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -132,9 +133,9 @@ final class ProOverviewController implements ContainerInjectionInterface {
   public function manage(): RedirectResponse|array {
     $overviewUrl = Url::fromRoute('myeventlane_pro.overview')->toString();
 
-    $subscription = $this->loadActiveSubscription();
+    $subscription = $this->loadLatestSubscription();
     if (!$subscription) {
-      $this->messenger->addWarning($this->t('No active Pro subscription found.'));
+      $this->messenger->addWarning($this->t('No Pro subscription found.'));
       return new RedirectResponse($overviewUrl);
     }
 
@@ -142,10 +143,16 @@ final class ProOverviewController implements ContainerInjectionInterface {
     $statusLabel = ucfirst($state->getLabel() ?? $state->getId());
 
     $nextBilling = NULL;
+    $renewalInDays = NULL;
     if (method_exists($subscription, 'getNextRenewalTime')) {
       $timestamp = $subscription->getNextRenewalTime();
       if ($timestamp) {
-        $nextBilling = date('F j, Y', (int) $timestamp);
+        $renewalTimestamp = (int) $timestamp;
+        $nextBilling = date('F j, Y', $renewalTimestamp);
+        $delta = $renewalTimestamp - time();
+        if ($delta > 0) {
+          $renewalInDays = (int) ceil($delta / 86400);
+        }
       }
     }
 
@@ -159,12 +166,15 @@ final class ProOverviewController implements ContainerInjectionInterface {
 
     $cancelUrl = Url::fromRoute('myeventlane_pro.cancel')->toString();
     $roiSummary = $this->buildRoiSummary();
+    $graceDaysRemaining = $this->resolveGraceDaysRemaining();
 
     return [
       '#theme' => 'vendor_pro_manage',
       '#subscription_status' => $statusLabel,
       '#started_date' => $startedDate,
       '#next_billing_date' => $nextBilling,
+      '#renewal_in_days' => $renewalInDays,
+      '#grace_days_remaining' => $graceDaysRemaining,
       '#cancel_url' => $cancelUrl,
       '#roi_summary' => $roiSummary,
       '#attached' => [
@@ -194,13 +204,12 @@ final class ProOverviewController implements ContainerInjectionInterface {
   /**
    * Loads the current user's active Pro subscription.
    */
-  private function loadActiveSubscription(): ?SubscriptionInterface {
+  private function loadLatestSubscription(): ?SubscriptionInterface {
     $ids = $this->entityTypeManager->getStorage('commerce_subscription')
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', $this->currentUser->id())
       ->condition('billing_schedule', self::BILLING_SCHEDULE)
-      ->condition('state', 'active')
       ->sort('subscription_id', 'DESC')
       ->range(0, 1)
       ->execute();
@@ -214,6 +223,28 @@ final class ProOverviewController implements ContainerInjectionInterface {
       ->load(reset($ids));
 
     return $subscription instanceof SubscriptionInterface ? $subscription : NULL;
+  }
+
+  /**
+   * Resolves days remaining in grace period for current user.
+   */
+  private function resolveGraceDaysRemaining(): ?int {
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    if (!$user instanceof UserInterface || !$user->hasField('field_pro_grace_expires')) {
+      return NULL;
+    }
+
+    $expiry = (int) ($user->get('field_pro_grace_expires')->value ?? 0);
+    if ($expiry <= 0) {
+      return NULL;
+    }
+
+    $remaining = $expiry - time();
+    if ($remaining <= 0) {
+      return 0;
+    }
+
+    return (int) ceil($remaining / 86400);
   }
 
   /**

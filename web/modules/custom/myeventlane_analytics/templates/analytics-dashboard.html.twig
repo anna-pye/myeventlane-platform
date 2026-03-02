@@ -6,13 +6,15 @@
  * Available variables:
  * - summary_stats: Summary statistics across all events.
  * - event_analytics: Array of event analytics data.
+ * - is_pro: Whether the user has Pro access (injected by myeventlane_pro).
+ * - pro_upgrade_url: URL to Pro overview (injected by myeventlane_pro).
  */
 #}
 <div class="mel-analytics-dashboard">
 
   <h1 class="mel-analytics-title">{{ 'Analytics Dashboard'|t }}</h1>
 
-  {# Summary Cards #}
+  {# Summary Cards — always visible #}
   <div class="mel-analytics-summary" style="
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -50,50 +52,66 @@
     </div>
   </div>
 
-  {# Events List #}
-  <section class="mel-analytics-events" aria-labelledby="events-analytics-title">
-    <h2 id="events-analytics-title" class="mel-section-title">{{ 'Event Analytics'|t }}</h2>
+  {# Detailed analytics — locked behind Pro #}
+  <div class="mel-analytics-lock-wrapper{% if is_pro is defined and not is_pro %} mel-analytics-lock-wrapper--locked{% endif %}">
 
-    {% if event_analytics is not empty %}
-      <div class="mel-analytics-events-table">
-        <table class="mel-table" style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background-color: #f5f5f5;">
-              <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #ddd;">{{ 'Event'|t }}</th>
-              <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Tickets Sold'|t }}</th>
-              <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Revenue'|t }}</th>
-              <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #ddd;">{{ 'Actions'|t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in event_analytics %}
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 1rem;">
-                  <a href="{{ item.url }}" style="font-weight: 600; color: #007bff; text-decoration: none;">{{ item.event.label }}</a>
-                </td>
-                <td style="padding: 1rem; text-align: right;">{{ item.tickets }}</td>
-                <td style="padding: 1rem; text-align: right; font-weight: 600; color: #28a745;">${{ item.revenue|number_format(2) }}</td>
-                <td style="padding: 1rem; text-align: center;">
-                  <a href="{{ item.analytics_url }}" class="mel-btn mel-btn-primary mel-btn-sm">{{ 'View Analytics'|t }}</a>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="mel-analytics-empty" style="
-        text-align: center;
-        padding: 3rem;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      ">
-        <p style="color: #666; font-size: 1.1rem;">{{ 'No events with analytics data yet.'|t }}</p>
-        <p style="color: #999; margin-top: 0.5rem;">{{ 'Create an event and start selling tickets to see analytics.'|t }}</p>
+    {% if is_pro is defined and not is_pro %}
+      <div class="mel-analytics-lock-overlay">
+        <h2 class="mel-analytics-lock-overlay__title">{{ 'Unlock Full Analytics'|t }}</h2>
+        <p class="mel-analytics-lock-overlay__text">{{ 'Upgrade to Pro for advanced analytics, conversion funnels, and detailed per-event insights.'|t }}</p>
+        {% if pro_upgrade_url is defined and pro_upgrade_url %}
+          <a href="{{ pro_upgrade_url }}" class="mel-pro-upgrade-btn">{{ 'Upgrade to unlock full analytics'|t }}</a>
+        {% endif %}
       </div>
     {% endif %}
-  </section>
+
+    <div class="mel-analytics-lock-content">
+      <section class="mel-analytics-events" aria-labelledby="events-analytics-title">
+        <h2 id="events-analytics-title" class="mel-section-title">{{ 'Event Analytics'|t }}</h2>
+
+        {% if event_analytics is not empty %}
+          <div class="mel-analytics-events-table">
+            <table class="mel-table" style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #f5f5f5;">
+                  <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #ddd;">{{ 'Event'|t }}</th>
+                  <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Tickets Sold'|t }}</th>
+                  <th style="padding: 1rem; text-align: right; border-bottom: 2px solid #ddd;">{{ 'Revenue'|t }}</th>
+                  <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #ddd;">{{ 'Actions'|t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in event_analytics %}
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 1rem;">
+                      <a href="{{ item.url }}" style="font-weight: 600; color: #007bff; text-decoration: none;">{{ item.event.label }}</a>
+                    </td>
+                    <td style="padding: 1rem; text-align: right;">{{ item.tickets }}</td>
+                    <td style="padding: 1rem; text-align: right; font-weight: 600; color: #28a745;">${{ item.revenue|number_format(2) }}</td>
+                    <td style="padding: 1rem; text-align: center;">
+                      <a href="{{ item.analytics_url }}" class="mel-btn mel-btn-primary mel-btn-sm">{{ 'View Analytics'|t }}</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="mel-analytics-empty" style="
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          ">
+            <p style="color: #666; font-size: 1.1rem;">{{ 'No events with analytics data yet.'|t }}</p>
+            <p style="color: #999; margin-top: 0.5rem;">{{ 'Create an event and start selling tickets to see analytics.'|t }}</p>
+          </div>
+        {% endif %}
+      </section>
+    </div>
+
+  </div>
 
 </div>
 

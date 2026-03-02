@@ -12,7 +12,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -129,7 +131,8 @@ final class BoostController extends ControllerBase {
       ]);
     }
 
-    $form = $this->formBuilder->getForm(BoostSelectForm::class, $node);
+    $showStripeCta = !$this->currentUser()->hasPermission('administer myeventlane')
+      && !$this->checkStripeConnection($this->currentUser());
 
     $cancelLink = Link::fromTextAndUrl(
       $this->t('Cancel'),
@@ -174,7 +177,7 @@ final class BoostController extends ControllerBase {
       'card' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['boost-card']],
-        'form' => $form,
+        'body' => $showStripeCta ? $this->buildStripeConnectCta() : $this->formBuilder->getForm(BoostSelectForm::class, $node),
         'footer' => [
           '#type' => 'container',
           '#attributes' => ['class' => ['boost-footer']],
@@ -183,6 +186,10 @@ final class BoostController extends ControllerBase {
       ],
       '#attached' => [
         'library' => ['myeventlane_boost/boost'],
+      ],
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'tags' => $node->getCacheTags(),
       ],
     ];
   }
@@ -198,6 +205,108 @@ final class BoostController extends ControllerBase {
    */
   public function bridgeAddToCart(NodeInterface $node): array {
     return $this->build($node);
+  }
+
+  /**
+   * Builds the Stripe connection CTA for boost page.
+   *
+   * @return array
+   *   A render array with CTA content.
+   */
+  private function buildStripeConnectCta(): array {
+    $connectUrl = '/vendor/payouts';
+
+    try {
+      $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => ['destination' => '/vendor/boost'],
+      ])->toString();
+    }
+    catch (\Exception) {
+      // Fallback path retained when route is not available.
+    }
+
+    $connectLink = Link::fromTextAndUrl(
+      $this->t('Connect Stripe to Boost'),
+      Url::fromUri('internal:' . $connectUrl)
+    )->toRenderable();
+    $connectLink['#attributes']['class'][] = 'button';
+    $connectLink['#attributes']['class'][] = 'button--primary';
+    $connectLink['#attributes']['class'][] = 'boost-connect-stripe';
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['boost-stripe-cta']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Connect Stripe to Boost'),
+        '#attributes' => ['class' => ['boost-stripe-cta__title']],
+      ],
+      'text' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('You need a connected Stripe account before purchasing a boost for your event.'),
+        '#attributes' => ['class' => ['boost-stripe-cta__text']],
+      ],
+      'action' => $connectLink,
+    ];
+  }
+
+  /**
+   * Checks if user has Stripe Connect account configured.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The user account.
+   *
+   * @return bool
+   *   TRUE if Stripe is connected, FALSE otherwise.
+   */
+  private function checkStripeConnection(AccountInterface $account): bool {
+    $userId = (int) $account->id();
+    if ($userId === 0) {
+      return FALSE;
+    }
+
+    try {
+      $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
+      $storeIds = $storeStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $userId)
+        ->range(0, 1)
+        ->execute();
+
+      if (!empty($storeIds)) {
+        $store = $storeStorage->load(reset($storeIds));
+        if ($store && $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
+          if ($store->hasField('field_stripe_connected')) {
+            return (bool) $store->get('field_stripe_connected')->value;
+          }
+          return !empty($store->get('field_stripe_account_id')->value);
+        }
+      }
+
+      $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $vendorIds = $vendorStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $userId)
+        ->range(0, 1)
+        ->execute();
+
+      if (!empty($vendorIds)) {
+        $vendor = $vendorStorage->load(reset($vendorIds));
+        if ($vendor && $vendor->hasField('field_stripe_account_id') && !$vendor->get('field_stripe_account_id')->isEmpty()) {
+          return TRUE;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->getLogger('myeventlane_boost')->warning('Error checking Stripe connection for user @uid: @message', [
+        '@uid' => $userId,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return FALSE;
   }
 
 }

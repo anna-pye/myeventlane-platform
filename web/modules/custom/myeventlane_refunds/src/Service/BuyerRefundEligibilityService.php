@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_refunds\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 
@@ -40,6 +41,7 @@ final class BuyerRefundEligibilityService {
    */
   public function __construct(
     private readonly RefundOrderInspector $orderInspector,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -185,14 +187,17 @@ final class BuyerRefundEligibilityService {
       if (!$eventStart) {
         return FALSE;
       }
-      $eventStartTs = $eventStart->getTimestamp();
+      $eventStartUtc = clone $eventStart;
+      $eventStartUtc->setTimezone(new \DateTimeZone('UTC'));
+      $cutoffDate = clone $eventStartUtc;
+      $cutoffDate->modify('-' . $days . ' days');
+      $cutoffDate->setTime(0, 0, 0);
     }
     catch (\Exception $e) {
       return FALSE;
     }
 
-    $cutoffTs = $eventStartTs - ($days * 86400);
-    return time() < $cutoffTs;
+    return $this->time->getRequestTime() < $cutoffDate->getTimestamp();
   }
 
 }

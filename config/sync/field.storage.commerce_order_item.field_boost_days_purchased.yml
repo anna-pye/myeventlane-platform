@@ -1,0 +1,20 @@
+uuid: 5ae0537f-f71b-4f60-8f3b-128e54170861
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_order
+id: commerce_order_item.field_boost_days_purchased
+field_name: field_boost_days_purchased
+entity_type: commerce_order_item
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

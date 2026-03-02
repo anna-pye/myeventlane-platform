@@ -362,7 +362,7 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $currency = (string) $query->currency;
     $currency_lower = strtolower($currency);
 
-    // Build a unique set of (order_id, event_id) pairs that exist on ANY
+    // Build a unique set of (order_id, event_id) pairs that exist on any
     // order item with field_target_event.
     $any_items = $connection->select('commerce_order_item', 'oi_any');
     $any_items->join('commerce_order_item__field_target_event', 'lnk_any', 'lnk_any.entity_id = oi_any.order_item_id');
@@ -370,18 +370,24 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $any_items->addField('lnk_any', 'field_target_event_target_id', 'event_id');
     $any_items->distinct();
 
-    // Build a unique set of (order_id, event_id) pairs for QUALIFYING ticket
-    // order items (paid, non-boost).
-    $ticket_items = $connection->select('commerce_order_item', 'oi');
-    $ticket_items->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
-    $ticket_items->addField('oi', 'order_id', 'order_id');
-    $ticket_items->addField('lnk', 'field_target_event_target_id', 'event_id');
-    $ticket_items->condition('oi.unit_price__number', '0', '>');
-    $ticket_items->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
-    $ticket_items->distinct();
+    // Ticket subtotal per (order_id, event_id) for paid, non-excluded items.
+    $ticket_subtotals = $connection->select('commerce_order_item', 'oi');
+    $ticket_subtotals->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $ticket_subtotals->join('commerce_order', 'o_t', 'o_t.order_id = oi.order_id');
+    $ticket_subtotals->addField('oi', 'order_id', 'order_id');
+    $ticket_subtotals->addField('lnk', 'field_target_event_target_id', 'event_id');
+    $ticket_subtotals->addExpression('COALESCE(SUM(CAST(oi.unit_price__number * oi.quantity * 100 AS DECIMAL(20,0))), 0)', 'ticket_subtotal_cents');
+    $ticket_subtotals->condition('o_t.state', 'completed');
+    $ticket_subtotals->condition('o_t.placed', $start, '>=');
+    $ticket_subtotals->condition('o_t.placed', $end, '<=');
+    $ticket_subtotals->condition('oi.unit_price__number', '0', '>');
+    $ticket_subtotals->condition('oi.unit_price__currency_code', $currency);
+    $ticket_subtotals->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
+    $ticket_subtotals->groupBy('oi.order_id');
+    $ticket_subtotals->groupBy('lnk.field_target_event_target_id');
 
-    // Fail-closed if there are completed refund rows in scope that cannot be
-    // linked to ANY order item for the given (order_id, event_id).
+    // Fail-closed if includable refund rows cannot be linked to any order item
+    // for the given (order_id, event_id).
     $unlinked = $connection->select('myeventlane_refund_log', 'r');
     $unlinked->join('commerce_order', 'o', 'o.order_id = r.order_id');
     $unlinked->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
@@ -393,18 +399,19 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $unlinked->condition('o.placed', $start, '>=');
     $unlinked->condition('o.placed', $end, '<=');
     $unlinked->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
+    $unlinked->condition('r.refund_scope', 'donation_only', '<>');
     $unlinked->isNull('any.order_id');
     $unlinked_count = (int) $unlinked->execute()->fetchField();
     if ($unlinked_count > 0) {
       throw new InvariantViolationException('Refund rows exist without valid order-item linkage.');
     }
 
-    // Fail-closed if any includable refund rows exist in the scope/window with a
-    // currency other than the requested currency (prevents accidental mixing).
+    // Fail-closed if any includable refund rows in scope/window have a
+    // currency other than the requested currency.
     $currency_mismatch = $connection->select('myeventlane_refund_log', 'r');
     $currency_mismatch->join('commerce_order', 'o', 'o.order_id = r.order_id');
     $currency_mismatch->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
-    $currency_mismatch->join($ticket_items, 't', 't.order_id = r.order_id AND t.event_id = r.event_id');
+    $currency_mismatch->leftJoin($ticket_subtotals, 'ts', 'ts.order_id = r.order_id AND ts.event_id = r.event_id');
     $currency_mismatch->addExpression('COUNT(r.id)', 'cnt');
     $currency_mismatch->condition('r.status', 'completed');
     $currency_mismatch->condition('r.amount_cents', 0, '>');
@@ -412,6 +419,8 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     $currency_mismatch->condition('o.placed', $start, '>=');
     $currency_mismatch->condition('o.placed', $end, '<=');
     $currency_mismatch->condition('nes.field_event_store_target_id', $effective_store_ids, 'IN');
+    $currency_mismatch->condition('r.refund_scope', 'donation_only', '<>');
+    $currency_mismatch->isNotNull('ts.order_id');
     $currency_mismatch->where('r.currency IS NULL OR LOWER(r.currency) <> :currency', [
       ':currency' => $currency_lower,
     ]);
@@ -421,20 +430,26 @@ final class AnalyticsQueryService implements AnalyticsQueryServiceInterface {
     }
 
     // Refund Amount (locked definition):
-    // - Sum completed refund amounts (positive cents)
-    // - Completed orders only
-    // - Event-linked refunds only (validated via ANY + ticket linkage)
-    // - Allocate by order-item -> event -> store (event store field)
-    // - Single currency per call
-    // - Grouped by store_id + event_id + currency
+    // - donation_only contributes 0
+    // - donation_refunded=1 is capped to ticket subtotal for the same order+event
+    // - otherwise refund contributes full amount_cents
+    // - grouped by store_id + event_id + currency
     $q = $connection->select('myeventlane_refund_log', 'r');
     $q->join('commerce_order', 'o', 'o.order_id = r.order_id');
     $q->join('node__field_event_store', 'nes', 'nes.entity_id = r.event_id');
-    $q->join($ticket_items, 't', 't.order_id = r.order_id AND t.event_id = r.event_id');
+    $q->leftJoin($ticket_subtotals, 'ts', 'ts.order_id = r.order_id AND ts.event_id = r.event_id');
 
     $q->addField('nes', 'field_event_store_target_id', 'store_id');
     $q->addField('r', 'event_id', 'event_id');
-    $q->addExpression('COALESCE(SUM(r.amount_cents), 0)', 'amount_cents');
+    $q->addExpression("
+      COALESCE(SUM(
+        CASE
+          WHEN r.refund_scope = 'donation_only' THEN 0
+          WHEN r.donation_refunded = 1 THEN LEAST(r.amount_cents, COALESCE(ts.ticket_subtotal_cents, 0))
+          ELSE r.amount_cents
+        END
+      ), 0)
+    ", 'amount_cents');
 
     $q->condition('r.status', 'completed');
     $q->condition('r.amount_cents', 0, '>');

@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_pro_grace_expires
+  module:
+    - myeventlane_pro
+    - user
+id: user.user.field_pro_grace_expires
+field_name: field_pro_grace_expires
+entity_type: user
+bundle: user
+label: 'Pro grace expiry'
+description: 'Internal timestamp for Pro subscription grace expiry.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

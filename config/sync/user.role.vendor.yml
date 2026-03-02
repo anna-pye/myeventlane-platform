@@ -24,6 +24,7 @@ dependencies:
     - myeventlane_dashboard
     - myeventlane_donations
     - myeventlane_escalations_portal
+    - myeventlane_escalations_refunds
     - myeventlane_event_attendees
     - myeventlane_event_state
     - myeventlane_finance
@@ -83,6 +84,7 @@ permissions:
   - 'edit own comments'
   - 'edit own event content'
   - 'manage boost commerce_order_item'
+  - 'manage checkout_donation commerce_order_item'
   - 'manage default commerce_order_item'
   - 'manage own commerce_payment_method'
   - 'manage own event attendees'
@@ -119,3 +121,4 @@ permissions:
   - 'view user email addresses'
   - 'view vendor bas reports'
   - 'view vendor escalations'
+  - 'view vendor refund summary'

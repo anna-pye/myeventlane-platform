@@ -22,13 +22,22 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@datetime.time'
+      - '@myeventlane_boost.entitlement_manager'
+      - '@logger.channel.myeventlane_boost'
+
+  # Auditable boost entitlement lifecycle manager.
+  myeventlane_boost.entitlement_manager:
+    class: Drupal\myeventlane_boost\Service\BoostEntitlementManager
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
       - '@logger.channel.myeventlane_boost'
 
   # Order/checkout event subscriber for applying boosts on payment.
   myeventlane_boost.order_subscriber:
     class: Drupal\myeventlane_boost\EventSubscriber\BoostOrderSubscriber
     arguments:
-      - '@myeventlane_boost.manager'
+      - '@myeventlane_boost.entitlement_manager'
       - '@logger.channel.myeventlane_boost'
       - '@request_stack'
     tags:
@@ -38,15 +47,35 @@ services:
   myeventlane_boost.refund_subscriber:
     class: Drupal\myeventlane_boost\EventSubscriber\BoostRefundSubscriber
     arguments:
-      - '@entity_type.manager'
+      - '@myeventlane_boost.entitlement_manager'
       - '@logger.channel.myeventlane_boost'
     tags:
       - { name: event_subscriber }
 
-  # Access check for boost routes.
-  myeventlane_boost.boost_route_access:
+  # Access check coordinator for boost routes.
+  myeventlane_boost.access:
     class: Drupal\myeventlane_boost\Access\BoostRouteAccess
-    arguments: ['@entity_type.manager', '@logger.channel.myeventlane_boost']
+    arguments:
+      - '@myeventlane_boost.stripe_checker'
+      - '@logger.channel.myeventlane_boost'
+
+  # Backward-compatible alias for existing route requirement IDs.
+  myeventlane_boost.boost_route_access:
+    alias: myeventlane_boost.access
+
+  # Stripe connectivity checker for vendors/stores.
+  myeventlane_boost.stripe_checker:
+    class: Drupal\myeventlane_boost\Service\StripeChecker
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_boost'
+
+  # Resolver for published boost product variations.
+  myeventlane_boost.boost_variation_resolver:
+    class: Drupal\myeventlane_boost\Service\BoostVariationResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_boost'
 
   # Boost metrics service.
   myeventlane_boost.metrics:

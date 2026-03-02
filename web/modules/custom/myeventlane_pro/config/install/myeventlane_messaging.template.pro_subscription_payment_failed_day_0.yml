@@ -1,0 +1,14 @@
+enabled: true
+subject: "Payment failed for your Pro subscription"
+preheader: "Update your card to keep Pro features active."
+body_html: |
+  <p>Hi {{ first_name|default('there') }},</p>
+  <p>We could not process your latest Pro subscription payment.</p>
+  <p>Please update your payment method now to keep Pro active without interruption.</p>
+  <p>You still have a grace period before access changes.</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: lifecycle
+    utm_campaign: pro_payment_failed_day_0

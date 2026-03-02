@@ -11,6 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
+use Drupal\myeventlane_messaging\Service\BrandResolverInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -79,7 +80,7 @@ final class MessagingManager {
    *   The delivery provider manager.
    * @param \Drupal\myeventlane_messaging\Service\UtmLinker|null $utmLinker
    *   Optional UTM linker (may be NULL if not yet in container).
-   * @param \Drupal\myeventlane_messaging\Service\VendorBrandResolver|null $vendorBrandResolver
+   * @param \Drupal\myeventlane_messaging\Service\BrandResolverInterface|null $vendorBrandResolver
    *   Optional vendor brand resolver (may be NULL if not yet in container).
    */
   public function __construct(
@@ -92,7 +93,7 @@ final class MessagingManager {
     private readonly MessagePreferenceStorage $preferenceStorage,
     private readonly DeliveryProviderManager $deliveryProviderManager,
     private readonly ?UtmLinker $utmLinker = NULL,
-    private readonly ?VendorBrandResolver $vendorBrandResolver = NULL,
+    private readonly ?BrandResolverInterface $vendorBrandResolver = NULL,
   ) {}
 
   /**

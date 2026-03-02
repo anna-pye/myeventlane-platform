@@ -7,8 +7,10 @@ namespace Drupal\myeventlane_pro\EventSubscriber;
 use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\commerce_recurring\Event\RecurringEvents;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
+use Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver;
 use Drupal\user\UserInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -21,8 +23,12 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 final class ProSubscriptionSubscriber implements EventSubscriberInterface {
 
+  private const GRACE_SECONDS = 604800;
+
   public function __construct(
     private readonly ProEntitlementReconciler $reconciler,
+    private readonly ProSubscriptionStateResolver $stateResolver,
+    private readonly TimeInterface $time,
     private readonly LoggerChannelInterface $logger,
   ) {}
 
@@ -44,9 +50,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
    */
   public function onSubscriptionInsert(SubscriptionEvent $event): void {
     $subscription = $event->getSubscription();
-    if ($subscription->getState()->getId() === 'active') {
-      $this->reconcileForSubscription($subscription);
-    }
+    $this->reconcileForSubscription($subscription);
   }
 
   /**
@@ -64,9 +68,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    if (in_array($currentState, ['active', 'canceled', 'expired'], TRUE)) {
-      $this->reconcileForSubscription($subscription);
-    }
+    $this->reconcileForSubscription($subscription);
   }
 
   /**
@@ -79,6 +81,15 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
         '@id' => $subscription->id(),
       ]);
       return;
+    }
+
+    if ($this->stateResolver->isPaymentFailure($subscription)) {
+      $graceExpiry = $this->time->getRequestTime() + self::GRACE_SECONDS;
+      $this->reconciler->setGracePeriod($user, $graceExpiry);
+    }
+
+    if ($this->stateResolver->isActive($subscription)) {
+      $this->reconciler->clearGracePeriod($user);
     }
 
     $this->reconciler->reconcileUser($user);

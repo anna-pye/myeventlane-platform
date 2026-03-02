@@ -4,6 +4,7 @@ status: true
 dependencies:
   config:
     - commerce_order.commerce_order_item_type.default
+    - field.field.commerce_order_item.default.field_boost_days_purchased
     - field.field.commerce_order_item.default.field_target_event
     - field.field.commerce_order_item.default.field_ticket_holder
   module:
@@ -46,6 +47,7 @@ content:
 hidden:
   adjustments: true
   created: true
+  field_boost_days_purchased: true
   field_target_event: true
   field_ticket_holder: true
   status: true

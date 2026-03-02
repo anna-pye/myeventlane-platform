@@ -15,22 +15,33 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 /**
  * Applies a configurable platform fee (% of ticket subtotal) to orders.
  *
- * Fee is calculated on ticket items only. Excludes: donations
- * (checkout_donation, platform_donation, rsvp_donation) and Boost.
+ * Fee is calculated on ticket items only. Excludes: donations,
+ * Boost items, Pro subscription items, and recurring order types.
  * Configured at: Admin > Config > MyEventLane > General settings.
  */
 final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
 
   use StringTranslationTrait;
 
-  /**
-   * Order item bundles excluded from the fee base.
-   */
+  private const EXCLUDED_ORDER_TYPES = [
+    'recurring',
+  ];
+
   private const EXCLUDED_BUNDLES = [
     'checkout_donation',
     'platform_donation',
     'rsvp_donation',
     'boost',
+    'recurring_product_variation',
+    'recurring_standalone',
+  ];
+
+  /**
+   * Product variation types whose items never incur a platform fee.
+   */
+  private const EXCLUDED_VARIATION_TYPES = [
+    'mel_pro_subscription_variation',
+    'boost_duration',
   ];
 
   /**
@@ -50,6 +61,10 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
    * {@inheritdoc}
    */
   public function process(OrderInterface $order): void {
+    if (in_array($order->bundle(), self::EXCLUDED_ORDER_TYPES, TRUE)) {
+      return;
+    }
+
     $settings = $this->configFactory->get('myeventlane_core.settings');
     if ($settings->get('fee_payer') === 'organizer_absorbs') {
       return;
@@ -94,6 +109,12 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
       if (in_array($item->bundle(), self::EXCLUDED_BUNDLES, TRUE)) {
         continue;
       }
+
+      $purchasedEntity = $item->getPurchasedEntity();
+      if ($purchasedEntity && in_array($purchasedEntity->bundle(), self::EXCLUDED_VARIATION_TYPES, TRUE)) {
+        continue;
+      }
+
       $price = $item->getTotalPrice();
       if (!$price) {
         continue;

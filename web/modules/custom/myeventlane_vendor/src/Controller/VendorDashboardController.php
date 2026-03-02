@@ -176,6 +176,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $publishedEventIds = $this->getPublishedUserEvents($userId);
     $hasBoost = $this->vendorHasAnyBoost($publishedEventIds);
     $boostExportUrl = $hasBoost ? Url::fromRoute('myeventlane_vendor.console.boost_vendor_export')->toString() : NULL;
+    $activeBoostEntitlements = $this->getActiveBoostEntitlements($userId);
 
     // Chart data for JavaScript.
     $chartData = $this->buildChartData($userId, $userEvents);
@@ -236,6 +237,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'show_welcome' => $showWelcome,
       'has_boost' => $hasBoost,
       'boost_export_url' => $boostExportUrl,
+      'active_boost_entitlements' => $activeBoostEntitlements,
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/global-styling',
@@ -1211,6 +1213,59 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ],
       ],
     ];
+  }
+
+  /**
+   * Gets active boost entitlements for the dashboard.
+   *
+   * @param int $uid
+   *   Vendor user ID.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Entitlement rows.
+   */
+  private function getActiveBoostEntitlements(int $uid): array {
+    if ($uid <= 0) {
+      return [];
+    }
+    if (!$this->entityTypeManager->hasDefinition('myeventlane_boost_entitlement')) {
+      return [];
+    }
+
+    try {
+      $now = time();
+      $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $uid)
+        ->condition('status', 'active')
+        ->condition('ends', $now, '>')
+        ->sort('ends', 'ASC')
+        ->range(0, 10)
+        ->execute();
+      if (empty($ids)) {
+        return [];
+      }
+
+      $rows = [];
+      $entitlements = $storage->loadMultiple($ids);
+      foreach ($entitlements as $entitlement) {
+        $event = $entitlement->get('event')->entity;
+        $event_id = (int) ($entitlement->get('event')->target_id ?? 0);
+        $ends = (int) ($entitlement->get('ends')->value ?? 0);
+        $rows[] = [
+          'event_id' => $event_id,
+          'event_title' => $event ? $event->label() : $this->t('Unknown event'),
+          'ends_at' => $ends > 0 ? date('M j, Y g:ia', $ends) : $this->t('Unknown'),
+          'manage_url' => $event_id > 0 ? Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event_id])->toString() : NULL,
+        ];
+      }
+
+      return $rows;
+    }
+    catch (\Exception $e) {
+      return [];
+    }
   }
 
 

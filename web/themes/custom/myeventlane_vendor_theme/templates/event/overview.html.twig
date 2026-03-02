@@ -17,6 +17,10 @@
         <div class="mel-stat__value">{{ overview.sales.net|default('$0') }}</div>
       </div>
       <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Refunded'|t }}</div>
+        <div class="mel-stat__value">{{ overview.sales.refunded|default('$0') }}</div>
+      </div>
+      <div class="mel-stat">
         <div class="mel-stat__label">{{ 'Tickets sold'|t }}</div>
         <div class="mel-stat__value">{{ overview.sales.tickets_sold|default(0) }}</div>
       </div>
@@ -43,6 +47,55 @@
     </div>
   </div>
 </div>
+
+{% if overview.is_pro|default(false) %}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Pro financial analytics'|t }}</div>
+    </div>
+    <div class="mel-grid mel-grid--3">
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Refund rate'|t }}</div>
+        <div class="mel-stat__value">{{ overview.pro_refund_analytics.refund_rate_percent|default('0.0%') }}</div>
+      </div>
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'Anomaly indicators'|t }}</div>
+        <div class="mel-stat__value">{{ 'No anomalies detected'|t }}</div>
+      </div>
+      <div class="mel-stat">
+        <div class="mel-stat__label">{{ 'CSV export'|t }}</div>
+        <div class="mel-stat__value">
+          <a class="mel-pill" href="{{ overview.pro_refund_analytics.export_csv_url|default('#') }}">{{ 'Export financial CSV'|t }}</a>
+        </div>
+      </div>
+    </div>
+    <div class="mel-table">
+      <div class="mel-table__head">
+        <div>{{ 'Refund type'|t }}</div>
+        <div>{{ 'Attributed amount'|t }}</div>
+      </div>
+      <div class="mel-table__body">
+        {% for row in overview.pro_refund_analytics.breakdown|default([]) %}
+          <div class="mel-table__row">
+            <div>{{ row.type }}</div>
+            <div>{{ row.amount }}</div>
+          </div>
+        {% else %}
+          <div class="mel-table__empty">{{ 'No refund attribution data available yet.'|t }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Unlock Pro analytics'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <p>{{ 'Upgrade to Pro to view refund-rate analytics, attribution breakdowns, and financial exports.'|t }}</p>
+    </div>
+  </div>
+{% endif %}
 
 <div class="mel-grid mel-grid--2">
   <div class="mel-card">

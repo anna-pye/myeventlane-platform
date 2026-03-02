@@ -96,7 +96,7 @@ final class ProRecoveryAnalyticsService {
    *   Recovery statistics.
    */
   public function getPlatformRecoveryStats(int $days = 30): array {
-    $since = \Drupal::time()->getRequestTime() - ($days * 86400);
+    $since = $this->time->getRequestTime() - ($days * 86400);
 
     $select = $this->database->select('myeventlane_pro_recovery_attribution', 'a');
 

@@ -163,6 +163,90 @@ function myeventlane_pro_schema(): array {
     ],
   ];
 
+  $schema['myeventlane_pro_renewal_notifications'] = [
+    'description' => 'Tracks Pro renewal reminder scheduling and sends.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'subscription_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'scheduled_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'subscription_scheduled' => ['subscription_id', 'scheduled_at'],
+    ],
+    'indexes' => [
+      'status_scheduled_at' => ['status', 'scheduled_at'],
+      'subscription_id' => ['subscription_id'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_failed_payment_sequence'] = [
+    'description' => 'Tracks Pro failed payment email sequence scheduling and sends.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'subscription_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'scheduled_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'subscription_step' => ['subscription_id', 'step'],
+    ],
+    'indexes' => [
+      'status_scheduled_at' => ['status', 'scheduled_at'],
+      'subscription_id' => ['subscription_id'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -509,6 +593,260 @@ function myeventlane_pro_update_10005(): void {
         $spec,
       );
     }
+  }
+}
+
+/**
+ * Add field_pro_grace_expires timestamp field to users.
+ */
+function myeventlane_pro_update_10006(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  $field_storage = $entity_type_manager->getStorage('field_storage_config');
+  if (!$field_storage->load('user.field_pro_grace_expires')) {
+    $field_storage->create([
+      'field_name' => 'field_pro_grace_expires',
+      'entity_type' => 'user',
+      'type' => 'timestamp',
+      'cardinality' => 1,
+      'locked' => TRUE,
+      'translatable' => FALSE,
+      'settings' => [],
+      'module' => 'core',
+    ])->save();
+  }
+
+  $field_config = $entity_type_manager->getStorage('field_config');
+  if (!$field_config->load('user.user.field_pro_grace_expires')) {
+    $field_config->create([
+      'field_name' => 'field_pro_grace_expires',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Pro grace expiry',
+      'description' => 'Internal timestamp for Pro subscription grace expiry.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'default_value' => [],
+      'settings' => [],
+      'field_type' => 'timestamp',
+    ])->save();
+  }
+}
+
+/**
+ * Create renewal reminder table and ensure required indexes/templates.
+ */
+function myeventlane_pro_update_10007(): void {
+  $schema = Database::getConnection()->schema();
+  $table = 'myeventlane_pro_renewal_notifications';
+
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, [
+      'description' => 'Tracks Pro renewal reminder scheduling and sends.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'subscription_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'subscription_scheduled' => ['subscription_id', 'scheduled_at'],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+        'subscription_id' => ['subscription_id'],
+      ],
+    ]);
+  }
+  elseif (!$schema->indexExists($table, 'status_scheduled_at')) {
+    $spec = [
+      'fields' => [
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+      ],
+    ];
+    $schema->addIndex(
+      $table,
+      'status_scheduled_at',
+      ['status', 'scheduled_at'],
+      $spec,
+    );
+  }
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_messaging.template.pro_subscription_renewal_reminder');
+  if (!$config->get('enabled')) {
+    $config->setData([
+      'enabled' => TRUE,
+      'subject' => 'Your Pro plan renews in 3 days',
+      'preheader' => 'Review your upcoming renewal and recent Pro performance.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro subscription renews on <strong>{{ next_billing_date }}</strong>.</p><p>Last month, Pro recovered <strong>${{ last_month_recovered_revenue }}</strong> in revenue for your business.</p><p>Your recent ROI multiple is <strong>{{ roi_multiple }}x</strong>.</p><p>If your card details changed, please update your payment method now to avoid interruption.</p>',
+      'utm' => [
+        'enable' => TRUE,
+        'params' => [
+          'utm_source' => 'email',
+          'utm_medium' => 'lifecycle',
+          'utm_campaign' => 'pro_renewal_reminder',
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Create failed payment sequence table and ensure required indexes/templates.
+ */
+function myeventlane_pro_update_10008(): void {
+  $schema = Database::getConnection()->schema();
+  $table = 'myeventlane_pro_failed_payment_sequence';
+
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, [
+      'description' => 'Tracks Pro failed payment email sequence scheduling and sends.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'subscription_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'step' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'subscription_step' => ['subscription_id', 'step'],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+        'subscription_id' => ['subscription_id'],
+      ],
+    ]);
+  }
+  elseif (!$schema->indexExists($table, 'status_scheduled_at')) {
+    $spec = [
+      'fields' => [
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+      ],
+    ];
+    $schema->addIndex(
+      $table,
+      'status_scheduled_at',
+      ['status', 'scheduled_at'],
+      $spec,
+    );
+  }
+
+  $cf = \Drupal::configFactory();
+  $templates = [
+    'pro_subscription_payment_failed_day_0' => [
+      'subject' => 'Payment failed for your Pro subscription',
+      'preheader' => 'Update your card to keep Pro features active.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>We could not process your latest Pro subscription payment.</p><p>Please update your payment method now to keep Pro active without interruption.</p><p>You still have a grace period before access changes.</p>',
+      'campaign' => 'pro_payment_failed_day_0',
+    ],
+    'pro_subscription_payment_failed_day_3' => [
+      'subject' => 'Reminder: your Pro payment is still due',
+      'preheader' => 'Please update your payment method to avoid suspension.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>This is a reminder that your Pro subscription payment is still outstanding.</p><p>Update your payment method as soon as possible to prevent service interruption.</p><p>We are still holding your Pro access during grace period.</p>',
+      'campaign' => 'pro_payment_failed_day_3',
+    ],
+    'pro_subscription_payment_failed_day_6' => [
+      'subject' => 'Final warning: Pro access will be suspended',
+      'preheader' => 'Your Pro grace period is ending soon.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro subscription payment is still unpaid.</p><p>This is the final warning before Pro access is suspended at the end of grace period.</p><p>Update your payment method immediately to prevent entitlement removal.</p>',
+      'campaign' => 'pro_payment_failed_day_6',
+    ],
+  ];
+
+  foreach ($templates as $template => $definition) {
+    $config = $cf->getEditable("myeventlane_messaging.template.{$template}");
+    if ($config->get('enabled')) {
+      continue;
+    }
+    $config->setData([
+      'enabled' => TRUE,
+      'subject' => $definition['subject'],
+      'preheader' => $definition['preheader'],
+      'body_html' => $definition['body_html'],
+      'utm' => [
+        'enable' => TRUE,
+        'params' => [
+          'utm_source' => 'email',
+          'utm_medium' => 'lifecycle',
+          'utm_campaign' => $definition['campaign'],
+        ],
+      ],
+    ])->save();
   }
 }
 

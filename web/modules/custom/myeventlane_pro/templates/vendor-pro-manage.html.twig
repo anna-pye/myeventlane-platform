@@ -18,6 +18,18 @@
     <h1 class="mel-pro-manage__title">{{ 'Pro Subscription'|t }}</h1>
   </div>
 
+  {% if grace_days_remaining is not null %}
+    <div class="messages messages--warning">
+      {{ 'Your payment failed. You have @days days remaining before Pro is suspended.'|t({'@days': grace_days_remaining}) }}
+    </div>
+  {% endif %}
+
+  {% if renewal_in_days is not null %}
+    <div class="messages messages--status">
+      {{ 'Your Pro renews in @days days.'|t({'@days': renewal_in_days}) }}
+    </div>
+  {% endif %}
+
   <div class="mel-pro-manage__card mel-card">
     <div class="mel-pro-manage__details">
 

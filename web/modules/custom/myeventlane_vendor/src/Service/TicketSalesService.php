@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_price\Price;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Ticket sales data provider for vendor console.
@@ -23,7 +27,17 @@ final class TicketSalesService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly Connection $database,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly VendorSubscriptionService $subscriptionService,
   ) {}
+
+  /**
+   * Returns the logger for vendor ticket sales.
+   */
+  private function logger(): LoggerInterface {
+    return $this->loggerFactory->get('myeventlane_vendor');
+  }
 
   /**
    * Returns a sales summary for an event.
@@ -42,14 +56,17 @@ final class TicketSalesService {
    */
   public function getSalesSummary(NodeInterface $event): array {
     $eventId = (int) $event->id();
-    $gross = 0.0;
+    $grossCents = 0;
     $ticketsSold = 0;
+    $currency = 'AUD';
 
     try {
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
       $orderItems = $orderItemStorage->loadByProperties([
         'field_target_event' => $eventId,
       ]);
+      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
+      $completedOrderCache = [];
 
       foreach ($orderItems as $item) {
         if (!$item instanceof OrderItemInterface) {
@@ -70,30 +87,43 @@ final class TicketSalesService {
         }
 
         try {
-          $order = $this->entityTypeManager
-            ->getStorage('commerce_order')
-            ->load($order_id);
-          if ($order && $order->getState()->getId() === 'completed') {
+          if (!array_key_exists((int) $order_id, $completedOrderCache)) {
+            $order = $orderStorage->load($order_id);
+            $completedOrderCache[(int) $order_id] = (bool) ($order && $order->getState()->getId() === 'completed');
+          }
+
+          if ($completedOrderCache[(int) $order_id]) {
             $totalPrice = $item->getTotalPrice();
             if ($totalPrice) {
-              $gross += (float) $totalPrice->getNumber();
+              $grossCents += $this->priceToCents($totalPrice);
+              $currency = strtoupper($totalPrice->getCurrencyCode());
             }
             $ticketsSold += (int) $item->getQuantity();
           }
         }
-        catch (\Exception) {
+        catch (\Throwable $e) {
+          $this->logger()->error('Failed loading order while computing event sales summary for event @event_id: @message', [
+            '@event_id' => $eventId,
+            '@message' => $e->getMessage(),
+          ]);
           continue;
         }
       }
     }
-    catch (\Exception) {
-      // Commerce module may not be available.
+    catch (\Throwable $e) {
+      $this->logger()->error('Failed loading order items while computing event sales summary for event @event_id: @message', [
+        '@event_id' => $eventId,
+        '@message' => $e->getMessage(),
+      ]);
     }
 
+    $refundedTicketCents = $this->getRefundedTicketCents($eventId, $currency);
+    $netCents = max(0, $grossCents - $refundedTicketCents);
+
     $ticketsAvailable = $this->getTicketsAvailable($event);
-    $feeRate = 0.05;
-    $fees = $gross * $feeRate;
-    $net = $gross - $fees;
+    $gross = $grossCents / 100;
+    $refunded = $refundedTicketCents / 100;
+    $net = $netCents / 100;
 
     $conversion = 0;
     if (is_numeric($ticketsAvailable) && (int) $ticketsAvailable > 0) {
@@ -101,16 +131,129 @@ final class TicketSalesService {
     }
 
     return [
-      'gross' => '$' . number_format($gross, 2),
-      'net' => '$' . number_format($net, 2),
-      'fees' => '$' . number_format($fees, 2),
+      'gross' => $this->formatMoney($grossCents, $currency),
+      'refunded' => $this->formatMoney($refundedTicketCents, $currency),
+      'net' => $this->formatMoney($netCents, $currency),
+      'fees' => '$0.00',
       'gross_raw' => $gross,
+      'refunded_raw' => $refunded,
       'net_raw' => $net,
-      'currency' => 'USD',
+      'gross_cents' => $grossCents,
+      'refunded_ticket_cents' => $refundedTicketCents,
+      'net_cents' => $netCents,
+      'currency' => $currency,
       'tickets_sold' => $ticketsSold,
       'tickets_available' => $ticketsAvailable,
       'conversion' => $conversion,
     ];
+  }
+
+  /**
+   * Returns attributed ticket refunds for an event in minor units.
+   */
+  private function getRefundedTicketCents(int $eventId, string $currency): int {
+    if (!$this->database->schema()->tableExists('myeventlane_refund_log')) {
+      return 0;
+    }
+
+    try {
+      $currency = strtoupper($currency);
+      $currencyLower = strtolower($currency);
+      $ticketSubtotalsByOrder = $this->getTicketSubtotalsByOrderForEvent($eventId, $currency);
+      $attributedByOrder = [];
+      $totalAttributed = 0;
+
+      $query = $this->database->select('myeventlane_refund_log', 'r');
+      $query->join('commerce_order', 'o', 'o.order_id = r.order_id');
+      $query->fields('r', ['id', 'order_id', 'refund_scope', 'amount_cents', 'donation_refunded']);
+      $query->condition('r.event_id', $eventId);
+      $query->condition('r.status', 'completed');
+      $query->condition('r.amount_cents', 0, '>');
+      $query->condition('o.state', 'completed');
+      $query->where('LOWER(r.currency) = :currency', [':currency' => $currencyLower]);
+      $query->orderBy('r.id', 'ASC');
+
+      foreach ($query->execute() as $row) {
+        $orderId = (int) $row->order_id;
+        $scope = (string) $row->refund_scope;
+        $amountCents = (int) $row->amount_cents;
+        if ($amountCents <= 0 || $scope === 'donation_only') {
+          continue;
+        }
+
+        $attributed = $amountCents;
+        if ($scope === 'tickets_and_donation' || (int) $row->donation_refunded === 1) {
+          $ticketSubtotalCents = (int) ($ticketSubtotalsByOrder[$orderId] ?? 0);
+          $alreadyAttributed = (int) ($attributedByOrder[$orderId] ?? 0);
+          $remainingCap = max(0, $ticketSubtotalCents - $alreadyAttributed);
+          $attributed = min($amountCents, $remainingCap);
+          $attributedByOrder[$orderId] = $alreadyAttributed + $attributed;
+        }
+
+        $totalAttributed += $attributed;
+      }
+
+      return max(0, $totalAttributed);
+    }
+    catch (\Throwable $e) {
+      $this->logger()->error('Failed refund attribution for event @event_id: @message', [
+        '@event_id' => $eventId,
+        '@message' => $e->getMessage(),
+      ]);
+      return 0;
+    }
+  }
+
+  /**
+   * Returns per-order ticket subtotals for one event in one currency.
+   *
+   * @return array<int, int>
+   *   Map: order_id => ticket_subtotal_cents.
+   */
+  private function getTicketSubtotalsByOrderForEvent(int $eventId, string $currency): array {
+    $map = [];
+    $query = $this->database->select('commerce_order_item', 'oi');
+    $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+    $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $query->addField('oi', 'order_id', 'order_id');
+    $query->addExpression('COALESCE(SUM(ROUND(oi.unit_price__number * oi.quantity * 100)), 0)', 'ticket_subtotal_cents');
+    $query->condition('o.state', 'completed');
+    $query->condition('lnk.field_target_event_target_id', $eventId);
+    $query->condition('oi.unit_price__number', '0', '>');
+    $query->condition('oi.unit_price__currency_code', $currency);
+    $query->condition('oi.type', $this->orderItemClassifier->getExcludedTypes(), 'NOT IN');
+    $query->groupBy('oi.order_id');
+
+    foreach ($query->execute() as $row) {
+      $map[(int) $row->order_id] = (int) $row->ticket_subtotal_cents;
+    }
+
+    return $map;
+  }
+
+  /**
+   * Converts a Price object to minor units without float math.
+   */
+  private function priceToCents(Price $price): int {
+    $number = $price->getNumber();
+    $negative = str_starts_with($number, '-');
+    $normalized = ltrim($number, '+-');
+    [$major, $minor] = array_pad(explode('.', $normalized, 2), 2, '0');
+    $minor = substr(str_pad($minor, 2, '0'), 0, 2);
+    $cents = ((int) $major * 100) + (int) $minor;
+    return $negative ? -$cents : $cents;
+  }
+
+  /**
+   * Formats integer cents into currency display.
+   */
+  private function formatMoney(int $amountCents, string $currency): string {
+    $currency = strtoupper($currency);
+    $amount = $amountCents / 100;
+    if ($currency === 'AUD') {
+      return '$' . number_format($amount, 2);
+    }
+    return number_format($amount, 2) . ' ' . $currency;
   }
 
   /**

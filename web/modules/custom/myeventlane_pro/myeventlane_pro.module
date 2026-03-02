@@ -47,6 +47,8 @@ function myeventlane_pro_theme(): array {
         'subscription_status' => NULL,
         'started_date' => NULL,
         'next_billing_date' => NULL,
+        'renewal_in_days' => NULL,
+        'grace_days_remaining' => NULL,
         'cancel_url' => NULL,
         'roi_summary' => NULL,
       ],
@@ -80,6 +82,17 @@ function myeventlane_pro_cron(): void {
     $reconciler->reconcile();
 
     $state->set('myeventlane_pro.last_reconcile', $now);
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler $scheduler */
+    $scheduler = \Drupal::service('myeventlane_pro.subscription_lifecycle_scheduler');
+    $scheduler->run();
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->error('Subscription lifecycle scheduler failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
   }
 
   try {

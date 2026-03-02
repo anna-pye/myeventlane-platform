@@ -14,6 +14,7 @@ dependencies:
     - media
     - myeventlane_checkin
     - myeventlane_escalations_portal
+    - myeventlane_event_state
     - paragraphs
     - profile
     - search
@@ -45,6 +46,7 @@ permissions:
   - 'delete own social auth profile'
   - 'manage own commerce_payment_method'
   - 'post comments'
+  - request_refunds
   - 'scan qr codes'
   - 'search content'
   - 'skip comment approval'

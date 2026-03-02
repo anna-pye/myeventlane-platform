@@ -6,8 +6,8 @@ namespace Drupal\Tests\myeventlane_boost\Unit;
 
 use Drupal\commerce_cart\Event\OrderItemComparisonFieldsEvent;
 use Drupal\commerce_order\Entity\OrderItemInterface;
-use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_boost\EventSubscriber\BoostOrderSubscriber;
+use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -32,11 +32,12 @@ final class CartComparisonSubscriberTest extends TestCase {
     $event = new OrderItemComparisonFieldsEvent(['existing'], $item);
 
     // Create subscriber with minimal mocks.
-    $boostManager = $this->createMock(BoostManager::class);
+    $entitlementManager = $this->createMock(BoostEntitlementManager::class);
+    $entitlementManager->method('isBoostOrderItem')->willReturn(TRUE);
     $logger = $this->createMock(LoggerInterface::class);
     $requestStack = $this->createMock(RequestStack::class);
 
-    $subscriber = new BoostOrderSubscriber($boostManager, $logger, $requestStack);
+    $subscriber = new BoostOrderSubscriber($entitlementManager, $logger, $requestStack);
 
     // Execute.
     $subscriber->onComparisonFields($event);
@@ -59,11 +60,12 @@ final class CartComparisonSubscriberTest extends TestCase {
     $event = new OrderItemComparisonFieldsEvent(['existing'], $item);
 
     // Create subscriber with minimal mocks.
-    $boostManager = $this->createMock(BoostManager::class);
+    $entitlementManager = $this->createMock(BoostEntitlementManager::class);
+    $entitlementManager->method('isBoostOrderItem')->willReturn(FALSE);
     $logger = $this->createMock(LoggerInterface::class);
     $requestStack = $this->createMock(RequestStack::class);
 
-    $subscriber = new BoostOrderSubscriber($boostManager, $logger, $requestStack);
+    $subscriber = new BoostOrderSubscriber($entitlementManager, $logger, $requestStack);
 
     // Execute.
     $subscriber->onComparisonFields($event);

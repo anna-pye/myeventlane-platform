@@ -43,7 +43,7 @@ final class ProRecoveryAttributionSubscriber implements EventSubscriberInterface
       return;
     }
 
-    if ($order->isNew() || $order->isEmpty()) {
+    if ($order->isNew()) {
       $this->logger->warning('Recovery attribution skipped for non-persisted order entity.');
       return;
     }

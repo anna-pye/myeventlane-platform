@@ -1,0 +1,24 @@
+uuid: 0c1b2e3e-ab87-4acb-893f-829779fe04d1
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_order.commerce_order_item_type.checkout_donation
+    - field.storage.commerce_order_item.field_target_event
+    - node.type.event
+id: commerce_order_item.checkout_donation.field_target_event
+field_name: field_target_event
+entity_type: commerce_order_item
+bundle: checkout_donation
+label: 'Target Event'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      event: event
+field_type: entity_reference

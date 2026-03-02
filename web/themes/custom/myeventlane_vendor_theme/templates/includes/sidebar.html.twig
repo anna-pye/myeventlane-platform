@@ -147,6 +147,7 @@
     {# Growth items - using actual routes from routing.yml #}
     {% set growth_items = [
       { route: 'myeventlane_vendor.console.boost', label: 'Boost'|t, key: 'boost', icon: 'zap' },
+      { route: 'myeventlane_pro.overview', label: 'Pro'|t, key: 'pro', icon: 'pro' },
     ] %}
     
     {% for item in growth_items %}
@@ -158,6 +159,10 @@
             {% if item.icon == 'zap' %}
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            {% elseif item.icon == 'pro' %}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
             {% endif %}
           </span>

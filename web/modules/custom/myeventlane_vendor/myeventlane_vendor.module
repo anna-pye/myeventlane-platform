@@ -12,6 +12,8 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
@@ -114,6 +116,36 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       'path' => \Drupal::service('extension.list.theme')->getPath('myeventlane_vendor_theme') . '/templates',
     ],
   ];
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function myeventlane_vendor_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  if ($entity_type->id() !== 'myeventlane_vendor') {
+    return [];
+  }
+
+  $fields = [];
+  $fields['is_pro'] = BaseFieldDefinition::create('boolean')
+    ->setLabel(t('Pro vendor'))
+    ->setDescription(t('Marks whether this vendor has an active Pro subscription.'))
+    ->setDefaultValue(FALSE)
+    ->setDisplayOptions('form', [
+      'type' => 'boolean_checkbox',
+      'weight' => 96,
+    ])
+    ->setDisplayConfigurable('form', TRUE)
+    ->setDisplayConfigurable('view', FALSE);
+
+  return $fields;
+}
+
+/**
+ * Alters resolved Pro state for a vendor.
+ */
+function myeventlane_vendor_is_pro_vendor_alter(bool &$is_pro, int $vendor_id): void {
+  // Intentionally empty. Billing integrations can alter $is_pro here.
 }
 
 /**

@@ -7,3 +7,4 @@ boost:
     js/boost-ui.js: {}
   dependencies:
     - core/drupal
+    - core/once

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_pro\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\user\UserInterface;
@@ -19,11 +20,14 @@ final class ProEntitlementReconciler {
 
   private const PRO_ROLE = 'pro_organiser';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
+  private const GRACE_FIELD = 'field_pro_grace_expires';
   private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const BATCH_SIZE = 50;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly TimeInterface $time,
+    private readonly ProSubscriptionStateResolver $stateResolver,
     private readonly LoggerChannelInterface $logger,
   ) {}
 
@@ -61,14 +65,18 @@ final class ProEntitlementReconciler {
       return;
     }
 
-    if (!$user->hasField(self::MANAGED_FIELD)) {
+    if (!$this->hasRequiredFields($user)) {
       $this->logger->error('User entity missing @field field. Run database updates.', [
-        '@field' => self::MANAGED_FIELD,
+        '@field' => self::MANAGED_FIELD . ', ' . self::GRACE_FIELD,
       ]);
       return;
     }
 
     if ($this->userHasActiveProSubscription($user)) {
+      $this->ensureRole($user);
+      $this->clearGracePeriod($user);
+    }
+    elseif ($this->isInGrace($user)) {
       $this->ensureRole($user);
     }
     else {
@@ -85,7 +93,6 @@ final class ProEntitlementReconciler {
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('billing_schedule', self::BILLING_SCHEDULE)
-      ->condition('state', 'active')
       ->execute();
 
     $processedUids = [];
@@ -95,6 +102,10 @@ final class ProEntitlementReconciler {
       $subscriptions = $storage->loadMultiple($chunk);
 
       foreach ($subscriptions as $subscription) {
+        if (!$this->stateResolver->isActive($subscription)) {
+          continue;
+        }
+
         $user = $subscription->getCustomer();
         if (!$user instanceof UserInterface || $user->isAnonymous()) {
           continue;
@@ -136,6 +147,10 @@ final class ProEntitlementReconciler {
           continue;
         }
 
+        if ($this->isInGrace($user)) {
+          continue;
+        }
+
         if (!$this->userHasActiveProSubscription($user)) {
           $hadRole = $user->hasRole(self::PRO_ROLE);
           $this->revokeIfManaged($user);
@@ -153,16 +168,112 @@ final class ProEntitlementReconciler {
    * Checks whether the user owns at least one active Pro subscription.
    */
   private function userHasActiveProSubscription(UserInterface $user): bool {
-    $count = (int) $this->entityTypeManager->getStorage('commerce_subscription')
-      ->getQuery()
+    $storage = $this->entityTypeManager->getStorage('commerce_subscription');
+    $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('billing_schedule', self::BILLING_SCHEDULE)
-      ->condition('state', 'active')
       ->condition('uid', $user->id())
-      ->count()
       ->execute();
 
-    return $count > 0;
+    if ($ids === []) {
+      return FALSE;
+    }
+
+    /** @var \Drupal\commerce_recurring\Entity\SubscriptionInterface[] $subscriptions */
+    $subscriptions = $storage->loadMultiple($ids);
+    foreach ($subscriptions as $subscription) {
+      if ($this->stateResolver->isActive($subscription)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Sets grace expiry for a managed Pro user.
+   */
+  public function setGracePeriod(UserInterface $user, int $expiresAt): bool {
+    if (!$this->hasRequiredFields($user)) {
+      return FALSE;
+    }
+
+    $targetExpiry = max($expiresAt, $this->time->getRequestTime());
+    $currentExpiry = (int) ($user->get(self::GRACE_FIELD)->value ?? 0);
+
+    if ($currentExpiry === $targetExpiry) {
+      return FALSE;
+    }
+
+    $user->set(self::GRACE_FIELD, $targetExpiry);
+    if (!(bool) $user->get(self::MANAGED_FIELD)->value) {
+      $user->set(self::MANAGED_FIELD, TRUE);
+    }
+    if (!$user->hasRole(self::PRO_ROLE)) {
+      $user->addRole(self::PRO_ROLE);
+    }
+    $user->save();
+    return TRUE;
+  }
+
+  /**
+   * Clears grace expiry value.
+   */
+  public function clearGracePeriod(UserInterface $user): bool {
+    if (!$user->hasField(self::GRACE_FIELD)) {
+      return FALSE;
+    }
+
+    $currentExpiry = (int) ($user->get(self::GRACE_FIELD)->value ?? 0);
+    if ($currentExpiry === 0) {
+      return FALSE;
+    }
+
+    $user->set(self::GRACE_FIELD, NULL);
+    $user->save();
+    return TRUE;
+  }
+
+  /**
+   * Revokes entitlements for users whose grace has expired.
+   *
+   * @return int
+   *   Number of roles revoked.
+   */
+  public function reconcileExpiredGracePeriods(): int {
+    $revoked = 0;
+    $now = $this->time->getRequestTime();
+    $userStorage = $this->entityTypeManager->getStorage('user');
+
+    $uids = $userStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition(self::MANAGED_FIELD, 1)
+      ->condition(self::GRACE_FIELD, $now, '<')
+      ->execute();
+
+    foreach (array_chunk($uids, self::BATCH_SIZE) as $chunk) {
+      /** @var \Drupal\user\UserInterface[] $users */
+      $users = $userStorage->loadMultiple($chunk);
+      foreach ($users as $user) {
+        if (!$user instanceof UserInterface) {
+          continue;
+        }
+
+        if ($this->userHasActiveProSubscription($user)) {
+          $this->clearGracePeriod($user);
+          continue;
+        }
+
+        if ($user->hasRole(self::PRO_ROLE)) {
+          $revoked++;
+        }
+        $this->revokeIfManaged($user);
+      }
+
+      $userStorage->resetCache($chunk);
+    }
+
+    return $revoked;
   }
 
   /**
@@ -172,9 +283,9 @@ final class ProEntitlementReconciler {
    *   TRUE if user entity was changed and saved.
    */
   private function ensureRole(UserInterface $user): bool {
-    if (!$user->hasField(self::MANAGED_FIELD)) {
+    if (!$this->hasRequiredFields($user)) {
       $this->logger->error('User entity missing @field field. Run database updates.', [
-        '@field' => self::MANAGED_FIELD,
+        '@field' => self::MANAGED_FIELD . ', ' . self::GRACE_FIELD,
       ]);
       return FALSE;
     }
@@ -202,7 +313,7 @@ final class ProEntitlementReconciler {
    * Revokes pro_organiser only if subscription-managed.
    */
   private function revokeIfManaged(UserInterface $user): void {
-    if (!$user->hasField(self::MANAGED_FIELD)) {
+    if (!$this->hasRequiredFields($user)) {
       return;
     }
 
@@ -215,7 +326,31 @@ final class ProEntitlementReconciler {
     }
 
     $user->set(self::MANAGED_FIELD, FALSE);
+    $user->set(self::GRACE_FIELD, NULL);
     $user->save();
+  }
+
+  /**
+   * Determines whether user is currently inside grace period.
+   */
+  private function isInGrace(UserInterface $user): bool {
+    if (!$user->hasField(self::GRACE_FIELD)) {
+      return FALSE;
+    }
+
+    $expiry = (int) ($user->get(self::GRACE_FIELD)->value ?? 0);
+    if ($expiry <= 0) {
+      return FALSE;
+    }
+
+    return $expiry >= $this->time->getRequestTime();
+  }
+
+  /**
+   * Verifies required lifecycle fields exist.
+   */
+  private function hasRequiredFields(UserInterface $user): bool {
+    return $user->hasField(self::MANAGED_FIELD) && $user->hasField(self::GRACE_FIELD);
   }
 
 }

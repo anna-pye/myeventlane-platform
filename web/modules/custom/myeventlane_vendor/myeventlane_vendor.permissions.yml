@@ -5,3 +5,7 @@ administer myeventlane vendor:
 access vendor console:
   title: 'Access vendor console'
   description: 'View and manage vendor console pages on vendor domain.'
+
+use pro financial analytics:
+  title: 'Use Pro financial analytics'
+  description: 'Access Pro-only financial analytics routes and insights.'

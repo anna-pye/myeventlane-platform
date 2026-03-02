@@ -605,6 +605,79 @@ function myeventlane_event_entity_load(array $entities, string $entity_type): vo
 }
 
 /**
+ * Implements hook_node_presave().
+ *
+ * Auto-assigns vendor and store to event nodes when missing.
+ * Resolves vendor from the event owner's vendor entity, then populates
+ * field_event_store from the vendor's field_vendor_store.
+ */
+function myeventlane_event_node_presave(NodeInterface $node): void {
+  if ($node->bundle() !== 'event') {
+    return;
+  }
+
+  if (!$node->hasField('field_event_vendor') || !$node->hasField('field_event_store')) {
+    return;
+  }
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  // Auto-assign vendor from event owner when field_event_vendor is empty.
+  if ($node->get('field_event_vendor')->isEmpty()) {
+    $owner_id = (int) $node->getOwnerId();
+    if ($owner_id > 0 && $entity_type_manager->hasDefinition('myeventlane_vendor')) {
+      $vendor_storage = $entity_type_manager->getStorage('myeventlane_vendor');
+      $ids = $vendor_storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $owner_id)
+        ->range(0, 1)
+        ->execute();
+      if (!empty($ids)) {
+        $vendor = $vendor_storage->load(reset($ids));
+        if ($vendor) {
+          $node->set('field_event_vendor', $vendor);
+          \Drupal::logger('myeventlane_event')->notice(
+            'Event @nid: auto-assigned vendor @vid from owner UID @uid',
+            ['@nid' => $node->id() ?? 'new', '@vid' => $vendor->id(), '@uid' => $owner_id]
+          );
+        }
+      }
+    }
+  }
+
+  // Auto-populate store from vendor when field_event_store is empty.
+  if (!$node->get('field_event_vendor')->isEmpty() && $node->get('field_event_store')->isEmpty()) {
+    $vendor_id = $node->get('field_event_vendor')->target_id;
+    if ($vendor_id) {
+      $vendor_storage = $entity_type_manager->getStorage('myeventlane_vendor');
+      $vendor = $vendor_storage->load($vendor_id);
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store) {
+          $node->set('field_event_store', $store);
+        }
+      }
+    }
+  }
+
+  // If vendor changed on existing event, update store to match.
+  if (!$node->isNew() && !$node->get('field_event_vendor')->isEmpty()) {
+    $vendor_id = $node->get('field_event_vendor')->target_id;
+    if ($vendor_id) {
+      $vendor_storage = $entity_type_manager->getStorage('myeventlane_vendor');
+      $vendor = $vendor_storage->load($vendor_id);
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        $current_store_id = $node->get('field_event_store')->target_id ?? NULL;
+        if ($store && $current_store_id !== $store->id()) {
+          $node->set('field_event_store', $store);
+        }
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_entity_presave().
  *
  * Non-blocking audit log when event is saved with incomplete ticket config.

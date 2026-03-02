@@ -7,10 +7,9 @@ namespace Drupal\myeventlane_boost\EventSubscriber;
 use Drupal\commerce_cart\Event\CartEntityAddEvent;
 use Drupal\commerce_cart\Event\CartEvents;
 use Drupal\commerce_cart\Event\OrderItemComparisonFieldsEvent;
-use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
-use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -23,15 +22,15 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
   /**
    * Constructs a BoostOrderSubscriber.
    *
-   * @param \Drupal\myeventlane_boost\BoostManager $manager
-   *   The boost manager.
+   * @param \Drupal\myeventlane_boost\Service\BoostEntitlementManager $entitlementManager
+   *   The entitlement manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack.
    */
   public function __construct(
-    private readonly BoostManager $manager,
+    private readonly BoostEntitlementManager $entitlementManager,
     private readonly LoggerInterface $logger,
     private readonly RequestStack $requestStack,
   ) {}
@@ -60,7 +59,9 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
     $order = $event->getOrder();
 
     $this->logger->notice('ORDER_PAID for order @id', ['@id' => $order->id()]);
-    $this->applyBoostsFromOrder($order);
+    foreach ($order->getItems() as $item) {
+      $this->entitlementManager->activateEntitlementFromOrderItem($order, $item);
+    }
   }
 
   /**
@@ -74,7 +75,7 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
   public function onCartEntityAdd(CartEntityAddEvent $event): void {
     $item = $event->getOrderItem();
 
-    if ($item->bundle() !== 'boost') {
+    if (!$this->entitlementManager->isBoostOrderItem($item)) {
       return;
     }
 
@@ -106,7 +107,7 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
   public function onComparisonFields(OrderItemComparisonFieldsEvent $event): void {
     $item = $event->getOrderItem();
 
-    if ($item->bundle() !== 'boost') {
+    if (!$this->entitlementManager->isBoostOrderItem($item)) {
       return;
     }
 
@@ -119,30 +120,6 @@ final class BoostOrderSubscriber implements EventSubscriberInterface {
     }
 
     $event->setComparisonFields(array_unique($fields));
-  }
-
-  /**
-   * Apply boost to all valid items in the order.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   */
-  private function applyBoostsFromOrder(OrderInterface $order): void {
-    foreach ($order->getItems() as $item) {
-      if ($item->bundle() !== 'boost' || !$item->hasField('field_target_event')) {
-        continue;
-      }
-
-      $target = $item->get('field_target_event')->entity;
-      $variation = $item->getPurchasedEntity();
-
-      if ($target === NULL || $variation === NULL) {
-        continue;
-      }
-
-      $days = (int) ($variation->get('field_boost_days')->value ?? 0);
-      $this->manager->applyBoost((int) $target->id(), $days > 0 ? $days : 7);
-    }
   }
 
 }

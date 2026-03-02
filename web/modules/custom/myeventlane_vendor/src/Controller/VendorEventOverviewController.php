@@ -12,6 +12,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
+use Drupal\myeventlane_vendor\Service\VendorSubscriptionService;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 
 /**
@@ -30,6 +31,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     private readonly VendorEventTabsService $eventTabsService,
     private readonly EventCtaResolver $ctaResolver,
     private readonly BoostHelpContent $boostHelpContent,
+    private readonly VendorSubscriptionService $subscriptionService,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -41,7 +43,20 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
     $tabs = $this->eventTabsService->getTabs($event, 'overview');
     $overview = $this->metricsAggregator->getEventOverview($event);
+    $vendor = $this->getCurrentVendorOrNull();
+    $vendorId = $vendor ? (int) $vendor->id() : 0;
+    $overview['is_pro'] = $this->subscriptionService->isProVendor($vendorId);
     $overview['cta_type'] = $this->ctaResolver->getCtaType($event);
+    if ($overview['is_pro']) {
+      $overview['pro_refund_analytics'] = [
+        'refund_rate_percent' => '0.0%',
+        'breakdown' => [
+          ['type' => 'Ticket refunds', 'amount' => '$0.00'],
+          ['type' => 'Donation refunds', 'amount' => '$0.00'],
+        ],
+        'export_csv_url' => '#',
+      ];
+    }
     $charts = $this->metricsAggregator->getEventCharts($event);
     $boostHelp = [
       'tooltips' => $this->boostHelpContent->getInlineTooltipCopy(),

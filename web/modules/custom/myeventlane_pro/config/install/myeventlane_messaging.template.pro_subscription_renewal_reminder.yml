@@ -1,0 +1,15 @@
+enabled: true
+subject: "Your Pro plan renews in 3 days"
+preheader: "Review your upcoming renewal and recent Pro performance."
+body_html: |
+  <p>Hi {{ first_name|default('there') }},</p>
+  <p>Your Pro subscription renews on <strong>{{ next_billing_date }}</strong>.</p>
+  <p>Last month, Pro recovered <strong>${{ last_month_recovered_revenue }}</strong> in revenue for your business.</p>
+  <p>Your recent ROI multiple is <strong>{{ roi_multiple }}x</strong>.</p>
+  <p>If your card details changed, please update your payment method now to avoid interruption.</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: lifecycle
+    utm_campaign: pro_renewal_reminder

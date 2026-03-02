@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_refunds\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
@@ -32,6 +33,7 @@ final class VendorRefundRequestsController extends ControllerBase {
     private readonly RefundRequestStorage $refundRequestStorage,
     private readonly RefundAccessResolver $accessResolver,
     private readonly VendorEventTabsService $eventTabsService,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
   /**
@@ -42,6 +44,7 @@ final class VendorRefundRequestsController extends ControllerBase {
       $container->get('myeventlane_refunds.refund_request_storage'),
       $container->get('myeventlane_refunds.access_resolver'),
       $container->get('myeventlane_vendor.service.event_tabs'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -60,11 +63,18 @@ final class VendorRefundRequestsController extends ControllerBase {
     }
 
     $requests = $this->refundRequestStorage->loadPendingByEvent((int) $node->id());
+    $orderIds = array_values(array_unique(array_map(static fn (array $req): int => (int) $req['order_id'], $requests)));
+    $buyerIds = array_values(array_unique(array_map(static fn (array $req): int => (int) $req['buyer_uid'], $requests)));
+
+    $orderStorage = $this->entityTypeManager()->getStorage('commerce_order');
+    $userStorage = $this->entityTypeManager()->getStorage('user');
+    $orders = $orderIds !== [] ? $orderStorage->loadMultiple($orderIds) : [];
+    $buyers = $buyerIds !== [] ? $userStorage->loadMultiple($buyerIds) : [];
 
     $rows = [];
     foreach ($requests as $req) {
-    $order = $this->entityTypeManager()->getStorage('commerce_order')->load($req['order_id']);
-    $buyer = $this->entityTypeManager()->getStorage('user')->load($req['buyer_uid']);
+      $order = $orders[(int) $req['order_id']] ?? NULL;
+      $buyer = $buyers[(int) $req['buyer_uid']] ?? NULL;
       $amount = number_format($req['amount_cents'] / 100, 2);
       $currency = strtoupper($req['currency']);
 
@@ -97,7 +107,7 @@ final class VendorRefundRequestsController extends ControllerBase {
         $order ? $order->getOrderNumber() : '#' . $req['order_id'],
         $buyer ? $buyer->getDisplayName() : $this->t('Unknown'),
         $currency . ' ' . $amount,
-        date('M j, Y g:ia', $createdTs),
+        $this->dateFormatter->format($createdTs, 'custom', 'M j, Y g:ia', 'UTC'),
         ['data' => $actions],
       ];
     }

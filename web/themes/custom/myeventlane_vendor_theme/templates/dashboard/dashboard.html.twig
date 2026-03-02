@@ -32,7 +32,12 @@
           <div class="mel-dashboard__avatar">{{ account.display_name|first|upper }}</div>
         {% endif %}
         <div class="mel-dashboard__header-text">
-          <h1 class="mel-dashboard__title">{{ 'Welcome back'|t }}{% if account.display_name %}, {{ account.display_name }}{% endif %}</h1>
+          <h1 class="mel-dashboard__title">
+            {{ 'Welcome back'|t }}{% if account.display_name %}, {{ account.display_name }}{% endif %}
+            {% if is_pro %}
+              <span class="mel-pro-badge">PRO</span>
+            {% endif %}
+          </h1>
           <p class="mel-dashboard__subtitle">{{ 'Your event control centre'|t }}</p>
         </div>
       </div>
@@ -72,6 +77,82 @@
       {% endif %}
     </div>
   </div>
+
+  {# Pro upgrade prompt: shown when vendor has 2+ published events and is not Pro #}
+  {% if show_pro_prompt and pro_upgrade_url %}
+    <div class="mel-pro-prompt">
+      <span class="mel-pro-prompt__text">{{ 'Upgrade to Pro to grow and automate.'|t }}</span>
+      <a href="{{ pro_upgrade_url }}" class="mel-pro-prompt__cta">{{ 'Learn More'|t }}</a>
+    </div>
+  {% endif %}
+
+  {% if active_boost_entitlements is defined and active_boost_entitlements %}
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <h3 class="mel-card__title">{{ 'Active Boost entitlements'|t }}</h3>
+      </div>
+      <div class="mel-card__body">
+        <div class="mel-table">
+          <div class="mel-table__head">
+            <div>{{ 'Event'|t }}</div>
+            <div>{{ 'Ends'|t }}</div>
+            <div>{{ 'Action'|t }}</div>
+          </div>
+          <div class="mel-table__body">
+            {% for entitlement in active_boost_entitlements %}
+              <div class="mel-table__row">
+                <div>{{ entitlement.event_title }}</div>
+                <div>{{ entitlement.ends_at }}</div>
+                <div>
+                  {% if entitlement.manage_url %}
+                    <a href="{{ entitlement.manage_url }}" class="mel-link">{{ 'Manage'|t }}</a>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if is_pro and pro_recovery_stats is defined %}
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <h3 class="mel-card__title">{{ 'Abandoned Cart Recovery (Last 30 days)'|t }}</h3>
+      </div>
+      <div class="mel-card__body">
+        <div class="mel-kpi-grid">
+          <div class="mel-kpi-card">
+            <div class="mel-kpi-card__label">{{ 'Reminders sent'|t }}</div>
+            <div class="mel-kpi-card__value">{{ pro_recovery_stats.reminders_sent }}</div>
+          </div>
+          <div class="mel-kpi-card">
+            <div class="mel-kpi-card__label">{{ 'Orders recovered'|t }}</div>
+            <div class="mel-kpi-card__value">{{ pro_recovery_stats.recovered_orders }}</div>
+          </div>
+          <div class="mel-kpi-card">
+            <div class="mel-kpi-card__label">{{ 'Revenue recovered'|t }}</div>
+            <div class="mel-kpi-card__value">${{ pro_recovery_stats.recovered_revenue|number_format(2) }}</div>
+          </div>
+          <div class="mel-kpi-card">
+            <div class="mel-kpi-card__label">{{ 'Recovery rate'|t }}</div>
+            <div class="mel-kpi-card__value">{{ pro_recovery_stats.recovery_rate|number_format(1) }}%</div>
+          </div>
+        </div>
+        {% if pro_recovery_roi is defined %}
+          <p class="mel-muted">{{ 'Pro paid for itself @times times this month.'|t({'@times': pro_recovery_roi.roi_multiple|number_format(2)}) }}</p>
+        {% endif %}
+      </div>
+    </div>
+  {% elseif not is_pro and pro_recovery_locked_preview is defined %}
+    <div class="mel-pro-prompt mel-pro-locked">
+      <span class="mel-pro-prompt__text">{{ 'Pro recovered $@amount across MyEventLane this month.'|t({'@amount': pro_recovery_locked_preview.recovered_revenue|number_format(2)}) }}</span>
+      {% if pro_upgrade_url %}
+        <a href="{{ pro_upgrade_url }}" class="mel-pro-prompt__cta">{{ 'Upgrade to unlock recovery automation'|t }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
 
   {# KPI summary strip (STAGE A2): below vendor alert, above main content #}
   {% if vendor_kpis is defined %}

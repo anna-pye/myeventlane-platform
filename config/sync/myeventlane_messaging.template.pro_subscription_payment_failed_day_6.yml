@@ -1,0 +1,10 @@
+enabled: true
+subject: 'Final warning: Pro access will be suspended'
+preheader: 'Your Pro grace period is ending soon.'
+body_html: "<p>Hi {{ first_name|default('there') }},</p><p>Your Pro subscription payment is still unpaid.</p><p>This is the final warning before Pro access is suspended at the end of grace period.</p><p>Update your payment method immediately to prevent entitlement removal.</p>"
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: lifecycle
+    utm_campaign: pro_payment_failed_day_6

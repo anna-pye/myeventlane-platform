@@ -58,6 +58,7 @@ final class VendorBrandResolver implements BrandResolverInterface {
    */
   public function resolveForVendor(Vendor $vendor): Brand {
     $vendorId = (int) $vendor->id();
+    $defaultBrand = $this->getDefaultBrand();
 
     // Get values from vendor entity fields.
     $fromName = $this->getFieldValue($vendor, 'field_msg_from_name');
@@ -67,9 +68,15 @@ final class VendorBrandResolver implements BrandResolverInterface {
     }
 
     $fromEmail = $this->getFieldValue($vendor, 'field_msg_from_email');
+    if ($fromEmail === '') {
+      $fromEmail = $defaultBrand->fromEmail;
+    }
     $replyTo = $this->getFieldValue($vendor, 'field_msg_reply_to');
     if ($replyTo === '' && $fromEmail !== '') {
       $replyTo = $fromEmail;
+    }
+    if ($replyTo === '') {
+      $replyTo = $defaultBrand->replyTo;
     }
 
     $footerText = $this->getFieldValue($vendor, 'field_msg_footer');

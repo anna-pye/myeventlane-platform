@@ -1,0 +1,23 @@
+uuid: bbf96125-07ae-4f3f-aa12-f84cb5dc2f1e
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_order.commerce_order_item_type.checkout_donation
+    - field.storage.commerce_order_item.field_boost_days_purchased
+id: commerce_order_item.checkout_donation.field_boost_days_purchased
+field_name: field_boost_days_purchased
+entity_type: commerce_order_item
+bundle: checkout_donation
+label: 'Boost days purchased'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

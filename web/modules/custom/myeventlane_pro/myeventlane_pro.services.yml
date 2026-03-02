@@ -8,6 +8,35 @@ services:
     class: Drupal\myeventlane_pro\Service\ProEntitlementReconciler
     arguments:
       - '@entity_type.manager'
+      - '@datetime.time'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.subscription_state_resolver:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver
+    arguments:
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.subscription_lifecycle_scheduler:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_messaging.manager'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@myeventlane_pro.entitlement_reconciler'
+      - '@myeventlane_pro.recovery_analytics'
+
+  myeventlane_pro.subscription_health:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionHealthService
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@database'
+      - '@myeventlane_pro.subscription_state_resolver'
       - '@logger.channel.myeventlane_pro'
 
   myeventlane_pro.entitlement:
@@ -30,6 +59,8 @@ services:
     class: Drupal\myeventlane_pro\EventSubscriber\ProSubscriptionSubscriber
     arguments:
       - '@myeventlane_pro.entitlement_reconciler'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@datetime.time'
       - '@logger.channel.myeventlane_pro'
     tags:
       - { name: event_subscriber }

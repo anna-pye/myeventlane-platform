@@ -206,3 +206,40 @@ function myeventlane_ai_update_9004(): string {
 
   return 'Added ai_job retention config (ai_job_retention_days, ai_job_error_retention_days) and expires_at index.';
 }
+
+/**
+ * Fix: install prompt_key and prompt_version on ai_job (9005 had a bug).
+ */
+function myeventlane_ai_update_9007(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_last_installed = \Drupal::service('entity.last_installed_schema.repository');
+  $installed_definitions = $entity_last_installed->getLastInstalledFieldStorageDefinitions('ai_job');
+
+  $installed = [];
+
+  if (!isset($installed_definitions['prompt_key'])) {
+    $definition = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt key'))
+      ->setSettings(['max_length' => 128])
+      ->setReadOnly(TRUE);
+    $update_manager->installFieldStorageDefinition('prompt_key', 'ai_job', 'myeventlane_ai', $definition);
+    $installed[] = 'prompt_key';
+  }
+
+  if (!isset($installed_definitions['prompt_version'])) {
+    $definition = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt version'))
+      ->setSettings(['max_length' => 32])
+      ->setReadOnly(TRUE);
+    $update_manager->installFieldStorageDefinition('prompt_version', 'ai_job', 'myeventlane_ai', $definition);
+    $installed[] = 'prompt_version';
+  }
+
+  if ($installed) {
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    return 'Installed fields on ai_job: ' . implode(', ', $installed) . '.';
+  }
+
+  return 'prompt_key and prompt_version already installed on ai_job.';
+}

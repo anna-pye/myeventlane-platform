@@ -5,7 +5,7 @@ services:
 
   myeventlane_refunds.buyer_eligibility:
     class: Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService
-    arguments: ['@myeventlane_refunds.order_inspector']
+    arguments: ['@myeventlane_refunds.order_inspector', '@datetime.time']
 
   myeventlane_refunds.refund_request_storage:
     class: Drupal\myeventlane_refunds\Service\RefundRequestStorage
@@ -39,6 +39,7 @@ services:
       - '@current_user'
       - '@database'
       - '@datetime.time'
+      - '@lock'
 
 
 

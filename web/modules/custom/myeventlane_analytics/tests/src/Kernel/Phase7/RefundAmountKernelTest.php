@@ -332,6 +332,65 @@ final class RefundAmountKernelTest extends AnalyticsKernelTestBase {
     $this->assertSame([], $rows);
   }
 
+  /**
+   * Donation-only refunds must not affect ticket refund analytics.
+   */
+  public function testDonationOnlyRefundExcludedFromAnalytics(): void {
+    $admin = $this->createUserAccount('admin');
+    $this->assertSame(1, (int) $admin->id());
+    $vendor = $this->createUserAccount('vendor');
+    $store = $this->createOnlineStore($vendor, 'Store');
+    $event = $this->createEventForStore('Event', (int) $store->id());
+
+    $order = $this->createCompletedOrder((int) $store->id(), 150);
+    $this->createOrderItem($order, 'default', new Price('10.00', 'AUD'), 1, (int) $event->id());
+    $this->insertRefundLog((int) $order->id(), (int) $event->id(), (int) $vendor->id(), 700, 'aud', 'completed', 'donation_only', 1);
+
+    $service = $this->createQueryService();
+    $this->switchToUser($admin);
+    $query = $this->buildQuery(
+      scope: AnalyticsQuery::SCOPE_ADMIN,
+      store_ids: [(int) $store->id()],
+      start_ts: 100,
+      end_ts: 200,
+      currency: 'AUD',
+    );
+
+    $rows = $service->getRefundAmount($query);
+    $this->assertSame([], $rows);
+  }
+
+  /**
+   * Donation-inclusive refunds are capped to ticket subtotal per order/event.
+   */
+  public function testDonationInclusiveRefundIsCappedToTicketSubtotal(): void {
+    $admin = $this->createUserAccount('admin');
+    $this->assertSame(1, (int) $admin->id());
+    $vendor = $this->createUserAccount('vendor');
+    $store = $this->createOnlineStore($vendor, 'Store');
+    $event = $this->createEventForStore('Event', (int) $store->id());
+
+    $order = $this->createCompletedOrder((int) $store->id(), 150);
+    // Ticket subtotal for this order/event is 1,000 cents.
+    $this->createOrderItem($order, 'default', new Price('10.00', 'AUD'), 1, (int) $event->id());
+    // Refunded 1,500 cents including donation, should allocate only 1,000 cents.
+    $this->insertRefundLog((int) $order->id(), (int) $event->id(), (int) $vendor->id(), 1500, 'aud', 'completed', 'tickets_and_donation', 1);
+
+    $service = $this->createQueryService();
+    $this->switchToUser($admin);
+    $query = $this->buildQuery(
+      scope: AnalyticsQuery::SCOPE_ADMIN,
+      store_ids: [(int) $store->id()],
+      start_ts: 100,
+      end_ts: 200,
+      currency: 'AUD',
+    );
+
+    $rows = $service->getRefundAmount($query);
+    $map = $this->indexRowsByStoreEventCurrency($rows);
+    $this->assertSame(1000, $map[(int) $store->id()][(int) $event->id()]['AUD'] ?? 0);
+  }
+
   private function ensureCurrency(
     string $code,
     string $name,
@@ -496,16 +555,18 @@ final class RefundAmountKernelTest extends AnalyticsKernelTestBase {
     int $amount_cents,
     string $currency,
     string $status,
+    string $refund_scope = 'tickets_only',
+    int $donation_refunded = 0,
   ): void {
     $this->container->get('database')->insert('myeventlane_refund_log')->fields([
       'order_id' => $order_id,
       'event_id' => $event_id,
       'vendor_uid' => $vendor_uid,
       'refund_type' => 'partial',
-      'refund_scope' => 'tickets_only',
+      'refund_scope' => $refund_scope,
       'amount_cents' => $amount_cents,
       'currency' => $currency,
-      'donation_refunded' => 0,
+      'donation_refunded' => $donation_refunded,
       'stripe_refund_id' => NULL,
       'status' => $status,
       'reason' => NULL,

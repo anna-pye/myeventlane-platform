@@ -44,6 +44,16 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_analytics.order_item_classifier'
+      - '@database'
+      - '@logger.factory'
+      - '@myeventlane_vendor.subscription'
+
+  myeventlane_vendor.subscription:
+    class: Drupal\myeventlane_vendor\Service\VendorSubscriptionService
+    arguments:
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
 
   myeventlane_vendor.service.rsvp_stats:
     class: Drupal\myeventlane_vendor\Service\RsvpStatsService
@@ -60,6 +70,7 @@ services:
     class: Drupal\myeventlane_vendor\Service\BoostStatusService
     arguments:
       - '@myeventlane_boost.manager'
+      - '@entity_type.manager'
 
   myeventlane_vendor.service.metrics_aggregator:
     class: Drupal\myeventlane_vendor\Service\MetricsAggregator
@@ -97,7 +108,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_overview:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOverviewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@myeventlane_vendor.subscription']
     tags:
       - { name: controller.service_arguments }
 
@@ -151,7 +162,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_analytics:
     class: Drupal\myeventlane_vendor\Controller\VendorEventAnalyticsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_vendor.subscription']
     tags:
       - { name: controller.service_arguments }
 
