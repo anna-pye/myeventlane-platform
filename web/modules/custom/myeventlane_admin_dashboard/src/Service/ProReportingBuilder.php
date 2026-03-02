@@ -15,8 +15,8 @@ use Drupal\myeventlane_pro\Service\ProSubscriptionHealthService;
 final class ProReportingBuilder implements TrustedCallbackInterface {
 
   public function __construct(
-    private readonly ProSubscriptionHealthService $subscriptionHealthService,
-    private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
+    private readonly ?ProSubscriptionHealthService $subscriptionHealthService,
+    private readonly ?ProRecoveryAnalyticsService $recoveryAnalyticsService,
     private readonly PlatformMetricsService $platformMetricsService,
   ) {}
 
@@ -36,6 +36,31 @@ final class ProReportingBuilder implements TrustedCallbackInterface {
    *   Render array for platform_control_centre__pro_kpis.
    */
   public function renderProKpis(): array {
+    if ($this->subscriptionHealthService === NULL || $this->recoveryAnalyticsService === NULL) {
+      return [
+        '#theme' => 'platform_control_centre__pro_kpis',
+        '#metrics' => [
+          'active_count' => 0,
+          'mrr' => 0,
+          'churn_rate_30d' => 0,
+          'failed_renewals_30d' => 0,
+          'grace_users' => 0,
+        ],
+        '#recovery_stats' => [
+          'recovered_revenue' => '0.00',
+          'recovered_orders' => 0,
+          'recovered_carts' => 0,
+        ],
+        '#top_recovering_stores' => [],
+        '#pro_uplift_percent' => 0.0,
+        '#report_url' => NULL,
+        '#cache' => [
+          'contexts' => ['user.permissions'],
+          'max-age' => 120,
+        ],
+      ];
+    }
+
     $metrics = [
       'active_count' => $this->subscriptionHealthService->getActiveProCount(),
       'mrr' => $this->subscriptionHealthService->getMRR(),
