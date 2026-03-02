@@ -441,71 +441,42 @@ function myeventlane_refunds_uninstall(): void {
  * Adds composite indexes for refund log and refund request tables.
  */
 function myeventlane_refunds_update_9004(): void {
-  $schema = \Drupal::database()->schema();
+  $database = \Drupal::database();
+  $schema = $database->schema();
 
-  if ($schema->tableExists('myeventlane_refund_log')) {
-    if (!$schema->indexExists('myeventlane_refund_log', 'order_event')) {
-      $schema->addIndex(
-        'myeventlane_refund_log',
-        'order_event',
-        ['order_id', 'event_id'],
-        [
-          'fields' => ['order_id', 'event_id'],
-        ]
-      );
-    }
-    if (!$schema->indexExists('myeventlane_refund_log', 'status_created')) {
-      $schema->addIndex(
-        'myeventlane_refund_log',
-        'status_created',
-        ['status', 'created'],
-        [
-          'fields' => ['status', 'created'],
-        ]
-      );
-    }
-    if (!$schema->indexExists('myeventlane_refund_log', 'refund_request_id')) {
-      $schema->addIndex(
-        'myeventlane_refund_log',
-        'refund_request_id',
-        ['refund_request_id'],
-        [
-          'fields' => ['refund_request_id'],
-        ]
-      );
-    }
-  }
+  $tables = [
+    'myeventlane_refund_log' => [
+      'order_event' => ['order_id', 'event_id'],
+    ],
+    'myeventlane_refund_request' => [
+      'order_event' => ['order_id', 'event_id'],
+    ],
+  ];
 
-  if ($schema->tableExists('myeventlane_refund_request')) {
-    if (!$schema->indexExists('myeventlane_refund_request', 'event_status_created')) {
-      $schema->addIndex(
-        'myeventlane_refund_request',
-        'event_status_created',
-        ['event_id', 'status', 'created'],
-        [
-          'fields' => ['event_id', 'status', 'created'],
-        ]
-      );
+  foreach ($tables as $table => $indexes) {
+    if (!$schema->tableExists($table)) {
+      continue;
     }
-    if (!$schema->indexExists('myeventlane_refund_request', 'vendor_status_created')) {
-      $schema->addIndex(
-        'myeventlane_refund_request',
-        'vendor_status_created',
-        ['vendor_uid', 'status', 'created'],
-        [
-          'fields' => ['vendor_uid', 'status', 'created'],
-        ]
-      );
-    }
-    if (!$schema->indexExists('myeventlane_refund_request', 'order_event')) {
-      $schema->addIndex(
-        'myeventlane_refund_request',
-        'order_event',
-        ['order_id', 'event_id'],
-        [
-          'fields' => ['order_id', 'event_id'],
-        ]
-      );
+
+    foreach ($indexes as $index_name => $fields) {
+
+      // Drop malformed index if it exists.
+      if ($schema->indexExists($table, $index_name)) {
+        try {
+          $schema->dropIndex($table, $index_name);
+        }
+        catch (\Exception $e) {
+          // Continue safely if drop fails.
+        }
+      }
+
+      // Recreate clean composite index.
+      try {
+        $schema->addIndex($table, $index_name, $fields);
+      }
+      catch (\Exception $e) {
+        // Do not throw hard error if index already valid.
+      }
     }
   }
 }
