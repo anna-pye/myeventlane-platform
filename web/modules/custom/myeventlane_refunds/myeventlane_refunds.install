@@ -465,17 +465,17 @@ function myeventlane_refunds_update_9004(): void {
         try {
           $schema->dropIndex($table, $index_name);
         }
-        catch (\Exception $e) {
-          // Continue safely if drop fails.
+        catch (\Throwable $e) {
+          // Safe ignore.
         }
       }
 
-      // Recreate clean composite index.
+      // Recreate composite index with explicit spec param.
       try {
-        $schema->addIndex($table, $index_name, $fields);
+        $schema->addIndex($table, $index_name, $fields, []);
       }
-      catch (\Exception $e) {
-        // Do not throw hard error if index already valid.
+      catch (\Throwable $e) {
+        // Ignore if already valid.
       }
     }
   }
