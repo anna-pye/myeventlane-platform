@@ -13,6 +13,18 @@ administer all events tickets:
   description: 'Full access to manage tickets for any event.'
   restrict access: true
 
+check in tickets:
+  title: 'Check in tickets'
+  description: 'Validate ticket codes and mark tickets as checked in for accessible events.'
+
+view check-in analytics:
+  title: 'View check-in analytics'
+  description: 'View ticket check-in analytics dashboards for accessible events.'
+
+resend ticket emails:
+  title: 'Resend ticket emails'
+  description: 'Resend assigned ticket emails for accessible events.'
+
 
 
 

@@ -179,3 +179,147 @@ function myeventlane_tickets_update_8003(): string {
 
   return 'Installed ticketing entity types: ' . implode(', ', $installed) . '.';
 }
+
+/**
+ * Adds checked_in_by field storage to myeventlane_ticket if missing.
+ */
+function myeventlane_tickets_update_8004(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_ticket');
+
+  if ($update_manager->getFieldStorageDefinition('checked_in_by', 'myeventlane_ticket')) {
+    return 'checked_in_by field storage already exists.';
+  }
+
+  $definitions = Ticket::baseFieldDefinitions($entity_type);
+  if (empty($definitions['checked_in_by'])) {
+    throw new \RuntimeException('Could not load checked_in_by field definition for myeventlane_ticket.');
+  }
+
+  $update_manager->installFieldStorageDefinition(
+    'checked_in_by',
+    'myeventlane_ticket',
+    'myeventlane_tickets',
+    $definitions['checked_in_by']
+  );
+
+  return 'Installed checked_in_by field storage on myeventlane_ticket.';
+}
+
+/**
+ * Creates table for ticket check-in attempt logs.
+ */
+function myeventlane_tickets_update_8005(): string {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('myeventlane_ticket_checkin_log')) {
+    return 'Ticket check-in log table already exists.';
+  }
+
+  $table = [
+    'description' => 'Ticket check-in attempts and outcomes for analytics and reconciliation.',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary ID.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_nid' => [
+        'description' => 'Event node id from route context.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'ticket_id' => [
+        'description' => 'Ticket entity id when resolved.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'ticket_code_hash' => [
+        'description' => 'SHA-256 hash of ticket code (never raw code).',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'payload_hash' => [
+        'description' => 'SHA-256 hash of incoming payload string.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'ticket_label_masked' => [
+        'description' => 'Masked ticket code for support diagnostics.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'scanned_at' => [
+        'description' => 'Unix timestamp when attempt was processed by server.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'scanned_by_uid' => [
+        'description' => 'User who submitted scan (nullable).',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'device_id' => [
+        'description' => 'Client-side scanner device identifier.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'mode' => [
+        'description' => 'Submission mode: online or offline.',
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'online',
+      ],
+      'result' => [
+        'description' => 'Check-in outcome token.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'message' => [
+        'description' => 'Safe short message for support and dashboard.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'synced' => [
+        'description' => '1 when server has processed queued record.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'ip' => [
+        'description' => 'Requester IP address (nullable).',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_scanned_at' => ['event_nid', 'scanned_at'],
+      'event_result' => ['event_nid', 'result'],
+      'ticket_id' => ['ticket_id'],
+      'device_id' => ['device_id'],
+    ],
+  ];
+
+  $schema->createTable('myeventlane_ticket_checkin_log', $table);
+  return 'Created table myeventlane_ticket_checkin_log.';
+}

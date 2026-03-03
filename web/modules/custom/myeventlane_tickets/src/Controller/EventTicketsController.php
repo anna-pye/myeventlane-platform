@@ -130,6 +130,21 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
           '#title' => $this->t('Embedded widgets'),
           '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets', ['event' => $event->id()]),
         ],
+        [
+          '#type' => 'link',
+          '#title' => $this->t('Door scanner'),
+          '#url' => Url::fromRoute('myeventlane_tickets.ticket_scan', ['event' => $event->id()]),
+        ],
+        [
+          '#type' => 'link',
+          '#title' => $this->t('Check-in analytics'),
+          '#url' => Url::fromRoute('myeventlane_tickets.ticket_checkin_analytics', ['event' => $event->id()]),
+        ],
+        [
+          '#type' => 'link',
+          '#title' => $this->t('Manual check-in'),
+          '#url' => Url::fromRoute('myeventlane_tickets.ticket_checkin', ['event' => $event->id()]),
+        ],
       ],
       '#attributes' => ['class' => ['mel-tickets-overview-links']],
     ];

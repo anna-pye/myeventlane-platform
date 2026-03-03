@@ -1,0 +1,127 @@
+.mel-checkin-scanner-page {
+  min-height: 100vh;
+  background: #090d14;
+  color: #fff;
+  padding: 0.75rem;
+}
+
+.mel-checkin-scanner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mel-checkin-scanner-header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.mel-checkin-offline-indicator,
+.mel-checkin-queued-badge {
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+}
+
+.mel-checkin-offline-indicator.is-online {
+  background: #164f21;
+}
+
+.mel-checkin-offline-indicator.is-offline {
+  background: #5a1b1b;
+}
+
+.mel-checkin-queued-badge {
+  background: #29364d;
+}
+
+.mel-checkin-camera-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 0.75rem;
+}
+
+.mel-checkin-camera,
+.mel-checkin-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mel-checkin-status-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: rgba(0, 0, 0, 0.7);
+  text-align: center;
+  padding: 0.8rem 0.5rem;
+}
+
+.mel-checkin-status-overlay.state-admitted {
+  background: rgba(23, 136, 69, 0.86);
+}
+
+.mel-checkin-status-overlay.state-already_checked_in {
+  background: rgba(198, 127, 33, 0.9);
+}
+
+.mel-checkin-status-overlay.state-invalid,
+.mel-checkin-status-overlay.state-wrong_event,
+.mel-checkin-status-overlay.state-refunded,
+.mel-checkin-status-overlay.state-void,
+.mel-checkin-status-overlay.state-error {
+  background: rgba(154, 21, 21, 0.9);
+}
+
+.mel-checkin-status-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.mel-checkin-status-text {
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.mel-checkin-status-subtext {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+  opacity: 0.96;
+}
+
+.mel-checkin-manual-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.mel-checkin-manual-form label {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+}
+
+.mel-checkin-manual-form input {
+  border-radius: 8px;
+  border: 1px solid #50607a;
+  background: #111826;
+  color: #fff;
+  padding: 0.7rem;
+  font-size: 1rem;
+}
+
+.mel-checkin-manual-form button {
+  border: 0;
+  border-radius: 8px;
+  background: #0b5fff;
+  color: #fff;
+  padding: 0.72rem 0.9rem;
+  font-weight: 700;
+}
+

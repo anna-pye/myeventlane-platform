@@ -1,0 +1,14 @@
+myeventlane_tickets.ticket_checkin_tab:
+  route_name: myeventlane_tickets.ticket_checkin
+  title: 'Check-in'
+  base_route: myeventlane_tickets.ticket_checkin
+
+myeventlane_tickets.ticket_scan_tab:
+  route_name: myeventlane_tickets.ticket_scan
+  title: 'Scan tickets'
+  base_route: myeventlane_tickets.ticket_checkin
+
+myeventlane_tickets.ticket_checkin_analytics_tab:
+  route_name: myeventlane_tickets.ticket_checkin_analytics
+  title: 'Check-in analytics'
+  base_route: myeventlane_tickets.ticket_checkin

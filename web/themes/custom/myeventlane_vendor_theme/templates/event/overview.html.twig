@@ -5,6 +5,28 @@
 <div class="mel-grid mel-grid--2">
   <div class="mel-card">
     <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Ticket check-in'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      <div class="mel-list">
+        <div class="mel-list__item">
+          <a class="mel-pill" href="{{ path('myeventlane_tickets.ticket_scan', {'event': event.id}) }}">{{ 'Scan tickets (door mode)'|t }}</a>
+        </div>
+        <div class="mel-list__item">
+          <a class="mel-pill" href="{{ path('myeventlane_tickets.ticket_checkin_analytics', {'event': event.id}) }}">{{ 'Check-in analytics'|t }}</a>
+        </div>
+        <div class="mel-list__item">
+          <a class="mel-pill" href="{{ path('myeventlane_tickets.ticket_checkin', {'event': event.id}) }}">{{ 'Manual check-in form'|t }}</a>
+        </div>
+        <div class="mel-list__item">
+          <a class="mel-pill" href="{{ path('myeventlane_tickets.event_tickets_overview', {'event': event.id}) }}">{{ 'Tickets workspace'|t }}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
       <div class="mel-card__title">{{ 'Sales summary'|t }}</div>
     </div>
     <div class="mel-stats">

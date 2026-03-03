@@ -147,12 +147,16 @@
     {# Growth items - using actual routes from routing.yml #}
     {% set growth_items = [
       { route: 'myeventlane_vendor.console.boost', label: 'Boost'|t, key: 'boost', icon: 'zap' },
-      { route: 'myeventlane_pro.overview', label: 'Pro'|t, key: 'pro', icon: 'pro' },
     ] %}
+    {% if page.pro_overview_url %}
+      {% set growth_items = growth_items|merge([
+        { url: page.pro_overview_url, label: 'Pro'|t, key: 'pro', icon: 'pro' },
+      ]) %}
+    {% endif %}
     
     {% for item in growth_items %}
       <li class="mel-sidebar__item">
-        <a href="{{ path(item.route) }}"
+        <a href="{% if item.url is defined %}{{ item.url }}{% else %}{{ path(item.route) }}{% endif %}"
            class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
            {% if active == item.key %}aria-current="page"{% endif %}>
           <span class="mel-sidebar__link-icon" aria-hidden="true">

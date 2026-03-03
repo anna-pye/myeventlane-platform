@@ -18,3 +18,26 @@ add_ticket_modal:
     - core/drupal.dialog.ajax
     - myeventlane_vendor_theme/modal
 
+checkin_scanner:
+  js:
+    js/vendor/html5-qrcode.min.js: {}
+    js/checkin-scanner.js: {}
+  css:
+    theme:
+      css/checkin-scanner.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
+checkin_analytics:
+  js:
+    js/checkin-analytics.js: {}
+  css:
+    theme:
+      css/checkin-analytics.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
