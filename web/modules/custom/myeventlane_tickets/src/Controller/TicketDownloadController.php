@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Controller;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -17,6 +19,8 @@ final class TicketDownloadController extends ControllerBase {
 
   public function __construct(
     private readonly TicketPdfGenerator $pdfGenerator,
+    private readonly EntityTypeManagerInterface $ticketsEntityTypeManager,
+    private readonly ConfigFactoryInterface $ticketsConfigFactory,
   ) {}
 
   /**
@@ -25,6 +29,8 @@ final class TicketDownloadController extends ControllerBase {
   public static function create(ContainerInterface $container): self {
     return new self(
       $container->get('myeventlane_tickets.ticket_pdf_generator'),
+      $container->get('entity_type.manager'),
+      $container->get('config.factory'),
     );
   }
 
@@ -35,7 +41,7 @@ final class TicketDownloadController extends ControllerBase {
    * Generates a combined PDF for backward compatibility only.
    */
   public function download(int $order_item_id) {
-    $order_item = $this->entityTypeManager()
+    $order_item = $this->ticketsEntityTypeManager
       ->getStorage('commerce_order_item')
       ->load($order_item_id);
 
@@ -47,6 +53,9 @@ final class TicketDownloadController extends ControllerBase {
     if (!$order || (int) $order->getCustomerId() !== (int) $this->currentUser()->id()) {
       throw new AccessDeniedHttpException();
     }
+    if ($this->isExpired((int) $order_item->getCreatedTime())) {
+      throw new NotFoundHttpException();
+    }
 
     return $this->pdfGenerator->generatePdfForOrderItem($order_item);
   }
@@ -57,7 +66,7 @@ final class TicketDownloadController extends ControllerBase {
    * Route: /ticket/{ticket_code}/pdf.
    */
   public function downloadByCode(string $ticket_code) {
-    $storage = $this->entityTypeManager()->getStorage('myeventlane_ticket');
+    $storage = $this->ticketsEntityTypeManager->getStorage('myeventlane_ticket');
 
     $ids = $storage->getQuery()
       ->condition('ticket_code', $ticket_code)
@@ -72,6 +81,9 @@ final class TicketDownloadController extends ControllerBase {
 
     if (!$this->canAccessTicket($ticket)) {
       throw new AccessDeniedHttpException();
+    }
+    if ($this->isExpired((int) $ticket->getCreatedTime())) {
+      throw new NotFoundHttpException();
     }
 
     return $this->pdfGenerator->generatePdfForTicket($ticket);
@@ -91,6 +103,18 @@ final class TicketDownloadController extends ControllerBase {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Returns TRUE when configured ticket PDF expiry has elapsed.
+   */
+  private function isExpired(int $created_timestamp): bool {
+    $days = (int) ($this->ticketsConfigFactory->get('myeventlane_tickets.settings')->get('pdf_expiry_days') ?? 0);
+    if ($days <= 0 || $created_timestamp <= 0) {
+      return FALSE;
+    }
+    $expires_at = $created_timestamp + ($days * 86400);
+    return time() > $expires_at;
   }
 
 }
