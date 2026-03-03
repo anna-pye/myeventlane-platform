@@ -27,7 +27,7 @@ services:
       - '@current_user'
       - '@current_route_match'
       - '@request_stack'
-      - '@myeventlane_core.optional_service_resolver'
+      - '@?myeventlane_core.optional_service_resolver'
       - '@string_translation'
 
   myeventlane_vendor.vendor_store_subscriber:
@@ -108,7 +108,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_overview:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOverviewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@myeventlane_vendor.subscription']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@?myeventlane_pro.active_resolver']
     tags:
       - { name: controller.service_arguments }
 

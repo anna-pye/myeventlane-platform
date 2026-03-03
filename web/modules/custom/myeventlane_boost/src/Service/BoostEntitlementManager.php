@@ -111,6 +111,7 @@ final class BoostEntitlementManager {
       'starts' => $starts_at,
       'ends' => $ends_at,
       'status' => BoostEntitlementInterface::STATUS_ACTIVE,
+      'source' => BoostEntitlementInterface::SOURCE_ORDER,
       'label' => sprintf('Boost #%d for %s', (int) $orderItem->id(), $target_event->label()),
     ];
 

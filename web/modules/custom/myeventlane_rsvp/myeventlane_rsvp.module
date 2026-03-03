@@ -21,28 +21,34 @@ function myeventlane_rsvp_mail($key, &$message, $params) {
         '@event' => $params['event_title'] ?? 'the event',
       ]);
 
-      // Build email body.
-      $body = [];
-      $body[] = t('Hi @name,', ['@name' => $params['name'] ?? 'there']);
-      $body[] = '';
-      $body[] = t("You're confirmed for @event!", [
-        '@event' => $params['event_title'] ?? 'the event',
-      ]);
-      $body[] = '';
-
-      if (!empty($params['event_date'])) {
-        $body[] = t('Date: @date', ['@date' => $params['event_date']]);
+      if (!empty($params['override_body_html']) && is_string($params['override_body_html'])) {
+        $message['body'] = [Markup::create($params['override_body_html'])];
       }
-      if (!empty($params['event_location'])) {
-        $body[] = t('Location: @location', ['@location' => $params['event_location']]);
+      else {
+
+        // Build email body.
+        $body = [];
+        $body[] = t('Hi @name,', ['@name' => $params['name'] ?? 'there']);
+        $body[] = '';
+        $body[] = t("You're confirmed for @event!", [
+          '@event' => $params['event_title'] ?? 'the event',
+        ]);
+        $body[] = '';
+
+        if (!empty($params['event_date'])) {
+          $body[] = t('Date: @date', ['@date' => $params['event_date']]);
+        }
+        if (!empty($params['event_location'])) {
+          $body[] = t('Location: @location', ['@location' => $params['event_location']]);
+        }
+
+        $body[] = '';
+        $body[] = t('Your ticket is attached to this email. You can also add this event to your calendar using the attached file.');
+        $body[] = '';
+        $body[] = t('See you there!');
+
+        $message['body'] = $body;
       }
-
-      $body[] = '';
-      $body[] = t('Your ticket is attached to this email. You can also add this event to your calendar using the attached file.');
-      $body[] = '';
-      $body[] = t('See you there!');
-
-      $message['body'] = $body;
 
       // Handle attachments (ticket PDF and ICS).
       if (!empty($params['attachments']) && is_array($params['attachments'])) {

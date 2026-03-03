@@ -851,6 +851,58 @@ function myeventlane_pro_update_10008(): void {
 }
 
 /**
+ * Ensures Pro boost sync queue exists for store-by-store entitlement refresh.
+ */
+function myeventlane_pro_update_10009(): void {
+  $etm = \Drupal::entityTypeManager();
+  if (!$etm->hasDefinition('advancedqueue_queue')) {
+    return;
+  }
+
+  $queueStorage = $etm->getStorage('advancedqueue_queue');
+  if ($queueStorage->load('pro_boost_sync')) {
+    return;
+  }
+
+  $queueStorage->create([
+    'id' => 'pro_boost_sync',
+    'label' => 'Pro Boost Sync',
+    'backend' => 'database',
+    'backend_configuration' => ['lease_time' => 300],
+    'processor' => 'cron',
+    'processing_time' => 120,
+    'threshold' => ['state' => 'failure', 'limit' => 500],
+    'locked' => FALSE,
+  ])->save();
+}
+
+/**
+ * Re-ensures Pro boost sync queue exists on upgraded sites.
+ */
+function myeventlane_pro_update_10010(): void {
+  $etm = \Drupal::entityTypeManager();
+  if (!$etm->hasDefinition('advancedqueue_queue')) {
+    return;
+  }
+
+  $queueStorage = $etm->getStorage('advancedqueue_queue');
+  if ($queueStorage->load('pro_boost_sync')) {
+    return;
+  }
+
+  $queueStorage->create([
+    'id' => 'pro_boost_sync',
+    'label' => 'Pro Boost Sync',
+    'backend' => 'database',
+    'backend_configuration' => ['lease_time' => 300],
+    'processor' => 'cron',
+    'processing_time' => 120,
+    'threshold' => ['state' => 'failure', 'limit' => 500],
+    'locked' => FALSE,
+  ])->save();
+}
+
+/**
  * Installs the field_is_pro_support base field on the escalation entity.
  *
  * Shared by hook_install() and update_10002().

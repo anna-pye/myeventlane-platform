@@ -18,11 +18,10 @@ use Drupal\myeventlane_vendor\Entity\Vendor;
  */
 final class ProBrandGate implements BrandResolverInterface {
 
-  private const PRO_ROLE = 'pro_organiser';
-
   public function __construct(
     private readonly BrandResolverInterface $inner,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly ProActiveResolver $proActiveResolver,
   ) {}
 
   /**
@@ -74,7 +73,11 @@ final class ProBrandGate implements BrandResolverInterface {
       return FALSE;
     }
 
-    return in_array(self::PRO_ROLE, $owner->getRoles(), TRUE);
+    if (!$owner instanceof \Drupal\user\UserInterface) {
+      return FALSE;
+    }
+
+    return $this->proActiveResolver->isUserProActive($owner);
   }
 
 }

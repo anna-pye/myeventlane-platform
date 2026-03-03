@@ -37,12 +37,13 @@ final class ProSubscriptionLifecycleScheduler {
     private readonly ProSubscriptionStateResolver $stateResolver,
     private readonly ProEntitlementReconciler $reconciler,
     private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
+    private readonly ProBoostProvisioner $proBoostProvisioner,
   ) {}
 
   /**
    * Runs all lifecycle scheduling and dispatch tasks.
    *
-   * @return array{renewal_scheduled:int, failed_scheduled:int, failed_cancelled:int, renewal_sent:int, failed_sent:int, grace_revoked:int}
+   * @return array{renewal_scheduled:int, failed_scheduled:int, failed_cancelled:int, renewal_sent:int, failed_sent:int, grace_revoked:int, boost_sync_enqueued:int}
    *   Execution stats.
    */
   public function run(): array {
@@ -52,6 +53,7 @@ final class ProSubscriptionLifecycleScheduler {
     $renewalSent = $this->dispatchDueRenewalReminders();
     $failedSent = $this->dispatchDueFailedPaymentEmails();
     $graceRevoked = $this->reconciler->reconcileExpiredGracePeriods();
+    $boostSyncEnqueued = $this->proBoostProvisioner->enqueueActiveProStoreSyncs(500);
 
     $stats = [
       'renewal_scheduled' => $renewalScheduled,
@@ -60,10 +62,11 @@ final class ProSubscriptionLifecycleScheduler {
       'renewal_sent' => $renewalSent,
       'failed_sent' => $failedSent,
       'grace_revoked' => $graceRevoked,
+      'boost_sync_enqueued' => $boostSyncEnqueued,
     ];
 
     $this->logger->info(
-      'Pro lifecycle cron: renewal_scheduled=@renewal_scheduled failed_scheduled=@failed_scheduled failed_cancelled=@failed_cancelled renewal_sent=@renewal_sent failed_sent=@failed_sent grace_revoked=@grace_revoked',
+      'Pro lifecycle cron: renewal_scheduled=@renewal_scheduled failed_scheduled=@failed_scheduled failed_cancelled=@failed_cancelled renewal_sent=@renewal_sent failed_sent=@failed_sent grace_revoked=@grace_revoked boost_sync_enqueued=@boost_sync_enqueued',
       [
         '@renewal_scheduled' => $renewalScheduled,
         '@failed_scheduled' => $failedScheduled,
@@ -71,6 +74,7 @@ final class ProSubscriptionLifecycleScheduler {
         '@renewal_sent' => $renewalSent,
         '@failed_sent' => $failedSent,
         '@grace_revoked' => $graceRevoked,
+        '@boost_sync_enqueued' => $boostSyncEnqueued,
       ],
     );
 

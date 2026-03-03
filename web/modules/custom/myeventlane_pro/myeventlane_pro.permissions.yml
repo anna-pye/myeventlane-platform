@@ -7,3 +7,7 @@ view pro reporting:
   title: 'View Pro subscription reporting'
   description: 'Access Pro subscription metrics and vendor detail report.'
   restrict access: true
+
+administer own pro communications:
+  title: 'Administer own Pro communications'
+  description: 'Manage Pro communication overrides for your vendor store.'

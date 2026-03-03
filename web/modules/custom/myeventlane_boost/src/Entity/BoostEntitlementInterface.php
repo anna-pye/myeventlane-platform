@@ -27,4 +27,14 @@ interface BoostEntitlementInterface extends ContentEntityInterface, EntityOwnerI
    */
   public const STATUS_REVOKED = 'revoked';
 
+  /**
+   * Entitlement source generated from paid boost checkout.
+   */
+  public const SOURCE_ORDER = 'order';
+
+  /**
+   * Entitlement source generated from Pro auto-boost.
+   */
+  public const SOURCE_PRO = 'pro';
+
 }

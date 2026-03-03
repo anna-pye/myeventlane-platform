@@ -6,8 +6,11 @@ namespace Drupal\myeventlane_pro\Form;
 
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -30,6 +33,8 @@ final class ProSubscribeForm extends FormBase {
     private readonly ProProductResolver $productResolver,
     private readonly CartProviderInterface $cartProvider,
     private readonly CartManagerInterface $cartManager,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelInterface $logger,
   ) {}
 
@@ -42,6 +47,8 @@ final class ProSubscribeForm extends FormBase {
       $container->get('myeventlane_pro.product_resolver'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('commerce_cart.cart_manager'),
+      $container->get('access_manager'),
+      $container->get('entity_type.manager'),
       $container->get('logger.channel.myeventlane_pro'),
     );
   }
@@ -87,7 +94,13 @@ final class ProSubscribeForm extends FormBase {
 
     $variation = $this->productResolver->findActiveVariation();
     if (!$variation) {
-      $this->logger->error('No active Pro subscription variation found.');
+      $this->logger->error(
+        'No active Pro variation found. Configured SKU: @sku; expected type fallback: @type',
+        [
+          '@sku' => $this->productResolver->getConfiguredSku(),
+          '@type' => 'mel_pro_subscription_variation',
+        ],
+      );
       $this->messenger()->addError($this->t('Pro subscription is not currently available.'));
       $form_state->setRedirectUrl($overviewUrl);
       return;
@@ -110,8 +123,9 @@ final class ProSubscribeForm extends FormBase {
       return;
     }
 
-    $user = \Drupal::entityTypeManager()->getStorage('user')->load($this->currentUser->id());
+    $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
     if (!$user instanceof UserInterface) {
+      $this->logger->error('Unable to load current user @uid for Pro checkout.', ['@uid' => (string) $this->currentUser->id()]);
       $form_state->setRedirectUrl($overviewUrl);
       return;
     }
@@ -120,18 +134,85 @@ final class ProSubscribeForm extends FormBase {
     if (!$cart) {
       $cart = $this->cartProvider->createCart('default', $store, $user);
     }
+    $currentUid = (int) $this->currentUser->id();
+    if ((int) $cart->getCustomerId() !== $currentUid) {
+      $this->logger->warning(
+        'Pro checkout cart ownership mismatch. order=@order_id customer=@customer_id current=@current_uid. Resetting customer.',
+        [
+          '@order_id' => (string) $cart->id(),
+          '@customer_id' => (string) $cart->getCustomerId(),
+          '@current_uid' => (string) $currentUid,
+        ],
+      );
+      $cart->setCustomerId($currentUid);
+      $cart->save();
+    }
 
     $this->cartManager->addEntity($cart, $variation);
+    $form_state->setRedirectUrl($this->buildCheckoutRedirectUrl($cart));
+  }
 
+  /**
+   * Builds a checkout redirect URL for the provided order.
+   */
+  private function buildCheckoutRedirectUrl(OrderInterface $order): Url {
     try {
-      $checkoutUrl = Url::fromRoute('commerce_checkout.form', [
-        'commerce_order' => $cart->id(),
-      ]);
-      $form_state->setRedirectUrl($checkoutUrl);
+      if ($order->hasField('checkout_flow') && !$order->get('checkout_flow')->isEmpty()) {
+        $flow = $order->get('checkout_flow')->entity;
+        if ($flow) {
+          $plugin = $flow->getPlugin();
+          $steps = $plugin->getSteps();
+          $firstStep = array_key_first($steps);
+          if (is_string($firstStep) && $firstStep !== '') {
+            $stepParams = [
+              'commerce_order' => $order->id(),
+              'step' => $firstStep,
+            ];
+            if ($this->accessManager->checkNamedRoute('commerce_checkout.form', $stepParams, $this->currentUser, TRUE)->isAllowed()) {
+              return Url::fromRoute('commerce_checkout.form', $stepParams);
+            }
+            $this->logger->warning(
+              'Checkout access denied for order @order_id and step @step; trying route without step.',
+              [
+                '@order_id' => (string) $order->id(),
+                '@step' => $firstStep,
+              ],
+            );
+          }
+        }
+      }
+
+      // Fallback for environments where checkout step is auto-resolved.
+      $params = [
+        'commerce_order' => $order->id(),
+      ];
+      if ($this->accessManager->checkNamedRoute('commerce_checkout.form', $params, $this->currentUser, TRUE)->isAllowed()) {
+        return Url::fromRoute('commerce_checkout.form', $params);
+      }
+      $this->logger->warning(
+        'Checkout access denied for order @order_id and user @uid.',
+        [
+          '@order_id' => (string) $order->id(),
+          '@uid' => (string) $this->currentUser->id(),
+        ],
+      );
     }
-    catch (\Exception) {
-      $form_state->setRedirectUrl(Url::fromRoute('commerce_cart.page'));
+    catch (\Throwable $exception) {
+      $this->logger->error(
+        'Failed to build checkout redirect for order @order_id: @message',
+        [
+          '@order_id' => (string) $order->id(),
+          '@message' => $exception->getMessage(),
+        ],
+      );
     }
+
+    $this->logger->warning(
+      'Checkout flow could not be resolved for order @order_id; redirecting to cart.',
+      ['@order_id' => (string) $order->id()],
+    );
+    $this->messenger()->addWarning($this->t('Checkout could not be started. Please review your cart.'));
+    return Url::fromRoute('commerce_cart.page');
   }
 
 }

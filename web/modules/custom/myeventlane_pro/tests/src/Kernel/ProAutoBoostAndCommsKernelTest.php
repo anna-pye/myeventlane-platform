@@ -171,7 +171,7 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
       'label' => 'Store comms',
       'store_id' => (int) $store->id(),
       'enabled' => TRUE,
-      'ticket_body' => '<p>Hello [customer:first_name], total [order:total].</p>',
+      'ticket_body' => '<p onclick="alert(1)">Hello [customer:first_name], total [order:total].</p><script>alert(1)</script>',
       'brand_signature' => '<p>Thanks from vendor.</p>',
       'updated' => $this->container->get('datetime.time')->getRequestTime(),
     ])->save();
@@ -184,6 +184,8 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     $this->assertIsString($body);
     $this->assertStringContainsString('Hello', (string) $body);
     $this->assertStringContainsString('MyEventLane', (string) $body);
+    $this->assertStringNotContainsString('<script', (string) $body);
+    $this->assertStringNotContainsString('onclick=', (string) $body);
 
     $store = $this->transitionStoreToInactivePro($store);
     $inactive = $resolver->resolveBody($store, 'order_receipt', [

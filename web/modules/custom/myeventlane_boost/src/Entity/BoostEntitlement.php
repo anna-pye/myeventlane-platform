@@ -80,19 +80,19 @@ final class BoostEntitlement extends ContentEntityBase implements BoostEntitleme
     $fields['order_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(new TranslatableMarkup('Order'))
       ->setDescription(new TranslatableMarkup('Commerce order that granted this entitlement.'))
-      ->setRequired(TRUE)
+      ->setRequired(FALSE)
       ->setSetting('target_type', 'commerce_order');
 
     $fields['order_item_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(new TranslatableMarkup('Order item'))
       ->setDescription(new TranslatableMarkup('Order item that granted this entitlement.'))
-      ->setRequired(TRUE)
+      ->setRequired(FALSE)
       ->setSetting('target_type', 'commerce_order_item');
 
     $fields['variation_id'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(new TranslatableMarkup('Variation'))
       ->setDescription(new TranslatableMarkup('Purchased Boost variation.'))
-      ->setRequired(TRUE)
+      ->setRequired(FALSE)
       ->setSetting('target_type', 'commerce_product_variation');
 
     $fields['starts'] = BaseFieldDefinition::create('timestamp')
@@ -114,6 +114,16 @@ final class BoostEntitlement extends ContentEntityBase implements BoostEntitleme
         BoostEntitlementInterface::STATUS_ACTIVE => 'Active',
         BoostEntitlementInterface::STATUS_EXPIRED => 'Expired',
         BoostEntitlementInterface::STATUS_REVOKED => 'Revoked',
+      ]);
+
+    $fields['source'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(new TranslatableMarkup('Source'))
+      ->setDescription(new TranslatableMarkup('Origin of this entitlement.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(BoostEntitlementInterface::SOURCE_ORDER)
+      ->setSetting('allowed_values', [
+        BoostEntitlementInterface::SOURCE_ORDER => 'Order',
+        BoostEntitlementInterface::SOURCE_PRO => 'Pro',
       ]);
 
     $fields['amount_paid'] = BaseFieldDefinition::create('commerce_price')

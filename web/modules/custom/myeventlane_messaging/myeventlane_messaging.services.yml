@@ -51,8 +51,10 @@ services:
       - '@myeventlane_messaging.message_storage'
       - '@myeventlane_messaging.message_preference_storage'
       - '@myeventlane_messaging.delivery_provider_manager'
+      - '@entity_type.manager'
       - '@myeventlane_messaging.utm_linker'
       - '@myeventlane_messaging.vendor_brand_resolver'
+      - '@?myeventlane_pro.vendor_comms_resolver'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
@@ -62,7 +64,7 @@ services:
       - '@entity_type.manager'
       - '@queue'
       - '@date.formatter'
-      - '@myeventlane_boost.manager'
+      - '@?myeventlane_boost.manager'
       - '@myeventlane_messaging.manager'
 
   myeventlane_messaging.scheduler.cart:
@@ -108,7 +110,7 @@ services:
     class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
     arguments:
       - '@entity_type.manager'
-      - '@myeventlane_core.ticket_label_resolver'
+      - '@?myeventlane_core.ticket_label_resolver'
       - '@file_url_generator'
       - '@myeventlane_messaging.manager'
       - '@logger.channel.myeventlane_messaging'

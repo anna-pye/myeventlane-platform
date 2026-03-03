@@ -17,12 +17,10 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
-use Drupal\myeventlane_pro\Service\ProEntitlementManager;
-use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\state_machine\WorkflowManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -62,7 +60,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
-    private readonly ProEntitlementManager $entitlementManager,
+    private readonly ProActiveResolver $proActiveResolver,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly MailManagerInterface $mailManager,
     private readonly WorkflowManagerInterface $workflowManager,
@@ -83,7 +81,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       $container->get('entity_type.manager'),
       $container->get('datetime.time'),
       $container->get('logger.channel.myeventlane_pro'),
-      $container->get('myeventlane_pro.entitlement'),
+      $container->get('myeventlane_pro.active_resolver'),
       $container->get('config.factory'),
       $container->get('plugin.manager.mail'),
       $container->get('plugin.manager.workflow'),
@@ -183,8 +181,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       return 'Order has no store.';
     }
 
-    $owner = $this->resolveStoreOwner($store);
-    if ($owner === NULL || !$this->entitlementManager->isPro($owner)) {
+    if (!$this->proActiveResolver->isStoreProActive($store)) {
       return 'Store owner is not Pro.';
     }
 
@@ -258,28 +255,6 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     $customer = $order->getCustomer();
     if ($customer && $customer->getEmail() !== '') {
       return trim((string) $customer->getEmail());
-    }
-
-    return NULL;
-  }
-
-  /**
-   * Resolves store owner from store uid or vendor linkage.
-   */
-  private function resolveStoreOwner(StoreInterface $store): ?AccountInterface {
-    $owner = $store->getOwner();
-    if ($owner instanceof AccountInterface && (int) $owner->id() > 0) {
-      return $owner;
-    }
-
-    if ($store->hasField('field_vendor_reference') && !$store->get('field_vendor_reference')->isEmpty()) {
-      $vendor = $store->get('field_vendor_reference')->entity;
-      if ($vendor instanceof Vendor) {
-        $vendorOwner = $vendor->getOwner();
-        if ($vendorOwner instanceof AccountInterface && (int) $vendorOwner->id() > 0) {
-          return $vendorOwner;
-        }
-      }
     }
 
     return NULL;

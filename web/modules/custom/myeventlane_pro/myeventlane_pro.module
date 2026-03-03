@@ -138,10 +138,12 @@ function myeventlane_pro_mail(string $key, array &$message, array $params): void
  */
 function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
   $currentUser = \Drupal::currentUser();
-  $isPro = in_array('pro_organiser', $currentUser->getRoles(), TRUE);
+  $activeResolver = \Drupal::service('myeventlane_pro.active_resolver');
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) $currentUser->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface ? $activeResolver->isUserProActive($user) : FALSE;
 
   $variables['is_pro'] = $isPro;
-  $variables['pro_upgrade_url'] = Url::fromRoute('myeventlane_pro.overview')->toString();
+  $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
 
   $showProPrompt = FALSE;
   if (!$isPro) {
@@ -214,6 +216,13 @@ function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variabl
   $variables['#cache']['contexts'][] = 'route';
   $variables['#cache']['tags'][] = 'commerce_order_list';
   $variables['#cache']['tags'][] = 'commerce_store_list';
+  if (!empty($variables['vendor']) && $variables['vendor'] instanceof Vendor && $variables['vendor']->hasField('field_vendor_store') && !$variables['vendor']->get('field_vendor_store')->isEmpty()) {
+    $store = $variables['vendor']->get('field_vendor_store')->entity;
+    if ($store instanceof StoreInterface && $store->id() !== NULL) {
+      $variables['#cache']['tags'][] = 'pro_subscription:' . (int) $store->id();
+      $variables['#cache']['tags'][] = 'commerce_store:' . (int) $store->id();
+    }
+  }
   $variables['#cache']['max-age'] = 300;
 
   $variables['#attached']['library'][] = 'myeventlane_pro/pro';
@@ -225,10 +234,48 @@ function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variabl
  * Injects Pro lock state for analytics gating.
  */
 function myeventlane_pro_preprocess_myeventlane_analytics_dashboard(array &$variables): void {
-  $isPro = in_array('pro_organiser', \Drupal::currentUser()->getRoles(), TRUE);
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
   $variables['is_pro'] = $isPro;
-  $variables['pro_upgrade_url'] = Url::fromRoute('myeventlane_pro.overview')->toString();
+  $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
   $variables['#attached']['library'][] = 'myeventlane_pro/pro';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for node templates.
+ */
+function myeventlane_pro_preprocess_node(array &$variables): void {
+  if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface || $variables['node']->bundle() !== 'event') {
+    return;
+  }
+
+  $store = myeventlane_pro_resolve_store_from_event($variables['node']);
+  if (!$store instanceof StoreInterface || $store->id() === NULL) {
+    return;
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $variables['#cache']['tags'][] = 'pro_subscription:' . (int) $store->id();
+  $variables['#cache']['tags'][] = 'commerce_store:' . (int) $store->id();
+}
+
+/**
+ * Returns the Pro overview URL when route is available.
+ */
+function myeventlane_pro_get_overview_url(): ?string {
+  try {
+    return Url::fromRoute('myeventlane_pro.overview')->toString();
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->warning('Pro overview route unavailable in preprocess: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+    return NULL;
+  }
 }
 
 /**
@@ -274,7 +321,7 @@ function myeventlane_pro_preprocess_ticket_pdf(array &$variables): void {
   }
 
   $owner = $vendor->getOwner();
-  if (!$owner || !in_array('pro_organiser', $owner->getRoles(), TRUE)) {
+  if (!$owner instanceof \Drupal\user\UserInterface || !\Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner)) {
     return;
   }
 
@@ -317,8 +364,11 @@ function myeventlane_pro_form_commerce_store_edit_form_alter(array &$form, FormS
   }
 
   $advancedFields = myeventlane_pro_advanced_branding_fields();
-  $entitlement = \Drupal::service('myeventlane_pro.entitlement');
-  if (!$entitlement->isPro(\Drupal::currentUser())) {
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
+  if (!$isPro) {
     foreach ($advancedFields as $fieldName) {
       if (!isset($form[$fieldName]) || !is_array($form[$fieldName])) {
         continue;
@@ -336,8 +386,11 @@ function myeventlane_pro_form_commerce_store_edit_form_alter(array &$form, FormS
  * Enforces server-side branding access controls for non-Pro organisers.
  */
 function myeventlane_pro_store_branding_submit_enforce(array &$form, FormStateInterface $form_state): void {
-  $entitlement = \Drupal::service('myeventlane_pro.entitlement');
-  if ($entitlement->isPro(\Drupal::currentUser())) {
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
+  if ($isPro) {
     return;
   }
 
@@ -388,8 +441,7 @@ function myeventlane_pro_page_attachments(array &$attachments): void {
   $css = ":root {\n  --mel-brand-primary: {$primary};\n  --mel-brand-secondary: {$secondary};\n}\n";
 
   $owner = $store->getOwner();
-  $entitlement = \Drupal::service('myeventlane_pro.entitlement');
-  if ($owner && $entitlement->isPro($owner) && trim($customCss) !== '') {
+  if ($owner instanceof \Drupal\user\UserInterface && \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner) && trim($customCss) !== '') {
     $sanitized = trim(Xss::filter($customCss, []));
     $sanitized = preg_replace('/<\/?(script|style)\b[^>]*>/i', '', $sanitized) ?? '';
     if ($sanitized !== '') {
@@ -424,8 +476,7 @@ function myeventlane_pro_mail_alter(array &$message): void {
   }
 
   $owner = $store->getOwner();
-  $entitlement = \Drupal::service('myeventlane_pro.entitlement');
-  if (!$owner || !$entitlement->isPro($owner)) {
+  if (!$owner instanceof \Drupal\user\UserInterface || !\Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner)) {
     return;
   }
 
@@ -495,7 +546,7 @@ function myeventlane_pro_escalation_presave(EntityInterface $escalation): void {
 
   /** @var \Drupal\user\UserInterface|null $user */
   $user = $escalation->get('user_id')->entity;
-  if ($user && in_array('pro_organiser', $user->getRoles(), TRUE)) {
+  if ($user instanceof \Drupal\user\UserInterface && \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)) {
     $escalation->set('field_is_pro_support', TRUE);
   }
 }

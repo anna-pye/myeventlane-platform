@@ -53,3 +53,19 @@ myeventlane_pro.admin_report:
     _title: 'Pro subscriptions'
   requirements:
     _permission: 'view pro reporting'
+
+myeventlane_pro.settings:
+  path: '/admin/config/myeventlane/pro'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProSettingsForm'
+    _title: 'MyEventLane Pro settings'
+  requirements:
+    _permission: 'administer myeventlane pro settings'
+
+myeventlane_pro.vendor_comms:
+  path: '/vendor/pro/settings/comms'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProVendorCommsForm'
+    _title: 'Pro communications'
+  requirements:
+    _role: 'vendor'

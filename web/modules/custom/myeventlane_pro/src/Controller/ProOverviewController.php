@@ -18,6 +18,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_pro\Form\ProSubscribeForm;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
 use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -32,7 +33,6 @@ final class ProOverviewController implements ContainerInjectionInterface {
 
   use StringTranslationTrait;
 
-  private const PRO_ROLE = 'pro_organiser';
   private const BILLING_SCHEDULE = 'mel_pro_monthly';
 
   public function __construct(
@@ -44,6 +44,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
     private readonly MessengerInterface $messenger,
     private readonly LoggerChannelInterface $logger,
     private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
+    private readonly ProActiveResolver $proActiveResolver,
   ) {}
 
   /**
@@ -59,6 +60,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       $container->get('messenger'),
       $container->get('logger.channel.myeventlane_pro'),
       $container->get('myeventlane_pro.recovery_analytics'),
+      $container->get('myeventlane_pro.active_resolver'),
     );
   }
 
@@ -66,7 +68,8 @@ final class ProOverviewController implements ContainerInjectionInterface {
    * Renders the /vendor/pro overview page.
    */
   public function overview(): array {
-    $isPro = in_array(self::PRO_ROLE, $this->currentUser->getRoles(), TRUE);
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    $isPro = $user instanceof UserInterface ? $this->proActiveResolver->isUserProActive($user) : FALSE;
     $proPrice = $this->configFactory->get('myeventlane_pro.settings')->get('pro_price') ?? 49;
     $formattedPrice = $this->productResolver->getFormattedPrice() ?? ('$' . $proPrice);
 
@@ -93,7 +96,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       ],
       '#cache' => [
         'contexts' => ['user.roles'],
-        'tags' => ['user:' . $this->currentUser->id()],
+        'tags' => $this->getProCacheTags(),
       ],
     ];
   }
@@ -102,7 +105,8 @@ final class ProOverviewController implements ContainerInjectionInterface {
    * Renders the /vendor/pro/success page.
    */
   public function success(): RedirectResponse|array {
-    if (!in_array(self::PRO_ROLE, $this->currentUser->getRoles(), TRUE)) {
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    if (!$user instanceof UserInterface || !$this->proActiveResolver->isUserProActive($user)) {
       return new RedirectResponse(Url::fromRoute('myeventlane_pro.overview')->toString());
     }
 
@@ -123,6 +127,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       ],
       '#cache' => [
         'contexts' => ['user.roles'],
+        'tags' => $this->getProCacheTags(),
       ],
     ];
   }
@@ -182,7 +187,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['user:' . $this->currentUser->id()],
+        'tags' => $this->getProCacheTags(),
         'max-age' => 0,
       ],
     ];
@@ -195,7 +200,8 @@ final class ProOverviewController implements ContainerInjectionInterface {
    */
   public function accessProVendor(AccountInterface $account): AccessResultInterface {
     $hasVendor = in_array('vendor', $account->getRoles(), TRUE);
-    $hasPro = in_array(self::PRO_ROLE, $account->getRoles(), TRUE);
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $account->id());
+    $hasPro = $user instanceof UserInterface ? $this->proActiveResolver->isUserProActive($user) : FALSE;
 
     return AccessResult::allowedIf($hasVendor && $hasPro)
       ->addCacheContexts(['user.roles']);
@@ -281,6 +287,42 @@ final class ProOverviewController implements ContainerInjectionInterface {
     }
 
     return $this->recoveryAnalyticsService->estimateProROI((int) $store->id(), 1);
+  }
+
+  /**
+   * Builds cache tags for Pro pages.
+   *
+   * @return string[]
+   *   Cache tag list.
+   */
+  private function getProCacheTags(): array {
+    $tags = ['user:' . $this->currentUser->id()];
+    $uid = (int) $this->currentUser->id();
+    if ($uid <= 0) {
+      return $tags;
+    }
+
+    $vendorIds = $this->entityTypeManager->getStorage('myeventlane_vendor')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $uid)
+      ->range(0, 1)
+      ->execute();
+    if ($vendorIds === []) {
+      return $tags;
+    }
+
+    $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load((int) reset($vendorIds));
+    if ($vendor instanceof Vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+      if ($store && $store->id() !== NULL) {
+        $storeId = (int) $store->id();
+        $tags[] = 'pro_subscription:' . $storeId;
+        $tags[] = 'commerce_store:' . $storeId;
+      }
+    }
+
+    return $tags;
   }
 
 }

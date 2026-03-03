@@ -12,9 +12,8 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\state_machine\WorkflowManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -56,7 +55,7 @@ final class AbandonedCartScheduler {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
-    private readonly ProEntitlementManager $entitlementManager,
+    private readonly ProActiveResolver $proActiveResolver,
     private readonly StateInterface $state,
     private readonly WorkflowManagerInterface $workflowManager,
   ) {}
@@ -203,12 +202,7 @@ final class AbandonedCartScheduler {
       return FALSE;
     }
 
-    $owner = $this->resolveStoreOwner($store);
-    if ($owner === NULL) {
-      return FALSE;
-    }
-
-    return $this->entitlementManager->isPro($owner);
+    return $this->proActiveResolver->isStoreProActive($store);
   }
 
   /**
@@ -315,28 +309,6 @@ final class AbandonedCartScheduler {
     catch (IntegrityConstraintViolationException) {
       return 0;
     }
-  }
-
-  /**
-   * Resolves the store owner account from store owner or vendor linkage.
-   */
-  private function resolveStoreOwner(StoreInterface $store): ?AccountInterface {
-    $owner = $store->getOwner();
-    if ($owner instanceof AccountInterface && (int) $owner->id() > 0) {
-      return $owner;
-    }
-
-    if ($store->hasField('field_vendor_reference') && !$store->get('field_vendor_reference')->isEmpty()) {
-      $vendor = $store->get('field_vendor_reference')->entity;
-      if ($vendor instanceof Vendor) {
-        $vendorOwner = $vendor->getOwner();
-        if ($vendorOwner instanceof AccountInterface && (int) $vendorOwner->id() > 0) {
-          return $vendorOwner;
-        }
-      }
-    }
-
-    return NULL;
   }
 
   /**

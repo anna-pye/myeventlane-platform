@@ -27,7 +27,7 @@ final class BoostReminderScheduler {
     private readonly EntityTypeManagerInterface $etm,
     private readonly QueueFactory $queue,
     private readonly DateFormatterInterface $dateFormatter,
-    private readonly BoostManager $boostManager,
+    private readonly ?BoostManager $boostManager,
     private readonly MessagingManager $messagingManager,
   ) {}
 
@@ -37,6 +37,11 @@ final class BoostReminderScheduler {
    * Uses canonical BoostManager to find events expiring within 24 hours.
    */
   public function scan(): void {
+    if (!$this->boostManager instanceof BoostManager) {
+      $this->logger->warning('Boost reminder scan skipped: myeventlane_boost.manager service unavailable.');
+      return;
+    }
+
     // Use canonical API to get events expiring within 24 hours.
     $nids = $this->boostManager->getExpiringBoostedEventIdsForStore(NULL, 24 * 3600, [
       'access_check' => FALSE,

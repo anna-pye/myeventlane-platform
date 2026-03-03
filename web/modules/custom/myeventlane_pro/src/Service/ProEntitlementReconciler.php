@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_pro\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
 
 /**
  * Reconciles Pro Organiser role entitlements against subscription state.
+ *
+ * Subscription state is canonical; role + vendor.is_pro are derived.
  *
  * Hybrid model: subscription-managed role grants coexist with manual admin
  * assignment. Revocation only occurs when field_pro_subscription_managed is
@@ -29,6 +33,7 @@ final class ProEntitlementReconciler {
     private readonly TimeInterface $time,
     private readonly ProSubscriptionStateResolver $stateResolver,
     private readonly LoggerChannelInterface $logger,
+    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {}
 
   /**
@@ -73,14 +78,20 @@ final class ProEntitlementReconciler {
     }
 
     if ($this->userHasActiveProSubscription($user)) {
-      $this->ensureRole($user);
+      $changed = $this->ensureRole($user);
+      $this->syncVendorProFlag($user, TRUE);
       $this->clearGracePeriod($user);
+      if ($changed) {
+        $this->invalidateUserProTags($user);
+      }
     }
     elseif ($this->isInGrace($user)) {
       $this->ensureRole($user);
     }
     else {
       $this->revokeIfManaged($user);
+      $this->syncVendorProFlag($user, FALSE);
+      $this->invalidateUserProTags($user);
     }
   }
 
@@ -120,7 +131,9 @@ final class ProEntitlementReconciler {
         $stats['active_checked']++;
         if ($this->ensureRole($user)) {
           $stats['roles_added']++;
+          $this->invalidateUserProTags($user);
         }
+        $this->syncVendorProFlag($user, TRUE);
       }
 
       $storage->resetCache($chunk);
@@ -154,8 +167,10 @@ final class ProEntitlementReconciler {
         if (!$this->userHasActiveProSubscription($user)) {
           $hadRole = $user->hasRole(self::PRO_ROLE);
           $this->revokeIfManaged($user);
+          $this->syncVendorProFlag($user, FALSE);
           if ($hadRole) {
             $stats['roles_removed']++;
+            $this->invalidateUserProTags($user);
           }
         }
       }
@@ -261,6 +276,7 @@ final class ProEntitlementReconciler {
 
         if ($this->userHasActiveProSubscription($user)) {
           $this->clearGracePeriod($user);
+          $this->syncVendorProFlag($user, TRUE);
           continue;
         }
 
@@ -268,6 +284,8 @@ final class ProEntitlementReconciler {
           $revoked++;
         }
         $this->revokeIfManaged($user);
+        $this->syncVendorProFlag($user, FALSE);
+        $this->invalidateUserProTags($user);
       }
 
       $userStorage->resetCache($chunk);
@@ -351,6 +369,66 @@ final class ProEntitlementReconciler {
    */
   private function hasRequiredFields(UserInterface $user): bool {
     return $user->hasField(self::MANAGED_FIELD) && $user->hasField(self::GRACE_FIELD);
+  }
+
+  /**
+   * Invalidates store-scoped Pro cache tags for a user.
+   */
+  private function invalidateUserProTags(UserInterface $user): void {
+    $vendorIds = $this->entityTypeManager->getStorage('myeventlane_vendor')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', (int) $user->id())
+      ->execute();
+
+    if ($vendorIds === []) {
+      return;
+    }
+
+    $tags = [];
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadMultiple($vendorIds);
+    foreach ($vendors as $vendor) {
+      if (!$vendor instanceof Vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+        continue;
+      }
+      $store = $vendor->get('field_vendor_store')->entity;
+      if ($store && $store->id() !== NULL) {
+        $storeId = (int) $store->id();
+        $tags[] = 'pro_subscription:' . $storeId;
+        $tags[] = 'commerce_store:' . $storeId;
+      }
+    }
+
+    if ($tags !== []) {
+      $this->cacheTagsInvalidator->invalidateTags(array_values(array_unique($tags)));
+    }
+  }
+
+  /**
+   * Keeps vendor.is_pro derived from canonical subscription state.
+   */
+  private function syncVendorProFlag(UserInterface $user, bool $isPro): void {
+    $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    $vendorIds = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', (int) $user->id())
+      ->execute();
+
+    if ($vendorIds === []) {
+      return;
+    }
+
+    $vendors = $vendorStorage->loadMultiple($vendorIds);
+    foreach ($vendors as $vendor) {
+      if (!$vendor instanceof Vendor || !$vendor->hasField('is_pro')) {
+        continue;
+      }
+      if ((bool) $vendor->get('is_pro')->value === $isPro) {
+        continue;
+      }
+      $vendor->set('is_pro', $isPro ? 1 : 0);
+      $vendor->save();
+    }
   }
 
 }

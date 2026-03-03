@@ -8,10 +8,12 @@ use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
 use Drupal\myeventlane_messaging\Service\BrandResolverInterface;
+use Drupal\myeventlane_pro\Service\VendorCommsResolver;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -92,8 +94,10 @@ final class MessagingManager {
     private readonly MessageStorage $messageStorage,
     private readonly MessagePreferenceStorage $preferenceStorage,
     private readonly DeliveryProviderManager $deliveryProviderManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ?UtmLinker $utmLinker = NULL,
     private readonly ?BrandResolverInterface $vendorBrandResolver = NULL,
+    private readonly ?VendorCommsResolver $vendorCommsResolver = NULL,
   ) {}
 
   /**
@@ -373,7 +377,18 @@ final class MessagingManager {
       return;
     }
 
-    $body = $this->messageRenderer->renderHtmlBody($conf, $ctx, $bodyHtmlOverride);
+    $effectiveBodyOverride = $bodyHtmlOverride;
+    if ($this->vendorCommsResolver instanceof VendorCommsResolver) {
+      $store = $this->resolveStoreFromContext($ctx);
+      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+        $vendorOverride = $this->vendorCommsResolver->resolveBody($store, $type, $ctx);
+        if (is_string($vendorOverride) && $vendorOverride !== '') {
+          $effectiveBodyOverride = $vendorOverride;
+        }
+      }
+    }
+
+    $body = $this->messageRenderer->renderHtmlBody($conf, $ctx, $effectiveBodyOverride);
     if (self::containsTwigSyntax($body)) {
       $this->logger->error('Message body contains unresolved tokens; skipping.', [
         'queue_name' => self::QUEUE_NAME,
@@ -569,6 +584,40 @@ final class MessagingManager {
     $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
     $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+  }
+
+  /**
+   * Resolves store from known context keys.
+   */
+  private function resolveStoreFromContext(array $context): ?\Drupal\commerce_store\Entity\StoreInterface {
+    if (!empty($context['store_id']) && is_numeric($context['store_id'])) {
+      $store = $this->entityTypeManager->getStorage('commerce_store')->load((int) $context['store_id']);
+      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+        return $store;
+      }
+    }
+
+    if (!empty($context['order_id']) && is_numeric($context['order_id'])) {
+      $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) $context['order_id']);
+      if ($order instanceof \Drupal\commerce_order\Entity\OrderInterface) {
+        $store = $order->getStore();
+        if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+          return $store;
+        }
+      }
+    }
+
+    if (!empty($context['event_id']) && is_numeric($context['event_id'])) {
+      $event = $this->entityTypeManager->getStorage('node')->load((int) $context['event_id']);
+      if ($event instanceof \Drupal\node\NodeInterface && $event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+        $store = $event->get('field_event_store')->entity;
+        if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+          return $store;
+        }
+      }
+    }
+
+    return NULL;
   }
 
 }

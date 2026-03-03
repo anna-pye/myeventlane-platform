@@ -1,0 +1,13 @@
+myeventlane_pro.settings:
+  title: 'MyEventLane Pro'
+  description: 'Configure Pro subscription settings.'
+  route_name: myeventlane_pro.settings
+  parent: system.admin_config
+  weight: 50
+
+myeventlane_pro.vendor_comms:
+  title: 'Pro communications'
+  description: 'Customise Pro customer communication bodies.'
+  route_name: myeventlane_pro.vendor_comms
+  parent: myeventlane_pro.overview
+  weight: 20

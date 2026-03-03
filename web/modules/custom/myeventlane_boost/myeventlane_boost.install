@@ -334,3 +334,56 @@ function myeventlane_boost_update_10004(): void {
     }
   }
 }
+
+/**
+ * Adds source field to Boost entitlements for Pro auto-boost tracking.
+ */
+function myeventlane_boost_update_10005(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  if (!$entity_type_manager->hasDefinition('myeventlane_boost_entitlement')) {
+    return;
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if (!$update_manager->getFieldStorageDefinition('source', 'myeventlane_boost_entitlement')) {
+    $field = \Drupal\Core\Field\BaseFieldDefinition::create('list_string')
+      ->setLabel(new \Drupal\Core\StringTranslation\TranslatableMarkup('Source'))
+      ->setDescription(new \Drupal\Core\StringTranslation\TranslatableMarkup('Origin of this entitlement.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(\Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER)
+      ->setSetting('allowed_values', [
+        \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER => 'Order',
+        \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_PRO => 'Pro',
+      ]);
+    $update_manager->installFieldStorageDefinition(
+      'source',
+      'myeventlane_boost_entitlement',
+      'myeventlane_boost',
+      $field
+    );
+  }
+
+}
+
+/**
+ * Backfills missing source values on legacy boost entitlements.
+ */
+function myeventlane_boost_update_10006(): void {
+  $database = \Drupal::database();
+  if (!$database->schema()->tableExists('myeventlane_boost_entitlement')) {
+    return;
+  }
+  if (!$database->schema()->fieldExists('myeventlane_boost_entitlement', 'source')) {
+    return;
+  }
+
+  $database->update('myeventlane_boost_entitlement')
+    ->fields(['source' => \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER])
+    ->isNull('source')
+    ->execute();
+
+  $database->update('myeventlane_boost_entitlement')
+    ->fields(['source' => \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER])
+    ->condition('source', '')
+    ->execute();
+}

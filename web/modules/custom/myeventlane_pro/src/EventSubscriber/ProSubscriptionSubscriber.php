@@ -8,9 +8,12 @@ use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\commerce_recurring\Event\RecurringEvents;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
+use Drupal\myeventlane_pro\Service\ProBoostProvisioner;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -30,6 +33,8 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     private readonly ProSubscriptionStateResolver $stateResolver,
     private readonly TimeInterface $time,
     private readonly LoggerChannelInterface $logger,
+    private readonly ProBoostProvisioner $proBoostProvisioner,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -93,6 +98,34 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     }
 
     $this->reconciler->reconcileUser($user);
+    $this->enqueueUserStoreBoostSync($user);
+  }
+
+  /**
+   * Enqueues Pro boost sync jobs for all stores owned by the user.
+   */
+  private function enqueueUserStoreBoostSync(UserInterface $user): void {
+    $vendorIds = $this->entityTypeManager
+      ->getStorage('myeventlane_vendor')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', (int) $user->id())
+      ->execute();
+
+    if ($vendorIds === []) {
+      return;
+    }
+
+    $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')->loadMultiple($vendorIds);
+    foreach ($vendors as $vendor) {
+      if (!$vendor instanceof Vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
+        continue;
+      }
+      $store = $vendor->get('field_vendor_store')->entity;
+      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface && $store->id() !== NULL) {
+        $this->proBoostProvisioner->enqueueStoreSync((int) $store->id());
+      }
+    }
   }
 
 }

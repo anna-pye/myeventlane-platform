@@ -17,3 +17,4 @@ dependencies:
   - advancedqueue:advancedqueue
   - myeventlane_messaging:myeventlane_messaging
   - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_boost:myeventlane_boost
