@@ -70,7 +70,7 @@ final class VendorRefundForm extends FormBase {
    *   The access result.
    */
   public function access(OrderInterface $commerce_order): AccessResult {
-    $eventId = (int) ($_GET['event'] ?? 0);
+    $eventId = (int) $this->getRequest()->query->get('event', 0);
     if (!$eventId) {
       return AccessResult::forbidden('Event parameter required.');
     }
@@ -88,7 +88,28 @@ final class VendorRefundForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?OrderInterface $commerce_order = NULL, ?NodeInterface $node = NULL): array {
-    $eventId = (int) ($_GET['event'] ?? ($node ? $node->id() : 0));
+    $form_state->set('event_id', (int) $this->getRequest()->query->get('event', 0));
+    $form_state->set('order_id', (int) $this->getRequest()->query->get('order', 0));
+
+    if (!$commerce_order) {
+      $orderId = (int) $this->getRequest()->query->get('order', 0);
+      if ($orderId > 0) {
+        $loadedOrder = $this->entityTypeManager->getStorage('commerce_order')->load($orderId);
+        if ($loadedOrder instanceof OrderInterface) {
+          $commerce_order = $loadedOrder;
+        }
+      }
+    }
+
+    if (!$commerce_order) {
+      $form['error'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . $this->t('Order parameter required.') . '</p>',
+      ];
+      return $form;
+    }
+
+    $eventId = (int) $this->getRequest()->query->get('event', $node?->id() ?? 0);
     if (!$eventId) {
       $form['error'] = [
         '#type' => 'markup',
@@ -222,18 +243,25 @@ final class VendorRefundForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     $order = $form['#order'];
-    $event = $form['#event'];
     $refundType = $form_state->getValue('refund_type');
 
     if ($refundType === 'partial') {
-      $amount = (float) $form_state->getValue('amount');
-      if ($amount <= 0) {
+      $amountRaw = (string) $form_state->getValue('amount');
+      try {
+        $amountCents = $this->orderInspector->decimalStringToCents($amountRaw);
+      }
+      catch (\InvalidArgumentException) {
+        $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount must be a valid monetary value.'));
+        return;
+      }
+
+      if ($amountCents <= 0) {
         $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount must be greater than zero.'));
       }
 
       $refundableCents = $this->orderInspector->calculateRefundableAmountCents($order);
-      $refundable = $refundableCents / 100;
-      if ($amount > $refundable) {
+      if ($amountCents > $refundableCents) {
+        $refundable = $refundableCents / 100;
         $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount cannot exceed refundable amount ($@max).', ['@max' => number_format($refundable, 2)]));
       }
     }
@@ -264,8 +292,7 @@ final class VendorRefundForm extends FormBase {
     ];
 
     if ($refundType === 'partial') {
-      $amount = (float) $form_state->getValue('amount');
-      $refundPayload['amount_cents'] = (int) round($amount * 100);
+      $refundPayload['amount_cents'] = $this->orderInspector->decimalStringToCents((string) $form_state->getValue('amount'));
     }
 
     try {

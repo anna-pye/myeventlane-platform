@@ -1,0 +1,9 @@
+uuid: e9bb8593-b72d-4c84-ba45-e88fef40f62c
+langcode: en
+status: true
+dependencies: {  }
+name: 'Help Categories'
+vid: help_categories
+description: 'Categories for organising help centre articles (e.g., Getting Started, Refunds, Communication).'
+weight: 0
+new_revision: false

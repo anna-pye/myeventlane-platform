@@ -1,0 +1,26 @@
+uuid: 7df18a78-9b2c-42ac-98a8-10d923830f74
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_stripe
+id: stripe
+label: 'MEL - Stripe CC'
+weight: null
+plugin: stripe
+configuration:
+  display_label: 'Stripe Card Element'
+  mode: test
+  payment_method_types:
+    - credit_card
+  collect_billing_information: true
+  publishable_key: ''
+  secret_key: ''
+  enable_credit_card_icons: true
+conditions:
+  -
+    plugin: current_currency
+    configuration:
+      currencies:
+        - AUD
+conditionOperator: OR

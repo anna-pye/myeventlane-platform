@@ -1,0 +1,25 @@
+uuid: 67355813-6326-4abb-91ce-40242bdf9bf8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_refund_involved
+    - node.type.staff_playbook
+_core:
+  default_config_hash: njQmKll5G971GqdF9TIdzxoE4Wejx_w-vFX1_v20r1A
+id: node.staff_playbook.field_refund_involved
+field_name: field_refund_involved
+entity_type: node
+bundle: staff_playbook
+label: 'Refund involvement'
+description: 'When checked, only show for escalations with refund involvement (refund type or linked refund data).'
+required: false
+translatable: false
+default_value:
+  -
+    value: false
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

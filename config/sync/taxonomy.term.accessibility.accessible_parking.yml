@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_accessible_parking
+vid: accessibility
+name: 'Accessible Parking'
+description: 'Designated accessible parking spaces are available near the venue.'
+weight: 6
+parent: {  }

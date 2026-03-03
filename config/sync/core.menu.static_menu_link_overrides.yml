@@ -1,0 +1,63 @@
+_core:
+  default_config_hash: CXhei_vpaZk-3f_Mj2cH0YmpK-ZpKHoSzVA3yZrDq0g
+definitions:
+  contact__site_page:
+    weight: -49
+    menu_name: footer
+    parent: ''
+    expanded: false
+    enabled: true
+  standard__front_page:
+    menu_name: main
+    parent: ''
+    weight: 0
+    expanded: false
+    enabled: false
+  user__page:
+    weight: -50
+    menu_name: account
+    parent: ''
+    expanded: false
+    enabled: true
+  myeventlane_rsvp__my_rsvps:
+    weight: -50
+    parent: myeventlane_dashboard.my_events
+    menu_name: account
+    expanded: false
+    enabled: true
+  user__logout:
+    weight: -46
+    menu_name: account
+    parent: ''
+    expanded: false
+    enabled: true
+  myeventlane_core__my_categories:
+    weight: -49
+    parent: myeventlane_dashboard.my_events
+    menu_name: account
+    expanded: false
+    enabled: true
+  myeventlane_dashboard__my_events:
+    parent: user.page
+    menu_name: account
+    enabled: true
+    expanded: false
+    weight: -50
+  myeventlane_rsvp__ics_bundle_link:
+    weight: -50
+    parent: user.logout
+    menu_name: account
+    expanded: false
+    enabled: false
+  myeventlane_help_centre__public_help:
+    weight: -50
+    parent: 'menu_link_content:f7cb2911-b1a1-46a4-908a-9286e792b6bf'
+    menu_name: footer
+    expanded: false
+    enabled: true
+  myeventlane_public_trust__footer:
+    weight: -48
+    menu_name: footer
+    parent: ''
+    expanded: false
+    enabled: true

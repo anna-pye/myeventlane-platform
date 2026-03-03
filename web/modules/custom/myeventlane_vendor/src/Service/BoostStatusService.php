@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\node\NodeInterface;
 
@@ -17,6 +18,7 @@ final class BoostStatusService {
 
   public function __construct(
     private readonly BoostManager $boostManager,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -49,7 +51,7 @@ final class BoostStatusService {
     }
 
     try {
-      $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
       $event = $nodeStorage->load($event_nid);
 
       if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {

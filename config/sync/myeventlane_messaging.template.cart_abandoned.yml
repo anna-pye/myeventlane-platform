@@ -1,0 +1,11 @@
+enabled: true
+subject: 'Forgot something? Your tickets are waiting'
+body: |
+  <p>Hi {{ first_name }}, you left tickets in your cart on MyEventLane.</p>
+  <p><a href="{{ cart_url }}" style="display:inline-block;padding:12px 16px;border-radius:999px;background:#6e7ef2;color:#fff;text-decoration:none;">Return to cart</a></p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: cart
+    utm_campaign: abandoned

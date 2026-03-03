@@ -1,0 +1,11 @@
+uuid: 4cabb548-2e0d-4ceb-82be-87a7e05625c5
+langcode: en
+status: true
+dependencies: {  }
+id: mel_pro_subscription_variation
+label: 'MEL Pro Subscription Variation'
+traits:
+  - purchasable_entity_subscription
+locked: false
+orderItemType: default
+generateTitle: true

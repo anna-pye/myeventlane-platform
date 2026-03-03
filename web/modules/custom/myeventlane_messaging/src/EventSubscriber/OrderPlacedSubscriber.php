@@ -51,7 +51,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly ?TicketLabelResolver $ticketLabelResolver,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
@@ -624,8 +624,12 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       }
 
       $price = $item->getTotalPrice();
+      $label = $item->label();
+      if ($this->ticketLabelResolver instanceof TicketLabelResolver) {
+        $label = $this->ticketLabelResolver->getTicketLabel($item);
+      }
       $formatted[] = [
-        'title' => $this->ticketLabelResolver->getTicketLabel($item),
+        'title' => $label,
         'quantity' => (int) $item->getQuantity(),
         'price' => $price ? $this->formatPrice((float) $price->getNumber()) : '$0.00',
         'attendees' => $attendees,

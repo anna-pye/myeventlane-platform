@@ -1,0 +1,11 @@
+uuid: 6f62c04d-f236-4cdb-8cc1-8e7e577e8295
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.event_card
+label: 'Event card'
+description: null
+targetEntityType: node
+cache: true

@@ -27,10 +27,30 @@ function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array
         'code' => NULL,
         'legacy' => FALSE,
         'is_rsvp' => FALSE,
+        'brand_logo_url' => NULL,
+        'brand_vendor_name' => NULL,
+        'brand_accent_color' => '#f26d5b',
+        'brand_footer_text' => NULL,
+        'is_pro_branded' => FALSE,
+        'include_qr_code' => TRUE,
+        'show_ticket_code' => TRUE,
+        'qr_data_uri' => NULL,
       ],
       'template' => 'ticket-pdf',
     ],
   ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for ticket_pdf.
+ */
+function myeventlane_tickets_preprocess_ticket_pdf(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_tickets.ticket_pdf_template_builder')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_tickets\Service\TicketPdfTemplateBuilder $builder */
+  $builder = \Drupal::service('myeventlane_tickets.ticket_pdf_template_builder');
+  $builder->preprocess($variables);
 }
 
 /**

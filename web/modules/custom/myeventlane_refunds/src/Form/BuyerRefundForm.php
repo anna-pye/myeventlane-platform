@@ -105,6 +105,9 @@ final class BuyerRefundForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?OrderInterface $commerce_order = NULL): array {
+    $form_state->set('event_id', (int) $this->getRequest()->query->get('event', 0));
+    $form_state->set('order_id', (int) $this->getRequest()->query->get('order', 0));
+
     $event = $this->getEvent();
     if (!$event) {
       $form['error'] = [
@@ -172,6 +175,13 @@ final class BuyerRefundForm extends ConfirmFormBase {
       $loaded = $this->entityTypeManager->getStorage('commerce_order')->load($order);
       return $loaded instanceof OrderInterface ? $loaded : NULL;
     }
+
+    $queryOrder = (int) $this->getRequest()->query->get('order', 0);
+    if ($queryOrder > 0) {
+      $loaded = $this->entityTypeManager->getStorage('commerce_order')->load($queryOrder);
+      return $loaded instanceof OrderInterface ? $loaded : NULL;
+    }
+
     return NULL;
   }
 
@@ -179,7 +189,7 @@ final class BuyerRefundForm extends ConfirmFormBase {
    * Gets the event from the query parameter.
    */
   private function getEvent(): ?NodeInterface {
-    $eventId = (int) ($_GET['event'] ?? 0);
+    $eventId = (int) $this->getRequest()->query->get('event', 0);
     if (!$eventId) {
       return NULL;
     }

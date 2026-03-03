@@ -5,3 +5,10 @@ myeventlane_boost.settings:
   route_name: myeventlane_boost.settings
   parent: myeventlane_core.config
   weight: 10
+
+myeventlane_boost.entitlements:
+  title: 'Boost entitlements'
+  description: 'Audit Boost purchases and event mappings.'
+  route_name: entity.myeventlane_boost_entitlement.collection
+  parent: myeventlane_boost.settings
+  weight: 20

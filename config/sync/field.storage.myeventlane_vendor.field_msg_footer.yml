@@ -1,0 +1,19 @@
+uuid: 29edbe5e-94d7-4f1f-820d-78f90a63923b
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.field_msg_footer
+field_name: field_msg_footer
+entity_type: myeventlane_vendor
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

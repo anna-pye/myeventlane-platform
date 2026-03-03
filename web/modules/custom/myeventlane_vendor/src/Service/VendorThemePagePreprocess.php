@@ -41,7 +41,7 @@ final class VendorThemePagePreprocess {
     private readonly AccountProxyInterface $currentUser,
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
-    private readonly OptionalServiceResolver $optionalServiceResolver,
+    private readonly ?OptionalServiceResolver $optionalServiceResolver,
     TranslationInterface $stringTranslation,
   ) {
     $this->setStringTranslation($stringTranslation);
@@ -84,7 +84,7 @@ final class VendorThemePagePreprocess {
     }
 
     try {
-      $domain_detector = $this->optionalServiceResolver->get('myeventlane_core.domain_detector');
+      $domain_detector = $this->optionalServiceResolver?->get('myeventlane_core.domain_detector');
       if ($domain_detector !== NULL) {
         $variables['page']['main_site_url'] = $domain_detector->buildDomainUrl('/', 'public');
       }
@@ -117,7 +117,7 @@ final class VendorThemePagePreprocess {
         }
         catch (\Exception) {
           try {
-            $domain_detector = $this->optionalServiceResolver->get('myeventlane_core.domain_detector');
+            $domain_detector = $this->optionalServiceResolver?->get('myeventlane_core.domain_detector');
             if ($domain_detector !== NULL) {
               $variables['page']['admin_portal_url'] = $domain_detector->buildDomainUrl('/admin/myeventlane', 'admin');
             }

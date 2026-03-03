@@ -1,0 +1,12 @@
+uuid: 5a0c8bdf-a12d-4901-a9cf-91c9221ad5f4
+langcode: en
+status: true
+dependencies: {  }
+id: events_hero
+label: 'Events Hero'
+route_name: view.upcoming_events.page_events
+media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
+media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+hide_on_mobile: false
+alt_text: 'My EvenLane Events '
+enabled: true

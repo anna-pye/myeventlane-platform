@@ -1,0 +1,21 @@
+uuid: 8f2e4246-a74c-42d6-8a74-405bb20a89e3
+langcode: en
+status: true
+dependencies:
+  module:
+    - text
+    - user
+_core:
+  default_config_hash: 293Yh66ihlUP9qf7DRAU6VR23hqkkAZ60-1CukLlhrI
+id: user.field_accessibility_preferences
+field_name: field_accessibility_preferences
+entity_type: user
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

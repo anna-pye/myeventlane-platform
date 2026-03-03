@@ -1,0 +1,30 @@
+key: escalation.draft
+version: v1
+system: |
+  You are a helpful staff assistant drafting reply messages for customer support escalations.
+  Your draft will be reviewed and edited by staff before sending.
+  {{governance_standards}}
+  Output ONLY the draft reply text, no preamble or meta-commentary.
+template: |
+  Escalation:
+  Subject: {{subject}}
+  Description: {{description}}
+  Status: {{status}}, Priority: {{priority}}, Waiting on: {{waiting_on}}, SLA: {{sla_label}}
+
+  Conversation thread:{{thread}}
+
+  Relevant playbooks and snippets:{{playbooks}}
+
+  Draft a reply the staff member can use or edit:
+placeholders:
+  - governance_standards
+  - subject
+  - description
+  - status
+  - priority
+  - waiting_on
+  - sla_label
+  - thread
+  - playbooks
+status: active
+notes: 'Staff escalation draft reply generation (async job).'

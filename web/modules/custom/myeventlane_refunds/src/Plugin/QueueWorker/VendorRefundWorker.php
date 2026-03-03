@@ -76,7 +76,6 @@ final class VendorRefundWorker extends QueueWorkerBase implements ContainerFacto
         '@log_id' => $logId,
         '@message' => $e->getMessage(),
       ]);
-      throw $e;
     }
   }
 

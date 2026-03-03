@@ -1,0 +1,12 @@
+uuid: c11e21b7-6437-498d-9468-3ff1388c18cb
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: event_highlight
+label: 'Event highlight'
+icon_uuid: null
+icon_default: null
+description: 'Bullet highlight with optional icon.'
+behavior_plugins: {  }

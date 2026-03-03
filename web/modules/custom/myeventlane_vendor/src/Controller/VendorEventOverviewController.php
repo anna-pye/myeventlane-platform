@@ -11,6 +11,7 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 
@@ -30,6 +31,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     private readonly VendorEventTabsService $eventTabsService,
     private readonly EventCtaResolver $ctaResolver,
     private readonly BoostHelpContent $boostHelpContent,
+    private readonly ?ProActiveResolver $proActiveResolver = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -41,7 +43,24 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
     $tabs = $this->eventTabsService->getTabs($event, 'overview');
     $overview = $this->metricsAggregator->getEventOverview($event);
+    $vendor = $this->getCurrentVendorOrNull();
+    $vendorStore = ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty())
+      ? $vendor->get('field_vendor_store')->entity
+      : NULL;
+    $overview['is_pro'] = $vendorStore instanceof \Drupal\commerce_store\Entity\StoreInterface && $this->proActiveResolver
+      ? $this->proActiveResolver->isStoreProActive($vendorStore)
+      : FALSE;
     $overview['cta_type'] = $this->ctaResolver->getCtaType($event);
+    if ($overview['is_pro']) {
+      $overview['pro_refund_analytics'] = [
+        'refund_rate_percent' => '0.0%',
+        'breakdown' => [
+          ['type' => 'Ticket refunds', 'amount' => '$0.00'],
+          ['type' => 'Donation refunds', 'amount' => '$0.00'],
+        ],
+        'export_csv_url' => '#',
+      ];
+    }
     $charts = $this->metricsAggregator->getEventCharts($event);
     $boostHelp = [
       'tooltips' => $this->boostHelpContent->getInlineTooltipCopy(),

@@ -1,0 +1,23 @@
+uuid: a1438b25-d792-4cf3-82ea-209f21fb68df
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_playbook_type
+    - node.type.staff_playbook
+  module:
+    - options
+_core:
+  default_config_hash: amzKI0puuDTw8UblCrehSPpVU1hnPgwbh4MuEvakTrA
+id: node.staff_playbook.field_playbook_type
+field_name: field_playbook_type
+entity_type: node
+bundle: staff_playbook
+label: 'Scenario type'
+description: 'Which escalation scenario(s) this playbook applies to. Leave empty to match all types.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

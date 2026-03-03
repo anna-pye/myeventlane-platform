@@ -27,3 +27,25 @@ function myeventlane_escalations_ai_update_9001(): string {
 
   return 'prompt_key already exists on escalation_ai_insight.';
 }
+
+/**
+ * Fix: install prompt_key on escalation_ai_insight (9001 had a bug).
+ */
+function myeventlane_escalations_ai_update_9002(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_last_installed = \Drupal::service('entity.last_installed_schema.repository');
+  $installed_definitions = $entity_last_installed->getLastInstalledFieldStorageDefinitions('escalation_ai_insight');
+
+  if (!isset($installed_definitions['prompt_key'])) {
+    $definition = \Drupal\Core\Field\BaseFieldDefinition::create('string')
+      ->setLabel(t('Prompt key'))
+      ->setSetting('max_length', 128)
+      ->setDefaultValue('');
+    $update_manager->installFieldStorageDefinition('prompt_key', 'escalation_ai_insight', 'myeventlane_escalations_ai', $definition);
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    return 'Installed prompt_key on escalation_ai_insight.';
+  }
+
+  return 'prompt_key already installed on escalation_ai_insight.';
+}

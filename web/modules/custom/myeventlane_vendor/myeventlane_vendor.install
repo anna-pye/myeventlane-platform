@@ -839,6 +839,42 @@ function myeventlane_vendor_update_10015(): string {
 }
 
 /**
+ * Install is_pro base field on vendor entity.
+ */
+function myeventlane_vendor_update_10016(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $existing = $entity_definition_update_manager->getFieldStorageDefinition('is_pro', 'myeventlane_vendor');
+  if ($existing) {
+    return 'is_pro field already installed — skipped.';
+  }
+
+  $base_fields = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions('myeventlane_vendor');
+  if (!isset($base_fields['is_pro'])) {
+    throw new \RuntimeException('is_pro base field definition not found.');
+  }
+
+  $entity_definition_update_manager->installFieldStorageDefinition(
+    'is_pro',
+    'myeventlane_vendor',
+    'myeventlane_vendor',
+    $base_fields['is_pro'],
+  );
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return 'Installed is_pro base field on vendor entity.';
+}
+
+/**
+ * Registers Pro analytics permission rollout notes.
+ */
+function myeventlane_vendor_update_10017(): string {
+  \Drupal::logger('myeventlane_vendor')->notice('Permission "use pro financial analytics" added. No automatic role grants were applied; Pro access is enforced per vendor via VendorSubscriptionService.');
+  return 'Registered use pro financial analytics permission without automatic role grants.';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

@@ -1,0 +1,23 @@
+uuid: 69d8b738-f8f4-4550-b266-e8edbae1bd10
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_event_type
+    - node.type.event
+  module:
+    - options
+id: node.event.field_event_type
+field_name: field_event_type
+entity_type: node
+bundle: event
+label: 'Event Type'
+description: 'How attendees register: RSVP (free), Paid (ticketed), or External link.'
+required: true
+translatable: false
+default_value:
+  -
+    value: rsvp
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -1,0 +1,25 @@
+uuid: 6334b559-5588-44f9-9d34-e6364b4f456c
+langcode: en
+status: true
+dependencies: {  }
+id: australian_gst
+label: 'Australian GST'
+plugin: custom
+configuration:
+  display_inclusive: true
+  display_tax_rate_in_label: true
+  display_label: gst
+  round: true
+  rates:
+    -
+      id: 0e9b6bfb-d824-4fae-9bdb-140691f3d78c
+      label: GST
+      percentage: '0.1'
+  territories:
+    -
+      country_code: AU
+      administrative_area: ''
+      locality: null
+      dependent_locality: null
+conditions: {  }
+conditionOperator: AND

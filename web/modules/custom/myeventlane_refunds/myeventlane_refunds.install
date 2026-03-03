@@ -428,6 +428,55 @@ function myeventlane_refunds_update_9003(): void {
  * Implements hook_uninstall().
  */
 function myeventlane_refunds_uninstall(): void {
-  // Optionally truncate the table instead of dropping it for audit purposes.
-  // For now, we'll drop it.
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('myeventlane_refund_log')) {
+    $schema->dropTable('myeventlane_refund_log');
+  }
+  if ($schema->tableExists('myeventlane_refund_request')) {
+    $schema->dropTable('myeventlane_refund_request');
+  }
+}
+
+/**
+ * Adds composite indexes for refund log and refund request tables.
+ */
+function myeventlane_refunds_update_9004(): void {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  $tables = [
+    'myeventlane_refund_log' => [
+      'order_event' => ['order_id', 'event_id'],
+    ],
+    'myeventlane_refund_request' => [
+      'order_event' => ['order_id', 'event_id'],
+    ],
+  ];
+
+  foreach ($tables as $table => $indexes) {
+    if (!$schema->tableExists($table)) {
+      continue;
+    }
+
+    foreach ($indexes as $index_name => $fields) {
+
+      // Drop malformed index if it exists.
+      if ($schema->indexExists($table, $index_name)) {
+        try {
+          $schema->dropIndex($table, $index_name);
+        }
+        catch (\Throwable $e) {
+          // Safe ignore.
+        }
+      }
+
+      // Recreate composite index with explicit spec param.
+      try {
+        $schema->addIndex($table, $index_name, $fields, []);
+      }
+      catch (\Throwable $e) {
+        // Ignore if already valid.
+      }
+    }
+  }
 }

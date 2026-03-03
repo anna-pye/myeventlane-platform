@@ -1,0 +1,2 @@
+allow_public_directory: true
+require_approval_for_public: false

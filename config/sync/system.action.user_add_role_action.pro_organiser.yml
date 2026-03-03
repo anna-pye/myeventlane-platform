@@ -1,0 +1,14 @@
+uuid: 04c51c04-12f0-4c1f-b2bf-ab47cf98aa59
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.pro_organiser
+  module:
+    - user
+id: user_add_role_action.pro_organiser
+label: 'Add the Pro Organiser role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: pro_organiser

@@ -1,0 +1,29 @@
+uuid: f3be38e9-ed10-4293-bcfa-3cab8cc056f2
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - user
+_core:
+  default_config_hash: yAjBfdFJAkRIEjoO6L_jF1PaSOFa303paL9GwQ7cHXk
+id: user.field_mel_account_type
+field_name: field_mel_account_type
+entity_type: user
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: customer
+      label: 'Customer (attending events)'
+    -
+      value: organiser
+      label: 'Organiser (running events)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

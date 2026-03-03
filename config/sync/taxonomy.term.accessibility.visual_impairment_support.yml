@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_visual_impairment_support
+vid: accessibility
+name: 'Visual Impairment Support'
+description: 'Event provides support for attendees with visual impairments, such as large print materials or audio descriptions.'
+weight: 8
+parent: {  }

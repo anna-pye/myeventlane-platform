@@ -82,6 +82,7 @@ function myeventlane_admin_dashboard_theme(): array {
         'escalations_url' => '',
         'alerts' => NULL,
         'recent_activity' => NULL,
+        'pro_subscriptions' => NULL,
         'days' => 30,
         'filter_url_30' => '',
         'filter_url_90' => '',
@@ -181,6 +182,13 @@ function myeventlane_admin_dashboard_theme(): array {
         'current_route' => '',
       ],
       'template' => 'myeventlane-admin-sidebar-nav',
+    ],
+    'platform_control_centre__pro_kpis' => [
+      'variables' => [
+        'metrics' => [],
+        'report_url' => NULL,
+      ],
+      'template' => 'platform-control-centre--pro-kpis',
     ],
   ];
 }

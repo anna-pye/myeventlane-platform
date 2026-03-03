@@ -1,0 +1,30 @@
+uuid: cdf6383f-166b-4577-ae80-d9e1f2e70f98
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.featured_events_carousel
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: featured_events_carousel
+theme: myeventlane_theme
+region: home_featured
+weight: 0
+provider: null
+plugin: 'views_block:featured_events_carousel-featured_events_carousel'
+settings:
+  id: 'views_block:featured_events_carousel-featured_events_carousel'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

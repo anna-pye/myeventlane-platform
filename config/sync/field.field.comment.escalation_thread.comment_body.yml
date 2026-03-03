@@ -1,0 +1,24 @@
+uuid: cd43613b-485c-4d93-8260-c4c80b9cfe14
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.escalation_thread
+    - field.storage.comment.comment_body
+  module:
+    - text
+_core:
+  default_config_hash: YXVns3rirLYY4-bj9kDUYBBJr88VarHGhBtzWKfuir0
+id: comment.escalation_thread.comment_body
+field_name: comment_body
+entity_type: comment
+bundle: escalation_thread
+label: Comment
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

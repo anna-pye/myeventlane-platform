@@ -1,0 +1,39 @@
+uuid: e585a653-9701-4b05-bf42-454bf7b8c1b0
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+    - commerce_checkout
+    - commerce_order
+    - commerce_product
+    - contact
+    - klaro
+    - media
+    - myeventlane_checkin
+    - paragraphs
+    - search
+    - system
+_core:
+  default_config_hash: 6WavjUYXIegP9AAg2zXGx54MWIVoomC3SZhNiqe-Dyk
+id: anonymous
+label: 'Anonymous user'
+weight: -10
+is_admin: false
+permissions:
+  - 'access check-in'
+  - 'access checkout'
+  - 'access comments'
+  - 'access commerce_order overview'
+  - 'access content'
+  - 'access site-wide contact form'
+  - 'create platform_donation commerce_order'
+  - 'create rsvp_donation commerce_order'
+  - 'search content'
+  - 'update platform_donation commerce_order'
+  - 'update rsvp_donation commerce_order'
+  - 'use klaro'
+  - 'view commerce_product'
+  - 'view media'
+  - 'view rsvp_donation commerce_order'
+  - 'view unpublished paragraphs'

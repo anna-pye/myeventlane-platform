@@ -1,0 +1,9 @@
+_core:
+  default_config_hash: BvNT-ckJMtozrTEte_W9vc9s21I0D9kLF4lq2s8xzbs
+cache_days: 30
+lookback_days: 90
+enable_signals:
+  resolution_confidence: true
+  response_confidence: true
+  fairness_statement: true
+  scale_statement: false

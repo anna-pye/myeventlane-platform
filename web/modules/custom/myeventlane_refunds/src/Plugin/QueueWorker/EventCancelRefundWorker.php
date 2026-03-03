@@ -85,6 +85,7 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
   public function processItem($data): void {
     $eventId = $data['event_id'] ?? NULL;
     $vendorUid = $data['vendor_uid'] ?? NULL;
+    $lastProcessedOrderItemId = (int) ($data['last_processed_order_item_id'] ?? 0);
 
     if (!$eventId || !$vendorUid) {
       $this->logger->error('EventCancelRefundWorker: Missing event_id or vendor_uid in queue item.');
@@ -112,6 +113,8 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
     $orderItemIds = $orderItemStorage->getQuery()
       ->accessCheck(FALSE)
       ->condition('field_target_event', $eventId)
+      ->condition('order_item_id', $lastProcessedOrderItemId, '>')
+      ->sort('order_item_id', 'ASC')
       ->range(0, self::BATCH_SIZE)
       ->execute();
 
@@ -175,10 +178,15 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
       '@event_id' => $eventId,
     ]);
 
-    // If we processed a full batch, re-queue to continue processing.
-    if (count($processedOrders) >= self::BATCH_SIZE) {
+    // Forward-only cursor progression prevents reprocessing and infinite loops.
+    $nextCursor = max(array_map('intval', $orderItemIds));
+    if (count($orderItemIds) === self::BATCH_SIZE && $nextCursor > $lastProcessedOrderItemId) {
       $queue = $this->queueFactory->get('event_cancel_refund_worker');
-      $queue->createItem($data);
+      $queue->createItem([
+        'event_id' => (int) $eventId,
+        'vendor_uid' => (int) $vendorUid,
+        'last_processed_order_item_id' => $nextCursor,
+      ]);
     }
   }
 

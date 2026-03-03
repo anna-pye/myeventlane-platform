@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.ticket_variation
+    - field.storage.commerce_product_variation.field_event
+    - node.type.event
+id: commerce_product_variation.ticket_variation.field_event
+field_name: field_event
+entity_type: commerce_product_variation
+bundle: ticket_variation
+label: Event
+description: 'Auto-synced from parent product. Links this variation to an event.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      event: event
+    sort:
+      field: title
+      direction: asc
+    auto_create: false
+field_type: entity_reference

@@ -1,0 +1,61 @@
+myeventlane_pro.settings:
+  type: config_object
+  label: 'MyEventLane Pro settings'
+  mapping:
+    trial_days:
+      type: integer
+      label: 'Trial days'
+    pro_price:
+      type: integer
+      label: 'Displayed Pro price'
+    pro_variation_sku:
+      type: string
+      label: 'Pro subscription variation SKU'
+    abandoned_cart:
+      type: mapping
+      label: 'Abandoned cart'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Enabled'
+        delay_wave_1:
+          type: integer
+          label: 'Wave 1 delay'
+        delay_wave_2:
+          type: integer
+          label: 'Wave 2 delay'
+
+myeventlane_pro.vendor_comms.*:
+  type: config_entity
+  label: 'Pro vendor comms'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    store_id:
+      type: integer
+      label: 'Store ID'
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    rsvp_body:
+      type: text
+      label: 'RSVP body'
+    ticket_body:
+      type: text
+      label: 'Ticket body'
+    reminder_body:
+      type: text
+      label: 'Reminder body'
+    abandoned_cart_body:
+      type: text
+      label: 'Abandoned cart body'
+    brand_signature:
+      type: text
+      label: 'Brand signature'
+    updated:
+      type: integer
+      label: 'Updated'

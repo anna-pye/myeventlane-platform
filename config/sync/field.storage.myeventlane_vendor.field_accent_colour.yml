@@ -1,0 +1,22 @@
+uuid: 1163ac28-b34d-4d11-8f23-04f324fe9d77
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - text
+id: myeventlane_vendor.field_accent_colour
+field_name: field_accent_colour
+entity_type: myeventlane_vendor
+type: string
+settings:
+  max_length: 7
+  case_sensitive: false
+  is_ascii: false
+module: text
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

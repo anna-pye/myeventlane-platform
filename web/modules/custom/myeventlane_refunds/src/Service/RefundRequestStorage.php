@@ -98,4 +98,20 @@ final class RefundRequestStorage {
       ->fetchAll(\PDO::FETCH_ASSOC);
   }
 
+  /**
+   * Checks for active buyer request for order/event.
+   */
+  public function hasActiveBuyerRequest(int $orderId, int $eventId, int $buyerUid): bool {
+    $count = $this->database->select('myeventlane_refund_request', 'r')
+      ->condition('order_id', $orderId)
+      ->condition('event_id', $eventId)
+      ->condition('buyer_uid', $buyerUid)
+      ->condition('status', [self::STATUS_REQUESTED, self::STATUS_APPROVED], 'IN')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    return (int) $count > 0;
+  }
+
 }

@@ -1,0 +1,22 @@
+uuid: 48e989b2-0968-41da-be23-1419abbfec93
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+_core:
+  default_config_hash: a-mq6YVJKYc9tE1Kmw9GyFUpl_awCnNQCMSaSkOaYpQ
+id: escalation.field_escalation_level
+field_name: field_escalation_level
+entity_type: escalation
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

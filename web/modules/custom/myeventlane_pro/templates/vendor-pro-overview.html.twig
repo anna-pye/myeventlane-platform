@@ -1,0 +1,82 @@
+{#
+/**
+ * @file
+ * Template for the Pro subscription overview page.
+ *
+ * Variables:
+ * - is_pro: Whether the current user has Pro status.
+ * - pro_price: Formatted price string (e.g. "$49").
+ * - subscribe_form: Form render array for upgrading (NULL if already Pro).
+ * - manage_url: URL to manage subscription (NULL if not Pro).
+ */
+#}
+<div class="mel-pro-overview">
+
+  <div class="mel-pro-overview__header">
+    <h1 class="mel-pro-overview__title">{{ 'Run events like a professional business.'|t }}</h1>
+    <p class="mel-pro-overview__subtitle">{{ 'Everything you need to elevate your events with MyEventLane Pro.'|t }}</p>
+  </div>
+
+  {% if is_pro %}
+    <div class="mel-pro-overview__status mel-pro-overview__status--active">
+      <span class="mel-pro-badge">PRO</span>
+      <span class="mel-pro-overview__status-text">{{ 'You are a Pro Organiser'|t }}</span>
+      {% if manage_url %}
+        <a href="{{ manage_url }}" class="mel-btn mel-btn--secondary">{{ 'Manage Subscription'|t }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="mel-pro-pillars">
+
+    <div class="mel-pro-pillar">
+      <div class="mel-pro-pillar__icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h2 class="mel-pro-pillar__title">{{ 'Branding'|t }}</h2>
+      <ul class="mel-pro-pillar__features">
+        <li>{{ 'Remove MyEventLane branding'|t }}</li>
+        <li>{{ 'Custom email footer'|t }}</li>
+        <li>{{ 'Branded ticket PDF'|t }}</li>
+      </ul>
+    </div>
+
+    <div class="mel-pro-pillar">
+      <div class="mel-pro-pillar__icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
+      <h2 class="mel-pro-pillar__title">{{ 'Revenue Growth'|t }}</h2>
+      <ul class="mel-pro-pillar__features">
+        <li>{{ 'Advanced analytics'|t }}</li>
+        <li>{{ 'Abandoned cart recovery'|t }}</li>
+        <li>{{ 'Event cloning'|t }}</li>
+      </ul>
+    </div>
+
+    <div class="mel-pro-pillar">
+      <div class="mel-pro-pillar__icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </div>
+      <h2 class="mel-pro-pillar__title">{{ 'Automation'|t }}</h2>
+      <ul class="mel-pro-pillar__features">
+        <li>{{ 'Automated refunds'|t }}</li>
+        <li>{{ 'Bulk exports'|t }}</li>
+        <li>{{ 'Priority support'|t }}</li>
+      </ul>
+    </div>
+
+  </div>
+
+  {% if not is_pro and subscribe_form %}
+    <div class="mel-pro-overview__cta">
+      {{ subscribe_form }}
+    </div>
+  {% endif %}
+
+</div>

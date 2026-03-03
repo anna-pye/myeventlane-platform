@@ -1,0 +1,18 @@
+enabled: true
+subject: 'Refund request declined – {{ event_title }}'
+body_html: |-
+  Hi there,
+
+  Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been declined by the event organiser.
+
+  {% if rejection_reason %}
+  Reason: {{ rejection_reason }}
+  {% endif %}
+
+  <a href="{{ my_tickets_url }}">View your tickets</a>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_rejected_buyer

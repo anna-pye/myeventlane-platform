@@ -1,0 +1,30 @@
+uuid: 03195a56-9e4c-409b-b345-b5ba8a0d6c63
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.new_events
+  module:
+    - system
+    - views
+  theme:
+    - radix
+id: radix_new_events
+theme: radix
+region: content
+weight: 10
+provider: null
+plugin: 'views_block:new_events-block_new'
+settings:
+  id: 'views_block:new_events-block_new'
+  label: 'New Events'
+  label_display: visible
+  provider: views
+  views_label: 'New Events'
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

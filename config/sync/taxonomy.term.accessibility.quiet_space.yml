@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_quiet_space
+vid: accessibility
+name: 'Quiet Space Available'
+description: 'A quiet or low-sensory space is available for attendees who need it.'
+weight: 4
+parent: {  }

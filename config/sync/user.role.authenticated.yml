@@ -1,0 +1,66 @@
+uuid: 72662304-829f-4f71-9686-5934f3e1ec1d
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+    - commerce_checkout
+    - commerce_order
+    - commerce_payment
+    - commerce_product
+    - contact
+    - file
+    - klaro
+    - media
+    - myeventlane_checkin
+    - myeventlane_escalations_portal
+    - myeventlane_event_state
+    - paragraphs
+    - profile
+    - search
+    - shortcut
+    - social_auth
+    - system
+_core:
+  default_config_hash: cFrlqjtkTfvY3RGccjJkPf1SGIfJ942IrxTLWAO4mgA
+id: authenticated
+label: 'Authenticated user'
+weight: -9
+is_admin: false
+permissions:
+  - 'access check-in'
+  - 'access checkout'
+  - 'access comments'
+  - 'access commerce_order overview'
+  - 'access content'
+  - 'access shortcuts'
+  - 'access site-wide contact form'
+  - 'change own username'
+  - 'comment on own escalation'
+  - 'create customer profile'
+  - 'create default commerce_order'
+  - 'create escalation'
+  - 'create platform_donation commerce_order'
+  - 'create rsvp_donation commerce_order'
+  - 'delete own files'
+  - 'delete own social auth profile'
+  - 'manage own commerce_payment_method'
+  - 'post comments'
+  - request_refunds
+  - 'scan qr codes'
+  - 'search content'
+  - 'skip comment approval'
+  - 'toggle check-in status'
+  - 'update own customer profile'
+  - 'update platform_donation commerce_order'
+  - 'update rsvp_donation commerce_order'
+  - 'use klaro'
+  - 'view commerce_product'
+  - 'view default commerce_order'
+  - 'view media'
+  - 'view own commerce_order'
+  - 'view own customer profile'
+  - 'view own escalation'
+  - 'view own profile'
+  - 'view rsvp_donation commerce_order'
+  - 'view unpublished paragraphs'

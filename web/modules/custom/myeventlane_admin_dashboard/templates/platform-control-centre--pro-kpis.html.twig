@@ -1,0 +1,78 @@
+{#
+/**
+ * @file
+ * Pro subscription KPIs for the Platform Control Centre.
+ *
+ * Variables:
+ *   - metrics: {active_count, mrr, churn_rate_30d, failed_renewals_30d, grace_users}
+ *   - recovery_stats: {reminders_sent, recovered_orders, recovery_rate, recovered_revenue, avg_order_value}
+ *   - top_recovering_stores: list of top stores by recovered revenue.
+ *   - pro_uplift_percent: percent of platform gross attributed to recovered revenue.
+ *   - report_url: link to /admin/platform/pro (may be NULL)
+ */
+#}
+<div class="pcc-kpis pcc-kpis--pro">
+  <h3 class="pcc-panel__title">{{ 'Pro performance'|t }}</h3>
+  <div class="pcc-kpis__grid">
+    <div class="pcc-kpis__tile pcc-kpis__tile--green">
+      <div class="pcc-kpis__label">{{ 'Active'|t }}</div>
+      <div class="pcc-kpis__value">{{ metrics.active_count }}</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
+      <div class="pcc-kpis__label">{{ 'MRR'|t }}</div>
+      <div class="pcc-kpis__value">${{ metrics.mrr|number_format(2) }}</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--amber">
+      <div class="pcc-kpis__label">{{ 'Churn rate (30 d)'|t }}</div>
+      <div class="pcc-kpis__value">{{ metrics.churn_rate_30d|number_format(2) }}%</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--amber">
+      <div class="pcc-kpis__label">{{ 'Failed renewals (30 d)'|t }}</div>
+      <div class="pcc-kpis__value">{{ metrics.failed_renewals_30d }}</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
+      <div class="pcc-kpis__label">{{ 'Users in grace'|t }}</div>
+      <div class="pcc-kpis__value">{{ metrics.grace_users }}</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--green">
+      <div class="pcc-kpis__label">{{ 'Recovered revenue (30 d)'|t }}</div>
+      <div class="pcc-kpis__value">${{ recovery_stats.recovered_revenue|number_format(2) }}</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
+      <div class="pcc-kpis__label">{{ 'Average recovery rate'|t }}</div>
+      <div class="pcc-kpis__value">{{ recovery_stats.recovery_rate|number_format(1) }}%</div>
+    </div>
+    <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
+      <div class="pcc-kpis__label">{{ 'Pro uplift revenue %'|t }}</div>
+      <div class="pcc-kpis__value">{{ pro_uplift_percent|number_format(1) }}%</div>
+    </div>
+  </div>
+  <h4 class="pcc-panel__title">{{ 'Top 5 recovering stores'|t }}</h4>
+  {% if top_recovering_stores is not empty %}
+    <table class="pcc-table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'Store'|t }}</th>
+          <th scope="col" class="pcc-table__num">{{ 'Recovered revenue'|t }}</th>
+          <th scope="col" class="pcc-table__num">{{ 'Recovery rate'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in top_recovering_stores %}
+          <tr>
+            <td>{{ row.store_label }}</td>
+            <td class="pcc-table__num">${{ row.recovered_revenue|number_format(2) }}</td>
+            <td class="pcc-table__num">{{ row.recovery_rate|number_format(1) }}%</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="pcc-panel__empty">{{ 'No recovery data for this period.'|t }}</p>
+  {% endif %}
+  {% if report_url %}
+    <p class="pcc-kpis__footer">
+      <a href="{{ report_url }}" class="pcc__action-link">{{ 'View full report'|t }} →</a>
+    </p>
+  {% endif %}
+</div>

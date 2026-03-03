@@ -1,7 +1,7 @@
 services:
   myeventlane_tickets.ticket_code_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketCodeGenerator
-    arguments: ['@uuid']
+    arguments: ['@entity_type.manager', '@uuid']
 
   myeventlane_tickets.ticket_pdf_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketPdfGenerator
@@ -22,12 +22,61 @@ services:
   myeventlane_tickets.ticket_assignment_token:
     class: Drupal\myeventlane_tickets\Service\TicketAssignmentTokenService
 
+  myeventlane_tickets.qr_code_generator:
+    class: Drupal\myeventlane_tickets\Ticket\QrCodeGenerator
+
+  myeventlane_tickets.ticket_qr_payload:
+    class: Drupal\myeventlane_tickets\Ticket\TicketQrPayload
+    arguments: ['@config.factory', '@logger.channel.myeventlane_tickets']
+
+  myeventlane_tickets.ticket_checkin_logger:
+    class: Drupal\myeventlane_tickets\Service\TicketCheckinLogger
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@current_user'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.ticket_checkin_service:
+    class: Drupal\myeventlane_tickets\Service\TicketCheckinService
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@current_user'
+      - '@myeventlane_tickets.ticket_qr_payload'
+      - '@myeventlane_tickets.ticket_checkin_logger'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_tickets'
+
+  myeventlane_tickets.ticket_pdf_template_builder:
+    class: Drupal\myeventlane_tickets\Service\TicketPdfTemplateBuilder
+    arguments:
+      - '@config.factory'
+      - '@myeventlane_tickets.qr_code_generator'
+      - '@myeventlane_tickets.ticket_qr_payload'
+      - '@?token'
+
+  myeventlane_tickets.ticket_mailer:
+    class: Drupal\myeventlane_tickets\Service\TicketMailer
+    arguments:
+      - '@plugin.manager.mail'
+      - '@myeventlane_tickets.ticket_pdf_generator'
+      - '@logger.channel.myeventlane_tickets'
+      - '@?myeventlane_rsvp.ics_generator'
+
   myeventlane_tickets.event_access:
     class: Drupal\myeventlane_tickets\Service\EventAccess
     arguments: ['@current_user', '@entity_type.manager']
 
   myeventlane_tickets.access.event_tickets:
     class: Drupal\myeventlane_tickets\Access\EventTicketsAccess
+    arguments: ['@myeventlane_tickets.event_access']
+    tags:
+      - { name: access_check }
+
+  myeventlane_tickets.access.ticket_operations:
+    class: Drupal\myeventlane_tickets\Access\TicketOperationsAccess
     arguments: ['@myeventlane_tickets.event_access']
     tags:
       - { name: access_check }
@@ -40,7 +89,5 @@ services:
   myeventlane_tickets.ticket_assigned_subscriber:
     class: Drupal\myeventlane_tickets\EventSubscriber\TicketAssignedSubscriber
     arguments:
-      - '@entity_type.manager'
-      - '@plugin.manager.mail'
-      - '@myeventlane_tickets.ticket_pdf_generator'
+      - '@myeventlane_tickets.ticket_mailer'
       - '@logger.channel.myeventlane_tickets'

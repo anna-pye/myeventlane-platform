@@ -1,0 +1,28 @@
+uuid: a412eeac-b4fc-4032-8da8-38a07c913e09
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_order.commerce_order_item_type.default
+    - field.storage.commerce_order_item.field_target_event
+    - node.type.event
+id: commerce_order_item.default.field_target_event
+field_name: field_target_event
+entity_type: commerce_order_item
+bundle: default
+label: 'Target Event'
+description: 'The event this order item is associated with (e.g., for boost purchases).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      event: event
+    sort:
+      field: title
+      direction: asc
+    auto_create: false
+field_type: entity_reference

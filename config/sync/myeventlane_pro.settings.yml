@@ -1,0 +1,8 @@
+_core:
+  default_config_hash: O1VPpmeTRX8dmJEHEMQaW5-DrJjmP87JJ0KSVriTFuw
+trial_days: 30
+pro_price: 49
+abandoned_cart:
+  enabled: true
+  delay_wave_1: 7200
+  delay_wave_2: 86400

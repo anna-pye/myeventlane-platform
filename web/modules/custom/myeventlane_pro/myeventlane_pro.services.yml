@@ -1,0 +1,135 @@
+services:
+
+  logger.channel.myeventlane_pro:
+    parent: logger.channel_base
+    arguments: ['myeventlane_pro']
+
+  myeventlane_pro.entitlement_reconciler:
+    class: Drupal\myeventlane_pro\Service\ProEntitlementReconciler
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@logger.channel.myeventlane_pro'
+      - '@cache_tags.invalidator'
+
+  myeventlane_pro.active_resolver:
+    class: Drupal\myeventlane_pro\Service\ProActiveResolver
+    arguments:
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.subscription'
+      - '@myeventlane_pro.entitlement'
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.subscription_state_resolver:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver
+    arguments:
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.subscription_lifecycle_scheduler:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_messaging.manager'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@myeventlane_pro.entitlement_reconciler'
+      - '@myeventlane_pro.recovery_analytics'
+      - '@myeventlane_pro.pro_boost_provisioner'
+
+  myeventlane_pro.pro_boost_provisioner:
+    class: Drupal\myeventlane_pro\Service\ProBoostProvisioner
+    arguments:
+      - '@myeventlane_pro.active_resolver'
+      - '@entity_type.manager'
+      - '@myeventlane_boost.entitlement_manager'
+      - '@?myeventlane_boost.manager'
+      - '@logger.channel.myeventlane_pro'
+      - '@datetime.time'
+      - '@database'
+
+  myeventlane_pro.subscription_health:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionHealthService
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@database'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.entitlement:
+    class: Drupal\myeventlane_pro\Service\ProEntitlementManager
+    public: false
+
+  myeventlane_pro.product_resolver:
+    class: Drupal\myeventlane_pro\Service\ProProductResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+
+  myeventlane_pro.reporting:
+    class: Drupal\myeventlane_pro\Service\ProReportingService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_pro'
+      - '@datetime.time'
+
+  myeventlane_pro.pro_subscription_subscriber:
+    class: Drupal\myeventlane_pro\EventSubscriber\ProSubscriptionSubscriber
+    arguments:
+      - '@myeventlane_pro.entitlement_reconciler'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_pro.pro_boost_provisioner'
+      - '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_pro.abandoned_cart_scheduler:
+    class: Drupal\myeventlane_pro\Service\AbandonedCartScheduler
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_pro.active_resolver'
+      - '@state'
+      - '@plugin.manager.workflow'
+
+  myeventlane_pro.recovery_analytics:
+    class: Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+
+  myeventlane_pro.recovery_attribution_subscriber:
+    class: Drupal\myeventlane_pro\EventSubscriber\ProRecoveryAttributionSubscriber
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_pro'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_pro.brand_gate:
+    class: Drupal\myeventlane_pro\Service\ProBrandGate
+    decorates: myeventlane_messaging.vendor_brand_resolver
+    arguments:
+      - '@.inner'
+      - '@entity_type.manager'
+      - '@myeventlane_pro.active_resolver'
+
+  myeventlane_pro.vendor_comms_resolver:
+    class: Drupal\myeventlane_pro\Service\VendorCommsResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@token'
+      - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_pro.active_resolver'

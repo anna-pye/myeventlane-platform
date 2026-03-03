@@ -1,0 +1,23 @@
+uuid: 35d0a0b1-9f3f-47ad-8400-a0b512808abe
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_pref_email_digest
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.myeventlane_vendor.field_pref_email_digest
+field_name: field_pref_email_digest
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Email Digest Frequency'
+description: 'How often to receive summary emails about your events.'
+required: false
+translatable: false
+default_value:
+  -
+    value: daily
+default_value_callback: ''
+settings: {  }
+field_type: list_string

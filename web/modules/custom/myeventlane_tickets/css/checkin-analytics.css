@@ -1,0 +1,83 @@
+.mel-checkin-analytics-page {
+  padding: 1rem;
+}
+
+.mel-checkin-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.mel-checkin-card {
+  background: #fff;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.mel-checkin-card .label {
+  font-size: 0.78rem;
+  color: #52606d;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-checkin-card .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.mel-checkin-progress-wrap {
+  margin: 1rem 0;
+}
+
+.mel-checkin-progress-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.mel-checkin-progress {
+  height: 14px;
+  background: #edf2f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mel-checkin-progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #2b6cff, #19aa62);
+}
+
+.mel-checkin-recent-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mel-checkin-recent-table th,
+.mel-checkin-recent-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+.mel-checkin-recent-table .result {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.mel-checkin-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.mel-checkin-breakdowns ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+

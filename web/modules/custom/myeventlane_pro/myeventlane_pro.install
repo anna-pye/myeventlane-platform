@@ -1,0 +1,934 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\Core\Database\Database;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_pro_schema(): array {
+  $schema['myeventlane_pro_cart_reminder'] = [
+    'description' => 'Tracks abandoned cart reminder waves sent per order.',
+    'fields' => [
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The commerce_order ID.',
+      ],
+      'wave' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Reminder wave number (1 or 2).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the reminder job was enqueued.',
+      ],
+    ],
+    'primary key' => ['order_id', 'wave'],
+    'indexes' => [
+      'order_id' => ['order_id'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_abandoned_cart'] = [
+    'description' => 'Tracking rows for Pro abandoned cart reminder workflow.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'scheduled' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'processed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+      'message' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'status_scheduled' => ['status', 'scheduled'],
+      'scheduled' => ['scheduled'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_recovery_attribution'] = [
+    'description' => 'Deterministic attribution rows for Pro abandoned cart recovery.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'tracking_step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'recovered_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'order_total' => [
+        'type' => 'numeric',
+        'precision' => 14,
+        'scale' => 2,
+        'not null' => FALSE,
+      ],
+      'currency' => [
+        'type' => 'varchar',
+        'length' => 8,
+        'not null' => FALSE,
+      ],
+      'recovered' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'tracking_step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'recovered' => ['recovered'],
+      'recovered_at' => ['recovered_at'],
+      'store_recovered' => ['store_id', 'recovered'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_renewal_notifications'] = [
+    'description' => 'Tracks Pro renewal reminder scheduling and sends.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'subscription_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'scheduled_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'subscription_scheduled' => ['subscription_id', 'scheduled_at'],
+    ],
+    'indexes' => [
+      'status_scheduled_at' => ['status', 'scheduled_at'],
+      'subscription_id' => ['subscription_id'],
+    ],
+  ];
+
+  $schema['myeventlane_pro_failed_payment_sequence'] = [
+    'description' => 'Tracks Pro failed payment email sequence scheduling and sends.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'subscription_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'scheduled_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'sent_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'subscription_step' => ['subscription_id', 'step'],
+    ],
+    'indexes' => [
+      'status_scheduled_at' => ['status', 'scheduled_at'],
+      'subscription_id' => ['subscription_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_pro_install(): void {
+  $role_id = 'pro_organiser';
+
+  if (!Role::load($role_id)) {
+    $role = Role::create([
+      'id' => $role_id,
+      'label' => 'Pro Organiser',
+    ]);
+    $role->save();
+
+    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role created.');
+  }
+
+  if (\Drupal::entityTypeManager()->hasDefinition('escalation')) {
+    _myeventlane_pro_install_escalation_pro_field();
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_pro_uninstall(): void {
+  $role_id = 'pro_organiser';
+  $role = Role::load($role_id);
+
+  if ($role) {
+    $role->delete();
+    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role removed.');
+  }
+}
+
+/**
+ * Add field_pro_subscription_managed boolean field to user entities.
+ */
+function myeventlane_pro_update_10001(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  $field_storage_config = $entity_type_manager->getStorage('field_storage_config');
+  if (!$field_storage_config->load('user.field_pro_subscription_managed')) {
+    $field_storage_config->create([
+      'field_name' => 'field_pro_subscription_managed',
+      'entity_type' => 'user',
+      'type' => 'boolean',
+      'cardinality' => 1,
+      'locked' => TRUE,
+      'translatable' => FALSE,
+      'settings' => [],
+      'module' => 'core',
+    ])->save();
+  }
+
+  $field_config = $entity_type_manager->getStorage('field_config');
+  if (!$field_config->load('user.user.field_pro_subscription_managed')) {
+    $field_config->create([
+      'field_name' => 'field_pro_subscription_managed',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Pro subscription managed',
+      'description' => 'Internal flag. TRUE when Pro role is managed by subscription lifecycle.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'default_value' => [['value' => 0]],
+      'settings' => [],
+      'field_type' => 'boolean',
+    ])->save();
+  }
+}
+
+/**
+ * Install field_is_pro_support base field on escalation entities.
+ */
+function myeventlane_pro_update_10002(): void {
+  if (!\Drupal::entityTypeManager()->hasDefinition('escalation')) {
+    return;
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getFieldStorageDefinition('field_is_pro_support', 'escalation')) {
+    return;
+  }
+
+  _myeventlane_pro_install_escalation_pro_field();
+}
+
+/**
+ * Create abandoned cart reminder tracking table and config.
+ */
+function myeventlane_pro_update_10003(): void {
+  $schema = Database::getConnection()->schema();
+
+  if (!$schema->tableExists('myeventlane_pro_cart_reminder')) {
+    $schema->createTable('myeventlane_pro_cart_reminder', [
+      'description' => 'Tracks abandoned cart reminder waves sent per order.',
+      'fields' => [
+        'order_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The commerce_order ID.',
+        ],
+        'wave' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Reminder wave number (1 or 2).',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Timestamp when the reminder job was enqueued.',
+        ],
+      ],
+      'primary key' => ['order_id', 'wave'],
+      'indexes' => [
+        'order_id' => ['order_id'],
+      ],
+    ]);
+  }
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_pro.settings');
+  if ($config->get('abandoned_cart') === NULL) {
+    $config->set('abandoned_cart', [
+      'enabled' => TRUE,
+      'delay_wave_1' => 7200,
+      'delay_wave_2' => 86400,
+    ])->save();
+  }
+
+  $etm = \Drupal::entityTypeManager();
+
+  if ($etm->hasDefinition('advancedqueue_queue')) {
+    $queueStorage = $etm->getStorage('advancedqueue_queue');
+    if (!$queueStorage->load('pro_abandoned_cart')) {
+      $queueStorage->create([
+        'id' => 'pro_abandoned_cart',
+        'label' => 'Pro Abandoned Cart',
+        'backend' => 'database',
+        'backend_configuration' => ['lease_time' => 300],
+        'processor' => 'cron',
+        'processing_time' => 90,
+        'threshold' => ['state' => 'failure', 'limit' => 500],
+        'locked' => FALSE,
+      ])->save();
+    }
+  }
+
+  $cf = \Drupal::configFactory();
+  if (!$cf->get('myeventlane_messaging.template.pro_cart_abandoned_w1')->get('enabled')) {
+    $cf->getEditable('myeventlane_messaging.template.pro_cart_abandoned_w1')->setData([
+      'enabled' => TRUE,
+      'subject' => 'You left tickets in your cart',
+      'preheader' => "Your tickets are waiting — complete your booking before they're gone.",
+      'body_html' => '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">It looks like you started booking tickets but didn\'t finish. No worries — your cart is still waiting for you.</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Return to your cart</a></p><p style="font-size:14px;color:#888;">If you have any questions, just reply to this email.</p>',
+      'utm' => ['enable' => TRUE, 'params' => ['utm_source' => 'email', 'utm_medium' => 'cart', 'utm_campaign' => 'pro_abandoned_w1']],
+    ])->save();
+  }
+  if (!$cf->get('myeventlane_messaging.template.pro_cart_abandoned_w2')->get('enabled')) {
+    $cf->getEditable('myeventlane_messaging.template.pro_cart_abandoned_w2')->setData([
+      'enabled' => TRUE,
+      'subject' => 'Your tickets are almost gone!',
+      'preheader' => "Don't miss out — finish your booking now.",
+      'body_html' => '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">Just a friendly reminder — you still have tickets waiting in your cart. Popular events sell out fast, so don\'t leave it too long!</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Complete your booking</a></p><p style="font-size:14px;color:#888;">This is our last reminder. If you\'ve already completed your purchase, please disregard this email.</p>',
+      'utm' => ['enable' => TRUE, 'params' => ['utm_source' => 'email', 'utm_medium' => 'cart', 'utm_campaign' => 'pro_abandoned_w2']],
+    ])->save();
+  }
+}
+
+/**
+ * Adds tracking table for Pro abandoned cart engine.
+ */
+function myeventlane_pro_update_10004(): void {
+  $schema = Database::getConnection()->schema();
+  if ($schema->tableExists('myeventlane_pro_abandoned_cart')) {
+    return;
+  }
+
+  $schema->createTable('myeventlane_pro_abandoned_cart', [
+    'description' => 'Tracking rows for Pro abandoned cart reminder workflow.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'store_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'step' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'scheduled' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'processed' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'scheduled',
+      ],
+      'message' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_step' => ['order_id', 'step'],
+    ],
+    'indexes' => [
+      'store_id' => ['store_id'],
+      'status_scheduled' => ['status', 'scheduled'],
+      'scheduled' => ['scheduled'],
+    ],
+  ]);
+}
+
+/**
+ * Adds Pro recovery attribution table and hardening indexes.
+ */
+function myeventlane_pro_update_10005(): void {
+  $connection = Database::getConnection();
+  $schema = $connection->schema();
+
+  if (!$schema->tableExists('myeventlane_pro_recovery_attribution')) {
+    $schema->createTable('myeventlane_pro_recovery_attribution', [
+      'description' => 'Deterministic attribution rows for Pro abandoned cart recovery.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'order_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'store_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'tracking_step' => [
+          'type' => 'varchar',
+          'length' => 16,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'recovered_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'order_total' => [
+          'type' => 'numeric',
+          'precision' => 14,
+          'scale' => 2,
+          'not null' => FALSE,
+        ],
+        'currency' => [
+          'type' => 'varchar',
+          'length' => 8,
+          'not null' => FALSE,
+        ],
+        'recovered' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'order_step' => ['order_id', 'tracking_step'],
+      ],
+      'indexes' => [
+        'store_id' => ['store_id'],
+        'recovered' => ['recovered'],
+        'recovered_at' => ['recovered_at'],
+        'store_recovered' => ['store_id', 'recovered'],
+      ],
+    ]);
+  }
+
+  if ($schema->tableExists('myeventlane_pro_abandoned_cart')) {
+    if ($schema->indexExists('myeventlane_pro_abandoned_cart', 'status')) {
+      $schema->dropIndex('myeventlane_pro_abandoned_cart', 'status');
+    }
+    if (!$schema->indexExists('myeventlane_pro_abandoned_cart', 'status_scheduled')) {
+      $spec = [
+        'fields' => [
+          'status' => [
+            'type' => 'varchar',
+            'length' => 16,
+            'not null' => TRUE,
+          ],
+          'scheduled' => [
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ],
+        ],
+        'indexes' => [
+          'status_scheduled' => ['status', 'scheduled'],
+        ],
+      ];
+      $schema->addIndex(
+        'myeventlane_pro_abandoned_cart',
+        'status_scheduled',
+        ['status', 'scheduled'],
+        $spec,
+      );
+    }
+  }
+}
+
+/**
+ * Add field_pro_grace_expires timestamp field to users.
+ */
+function myeventlane_pro_update_10006(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+
+  $field_storage = $entity_type_manager->getStorage('field_storage_config');
+  if (!$field_storage->load('user.field_pro_grace_expires')) {
+    $field_storage->create([
+      'field_name' => 'field_pro_grace_expires',
+      'entity_type' => 'user',
+      'type' => 'timestamp',
+      'cardinality' => 1,
+      'locked' => TRUE,
+      'translatable' => FALSE,
+      'settings' => [],
+      'module' => 'core',
+    ])->save();
+  }
+
+  $field_config = $entity_type_manager->getStorage('field_config');
+  if (!$field_config->load('user.user.field_pro_grace_expires')) {
+    $field_config->create([
+      'field_name' => 'field_pro_grace_expires',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Pro grace expiry',
+      'description' => 'Internal timestamp for Pro subscription grace expiry.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'default_value' => [],
+      'settings' => [],
+      'field_type' => 'timestamp',
+    ])->save();
+  }
+}
+
+/**
+ * Create renewal reminder table and ensure required indexes/templates.
+ */
+function myeventlane_pro_update_10007(): void {
+  $schema = Database::getConnection()->schema();
+  $table = 'myeventlane_pro_renewal_notifications';
+
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, [
+      'description' => 'Tracks Pro renewal reminder scheduling and sends.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'subscription_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'subscription_scheduled' => ['subscription_id', 'scheduled_at'],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+        'subscription_id' => ['subscription_id'],
+      ],
+    ]);
+  }
+  elseif (!$schema->indexExists($table, 'status_scheduled_at')) {
+    $spec = [
+      'fields' => [
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+      ],
+    ];
+    $schema->addIndex(
+      $table,
+      'status_scheduled_at',
+      ['status', 'scheduled_at'],
+      $spec,
+    );
+  }
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_messaging.template.pro_subscription_renewal_reminder');
+  if (!$config->get('enabled')) {
+    $config->setData([
+      'enabled' => TRUE,
+      'subject' => 'Your Pro plan renews in 3 days',
+      'preheader' => 'Review your upcoming renewal and recent Pro performance.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro subscription renews on <strong>{{ next_billing_date }}</strong>.</p><p>Last month, Pro recovered <strong>${{ last_month_recovered_revenue }}</strong> in revenue for your business.</p><p>Your recent ROI multiple is <strong>{{ roi_multiple }}x</strong>.</p><p>If your card details changed, please update your payment method now to avoid interruption.</p>',
+      'utm' => [
+        'enable' => TRUE,
+        'params' => [
+          'utm_source' => 'email',
+          'utm_medium' => 'lifecycle',
+          'utm_campaign' => 'pro_renewal_reminder',
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Create failed payment sequence table and ensure required indexes/templates.
+ */
+function myeventlane_pro_update_10008(): void {
+  $schema = Database::getConnection()->schema();
+  $table = 'myeventlane_pro_failed_payment_sequence';
+
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, [
+      'description' => 'Tracks Pro failed payment email sequence scheduling and sends.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'subscription_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'step' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'sent_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'subscription_step' => ['subscription_id', 'step'],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+        'subscription_id' => ['subscription_id'],
+      ],
+    ]);
+  }
+  elseif (!$schema->indexExists($table, 'status_scheduled_at')) {
+    $spec = [
+      'fields' => [
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'scheduled',
+        ],
+        'scheduled_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'status_scheduled_at' => ['status', 'scheduled_at'],
+      ],
+    ];
+    $schema->addIndex(
+      $table,
+      'status_scheduled_at',
+      ['status', 'scheduled_at'],
+      $spec,
+    );
+  }
+
+  $cf = \Drupal::configFactory();
+  $templates = [
+    'pro_subscription_payment_failed_day_0' => [
+      'subject' => 'Payment failed for your Pro subscription',
+      'preheader' => 'Update your card to keep Pro features active.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>We could not process your latest Pro subscription payment.</p><p>Please update your payment method now to keep Pro active without interruption.</p><p>You still have a grace period before access changes.</p>',
+      'campaign' => 'pro_payment_failed_day_0',
+    ],
+    'pro_subscription_payment_failed_day_3' => [
+      'subject' => 'Reminder: your Pro payment is still due',
+      'preheader' => 'Please update your payment method to avoid suspension.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>This is a reminder that your Pro subscription payment is still outstanding.</p><p>Update your payment method as soon as possible to prevent service interruption.</p><p>We are still holding your Pro access during grace period.</p>',
+      'campaign' => 'pro_payment_failed_day_3',
+    ],
+    'pro_subscription_payment_failed_day_6' => [
+      'subject' => 'Final warning: Pro access will be suspended',
+      'preheader' => 'Your Pro grace period is ending soon.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro subscription payment is still unpaid.</p><p>This is the final warning before Pro access is suspended at the end of grace period.</p><p>Update your payment method immediately to prevent entitlement removal.</p>',
+      'campaign' => 'pro_payment_failed_day_6',
+    ],
+  ];
+
+  foreach ($templates as $template => $definition) {
+    $config = $cf->getEditable("myeventlane_messaging.template.{$template}");
+    if ($config->get('enabled')) {
+      continue;
+    }
+    $config->setData([
+      'enabled' => TRUE,
+      'subject' => $definition['subject'],
+      'preheader' => $definition['preheader'],
+      'body_html' => $definition['body_html'],
+      'utm' => [
+        'enable' => TRUE,
+        'params' => [
+          'utm_source' => 'email',
+          'utm_medium' => 'lifecycle',
+          'utm_campaign' => $definition['campaign'],
+        ],
+      ],
+    ])->save();
+  }
+}
+
+/**
+ * Ensures Pro boost sync queue exists for store-by-store entitlement refresh.
+ */
+function myeventlane_pro_update_10009(): void {
+  $etm = \Drupal::entityTypeManager();
+  if (!$etm->hasDefinition('advancedqueue_queue')) {
+    return;
+  }
+
+  $queueStorage = $etm->getStorage('advancedqueue_queue');
+  if ($queueStorage->load('pro_boost_sync')) {
+    return;
+  }
+
+  $queueStorage->create([
+    'id' => 'pro_boost_sync',
+    'label' => 'Pro Boost Sync',
+    'backend' => 'database',
+    'backend_configuration' => ['lease_time' => 300],
+    'processor' => 'cron',
+    'processing_time' => 120,
+    'threshold' => ['state' => 'failure', 'limit' => 500],
+    'locked' => FALSE,
+  ])->save();
+}
+
+/**
+ * Re-ensures Pro boost sync queue exists on upgraded sites.
+ */
+function myeventlane_pro_update_10010(): void {
+  $etm = \Drupal::entityTypeManager();
+  if (!$etm->hasDefinition('advancedqueue_queue')) {
+    return;
+  }
+
+  $queueStorage = $etm->getStorage('advancedqueue_queue');
+  if ($queueStorage->load('pro_boost_sync')) {
+    return;
+  }
+
+  $queueStorage->create([
+    'id' => 'pro_boost_sync',
+    'label' => 'Pro Boost Sync',
+    'backend' => 'database',
+    'backend_configuration' => ['lease_time' => 300],
+    'processor' => 'cron',
+    'processing_time' => 120,
+    'threshold' => ['state' => 'failure', 'limit' => 500],
+    'locked' => FALSE,
+  ])->save();
+}
+
+/**
+ * Installs the field_is_pro_support base field on the escalation entity.
+ *
+ * Shared by hook_install() and update_10002().
+ */
+function _myeventlane_pro_install_escalation_pro_field(): void {
+  $field = BaseFieldDefinition::create('boolean')
+    ->setLabel(new TranslatableMarkup('Pro Support'))
+    ->setDescription(new TranslatableMarkup('Whether this escalation was submitted by a Pro subscriber.'))
+    ->setDefaultValue(FALSE)
+    ->setDisplayOptions('view', [
+      'label' => 'inline',
+      'type' => 'boolean',
+      'weight' => 15,
+      'settings' => [
+        'format' => 'yes-no',
+      ],
+    ])
+    ->setDisplayConfigurable('view', TRUE);
+
+  \Drupal::entityDefinitionUpdateManager()
+    ->installFieldStorageDefinition(
+      'field_is_pro_support',
+      'escalation',
+      'myeventlane_pro',
+      $field,
+    );
+
+  \Drupal::logger('myeventlane_pro')->notice('Installed field_is_pro_support on escalation entity.');
+}

@@ -19,6 +19,7 @@ myeventlane_refunds.vendor_refund_requests:
     _controller: '\Drupal\myeventlane_refunds\Controller\VendorRefundRequestsController::list'
     _title: 'Refund Requests'
   requirements:
+    _permission: 'manage_refunds'
     _entity_access: 'node.view'
     node: \d+
   options:
@@ -33,6 +34,7 @@ myeventlane_refunds.vendor_refund_request_approve:
     _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestApproveForm'
     _title: 'Approve Refund Request'
   requirements:
+    _permission: 'manage_refunds'
     _entity_access: 'node.update'
     node: \d+
     refund_request: \d+
@@ -48,6 +50,7 @@ myeventlane_refunds.vendor_refund_request_reject:
     _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestRejectForm'
     _title: 'Reject Refund Request'
   requirements:
+    _permission: 'manage_refunds'
     _entity_access: 'node.update'
     node: \d+
     refund_request: \d+
@@ -63,6 +66,7 @@ myeventlane_refunds.vendor_refund:
     _form: '\Drupal\myeventlane_refunds\Form\VendorRefundForm'
     _title: 'Refund Order'
   requirements:
+    _permission: 'manage_refunds'
     _entity_access: 'commerce_order.view'
     _custom_access: '\Drupal\myeventlane_refunds\Form\VendorRefundForm::access'
   options:
@@ -76,6 +80,7 @@ myeventlane_refunds.vendor_cancel_event:
     _form: '\Drupal\myeventlane_refunds\Form\VendorCancelEventForm'
     _title: 'Cancel Event'
   requirements:
+    _permission: 'cancel_events'
     _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_refunds\Form\VendorCancelEventForm::access'
   options:

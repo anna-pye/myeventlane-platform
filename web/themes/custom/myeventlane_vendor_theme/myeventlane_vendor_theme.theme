@@ -143,6 +143,17 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     }
   }
 
+  // Route-safe Pro link: avoid hard failures when pro module/routes are absent.
+  $variables['page']['pro_overview_url'] = NULL;
+  try {
+    $variables['page']['pro_overview_url'] = \Drupal\Core\Url::fromRoute('myeventlane_pro.overview')->toString();
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('myeventlane_vendor_theme')->warning('Pro overview route is unavailable: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+
   // Determine active section from route.
   $route_name = $route_match->getRouteName();
   $variables['page']['active_section'] = _myeventlane_vendor_theme_get_active_section($route_name);
@@ -601,10 +612,14 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'upcoming_count' => 0,
         'show_welcome' => FALSE,
         'vendor_kpis' => NULL,
+        'active_boost_entitlements' => [],
         'onboarding_panel' => NULL,
         'show_onboarding_badge' => FALSE,
         'next_onboarding_route' => NULL,
         'ai_usage_panel' => NULL,
+        'is_pro' => FALSE,
+        'show_pro_prompt' => FALSE,
+        'pro_upgrade_url' => NULL,
       ],
       'template' => 'dashboard/dashboard',
     ],

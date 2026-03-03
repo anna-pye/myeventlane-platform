@@ -1,0 +1,11 @@
+from_name: 'My Event Lane'
+from_email: info@myeventlane.com.au
+reply_to: info@myeventlane.com.au
+logo_url: ''
+accent_color: '#6e7ef2'
+footer_text: 'My Event Lane'
+marketing:
+  promo_title: ''
+  promo_body: ''
+  promo_url: ''
+  promo_button: 'Learn more'

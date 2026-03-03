@@ -1,0 +1,23 @@
+uuid: 5e4b69f2-d322-42d2-a0de-07bc089044e4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_related_escalation_type
+    - node.type.staff_playbook
+  module:
+    - options
+_core:
+  default_config_hash: swmL57nFBEdfF6kRrViBdbNebZum3qYx2GAkQku21IQ
+id: node.staff_playbook.field_related_escalation_type
+field_name: field_related_escalation_type
+entity_type: node
+bundle: staff_playbook
+label: 'Related escalation type'
+description: 'Which escalation type(s) this playbook matches. Leave empty to match all types.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

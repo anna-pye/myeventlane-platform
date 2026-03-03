@@ -1,0 +1,20 @@
+uuid: c3781b41-7848-4993-a2e2-55b69f358b6a
+langcode: en
+status: false
+dependencies:
+  theme:
+    - myeventlane_radix
+_core:
+  default_config_hash: Q9_2whdOj1YIomfvsIfopROW4FT_X5pY0DjdOiOaQ5U
+id: myeventlane_radix_primary_admin_actions
+theme: myeventlane_radix
+region: utility_bar
+weight: -5
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }

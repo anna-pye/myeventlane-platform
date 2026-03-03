@@ -1,0 +1,13 @@
+id: pro_abandoned_cart
+label: 'Pro Abandoned Cart'
+backend: database
+backend_configuration:
+  lease_time: 300
+processor: cron
+processing_time: 90
+threshold:
+  type: 0
+  state: failure
+  limit: 500
+locked: false
+stop_when_empty: true

@@ -1,0 +1,12 @@
+enabled: true
+subject: 'Refund completed – {{ event_title }}'
+body_html: |-
+  The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
+
+  The customer has been notified.
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_completed_vendor

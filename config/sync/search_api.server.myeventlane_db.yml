@@ -1,0 +1,17 @@
+uuid: bb400952-3334-4148-bb05-220c7fca85c4
+langcode: en
+status: true
+dependencies:
+  module:
+    - search_api_db
+_core:
+  default_config_hash: 8J7oml9dBRfmgEuSUuT9Ze2IPHKO5NQXn34H7pBJmNQ
+id: myeventlane_db
+name: 'MyEventLane Database'
+description: 'Database backend for site-wide search.'
+backend: search_api_db
+backend_config:
+  database: 'default:default'
+  min_chars: 2
+  matching: partial
+  phrase: bigram

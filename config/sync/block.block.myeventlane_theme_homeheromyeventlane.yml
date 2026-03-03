@@ -1,0 +1,25 @@
+uuid: 66ce15b0-de6d-4503-a1e2-a6bd22c9f5fb
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_front
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_homeheromyeventlane
+theme: myeventlane_theme
+region: hero
+weight: 0
+provider: null
+plugin: myeventlane_home_hero
+settings:
+  id: myeventlane_home_hero
+  label: 'Home Hero (MyEventLane)'
+  label_display: '0'
+  provider: myeventlane_front
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: "<front>\r\n"

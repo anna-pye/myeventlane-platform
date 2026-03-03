@@ -1,0 +1,22 @@
+_core:
+  default_config_hash: hLCUT-cJFQE24x2teLcXCHLoNYpZzk572muSNu-8SZ0
+enabled: true
+provider: openai
+openai:
+  endpoint: 'https://api.openai.com/v1/chat/completions'
+  model: gpt-4o-mini
+  timeout_seconds: 20
+  max_tokens: 600
+  temperature: 0.2
+rate_limit:
+  per_user_per_hour: 10
+  per_scope_per_10_min: 5
+daily_user_token_limit: 50000
+daily_vendor_token_limit: 200000
+daily_cost_ceiling_usd: 5.1
+cb_failure_threshold: 10
+cb_window_seconds: 600
+cb_cost_trip_seconds: 86400
+usage_retention_days: 7
+ai_job_retention_days: 0
+ai_job_error_retention_days: 0

@@ -1,0 +1,28 @@
+uuid: f4f70a5d-79fd-469f-82ce-aed385ba0fb6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.escalation.field_escalation_level
+  module:
+    - myeventlane_escalations
+_core:
+  default_config_hash: 6nUjNi96pd78Tj_Hc6Kocp5ntbPdc9gtZUqV3T3PlJM
+id: escalation.escalation.field_escalation_level
+field_name: field_escalation_level
+entity_type: escalation
+bundle: escalation
+label: 'Escalation Level'
+description: 'Auto-incremented SLA escalation level (0 = none, 1+ = escalated).'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  min: 0
+  max: 10
+  prefix: ''
+  suffix: ''
+field_type: integer

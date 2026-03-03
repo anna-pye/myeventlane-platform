@@ -1,0 +1,21 @@
+uuid: b1b2c3d4-e5f6-4789-a012-3456789abc02
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_category_pill_color
+    - taxonomy.vocabulary.categories
+  module:
+    - options
+id: taxonomy_term.categories.field_category_pill_color
+field_name: field_category_pill_color
+entity_type: taxonomy_term
+bundle: categories
+label: 'Pill colour'
+description: 'Brand-safe pill colour token for category pills. Falls back to default when empty.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

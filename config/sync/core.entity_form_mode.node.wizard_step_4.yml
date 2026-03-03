@@ -1,0 +1,11 @@
+uuid: 84cd7be5-87e4-407b-af6e-57a630f28699
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.wizard_step_4
+label: 'Wizard Step 4'
+description: null
+targetEntityType: node
+cache: true

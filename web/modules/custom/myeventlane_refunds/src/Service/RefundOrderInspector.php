@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_refunds\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
@@ -117,7 +118,7 @@ final class RefundOrderInspector {
       if ($this->isTicketItem($item)) {
         $totalPrice = $item->getTotalPrice();
         if ($totalPrice) {
-          $total += (int) round($totalPrice->getNumber() * 100);
+          $total += $this->priceToCents($totalPrice);
         }
       }
     }
@@ -141,7 +142,7 @@ final class RefundOrderInspector {
       if ($this->isDonationItem($item)) {
         $totalPrice = $item->getTotalPrice();
         if ($totalPrice) {
-          $total += (int) round($totalPrice->getNumber() * 100);
+          $total += $this->priceToCents($totalPrice);
         }
       }
     }
@@ -178,12 +179,12 @@ final class RefundOrderInspector {
     foreach ($payments as $payment) {
       $amount = $payment->getAmount();
       if ($amount) {
-        $totalPaid += (int) round($amount->getNumber() * 100);
+        $totalPaid += $this->priceToCents($amount);
       }
 
       $refundedAmount = $payment->getRefundedAmount();
       if ($refundedAmount) {
-        $totalRefunded += (int) round($refundedAmount->getNumber() * 100);
+        $totalRefunded += $this->priceToCents($refundedAmount);
       }
     }
 
@@ -209,6 +210,42 @@ final class RefundOrderInspector {
       ? substr($local, 0, 1) . str_repeat('*', min(3, strlen($local) - 1))
       : '*';
     return $maskedLocal . '@' . $domain;
+  }
+
+  /**
+   * Converts a Commerce price to integer cents deterministically.
+   */
+  public function priceToCents(Price $price): int {
+    return $this->decimalStringToCents($price->getNumber());
+  }
+
+  /**
+   * Converts a decimal money string to integer cents deterministically.
+   *
+   * Uses string arithmetic and half-up rounding at the 3rd decimal place.
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown when input is not a non-negative decimal string.
+   */
+  public function decimalStringToCents(string $value): int {
+    $normalized = trim($value);
+    if ($normalized === '' || !preg_match('/^\d+(?:\.\d+)?$/', $normalized)) {
+      throw new \InvalidArgumentException('Invalid money value.');
+    }
+
+    [$whole, $fraction] = array_pad(explode('.', $normalized, 2), 2, '');
+    $fractionDigits = preg_replace('/\D/', '', $fraction) ?? '';
+
+    $fractionForRounding = str_pad($fractionDigits, 3, '0');
+    $centsDigits = substr($fractionForRounding, 0, 2);
+    $roundDigit = (int) $fractionForRounding[2];
+
+    $cents = ((int) $whole * 100) + (int) $centsDigits;
+    if ($roundDigit >= 5) {
+      $cents++;
+    }
+
+    return $cents;
   }
 
 }

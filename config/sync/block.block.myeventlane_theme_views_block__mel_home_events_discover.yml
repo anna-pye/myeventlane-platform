@@ -1,0 +1,30 @@
+uuid: 48f78fbe-9b7a-4aa4-af00-bf17e5940c2a
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.mel_home_events
+  module:
+    - system
+    - views
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_views_block__mel_home_events_discover
+theme: myeventlane_theme
+region: home_discover
+weight: 0
+provider: null
+plugin: 'views_block:mel_home_events-discover'
+settings:
+  id: 'views_block:mel_home_events-discover'
+  label: ''
+  label_display: '0'
+  provider: views
+  views_label: ''
+  items_per_page: null
+  exposed: {  }
+visibility:
+  request_path:
+    id: request_path
+    negate: false
+    pages: '<front>'

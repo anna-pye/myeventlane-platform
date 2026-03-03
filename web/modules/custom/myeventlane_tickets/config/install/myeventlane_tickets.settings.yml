@@ -1,1 +1,10 @@
+pdf_enabled: true
 pdf_expiry_days: 365
+include_qr_code: true
+show_ticket_code: true
+ticket_code_format: ''
+brand_logo_url: ''
+brand_accent_color: '#f26d5b'
+brand_footer_text: ''
+qr_payload_mode: 'signed'
+qr_secret: ''

@@ -1,0 +1,39 @@
+langcode: en
+status: true
+id: myeventlane_vendor
+label: Vendor
+label_collection: Vendors
+label_singular: vendor
+label_plural: vendors
+label_count:
+  singular: '@count vendor'
+  plural: '@count vendors'
+handlers:
+  storage: Drupal\Core\Entity\Sql\SqlContentEntityStorage
+  view_builder: Drupal\Core\Entity\EntityViewBuilder
+  list_builder: Drupal\myeventlane_vendor\VendorListBuilder
+  access: Drupal\myeventlane_vendor\Entity\VendorAccessControlHandler
+  form:
+    default: Drupal\myeventlane_vendor\Form\VendorForm
+    add: Drupal\myeventlane_vendor\Form\VendorForm
+    edit: Drupal\myeventlane_vendor\Form\VendorForm
+    delete: Drupal\Core\Entity\ContentEntityDeleteForm
+  route_provider:
+    html:
+      - Drupal\Core\Entity\Routing\AdminHtmlRouteProvider
+      - Drupal\field_ui\Routing\FieldUiHtmlRouteProvider
+base_table: myeventlane_vendor
+data_table: myeventlane_vendor_field_data
+entity_keys:
+  id: id
+  uuid: uuid
+  label: name
+  owner: uid
+links:
+  canonical: '/vendor/{myeventlane_vendor}'
+  add-form: /admin/structure/myeventlane/vendor/add
+  edit-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/edit'
+  delete-form: '/admin/structure/myeventlane/vendor/{myeventlane_vendor}/delete'
+  collection: /admin/structure/myeventlane/vendor
+admin_permission: 'administer myeventlane vendor'
+field_ui_base_route: myeventlane_vendor.settings

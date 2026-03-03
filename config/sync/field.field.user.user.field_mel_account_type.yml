@@ -1,0 +1,25 @@
+uuid: f024e1b6-b3bc-4ca6-b90a-2fe3fd53724e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_mel_account_type
+  module:
+    - options
+    - user
+_core:
+  default_config_hash: CL_lqX3pjrIfH7WKuuFKQgQrDRxXuU0upXByOskEMKY
+id: user.user.field_mel_account_type
+field_name: field_mel_account_type
+entity_type: user
+bundle: user
+label: 'Account type'
+description: 'Whether you are attending events or running events. Used for onboarding; no role assignment on registration.'
+required: true
+translatable: false
+default_value:
+  -
+    value: customer
+default_value_callback: ''
+settings: {  }
+field_type: list_string

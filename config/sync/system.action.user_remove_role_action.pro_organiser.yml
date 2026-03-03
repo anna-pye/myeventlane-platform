@@ -1,0 +1,14 @@
+uuid: 0c23ebde-8e98-4ace-8390-38d8403677d7
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.pro_organiser
+  module:
+    - user
+id: user_remove_role_action.pro_organiser
+label: 'Remove the Pro Organiser role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: pro_organiser

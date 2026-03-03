@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.accessibility
+id: accessibility_guide_dog_friendly
+vid: accessibility
+name: 'Guide Dog Friendly'
+description: 'Service animals and guide dogs are welcome at this event.'
+weight: 5
+parent: {  }

@@ -8,6 +8,7 @@ use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\myeventlane_core\Security\SensitiveDataScrubber;
 use Psr\Log\LoggerInterface;
 use Stripe\Account;
 use Stripe\AccountLink;
@@ -45,6 +46,20 @@ final class StripeService {
    */
   private function logger(): LoggerInterface {
     return $this->loggerFactory->get('myeventlane_core');
+  }
+
+  /**
+   * Logs a message after scrubbing sensitive data from the context.
+   *
+   * @param string $level
+   *   The log level (info, error, warning, etc.).
+   * @param string $message
+   *   The log message.
+   * @param array $context
+   *   The log context array.
+   */
+  private function safeLog(string $level, string $message, array $context = []): void {
+    $this->logger()->log($level, $message, SensitiveDataScrubber::scrub($context));
   }
 
   /**
@@ -170,7 +185,7 @@ final class StripeService {
         ],
       ]);
 
-      $this->logger()->info('Created Stripe Connect account @id for @email', [
+      $this->safeLog('info', 'Created Stripe Connect account @id for @email', [
         '@id' => $account->id,
         '@email' => $email,
       ]);
@@ -178,7 +193,7 @@ final class StripeService {
       return $account;
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to create Stripe Connect account: @message', [
+      $this->safeLog('error', 'Failed to create Stripe Connect account: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;
@@ -212,14 +227,14 @@ final class StripeService {
         'type' => 'account_onboarding',
       ]);
 
-      $this->logger()->info('Created AccountLink for account @id', [
+      $this->safeLog('info', 'Created AccountLink for account @id', [
         '@id' => $accountId,
       ]);
 
       return $link;
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to create AccountLink: @message', [
+      $this->safeLog('error', 'Failed to create AccountLink: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;
@@ -244,14 +259,14 @@ final class StripeService {
     try {
       $link = $client->accounts->createLoginLink($accountId);
 
-      $this->logger()->info('Created LoginLink for account @id', [
+      $this->safeLog('info', 'Created LoginLink for account @id', [
         '@id' => $accountId,
       ]);
 
       return $link;
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to create LoginLink: @message', [
+      $this->safeLog('error', 'Failed to create LoginLink: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;
@@ -325,7 +340,7 @@ final class StripeService {
     }
     catch (ApiErrorException $e) {
       // Account retrieval failed - log error and return not eligible.
-      $this->logger()->error('Failed to retrieve Stripe account @id for eligibility check: @message', [
+      $this->safeLog('error', 'Failed to retrieve Stripe account @id for eligibility check: @message', [
         '@id' => $accountId,
         '@message' => $e->getMessage(),
       ]);
@@ -358,8 +373,6 @@ final class StripeService {
     $eligibility = $this->validateAccountDashboardEligibility($accountId);
 
     if (!$eligibility['eligible']) {
-      // Account is not eligible - do NOT call createLoginLink().
-      // Logging will be handled by the caller (controller) with myeventlane_vendor channel.
       return NULL;
     }
 
@@ -368,7 +381,6 @@ final class StripeService {
       return $this->createLoginLink($accountId);
     }
     catch (ApiErrorException $e) {
-      // Unexpected failure during login link creation - rethrow for controller to handle.
       throw $e;
     }
   }
@@ -408,7 +420,7 @@ final class StripeService {
       ];
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to retrieve account status: @message', [
+      $this->safeLog('error', 'Failed to retrieve account status: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;
@@ -457,7 +469,7 @@ final class StripeService {
 
       $paymentIntent = $client->paymentIntents->create($params);
 
-      $this->logger()->info('Created PaymentIntent @id for ticket sale: @amount @currency to account @account (fee: @fee)', [
+      $this->safeLog('info', 'Created PaymentIntent @id for ticket sale: @amount @currency to account @account (fee: @fee)', [
         '@id' => $paymentIntent->id,
         '@amount' => $amount,
         '@currency' => $currency,
@@ -468,7 +480,7 @@ final class StripeService {
       return $paymentIntent;
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to create PaymentIntent for ticket sale: @message', [
+      $this->safeLog('error', 'Failed to create PaymentIntent for ticket sale: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;
@@ -507,7 +519,7 @@ final class StripeService {
 
       $paymentIntent = $client->paymentIntents->create($params);
 
-      $this->logger()->info('Created PaymentIntent @id for Boost purchase: @amount @currency', [
+      $this->safeLog('info', 'Created PaymentIntent @id for Boost purchase: @amount @currency', [
         '@id' => $paymentIntent->id,
         '@amount' => $amount,
         '@currency' => $currency,
@@ -516,7 +528,7 @@ final class StripeService {
       return $paymentIntent;
     }
     catch (ApiErrorException $e) {
-      $this->logger()->error('Failed to create PaymentIntent for Boost: @message', [
+      $this->safeLog('error', 'Failed to create PaymentIntent for Boost: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw $e;

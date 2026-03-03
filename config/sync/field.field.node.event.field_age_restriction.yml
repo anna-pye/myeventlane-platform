@@ -1,0 +1,21 @@
+uuid: ac414dc7-eb5c-41b5-914d-70b3a644ee12
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_age_restriction
+    - node.type.event
+  module:
+    - options
+id: node.event.field_age_restriction
+field_name: field_age_restriction
+entity_type: node
+bundle: event
+label: 'Age suitability'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

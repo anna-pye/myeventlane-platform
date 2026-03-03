@@ -1,0 +1,20 @@
+uuid: 7fca1471-ad15-45ee-bf78-35e3495b43fb
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_location_latitude
+field_name: field_location_latitude
+entity_type: node
+type: decimal
+settings:
+  precision: 10
+  scale: 7
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

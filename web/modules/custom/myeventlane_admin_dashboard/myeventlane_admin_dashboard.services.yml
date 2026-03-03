@@ -99,6 +99,13 @@ services:
       - '@myeventlane_admin_dashboard.platform_trend'
       - '@myeventlane_admin_dashboard.platform_recent_activity'
 
+  myeventlane_admin_dashboard.pro_reporting_builder:
+    class: Drupal\myeventlane_admin_dashboard\Service\ProReportingBuilder
+    arguments:
+      - '@?myeventlane_pro.subscription_health'
+      - '@?myeventlane_pro.recovery_analytics'
+      - '@myeventlane_admin_dashboard.metrics'
+
   myeventlane_admin_dashboard.platform_kpi:
     class: Drupal\myeventlane_admin_dashboard\Service\PlatformKpiService
     arguments:

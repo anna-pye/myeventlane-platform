@@ -1,0 +1,25 @@
+uuid: b2c3d4e5-f6a7-5b6c-9d0e-1f2a3b4c5d6e
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.account
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_account_menu
+theme: myeventlane_theme
+region: header_left
+weight: 10
+provider: null
+plugin: 'system_menu_block:account'
+settings:
+  id: 'system_menu_block:account'
+  label: 'User account menu'
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

@@ -1,0 +1,74 @@
+{#
+/**
+ * @file
+ * Template for the Pro subscription manage page.
+ *
+ * Variables:
+ * - subscription_status: Status label (e.g. "Active").
+ * - started_date: Formatted start date string.
+ * - next_billing_date: Formatted next billing date string or NULL.
+ * - cancel_url: URL to the cancel confirmation form.
+ * - roi_summary: ROI summary array or NULL.
+ */
+#}
+<div class="mel-pro-manage">
+
+  <div class="mel-pro-manage__header">
+    <span class="mel-pro-badge">PRO</span>
+    <h1 class="mel-pro-manage__title">{{ 'Pro Subscription'|t }}</h1>
+  </div>
+
+  {% if grace_days_remaining is not null %}
+    <div class="messages messages--warning">
+      {{ 'Your payment failed. You have @days days remaining before Pro is suspended.'|t({'@days': grace_days_remaining}) }}
+    </div>
+  {% endif %}
+
+  {% if renewal_in_days is not null %}
+    <div class="messages messages--status">
+      {{ 'Your Pro renews in @days days.'|t({'@days': renewal_in_days}) }}
+    </div>
+  {% endif %}
+
+  <div class="mel-pro-manage__card mel-card">
+    <div class="mel-pro-manage__details">
+
+      <div class="mel-pro-manage__row">
+        <span class="mel-pro-manage__label">{{ 'Status'|t }}</span>
+        <span class="mel-pro-manage__value mel-pro-manage__value--status">
+          <span class="mel-badge mel-badge--success">{{ subscription_status }}</span>
+        </span>
+      </div>
+
+      {% if started_date %}
+        <div class="mel-pro-manage__row">
+          <span class="mel-pro-manage__label">{{ 'Started'|t }}</span>
+          <span class="mel-pro-manage__value">{{ started_date }}</span>
+        </div>
+      {% endif %}
+
+      {% if next_billing_date %}
+        <div class="mel-pro-manage__row">
+          <span class="mel-pro-manage__label">{{ 'Next billing date'|t }}</span>
+          <span class="mel-pro-manage__value">{{ next_billing_date }}</span>
+        </div>
+      {% endif %}
+
+      {% if roi_summary %}
+        <div class="mel-pro-manage__row">
+          <span class="mel-pro-manage__label">{{ 'ROI this month'|t }}</span>
+          <span class="mel-pro-manage__value">{{ 'Pro paid for itself @times times this month.'|t({'@times': roi_summary.roi_multiple|number_format(2)}) }}</span>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <div class="mel-pro-manage__actions">
+      <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn--secondary">{{ 'Back to Dashboard'|t }}</a>
+      {% if cancel_url %}
+        <a href="{{ cancel_url }}" class="mel-btn mel-btn--danger">{{ 'Cancel Subscription'|t }}</a>
+      {% endif %}
+    </div>
+  </div>
+
+</div>

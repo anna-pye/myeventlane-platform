@@ -1,0 +1,18 @@
+uuid: de43ae9f-76a3-49ff-9517-85419444b340
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.field_pref_email_on_rsvp
+field_name: field_pref_email_on_rsvp
+entity_type: myeventlane_vendor
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

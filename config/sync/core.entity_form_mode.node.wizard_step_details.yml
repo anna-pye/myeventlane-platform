@@ -1,0 +1,11 @@
+uuid: ac126a1e-c8e1-4d14-851f-6a78d2b33579
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.wizard_step_details
+label: 'Wizard step details'
+description: null
+targetEntityType: node
+cache: true

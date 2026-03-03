@@ -1,0 +1,20 @@
+uuid: 69858f9c-9995-4066-ab35-336b49f0ad41
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_vendor_terms_accepted_ua
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_vendor_terms_accepted_ua
+field_name: field_vendor_terms_accepted_ua
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Vendor terms accepted user-agent'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

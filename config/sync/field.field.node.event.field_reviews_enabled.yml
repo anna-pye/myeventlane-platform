@@ -1,0 +1,25 @@
+uuid: afe3f3ba-9cd0-465f-9307-759af336e3ab
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_reviews_enabled
+    - node.type.event
+_core:
+  default_config_hash: UNJv1SQQicB_mV7Hs2uUDfORohWQ-a6yQiCsMOK_E6k
+id: node.event.field_reviews_enabled
+field_name: field_reviews_enabled
+entity_type: node
+bundle: event
+label: 'Reviews enabled'
+description: 'Allow attendees to leave reviews for this event after it ends.'
+required: false
+translatable: false
+default_value:
+  -
+    value: false
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

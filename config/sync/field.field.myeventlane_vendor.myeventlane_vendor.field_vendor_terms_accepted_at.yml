@@ -1,0 +1,20 @@
+uuid: 17692019-967d-4501-862d-d336e0c53688
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_vendor_terms_accepted_at
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_vendor_terms_accepted_at
+field_name: field_vendor_terms_accepted_at
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Vendor terms accepted at'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

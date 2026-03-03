@@ -1,0 +1,20 @@
+uuid: d6e9a49a-3649-49ca-b32f-6667558edf74
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_waitlist_capacity
+field_name: field_waitlist_capacity
+entity_type: node
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

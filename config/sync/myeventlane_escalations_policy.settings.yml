@@ -1,0 +1,8 @@
+_core:
+  default_config_hash: tZHGScwa_4aZBG3wz-riqRCd4oQjFrofiKiJPn-Q9l8
+threshold_weeks: 3
+cooldown_weeks: 4
+evaluation_window_days: 7
+action_mode: create_escalation
+staff_notification_emails: {  }
+run_day: Monday

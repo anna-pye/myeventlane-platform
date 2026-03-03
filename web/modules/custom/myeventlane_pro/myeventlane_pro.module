@@ -1,0 +1,669 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Bootstrap file for MyEventLane Pro.
+ */
+
+use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Xss;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
+use Drupal\file\FileInterface;
+use Drupal\myeventlane_messaging\ValueObject\Brand;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_pro_theme(): array {
+  return [
+    'vendor_pro_overview' => [
+      'variables' => [
+        'is_pro' => FALSE,
+        'pro_price' => '',
+        'subscribe_form' => NULL,
+        'manage_url' => NULL,
+      ],
+      'template' => 'vendor-pro-overview',
+    ],
+    'vendor_pro_success' => [
+      'variables' => [
+        'features' => [],
+      ],
+      'template' => 'vendor-pro-success',
+    ],
+    'vendor_pro_manage' => [
+      'variables' => [
+        'subscription_status' => NULL,
+        'started_date' => NULL,
+        'next_billing_date' => NULL,
+        'renewal_in_days' => NULL,
+        'grace_days_remaining' => NULL,
+        'cancel_url' => NULL,
+        'roi_summary' => NULL,
+      ],
+      'template' => 'vendor-pro-manage',
+    ],
+    'admin_pro_report' => [
+      'variables' => [
+        'metrics' => [],
+        'rows' => [],
+      ],
+      'template' => 'admin-pro-report',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * - Runs Pro entitlement reconciliation once per day.
+ * - Scans for abandoned carts belonging to Pro vendors on every cron run.
+ */
+function myeventlane_pro_cron(): void {
+  $state = \Drupal::state();
+  $lastRun = (int) $state->get('myeventlane_pro.last_reconcile', 0);
+  $interval = 86400;
+  $now = \Drupal::time()->getRequestTime();
+
+  if ($now - $lastRun >= $interval) {
+    /** @var \Drupal\myeventlane_pro\Service\ProEntitlementReconciler $reconciler */
+    $reconciler = \Drupal::service('myeventlane_pro.entitlement_reconciler');
+    $reconciler->reconcile();
+
+    $state->set('myeventlane_pro.last_reconcile', $now);
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler $scheduler */
+    $scheduler = \Drupal::service('myeventlane_pro.subscription_lifecycle_scheduler');
+    $scheduler->run();
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->error('Subscription lifecycle scheduler failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+  }
+
+  try {
+    /** @var \Drupal\myeventlane_pro\Service\AbandonedCartScheduler $scheduler */
+    $scheduler = \Drupal::service('myeventlane_pro.abandoned_cart_scheduler');
+    $scheduled = 0;
+    $enqueued = 0;
+
+    // Keep scanning lightweight by running once per hour.
+    $lastScan = (int) $state->get('myeventlane_pro.abandoned_cart_scan', 0);
+    if ($now - $lastScan >= 3600) {
+      $scheduled = $scheduler->scanRecentCartsAndSchedule(1000);
+      $state->set('myeventlane_pro.abandoned_cart_scan', $now);
+    }
+    $enqueued = $scheduler->enqueueDueRows(1000);
+    $scheduler->logRunSummary($scheduled, $enqueued);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_pro')->error('Abandoned cart scheduler failed: @msg', [
+      '@msg' => $e->getMessage(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function myeventlane_pro_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'myeventlane_pro_abandoned_cart') {
+    return;
+  }
+
+  $message['subject'] = (string) ($params['subject'] ?? 'Finish your booking on MyEventLane');
+  $body = $params['body'] ?? [];
+  $message['body'] = is_array($body) ? $body : [(string) $body];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ *
+ * Injects Pro subscription status, upgrade prompt, and badge data.
+ * Prompt shown only when vendor has >=2 published events and is not Pro.
+ */
+function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  $currentUser = \Drupal::currentUser();
+  $activeResolver = \Drupal::service('myeventlane_pro.active_resolver');
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) $currentUser->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface ? $activeResolver->isUserProActive($user) : FALSE;
+
+  $variables['is_pro'] = $isPro;
+  $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
+
+  $showProPrompt = FALSE;
+  if (!$isPro) {
+    try {
+      $publishedCount = (int) \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'event')
+        ->condition('uid', $currentUser->id())
+        ->condition('status', 1)
+        ->count()
+        ->execute();
+      $showProPrompt = $publishedCount >= 2;
+    }
+    catch (\Exception) {
+    }
+  }
+
+  $variables['show_pro_prompt'] = $showProPrompt;
+
+  try {
+    /** @var \Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService $analytics */
+    $analytics = \Drupal::service('myeventlane_pro.recovery_analytics');
+
+    if ($isPro) {
+      $storeId = 0;
+      $vendor = $variables['vendor'] ?? NULL;
+      if ($vendor instanceof Vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface && $store->id() !== NULL) {
+          $storeId = (int) $store->id();
+        }
+      }
+
+      if ($storeId > 0) {
+        $variables['pro_recovery_stats'] = $analytics->getStoreRecoveryStats($storeId, 30);
+        $variables['pro_recovery_roi'] = $analytics->estimateProROI($storeId, 1);
+      }
+      else {
+        $variables['pro_recovery_stats'] = [
+          'reminders_sent' => 0,
+          'recovered_orders' => 0,
+          'recovery_rate' => 0.0,
+          'recovered_revenue' => 0.0,
+          'avg_order_value' => 0.0,
+        ];
+        $variables['pro_recovery_roi'] = [
+          'pro_cost' => 49.0,
+          'recovered_revenue' => 0.0,
+          'roi_multiple' => 0.0,
+        ];
+      }
+    }
+    else {
+      $platformStats = $analytics->getPlatformRecoveryStats(30);
+      $variables['pro_recovery_locked_preview'] = $platformStats;
+    }
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->error('Failed to build vendor recovery dashboard stats: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $variables['#cache']['contexts'][] = 'user';
+  $variables['#cache']['contexts'][] = 'route';
+  $variables['#cache']['tags'][] = 'commerce_order_list';
+  $variables['#cache']['tags'][] = 'commerce_store_list';
+  if (!empty($variables['vendor']) && $variables['vendor'] instanceof Vendor && $variables['vendor']->hasField('field_vendor_store') && !$variables['vendor']->get('field_vendor_store')->isEmpty()) {
+    $store = $variables['vendor']->get('field_vendor_store')->entity;
+    if ($store instanceof StoreInterface && $store->id() !== NULL) {
+      $variables['#cache']['tags'][] = 'pro_subscription:' . (int) $store->id();
+      $variables['#cache']['tags'][] = 'commerce_store:' . (int) $store->id();
+    }
+  }
+  $variables['#cache']['max-age'] = 300;
+
+  $variables['#attached']['library'][] = 'myeventlane_pro/pro';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_analytics_dashboard.
+ *
+ * Injects Pro lock state for analytics gating.
+ */
+function myeventlane_pro_preprocess_myeventlane_analytics_dashboard(array &$variables): void {
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
+  $variables['is_pro'] = $isPro;
+  $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
+  $variables['#attached']['library'][] = 'myeventlane_pro/pro';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for node templates.
+ */
+function myeventlane_pro_preprocess_node(array &$variables): void {
+  if (empty($variables['node']) || !$variables['node'] instanceof NodeInterface || $variables['node']->bundle() !== 'event') {
+    return;
+  }
+
+  $store = myeventlane_pro_resolve_store_from_event($variables['node']);
+  if (!$store instanceof StoreInterface || $store->id() === NULL) {
+    return;
+  }
+
+  if (!isset($variables['#cache'])) {
+    $variables['#cache'] = [];
+  }
+  $variables['#cache']['tags'][] = 'pro_subscription:' . (int) $store->id();
+  $variables['#cache']['tags'][] = 'commerce_store:' . (int) $store->id();
+}
+
+/**
+ * Returns the Pro overview URL when route is available.
+ */
+function myeventlane_pro_get_overview_url(): ?string {
+  try {
+    return Url::fromRoute('myeventlane_pro.overview')->toString();
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_pro')->warning('Pro overview route unavailable in preprocess: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for ticket_pdf.
+ *
+ * Injects vendor branding variables into the ticket PDF template when the
+ * event's vendor is a Pro subscriber. Non-Pro tickets receive a
+ * "Powered by MyEventLane" watermark instead.
+ */
+function myeventlane_pro_preprocess_ticket_pdf(array &$variables): void {
+  $event = NULL;
+
+  // Canonical path: resolve event from ticket entity.
+  $ticket = $variables['ticket'] ?? NULL;
+  if ($ticket && is_object($ticket) && method_exists($ticket, 'hasField')
+    && $ticket->hasField('event_id') && !$ticket->get('event_id')->isEmpty()) {
+    $event = $ticket->get('event_id')->entity;
+  }
+
+  // Legacy path: resolve event from order item.
+  if (!$event) {
+    $orderItem = $variables['order_item'] ?? NULL;
+    if ($orderItem && is_object($orderItem) && method_exists($orderItem, 'hasField')) {
+      if ($orderItem->hasField('field_target_event') && !$orderItem->get('field_target_event')->isEmpty()) {
+        $event = $orderItem->get('field_target_event')->entity;
+      }
+      if (!$event && method_exists($orderItem, 'getPurchasedEntity')) {
+        $purchased = $orderItem->getPurchasedEntity();
+        if ($purchased && $purchased->hasField('field_event') && !$purchased->get('field_event')->isEmpty()) {
+          $event = $purchased->get('field_event')->entity;
+        }
+      }
+    }
+  }
+
+  if (!$event || !$event->hasField('field_event_vendor') || $event->get('field_event_vendor')->isEmpty()) {
+    return;
+  }
+
+  $vendor = $event->get('field_event_vendor')->entity;
+  if (!$vendor instanceof Vendor) {
+    return;
+  }
+
+  $owner = $vendor->getOwner();
+  if (!$owner instanceof \Drupal\user\UserInterface || !\Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner)) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_messaging\Service\BrandResolverInterface $resolver */
+  $resolver = \Drupal::service('myeventlane_messaging.vendor_brand_resolver');
+  $brand = $resolver->resolveForVendor($vendor);
+
+  $variables['brand_accent_color'] = $brand->accentColor;
+  $variables['brand_logo_url'] = $brand->logoUrl;
+  $variables['brand_footer_text'] = ($brand->footerText !== Brand::DEFAULT_FOOTER)
+    ? $brand->footerText
+    : '';
+  $variables['brand_vendor_name'] = $vendor->getName();
+  $variables['is_pro_branded'] = TRUE;
+
+  // Pro ticket header branding overrides the standard brand logo when present.
+  if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+    $store = $vendor->get('field_vendor_store')->entity;
+    if ($store instanceof StoreInterface) {
+      $ticketHeader = myeventlane_pro_get_store_image_url($store, 'field_brand_ticket_header');
+      if ($ticketHeader !== NULL) {
+        $variables['brand_logo_url'] = $ticketHeader;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for commerce_store_edit_form.
+ */
+function myeventlane_pro_form_commerce_store_edit_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $submitHandler = 'myeventlane_pro_store_branding_submit_enforce';
+  if (isset($form['actions']['submit']['#submit']) && is_array($form['actions']['submit']['#submit'])) {
+    if (!in_array($submitHandler, $form['actions']['submit']['#submit'], TRUE)) {
+      array_unshift($form['actions']['submit']['#submit'], $submitHandler);
+    }
+  }
+  else {
+    $form['actions']['submit']['#submit'] = [$submitHandler];
+  }
+
+  $advancedFields = myeventlane_pro_advanced_branding_fields();
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
+  if (!$isPro) {
+    foreach ($advancedFields as $fieldName) {
+      if (!isset($form[$fieldName]) || !is_array($form[$fieldName])) {
+        continue;
+      }
+
+      $form[$fieldName]['#disabled'] = TRUE;
+      $form[$fieldName]['#description'] = t('Upgrade to Pro to unlock advanced branding.');
+      $form[$fieldName]['#attributes']['class'][] = 'mel-pro-locked';
+    }
+    $form['#attached']['library'][] = 'myeventlane_pro/pro_lock';
+  }
+}
+
+/**
+ * Enforces server-side branding access controls for non-Pro organisers.
+ */
+function myeventlane_pro_store_branding_submit_enforce(array &$form, FormStateInterface $form_state): void {
+  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) \Drupal::currentUser()->id());
+  $isPro = $user instanceof \Drupal\user\UserInterface
+    ? \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)
+    : FALSE;
+  if ($isPro) {
+    return;
+  }
+
+  $formObject = $form_state->getFormObject();
+  if (!method_exists($formObject, 'getEntity')) {
+    \Drupal::logger('myeventlane_pro')->error('Store branding submit protection failed: form object has no entity.');
+    return;
+  }
+
+  $entity = $formObject->getEntity();
+  if (!$entity instanceof StoreInterface) {
+    \Drupal::logger('myeventlane_pro')->error('Store branding submit protection failed: form entity is not a store.');
+    return;
+  }
+
+  foreach (myeventlane_pro_advanced_branding_fields() as $fieldName) {
+    if ($entity->hasField($fieldName)) {
+      $entity->set($fieldName, NULL);
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_pro_page_attachments(array &$attachments): void {
+  $store = myeventlane_pro_resolve_branding_store_from_route();
+  if (!$store) {
+    return;
+  }
+
+  $primary = $store->hasField('field_brand_primary_color') ? trim((string) $store->get('field_brand_primary_color')->value) : '';
+  $secondary = $store->hasField('field_brand_secondary_color') ? trim((string) $store->get('field_brand_secondary_color')->value) : '';
+  $customCss = $store->hasField('field_brand_custom_css') ? (string) ($store->get('field_brand_custom_css')->value ?? '') : '';
+
+  // Do not attach anything if no branding values are set.
+  if ($primary === '' && $secondary === '' && trim($customCss) === '') {
+    return;
+  }
+
+  if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) {
+    $primary = '#6c3cff';
+  }
+  if (!preg_match('/^#[0-9a-fA-F]{6}$/', $secondary)) {
+    $secondary = '#222222';
+  }
+
+  $css = ":root {\n  --mel-brand-primary: {$primary};\n  --mel-brand-secondary: {$secondary};\n}\n";
+
+  $owner = $store->getOwner();
+  if ($owner instanceof \Drupal\user\UserInterface && \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner) && trim($customCss) !== '') {
+    $sanitized = trim(Xss::filter($customCss, []));
+    $sanitized = preg_replace('/<\/?(script|style)\b[^>]*>/i', '', $sanitized) ?? '';
+    if ($sanitized !== '') {
+      $css .= "\n" . $sanitized;
+    }
+  }
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#tag' => 'style',
+      '#value' => $css,
+      '#attributes' => [
+        'id' => 'myeventlane-pro-branding',
+      ],
+    ],
+    'myeventlane_pro.branding_inline',
+  ];
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function myeventlane_pro_mail_alter(array &$message): void {
+  $params = $message['params'] ?? [];
+  if (!is_array($params)) {
+    return;
+  }
+
+  $store = myeventlane_pro_resolve_store_from_mail_params($params);
+  if (!$store || !$store->hasField('field_brand_email_footer') || $store->get('field_brand_email_footer')->isEmpty()) {
+    return;
+  }
+
+  $owner = $store->getOwner();
+  if (!$owner instanceof \Drupal\user\UserInterface || !\Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($owner)) {
+    return;
+  }
+
+  $footerRaw = (string) ($store->get('field_brand_email_footer')->value ?? '');
+  $footerText = trim(Xss::filter($footerRaw, []));
+  if ($footerText === '') {
+    return;
+  }
+
+  $safeFooter = Markup::create('<div class="mel-brand-email-footer">' . nl2br(Html::escape($footerText)) . '</div>');
+
+  if (!isset($message['body'])) {
+    $message['body'] = [];
+  }
+  if (is_array($message['body'])) {
+    $message['body'][] = '';
+    $message['body'][] = $safeFooter;
+    return;
+  }
+
+  $message['body'] .= (string) $safeFooter;
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ *
+ * Adds a boolean Pro support flag to escalation entities. The field is set
+ * automatically during presave (see myeventlane_pro_escalation_presave) and
+ * is never exposed on end-user forms.
+ */
+function myeventlane_pro_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  $fields = [];
+
+  if ($entity_type->id() === 'escalation') {
+    $fields['field_is_pro_support'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Pro Support'))
+      ->setDescription(new TranslatableMarkup('Whether this escalation was submitted by a Pro subscriber.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('view', [
+        'label' => 'inline',
+        'type' => 'boolean',
+        'weight' => 15,
+        'settings' => [
+          'format' => 'yes-no',
+        ],
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for escalation entities.
+ *
+ * Flags new escalations as Pro support when the submitting user holds the
+ * pro_organiser role.
+ */
+function myeventlane_pro_escalation_presave(EntityInterface $escalation): void {
+  if (!$escalation->hasField('field_is_pro_support')) {
+    return;
+  }
+
+  if (!$escalation->isNew()) {
+    return;
+  }
+
+  /** @var \Drupal\user\UserInterface|null $user */
+  $user = $escalation->get('user_id')->entity;
+  if ($user instanceof \Drupal\user\UserInterface && \Drupal::service('myeventlane_pro.active_resolver')->isUserProActive($user)) {
+    $escalation->set('field_is_pro_support', TRUE);
+  }
+}
+
+/**
+ * Resolves the branding store for active vendor/event pages.
+ */
+function myeventlane_pro_resolve_branding_store_from_route(): ?StoreInterface {
+  $routeMatch = \Drupal::routeMatch();
+  $routeName = $routeMatch->getRouteName();
+
+  if ($routeName === 'entity.node.canonical') {
+    $node = $routeMatch->getParameter('node');
+    if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+      return myeventlane_pro_resolve_store_from_event($node);
+    }
+    return NULL;
+  }
+
+  if ($routeName === 'myeventlane_vendor.console.dashboard' || str_starts_with($routeName, 'myeventlane_vendor.console.')) {
+    if (!\Drupal::hasService('myeventlane_vendor.current_vendor_resolver')) {
+      \Drupal::logger('myeventlane_pro')->warning('Vendor resolver service missing while attempting to attach store branding CSS.');
+      return NULL;
+    }
+
+    $resolver = \Drupal::service('myeventlane_vendor.current_vendor_resolver');
+    $vendor = $resolver->resolveFromCurrentUser();
+    if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+      return $store instanceof StoreInterface ? $store : NULL;
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Resolves a store entity from event-related mail params.
+ */
+function myeventlane_pro_resolve_store_from_mail_params(array $params): ?StoreInterface {
+  if (!empty($params['event']) && $params['event'] instanceof NodeInterface && $params['event']->bundle() === 'event') {
+    return myeventlane_pro_resolve_store_from_event($params['event']);
+  }
+
+  if (!empty($params['node']) && $params['node'] instanceof NodeInterface && $params['node']->bundle() === 'event') {
+    return myeventlane_pro_resolve_store_from_event($params['node']);
+  }
+
+  if (!empty($params['event_id']) && is_numeric($params['event_id'])) {
+    $event = \Drupal::entityTypeManager()->getStorage('node')->load((int) $params['event_id']);
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      return myeventlane_pro_resolve_store_from_event($event);
+    }
+  }
+
+  $order = $params['order'] ?? ($params['commerce_order'] ?? NULL);
+  if (is_object($order) && method_exists($order, 'getStore')) {
+    $store = $order->getStore();
+    return $store instanceof StoreInterface ? $store : NULL;
+  }
+
+  return NULL;
+}
+
+/**
+ * Resolves the branding store from an event node.
+ */
+function myeventlane_pro_resolve_store_from_event(NodeInterface $event): ?StoreInterface {
+  if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+    $store = $event->get('field_event_store')->entity;
+    if ($store instanceof StoreInterface) {
+      return $store;
+    }
+  }
+
+  if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+    $vendor = $event->get('field_event_vendor')->entity;
+    if ($vendor instanceof Vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $store = $vendor->get('field_vendor_store')->entity;
+      return $store instanceof StoreInterface ? $store : NULL;
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Builds an absolute image URL for a store image field.
+ */
+function myeventlane_pro_get_store_image_url(StoreInterface $store, string $fieldName): ?string {
+  if (!$store->hasField($fieldName) || $store->get($fieldName)->isEmpty()) {
+    return NULL;
+  }
+
+  $file = $store->get($fieldName)->entity;
+  if (!$file instanceof FileInterface) {
+    return NULL;
+  }
+
+  $uri = $file->getFileUri();
+  if ($uri === '') {
+    return NULL;
+  }
+
+  return \Drupal::service('file_url_generator')->generateAbsoluteString($uri);
+}
+
+/**
+ * Returns Pro-gated advanced branding field names.
+ *
+ * @return string[]
+ *   Field machine names.
+ */
+function myeventlane_pro_advanced_branding_fields(): array {
+  return [
+    'field_brand_email_footer',
+    'field_brand_custom_css',
+    'field_brand_ticket_header',
+  ];
+}

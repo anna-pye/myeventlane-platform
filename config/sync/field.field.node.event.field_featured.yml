@@ -1,0 +1,23 @@
+uuid: 4440e947-f696-49d4-85d0-a61004c016b3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_featured
+    - node.type.event
+id: node.event.field_featured
+field_name: field_featured
+entity_type: node
+bundle: event
+label: Featured
+description: 'Mark this event as featured to highlight it on the homepage or listings.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: Featured
+  off_label: 'Not featured'
+field_type: boolean

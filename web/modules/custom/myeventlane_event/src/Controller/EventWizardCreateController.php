@@ -80,8 +80,38 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
    */
   public function edit(NodeInterface $node): RedirectResponse {
     $this->assertEventOwnership($node);
+    $this->ensureVendorAssigned($node);
     $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $node->id()]);
     return new RedirectResponse($url->toString());
+  }
+
+  /**
+   * Ensures the event has field_event_vendor set for the current vendor.
+   *
+   * Existing drafts may have been created before vendor assignment was in
+   * place, or the vendor's store may have been provisioned after the event
+   * was created. Re-saving triggers EventVendorSubscriber which auto-
+   * populates field_event_store from the vendor's field_vendor_store.
+   */
+  private function ensureVendorAssigned(NodeInterface $event): void {
+    if (!$event->hasField('field_event_vendor')) {
+      return;
+    }
+
+    $vendor = $this->getCurrentVendorOrNull();
+    if (!$vendor) {
+      return;
+    }
+
+    $current_vendor_id = $event->get('field_event_vendor')->target_id;
+    if ($current_vendor_id === (string) $vendor->id()) {
+      if (!$event->hasField('field_event_store') || !$event->get('field_event_store')->isEmpty()) {
+        return;
+      }
+    }
+
+    $event->set('field_event_vendor', $vendor);
+    $event->save();
   }
 
   /**
@@ -103,6 +133,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
     if (!empty($ids)) {
       $event = $storage->load(reset($ids));
       if ($event instanceof NodeInterface) {
+        $this->ensureVendorAssigned($event);
         return $event;
       }
     }

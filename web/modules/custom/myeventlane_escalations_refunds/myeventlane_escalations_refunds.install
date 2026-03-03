@@ -1,0 +1,21 @@
+<?php
+
+declare(strict_types=1);
+
+use Drupal\user\Entity\Role;
+
+/**
+ * Grants refund summary permission to vendor role.
+ */
+function myeventlane_escalations_refunds_update_9001(): void {
+  $vendorRole = Role::load('vendor');
+  if (!$vendorRole) {
+    return;
+  }
+
+  if (!$vendorRole->hasPermission('view vendor refund summary')) {
+    $vendorRole->grantPermission('view vendor refund summary');
+    $vendorRole->save();
+  }
+}
+

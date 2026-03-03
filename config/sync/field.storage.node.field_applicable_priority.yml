@@ -1,0 +1,35 @@
+uuid: a021de7d-1213-45b8-85ba-dc9d47e5fab3
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+_core:
+  default_config_hash: h4uockuZRc3bnJL9zgoI3C_Uou2JOs1-wGJXWNjfG9E
+id: node.field_applicable_priority
+field_name: field_applicable_priority
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: low
+      label: Low
+    -
+      value: normal
+      label: Normal
+    -
+      value: high
+      label: High
+    -
+      value: urgent
+      label: Urgent
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

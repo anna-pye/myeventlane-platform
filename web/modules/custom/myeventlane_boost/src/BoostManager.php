@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_boost;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -18,20 +20,57 @@ use Psr\Log\LoggerInterface;
 final class BoostManager {
 
   /**
+   * The entity type manager.
+   */
+  private readonly EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * The time service.
+   */
+  private readonly TimeInterface $time;
+
+  /**
+   * The entitlement manager (nullable during legacy container boot).
+   */
+  private readonly ?BoostEntitlementManager $entitlementManager;
+
+  /**
+   * The logger.
+   */
+  private readonly LoggerInterface $logger;
+
+  /**
    * Constructs a BoostManager.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
-   * @param \Psr\Log\LoggerInterface $logger
-   *   The logger.
+   * @param \Drupal\myeventlane_boost\Service\BoostEntitlementManager|\Psr\Log\LoggerInterface $third
+   *   The entitlement manager (new signature) or logger (legacy signature).
+   * @param \Psr\Log\LoggerInterface|null $logger
+   *   The logger when using the new signature.
    */
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly TimeInterface $time,
-    private readonly LoggerInterface $logger,
-  ) {}
+    EntityTypeManagerInterface $entityTypeManager,
+    TimeInterface $time,
+    BoostEntitlementManager|LoggerInterface $third,
+    ?LoggerInterface $logger = NULL,
+  ) {
+    $this->entityTypeManager = $entityTypeManager;
+    $this->time = $time;
+
+    // Backward compatibility for stale container definitions:
+    // old signature passed logger as 3rd argument.
+    if ($third instanceof BoostEntitlementManager) {
+      $this->entitlementManager = $third;
+      $this->logger = $logger ?? throw new \InvalidArgumentException('BoostManager logger is required.');
+    }
+    else {
+      $this->entitlementManager = NULL;
+      $this->logger = $third;
+    }
+  }
 
   /**
    * Apply or extend a boost on an event node.
@@ -85,16 +124,25 @@ final class BoostManager {
    *   The event node ID.
    */
   public function revokeBoost(int $eventNid): void {
-    $event = $this->entityTypeManager->getStorage('node')->load($eventNid);
-    if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
-      return;
+    if ($this->entitlementManager) {
+      try {
+        $this->entitlementManager->refreshEventBoostState($eventNid);
+        return;
+      }
+      catch (DatabaseExceptionWrapper $e) {
+        $this->logger->error('Boost entitlement table unavailable during revoke for event @nid: @message', [
+          '@nid' => $eventNid,
+          '@message' => $e->getMessage(),
+        ]);
+      }
     }
 
-    $event->set('field_promoted', 0);
-    $event->set('field_promo_expires', NULL);
-    $event->save();
-
-    $this->logger->info('Revoked boost from event @nid', ['@nid' => $eventNid]);
+    $event = $this->entityTypeManager->getStorage('node')->load($eventNid);
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      $event->set('field_promoted', 0);
+      $event->set('field_promo_expires', NULL);
+      $event->save();
+    }
   }
 
   /**
@@ -107,28 +155,7 @@ final class BoostManager {
    *   TRUE if boosted and not expired.
    */
   public function isBoosted(NodeInterface $event): bool {
-    if ($event->bundle() !== 'event') {
-      return FALSE;
-    }
-
-    $promoted = (bool) $event->get('field_promoted')->value;
-    if (!$promoted) {
-      return FALSE;
-    }
-
-    $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
-    if ($expiresValue === NULL) {
-      return FALSE;
-    }
-
-    try {
-      $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-      $now = new \DateTimeImmutable('@' . $this->time->getRequestTime());
-      return $expires > $now;
-    }
-    catch (\Exception) {
-      return FALSE;
-    }
+    return $this->getBoostStatusForEvent($event)['active'];
   }
 
   /**
@@ -159,82 +186,93 @@ final class BoostManager {
     ];
 
     $now = $options['now'] ?? $this->time->getRequestTime();
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $query = $nodeStorage->getQuery()
-      ->accessCheck($options['access_check'])
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_promoted', 1)
-      ->exists('field_promo_expires');
-
-    // Filter by store if provided.
-    if ($store !== NULL) {
-      $query->condition('field_event_store', $store->id());
+    if (!$this->entitlementManager) {
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->condition('field_promoted', 1);
+      if (!$options['include_expired']) {
+        $query->condition('field_promo_expires', $nowIso, '>');
+      }
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+      return array_map('intval', $query->execute());
     }
 
-    // Time window filtering.
-    if (!$options['include_expired']) {
-      // Only active boosts: expires > now.
-      $query->condition('field_promo_expires', $nowIso, '>');
-    }
-    elseif (!$options['include_scheduled']) {
-      // Include expired but not scheduled: expires <= now is handled by not excluding it.
-      // We still want expires > now OR (if include_expired) all.
-      // For active + expired: no time filter needed if both are included.
-    }
+    try {
+      $entitlementStorage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+      $entitlementQuery = $entitlementStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('status', 'active');
 
-    // Note: We don't have field_promo_start, so "scheduled" means:
-    // - If include_scheduled is FALSE, we only return boosts that are currently active
-    // - If include_scheduled is TRUE, we return all boosts (active + scheduled + expired if include_expired)
-    // Since we can't distinguish "scheduled" from "active" without a start field,
-    // include_scheduled effectively means "don't filter by expiry" when combined with include_expired.
-    // Order by expiry ascending (expiring soon first).
-    $query->sort('field_promo_expires', 'ASC');
+      if (!$options['include_expired']) {
+        $entitlementQuery->condition('ends', $now, '>');
+      }
 
-    if ($options['limit'] !== NULL && $options['limit'] > 0) {
-      $query->range(0, $options['limit']);
-    }
+      $entitlement_ids = $entitlementQuery->execute();
+      if (empty($entitlement_ids)) {
+        return [];
+      }
 
-    $nids = $query->execute();
-
-    // Fallback: if store query returned empty and store has owner, try owner-based query.
-    if (empty($nids) && $store !== NULL && $store->hasField('uid')) {
-      $storeOwnerId = (int) $store->get('uid')->target_id;
-      if ($storeOwnerId > 0) {
-        $fallbackQuery = $nodeStorage->getQuery()
-          ->accessCheck($options['access_check'])
-          ->condition('type', 'event')
-          ->condition('status', 1)
-          ->condition('field_promoted', 1)
-          ->exists('field_promo_expires')
-          ->condition('uid', $storeOwnerId);
-
-        if (!$options['include_expired']) {
-          $fallbackQuery->condition('field_promo_expires', $nowIso, '>');
-        }
-
-        $fallbackQuery->sort('field_promo_expires', 'ASC');
-
-        if ($options['limit'] !== NULL && $options['limit'] > 0) {
-          $fallbackQuery->range(0, $options['limit']);
-        }
-
-        $fallbackNids = $fallbackQuery->execute();
-
-        if (!empty($fallbackNids)) {
-          $this->logger->debug('getActiveBoostedEventIdsForStore: Store query empty, using owner fallback', [
-            'store_id' => $store->id(),
-            'store_owner_uid' => $storeOwnerId,
-            'boosted_events_found' => count($fallbackNids),
-          ]);
-          return array_map('intval', $fallbackNids);
+      $event_ids = [];
+      $entitlements = $entitlementStorage->loadMultiple($entitlement_ids);
+      foreach ($entitlements as $entitlement) {
+        $event_id = (int) ($entitlement->get('event')->target_id ?? 0);
+        if ($event_id > 0) {
+          $event_ids[$event_id] = $event_id;
         }
       }
-    }
 
-    return array_map('intval', $nids);
+      if (empty($event_ids)) {
+        return [];
+      }
+
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('nid', array_values($event_ids), 'IN')
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->sort('nid', 'DESC');
+
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+
+      return array_map('intval', $query->execute());
+    }
+    catch (DatabaseExceptionWrapper $e) {
+      $this->logger->error('Boost entitlement table unavailable while loading active boosts: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->condition('field_promoted', 1);
+      if (!$options['include_expired']) {
+        $query->condition('field_promo_expires', $nowIso, '>');
+      }
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+      return array_map('intval', $query->execute());
+    }
   }
 
   /**
@@ -304,32 +342,34 @@ final class BoostManager {
     }
 
     $now = $now ?? $this->time->getRequestTime();
-    $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
-    $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
-
     $endTimestamp = NULL;
-    $expired = FALSE;
-    $active = FALSE;
-    $scheduled = FALSE;
-
-    if ($promoted && $expiresValue) {
+    if ($this->entitlementManager) {
       try {
-        $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
-        $endTimestamp = $expires->getTimestamp();
-        $expired = $endTimestamp <= $now;
-        $active = $endTimestamp > $now;
-
-        // We don't have field_promo_start, so scheduled is always FALSE.
-        // If we had a start field, scheduled would be: start_timestamp > now && !expired.
-        $scheduled = FALSE;
+        $endTimestamp = $this->entitlementManager->getActiveEndTimestampForEvent((int) $event->id());
       }
-      catch (\Exception $e) {
-        $this->logger->warning('Invalid boost expiry date for event @nid: @value', [
+      catch (DatabaseExceptionWrapper $e) {
+        $this->logger->error('Boost entitlement table unavailable for event @nid status check: @message', [
           '@nid' => $event->id(),
-          '@value' => $expiresValue,
+          '@message' => $e->getMessage(),
         ]);
       }
     }
+    if ($endTimestamp === NULL) {
+      $promoted = (bool) ($event->get('field_promoted')->value ?? FALSE);
+      $expiresValue = $event->get('field_promo_expires')->value ?? NULL;
+      if ($promoted && $expiresValue) {
+        try {
+          $expires = new \DateTimeImmutable($expiresValue, new \DateTimeZone('UTC'));
+          $endTimestamp = $expires->getTimestamp();
+        }
+        catch (\Exception) {
+          $endTimestamp = NULL;
+        }
+      }
+    }
+    $active = $endTimestamp !== NULL && $endTimestamp > $now;
+    $expired = $endTimestamp !== NULL && $endTimestamp <= $now;
+    $scheduled = FALSE;
 
     return [
       'active' => $active,
@@ -449,33 +489,81 @@ final class BoostManager {
    *   Array of event node IDs expiring within the window.
    */
   public function getExpiringBoostedEventIdsForStore(?StoreInterface $store = NULL, int $seconds = 86400, array $options = []): array {
-    $options += [
-      'access_check' => FALSE,
-      'now' => NULL,
-    ];
-
+    $options += ['access_check' => FALSE, 'now' => NULL];
     $now = $options['now'] ?? $this->time->getRequestTime();
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-    $upperIso = gmdate('Y-m-d\TH:i:s', $now + $seconds);
+    $upper = $now + $seconds;
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $query = $nodeStorage->getQuery()
-      ->accessCheck($options['access_check'])
-      ->condition('type', 'event')
-      ->condition('status', 1)
-      ->condition('field_promoted', 1)
-      ->exists('field_promo_expires')
-      ->condition('field_promo_expires', $nowIso, '>')
-      ->condition('field_promo_expires', $upperIso, '<=');
-
-    if ($store !== NULL) {
-      $query->condition('field_event_store', $store->id());
+    if (!$this->entitlementManager) {
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $upperIso = gmdate('Y-m-d\TH:i:s', $upper);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->condition('field_promoted', 1)
+        ->condition('field_promo_expires', $nowIso, '>')
+        ->condition('field_promo_expires', $upperIso, '<=');
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      return array_map('intval', $query->execute());
     }
 
-    $query->sort('field_promo_expires', 'ASC');
+    try {
+      $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('status', 'active')
+        ->condition('ends', $now, '>')
+        ->condition('ends', $upper, '<=')
+        ->execute();
+      if (empty($ids)) {
+        return [];
+      }
 
-    $nids = $query->execute();
-    return array_map('intval', $nids);
+      $event_ids = [];
+      $entitlements = $storage->loadMultiple($ids);
+      foreach ($entitlements as $entitlement) {
+        $event_id = (int) ($entitlement->get('event')->target_id ?? 0);
+        if ($event_id > 0) {
+          $event_ids[$event_id] = $event_id;
+        }
+      }
+      if (empty($event_ids)) {
+        return [];
+      }
+
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('nid', array_values($event_ids), 'IN')
+        ->condition('type', 'event')
+        ->condition('status', 1);
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      return array_map('intval', $query->execute());
+    }
+    catch (DatabaseExceptionWrapper $e) {
+      $this->logger->error('Boost entitlement table unavailable while loading expiring boosts: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $upperIso = gmdate('Y-m-d\TH:i:s', $upper);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('status', 1)
+        ->condition('field_promoted', 1)
+        ->condition('field_promo_expires', $nowIso, '>')
+        ->condition('field_promo_expires', $upperIso, '<=');
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      return array_map('intval', $query->execute());
+    }
   }
 
   /**
@@ -503,30 +591,78 @@ final class BoostManager {
     ];
 
     $now = $options['now'] ?? $this->time->getRequestTime();
-    $nowIso = gmdate('Y-m-d\TH:i:s', $now);
-
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $query = $nodeStorage->getQuery()
-      ->accessCheck($options['access_check'])
-      ->condition('type', 'event')
-      ->condition('field_promoted', 1)
-      ->exists('field_promo_expires')
-      ->condition('field_promo_expires', $nowIso, '<=');
-
-    // Filter by store if provided.
-    if ($store !== NULL) {
-      $query->condition('field_event_store', $store->id());
+    if (!$this->entitlementManager) {
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('field_promoted', 1)
+        ->condition('field_promo_expires', $nowIso, '<=');
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+      return array_map('intval', $query->execute());
     }
 
-    // Order by expiry ascending (oldest expired first).
-    $query->sort('field_promo_expires', 'ASC');
+    try {
+      $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('status', 'active')
+        ->condition('ends', $now, '<=')
+        ->execute();
+      if (empty($ids)) {
+        return [];
+      }
 
-    if ($options['limit'] !== NULL && $options['limit'] > 0) {
-      $query->range(0, $options['limit']);
+      $event_ids = [];
+      $entitlements = $storage->loadMultiple($ids);
+      foreach ($entitlements as $entitlement) {
+        $event_id = (int) ($entitlement->get('event')->target_id ?? 0);
+        if ($event_id > 0) {
+          $event_ids[$event_id] = $event_id;
+        }
+      }
+      if (empty($event_ids)) {
+        return [];
+      }
+
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('nid', array_values($event_ids), 'IN')
+        ->condition('type', 'event');
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+      return array_map('intval', $query->execute());
     }
-
-    $nids = $query->execute();
-    return array_map('intval', $nids);
+    catch (DatabaseExceptionWrapper $e) {
+      $this->logger->error('Boost entitlement table unavailable while loading expired boosts: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      $nowIso = gmdate('Y-m-d\TH:i:s', $now);
+      $query = $this->entityTypeManager->getStorage('node')
+        ->getQuery()
+        ->accessCheck($options['access_check'])
+        ->condition('type', 'event')
+        ->condition('field_promoted', 1)
+        ->condition('field_promo_expires', $nowIso, '<=');
+      if ($store !== NULL) {
+        $query->condition('field_event_store', $store->id());
+      }
+      if ($options['limit'] !== NULL && $options['limit'] > 0) {
+        $query->range(0, $options['limit']);
+      }
+      return array_map('intval', $query->execute());
+    }
   }
 
 }

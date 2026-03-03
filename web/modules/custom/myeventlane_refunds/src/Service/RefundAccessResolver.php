@@ -77,6 +77,10 @@ final class RefundAccessResolver {
    *   TRUE if the vendor can refund the order, FALSE otherwise.
    */
   public function vendorCanRefundOrderForEvent(OrderInterface $order, NodeInterface $event, AccountInterface $account): bool {
+    if (!$account->hasPermission('manage_refunds') && !$account->hasPermission('administer commerce_order')) {
+      return FALSE;
+    }
+
     // Must be able to manage the event.
     if (!$this->vendorCanManageEvent($event, $account)) {
       return FALSE;

@@ -1,0 +1,26 @@
+uuid: 3436e232-0f33-4c4c-bc55-eb0ed42f6f06
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_order
+    - commerce_product
+    - commerce_stripe
+    - myeventlane_boost
+    - myeventlane_escalations_refunds
+    - myeventlane_event_state
+    - myeventlane_refunds
+id: pro_organiser
+label: 'Pro Organiser'
+weight: -6
+is_admin: false
+permissions:
+  - 'manage boost commerce_order_item'
+  - 'manage checkout_donation commerce_order_item'
+  - manage_refunds
+  - 'purchase boost for events'
+  - request_refunds
+  - 'update own boost_upgrade commerce_product'
+  - 'view boost_upgrade commerce_product'
+  - 'view stripe dashboard links'
+  - 'view vendor refund summary'

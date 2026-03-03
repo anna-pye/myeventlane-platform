@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_series_instance_id
+    - node.type.event
+id: node.event.field_series_instance_id
+field_name: field_series_instance_id
+entity_type: node
+bundle: event
+label: 'Instance ID'
+description: 'Unique instance identifier (e.g. YYYYMMDDTHHMM). Set automatically when generated.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  size: 20
+  placeholder: ''
+field_type: string

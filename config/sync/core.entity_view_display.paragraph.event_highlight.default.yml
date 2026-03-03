@@ -1,0 +1,29 @@
+uuid: a55471ef-aba5-434c-a6b6-684c1506ee1f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.event_highlight.field_highlight_icon
+    - field.field.paragraph.event_highlight.field_highlight_text
+    - paragraphs.paragraphs_type.event_highlight
+id: paragraph.event_highlight.default
+targetEntityType: paragraph
+bundle: event_highlight
+mode: default
+content:
+  field_highlight_icon:
+    type: list_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_highlight_text:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  search_api_excerpt: true

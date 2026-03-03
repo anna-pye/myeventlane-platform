@@ -1,0 +1,20 @@
+uuid: 88946500-e5c2-4354-81fe-cd55386d4c9c
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_escalations
+_core:
+  default_config_hash: pGCTDe4Cluy5k-gpJwQnaTZNVMDWKiy3-T_KFXIx9ws
+id: escalation.field_sla_resolution_breached
+field_name: field_sla_resolution_breached
+entity_type: escalation
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

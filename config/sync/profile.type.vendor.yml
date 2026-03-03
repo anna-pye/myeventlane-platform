@@ -1,0 +1,16 @@
+uuid: 978fb157-1ad9-4ae9-917c-da3ace47fd2c
+langcode: en
+status: true
+dependencies: {  }
+third_party_settings:
+  commerce_order:
+    customer_profile_type: false
+id: vendor
+label: Vendor
+display_label: Vendor
+multiple: false
+registration: true
+roles:
+  vendor: vendor
+allow_revisions: false
+new_revision: false

@@ -1,0 +1,12 @@
+uuid: 26648d54-022b-4ddb-bf70-39ee05d83e86
+langcode: en
+status: true
+dependencies: {  }
+id: search_page_hero
+label: 'search page hero'
+route_name: mel_search.view
+media_uuid_desktop: b0494d9c-1b2c-44ba-88e6-fec955d2d200
+media_uuid_mobile: 8f6a40c8-8c4e-44f6-9cb2-e5f4e1628208
+hide_on_mobile: false
+alt_text: 'My EventLane Search Hero'
+enabled: true

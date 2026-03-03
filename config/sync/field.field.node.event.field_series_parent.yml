@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_series_parent
+    - node.type.event
+id: node.event.field_series_parent
+field_name: field_series_parent
+entity_type: node
+bundle: event
+label: 'Series template'
+description: 'Parent series template (set automatically when generated).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      event: event
+    sort:
+      field: title
+      direction: asc
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

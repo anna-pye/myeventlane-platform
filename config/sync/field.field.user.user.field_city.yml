@@ -1,0 +1,22 @@
+uuid: b166780c-a11e-445b-9477-a3dd1b64b806
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_city
+  module:
+    - user
+_core:
+  default_config_hash: ZQohcBNh9QRK4rAPo1cO58xW_RSwJHsxK46LIpFW7JI
+id: user.user.field_city
+field_name: field_city
+entity_type: user
+bundle: user
+label: City
+description: 'Helps us show you nearby events. You can update or remove this at any time.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

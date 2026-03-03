@@ -1,0 +1,36 @@
+uuid: 7b189297-3e17-4632-bc10-23c5089c6ffc
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.ticket_variation
+    - core.entity_view_mode.commerce_product_variation.cart
+    - field.field.commerce_product_variation.ticket_variation.field_event
+id: commerce_product_variation.ticket_variation.cart
+targetEntityType: commerce_product_variation
+bundle: ticket_variation
+mode: cart
+content:
+  field_event:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  title:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  langcode: true
+  list_price: true
+  price: true
+  product_id: true
+  search_api_excerpt: true
+  sku: true

@@ -86,6 +86,59 @@ final class TicketSettingsForm extends ConfigFormBase {
       '#maxlength' => 64,
     ];
 
+    $form['display']['qr_payload_mode'] = [
+      '#type' => 'select',
+      '#title' => $this->t('QR payload mode'),
+      '#options' => [
+        'signed' => $this->t('Signed payload (recommended)'),
+        'code_only' => $this->t('Ticket code only'),
+      ],
+      '#default_value' => $config->get('qr_payload_mode') ?? 'signed',
+      '#description' => $this->t('Signed payload includes event id and signature to reduce code forgery risk.'),
+    ];
+
+    $form['branding'] = [
+      '#type' => 'details',
+      '#title' => $this->t('PDF branding'),
+      '#open' => TRUE,
+    ];
+
+    $form['branding']['brand_logo_url'] = [
+      '#type' => 'url',
+      '#title' => $this->t('Brand logo URL'),
+      '#default_value' => $config->get('brand_logo_url') ?? '',
+      '#description' => $this->t('Absolute URL to a logo image included in ticket PDFs.'),
+    ];
+
+    $form['branding']['brand_accent_color'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Brand accent color'),
+      '#default_value' => $config->get('brand_accent_color') ?? '#f26d5b',
+      '#description' => $this->t('Hex color used for key accents (example: #f26d5b).'),
+      '#maxlength' => 16,
+    ];
+
+    $form['branding']['brand_footer_text'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Brand footer text'),
+      '#default_value' => $config->get('brand_footer_text') ?? '',
+      '#description' => $this->t('Optional footer shown in ticket PDF. Tokens are supported when Token module is enabled.'),
+    ];
+
+    $form['security'] = [
+      '#type' => 'details',
+      '#title' => $this->t('QR signing'),
+      '#open' => FALSE,
+    ];
+
+    $form['security']['qr_secret'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('QR signing secret (fallback)'),
+      '#default_value' => $config->get('qr_secret') ?? '',
+      '#description' => $this->t('Prefer setting $settings[\'myeventlane_ticket_qr_secret\'] in settings.php. This value is only a fallback.'),
+      '#maxlength' => 255,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -95,10 +148,15 @@ final class TicketSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $this->config('myeventlane_tickets.settings')
       ->set('pdf_enabled', (bool) $form_state->getValue('pdf_enabled'))
-      ->set('pdf_expiry_days', (string) $form_state->getValue('pdf_expiry_days'))
+      ->set('pdf_expiry_days', (int) $form_state->getValue('pdf_expiry_days'))
       ->set('include_qr_code', (bool) $form_state->getValue('include_qr_code'))
       ->set('show_ticket_code', (bool) $form_state->getValue('show_ticket_code'))
       ->set('ticket_code_format', (string) $form_state->getValue('ticket_code_format'))
+      ->set('qr_payload_mode', (string) $form_state->getValue('qr_payload_mode'))
+      ->set('brand_logo_url', trim((string) $form_state->getValue('brand_logo_url')))
+      ->set('brand_accent_color', trim((string) $form_state->getValue('brand_accent_color')))
+      ->set('brand_footer_text', (string) $form_state->getValue('brand_footer_text'))
+      ->set('qr_secret', trim((string) $form_state->getValue('qr_secret')))
       ->save();
 
     parent::submitForm($form, $form_state);

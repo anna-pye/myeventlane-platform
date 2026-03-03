@@ -1,0 +1,23 @@
+uuid: 0b730ff4-b7cb-435b-8cc3-436356eb2d9b
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+_core:
+  default_config_hash: oDvblRQ-vN1sfmRmU614wI7hneJnW235Sts7kM6oc38
+id: node.field_related_nudge
+field_name: field_related_nudge
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  is_ascii: false
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

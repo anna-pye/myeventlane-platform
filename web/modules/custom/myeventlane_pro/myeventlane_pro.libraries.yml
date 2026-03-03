@@ -1,0 +1,17 @@
+pro:
+  version: VERSION
+  css:
+    theme:
+      css/myeventlane-pro.css: {}
+
+pro_lock:
+  version: VERSION
+  css:
+    theme:
+      css/myeventlane-pro.css: {}
+
+admin_report:
+  version: VERSION
+  css:
+    theme:
+      css/admin-pro-report.css: {}

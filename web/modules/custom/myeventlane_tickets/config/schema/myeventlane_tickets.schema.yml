@@ -7,7 +7,7 @@ myeventlane_tickets.settings:
       type: boolean
       label: 'PDF tickets enabled'
     pdf_expiry_days:
-      type: string
+      type: integer
       label: 'PDF expiry days'
     include_qr_code:
       type: boolean
@@ -18,3 +18,18 @@ myeventlane_tickets.settings:
     ticket_code_format:
       type: string
       label: 'Ticket code format'
+    brand_logo_url:
+      type: string
+      label: 'Brand logo URL'
+    brand_accent_color:
+      type: string
+      label: 'Brand accent color'
+    brand_footer_text:
+      type: text
+      label: 'Brand footer text'
+    qr_payload_mode:
+      type: string
+      label: 'QR payload mode'
+    qr_secret:
+      type: string
+      label: 'QR signing secret (fallback; prefer settings.php)'

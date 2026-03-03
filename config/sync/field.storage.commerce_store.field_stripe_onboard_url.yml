@@ -1,0 +1,18 @@
+uuid: 799aa745-07a3-43e1-93d9-29e5b15cbd58
+langcode: en
+status: true
+dependencies:
+  module:
+    - link
+id: commerce_store.field_stripe_onboard_url
+field_name: field_stripe_onboard_url
+entity_type: commerce_store
+type: link
+settings: {  }
+module: link
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

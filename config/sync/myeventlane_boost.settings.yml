@@ -1,0 +1,5 @@
+default_duration: '7'
+max_concurrent_boosts: '0'
+badge_text: Featured
+show_expiry_to_vendor: 1
+expiry_reminder_days: '3'

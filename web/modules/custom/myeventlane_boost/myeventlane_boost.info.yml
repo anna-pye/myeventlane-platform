@@ -13,3 +13,4 @@ dependencies:
   - drupal:commerce_product
   - drupal:commerce_order
   - drupal:commerce_cart
+  - drupal:commerce_payment

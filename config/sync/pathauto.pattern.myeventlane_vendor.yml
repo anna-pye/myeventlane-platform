@@ -1,0 +1,14 @@
+uuid: 0b6eae5f-ef76-41e0-ac11-88c90c79409e
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor
+label: 'Vendor paths'
+type: 'canonical_entities:myeventlane_vendor'
+pattern: 'vendors/[myeventlane_vendor:name]'
+selection_criteria: {  }
+selection_logic: and
+weight: 0
+relationships: {  }

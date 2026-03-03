@@ -22,7 +22,9 @@ services:
 
   myeventlane_event.event_vendor_subscriber:
     class: Drupal\myeventlane_event\EventSubscriber\EventVendorSubscriber
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
     tags:
       - { name: event_subscriber }
 

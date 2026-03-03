@@ -1,0 +1,24 @@
+uuid: a70b2432-75e9-4e9c-a755-b0d420b1dc4a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_pro_subscription_managed
+  module:
+    - user
+id: user.user.field_pro_subscription_managed
+field_name: field_pro_subscription_managed
+entity_type: user
+bundle: user
+label: 'Pro subscription managed'
+description: 'Internal flag. TRUE when Pro role is managed by subscription lifecycle.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

@@ -248,3 +248,156 @@ myeventlane_tickets.add_ticket_modal:
         type: entity:node
         bundle:
           - event
+
+myeventlane_tickets.ticket_checkin:
+  path: '/event/{event}/tickets/checkin'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\TicketCheckinForm'
+    _title: 'Ticket check-in'
+  requirements:
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_validate:
+  path: '/event/{event}/tickets/checkin/validate'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\TicketCheckinForm'
+    _title: 'Ticket check-in'
+  requirements:
+    _method: 'POST'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_scan:
+  path: '/event/{event}/tickets/scan'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketScanController::page'
+    _title: 'Scan tickets'
+  requirements:
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_api_submit:
+  path: '/event/{event}/tickets/checkin/api'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinApiController::submit'
+    _format: 'json'
+  requirements:
+    _method: 'POST'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_api_batch:
+  path: '/event/{event}/tickets/checkin/api/batch'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinApiController::batch'
+    _format: 'json'
+  requirements:
+    _method: 'POST'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_analytics:
+  path: '/event/{event}/tickets/checkin/analytics'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinAnalyticsController::page'
+    _title: 'Check-in analytics'
+  requirements:
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_analytics_json:
+  path: '/event/{event}/tickets/checkin/analytics.json'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinAnalyticsController::json'
+    _format: 'json'
+  requirements:
+    _method: 'GET'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_manifest:
+  path: '/event/{event}/tickets/checkin/manifest.json'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinPwaController::manifest'
+    _format: 'json'
+  requirements:
+    _method: 'GET'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_checkin_sw:
+  path: '/event/{event}/tickets/checkin/sw.js'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketCheckinPwaController::serviceWorker'
+  requirements:
+    _method: 'GET'
+    _permission: 'check in tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_tickets.ticket_resend:
+  path: '/ticket/{myeventlane_ticket}/resend'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\TicketResendController::resend'
+    _title: 'Resend ticket'
+  requirements:
+    _permission: 'resend ticket emails'
+    _custom_access: 'myeventlane_tickets.access.ticket_operations:accessResend'
+  options:
+    parameters:
+      myeventlane_ticket:
+        type: entity:myeventlane_ticket

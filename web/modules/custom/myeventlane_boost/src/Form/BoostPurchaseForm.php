@@ -10,6 +10,7 @@ use Drupal\commerce_order\OrderItemStorageInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -51,6 +52,8 @@ final class BoostPurchaseForm extends FormBase {
    *   The cart manager.
    * @param \Drupal\commerce_cart\CartProviderInterface $cartProvider
    *   The cart provider.
+   * @param \Drupal\Core\Access\AccessManagerInterface $accessManager
+   *   The access manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
@@ -59,6 +62,7 @@ final class BoostPurchaseForm extends FormBase {
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
+    private readonly AccessManagerInterface $accessManager,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -71,6 +75,7 @@ final class BoostPurchaseForm extends FormBase {
       $container->get('commerce_price.currency_formatter'),
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
+      $container->get('access_manager'),
       $container->get('logger.channel.myeventlane_boost'),
     );
   }
@@ -248,8 +253,13 @@ final class BoostPurchaseForm extends FormBase {
 
     // Get or create cart.
     $account = $this->currentUser();
-    $cart = $this->cartProvider->getCart('default', $store, $account)
-      ?: $this->cartProvider->createCart('default', $store, $account);
+    $cart = $this->cartProvider->getCart('default', $store, $account);
+
+    if (!$cart || (int) $cart->getCustomerId() !== (int) $account->id()) {
+      $cart = $this->cartProvider->createCart('default', $store, $account);
+      $cart->setCustomerId((int) $account->id());
+      $cart->save();
+    }
 
     // Create order item.
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
@@ -271,16 +281,35 @@ final class BoostPurchaseForm extends FormBase {
     if ($orderItem->hasField('field_target_event')) {
       $orderItem->set('field_target_event', ['target_id' => $nid]);
     }
+    if ($orderItem->hasField('field_boost_days_purchased')) {
+      $days = (int) ($variation->get('field_boost_days')->value ?? 0);
+      if ($days > 0) {
+        $orderItem->set('field_boost_days_purchased', $days);
+      }
+    }
     $orderItem->save();
 
     $this->cartManager->addOrderItem($cart, $orderItem);
 
     $checkoutUrl = Url::fromRoute('commerce_checkout.form', ['commerce_order' => $cart->id()]);
-    $this->logger->notice('Redirecting to checkout order id: @oid, url: @url', [
+    $checkoutAccess = $this->accessManager->checkNamedRoute('commerce_checkout.form', [
+      'commerce_order' => $cart->id(),
+    ], $this->currentUser(), TRUE);
+    $this->logger->notice('Processing checkout redirect order id: @oid, url: @url', [
       '@oid' => $cart->id(),
       '@url' => $checkoutUrl->toString(),
     ]);
-    $form_state->setRedirectUrl($checkoutUrl);
+    if ($checkoutAccess->isAllowed()) {
+      $form_state->setRedirectUrl($checkoutUrl);
+      return;
+    }
+
+    $this->logger->warning('Checkout access denied for order @oid and user @uid; redirecting to boost page.', [
+      '@oid' => $cart->id(),
+      '@uid' => $uid,
+    ]);
+    $this->messenger()->addWarning($this->t('Complete Stripe connection to continue boosting this event.'));
+    $form_state->setRedirect('myeventlane_boost.boost_page', ['node' => $nid]);
   }
 
   /**

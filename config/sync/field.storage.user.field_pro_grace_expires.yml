@@ -1,0 +1,18 @@
+uuid: 6600f559-4c56-4f38-bba2-61a35171421d
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+id: user.field_pro_grace_expires
+field_name: field_pro_grace_expires
+entity_type: user
+type: timestamp
+settings: {  }
+module: core
+locked: true
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

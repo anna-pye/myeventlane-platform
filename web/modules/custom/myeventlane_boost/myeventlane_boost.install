@@ -234,3 +234,156 @@ function myeventlane_boost_update_10001(): void {
     $schema->createTable('myeventlane_boost_click_log', $full['myeventlane_boost_click_log']);
   }
 }
+
+/**
+ * Installs Boost entitlement entity schema.
+ */
+function myeventlane_boost_update_10002(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  if ($entity_type_manager->hasDefinition('myeventlane_boost_entitlement')) {
+    \Drupal::entityDefinitionUpdateManager()->installEntityType(
+      $entity_type_manager->getDefinition('myeventlane_boost_entitlement')
+    );
+  }
+}
+
+/**
+ * Ensures boost variation type and days field exist.
+ */
+function myeventlane_boost_update_10003(): void {
+  if (!\Drupal\commerce_product\Entity\ProductVariationType::load('boost_upgrade')) {
+    \Drupal\commerce_product\Entity\ProductVariationType::create([
+      'id' => 'boost_upgrade',
+      'label' => 'Boost Upgrade',
+      'orderItemType' => 'default',
+      'generateTitle' => TRUE,
+    ])->save();
+  }
+
+  if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_product_variation', 'field_boost_days')) {
+    \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_boost_days',
+      'entity_type' => 'commerce_product_variation',
+      'type' => 'integer',
+      'settings' => [
+        'unsigned' => TRUE,
+      ],
+    ])->save();
+  }
+
+  foreach (['boost_duration', 'boost_upgrade'] as $bundle) {
+    if (\Drupal\commerce_product\Entity\ProductVariationType::load($bundle)
+      && !\Drupal\field\Entity\FieldConfig::loadByName('commerce_product_variation', $bundle, 'field_boost_days')) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => 'field_boost_days',
+        'entity_type' => 'commerce_product_variation',
+        'bundle' => $bundle,
+        'label' => 'Boost days',
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Ensures order item metadata fields exist for Boost purchases.
+ */
+function myeventlane_boost_update_10004(): void {
+  if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_order_item', 'field_boost_days_purchased')) {
+    \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_boost_days_purchased',
+      'entity_type' => 'commerce_order_item',
+      'type' => 'integer',
+      'settings' => [
+        'unsigned' => TRUE,
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  $order_item_type_storage = \Drupal::entityTypeManager()->getStorage('commerce_order_item_type');
+  $bundles = array_keys($order_item_type_storage->loadMultiple());
+  foreach ($bundles as $bundle) {
+    if (\Drupal\field\Entity\FieldStorageConfig::loadByName('commerce_order_item', 'field_target_event')
+      && !\Drupal\field\Entity\FieldConfig::loadByName('commerce_order_item', $bundle, 'field_target_event')) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => 'field_target_event',
+        'entity_type' => 'commerce_order_item',
+        'bundle' => $bundle,
+        'label' => 'Target Event',
+        'required' => FALSE,
+        'settings' => [
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => [
+              'event' => 'event',
+            ],
+          ],
+        ],
+      ])->save();
+    }
+
+    if (!\Drupal\field\Entity\FieldConfig::loadByName('commerce_order_item', $bundle, 'field_boost_days_purchased')) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => 'field_boost_days_purchased',
+        'entity_type' => 'commerce_order_item',
+        'bundle' => $bundle,
+        'label' => 'Boost days purchased',
+        'required' => FALSE,
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Adds source field to Boost entitlements for Pro auto-boost tracking.
+ */
+function myeventlane_boost_update_10005(): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  if (!$entity_type_manager->hasDefinition('myeventlane_boost_entitlement')) {
+    return;
+  }
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if (!$update_manager->getFieldStorageDefinition('source', 'myeventlane_boost_entitlement')) {
+    $field = \Drupal\Core\Field\BaseFieldDefinition::create('list_string')
+      ->setLabel(new \Drupal\Core\StringTranslation\TranslatableMarkup('Source'))
+      ->setDescription(new \Drupal\Core\StringTranslation\TranslatableMarkup('Origin of this entitlement.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(\Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER)
+      ->setSetting('allowed_values', [
+        \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER => 'Order',
+        \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_PRO => 'Pro',
+      ]);
+    $update_manager->installFieldStorageDefinition(
+      'source',
+      'myeventlane_boost_entitlement',
+      'myeventlane_boost',
+      $field
+    );
+  }
+
+}
+
+/**
+ * Backfills missing source values on legacy boost entitlements.
+ */
+function myeventlane_boost_update_10006(): void {
+  $database = \Drupal::database();
+  if (!$database->schema()->tableExists('myeventlane_boost_entitlement')) {
+    return;
+  }
+  if (!$database->schema()->fieldExists('myeventlane_boost_entitlement', 'source')) {
+    return;
+  }
+
+  $database->update('myeventlane_boost_entitlement')
+    ->fields(['source' => \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER])
+    ->isNull('source')
+    ->execute();
+
+  $database->update('myeventlane_boost_entitlement')
+    ->fields(['source' => \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface::SOURCE_ORDER])
+    ->condition('source', '')
+    ->execute();
+}

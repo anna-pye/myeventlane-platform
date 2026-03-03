@@ -134,6 +134,12 @@ final class Ticket extends ContentEntityBase {
       ->setLabel(t('Checked in at'))
       ->setRequired(FALSE);
 
+    $fields['checked_in_by'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Checked in by'))
+      ->setDescription(t('User account that performed ticket check-in.'))
+      ->setRequired(FALSE)
+      ->setSetting('target_type', 'user');
+
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'));
 

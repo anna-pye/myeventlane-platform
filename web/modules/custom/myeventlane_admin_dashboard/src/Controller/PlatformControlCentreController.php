@@ -65,6 +65,13 @@ final class PlatformControlCentreController extends ControllerBase {
       '#days' => $days,
       '#filter_url_30' => Url::fromRoute($currentRoute, [], ['query' => ['days' => 30]])->toString(),
       '#filter_url_90' => Url::fromRoute($currentRoute, [], ['query' => ['days' => 90]])->toString(),
+      '#pro_subscriptions' => [
+        '#lazy_builder' => [
+          'myeventlane_admin_dashboard.pro_reporting_builder:renderProKpis',
+          [],
+        ],
+        '#create_placeholder' => TRUE,
+      ],
       '#attached' => [
         'library' => [
           'myeventlane_admin_dashboard/platform_control_centre',
@@ -81,7 +88,7 @@ final class PlatformControlCentreController extends ControllerBase {
         ],
       ],
       '#cache' => [
-        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list', 'myeventlane_payout_ledger'],
+        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list', 'myeventlane_payout_ledger', 'commerce_subscription_list'],
         'contexts' => ['user.roles', 'url.query_args:days'],
         'max-age' => 300,
       ],

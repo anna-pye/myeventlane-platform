@@ -14,7 +14,7 @@ services:
 
   myeventlane_rsvp.mailer:
     class: Drupal\myeventlane_rsvp\Service\RsvpMailer
-    arguments: ['@plugin.manager.mail', '@config.factory', '@logger.channel.myeventlane_rsvp']
+    arguments: ['@plugin.manager.mail', '@config.factory', '@entity_type.manager', '@?myeventlane_pro.vendor_comms_resolver', '@logger.channel.myeventlane_rsvp']
 
   logger.channel.myeventlane_rsvp:
     class: Drupal\Core\Logger\LoggerChannel

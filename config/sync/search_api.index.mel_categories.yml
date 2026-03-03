@@ -1,0 +1,48 @@
+uuid: 6c4cc250-1862-455a-a183-d62b29962d87
+langcode: en
+status: true
+dependencies:
+  config:
+    - search_api.server.myeventlane_db
+  module:
+    - taxonomy
+_core:
+  default_config_hash: B1hbKwhaxB7rgOlDn3CqaGecFhKGzuTROEmSqWluVRE
+id: mel_categories
+name: 'MEL Categories'
+description: 'Taxonomy terms (categories vocabulary): name and description.'
+read_only: false
+field_settings:
+  name:
+    label: Name
+    type: text
+    datasource_id: 'entity:taxonomy_term'
+    property_path: name
+  description:
+    label: Description
+    type: text
+    datasource_id: 'entity:taxonomy_term'
+    property_path: description
+datasource_settings:
+  'entity:taxonomy_term':
+    bundles:
+      default: false
+      selected:
+        - categories
+processor_settings:
+  add_url:
+    weights:
+      preprocess_index: -30
+  ignorecase:
+    weights:
+      preprocess_index: -5
+      preprocess_query: -8
+tracker_settings:
+  default:
+    indexing_order: fifo
+options:
+  cron_limit: 50
+  index_directly: false
+  delete_on_fail: true
+  track_changes_in_references: true
+server: myeventlane_db

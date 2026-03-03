@@ -1,0 +1,23 @@
+uuid: 75e73ef3-b411-44bb-97e8-19079c0554a5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_question_type
+    - paragraphs.paragraphs_type.attendee_extra_field
+  module:
+    - options
+id: paragraph.attendee_extra_field.field_question_type
+field_name: field_question_type
+entity_type: paragraph
+bundle: attendee_extra_field
+label: 'Question Type'
+description: 'The type of form field to display.'
+required: true
+translatable: false
+default_value:
+  -
+    value: textfield
+default_value_callback: ''
+settings: {  }
+field_type: list_string

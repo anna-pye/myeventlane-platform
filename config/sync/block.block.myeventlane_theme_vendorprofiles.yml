@@ -1,0 +1,29 @@
+uuid: 8a022594-87e5-4a02-bcbc-ed5530edd2f0
+langcode: en
+status: false
+dependencies:
+  module:
+    - ctools_block
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_vendorprofiles
+theme: myeventlane_theme
+region: content
+weight: 0
+provider: null
+plugin: 'entity_field:user:vendor_profiles'
+settings:
+  id: 'entity_field:user:vendor_profiles'
+  label: 'Vendor profiles'
+  label_display: visible
+  provider: ctools_block
+  context_mapping:
+    entity: '@user.current_user_context:current_user'
+  formatter:
+    type: entity_reference_label
+    weight: 0
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+visibility: {  }

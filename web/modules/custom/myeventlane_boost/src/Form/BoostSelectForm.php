@@ -10,11 +10,13 @@ use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -33,12 +35,16 @@ final class BoostSelectForm extends FormBase {
    *   The cart manager.
    * @param \Drupal\commerce_cart\CartProviderInterface $cartProvider
    *   The cart provider.
+   * @param \Drupal\Core\Access\AccessManagerInterface $accessManager
+   *   The access manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
+    private readonly AccessManagerInterface $accessManager,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -50,6 +56,8 @@ final class BoostSelectForm extends FormBase {
       $container->get('commerce_price.currency_formatter'),
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
+      $container->get('access_manager'),
+      $container->get('logger.channel.myeventlane_boost'),
     );
   }
 
@@ -252,18 +260,18 @@ final class BoostSelectForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     try {
-      \Drupal::logger('myeventlane_boost')->notice('Boost form submission started');
+      $this->logger->notice('Boost form submission started');
 
       $nid = (int) $form_state->getValue('event_nid');
       $variationId = (int) $form_state->getValue('choices');
 
-      \Drupal::logger('myeventlane_boost')->notice('Form values: nid=@nid, variationId=@vid', [
+      $this->logger->notice('Form values: nid=@nid, variationId=@vid', [
         '@nid' => $nid,
         '@vid' => $variationId,
       ]);
 
       if ($nid <= 0 || $variationId <= 0) {
-        \Drupal::logger('myeventlane_boost')->warning('Form submission failed: invalid values');
+        $this->logger->warning('Form submission failed: invalid values');
         $this->messenger()->addError($this->t('Please select a boost option.'));
         $form_state->setRebuild();
         return;
@@ -288,9 +296,10 @@ final class BoostSelectForm extends FormBase {
         return;
       }
 
-      // Get/create cart for that store.
-      $cart = $this->cartProvider->getCart('default', $store)
-        ?: $this->cartProvider->createCart('default', $store);
+      // Get/create cart for the current user in that store.
+      $account = $this->currentUser();
+      $cart = $this->cartProvider->getCart('default', $store, $account)
+        ?: $this->cartProvider->createCart('default', $store, $account);
 
       if (!$cart) {
         $this->messenger()->addError($this->t('Unable to create cart. Please try again.'));
@@ -310,23 +319,43 @@ final class BoostSelectForm extends FormBase {
       // Set the target event on the order item if the field exists.
       if ($orderItem->hasField('field_target_event')) {
         $orderItem->set('field_target_event', ['target_id' => $node->id()]);
+      }
+      if ($orderItem->hasField('field_boost_days_purchased')) {
+        $days = (int) ($variation->get('field_boost_days')->value ?? 0);
+        if ($days > 0) {
+          $orderItem->set('field_boost_days_purchased', $days);
+        }
+      }
+      if ($orderItem->hasField('field_target_event') || $orderItem->hasField('field_boost_days_purchased')) {
         $orderItem->save();
       }
 
-      // Redirect to cart page.
-      \Drupal::logger('myeventlane_boost')->notice('Form submission successful, redirecting to cart. Cart ID: @cart_id', [
+      // Prefer checkout only when access is granted for this account/order.
+      $checkoutAccess = $this->accessManager->checkNamedRoute('commerce_checkout.form', [
+        'commerce_order' => $cart->id(),
+      ], $this->currentUser(), TRUE);
+
+      $this->logger->notice('Form submission successful, processing redirect. Cart ID: @cart_id', [
         '@cart_id' => $cart->id(),
       ]);
-      // Redirect directly to checkout for this cart ID.
-      // The cart page is store-contextual and may not show carts from other stores
-      // (e.g., vendor console vs platform store), which can make the cart appear empty.
-      $form_state->setRedirectUrl(Url::fromRoute('commerce_checkout.form', [
-        'commerce_order' => $cart->id(),
-      ]));
+      if ($checkoutAccess->isAllowed()) {
+        $form_state->setRedirectUrl(Url::fromRoute('commerce_checkout.form', [
+          'commerce_order' => $cart->id(),
+        ]));
+        return;
+      }
+
+      // Avoid hard 403 checkout failures when account/order context mismatches.
+      $this->logger->warning('Checkout access denied for cart @cart_id and user @uid; redirecting back to boost page.', [
+        '@cart_id' => $cart->id(),
+        '@uid' => $this->currentUser()->id(),
+      ]);
+      $this->messenger()->addWarning($this->t('Complete Stripe connection to continue boosting this event.'));
+      $form_state->setRedirect('myeventlane_boost.boost_page', ['node' => $node->id()]);
     }
     catch (\Exception $e) {
       $this->messenger()->addError($this->t('An error occurred: @message', ['@message' => $e->getMessage()]));
-      \Drupal::logger('myeventlane_boost')->error('Boost form submission error: @message', [
+      $this->logger->error('Boost form submission error: @message', [
         '@message' => $e->getMessage(),
         '@trace' => $e->getTraceAsString(),
       ]);

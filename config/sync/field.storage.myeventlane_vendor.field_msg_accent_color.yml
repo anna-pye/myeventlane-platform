@@ -1,0 +1,42 @@
+uuid: 742be130-c433-4040-9a08-3a3c4d7bc51f
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_msg_accent_color
+field_name: field_msg_accent_color
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: '#f26d5b'
+      label: 'Coral (MEL Primary)'
+    -
+      value: '#6e7ef2'
+      label: Lavender
+    -
+      value: '#4f9da6'
+      label: Teal
+    -
+      value: '#5b8c5a'
+      label: Forest
+    -
+      value: '#e8a838'
+      label: Amber
+    -
+      value: '#8b5cf6'
+      label: Violet
+    -
+      value: '#293241'
+      label: Charcoal
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

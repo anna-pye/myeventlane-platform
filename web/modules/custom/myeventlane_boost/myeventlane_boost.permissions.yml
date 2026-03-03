@@ -1,7 +1,7 @@
 # Vendor permission.
 purchase boost for events:
   title: 'Purchase boost for events'
-  description: 'Allow organisers to purchase featured placement for their events.'
+  description: 'Allows vendors to purchase boost upgrades for their events.'
 
 # Admin permission.
 administer myeventlane boost:

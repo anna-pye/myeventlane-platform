@@ -1,0 +1,20 @@
+name: 'MyEventLane Pro'
+type: module
+description: 'Professional subscription feature layer for MyEventLane.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: experimental
+
+dependencies:
+  - drupal:user
+  - drupal:system
+  - commerce_store:commerce_store
+  - drupal:image
+  - drupal:text
+  - commerce_recurring:commerce_recurring
+  - commerce_cart:commerce_cart
+  - state_machine:state_machine
+  - advancedqueue:advancedqueue
+  - myeventlane_messaging:myeventlane_messaging
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_boost:myeventlane_boost

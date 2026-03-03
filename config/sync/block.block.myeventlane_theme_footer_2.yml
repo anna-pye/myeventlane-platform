@@ -1,0 +1,25 @@
+uuid: 78e4bc1c-3578-4020-afde-db9863e486f1
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.footer
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_footer_2
+theme: myeventlane_theme
+region: header_left
+weight: 0
+provider: null
+plugin: 'system_menu_block:footer'
+settings:
+  id: 'system_menu_block:footer'
+  label: Footer
+  label_display: visible
+  provider: system
+  level: 1
+  depth: null
+  expand_all_items: false
+visibility: {  }

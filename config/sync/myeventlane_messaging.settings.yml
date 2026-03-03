@@ -1,0 +1,8 @@
+from_name: MyEventLane
+from_email: info@myeventlane.com.au
+reply_to: info@myeventlane.com.au
+event_reminder_enabled: 1
+event_reminder_hours: '24'
+cart_abandoned_enabled: 1
+cart_abandoned_hours: '2'
+batch_size: '50'

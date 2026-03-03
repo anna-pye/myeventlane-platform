@@ -1,0 +1,21 @@
+uuid: ec526030-813b-45cf-a25b-7824a38dab4e
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.mel_pro_subscription_variation
+    - field.storage.commerce_product_variation.subscription_type
+  module:
+    - commerce
+id: commerce_product_variation.mel_pro_subscription_variation.subscription_type
+field_name: subscription_type
+entity_type: commerce_product_variation
+bundle: mel_pro_subscription_variation
+label: 'Subscription type'
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: null
+settings: {  }
+field_type: 'commerce_plugin_item:commerce_subscription_type'

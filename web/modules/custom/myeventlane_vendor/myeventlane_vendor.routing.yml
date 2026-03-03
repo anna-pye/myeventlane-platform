@@ -376,6 +376,7 @@ myeventlane_vendor.console.event_analytics:
     _controller: 'myeventlane_vendor.controller.vendor_event_analytics:analytics'
     _title: 'Event analytics'
   requirements:
+    _permission: 'use pro financial analytics'
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
     event: '\d+'
   options:

@@ -5,28 +5,39 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Event subscriber to auto-populate store field when vendor is selected on event.
+ * Event subscriber to auto-populate vendor and store fields on event nodes.
+ *
+ * On presave:
+ * 1. If field_event_vendor is empty, resolve the vendor from the event owner.
+ * 2. If field_event_vendor is set and field_event_store is empty, populate
+ *    the store from the vendor's field_vendor_store.
+ * 3. If the vendor changed, update the store to match.
  */
 final class EventVendorSubscriber implements EventSubscriberInterface {
 
   /**
    * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   private EntityTypeManagerInterface $entityTypeManager;
 
   /**
-   * Constructs an EventVendorSubscriber.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
+   * The logger channel factory.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+  private LoggerChannelFactoryInterface $loggerFactory;
+
+  /**
+   * Constructs an EventVendorSubscriber.
+   */
+  public function __construct(
+    EntityTypeManagerInterface $entity_type_manager,
+    LoggerChannelFactoryInterface $logger_factory,
+  ) {
     $this->entityTypeManager = $entity_type_manager;
+    $this->loggerFactory = $logger_factory;
   }
 
   /**
@@ -39,7 +50,7 @@ final class EventVendorSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Auto-populates store field when vendor is selected.
+   * Auto-populates vendor and store fields on event presave.
    *
    * @param mixed $event
    *   The entity presave event.
@@ -48,9 +59,25 @@ final class EventVendorSubscriber implements EventSubscriberInterface {
     /** @var \Drupal\node\NodeInterface $node */
     $node = $event->getEntity();
 
-    // Only process event nodes.
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_vendor') || !$node->hasField('field_event_store')) {
       return;
+    }
+
+    $logger = $this->loggerFactory->get('myeventlane_event');
+
+    // Auto-assign vendor from event owner when field_event_vendor is empty.
+    if ($node->get('field_event_vendor')->isEmpty()) {
+      $owner_id = (int) $node->getOwnerId();
+      if ($owner_id > 0) {
+        $vendor = $this->resolveVendorForUser($owner_id);
+        if ($vendor) {
+          $node->set('field_event_vendor', $vendor);
+          $logger->notice(
+            'Event @nid: auto-assigned vendor @vid from owner UID @uid',
+            ['@nid' => $node->id() ?? 'new', '@vid' => $vendor->id(), '@uid' => $owner_id]
+          );
+        }
+      }
     }
 
     // If vendor is set and store is empty, auto-populate store from vendor.
@@ -64,6 +91,10 @@ final class EventVendorSubscriber implements EventSubscriberInterface {
           $store = $vendor->get('field_vendor_store')->entity;
           if ($store) {
             $node->set('field_event_store', $store);
+            $logger->notice(
+              'Event @nid: auto-populated store @sid from vendor @vid',
+              ['@nid' => $node->id() ?? 'new', '@sid' => $store->id(), '@vid' => $vendor_id]
+            );
           }
         }
       }
@@ -80,13 +111,40 @@ final class EventVendorSubscriber implements EventSubscriberInterface {
           $store = $vendor->get('field_vendor_store')->entity;
           $current_store_id = $node->get('field_event_store')->target_id ?? NULL;
 
-          // Update store if it doesn't match vendor's store.
           if ($store && $current_store_id !== $store->id()) {
             $node->set('field_event_store', $store);
           }
         }
       }
     }
+  }
+
+  /**
+   * Resolves the vendor entity for a given user ID.
+   *
+   * @param int $uid
+   *   The user ID.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface|null
+   *   The vendor entity, or NULL if not found.
+   */
+  private function resolveVendorForUser(int $uid): ?object {
+    if (!$this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
+      return NULL;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $uid)
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($ids)) {
+      return NULL;
+    }
+
+    return $storage->load(reset($ids));
   }
 
 }

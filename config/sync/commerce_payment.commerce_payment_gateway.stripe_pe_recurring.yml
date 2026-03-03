@@ -1,0 +1,35 @@
+uuid: e6976b44-72c5-4b10-9759-aaa5cd8761d7
+langcode: en
+status: true
+dependencies:
+  module:
+    - commerce_stripe
+id: stripe_pe_recurring
+label: 'Stripe (Payment Element) — Recurring'
+weight: 0
+plugin: stripe_payment_element
+configuration:
+  display_label: 'Stripe Payment Element'
+  mode: test
+  payment_method_types:
+    - stripe_card
+  collect_billing_information: true
+  publishable_key: ''
+  secret_key: ''
+  webhook_signing_secret: ''
+  payment_method_usage: off_session
+  capture_method: automatic
+  style:
+    theme: stripe
+    layout: tabs
+  checkout_form_display_label:
+    custom_label: ''
+    show_payment_method_logos: 'no'
+    include_logos: {  }
+conditions:
+  -
+    plugin: current_currency
+    configuration:
+      currencies:
+        - AUD
+conditionOperator: OR

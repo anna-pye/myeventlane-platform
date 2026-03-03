@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
+use Drupal\myeventlane_pro\Service\VendorCommsResolver;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
@@ -37,12 +39,26 @@ class RsvpMailer {
   public function __construct(
     MailManagerInterface $mailManager,
     ConfigFactoryInterface $configFactory,
+    EntityTypeManagerInterface $entityTypeManager,
+    ?VendorCommsResolver $vendorCommsResolver = NULL,
     ?LoggerInterface $logger = NULL,
   ) {
     $this->mailManager = $mailManager;
     $this->configFactory = $configFactory;
+    $this->entityTypeManager = $entityTypeManager;
+    $this->vendorCommsResolver = $vendorCommsResolver;
     $this->logger = $logger;
   }
+
+  /**
+   * Entity type manager.
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Optional Pro vendor comms resolver.
+   */
+  protected ?VendorCommsResolver $vendorCommsResolver = NULL;
 
   /**
    * Sends a confirmation email for an RSVP submission.
@@ -117,6 +133,21 @@ class RsvpMailer {
       'event_nid' => $event_nid,
       'attachments' => [],
     ];
+
+    if ($this->vendorCommsResolver instanceof VendorCommsResolver) {
+      $store = $this->resolveStoreFromEvent($event);
+      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+        $override = $this->vendorCommsResolver->resolveBody($store, 'rsvp_confirmation', [
+          'event_title' => $event->label(),
+          'event_date' => $event_date,
+          'event_location' => $event_location,
+          'first_name' => $name,
+        ]);
+        if (is_string($override) && $override !== '') {
+          $params['override_body_html'] = $override;
+        }
+      }
+    }
 
     // Generate ticket PDF attachment.
     $ticketAttachment = $this->generateTicketAttachment($submission, $event);
@@ -268,6 +299,19 @@ class RsvpMailer {
     if ($this->logger) {
       $this->logger->$level($message, $context);
     }
+  }
+
+  /**
+   * Resolves store from event node.
+   */
+  protected function resolveStoreFromEvent(NodeInterface $event): ?\Drupal\commerce_store\Entity\StoreInterface {
+    if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
+      $store = $event->get('field_event_store')->entity;
+      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
+        return $store;
+      }
+    }
+    return NULL;
   }
 
 }

@@ -1,0 +1,23 @@
+uuid: 1bd5745a-2bd6-4a65-918f-c7723a40a6bd
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_applicable_priority
+    - node.type.staff_playbook
+  module:
+    - options
+_core:
+  default_config_hash: xmCa-Iclt5Dd2jiH5NVJpG0KkRfxePvoeXw1Zmy7FaE
+id: node.staff_playbook.field_applicable_priority
+field_name: field_applicable_priority
+entity_type: node
+bundle: staff_playbook
+label: 'Applicable priority'
+description: 'Which escalation priority levels this playbook applies to. Leave empty to match all.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string
