@@ -60,7 +60,11 @@ final class AutomationScheduler {
 
     $eventIds = $query->execute();
 
-    foreach ($eventIds as $eventId) {
+    foreach ($eventIds as $eventIdRaw) {
+      $eventId = (int) $eventIdRaw;
+      if ($eventId <= 0) {
+        continue;
+      }
       $event = $this->entityTypeManager->getStorage('node')->load($eventId);
       if (!$event) {
         continue;
@@ -119,7 +123,11 @@ final class AutomationScheduler {
 
     $eventIds24h = $query24h->execute();
 
-    foreach ($eventIds24h as $eventId) {
+    foreach ($eventIds24h as $eventIdRaw) {
+      $eventId = (int) $eventIdRaw;
+      if ($eventId <= 0) {
+        continue;
+      }
       $event = $this->entityTypeManager->getStorage('node')->load($eventId);
       if (!$event) {
         continue;
@@ -183,7 +191,11 @@ final class AutomationScheduler {
 
     $eventIds2h = $query2h->execute();
 
-    foreach ($eventIds2h as $eventId) {
+    foreach ($eventIds2h as $eventIdRaw) {
+      $eventId = (int) $eventIdRaw;
+      if ($eventId <= 0) {
+        continue;
+      }
       $event = $this->entityTypeManager->getStorage('node')->load($eventId);
       if (!$event) {
         continue;
@@ -253,7 +265,11 @@ final class AutomationScheduler {
 
     $eventIds = $query->execute();
 
-    foreach ($eventIds as $eventId) {
+    foreach ($eventIds as $eventIdRaw) {
+      $eventId = (int) $eventIdRaw;
+      if ($eventId <= 0) {
+        continue;
+      }
       $event = $this->entityTypeManager->getStorage('node')->load($eventId);
       if (!$event) {
         continue;

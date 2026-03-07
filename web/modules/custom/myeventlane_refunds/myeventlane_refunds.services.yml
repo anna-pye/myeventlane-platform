@@ -34,6 +34,8 @@ services:
       - '@myeventlane_refunds.buyer_eligibility'
       - '@myeventlane_refunds.refund_request_storage'
       - '@myeventlane_messaging.manager'
+      - '@myeventlane_core.stripe'
+      - '@config.factory'
       - '@logger.factory'
       - '@queue'
       - '@current_user'

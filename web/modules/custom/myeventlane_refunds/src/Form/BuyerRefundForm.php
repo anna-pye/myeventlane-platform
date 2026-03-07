@@ -128,6 +128,46 @@ final class BuyerRefundForm extends ConfirmFormBase {
     $form['description']['#wrapper_attributes'] = ['class' => ['mel-refund-description']];
     $form['description']['#prefix'] = '<p class="mel-text mel-mb-4">';
     $form['description']['#suffix'] = '</p>';
+    $form['refund_policy'] = [
+      '#type' => 'markup',
+      '#markup' => '<p class="mel-text mel-mb-4"><strong>' . $this->t('Refund policy:') . '</strong> ' . Html::escape($this->orderInspector->getEventRefundPolicyMessage($event)) . '</p>',
+    ];
+
+    $order = $this->getOrder();
+    if ($order && $event) {
+      $attendeeBreakdown = $this->orderInspector->getRefundableTicketAttendeeBreakdown($order, (int) $event->id());
+      if (!empty($attendeeBreakdown)) {
+        $options = [];
+        foreach ($attendeeBreakdown as $attendeeId => $entry) {
+          $attendee = $entry['attendee'];
+          $amountCents = (int) ($entry['amount_cents'] ?? 0);
+          $ticketCode = (string) ($attendee->getTicketCode() ?? '');
+          $attendeeName = trim((string) ($entry['display_name'] ?? ''));
+          if ($attendeeName === '') {
+            $attendeeName = (string) $this->t('Unnamed attendee');
+          }
+          $options[(int) $attendeeId] = trim(sprintf(
+            '%s (%s) - %s%s',
+            $attendeeName,
+            $attendee->getEmail(),
+            '$' . number_format($amountCents / 100, 2),
+            $ticketCode !== '' ? ' - ' . $ticketCode : ''
+          ));
+        }
+
+        $form['ticket_selection'] = [
+          '#type' => 'fieldset',
+          '#title' => $this->t('Tickets to refund'),
+          '#description' => $this->t('Select which ticket(s) to refund. Leave all selected to request a full ticket refund.'),
+          '#tree' => TRUE,
+        ];
+        $form['ticket_selection']['attendee_ids'] = [
+          '#type' => 'checkboxes',
+          '#options' => $options,
+          '#default_value' => array_map('strval', array_keys($options)),
+        ];
+      }
+    }
 
     $form['actions']['#prefix'] = '<div class="mel-form-actions mel-mt-4 mel-pt-4 mel-border-top">';
     $form['actions']['#suffix'] = '</div>';
@@ -135,6 +175,45 @@ final class BuyerRefundForm extends ConfirmFormBase {
     $form['actions']['cancel']['#attributes']['class'] = ['mel-btn', 'mel-btn-secondary'];
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    parent::validateForm($form, $form_state);
+
+    $order = $this->getOrder();
+    $event = $this->getEvent();
+    if (!$order || !$event) {
+      return;
+    }
+
+    $attendees = $this->orderInspector->loadRefundableTicketAttendeesForOrderEvent($order, (int) $event->id());
+    if (empty($attendees)) {
+      return;
+    }
+
+    $selectedValues = (array) $form_state->getValue(['ticket_selection', 'attendee_ids'], []);
+    if (empty($selectedValues)) {
+      $selectedValues = (array) $form_state->getValue('attendee_ids', []);
+    }
+    $selectedAttendeeIds = array_values(array_filter(array_map('intval', $selectedValues)));
+    if (empty($selectedAttendeeIds)) {
+      $form_state->setErrorByName('ticket_selection][attendee_ids', $this->t('Select at least one ticket to refund.'));
+      return;
+    }
+
+    try {
+      $amountCents = $this->orderInspector->calculateSelectedAttendeeRefundCents($order, (int) $event->id(), $selectedAttendeeIds);
+    }
+    catch (\InvalidArgumentException $e) {
+      $form_state->setErrorByName('ticket_selection][attendee_ids', $this->t($e->getMessage()));
+      return;
+    }
+
+    $form_state->set('selected_attendee_ids', $selectedAttendeeIds);
+    $form_state->set('selected_refund_amount_cents', $amountCents);
   }
 
   /**
@@ -150,7 +229,10 @@ final class BuyerRefundForm extends ConfirmFormBase {
     }
 
     try {
-      $this->refundProcessor->requestBuyerRefund($order, $event, $this->currentUser());
+      $this->refundProcessor->requestBuyerRefund($order, $event, $this->currentUser(), [
+        'attendee_ids' => (array) $form_state->get('selected_attendee_ids'),
+        'amount_cents' => (int) ($form_state->get('selected_refund_amount_cents') ?? 0),
+      ]);
       $this->messenger()->addStatus($this->t('Your refund has been requested. You will receive an email confirmation once it is processed (typically within 2–5 business days).'));
     }
     catch (\Exception $e) {

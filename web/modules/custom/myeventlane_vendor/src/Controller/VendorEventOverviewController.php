@@ -52,11 +52,13 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       : FALSE;
     $overview['cta_type'] = $this->ctaResolver->getCtaType($event);
     if ($overview['is_pro']) {
+      $sales = is_array($overview['sales'] ?? NULL) ? $overview['sales'] : [];
+      $refundRatePercent = (float) ($sales['refund_rate_percent'] ?? 0.0);
       $overview['pro_refund_analytics'] = [
-        'refund_rate_percent' => '0.0%',
+        'refund_rate_percent' => number_format($refundRatePercent, 1) . '%',
         'breakdown' => [
-          ['type' => 'Ticket refunds', 'amount' => '$0.00'],
-          ['type' => 'Donation refunds', 'amount' => '$0.00'],
+          ['type' => 'Ticket refunds', 'amount' => (string) ($sales['refunded'] ?? '$0.00')],
+          ['type' => 'Donation refunds', 'amount' => (string) ($sales['donation_refunded'] ?? '$0.00')],
         ],
         'export_csv_url' => '#',
       ];

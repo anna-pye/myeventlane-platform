@@ -117,13 +117,19 @@ final class TicketSalesService {
       ]);
     }
 
-    $refundedTicketCents = $this->getRefundedTicketCents($eventId, $currency);
+    $refundAttribution = $this->getRefundAttributionCents($eventId, $currency);
+    $refundedTicketCents = (int) ($refundAttribution['ticket_cents'] ?? 0);
+    $refundedDonationCents = (int) ($refundAttribution['donation_cents'] ?? 0);
     $netCents = max(0, $grossCents - $refundedTicketCents);
 
     $ticketsAvailable = $this->getTicketsAvailable($event);
     $gross = $grossCents / 100;
     $refunded = $refundedTicketCents / 100;
+    $donationRefunded = $refundedDonationCents / 100;
     $net = $netCents / 100;
+    $refundRatePercent = $grossCents > 0
+      ? round(($refundedTicketCents / $grossCents) * 100, 1)
+      : 0.0;
 
     $conversion = 0;
     if (is_numeric($ticketsAvailable) && (int) $ticketsAvailable > 0) {
@@ -133,14 +139,18 @@ final class TicketSalesService {
     return [
       'gross' => $this->formatMoney($grossCents, $currency),
       'refunded' => $this->formatMoney($refundedTicketCents, $currency),
+      'donation_refunded' => $this->formatMoney($refundedDonationCents, $currency),
       'net' => $this->formatMoney($netCents, $currency),
       'fees' => '$0.00',
       'gross_raw' => $gross,
       'refunded_raw' => $refunded,
+      'donation_refunded_raw' => $donationRefunded,
       'net_raw' => $net,
       'gross_cents' => $grossCents,
       'refunded_ticket_cents' => $refundedTicketCents,
+      'donation_refunded_cents' => $refundedDonationCents,
       'net_cents' => $netCents,
+      'refund_rate_percent' => $refundRatePercent,
       'currency' => $currency,
       'tickets_sold' => $ticketsSold,
       'tickets_available' => $ticketsAvailable,
@@ -152,16 +162,28 @@ final class TicketSalesService {
    * Returns attributed ticket refunds for an event in minor units.
    */
   private function getRefundedTicketCents(int $eventId, string $currency): int {
+    $attribution = $this->getRefundAttributionCents($eventId, $currency);
+    return (int) ($attribution['ticket_cents'] ?? 0);
+  }
+
+  /**
+   * Returns attributed ticket and donation refunds for an event in minor units.
+   *
+   * @return array{ticket_cents:int, donation_cents:int}
+   *   Attributed refund totals.
+   */
+  private function getRefundAttributionCents(int $eventId, string $currency): array {
     if (!$this->database->schema()->tableExists('myeventlane_refund_log')) {
-      return 0;
+      return ['ticket_cents' => 0, 'donation_cents' => 0];
     }
 
     try {
       $currency = strtoupper($currency);
       $currencyLower = strtolower($currency);
       $ticketSubtotalsByOrder = $this->getTicketSubtotalsByOrderForEvent($eventId, $currency);
-      $attributedByOrder = [];
-      $totalAttributed = 0;
+      $attributedTicketsByOrder = [];
+      $ticketTotal = 0;
+      $donationTotal = 0;
 
       $query = $this->database->select('myeventlane_refund_log', 'r');
       $query->join('commerce_order', 'o', 'o.order_id = r.order_id');
@@ -177,30 +199,39 @@ final class TicketSalesService {
         $orderId = (int) $row->order_id;
         $scope = (string) $row->refund_scope;
         $amountCents = (int) $row->amount_cents;
-        if ($amountCents <= 0 || $scope === 'donation_only') {
+        if ($amountCents <= 0) {
           continue;
         }
 
-        $attributed = $amountCents;
-        if ($scope === 'tickets_and_donation' || (int) $row->donation_refunded === 1) {
-          $ticketSubtotalCents = (int) ($ticketSubtotalsByOrder[$orderId] ?? 0);
-          $alreadyAttributed = (int) ($attributedByOrder[$orderId] ?? 0);
-          $remainingCap = max(0, $ticketSubtotalCents - $alreadyAttributed);
-          $attributed = min($amountCents, $remainingCap);
-          $attributedByOrder[$orderId] = $alreadyAttributed + $attributed;
+        if ($scope === 'donation_only') {
+          $donationTotal += $amountCents;
+          continue;
         }
 
-        $totalAttributed += $attributed;
+        $ticketAttributed = $amountCents;
+        if ($scope === 'tickets_and_donation' || (int) $row->donation_refunded === 1) {
+          $ticketSubtotalCents = (int) ($ticketSubtotalsByOrder[$orderId] ?? 0);
+          $alreadyAttributed = (int) ($attributedTicketsByOrder[$orderId] ?? 0);
+          $remainingCap = max(0, $ticketSubtotalCents - $alreadyAttributed);
+          $ticketAttributed = min($amountCents, $remainingCap);
+          $attributedTicketsByOrder[$orderId] = $alreadyAttributed + $ticketAttributed;
+          $donationTotal += max(0, $amountCents - $ticketAttributed);
+        }
+
+        $ticketTotal += $ticketAttributed;
       }
 
-      return max(0, $totalAttributed);
+      return [
+        'ticket_cents' => max(0, $ticketTotal),
+        'donation_cents' => max(0, $donationTotal),
+      ];
     }
     catch (\Throwable $e) {
       $this->logger()->error('Failed refund attribution for event @event_id: @message', [
         '@event_id' => $eventId,
         '@message' => $e->getMessage(),
       ]);
-      return 0;
+      return ['ticket_cents' => 0, 'donation_cents' => 0];
     }
   }
 

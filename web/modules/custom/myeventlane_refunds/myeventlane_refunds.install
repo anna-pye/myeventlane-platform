@@ -107,6 +107,12 @@ function myeventlane_refunds_schema(): array {
         'not null' => FALSE,
         'description' => 'Refund request ID when created from vendor approval.',
       ],
+      'attendee_ids_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON array of attendee IDs targeted by partial ticket refund.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -178,6 +184,12 @@ function myeventlane_refunds_schema(): array {
         'unsigned' => TRUE,
         'not null' => FALSE,
         'description' => 'myeventlane_refund_log ID when approved.',
+      ],
+      'attendee_ids_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON array of attendee IDs requested by buyer for partial ticket refund.',
       ],
       'created' => [
         'type' => 'int',
@@ -271,6 +283,12 @@ function myeventlane_refunds_update_9002(): void {
         'unsigned' => TRUE,
         'not null' => FALSE,
         'description' => 'myeventlane_refund_log ID when approved.',
+      ],
+      'attendee_ids_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON array of attendee IDs requested by buyer for partial ticket refund.',
       ],
       'created' => [
         'type' => 'int',
@@ -386,13 +404,69 @@ Amount refunded: {{ refunded_amount }}
 
 The refund should appear on your card within 2–5 business days.
 
+{% if tickets_cancelled and tickets_cancelled > 0 %}
+Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+{% endif %}
+
 <a href="{{ my_tickets_url }}">View your tickets</a>',
     ],
     'refund_completed_vendor' => [
       'subject' => 'Refund completed – {{ event_title }}',
       'body' => 'The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
 
-The customer has been notified.',
+The customer has been notified.
+
+{% if stripe_refund_id %}
+Stripe refund reference: {{ stripe_refund_id }}
+{% endif %}
+
+{% if tickets_cancelled and tickets_cancelled > 0 %}
+Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+{% endif %}',
+    ],
+    'refund_completed_admin' => [
+      'subject' => 'Refund completed (admin copy) – {{ event_title }}',
+      'body' => 'A refund has completed for <strong>{{ event_title }}</strong>.
+
+Order: {{ order_number }}
+Amount: {{ refunded_amount }}
+
+{% if stripe_refund_id %}
+Stripe refund reference: {{ stripe_refund_id }}
+{% endif %}
+
+{% if tickets_cancelled and tickets_cancelled > 0 %}
+Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+{% endif %}',
+    ],
+    'refund_failed_buyer' => [
+      'subject' => 'Refund delayed – {{ event_title }}',
+      'body' => 'Hi there,
+
+Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) could not be fully confirmed yet.
+
+Our team has been notified and will review this.
+
+Reference: {{ error_message }}',
+    ],
+    'refund_failed_vendor' => [
+      'subject' => 'Refund needs attention – {{ event_title }}',
+      'body' => 'A refund for Order {{ order_number }} ({{ refunded_amount }}) requires review.
+
+Reason: {{ error_message }}',
+    ],
+    'refund_failed_admin' => [
+      'subject' => 'Refund failure alert – {{ event_title }}',
+      'body' => 'A refund process reported a failure and needs admin review.
+
+Event: {{ event_title }}
+Order: {{ order_number }}
+Amount: {{ refunded_amount }}
+Reason: {{ error_message }}
+
+{% if stripe_refund_id %}
+Stripe refund reference: {{ stripe_refund_id }}
+{% endif %}',
     ],
   ];
 
@@ -478,5 +552,72 @@ function myeventlane_refunds_update_9004(): void {
         // Ignore if already valid.
       }
     }
+  }
+}
+
+/**
+ * Ensure admin and failure refund templates exist.
+ */
+function myeventlane_refunds_update_9005(): void {
+  myeventlane_refunds_install_messaging_templates();
+}
+
+/**
+ * Ensure refund-completed templates include ticket cancellation messaging.
+ */
+function myeventlane_refunds_update_9006(): void {
+  myeventlane_refunds_install_messaging_templates();
+
+  $configFactory = \Drupal::configFactory();
+  $updates = [
+    'refund_completed_buyer' => 'Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).',
+    'refund_completed_vendor' => 'Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).',
+    'refund_completed_admin' => 'Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).',
+  ];
+
+  foreach ($updates as $templateKey => $line) {
+    $configName = "myeventlane_messaging.template.{$templateKey}";
+    $config = $configFactory->getEditable($configName);
+    if ($config->isNew()) {
+      continue;
+    }
+
+    $body = (string) ($config->get('body_html') ?? '');
+    if ($body === '' || str_contains($body, 'tickets_cancelled')) {
+      continue;
+    }
+
+    $body .= "\n\n{% if tickets_cancelled and tickets_cancelled > 0 %}\n{$line}\n{% endif %}";
+    $config->set('body_html', $body)->save();
+  }
+}
+
+/**
+ * Add attendee_ids_json to refund log for attendee-targeted partial refunds.
+ */
+function myeventlane_refunds_update_9007(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('myeventlane_refund_log', 'attendee_ids_json')) {
+    $schema->addField('myeventlane_refund_log', 'attendee_ids_json', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON array of attendee IDs targeted by partial ticket refund.',
+    ]);
+  }
+}
+
+/**
+ * Add attendee_ids_json to refund request table for buyer-selected tickets.
+ */
+function myeventlane_refunds_update_9008(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('myeventlane_refund_request', 'attendee_ids_json')) {
+    $schema->addField('myeventlane_refund_request', 'attendee_ids_json', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON array of attendee IDs requested by buyer for partial ticket refund.',
+    ]);
   }
 }

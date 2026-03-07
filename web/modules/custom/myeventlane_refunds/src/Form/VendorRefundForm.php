@@ -161,6 +161,10 @@ final class VendorRefundForm extends FormBase {
       '#type' => 'markup',
       '#markup' => '<p><strong>' . $this->t('Refundable amount:') . '</strong> $' . number_format($refundable, 2) . '</p>',
     ];
+    $form['summary']['refund_policy'] = [
+      '#type' => 'markup',
+      '#markup' => '<p><strong>' . $this->t('Refund policy:') . '</strong> ' . $this->orderInspector->getEventRefundPolicyMessage($event) . '</p>',
+    ];
 
     $form['refund_type'] = [
       '#type' => 'radios',
@@ -176,6 +180,7 @@ final class VendorRefundForm extends FormBase {
     $form['partial_refund'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Partial Refund Details'),
+      '#tree' => TRUE,
       '#states' => [
         'visible' => [
           ':input[name="refund_type"]' => ['value' => 'partial'],
@@ -183,26 +188,65 @@ final class VendorRefundForm extends FormBase {
       ],
     ];
 
-    $form['partial_refund']['amount'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Refund Amount (AUD)'),
-      '#step' => 0.01,
-      '#min' => 0.01,
-      '#max' => $refundable,
-      '#default_value' => $ticketSubtotal,
-      '#description' => $this->t('Maximum refundable: $@max', ['@max' => number_format($refundable, 2)]),
-      '#states' => [
-        'required' => [
-          ':input[name="refund_type"]' => ['value' => 'partial'],
+    $partialAttendees = $this->orderInspector->getRefundableTicketAttendeeBreakdown($commerce_order, $eventId);
+    $attendeeOptions = [];
+    foreach ($partialAttendees as $attendeeId => $entry) {
+      $attendee = $entry['attendee'];
+      $amountCents = (int) ($entry['amount_cents'] ?? 0);
+      $ticketCode = (string) ($attendee->getTicketCode() ?? '');
+      $attendeeName = trim((string) ($entry['display_name'] ?? ''));
+      if ($attendeeName === '') {
+        $attendeeName = (string) $this->t('Unnamed attendee');
+      }
+      $attendeeOptions[(int) $attendeeId] = trim(sprintf(
+        '%s (%s) - %s%s',
+        $attendeeName,
+        $attendee->getEmail(),
+        '$' . number_format($amountCents / 100, 2),
+        $ticketCode !== '' ? ' - ' . $ticketCode : ''
+      ));
+    }
+
+    if (empty($attendeeOptions)) {
+      $form['partial_refund']['none_available'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . $this->t('No active ticket attendees are available for partial refund on this order.') . '</p>',
+      ];
+    }
+    else {
+      $form['partial_refund']['attendee_ids'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Select attendee(s) to refund'),
+        '#options' => $attendeeOptions,
+        '#description' => $this->t('Refund amount is automatically calculated from selected ticket attendee(s).'),
+        '#states' => [
+          'required' => [
+            ':input[name="refund_type"]' => ['value' => 'partial'],
+          ],
         ],
-      ],
+      ];
+
+      $form['partial_refund']['amount_preview'] = [
+        '#type' => 'markup',
+        '#markup' => '<p><strong>' . $this->t('Maximum partial refund from selection:') . '</strong> $' . number_format($ticketSubtotal, 2) . '</p>',
+      ];
+    }
+
+    $form['partial_refund']['partial_policy'] = [
+      '#type' => 'markup',
+      '#markup' => '<p>' . $this->t('On success, only selected attendee ticket(s) are cancelled.') . '</p>',
     ];
 
     $form['include_donation'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Include donation in refund'),
-      '#description' => $this->t('By default, only tickets are refunded. Check this to also refund the donation amount.'),
+      '#description' => $this->t('By default, only tickets are refunded. Check this to also refund the donation amount (full refunds only).'),
       '#default_value' => FALSE,
+      '#states' => [
+        'visible' => [
+          ':input[name="refund_type"]' => ['value' => 'full'],
+        ],
+      ],
     ];
 
     $form['reason'] = [
@@ -246,24 +290,44 @@ final class VendorRefundForm extends FormBase {
     $refundType = $form_state->getValue('refund_type');
 
     if ($refundType === 'partial') {
-      $amountRaw = (string) $form_state->getValue('amount');
-      try {
-        $amountCents = $this->orderInspector->decimalStringToCents($amountRaw);
+      if ((bool) $form_state->getValue('include_donation')) {
+        $form_state->setErrorByName('include_donation', $this->t('Donation inclusion is only supported for full refunds.'));
       }
-      catch (\InvalidArgumentException) {
-        $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount must be a valid monetary value.'));
+
+      $selectedValues = (array) $form_state->getValue(['partial_refund', 'attendee_ids'], []);
+      if (empty($selectedValues)) {
+        $selectedValues = (array) $form_state->getValue('attendee_ids', []);
+      }
+      $selectedAttendeeIds = array_values(array_filter(array_map('intval', $selectedValues)));
+      if (empty($selectedAttendeeIds)) {
+        $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Select at least one attendee for partial refund.'));
+        return;
+      }
+
+      try {
+        $amountCents = $this->orderInspector->calculateSelectedAttendeeRefundCents(
+          $order,
+          (int) $form_state->get('event_id'),
+          $selectedAttendeeIds
+        );
+      }
+      catch (\InvalidArgumentException $e) {
+        $form_state->setErrorByName('partial_refund][attendee_ids', $this->t($e->getMessage()));
         return;
       }
 
       if ($amountCents <= 0) {
-        $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount must be greater than zero.'));
+        $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Selected attendees resolve to zero refund amount.'));
       }
 
       $refundableCents = $this->orderInspector->calculateRefundableAmountCents($order);
       if ($amountCents > $refundableCents) {
         $refundable = $refundableCents / 100;
-        $form_state->setError($form['partial_refund']['amount'], $this->t('Refund amount cannot exceed refundable amount ($@max).', ['@max' => number_format($refundable, 2)]));
+        $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Selected attendees exceed refundable amount ($@max).', ['@max' => number_format($refundable, 2)]));
       }
+
+      $form_state->set('partial_refund_amount_cents', $amountCents);
+      $form_state->set('partial_refund_attendee_ids', $selectedAttendeeIds);
     }
   }
 
@@ -292,7 +356,8 @@ final class VendorRefundForm extends FormBase {
     ];
 
     if ($refundType === 'partial') {
-      $refundPayload['amount_cents'] = $this->orderInspector->decimalStringToCents((string) $form_state->getValue('amount'));
+      $refundPayload['amount_cents'] = (int) $form_state->get('partial_refund_amount_cents');
+      $refundPayload['attendee_ids'] = (array) $form_state->get('partial_refund_attendee_ids');
     }
 
     try {
