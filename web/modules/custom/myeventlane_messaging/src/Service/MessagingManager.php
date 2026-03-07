@@ -46,6 +46,10 @@ final class MessagingManager {
     'refund_rejected_vendor',
     'refund_completed_buyer',
     'refund_completed_vendor',
+    'refund_completed_admin',
+    'refund_failed_buyer',
+    'refund_failed_vendor',
+    'refund_failed_admin',
   ];
 
   /**

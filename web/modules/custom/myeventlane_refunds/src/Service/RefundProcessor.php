@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
@@ -16,6 +17,8 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\StripeService;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -60,6 +63,8 @@ final class RefundProcessor {
     private readonly BuyerRefundEligibilityService $buyerEligibility,
     private readonly RefundRequestStorage $refundRequestStorage,
     private readonly MessagingManager $messagingManager,
+    private readonly StripeService $stripeService,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly QueueFactory $queueFactory,
     private readonly AccountProxyInterface $currentUser,
@@ -97,7 +102,7 @@ final class RefundProcessor {
    * @throws \Exception
    *   If eligibility fails or request creation fails.
    */
-  public function requestBuyerRefund(OrderInterface $order, NodeInterface $event, AccountInterface $buyer): int {
+  public function requestBuyerRefund(OrderInterface $order, NodeInterface $event, AccountInterface $buyer, array $options = []): int {
     if (!$this->buyerEligibility->isEligible($order, $event, $buyer)) {
       $reason = $this->buyerEligibility->getIneligibilityReason($order, $event, $buyer);
       throw new \Exception($reason ?? 'Refund not eligible.');
@@ -111,7 +116,20 @@ final class RefundProcessor {
       throw new \Exception('A pending refund request already exists for this order and event.');
     }
 
-    $amountCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
+    $selectedAttendeeIds = array_values(array_unique(array_map('intval', (array) ($options['attendee_ids'] ?? []))));
+    $selectedAttendeeIds = array_values(array_filter($selectedAttendeeIds, static fn(int $id): bool => $id > 0));
+
+    $amountCents = 0;
+    if (!empty($selectedAttendeeIds)) {
+      $amountCents = $this->orderInspector->calculateSelectedAttendeeRefundCents($order, $eventId, $selectedAttendeeIds);
+    }
+    else {
+      $amountCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
+    }
+
+    if ($amountCents <= 0) {
+      throw new \Exception('Refund amount must be greater than zero.');
+    }
     $totalPrice = $order->getTotalPrice();
     $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
 
@@ -123,6 +141,7 @@ final class RefundProcessor {
       'amount_cents' => $amountCents,
       'currency' => strtolower($currency),
       'status' => RefundRequestStorage::STATUS_REQUESTED,
+      'attendee_ids_json' => !empty($selectedAttendeeIds) ? json_encode($selectedAttendeeIds, JSON_UNESCAPED_SLASHES) : NULL,
     ]);
 
     $this->logger()->info('Buyer refund request: id=@id, order_id=@order_id', [
@@ -184,13 +203,18 @@ final class RefundProcessor {
 
     $this->refundRequestStorage->update($requestId, ['status' => RefundRequestStorage::STATUS_APPROVED]);
 
+    $selectedAttendeeIds = $this->decodeAttendeeIds((string) ($req['attendee_ids_json'] ?? ''));
     $payload = [
-      'refund_type' => 'full',
+      'refund_type' => !empty($selectedAttendeeIds) ? 'partial' : 'full',
       'refund_scope' => 'tickets_only',
       'include_donation' => FALSE,
       'reason' => 'Buyer self-service refund (vendor approved)',
       'refund_request_id' => $requestId,
     ];
+    if (!empty($selectedAttendeeIds)) {
+      $payload['amount_cents'] = (int) ($req['amount_cents'] ?? 0);
+      $payload['attendee_ids'] = $selectedAttendeeIds;
+    }
 
     $logId = $this->requestRefund($order, $event, $vendor, $payload);
     $this->refundRequestStorage->update($requestId, ['refund_log_id' => $logId]);
@@ -307,6 +331,8 @@ final class RefundProcessor {
     $refundType = $refund_payload['refund_type'] ?? 'full';
     $refundScope = $refund_payload['refund_scope'] ?? 'tickets_only';
     $includeDonation = $refund_payload['include_donation'] ?? FALSE;
+    $selectedAttendeeIds = array_values(array_unique(array_map('intval', (array) ($refund_payload['attendee_ids'] ?? []))));
+    $selectedAttendeeIds = array_values(array_filter($selectedAttendeeIds, static fn(int $id): bool => $id > 0));
 
     $amountCents = 0;
     $donationRefunded = 0;
@@ -331,6 +357,9 @@ final class RefundProcessor {
       $amountCents = (int) ($refund_payload['amount_cents'] ?? 0);
       if ($includeDonation) {
         $donationRefunded = 1;
+      }
+      if ($refundScope === 'tickets_only' && !empty($selectedAttendeeIds)) {
+        $amountCents = $this->orderInspector->calculateSelectedAttendeeRefundCents($order, (int) $event->id(), $selectedAttendeeIds);
       }
     }
 
@@ -360,6 +389,7 @@ final class RefundProcessor {
       'status' => 'pending',
       'reason' => $refund_payload['reason'] ?? NULL,
       'created' => $this->time->getRequestTime(),
+      'attendee_ids_json' => !empty($selectedAttendeeIds) ? json_encode($selectedAttendeeIds, JSON_UNESCAPED_SLASHES) : NULL,
     ];
     if (isset($refund_payload['refund_request_id'])) {
       $logFields['refund_request_id'] = $refund_payload['refund_request_id'];
@@ -475,7 +505,9 @@ final class RefundProcessor {
       $currency = strtoupper((string) $log['currency']);
       $remainingCents = $requestedCents;
       $refundedCents = 0;
-      $stripeRefundId = NULL;
+      $stripeRefundIds = [];
+      $unconfirmedPayments = [];
+      $confirmationWindowStart = $this->time->getRequestTime();
 
       foreach ($payments as $payment) {
         if (!$payment instanceof PaymentInterface || $remainingCents <= 0) {
@@ -535,6 +567,18 @@ final class RefundProcessor {
           $remainingCents -= $refundCentsForPayment;
           $refundedCents += $refundCentsForPayment;
 
+          $stripeRefundId = $this->confirmStripeRefundId($payment, $refundCentsForPayment, strtolower($currency), $confirmationWindowStart);
+          if ($stripeRefundId !== NULL) {
+            $stripeRefundIds[] = $stripeRefundId;
+          }
+          else {
+            $unconfirmedPayments[] = [
+              'payment_id' => (int) $payment->id(),
+              'remote_id' => (string) ($payment->getRemoteId() ?? ''),
+              'refund_cents' => $refundCentsForPayment,
+            ];
+          }
+
           $this->logger()->info('Refunded payment slice for log_id=@log_id payment_id=@payment_id plugin_id=@plugin_id requested_cents=@requested_cents refunded_cents=@refunded_cents remaining_cents=@remaining_cents.', [
             '@log_id' => $log_id,
             '@payment_id' => $payment->id(),
@@ -570,27 +614,50 @@ final class RefundProcessor {
         return;
       }
 
+      if (!empty($unconfirmedPayments)) {
+        $this->markRefundFailed(
+          $log_id,
+          sprintf(
+            'Stripe confirmation missing for one or more refund slices. unconfirmed=%s',
+            json_encode($unconfirmedPayments, JSON_UNESCAPED_SLASHES)
+          ),
+          $log,
+          $order,
+          $event
+        );
+        return;
+      }
+
       // Mark refund as completed.
+      $stripeRefundIds = array_values(array_unique(array_filter($stripeRefundIds)));
+      $primaryStripeRefundId = $stripeRefundIds[0] ?? NULL;
       $this->database->update('myeventlane_refund_log')
         ->fields([
           'status' => 'completed',
           'completed' => $this->time->getRequestTime(),
-          'stripe_refund_id' => $stripeRefundId,
+          'stripe_refund_id' => $primaryStripeRefundId,
         ])
         ->condition('id', $log_id)
         ->execute();
 
-      $this->logger()->info('Refund completed: log_id=@log_id, order_id=@order_id, requested_cents=@requested_cents, refunded_cents=@refunded_cents', [
+      $this->logger()->info('Refund completed: log_id=@log_id, order_id=@order_id, requested_cents=@requested_cents, refunded_cents=@refunded_cents, stripe_refund_ids=@stripe_refund_ids', [
         '@log_id' => $log_id,
         '@order_id' => $order->id(),
         '@requested_cents' => $requestedCents,
         '@refunded_cents' => $refundedCents,
+        '@stripe_refund_ids' => implode(',', $stripeRefundIds),
       ]);
 
-      // Queue email to customer.
+      $log['stripe_refund_id'] = $primaryStripeRefundId;
+      $ticketsCancelled = $this->cancelRefundedTicketAttendees($order, $event, $log);
+
+      // Queue notifications to buyer, vendor, and admin.
       $customerEmail = $order->getEmail();
       if ($customerEmail) {
-        $this->queueRefundEmail($order, $event, $log, $customerEmail);
+        $this->queueRefundCompletionEmails($order, $event, $log, $customerEmail, $ticketsCancelled);
+      }
+      else {
+        $this->queueRefundCompletionEmails($order, $event, $log, '', $ticketsCancelled);
       }
     }
     finally {
@@ -606,7 +673,13 @@ final class RefundProcessor {
    * @param string $error_message
    *   The error message.
    */
-  private function markRefundFailed(int $log_id, string $error_message): void {
+  private function markRefundFailed(
+    int $log_id,
+    string $error_message,
+    ?array $log = NULL,
+    ?OrderInterface $order = NULL,
+    ?NodeInterface $event = NULL
+  ): void {
     $this->database->update('myeventlane_refund_log')
       ->fields([
         'status' => 'failed',
@@ -620,10 +693,23 @@ final class RefundProcessor {
       '@log_id' => $log_id,
       '@error' => $error_message,
     ]);
+
+    $logData = $log;
+    if ($logData === NULL) {
+      $logData = $this->database->select('myeventlane_refund_log', 'r')
+        ->fields('r')
+        ->condition('id', $log_id)
+        ->execute()
+        ->fetchAssoc() ?: NULL;
+    }
+
+    if ($logData !== NULL) {
+      $this->queueRefundFailureEmails($order, $event, $logData, $error_message);
+    }
   }
 
   /**
-   * Queues refund completion emails (buyer and optionally vendor).
+   * Queues refund completion emails to buyer, vendor, and admin.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -633,8 +719,16 @@ final class RefundProcessor {
    *   The refund log data.
    * @param string $customerEmail
    *   The customer email.
+   * @param int $ticketsCancelled
+   *   Number of attendee records cancelled for this refund.
    */
-  private function queueRefundEmail(OrderInterface $order, NodeInterface $event, array $log, string $customerEmail): void {
+  private function queueRefundCompletionEmails(
+    OrderInterface $order,
+    NodeInterface $event,
+    array $log,
+    string $customerEmail,
+    int $ticketsCancelled = 0
+  ): void {
     $ctx = $this->buildRefundEmailContext(
       $order,
       $event,
@@ -642,25 +736,225 @@ final class RefundProcessor {
       $log['currency'],
       (bool) ($log['donation_refunded'] ?? FALSE)
     );
+    $ctx['stripe_refund_id'] = (string) ($log['stripe_refund_id'] ?? '');
+    $ctx['tickets_cancelled'] = $ticketsCancelled;
 
-    $id = $this->messagingManager->queue('refund_completed_buyer', $customerEmail, $ctx);
-    if ($id) {
-      $this->messagingManager->sendMessage($id);
+    if (!empty($customerEmail)) {
+      $id = $this->messagingManager->queue('refund_completed_buyer', $customerEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    $vendorEmail = $this->getUserEmail((int) ($log['vendor_uid'] ?? 0));
+    if ($vendorEmail) {
+      $id = $this->messagingManager->queue('refund_completed_vendor', $vendorEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    $adminEmail = $this->getAdminEmail();
+    if ($adminEmail) {
+      $id = $this->messagingManager->queue('refund_completed_admin', $adminEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+    else {
+      $this->logger()->warning('Refund completion admin notification skipped: system.site mail is not configured.');
     }
 
     $refundRequestId = $log['refund_request_id'] ?? NULL;
     if ($refundRequestId) {
-      $req = $this->refundRequestStorage->load((int) $refundRequestId);
-      if ($req) {
-        $this->refundRequestStorage->update((int) $refundRequestId, ['status' => RefundRequestStorage::STATUS_COMPLETED]);
-        $vendorEmail = $this->getUserEmail((int) $req['vendor_uid']);
-        if ($vendorEmail) {
-          $id = $this->messagingManager->queue('refund_completed_vendor', $vendorEmail, $ctx);
-          if ($id) {
-            $this->messagingManager->sendMessage($id);
-          }
+      $this->refundRequestStorage->update((int) $refundRequestId, ['status' => RefundRequestStorage::STATUS_COMPLETED]);
+    }
+  }
+
+  /**
+   * Cancels ticket attendee records when a ticket refund is completed.
+   *
+   * Only full ticket-inclusive refunds auto-cancel attendees. Partial refunds
+   * are intentionally not auto-cancelled because attendee selection is
+   * ambiguous without explicit ticket-line targeting.
+   */
+  private function cancelRefundedTicketAttendees(OrderInterface $order, NodeInterface $event, array $log): int {
+    $refundScope = (string) ($log['refund_scope'] ?? '');
+    if ($refundScope === 'donation_only') {
+      return 0;
+    }
+
+    $refundType = (string) ($log['refund_type'] ?? '');
+    $selectedAttendeeIds = $this->decodeAttendeeIds((string) ($log['attendee_ids_json'] ?? ''));
+    if ($refundType !== 'full' && empty($selectedAttendeeIds)) {
+      $this->logger()->warning('Skipped attendee auto-cancellation for refund log @log_id: partial refund without attendee selection.', [
+        '@log_id' => (int) ($log['id'] ?? 0),
+      ]);
+      return 0;
+    }
+
+    $eventId = (int) $event->id();
+    if ($eventId <= 0) {
+      $this->logger()->error('Failed attendee auto-cancellation: invalid event ID for refund log @log_id.', [
+        '@log_id' => (int) ($log['id'] ?? 0),
+      ]);
+      return 0;
+    }
+
+    $orderItemIds = [];
+    foreach ($order->getItems() as $item) {
+      if ($this->orderItemIsForEvent($item, $eventId)) {
+        $orderItemIds[] = (int) $item->id();
+      }
+    }
+    $orderItemIds = array_values(array_unique(array_filter($orderItemIds)));
+    if (empty($orderItemIds)) {
+      $this->logger()->warning('No event-linked order items found for attendee auto-cancellation (refund log @log_id, order @order_id, event @event_id).', [
+        '@log_id' => (int) ($log['id'] ?? 0),
+        '@order_id' => (int) $order->id(),
+        '@event_id' => $eventId,
+      ]);
+      return 0;
+    }
+
+    $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
+    $query = $attendeeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventId)
+      ->condition('source', EventAttendee::SOURCE_TICKET)
+      ->condition('order_item', $orderItemIds, 'IN')
+      ->condition('status', EventAttendee::STATUS_CANCELLED, '<>');
+    if (!empty($selectedAttendeeIds)) {
+      $query->condition('id', $selectedAttendeeIds, 'IN');
+    }
+    $attendeeIds = $query->execute();
+
+    if (empty($attendeeIds)) {
+      return 0;
+    }
+
+    $cancelled = 0;
+    $attendees = $attendeeStorage->loadMultiple($attendeeIds);
+    foreach ($attendees as $attendee) {
+      if (!$attendee instanceof EventAttendee) {
+        continue;
+      }
+      try {
+        $attendee->setStatus(EventAttendee::STATUS_CANCELLED);
+        $attendee->save();
+        $cancelled++;
+      }
+      catch (\Throwable $e) {
+        $this->logger()->error('Failed to cancel attendee @attendee_id for refund log @log_id: @message', [
+          '@attendee_id' => (int) $attendee->id(),
+          '@log_id' => (int) ($log['id'] ?? 0),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    if ($cancelled > 0) {
+      $this->logger()->info('Cancelled @count attendee record(s) for refund log @log_id (order @order_id, event @event_id).', [
+        '@count' => $cancelled,
+        '@log_id' => (int) ($log['id'] ?? 0),
+        '@order_id' => (int) $order->id(),
+        '@event_id' => $eventId,
+      ]);
+    }
+
+    return $cancelled;
+  }
+
+  /**
+   * Parses attendee IDs from the log JSON field.
+   *
+   * @param string $raw
+   *   Raw JSON string.
+   *
+   * @return int[]
+   *   Clean attendee IDs.
+   */
+  private function decodeAttendeeIds(string $raw): array {
+    if ($raw === '') {
+      return [];
+    }
+
+    $decoded = json_decode($raw, TRUE);
+    if (!is_array($decoded)) {
+      return [];
+    }
+
+    $ids = array_values(array_unique(array_map('intval', $decoded)));
+    return array_values(array_filter($ids, static fn(int $id): bool => $id > 0));
+  }
+
+  /**
+   * Checks if an order item maps to the given event.
+   */
+  private function orderItemIsForEvent($item, int $eventId): bool {
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      if ((int) $item->get('field_target_event')->target_id === $eventId) {
+        return TRUE;
+      }
+    }
+
+    $variation = $item->getPurchasedEntity();
+    if ($variation) {
+      if ($variation->hasField('field_event') && !$variation->get('field_event')->isEmpty()) {
+        if ((int) $variation->get('field_event')->target_id === $eventId) {
+          return TRUE;
         }
       }
+      if ($variation->hasField('field_event_ref') && !$variation->get('field_event_ref')->isEmpty()) {
+        if ((int) $variation->get('field_event_ref')->target_id === $eventId) {
+          return TRUE;
+        }
+      }
+      try {
+        $product = $variation->getProduct();
+        if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
+          return (int) $product->get('field_event')->target_id === $eventId;
+        }
+      }
+      catch (\Throwable $e) {
+        // Product linkage may not exist for all variation types.
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Queues refund failure notifications to buyer, vendor, and admin.
+   */
+  private function queueRefundFailureEmails(?OrderInterface $order, ?NodeInterface $event, array $log, string $errorMessage): void {
+    $ctx = $this->buildFailureEmailContext($order, $event, $log, $errorMessage);
+
+    $customerEmail = $order?->getEmail();
+    if (!empty($customerEmail)) {
+      $id = $this->messagingManager->queue('refund_failed_buyer', $customerEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    $vendorEmail = $this->getUserEmail((int) ($log['vendor_uid'] ?? 0));
+    if ($vendorEmail) {
+      $id = $this->messagingManager->queue('refund_failed_vendor', $vendorEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+
+    $adminEmail = $this->getAdminEmail();
+    if ($adminEmail) {
+      $id = $this->messagingManager->queue('refund_failed_admin', $adminEmail, $ctx);
+      if ($id) {
+        $this->messagingManager->sendMessage($id);
+      }
+    }
+    else {
+      $this->logger()->warning('Refund failure admin notification skipped: system.site mail is not configured.');
     }
   }
 
@@ -716,6 +1010,92 @@ final class RefundProcessor {
   private function getUserEmail(int $uid): ?string {
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
     return $user && $user->getEmail() ? $user->getEmail() : NULL;
+  }
+
+  /**
+   * Gets platform admin email address for operational notifications.
+   */
+  private function getAdminEmail(): ?string {
+    $email = (string) ($this->configFactory->get('system.site')->get('mail') ?? '');
+    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : NULL;
+  }
+
+  /**
+   * Builds a context payload for refund failure notifications.
+   */
+  private function buildFailureEmailContext(?OrderInterface $order, ?NodeInterface $event, array $log, string $errorMessage): array {
+    $amountCents = (int) ($log['amount_cents'] ?? 0);
+    $currency = (string) ($log['currency'] ?? 'aud');
+    $amount = number_format($amountCents / 100, 2);
+    $currencyUpper = strtoupper($currency);
+
+    return [
+      'order_id' => $order?->id() ?? (int) ($log['order_id'] ?? 0),
+      'event_id' => $event?->id() ?? (int) ($log['event_id'] ?? 0),
+      'event_title' => $event?->label() ?? 'Unknown event',
+      'order_number' => $order?->getOrderNumber() ?: '#' . ((int) ($log['order_id'] ?? 0)),
+      'refunded_amount' => $currencyUpper . ' ' . $amount,
+      'error_message' => $errorMessage,
+      'stripe_refund_id' => (string) ($log['stripe_refund_id'] ?? ''),
+      'my_tickets_url' => $order
+        ? Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString()
+        : '',
+    ];
+  }
+
+  /**
+   * Confirms Stripe refund by resolving a Stripe refund ID for this payment slice.
+   */
+  private function confirmStripeRefundId(PaymentInterface $payment, int $refundCents, string $currency, int $windowStart): ?string {
+    $remoteId = (string) ($payment->getRemoteId() ?? '');
+    if ($remoteId === '') {
+      $this->logger()->error('Stripe refund confirmation skipped: payment @payment_id has no remote ID.', [
+        '@payment_id' => $payment->id(),
+      ]);
+      return NULL;
+    }
+
+    try {
+      $client = $this->stripeService->getPlatformClient();
+      $params = ['limit' => 10];
+      if (str_starts_with($remoteId, 'pi_')) {
+        $params['payment_intent'] = $remoteId;
+      }
+      else {
+        $params['charge'] = $remoteId;
+      }
+
+      $refunds = $client->refunds->all($params);
+      $threshold = max(0, $windowStart - 300);
+
+      foreach ($refunds->data as $refund) {
+        $id = (string) ($refund->id ?? '');
+        $amount = (int) ($refund->amount ?? 0);
+        $created = (int) ($refund->created ?? 0);
+        $status = (string) ($refund->status ?? '');
+        $refundCurrency = strtolower((string) ($refund->currency ?? ''));
+
+        if ($id === '' || $amount !== $refundCents || $refundCurrency !== strtolower($currency)) {
+          continue;
+        }
+        if ($created > 0 && $created < $threshold) {
+          continue;
+        }
+        if ($status !== 'succeeded') {
+          continue;
+        }
+
+        return $id;
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger()->error('Stripe refund confirmation lookup failed for payment @payment_id: @message', [
+        '@payment_id' => $payment->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return NULL;
   }
 
   /**

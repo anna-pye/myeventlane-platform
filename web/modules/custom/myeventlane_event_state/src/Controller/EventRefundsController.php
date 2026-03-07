@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_state\Controller;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
@@ -20,6 +22,8 @@ final class EventRefundsController extends ControllerBase {
    */
   public function __construct(
     private readonly RendererInterface $renderer,
+    private readonly EntityTypeManagerInterface $entityTypeManagerService,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -28,6 +32,8 @@ final class EventRefundsController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('renderer'),
+      $container->get('entity_type.manager'),
+      $container->get('database'),
     );
   }
 
@@ -110,12 +116,20 @@ final class EventRefundsController extends ControllerBase {
     $orders = [];
 
     try {
-      $orderItemStorage = \Drupal::entityTypeManager()->getStorage('commerce_order_item');
-      $orderItems = $orderItemStorage->loadByProperties([
-        'field_target_event' => $eventId,
-      ]);
+      $orderItemStorage = $this->entityTypeManagerService->getStorage('commerce_order_item');
+      $orderItemIds = $orderItemStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('field_target_event', $eventId)
+        ->execute();
+
+      if (empty($orderItemIds)) {
+        return [];
+      }
+
+      $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
 
       $processedOrders = [];
+      $ticketCounts = [];
       foreach ($orderItems as $item) {
         // Safely load the order entity to avoid getOrder() warnings.
         if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
@@ -127,7 +141,7 @@ final class EventRefundsController extends ControllerBase {
         }
 
         try {
-          $order = $this->entityTypeManager()
+          $order = $this->entityTypeManagerService
             ->getStorage('commerce_order')
             ->load($order_id);
           if (!$order || $order->getState()->getId() !== 'completed') {
@@ -135,6 +149,7 @@ final class EventRefundsController extends ControllerBase {
           }
 
           $orderId = $order->id();
+          $ticketCounts[$orderId] = ($ticketCounts[$orderId] ?? 0) + (int) $item->getQuantity();
           if (isset($processedOrders[$orderId])) {
             continue;
           }
@@ -144,20 +159,19 @@ final class EventRefundsController extends ControllerBase {
           $customerName = $customer ? $customer->getDisplayName() : $this->t('Guest');
           $totalPrice = $order->getTotalPrice();
           $amount = $totalPrice ? $totalPrice->getNumber() : '0.00';
-
-          // @todo Check refund status from refund request table.
-          $refundStatus = 'Not requested';
+          $refundStatus = $this->getOrderRefundStatus($orderId, $eventId);
 
           $refundUrl = Url::fromRoute('myeventlane_event_state.refund_request', [
             'node' => $eventId,
-            'order' => $orderId,
+          ], [
+            'query' => ['order' => $orderId],
           ]);
 
           $orders[] = [
             'order_id' => $orderId,
             'customer' => $customerName,
             'amount' => '$' . number_format((float) $amount, 2),
-            'tickets' => (int) $item->getQuantity(),
+            'tickets' => $ticketCounts[$orderId],
             'status' => $refundStatus,
             'actions_url' => $refundUrl,
             'actions_title' => $this->t('Request refund'),
@@ -173,6 +187,31 @@ final class EventRefundsController extends ControllerBase {
     }
 
     return $orders;
+  }
+
+  /**
+   * Gets a human-readable refund status for an order scoped to event.
+   */
+  private function getOrderRefundStatus(int $orderId, int $eventId): string {
+    $row = $this->database->select('myeventlane_refund_log', 'r')
+      ->fields('r', ['status'])
+      ->condition('order_id', $orderId)
+      ->condition('event_id', $eventId)
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$row || empty($row['status'])) {
+      return (string) $this->t('Not requested');
+    }
+
+    return match ($row['status']) {
+      'pending' => (string) $this->t('Pending'),
+      'completed' => (string) $this->t('Refunded'),
+      'failed' => (string) $this->t('Failed'),
+      default => (string) $this->t('Unknown'),
+    };
   }
 
 }

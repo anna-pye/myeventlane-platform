@@ -208,9 +208,14 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       return $tb <=> $ta;
     });
 
+    $paymentRefundStates = $this->loadRefundedPaymentStates($filtered);
     $rows = [];
     foreach ($filtered as $order) {
-      $rows[] = $this->buildOrderRow($order, $eventId);
+      $rows[] = $this->buildOrderRow(
+        $order,
+        $eventId,
+        $paymentRefundStates[(int) $order->id()] ?? NULL
+      );
     }
 
     return ['rows' => $rows, 'totals' => $this->computeOrderTotals($rows)];
@@ -419,7 +424,11 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
    *   Row with order_id, order_number, placed_date, purchaser_name,
    *   purchaser_email, ticket_count, net_sales, fees, total, status, view_link.
    */
-  private function buildOrderRow(OrderInterface $order, int $eventId): array {
+  private function buildOrderRow(
+    OrderInterface $order,
+    int $eventId,
+    ?string $paymentRefundState = NULL
+  ): array {
     $customer = $order->getCustomer();
     $purchaserName = $customer ? $customer->getDisplayName() : $this->t('Guest');
     $purchaserEmail = $order->getEmail() ?: ($customer ? $customer->getEmail() : '');
@@ -487,7 +496,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'net_sales' => $this->formatPrice($netSalesNumber, $currency),
       'fees' => $this->formatPrice($feesForEvent, $currency),
       'total' => $this->formatPrice($totalNumber, $currency),
-      'status' => $order->getState()->getId(),
+      'status' => $paymentRefundState ?? $order->getState()->getId(),
       'view_link' => $viewLink,
       'raw_ticket_count' => $ticketCount,
       'raw_net_sales' => $netSalesNumber,
@@ -495,6 +504,64 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'raw_total' => $totalNumber,
       'raw_currency' => $currency,
     ];
+  }
+
+  /**
+   * Loads refund-related payment states keyed by order ID.
+   *
+   * Returns 'refunded' when any payment is fully refunded, otherwise
+   * 'partially_refunded' when applicable.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface[] $orders
+   *   Orders to inspect.
+   *
+   * @return array<int, string>
+   *   Map of order ID => payment state.
+   */
+  private function loadRefundedPaymentStates(array $orders): array {
+    if (empty($orders)) {
+      return [];
+    }
+
+    $orderIds = [];
+    foreach ($orders as $order) {
+      if ($order instanceof OrderInterface) {
+        $orderIds[] = (int) $order->id();
+      }
+    }
+    $orderIds = array_values(array_unique(array_filter($orderIds)));
+    if (empty($orderIds)) {
+      return [];
+    }
+
+    $paymentStorage = $this->entityTypeManager->getStorage('commerce_payment');
+    $paymentIds = $paymentStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', $orderIds, 'IN')
+      ->condition('state', ['partially_refunded', 'refunded'], 'IN')
+      ->execute();
+    if (empty($paymentIds)) {
+      return [];
+    }
+
+    $states = [];
+    $payments = $paymentStorage->loadMultiple($paymentIds);
+    foreach ($payments as $payment) {
+      $orderId = (int) ($payment->get('order_id')->target_id ?? 0);
+      if ($orderId <= 0) {
+        continue;
+      }
+      $state = $payment->getState()->getId();
+      if ($state === 'refunded') {
+        $states[$orderId] = 'refunded';
+        continue;
+      }
+      if ($state === 'partially_refunded' && !isset($states[$orderId])) {
+        $states[$orderId] = 'partially_refunded';
+      }
+    }
+
+    return $states;
   }
 
   /**

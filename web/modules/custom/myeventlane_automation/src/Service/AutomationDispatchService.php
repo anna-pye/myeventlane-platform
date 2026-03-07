@@ -58,13 +58,14 @@ final class AutomationDispatchService {
    *   The dispatch ID.
    */
   public function createDispatch(
-    ?int $eventId,
+    int|string|null $eventId,
     string $notificationType,
     string $recipientHash,
     ?int $scheduledFor = NULL,
     ?array $metadata = NULL,
   ): int {
     $scheduledFor = $scheduledFor ?? $this->time->getRequestTime();
+    $eventId = $this->normalizeEventId($eventId);
 
     $fields = [
       'event_id' => $eventId,
@@ -97,7 +98,8 @@ final class AutomationDispatchService {
    * @return bool
    *   TRUE if already sent successfully.
    */
-  public function isAlreadySent(?int $eventId, string $notificationType, string $recipientHash): bool {
+  public function isAlreadySent(int|string|null $eventId, string $notificationType, string $recipientHash): bool {
+    $eventId = $this->normalizeEventId($eventId);
     $query = $this->database->select('myeventlane_automation_dispatch', 'd')
       ->fields('d', ['id'])
       ->condition('notification_type', $notificationType)
@@ -126,14 +128,18 @@ final class AutomationDispatchService {
    *   TRUE on success.
    */
   public function markSent(int $dispatchId): bool {
-    return (bool) $this->database->update('myeventlane_automation_dispatch')
+    $query = $this->database->update('myeventlane_automation_dispatch')
       ->fields([
         'status' => self::STATUS_SENT,
         'sent_at' => $this->time->getRequestTime(),
-        'attempts' => $this->database->expression('attempts + 1'),
       ])
-      ->condition('id', $dispatchId)
-      ->execute();
+      ->condition('id', $dispatchId);
+
+    $query->expression('attempts', 'attempts + :attempt_increment', [
+      ':attempt_increment' => 1,
+    ]);
+
+    return (bool) $query->execute();
   }
 
   /**
@@ -148,14 +154,18 @@ final class AutomationDispatchService {
    *   TRUE on success.
    */
   public function markFailed(int $dispatchId, string $error): bool {
-    return (bool) $this->database->update('myeventlane_automation_dispatch')
+    $query = $this->database->update('myeventlane_automation_dispatch')
       ->fields([
         'status' => self::STATUS_FAILED,
         'last_error' => $error,
-        'attempts' => $this->database->expression('attempts + 1'),
       ])
-      ->condition('id', $dispatchId)
-      ->execute();
+      ->condition('id', $dispatchId);
+
+    $query->expression('attempts', 'attempts + :attempt_increment', [
+      ':attempt_increment' => 1,
+    ]);
+
+    return (bool) $query->execute();
   }
 
   /**
@@ -190,7 +200,8 @@ final class AutomationDispatchService {
    * @return array
    *   Array of dispatch records.
    */
-  public function getDispatches(?int $eventId, string $notificationType): array {
+  public function getDispatches(int|string|null $eventId, string $notificationType): array {
+    $eventId = $this->normalizeEventId($eventId);
     $query = $this->database->select('myeventlane_automation_dispatch', 'd')
       ->fields('d')
       ->condition('notification_type', $notificationType)
@@ -217,6 +228,24 @@ final class AutomationDispatchService {
    */
   public function hashRecipient(string $identifier): string {
     return hash('sha256', strtolower(trim($identifier)));
+  }
+
+  /**
+   * Normalizes event IDs from typed and query-derived values.
+   *
+   * @param int|string|null $eventId
+   *   The incoming event ID value.
+   *
+   * @return int|null
+   *   Normalized positive event ID, or NULL for no event scope.
+   */
+  private function normalizeEventId(int|string|null $eventId): ?int {
+    if ($eventId === NULL || $eventId === '') {
+      return NULL;
+    }
+
+    $normalized = (int) $eventId;
+    return $normalized > 0 ? $normalized : NULL;
   }
 
 }
