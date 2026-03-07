@@ -1,9 +1,2 @@
-mel_admin_dashboard.platform_control:
-  path: '/admin/myeventlane'
-  defaults:
-    _controller: '\Drupal\mel_admin_dashboard\Controller\DashboardController::overview'
-    _title: 'Platform Control Centre'
-  requirements:
-    _permission: 'administer site configuration'
-  options:
-    _admin_route: TRUE
+# Route ownership moved to myeventlane_admin_dashboard.
+# This module now provides optional widgets/views only.

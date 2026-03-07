@@ -1,8 +1,6 @@
 /**
  * @file
  * Navigation + shell layout styles for MyEventLane Vendor Theme.
- *
- * mel-sidebar (left navigation), mel-vendor-shell (main layout).
  */
 
 @use '../tokens/colors' as *;
@@ -12,28 +10,20 @@
 @use '../tokens/shadows' as *;
 @use '../tokens/breakpoints' as *;
 
-// ============================================================================
-// VENDOR SHELL (Main Layout Grid)
-// ============================================================================
-
 .mel-vendor-shell {
   display: grid;
   grid-template-columns: 1fr;
   min-height: 100vh;
-  background: $bg-secondary;
-  
+  background: $ml-vendor-bg;
+
   @include respond-to(lg) {
     grid-template-columns: $layout-sidebar-nav-width 1fr;
   }
-  
+
   @include respond-to(xl) {
     grid-template-columns: $layout-sidebar-nav-width-lg 1fr;
   }
 }
-
-// ============================================================================
-// LEFT SIDEBAR (mel-sidebar)
-// ============================================================================
 
 .mel-vendor-shell__sidebar {
   position: fixed;
@@ -41,15 +31,15 @@
   left: 0;
   bottom: 0;
   width: 280px;
-  background: $ml-vendor-navy;
+  background: linear-gradient(180deg, #1a2040 0%, #121837 100%);
   color: $text-inverse;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
   padding: $spacing-6 $spacing-5;
   display: flex;
   flex-direction: column;
   gap: $spacing-6;
   transform: translateX(-100%);
-  transition: transform 0.25s ease-in-out;
+  transition: transform 0.2s ease-in-out;
   z-index: 40;
   overflow-y: auto;
 
@@ -60,14 +50,13 @@
     transform: translateX(0);
     width: auto;
   }
-  
+
   &.is-open {
     transform: translateX(0);
     box-shadow: $shadow-xl;
   }
 }
 
-// Mobile overlay
 .mel-sidebar-overlay {
   position: fixed;
   inset: 0;
@@ -91,8 +80,8 @@
   display: flex;
   align-items: center;
   gap: $spacing-3;
-  padding-bottom: $spacing-4;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: $spacing-5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .mel-sidebar__logo {
@@ -103,7 +92,7 @@
   text-decoration: none;
   font-weight: $font-weight-semibold;
   letter-spacing: 0.02em;
-  
+
   &:hover,
   &:focus {
     text-decoration: none;
@@ -113,13 +102,13 @@
 
 .mel-sidebar__logo-mark {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   background: $ml-accent-coral;
-  color: $text-inverse;
+  color: #2f2544;
   font-weight: $font-weight-bold;
   font-size: $font-size-lg;
 }
@@ -129,27 +118,60 @@
   font-size: $font-size-lg;
 }
 
-// ============================================================================
-// SIDEBAR NAVIGATION
-// ============================================================================
-
 .mel-sidebar__nav {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: $spacing-1;
+  gap: $spacing-2;
 }
 
 .mel-sidebar__item {
   margin: 0;
 }
 
+.mel-sidebar__item--with-subnav {
+  display: grid;
+  gap: $spacing-1;
+}
+
+.mel-sidebar__subnav {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 $spacing-8;
+  display: grid;
+  gap: 2px;
+}
+
+.mel-sidebar__subnav-link {
+  display: block;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $radius-sm;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: $font-size-sm;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+
+  &:hover,
+  &:focus {
+    color: $text-inverse;
+    background: rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+  }
+
+  &.is-active {
+    color: $text-inverse;
+    background: rgba(255, 255, 255, 0.14);
+    font-weight: $font-weight-semibold;
+  }
+}
+
 .mel-sidebar__link {
   display: flex;
   align-items: center;
   gap: $spacing-3;
+  min-height: 44px;
   padding: $spacing-3 $spacing-4;
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
@@ -158,6 +180,7 @@
   font-size: $font-size-label;
   transition: all 0.15s ease-in-out;
   position: relative;
+  border: 1px solid transparent;
 
   &:hover,
   &:focus {
@@ -167,35 +190,8 @@
   }
 
   &.is-active {
-    background: rgba(255, 255, 255, 0.12);
-    color: $text-inverse;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 24px;
-      background: $ml-accent-coral;
-      border-radius: 0 $radius-sm $radius-sm 0;
-    }
-  }
-}
-
-// ============================================================================
-// EVENT WIZARD SIDEBAR STEPS (.is-wizard-step)
-// ============================================================================
-// MEL brand: orange active indicator, bold font, left padding.
-// Matches Gin UX: highlight background, left border accent.
-
-.mel-sidebar__link.is-wizard-step {
-  padding-left: $spacing-4;
-  font-weight: $font-weight-semibold;
-
-  &.is-active {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.25);
     color: $text-inverse;
 
     &::before {
@@ -205,14 +201,10 @@
       top: 50%;
       transform: translateY(-50%);
       width: 4px;
-      height: 20px;
-      background: #f5a04c; // MEL orange accent
+      height: 26px;
+      background: $ml-accent-coral;
       border-radius: 0 $radius-sm $radius-sm 0;
     }
-  }
-
-  &:hover:not(.is-active) {
-    background: rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -225,6 +217,11 @@
 
 .mel-sidebar__link-label {
   flex: 1;
+}
+
+.mel-sidebar__link--disabled {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .mel-sidebar__link-badge {
@@ -241,10 +238,6 @@
   border-radius: $radius-full;
 }
 
-// ============================================================================
-// SIDEBAR SECTION DIVIDER
-// ============================================================================
-
 .mel-sidebar__divider {
   margin: $spacing-4 0;
   border: none;
@@ -259,10 +252,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
-// ============================================================================
-// SIDEBAR FOOTER
-// ============================================================================
 
 .mel-sidebar__footer {
   margin-top: auto;
@@ -344,39 +333,89 @@
   }
 }
 
-// ============================================================================
-// MAIN CONTENT AREA
-// ============================================================================
-
 .mel-vendor-shell__main {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: $bg-primary;
+  background: $ml-vendor-bg;
 }
 
-.mel-vendor-shell__header {
+.mel-shell-header {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba($bg-primary, 0.96);
-  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-4;
+  padding: $spacing-5 $spacing-5 $spacing-4;
+  background: rgba(247, 248, 250, 0.95);
   border-bottom: 1px solid $border-color-light;
-  padding: $spacing-4 $spacing-6;
+  backdrop-filter: blur(10px);
+
+  @include respond-to(md) {
+    padding: $spacing-6 $spacing-8 $spacing-5;
+  }
+}
+
+.mel-shell-header__left {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-3;
+}
+
+.mel-shell-header__menu-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  background: #fff;
+  color: $ml-vendor-navy;
+  font-size: 1.2rem;
+  line-height: 1;
+
+  @include respond-to(lg) {
+    display: none;
+  }
+}
+
+.mel-shell-header__titles {
+  display: grid;
+  gap: $spacing-1;
+}
+
+.mel-shell-header__title {
+  margin: 0;
+  color: $ml-vendor-navy;
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
+.mel-shell-header__subtitle {
+  margin: 0;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  max-width: 52ch;
+}
+
+.mel-shell-header__actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
 }
 
 .mel-vendor-shell__content {
   flex: 1;
-  padding: $spacing-6;
-  
+  padding: $spacing-4 $spacing-5 $spacing-6;
+
   @include respond-to(md) {
-    padding: $spacing-8;
+    padding: $spacing-5 $spacing-8 $spacing-8;
   }
 }
 
 .mel-vendor-shell__footer {
   border-top: 1px solid $border-color-light;
-  background: $bg-secondary;
+  background: #fff;
   padding: $spacing-6;
   color: $text-secondary;
 
@@ -385,13 +424,16 @@
   }
 }
 
+.mel-shell-layout--with-utility {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-6;
 
+  @include respond-to(xl) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
 
-
-
-
-
-
-
-
-
+.mel-shell-layout__utility-rail {
+  align-self: start;
+}

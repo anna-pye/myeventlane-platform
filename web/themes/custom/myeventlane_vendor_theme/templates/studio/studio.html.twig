@@ -1,0 +1,273 @@
+<div
+  class="mel-studio-layout"
+  data-mel-studio
+  data-mel-selected-event-id="{{ active_event.id|default('') }}"
+  data-mel-overview-save-token="{{ overview_save_token|default('') }}"
+>
+  <section class="mel-event-navigator">
+
+    <h3>Your Events</h3>
+
+    <div class="mel-event-list" data-mel-studio-list>
+
+      {% for event in events %}
+        {% include '@myeventlane_vendor_theme/components/vendor-event-card.html.twig' with { event: event } only %}
+      {% else %}
+        <div class="mel-empty-panel">
+          {{ 'No events found yet.'|t }}
+        </div>
+      {% endfor %}
+
+    </div>
+
+  </section>
+
+
+  <div class="mel-studio-workspace">
+    <main class="mel-studio-editor">
+
+      {% if active_event %}
+
+      <section class="mel-editor-top">
+
+        <div class="mel-command-center">
+
+          <div class="mel-kpi-card">
+            <span>Tickets Sold</span>
+            <strong data-mel-metric-tickets>{{ active_event.tickets_metric|default(0) }}</strong>
+          </div>
+
+          <div class="mel-kpi-card">
+            <span>RSVPs</span>
+            <strong data-mel-metric-rsvps>{{ active_event.rsvps_metric|default(0) }}</strong>
+          </div>
+
+          <div class="mel-kpi-card">
+            <span>Revenue</span>
+            <strong data-mel-metric-revenue>${{ active_event.revenue_metric|default('0') }}</strong>
+          </div>
+
+          <div class="mel-kpi-card">
+            <span>Health</span>
+            <strong data-mel-metric-health>{{ active_event.health_label|default('Draft') }}</strong>
+          </div>
+
+        </div>
+
+
+        <div class="mel-quick-actions">
+
+          <a class="mel-btn" href="{{ active_event.quick_actions.preview_url|default('#') }}" data-mel-action-preview>
+            Preview
+          </a>
+
+          <a class="mel-btn" href="{{ active_event.quick_actions.view_url|default('#') }}" data-mel-action-view>
+            View
+          </a>
+
+          <button class="mel-btn mel-btn-primary">
+            Boost Event
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <nav class="mel-studio-tabs">
+
+        <button class="mel-tab active" data-studio-tab="overview">
+          Overview
+        </button>
+
+        <button class="mel-tab" data-studio-tab="tickets">
+          Tickets
+        </button>
+
+        <button class="mel-tab" data-studio-tab="attendees">
+          Attendees
+        </button>
+
+        <button class="mel-tab" data-studio-tab="promotion">
+          Promotion
+        </button>
+
+        <button class="mel-tab" data-studio-tab="settings">
+          Settings
+        </button>
+
+        <button class="mel-tab" data-studio-tab="publish">
+          Publish
+        </button>
+
+      </nav>
+
+
+      <div class="mel-studio-panels">
+        <div class="mel-editor-status" data-mel-status></div>
+
+        <section class="mel-tab-panel active" data-studio-panel="overview">
+          {% if overview_form %}
+            {{ overview_form }}
+          {% else %}
+            <div class="mel-field-group">
+              <label for="mel-overview-title">{{ 'Event name'|t }}</label>
+              <input
+                id="mel-overview-title"
+                type="text"
+                value="{{ active_event.title|default('') }}"
+                data-mel-overview-title
+              >
+            </div>
+            <div class="mel-field-group">
+              <label for="mel-overview-summary">{{ 'Summary'|t }}</label>
+              <textarea id="mel-overview-summary" rows="4" data-mel-overview-summary>{{ active_event.field_event_summary|default('') }}</textarea>
+            </div>
+            <div class="mel-field-group">
+              <label for="mel-overview-type">{{ 'Event type'|t }}</label>
+              <select id="mel-overview-type" data-mel-overview-type>
+                <option value="rsvp"{{ active_event.field_event_type|default('rsvp') == 'rsvp' ? ' selected' : '' }}>{{ 'RSVP'|t }}</option>
+                <option value="paid"{{ active_event.field_event_type|default('rsvp') == 'paid' ? ' selected' : '' }}>{{ 'Paid'|t }}</option>
+                <option value="external"{{ active_event.field_event_type|default('rsvp') == 'external' ? ' selected' : '' }}>{{ 'External'|t }}</option>
+              </select>
+            </div>
+            {% set can_save = overview_save_token is not empty %}
+            <div class="mel-panel-actions">
+              <button
+                type="button"
+                class="mel-btn mel-btn-primary"
+                data-mel-overview-save
+                {{ can_save ? '' : 'disabled' }}
+              >
+                {{ 'Save overview'|t }}
+              </button>
+            </div>
+            {% if not can_save %}
+              <p class="mel-event-meta">{{ 'Saving is unavailable on this dashboard view.'|t }}</p>
+            {% endif %}
+
+            <div
+              id="studio-dynamic-form"
+              data-mel-dynamic-schema-form
+              aria-live="polite"
+            ></div>
+            <div class="mel-panel-actions">
+              <button type="button" class="mel-btn mel-btn-primary" data-mel-dynamic-save>
+                {{ 'Save dynamic fields'|t }}
+              </button>
+            </div>
+          {% endif %}
+        </section>
+
+        <section class="mel-tab-panel" data-studio-panel="tickets">
+          <div class="mel-field-group">
+            <label for="mel-tickets-config">{{ 'Tickets JSON configuration'|t }}</label>
+            <textarea id="mel-tickets-config" rows="8" data-mel-tickets-config>{{ active_event.tickets_config|default({})|json_encode }}</textarea>
+          </div>
+          <div class="mel-panel-actions">
+            <button type="button" class="mel-btn mel-btn-primary" data-mel-tab-save="tickets">
+              {{ 'Save tickets'|t }}
+            </button>
+          </div>
+        </section>
+
+        <section class="mel-tab-panel" data-studio-panel="attendees">
+          <div class="mel-field-group">
+            <label for="mel-attendees-config">{{ 'Attendees JSON configuration'|t }}</label>
+            <textarea id="mel-attendees-config" rows="8" data-mel-attendees-config>{{ active_event.attendees_config|default({})|json_encode }}</textarea>
+          </div>
+          <div class="mel-panel-actions">
+            <button type="button" class="mel-btn mel-btn-primary" data-mel-tab-save="attendees">
+              {{ 'Save attendees'|t }}
+            </button>
+          </div>
+        </section>
+
+        <section class="mel-tab-panel" data-studio-panel="promotion">
+          <div class="mel-field-group">
+            <label for="mel-promotion-config">{{ 'Promotion JSON configuration'|t }}</label>
+            <textarea id="mel-promotion-config" rows="8" data-mel-promotion-config>{{ active_event.promotion_config|default({})|json_encode }}</textarea>
+          </div>
+          <div class="mel-panel-actions">
+            <button type="button" class="mel-btn mel-btn-primary" data-mel-tab-save="promotion">
+              {{ 'Save promotion'|t }}
+            </button>
+          </div>
+        </section>
+
+        <section class="mel-tab-panel" data-studio-panel="settings">
+          <div class="mel-field-group">
+            <label for="mel-settings-capacity">{{ 'Capacity'|t }}</label>
+            <input
+              id="mel-settings-capacity"
+              type="number"
+              min="0"
+              step="1"
+              value="{{ active_event.settings_config.capacity|default(0) }}"
+              data-mel-settings-capacity
+            >
+          </div>
+          <div class="mel-field-group">
+            <label for="mel-settings-visibility">{{ 'Visibility'|t }}</label>
+            <select id="mel-settings-visibility" data-mel-settings-visibility>
+              {% set current_visibility = active_event.settings_config.visibility|default('public') %}
+              <option value="public"{{ current_visibility == 'public' ? ' selected' : '' }}>{{ 'Public'|t }}</option>
+              <option value="private"{{ current_visibility == 'private' ? ' selected' : '' }}>{{ 'Private'|t }}</option>
+              <option value="unlisted"{{ current_visibility == 'unlisted' ? ' selected' : '' }}>{{ 'Unlisted'|t }}</option>
+            </select>
+          </div>
+          <div class="mel-panel-actions">
+            <button type="button" class="mel-btn mel-btn-primary" data-mel-tab-save="settings">
+              {{ 'Save settings'|t }}
+            </button>
+          </div>
+        </section>
+
+        <section class="mel-tab-panel" data-studio-panel="publish">
+          <div class="mel-empty-panel">
+            {{ 'Submit this event for review and publishing.'|t }}
+          </div>
+          <div class="mel-panel-actions">
+            <button type="button" class="mel-btn mel-btn-primary" data-mel-publish-event>
+              {{ 'Submit for review'|t }}
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+      {% else %}
+
+        <div class="mel-empty-state">
+          Select an event to start editing
+        </div>
+
+      {% endif %}
+
+    </main>
+
+
+    <aside class="mel-studio-inspector">
+
+      {% if active_event %}
+
+        <h4 data-mel-editor-title>{{ active_event.title|default('Event Details') }}</h4>
+
+        <p>{{ active_event.date|default('') }}</p>
+        <p><strong>{{ 'Status:'|t }}</strong> <span data-mel-inspector-state>{{ active_event.status|default('draft')|capitalize }}</span></p>
+        <p><strong>{{ 'Health:'|t }}</strong> <span data-mel-inspector-health>{{ active_event.health_label|default('Draft') }}</span></p>
+
+        {% set checklist = active_event.checklist|default({}) %}
+        <ul class="mel-inspector-checklist">
+          <li data-mel-check="title" class="{{ checklist.title|default(false) ? 'is-complete' : 'is-missing' }}">{{ 'Title added'|t }}</li>
+          <li data-mel-check="date" class="{{ checklist.date|default(false) ? 'is-complete' : 'is-missing' }}">{{ 'Date set'|t }}</li>
+          <li data-mel-check="location" class="{{ checklist.location|default(false) ? 'is-complete' : 'is-missing' }}">{{ 'Location set'|t }}</li>
+          <li data-mel-check="banner" class="{{ checklist.banner|default(false) ? 'is-complete' : 'is-missing' }}">{{ 'Banner uploaded'|t }}</li>
+        </ul>
+
+      {% endif %}
+
+    </aside>
+  </div>
+
+</div>

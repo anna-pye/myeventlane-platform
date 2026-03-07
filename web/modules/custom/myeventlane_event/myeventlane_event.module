@@ -437,12 +437,27 @@ function _myeventlane_event_details_step_descriptions(array &$form, string $form
  * Canonical event creation flow is /vendor/events/create.
  */
 function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  // Advanced edit only: persistent warning (admin-facing).
-  $form['myeventlane_advanced_notice'] = [
-    '#type' => 'markup',
-    '#markup' => '<div class="mel-advanced-edit-warning"><strong>⚠️ Advanced edit mode</strong><br>Event creation and ticketing should be done via <em>Create Event</em>. Editing here may bypass validation and capacity safeguards.</div>',
-    '#weight' => -100,
-  ];
+  $route_name = (string) \Drupal::routeMatch()->getRouteName();
+  $event = $form_state->getFormObject()->getEntity();
+  $event_id = $event instanceof NodeInterface ? (int) $event->id() : 0;
+  $is_admin_advanced_editor = \Drupal::currentUser()->hasPermission('administer nodes');
+
+  // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
+  \Drupal::logger('myeventlane_event')->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
+    'route' => $route_name,
+    'event_id' => $event_id,
+    'form_id' => $form_id,
+    'canonical' => 0,
+  ]);
+
+  // Raw node form is reserved for admin advanced edits.
+  if ($is_admin_advanced_editor) {
+    $form['myeventlane_advanced_notice'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="mel-advanced-edit-warning"><strong>⚠️ Advanced edit mode</strong><br>Event creation and ticketing should be done via <em>Create Event</em>. Editing here may bypass validation and capacity safeguards.</div>',
+      '#weight' => -100,
+    ];
+  }
 
   /**
    * Legacy node form wizard (EventFormAlter) — DEPRECATED.

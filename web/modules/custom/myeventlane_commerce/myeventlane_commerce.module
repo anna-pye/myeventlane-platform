@@ -358,6 +358,17 @@ function myeventlane_commerce_commerce_checkout_pane_info_alter(array &$definiti
  * Remove duplicate billing information from payment_information pane.
  */
 function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Allow customer booking/checkout forms to submit when a non-default
+  // workspace is active in the current user session.
+  $workspace_safe_form_ids = [
+    'myeventlane_ticket_selection_form',
+    'myeventlane_commerce_rsvp_booking_form',
+  ];
+  $is_commerce_checkout_form = str_starts_with($form_id, 'commerce_checkout_flow_');
+  if (in_array($form_id, $workspace_safe_form_ids, TRUE) || $is_commerce_checkout_form) {
+    $form_state->set('workspace_safe', TRUE);
+  }
+
   // Apply only on Commerce checkout forms.
   if (!isset($form['#id']) || !str_contains($form['#id'], 'commerce-checkout')) {
     return;

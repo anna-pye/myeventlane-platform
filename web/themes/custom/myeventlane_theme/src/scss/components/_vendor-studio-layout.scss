@@ -1,0 +1,64 @@
+.vendor-workspace--studio .mel-studio-nav {
+  overflow-y: auto;
+  height: 100%;
+  padding: 24px;
+  background: #fff;
+}
+
+.vendor-workspace--studio .mel-studio-canvas {
+  min-width: 0;
+}
+
+.vendor-workspace--studio .mel-studio-inspector {
+  position: static;
+  top: auto;
+}
+
+.vendor-workspace--studio .mel-workspace-tabs {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.vendor-workspace--studio .mel-workspace-tabs a {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  padding-bottom: 6px;
+}
+
+.vendor-workspace--studio .mel-workspace-tabs a.active {
+  color: #6b46ff;
+  border-bottom: 2px solid #6b46ff;
+}
+
+.vendor-workspace--studio .mel-studio-nav-actions {
+  margin-bottom: 14px;
+}
+
+.vendor-workspace--studio .mel-studio-nav-create {
+  width: 100%;
+  text-align: center;
+}
+
+.vendor-workspace--studio .mel-studio-nav-search-wrap {
+  margin-bottom: 14px;
+}
+
+.vendor-workspace--studio .mel-studio-nav-search {
+  width: 100%;
+  border: 1px solid #dde1eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.vendor-workspace--studio .mel-studio-nav-list {
+  max-height: calc(100vh - 270px);
+  overflow-y: auto;
+}
+
+.vendor-workspace--studio .mel-studio-nav .mel-event-actions {
+  display: none;
+}

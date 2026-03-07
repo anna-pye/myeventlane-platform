@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Reusable alert box for dashboard next steps.
+ *
+ * Variables:
+ * - type: info|success|warning|error
+ * - title: Required title.
+ * - message: Required body copy.
+ * - link_label: Optional action link label.
+ * - link_url: Optional action URL.
+ */
+#}
+<article class="mel-alert-box mel-alert-box--{{ type|default('info') }}" role="status">
+  <h3 class="mel-alert-box__title">{{ title }}</h3>
+  <p class="mel-alert-box__message">{{ message }}</p>
+  {% if link_label and link_url %}
+    <a class="mel-alert-box__link" href="{{ link_url }}">{{ link_label }}</a>
+  {% endif %}
+</article>

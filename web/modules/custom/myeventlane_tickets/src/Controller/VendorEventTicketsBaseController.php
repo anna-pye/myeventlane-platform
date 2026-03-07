@@ -84,7 +84,7 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
     $tabs = [
       [
         'label' => $this->t('Overview'),
-        'url' => Url::fromRoute('myeventlane_tickets.event_tickets_overview', ['event' => $event_id])->toString(),
+        'url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString(),
         'key' => 'overview',
       ],
       [

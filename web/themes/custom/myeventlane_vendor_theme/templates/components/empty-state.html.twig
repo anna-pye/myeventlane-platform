@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Reusable empty state component.
+ *
+ * Variables:
+ * - title: Required title.
+ * - message: Required supporting text.
+ * - cta_label: Optional CTA label.
+ * - cta_url: Optional CTA URL.
+ */
+#}
+<section class="mel-empty-state-card" role="status">
+  <h3 class="mel-empty-state-card__title">{{ title }}</h3>
+  <p class="mel-empty-state-card__message">{{ message }}</p>
+  {% if cta_label and cta_url %}
+    <a class="mel-btn mel-btn--primary" href="{{ cta_url }}">{{ cta_label }}</a>
+  {% endif %}
+</section>

@@ -8,7 +8,9 @@
 declare(strict_types=1);
 
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_preprocess_page().
@@ -77,6 +79,9 @@ function myeventlane_admin_dashboard_theme(): array {
         'series' => ['labels' => [], 'gross' => [], 'commission' => [], 'net' => []],
         'vendor_ranking' => [],
         'payout_summary' => ['unpaid_total' => 0.0, 'paid_total' => 0.0, 'unpaid_by_store' => []],
+        'active_vendors_count' => 0,
+        'upcoming_events_count' => 0,
+        'open_escalations_count' => 0,
         'export_url' => '',
         'reports_url' => '',
         'escalations_url' => '',
@@ -321,4 +326,36 @@ function myeventlane_admin_dashboard_toolbar(): array {
   ];
 
   return $items;
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function myeventlane_admin_dashboard_entity_operation(EntityInterface $entity, \Drupal\Core\Cache\CacheableMetadata $cacheability): array {
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
+    return [];
+  }
+
+  if (!$entity->hasField('moderation_state') || $entity->get('moderation_state')->isEmpty()) {
+    return [];
+  }
+
+  if ((string) $entity->get('moderation_state')->value !== 'review') {
+    return [];
+  }
+
+  $account = \Drupal::currentUser();
+  if (!$account->hasPermission('access myeventlane platform control centre')) {
+    return [];
+  }
+
+  $cacheability->addCacheContexts(['user.permissions']);
+
+  return [
+    'approve_deploy' => [
+      'title' => t('Approve'),
+      'weight' => 210,
+      'url' => Url::fromRoute('myeventlane_admin_dashboard.review_approve_deploy', ['node' => (int) $entity->id()]),
+    ],
+  ];
 }

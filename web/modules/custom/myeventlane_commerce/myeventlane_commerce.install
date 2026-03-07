@@ -8,9 +8,8 @@
 /**
  * Implements hook_update_N().
  */
-function myeventlane_commerce_update_8000(): void {
-  // Put any schema or config updates here.
-  // For example, create a table or add a new field to an entity.
-  // If you don't need anything yet, just leave a comment.
-  \Drupal::logger('myeventlane_commerce')->notice('Ran update 8000.');
+function myeventlane_commerce_update_10001(): void {
+  // Valid baseline update hook for Drupal 11 upgrade paths.
+  // Intentionally no schema changes.
+  \Drupal::logger('myeventlane_commerce')->notice('Ran update 10001.');
 }

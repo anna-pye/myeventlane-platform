@@ -14,6 +14,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -32,6 +33,11 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
   protected RouteProviderInterface $routeProvider;
 
   /**
+   * Logger channel.
+   */
+  private LoggerInterface $logger;
+
+  /**
    * Constructs the form.
    */
   public function __construct(
@@ -41,10 +47,12 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
     RendererInterface $renderer,
     WizardReviewSummaryBuilder $wizard_review_summary_builder,
     RouteProviderInterface $route_provider,
+    LoggerInterface $logger,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->wizardReviewSummaryBuilder = $wizard_review_summary_builder;
     $this->routeProvider = $route_provider;
+    $this->logger = $logger;
   }
 
   /**
@@ -58,6 +66,7 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
       $container->get('renderer'),
       $container->get('myeventlane_event.wizard_review_summary_builder'),
       $container->get('router.route_provider'),
+      $container->get('logger.factory')->get('myeventlane_event'),
     );
   }
 
@@ -73,6 +82,13 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
+    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
+    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
+      'route' => (string) $this->getRouteMatch()->getRouteName(),
+      'event_id' => (int) $event->id(),
+      'form_id' => $this->getFormId(),
+      'canonical' => 1,
+    ]);
 
     $title = $this->t('Create event: Review & Publish');
     $steps = $this->buildStepper($event, 'review');

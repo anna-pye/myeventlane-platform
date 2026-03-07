@@ -1,0 +1,56 @@
+<div class="mel-publish-panel" data-mel-publish-panel>
+  <div class="mel-inspector-section">
+    <h3>Publishing</h3>
+    <p>
+      <strong>Current state:</strong> {{ state }}
+    </p>
+    <div class="mel-workspace">
+      <strong>{{ workspace }}</strong>
+      <small>{{ workspace_id }}</small>
+    </div>
+  </div>
+
+  <div class="mel-inspector-section">
+    <h3>Checklist</h3>
+    <ul class="mel-publish-checklist">
+      <li class="mel-check-title {{ checklist.title }}" data-check="title">Title</li>
+      <li class="mel-check-date {{ checklist.date }}" data-check="date">Date</li>
+      <li class="mel-check-location {{ checklist.location }}" data-check="location">Location</li>
+      <li class="mel-check-banner {{ checklist.banner }}" data-check="banner">Banner image</li>
+    </ul>
+    <div class="mel-publish-warnings" data-mel-publish-warnings aria-live="polite"></div>
+  </div>
+
+  <div class="mel-inspector-section">
+    <h3>Event Health</h3>
+    <p data-mel-health-ticket-percent="{{ ticket_percent }}">Tickets sold {{ ticket_percent }}%</p>
+    <p data-mel-health-rsvps="{{ rsvp_count }}">RSVPs {{ rsvp_count }}</p>
+    <p data-mel-health-revenue="{{ revenue }}">Revenue ${{ revenue }}</p>
+  </div>
+
+  <div class="mel-inspector-section">
+    <h3>Actions</h3>
+    <div class="mel-inspector-actions">
+      {% if preview_link %}
+        <a class="mel-btn" href="{{ preview_link }}">
+          Preview Draft
+        </a>
+      {% endif %}
+
+      {% if edit_link %}
+        <a class="mel-btn" href="{{ edit_link }}">
+          Edit Event
+        </a>
+      {% endif %}
+
+      {% if submit_link %}
+        <form method="post" action="{{ submit_link }}">
+          <input type="hidden" name="token" value="{{ submit_token }}">
+          <button class="mel-btn mel-btn-primary mel-submit-review">
+            Submit for Review
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>

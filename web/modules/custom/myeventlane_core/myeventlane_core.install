@@ -477,3 +477,288 @@ function myeventlane_core_update_9113(): void {
     $link->save();
   }
 }
+
+/**
+ * Enables Workspaces and creates MEL workspace topology.
+ */
+function myeventlane_core_update_9114(): void {
+  $module_handler = \Drupal::moduleHandler();
+  if (!$module_handler->moduleExists('workspaces')) {
+    \Drupal::service('module_installer')->install(['workspaces'], TRUE);
+  }
+
+  $workspace_storage = \Drupal::entityTypeManager()->getStorage('workspace');
+
+  if (!$workspace_storage->load('live')) {
+    $workspace_storage->create([
+      'id' => 'live',
+      'label' => 'Live',
+      'uid' => 1,
+    ])->save();
+  }
+
+  if (!$workspace_storage->load('admin_review')) {
+    $workspace_storage->create([
+      'id' => 'admin_review',
+      'label' => 'Admin Review',
+      'parent' => 'live',
+      'uid' => 1,
+    ])->save();
+  }
+
+  $vendor_user_ids = \Drupal::entityTypeManager()->getStorage('user')
+    ->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('status', 1)
+    ->condition('roles', 'vendor')
+    ->execute();
+
+  foreach ($vendor_user_ids as $uid) {
+    $workspace_id = 'vendor_' . (int) $uid;
+    if (!$workspace_storage->load($workspace_id)) {
+      $workspace_storage->create([
+        'id' => $workspace_id,
+        'label' => 'vendor-' . (int) $uid,
+        'parent' => 'live',
+        'uid' => (int) $uid,
+      ])->save();
+    }
+  }
+
+}
+
+/**
+ * Enables event moderation review flow and admin review queue view.
+ */
+function myeventlane_core_update_9115(): void {
+  $workflow_storage = \Drupal::entityTypeManager()->getStorage('workflow');
+  $workflow = $workflow_storage->load('editorial');
+
+  if ($workflow) {
+    $plugin = $workflow->getTypePlugin();
+
+    if (method_exists($plugin, 'addEntityTypeAndBundle')) {
+      $bundles = $plugin->getBundlesForEntityType('node');
+      if (!in_array('event', $bundles, TRUE)) {
+        $plugin->addEntityTypeAndBundle('node', 'event');
+      }
+    }
+
+    if (!$plugin->hasState('review')) {
+      $plugin->addState('review', 'Review');
+      $plugin->setStateWeight('review', -1);
+    }
+
+    if (!$plugin->hasTransition('submit_for_review')) {
+      $plugin->addTransition('submit_for_review', 'Submit for review', ['draft'], 'review');
+      $plugin->setTransitionWeight('submit_for_review', 2);
+    }
+
+    if (!$plugin->hasTransition('send_back_to_draft')) {
+      $plugin->addTransition('send_back_to_draft', 'Send back to draft', ['review'], 'draft');
+      $plugin->setTransitionWeight('send_back_to_draft', 3);
+    }
+
+    if (!$plugin->hasTransition('publish_from_review')) {
+      $plugin->addTransition('publish_from_review', 'Publish from review', ['review'], 'published');
+      $plugin->setTransitionWeight('publish_from_review', 4);
+    }
+
+    $workflow->save();
+  }
+
+  $view_storage = \Drupal::entityTypeManager()->getStorage('view');
+  if ($view_storage->load('mel_admin_review_queue')) {
+    return;
+  }
+
+  $view = \Drupal\views\Entity\View::create([
+    'id' => 'mel_admin_review_queue',
+    'label' => 'MEL Admin Review Queue',
+    'module' => 'views',
+    'description' => 'Admin queue for event content in review state.',
+    'tag' => '',
+    'base_table' => 'node_field_revision',
+    'base_field' => 'vid',
+    'dependencies' => [
+      'config' => ['node.type.event'],
+      'module' => ['content_moderation', 'node', 'user'],
+    ],
+    'display' => [
+      'default' => [
+        'id' => 'default',
+        'display_title' => 'Default',
+        'display_plugin' => 'default',
+        'position' => 0,
+        'display_options' => [
+          'title' => 'Admin Review Queue',
+          'access' => [
+            'type' => 'perm',
+            'options' => [
+              'perm' => 'access myeventlane platform control centre',
+            ],
+          ],
+          'pager' => [
+            'type' => 'full',
+            'options' => [
+              'items_per_page' => 50,
+            ],
+          ],
+          'style' => [
+            'type' => 'table',
+            'options' => [
+              'columns' => [
+                'title' => 'title',
+                'name' => 'name',
+                'changed' => 'changed',
+                'operations' => 'operations',
+              ],
+              'default' => 'changed',
+            ],
+          ],
+          'row' => [
+            'type' => 'fields',
+          ],
+          'fields' => [
+            'title' => [
+              'id' => 'title',
+              'table' => 'node_field_revision',
+              'field' => 'title',
+              'plugin_id' => 'field',
+              'label' => 'Title',
+              'type' => 'string',
+              'settings' => [
+                'link_to_entity' => TRUE,
+              ],
+            ],
+            'name' => [
+              'id' => 'name',
+              'table' => 'users_field_data',
+              'field' => 'name',
+              'relationship' => 'uid',
+              'plugin_id' => 'field',
+              'label' => 'Vendor',
+              'type' => 'user_name',
+              'settings' => [
+                'link_to_entity' => TRUE,
+              ],
+            ],
+            'changed' => [
+              'id' => 'changed',
+              'table' => 'node_field_revision',
+              'field' => 'changed',
+              'plugin_id' => 'field',
+              'label' => 'Submitted',
+              'type' => 'timestamp',
+              'settings' => [
+                'date_format' => 'short',
+              ],
+            ],
+            'operations' => [
+              'id' => 'operations',
+              'table' => 'node_revision',
+              'field' => 'operations',
+              'plugin_id' => 'entity_operations',
+              'label' => 'Operations',
+              'destination' => TRUE,
+            ],
+          ],
+          'filters' => [
+            'latest_translation_affected_revision' => [
+              'id' => 'latest_translation_affected_revision',
+              'table' => 'node_revision',
+              'field' => 'latest_translation_affected_revision',
+              'plugin_id' => 'latest_translation_affected_revision',
+              'value' => '1',
+            ],
+            'type' => [
+              'id' => 'type',
+              'table' => 'node_field_revision',
+              'field' => 'type',
+              'plugin_id' => 'bundle',
+              'value' => [
+                'event' => 'event',
+              ],
+            ],
+            'moderation_state' => [
+              'id' => 'moderation_state',
+              'table' => 'node_field_revision',
+              'field' => 'moderation_state',
+              'plugin_id' => 'moderation_state_filter',
+              'operator' => 'in',
+              'value' => [
+                'editorial-review' => 'editorial-review',
+              ],
+            ],
+          ],
+          'sorts' => [
+            'changed' => [
+              'id' => 'changed',
+              'table' => 'node_field_revision',
+              'field' => 'changed',
+              'plugin_id' => 'date',
+              'order' => 'DESC',
+            ],
+          ],
+          'relationships' => [
+            'uid' => [
+              'id' => 'uid',
+              'table' => 'node_field_revision',
+              'field' => 'uid',
+              'plugin_id' => 'standard',
+            ],
+          ],
+          'cache' => [
+            'type' => 'tag',
+          ],
+          'query' => [
+            'type' => 'views_query',
+          ],
+          'exposed_form' => [
+            'type' => 'basic',
+            'options' => [
+              'submit_button' => 'Filter',
+            ],
+          ],
+        ],
+      ],
+      'page_review' => [
+        'id' => 'page_review',
+        'display_title' => 'Review queue',
+        'display_plugin' => 'page',
+        'position' => 1,
+        'display_options' => [
+          'path' => 'admin/platform/review',
+        ],
+      ],
+    ],
+  ]);
+  $view->save();
+}
+
+/**
+ * Aligns admin review queue filters with live moderation state records.
+ */
+function myeventlane_core_update_9116(): void {
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('mel_admin_review_queue');
+  if (!$view) {
+    return;
+  }
+
+  $display = $view->get('display');
+  if (!is_array($display) || !isset($display['default']['display_options']['filters'])) {
+    return;
+  }
+
+  // This filter can exclude valid latest review revisions in this setup.
+  unset($display['default']['display_options']['filters']['latest_translation_affected_revision']);
+
+  if (isset($display['default']['display_options']['filters']['moderation_state'])) {
+    $display['default']['display_options']['filters']['moderation_state']['value'] = [
+      'editorial-review' => 'editorial-review',
+    ];
+  }
+
+  $view->set('display', $display);
+  $view->save();
+}

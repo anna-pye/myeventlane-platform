@@ -13,6 +13,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -35,6 +36,11 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
   private readonly LegalGatekeeper $legalGatekeeper;
 
   /**
+   * Logger channel.
+   */
+  private readonly LoggerInterface $logger;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -43,10 +49,12 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
     MessengerInterface $messenger,
     EntityTypeManagerInterface $entity_type_manager,
     LegalGatekeeper $legal_gatekeeper,
+    LoggerInterface $logger,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->entityTypeManager = $entity_type_manager;
     $this->legalGatekeeper = $legal_gatekeeper;
+    $this->logger = $logger;
   }
 
   /**
@@ -59,6 +67,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_legal.gatekeeper'),
+      $container->get('logger.factory')->get('myeventlane_event'),
     );
   }
 
@@ -69,6 +78,14 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
     $this->assertVendorAccess();
     $this->assertStripeConnected();
     $this->legalGatekeeper->assertVendorTermsAccepted();
+
+    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
+    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
+      'route' => 'myeventlane_event.wizard.create',
+      'event_id' => 0,
+      'form_id' => 'n/a',
+      'canonical' => 1,
+    ]);
 
     $event = $this->getOrCreateDraftEvent();
     $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event->id()]);
@@ -81,6 +98,13 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
   public function edit(NodeInterface $node): RedirectResponse {
     $this->assertEventOwnership($node);
     $this->ensureVendorAssigned($node);
+    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
+    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
+      'route' => 'myeventlane_event.wizard.edit',
+      'event_id' => (int) $node->id(),
+      'form_id' => 'n/a',
+      'canonical' => 1,
+    ]);
     $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $node->id()]);
     return new RedirectResponse($url->toString());
   }

@@ -98,7 +98,7 @@ final class VendorEventsService implements VendorEventsServiceInterface {
         'menu' => [
           [
             'label' => 'Edit',
-            'url' => $node->toUrl('edit-form')->toString(),
+            'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $nid])->toString(),
           ],
         ],
       ];

@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Shared MEL vendor workspace shell.
+ */
+#}
+<header class="mel-topbar"></header>
+
+{% set sidebar_content = sidebar|default('') %}
+
+<div class="mel-vendor-workspace mel-workspace{% if sidebar_content is not empty %} mel-workspace--with-sidebar{% endif %}">
+  {% if sidebar_content is not empty %}
+    <aside class="mel-sidebar">
+      {{ sidebar_content }}
+    </aside>
+  {% endif %}
+
+  <main class="mel-vendor-main mel-canvas">
+    {{ content|default('') }}
+  </main>
+
+  <aside class="mel-vendor-insights mel-inspector">
+    {{ insights|default('') }}
+  </aside>
+</div>

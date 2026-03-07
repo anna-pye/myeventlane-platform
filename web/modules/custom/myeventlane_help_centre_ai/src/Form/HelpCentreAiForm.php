@@ -20,21 +20,21 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 final class HelpCentreAiForm extends FormBase {
 
-  public function __construct(
-    private readonly HelpCentreAiRetriever $retriever,
-    private readonly AiJobEnqueueService $jobEnqueue,
-    private readonly RequestStack $requestStack,
-  ) {}
+  protected ?HelpCentreAiRetriever $retriever = NULL;
+
+  protected ?AiJobEnqueueService $jobEnqueue = NULL;
+
+  protected ?RequestStack $injectedRequestStack = NULL;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
-    return new self(
-      $container->get('myeventlane_help_centre_ai.retriever'),
-      $container->get('myeventlane_ai.job_enqueue'),
-      $container->get('request_stack'),
-    );
+    $form = new self();
+    $form->retriever = $container->get('myeventlane_help_centre_ai.retriever');
+    $form->jobEnqueue = $container->get('myeventlane_ai.job_enqueue');
+    $form->injectedRequestStack = $container->get('request_stack');
+    return $form;
   }
 
   /**
@@ -48,6 +48,9 @@ final class HelpCentreAiForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    // Avoid serializing service dependencies for this single-step form.
+    $form_state->disableCache();
+
     $form['question'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Your question'),
@@ -75,8 +78,10 @@ final class HelpCentreAiForm extends FormBase {
         '#weight' => 100,
       ];
       $form['result']['disclosure'] = [
-        '#type' => 'markup',
-        '#markup' => '<p class="help-centre-ai-result__disclosure">' . htmlspecialchars($this->t('This is an AI-generated response based on available help articles. For formal support, contact our team.')) . '</p>',
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['help-centre-ai-result__disclosure']],
+        '#value' => $this->t('This is an AI-generated response based on available help articles. For formal support, contact our team.'),
         '#weight' => -10,
       ];
       $form['result']['generating'] = [
@@ -131,6 +136,19 @@ final class HelpCentreAiForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    if (!$this->retriever || !$this->jobEnqueue || !$this->injectedRequestStack) {
+      $this->logger('myeventlane_help_centre_ai')->warning('HelpCentreAiForm dependencies missing at submit; attempting rehydrate.');
+      $fresh = self::create(\Drupal::getContainer());
+      $this->retriever = $fresh->retriever;
+      $this->jobEnqueue = $fresh->jobEnqueue;
+      $this->injectedRequestStack = $fresh->injectedRequestStack;
+    }
+
+    if (!$this->retriever || !$this->jobEnqueue || !$this->injectedRequestStack) {
+      $this->logger('myeventlane_help_centre_ai')->error('HelpCentreAiForm dependencies are not initialized after rehydrate.');
+      throw new \LogicException('HelpCentreAiForm dependencies are not initialized.');
+    }
+
     $question = trim((string) $form_state->getValue('question'));
     $articles = $this->retriever->retrieve($question, 5);
 
@@ -158,7 +176,7 @@ final class HelpCentreAiForm extends FormBase {
       'question' => $question,
     ];
 
-    $request = $this->requestStack->getCurrentRequest();
+    $request = $this->injectedRequestStack->getCurrentRequest();
     $ip = $request ? $request->getClientIp() : '0.0.0.0';
     $scopeId = 'help_centre_ai:ip:' . $ip;
 

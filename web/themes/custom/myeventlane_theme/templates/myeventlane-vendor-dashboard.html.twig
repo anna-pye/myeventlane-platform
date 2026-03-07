@@ -1,0 +1,116 @@
+{#
+/**
+ * @file
+ * Theme override for the vendor dashboard workspace shell.
+ */
+#}
+{{ attach_library('myeventlane_theme/vendor-studio') }}
+
+{% set events = upcoming_events|default([]) %}
+{% set event = events|first|default({}) %}
+
+<div class="vendor-workspace mel-dashboard-wrapper mel-dashboard-wrapper--vendor">
+  <aside class="vendor-workspace__sidebar">
+    <div class="vendor-workspace__sidebar-inner">
+      <h2 class="vendor-workspace__sidebar-title">{{ 'Overview'|t }}</h2>
+      {% if quick_links %}
+        <nav class="vendor-workspace__nav" aria-label="{{ 'Vendor navigation'|t }}">
+          {% for link in quick_links %}
+            <a class="vendor-workspace__nav-link" href="{{ link.url }}">{{ link.title }}</a>
+          {% endfor %}
+        </nav>
+      {% endif %}
+    </div>
+  </aside>
+
+  <aside class="vendor-workspace__navigator">
+    {% include '@myeventlane_theme/vendor/event-navigator.html.twig' with {
+      events: events
+    } only %}
+  </aside>
+
+  <main class="vendor-workspace__workspace">
+    <header class="mel-workspace-header">
+      <div class="mel-event-context">
+        <h1>{{ event.title|default('Vendor Dashboard'|t) }}</h1>
+        <span class="mel-event-status">
+          {{ event.status|default('Published'|t) }} • {{ event.date|default(event.start_date|default('TBD'|t)) }} • {{ event.location|default('Location TBD'|t) }}
+        </span>
+      </div>
+    </header>
+
+    <div class="vendor-workspace__content">
+      {% if welcome_message %}
+        <section class="mel-card">
+          <p>{{ welcome_message }}</p>
+        </section>
+      {% endif %}
+
+      {% if dashboard.metrics %}
+        <section class="mel-dashboard-section" aria-labelledby="metrics-title">
+          <h2 id="metrics-title" class="mel-section-title">{{ 'Overview Mode'|t }}</h2>
+          <div class="mel-metrics-grid">
+            {% for metric in dashboard.metrics %}
+              <article class="mel-card mel-metric-card">
+                <h3 class="mel-metric-card__label">{{ metric.label }}</h3>
+                <div class="mel-metric-card__value">{{ metric.value }}</div>
+                {% if metric.subtext %}
+                  <p class="mel-metric-card__subtext">{{ metric.subtext }}</p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if upcoming_events is not empty %}
+        <section class="mel-dashboard-section" aria-labelledby="upcoming-events-title">
+          <h2 id="upcoming-events-title" class="mel-section-title">{{ 'Your Events'|t }}</h2>
+          <div class="mel-dashboard-events">
+            {% for row in upcoming_events %}
+              <a class="mel-event-card" href="{{ row.edit_url|default(row.url) }}">
+                <div class="mel-event-thumb" aria-hidden="true">
+                  <div class="mel-event-placeholder"></div>
+                </div>
+                <div class="mel-event-content">
+                  <div class="mel-event-title">{{ row.title }}</div>
+                  <div class="mel-event-meta">
+                    {% if row.start_date %}
+                      {{ row.start_date }}{% if row.start_time %} • {{ row.start_time }}{% endif %}
+                    {% else %}
+                      {{ 'No date set'|t }}
+                    {% endif %}
+                  </div>
+                  <div class="mel-event-metrics">
+                    <span>{{ 'Tickets'|t }} {{ row.attendee_count|default(0) }}</span>
+                    <span>{{ 'RSVPs'|t }} {{ row.rsvp_count|default(0) }}</span>
+                    <span>${{ row.revenue|default(0)|number_format(2) }}</span>
+                  </div>
+                </div>
+                <div class="mel-event-status">
+                  {% if row.event_mode == 'rsvp' %}
+                    {{ 'RSVP'|t }}
+                  {% elseif row.event_mode == 'paid' %}
+                    {{ 'Tickets'|t }}
+                  {% elseif row.event_mode == 'external' %}
+                    {{ 'External'|t }}
+                  {% elseif row.event_mode == 'both' %}
+                    {{ 'Both'|t }}
+                  {% else %}
+                    {{ row.event_mode|default('Draft'|t)|capitalize }}
+                  {% endif %}
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    </div>
+  </main>
+
+  <aside class="vendor-workspace__inspector">
+    {% include '@myeventlane_theme/vendor/event-inspector.html.twig' with {
+      event: event
+    } only %}
+  </aside>
+</div>

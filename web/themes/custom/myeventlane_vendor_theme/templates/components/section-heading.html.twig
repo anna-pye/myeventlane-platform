@@ -1,0 +1,16 @@
+{#
+/**
+ * @file
+ * Reusable section heading for vendor shell pages.
+ *
+ * Variables:
+ * - title: Required title text.
+ * - subtitle: Optional helper text.
+ */
+#}
+<header class="mel-section-heading">
+  <h2 class="mel-section-heading__title">{{ title }}</h2>
+  {% if subtitle %}
+    <p class="mel-section-heading__subtitle">{{ subtitle }}</p>
+  {% endif %}
+</header>

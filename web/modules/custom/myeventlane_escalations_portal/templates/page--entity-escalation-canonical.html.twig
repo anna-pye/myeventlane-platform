@@ -40,7 +40,7 @@
                 {% if entity_edit_url|default(false) and entity_title|default(false) %}
                   <a class="breadcrumb__link gin-back-to-admin" href="{{ entity_edit_url }}">{{ 'Edit %title'|t({ '%title': entity_title }) }}</a>
                 {% else %}
-                  <a class="breadcrumb__link gin-back-to-admin" href="{{ path('system.admin_content') }}">{{ 'Back to Administration'|t }}</a>
+                  <a class="breadcrumb__link gin-back-to-admin" href="/admin">{{ 'Back to Administration'|t }}</a>
                 {% endif %}
               </li>
             </ol>

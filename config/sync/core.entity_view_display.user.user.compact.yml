@@ -41,6 +41,7 @@ hidden:
   field_city: true
   field_display_name: true
   field_mel_account_type: true
+  field_pro_grace_expires: true
   field_pro_subscription_managed: true
   field_pronouns: true
   langcode: true

@@ -1,25 +1,47 @@
 {#
 /**
  * @file
- * Default page layout for the MyEventLane Vendor Console.
- *
- * Minimal shell that explicitly includes the vendor header and footer includes,
- * and renders regions without hardcoding menus, links, or logos in this file.
+ * Shared vendor shell layout for MyEventLane.
  */
 #}
 
 {% set sidebar = include('@myeventlane_vendor_theme/includes/sidebar.html.twig', { page: page }, with_context = false) %}
-
-{# Mobile sidebar overlay (behavior is handled by existing theme JS/CSS if present). #}
+{% set is_dashboard_route = page.active_section|default('') == 'dashboard' %}
 <div class="mel-sidebar-overlay" data-sidebar-overlay></div>
 
 <div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
-  <aside class="mel-vendor-shell__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
+  <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
     {{ sidebar|raw }}
   </aside>
 
   <div class="mel-vendor-shell__main">
-    {% include '@myeventlane_vendor_theme/includes/header.html.twig' with { page: page } only %}
+    <header class="mel-shell-header" role="banner">
+      <div class="mel-shell-header__left">
+        <button class="mel-shell-header__menu-btn"
+                type="button"
+                data-sidebar-toggle
+                aria-expanded="false"
+                aria-controls="mel-vendor-sidebar"
+                aria-label="{{ 'Open navigation menu'|t }}">
+          <span aria-hidden="true">☰</span>
+        </button>
+
+        <div class="mel-shell-header__titles">
+          <h1 class="mel-shell-header__title">{{ page.shell_page_title|default('Vendor workspace'|t) }}</h1>
+          {% if page.shell_page_subtitle %}
+            <p class="mel-shell-header__subtitle">{{ page.shell_page_subtitle }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mel-shell-header__actions">
+        {% if page.shell_primary_action %}
+          <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary">
+            {{ page.shell_primary_action.label }}
+          </a>
+        {% endif %}
+      </div>
+    </header>
 
     {% if page.vendor_alert is defined %}
       {% include '@myeventlane_vendor_theme/includes/vendor-alert-strip.html.twig' with {
@@ -33,16 +55,28 @@
       {% endif %}
 
       {% if page.sidebar_help %}
-        <div class="mel-layout--two-column">
-          <div class="mel-layout__main">
-            {{ page.content }}
+        <div class="mel-shell-layout mel-shell-layout--with-utility">
+          <div class="mel-shell-layout__main">
+            {% if is_dashboard_route %}
+              <section class="mel-dashboard-page">
+                {{ page.content }}
+              </section>
+            {% else %}
+              {{ page.content }}
+            {% endif %}
           </div>
-          <aside class="mel-layout__sidebar-help">
+          <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
             {{ page.sidebar_help }}
           </aside>
         </div>
       {% else %}
-        {{ page.content }}
+        {% if is_dashboard_route %}
+          <section class="mel-dashboard-page">
+            {{ page.content }}
+          </section>
+        {% else %}
+          {{ page.content }}
+        {% endif %}
       {% endif %}
     </main>
 

@@ -170,6 +170,17 @@
   }
 
   /**
+   * Set a field value without firing events.
+   *
+   * Use this only for safe defaults during initial form attach to avoid
+   * triggering early Drupal AJAX requests.
+   */
+  function setFieldValueSilent(field, value) {
+    if (!field) return;
+    field.value = value;
+  }
+
+  /**
    * Attempt to find address component field by name patterns within widget root.
    * 
    * @param {HTMLElement} widgetRoot - Root element to search within
@@ -1134,14 +1145,14 @@
       if (country.tagName === 'SELECT') {
         for (const opt of country.options) {
           if (opt.value === 'AU') {
-            setFieldValue(country, 'AU');
+            setFieldValueSilent(country, 'AU');
             log('Set default country to AU');
             break;
           }
         }
       } else {
         // For text inputs, just set the value.
-        setFieldValue(country, 'AU');
+        setFieldValueSilent(country, 'AU');
         log('Set default country to AU');
       }
     }

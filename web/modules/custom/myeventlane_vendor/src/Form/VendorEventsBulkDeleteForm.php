@@ -89,7 +89,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
         'action' => [
           '#type' => 'link',
           '#title' => $this->t('Create Event'),
-          '#url' => Url::fromUri('internal:/vendor/events/add'),
+          '#url' => Url::fromRoute('myeventlane_event.wizard.create'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
         ],
       ];
@@ -137,8 +137,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
         'status' => $status,
         'status_class' => $statusClass,
         'view_url' => $node->toUrl()->toString(),
-        // Use wizard route for editing (vendors never see default node edit form).
-        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $nodeId])->toString(),
+        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $nodeId])->toString(),
         'manage_url' => '/vendor/events/' . $nodeId . '/overview',
       ];
     }

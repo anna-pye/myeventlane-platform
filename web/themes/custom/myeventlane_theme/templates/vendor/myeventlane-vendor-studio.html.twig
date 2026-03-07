@@ -1,0 +1,59 @@
+{{ attach_library('myeventlane_theme/vendor-studio') }}
+
+<div class="vendor-workspace vendor-workspace--studio">
+  <aside class="vendor-workspace__sidebar">
+    <div class="vendor-workspace__sidebar-inner">
+      <h2 class="vendor-workspace__sidebar-title">{{ 'Work Mode'|t }}</h2>
+    </div>
+  </aside>
+
+  <aside class="vendor-workspace__navigator mel-studio-nav">
+    {{ event_navigator }}
+  </aside>
+
+  <main class="vendor-workspace__workspace mel-studio-canvas">
+    <header class="mel-workspace-header">
+      <div class="mel-event-context">
+        <h1>{{ 'Vendor Studio'|t }}</h1>
+        <span class="mel-event-status">{{ 'Work Mode'|t }}</span>
+      </div>
+    </header>
+
+    <div class="vendor-workspace__content">
+      {% include '@myeventlane_theme/vendor/event-command-center.html.twig' %}
+
+      <div class="mel-editor-layout" data-mel-editor-layout>
+        <aside class="mel-editor-menu">
+          <button type="button" class="is-active" data-section="overview">{{ 'Overview'|t }}</button>
+          <button type="button" data-section="dates">{{ 'Dates'|t }}</button>
+          <button type="button" data-section="tickets">{{ 'Tickets'|t }}</button>
+          <button type="button" data-section="images">{{ 'Images'|t }}</button>
+          <button type="button" data-section="description">{{ 'Description'|t }}</button>
+          <button type="button" data-section="settings">{{ 'Settings'|t }}</button>
+
+          <label class="mel-editor-type-label" for="mel-event-type">{{ 'Event type'|t }}</label>
+          <select id="mel-event-type" class="mel-editor-type">
+            <option value="rsvp">{{ 'RSVP'|t }}</option>
+            <option value="paid">{{ 'Paid'|t }}</option>
+            <option value="external">{{ 'External'|t }}</option>
+          </select>
+        </aside>
+
+        <div class="mel-editor-content" data-mel-editor-content>
+          <section id="overview" class="is-active" data-mel-section="overview">
+            {{ workspace_canvas }}
+          </section>
+          <section id="dates" data-mel-section="dates" class="mel-section-rsvp"></section>
+          <section id="tickets" data-mel-section="tickets" class="mel-section-tickets"></section>
+          <section id="images" data-mel-section="images"></section>
+          <section id="description" data-mel-section="description"></section>
+          <section id="settings" data-mel-section="settings"></section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="vendor-workspace__inspector mel-studio-inspector">
+    {{ workspace_inspector }}
+  </aside>
+</div>

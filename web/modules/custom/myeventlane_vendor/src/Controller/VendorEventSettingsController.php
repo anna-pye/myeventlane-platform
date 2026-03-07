@@ -42,8 +42,7 @@ final class VendorEventSettingsController extends VendorConsoleBaseController {
       'header_actions' => [
         [
           'label' => 'Edit Event',
-          // Use wizard route for editing (vendors never see default node edit form).
-          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event->id()])->toString(),
+          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()])->toString(),
           'class' => 'mel-btn--primary',
         ],
       ],

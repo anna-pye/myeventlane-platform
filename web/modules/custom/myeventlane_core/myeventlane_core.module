@@ -15,6 +15,8 @@ use Drupal\views\ViewExecutable;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Symfony\Component\Routing\RouteCollection;
 
 /**
  * Implements hook_theme().
@@ -43,6 +45,16 @@ function myeventlane_core_theme(): array {
         'content' => NULL,
       ],
       'template' => 'customer-onboard-step',
+    ],
+    'myeventlane_studio_layout' => [
+      'variables' => [
+        'title' => NULL,
+        'subtitle' => NULL,
+        'left_nav' => NULL,
+        'main' => NULL,
+        'right_panel' => NULL,
+      ],
+      'template' => 'myeventlane-studio-layout',
     ],
   ];
 }
@@ -73,6 +85,27 @@ function myeventlane_core_cron(): void {
  * Ensures administrators can access Commerce payment methods.
  */
 function myeventlane_core_entity_access(EntityInterface $entity, string $operation, AccountInterface $account): AccessResult {
+  // Workspace access is server-enforced to isolate vendor staging areas.
+  if ($entity->getEntityTypeId() === 'workspace') {
+    if ($account->id() === 1 || $account->hasPermission('administer workspaces')) {
+      return AccessResult::allowed()
+        ->cachePerPermissions()
+        ->addCacheContexts(['user.roles']);
+    }
+
+    if (in_array('vendor', $account->getRoles(), TRUE)) {
+      $workspace_id = (string) $entity->id();
+      $allowed_workspace_id = 'vendor_' . $account->id();
+      $allowed_operations = ['view', 'update'];
+      $is_allowed = ($workspace_id === $allowed_workspace_id) && in_array($operation, $allowed_operations, TRUE);
+      return AccessResult::allowedIf($is_allowed)
+        ->cachePerUser()
+        ->addCacheContexts(['user.roles']);
+    }
+
+    return AccessResult::neutral()->addCacheContexts(['user.roles']);
+  }
+
   // Only handle Commerce payment method entities.
   if ($entity->getEntityTypeId() !== 'commerce_payment_method') {
     return AccessResult::neutral();
@@ -85,6 +118,49 @@ function myeventlane_core_entity_access(EntityInterface $entity, string $operati
 
   // Let Commerce handle access for other users.
   return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_route_alter().
+ */
+function myeventlane_core_route_alter(RouteCollection $collection): void {
+  foreach ($collection->all() as $name => $route) {
+    $path = (string) $route->getPath();
+    if (str_starts_with($path, '/admin/config/workflow/workspaces')) {
+      $route->setRequirement('_custom_access', '\Drupal\myeventlane_core\Access\WorkspaceUiAccess::access');
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function myeventlane_core_entity_type_alter(array &$entity_types): void {
+  $ignored_handler = 'Drupal\\workspaces\\Entity\\Handler\\IgnoredWorkspaceHandler';
+  if (!class_exists($ignored_handler)) {
+    return;
+  }
+
+  // Explicitly exclude transactional and operational entities from Workspaces.
+  $excluded_entity_types = [
+    'commerce_order',
+    'commerce_order_item',
+    'commerce_payment',
+    'commerce_product_variation',
+    'commerce_checkout_flow',
+    'commerce_log',
+    'myeventlane_ticket',
+    'ticket_code',
+    'mel_ticket_group',
+    'mel_event_ticket_settings',
+    'rsvp_submission',
+  ];
+
+  foreach ($excluded_entity_types as $entity_type_id) {
+    if (($entity_types[$entity_type_id] ?? NULL) instanceof EntityTypeInterface) {
+      $entity_types[$entity_type_id]->setHandlerClass('workspace', $ignored_handler);
+    }
+  }
 }
 
 /**

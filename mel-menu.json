@@ -1,0 +1,217 @@
+{
+    "menu_link_content:b577fe3a-9b9b-49fd-91d2-5bda2e4c9261": {
+        "title": "Support",
+        "route": "myeventlane_escalations_portal.customer_support",
+        "parent": ""
+    },
+    "myeventlane_admin_dashboard.platform_control": {
+        "title": "Platform Control Centre",
+        "route": "myeventlane_admin_dashboard.platform_control",
+        "parent": "system.admin"
+    },
+    "myeventlane_ai.usage_guardrails": {
+        "title": "AI Usage & Guardrails",
+        "route": "myeventlane_ai.usage_guardrails",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_analytics.admin_revenue": {
+        "title": "Revenue (Admin only)",
+        "route": "myeventlane_analytics.admin_revenue",
+        "parent": "myeventlane_admin_dashboard.overview"
+    },
+    "myeventlane_boost.settings": {
+        "title": "Boost",
+        "route": "myeventlane_boost.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_boost.entitlements": {
+        "title": "Boost entitlements",
+        "route": "entity.myeventlane_boost_entitlement.collection",
+        "parent": "myeventlane_boost.settings"
+    },
+    "myeventlane_core.my_categories": {
+        "title": "My Categories",
+        "route": "myeventlane_core.my_categories",
+        "parent": ""
+    },
+    "myeventlane_core.config": {
+        "title": "MyEventLane",
+        "route": "myeventlane_core.config",
+        "parent": "system.admin_config"
+    },
+    "myeventlane_core.settings": {
+        "title": "General settings",
+        "route": "myeventlane_core.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "entity.myeventlane_onboarding_state.collection": {
+        "title": "Onboarding states",
+        "route": "entity.myeventlane_onboarding_state.collection",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_dashboard.my_events": {
+        "title": "Your Events",
+        "route": "myeventlane_dashboard.customer",
+        "parent": ""
+    },
+    "myeventlane_donations.settings": {
+        "title": "Donations",
+        "route": "myeventlane_donations.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_escalations_analytics.staff_dashboard": {
+        "title": "Escalation Analytics",
+        "route": "myeventlane_escalations_analytics.staff_dashboard",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_escalations_capacity.dashboard": {
+        "title": "Escalation Capacity",
+        "route": "myeventlane_escalations_capacity.dashboard",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_escalations_policy.report": {
+        "title": "Escalation Policy Report",
+        "route": "myeventlane_escalations_policy.report",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_escalations_portal.customer_support": {
+        "title": "Support",
+        "route": "myeventlane_escalations_portal.customer_support",
+        "parent": ""
+    },
+    "myeventlane_escalations_sla.dashboard": {
+        "title": "Escalation Dashboard",
+        "route": "myeventlane_escalations_sla.dashboard",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_event_attendees.admin": {
+        "title": "Event Attendees",
+        "route": "myeventlane_event_attendees.collection",
+        "parent": "system.admin_structure"
+    },
+    "myeventlane_finance.admin_bas": {
+        "title": "BAS",
+        "route": "myeventlane_finance.admin_bas",
+        "parent": "myeventlane_admin_dashboard.overview"
+    },
+    "myeventlane_help_centre.vendor_help": {
+        "title": "Help centre",
+        "route": "myeventlane_help_centre.vendor_index",
+        "parent": ""
+    },
+    "myeventlane_help_centre.public_help": {
+        "title": "Help",
+        "route": "myeventlane_help_centre.public_index",
+        "parent": ""
+    },
+    "myeventlane_legal.settings": {
+        "title": "Legal",
+        "route": "myeventlane_legal.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_location.settings": {
+        "title": "Location settings",
+        "route": "myeventlane_location.settings",
+        "parent": "system.admin_config"
+    },
+    "myeventlane_messaging.settings": {
+        "title": "Messaging",
+        "route": "myeventlane_messaging.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "entity.myeventlane_page_visual.collection": {
+        "title": "Page Visuals",
+        "route": "entity.myeventlane_page_visual.collection",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_privacy.settings": {
+        "title": "Privacy & Tracking",
+        "route": "myeventlane_privacy.settings",
+        "parent": "system.admin_config_system"
+    },
+    "myeventlane_pro.settings": {
+        "title": "MyEventLane Pro",
+        "route": "myeventlane_pro.settings",
+        "parent": "system.admin_config"
+    },
+    "myeventlane_pro.vendor_comms": {
+        "title": "Pro communications",
+        "route": "myeventlane_pro.vendor_comms",
+        "parent": "myeventlane_pro.overview"
+    },
+    "myeventlane_public_trust.footer": {
+        "title": "Trust & transparency",
+        "route": "myeventlane_public_trust.page",
+        "parent": ""
+    },
+    "myeventlane_rsvp.my_rsvps": {
+        "title": "My RSVPs",
+        "route": "myeventlane_rsvp.user_list",
+        "parent": ""
+    },
+    "myeventlane_rsvp.settings": {
+        "title": "RSVP",
+        "route": "myeventlane_rsvp.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_rsvp.sms_settings": {
+        "title": "SMS",
+        "route": "myeventlane_rsvp.sms_settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_rsvp.ics_bundle_link": {
+        "title": "Download all my RSVPs (.ics)",
+        "route": "myeventlane_rsvp.ics_bundle",
+        "parent": ""
+    },
+    "myeventlane_staff_playbooks.governance": {
+        "title": "Internal Governance",
+        "route": "myeventlane_staff_playbooks.governance_dashboard",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_support_console.dashboard": {
+        "title": "Support Console",
+        "route": "myeventlane_support_console.dashboard",
+        "parent": "entity.escalation.collection"
+    },
+    "myeventlane_theme_settings.hero": {
+        "title": "MyEventLane hero images",
+        "route": "myeventlane_theme_settings.hero",
+        "parent": "system.themes_page"
+    },
+    "myeventlane_tickets.settings": {
+        "title": "Tickets",
+        "route": "myeventlane_tickets.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "entity.myeventlane_vendor.collection": {
+        "title": "Vendors",
+        "route": "entity.myeventlane_vendor.collection",
+        "parent": "system.admin_structure"
+    },
+    "myeventlane_vendor.admin_link": {
+        "title": "Vendors",
+        "route": "myeventlane_vendor.settings",
+        "parent": "myeventlane_core.config"
+    },
+    "myeventlane_venue.admin": {
+        "title": "Venues",
+        "route": "entity.myeventlane_venue.collection",
+        "parent": "system.admin_structure"
+    },
+    "myeventlane_venue.admin.settings": {
+        "title": "Venue settings",
+        "route": "myeventlane_venue.settings",
+        "parent": "myeventlane_venue.admin"
+    },
+    "myeventlane_venue.admin.issues": {
+        "title": "Venue issues",
+        "route": "entity.myeventlane_venue_issue.collection",
+        "parent": "myeventlane_venue.admin"
+    },
+    "myeventlane_wallet.settings": {
+        "title": "Wallet",
+        "route": "myeventlane_wallet.settings",
+        "parent": "myeventlane_core.config"
+    }
+}

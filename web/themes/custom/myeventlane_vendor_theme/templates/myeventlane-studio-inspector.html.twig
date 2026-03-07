@@ -1,0 +1,23 @@
+<div class="mel-publish-panel" data-mel-publish-panel>
+  <div class="mel-inspector-section mel-inspector-block">
+    <h3>{{ 'Publishing'|t }}</h3>
+    <p><strong>{{ 'Current state:'|t }}</strong> <span data-mel-inspector-state>{{ state }}</span></p>
+  </div>
+
+  <div class="mel-inspector-section mel-inspector-block">
+    <h3>{{ 'Checklist'|t }}</h3>
+    <ul class="mel-publish-checklist mel-inspector-checklist">
+      <li data-mel-check="title" class="{{ checklist.title|default('is-pending') }}">{{ 'Title'|t }}</li>
+      <li data-mel-check="date" class="{{ checklist.date|default('is-pending') }}">{{ 'Date'|t }}</li>
+      <li data-mel-check="location" class="{{ checklist.location|default('is-pending') }}">{{ 'Location'|t }}</li>
+      <li data-mel-check="banner" class="{{ checklist.banner|default('is-pending') }}">{{ 'Banner image'|t }}</li>
+    </ul>
+  </div>
+
+  <div class="mel-inspector-section mel-inspector-block">
+    <h3>{{ 'Event Health'|t }}</h3>
+    <p>{{ 'Tickets sold'|t }} {{ ticket_percent|default(0) }}%</p>
+    <p>{{ 'RSVPs'|t }} {{ rsvp_count|default(0) }}</p>
+    <p>{{ 'Revenue'|t }} ${{ revenue|default('0') }}</p>
+  </div>
+</div>

@@ -114,10 +114,10 @@ abstract class ManageEventControllerBase extends ControllerBase {
       $preview_url = $event->toUrl('canonical');
     }
 
-    // Build edit URL (use wizard route for vendors).
+    // Build edit URL in canonical event wizard.
     $edit_url = NULL;
     if (!$event->isNew()) {
-      $edit_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event->id()]);
+      $edit_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()]);
     }
 
     return [

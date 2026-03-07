@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_help_centre_ai\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_help_centre_ai\Form\HelpCentreAiForm;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Controller for the public Help Centre AI FAQ assistant.
@@ -22,7 +21,6 @@ final class HelpCentreAiController extends ControllerBase {
 
     $supportUrl = '/my/support';
     try {
-      $this->routeProvider()->getRouteByName('myeventlane_escalations_portal.customer_add');
       $supportUrl = Url::fromRoute('myeventlane_escalations_portal.customer_add')->toString();
     }
     catch (\Exception $e) {

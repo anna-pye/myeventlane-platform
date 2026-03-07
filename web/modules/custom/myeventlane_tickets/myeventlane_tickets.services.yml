@@ -24,6 +24,7 @@ services:
 
   myeventlane_tickets.qr_code_generator:
     class: Drupal\myeventlane_tickets\Ticket\QrCodeGenerator
+    arguments: ['@logger.channel.myeventlane_tickets']
 
   myeventlane_tickets.ticket_qr_payload:
     class: Drupal\myeventlane_tickets\Ticket\TicketQrPayload

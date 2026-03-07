@@ -69,6 +69,13 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
+    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
+    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
+      'route' => (string) $this->getRouteMatch()->getRouteName(),
+      'event_id' => (int) $event->id(),
+      'form_id' => $this->getFormId(),
+      'canonical' => 1,
+    ]);
 
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_4');
     $form_display->buildForm($event, $form, $form_state);

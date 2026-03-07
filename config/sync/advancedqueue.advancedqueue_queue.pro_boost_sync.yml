@@ -1,0 +1,16 @@
+uuid: cc7a8a29-381a-4954-8ddc-1fbb4abac65d
+langcode: en
+status: true
+dependencies: {  }
+id: pro_boost_sync
+label: 'Pro Boost Sync'
+backend: database
+backend_configuration:
+  lease_time: 300
+processor: cron
+processing_time: 120
+locked: false
+stop_when_empty: true
+threshold:
+  limit: 500
+  state: failure

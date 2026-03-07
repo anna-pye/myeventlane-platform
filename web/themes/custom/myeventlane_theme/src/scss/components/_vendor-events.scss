@@ -1,0 +1,312 @@
+.vendor-workspace {
+  display: grid;
+  grid-template-columns: 240px 300px minmax(0, 1fr) 320px;
+  height: 100vh;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.vendor-workspace__sidebar {
+  border-right: 1px solid #e9edf3;
+  background: #fff;
+}
+
+.vendor-workspace__sidebar-inner {
+  padding: 24px 18px;
+}
+
+.vendor-workspace__sidebar-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #5d6472;
+}
+
+.vendor-workspace__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vendor-workspace__nav-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #1c2434;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.vendor-workspace__nav-link:hover {
+  background: #f3f5fa;
+}
+
+.vendor-workspace__navigator,
+.vendor-workspace__workspace,
+.vendor-workspace__inspector {
+  min-width: 0;
+}
+
+.vendor-workspace__workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-workspace__content {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+}
+
+.mel-workspace-header {
+  border-bottom: 1px solid #e9edf3;
+  background: #fff;
+  padding: 20px 24px;
+}
+
+.mel-event-context h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.mel-event-status {
+  display: inline-block;
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.mel-dashboard-events,
+.mel-event-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mel-event-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e8ecf4;
+  background: #fff;
+  text-decoration: none;
+  color: #111827;
+  transition: all 0.15s ease;
+}
+
+.mel-event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mel-event-card.is-active,
+.mel-event-card.selected {
+  border-color: #6b46ff;
+  box-shadow: 0 0 0 1px rgba(107, 70, 255, 0.2);
+}
+
+.mel-event-thumb img,
+.mel-event-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.mel-event-placeholder {
+  background: linear-gradient(135deg, #e9edf7 0%, #dce3f1 100%);
+}
+
+.mel-event-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.mel-event-title {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.mel-event-meta {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.mel-event-metrics {
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mel-event-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: #44516a;
+  margin-top: 0;
+}
+
+.mel-event-navigator {
+  padding: 24px;
+  border-right: 1px solid #e9edf3;
+  background: #fff;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.mel-create-event {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mel-event-search {
+  width: 100%;
+  margin-bottom: 14px;
+  border: 1px solid #d9dee8;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.mel-command-center {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.mel-cc-metric {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  flex: 1;
+  border: 1px solid #e8ecf4;
+}
+
+.mel-cc-label {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mel-cc-value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mel-progress {
+  height: 6px;
+  margin-top: 10px;
+  background: #eceff6;
+  border-radius: 999px;
+}
+
+.mel-progress-bar {
+  height: 100%;
+  width: 0;
+  background: #6b46ff;
+  border-radius: 999px;
+}
+
+.mel-editor-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 20px;
+}
+
+.mel-editor-menu {
+  background: #fff;
+  border: 1px solid #e8ecf4;
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.mel-editor-menu button {
+  text-align: left;
+  border: 1px solid transparent;
+  background: #f3f5fa;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mel-editor-menu button.is-active {
+  background: #ede9ff;
+  border-color: #d8ccff;
+  color: #4a2bb8;
+}
+
+.mel-editor-type-label {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.mel-editor-type {
+  border: 1px solid #d9dee8;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.mel-editor-content {
+  background: #fff;
+  border: 1px solid #e8ecf4;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.mel-editor-content [data-mel-section] {
+  display: none;
+}
+
+.mel-editor-content [data-mel-section].is-active {
+  display: block;
+}
+
+.mel-editor-empty {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+@media (max-width: 1440px) {
+  .vendor-workspace {
+    grid-template-columns: 220px 280px minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 1240px) {
+  .vendor-workspace {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .vendor-workspace__navigator,
+  .vendor-workspace__inspector {
+    display: none;
+  }
+
+  .mel-command-center,
+  .mel-editor-layout {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+}

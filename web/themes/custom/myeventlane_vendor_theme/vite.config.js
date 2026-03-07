@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         styles: resolve(__dirname, 'src/scss/main.scss'),
+        workspace: resolve(__dirname, 'src/scss/workspace.scss'),
         'vendor-wizard': resolve(__dirname, 'src/scss/vendor-wizard.scss'),
         main: resolve(__dirname, 'src/js/main.js'),
       },
@@ -21,6 +22,10 @@ export default defineConfig({
             // vendor-wizard entry produces vendor-wizard.css
             if (assetInfo.name === 'vendor-wizard.css' || assetInfo.name?.includes('vendor-wizard')) {
               return 'vendor-wizard.css';
+            }
+            // workspace entry produces workspace.css
+            if (assetInfo.name === 'workspace.css' || assetInfo.name?.includes('workspace')) {
+              return 'workspace.css';
             }
             // styles entry produces main.css
             return 'main.css';

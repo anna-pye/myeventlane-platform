@@ -1,0 +1,35 @@
+<div class="mel-event-navigator">
+  <a class="mel-create-event" href="/vendor/studio?desk=overview&create=1">
+    + Create Event
+  </a>
+
+  <input class="mel-event-search" placeholder="Search events" data-mel-studio-search>
+
+  <div class="mel-event-list" data-mel-studio-list>
+    {% for event in events %}
+      <a
+        class="mel-event-card mel-event-row {{ event.active|default(false) ? 'is-active selected' }}"
+        href="{{ event.studio_link|default(event.edit_url|default('/vendor/studio?desk=overview&event=' ~ (event.id|default(event.nid|default(0))))) }}"
+        data-event-id="{{ event.id|default(event.nid|default(loop.index)) }}"
+      >
+        <div class="mel-event-thumb">
+          {% if event.image|default(event.banner_image|default('')) %}
+            <img src="{{ event.image|default(event.banner_image) }}" alt="{{ event.title|default('Event') }}">
+          {% else %}
+            <div class="mel-event-placeholder" aria-hidden="true"></div>
+          {% endif %}
+        </div>
+
+        <div class="mel-event-content">
+          <div class="mel-event-title">{{ event.title }}</div>
+          <div class="mel-event-meta">{{ event.date|default(event.start_date|default('TBD')) }}</div>
+          <div class="mel-event-metrics">
+            <span>Tickets {{ event.tickets_sold|default(event.attendee_count|default(0)) }}</span>
+            <span>RSVPs {{ event.rsvps|default(event.rsvp_count|default(0)) }}</span>
+            <span>Revenue ${{ event.revenue|default(0) }}</span>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</div>

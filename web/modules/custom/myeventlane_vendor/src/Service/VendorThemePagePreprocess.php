@@ -75,11 +75,29 @@ final class VendorThemePagePreprocess {
     $variables['page']['workspace_name'] = NULL;
     $node = $this->routeMatch->getParameter('node');
     if ($node instanceof NodeInterface && $node->bundle() === 'event') {
-      if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
-        $vendor = $node->get('field_event_vendor')->entity;
-        if ($vendor) {
-          $variables['page']['workspace_name'] = $vendor->label();
+      foreach (['field_event_vendor', 'field_vendor'] as $vendorField) {
+        if ($node->hasField($vendorField) && !$node->get($vendorField)->isEmpty()) {
+          $vendor = $node->get($vendorField)->entity;
+          if ($vendor) {
+            $variables['page']['workspace_name'] = $vendor->label();
+            break;
+          }
         }
+      }
+    }
+
+    if ($variables['page']['workspace_name'] === NULL && $this->currentUser->isAuthenticated()) {
+      try {
+        $vendorResolver = $this->optionalServiceResolver?->get('myeventlane_vendor.current_vendor_resolver');
+        if ($vendorResolver && method_exists($vendorResolver, 'resolveFromCurrentUser')) {
+          $vendor = $vendorResolver->resolveFromCurrentUser();
+          if ($vendor) {
+            $variables['page']['workspace_name'] = $vendor->label();
+          }
+        }
+      }
+      catch (\Throwable) {
+        // Keep shell preprocessing resilient.
       }
     }
 
@@ -146,6 +164,10 @@ final class VendorThemePagePreprocess {
 
     $route_name = $this->routeMatch->getRouteName();
     $variables['page']['active_section'] = $this->getActiveSection($route_name);
+    $variables['page']['vendor_shell_nav_items'] = $this->buildVendorShellNavItems($variables['page']['active_section'], $route_name);
+    $variables['page']['shell_page_title'] = $this->getShellPageTitle($route_name);
+    $variables['page']['shell_page_subtitle'] = $this->getShellPageSubtitle($route_name);
+    $variables['page']['shell_primary_action'] = $this->getShellPrimaryAction();
 
     $variables['page']['logout_link'] = [
       '#type' => 'link',
@@ -246,31 +268,309 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.dashboard' => 'dashboard',
       'myeventlane_vendor.console.events' => 'events',
       'myeventlane_vendor.console.events_add' => 'events',
+      'myeventlane_event.wizard.create' => 'events',
+      'myeventlane_event.wizard.edit' => 'events',
+      'myeventlane_event.wizard.basics' => 'events',
+      'myeventlane_event.wizard.when_where' => 'events',
+      'myeventlane_event.wizard.tickets' => 'events',
+      'myeventlane_event.wizard.details' => 'events',
+      'myeventlane_event.wizard.review' => 'events',
+      'myeventlane_event.wizard.publish' => 'events',
+      'myeventlane_event.wizard.success' => 'events',
       'myeventlane_vendor.console.event_overview' => 'events',
+      'myeventlane_vendor.console.event_workspace' => 'events',
       'myeventlane_vendor.console.event_tickets' => 'events',
-      'myeventlane_vendor.console.event_attendees' => 'events',
-      'myeventlane_vendor.console.event_rsvps' => 'events',
+      'myeventlane_vendor.console.event_promotion' => 'events',
       'myeventlane_vendor.console.event_analytics' => 'events',
       'myeventlane_vendor.console.event_settings' => 'events',
-      'myeventlane_analytics.dashboard' => 'analytics',
-      'myeventlane_analytics.event' => 'analytics',
-      'myeventlane_donations.vendor_list' => 'donations',
-      'myeventlane_donations.platform' => 'donations',
+      'myeventlane_vendor.console.event_publish' => 'events',
+      'myeventlane_vendor.console.event_order_view' => 'orders',
+      'myeventlane_vendor.console.event_orders' => 'orders',
+      'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
+      'myeventlane_vendor.console.event_attendees' => 'attendees',
+      'myeventlane_vendor.console.event_rsvps' => 'attendees',
       'myeventlane_vendor.console.payouts' => 'payouts',
-      'myeventlane_vendor.console.boost' => 'boost',
+      'myeventlane_vendor.console.boost' => 'growth',
       'myeventlane_vendor.console.audience' => 'audience',
-      'myeventlane_vendor.console.messaging_brand' => 'messaging_brand',
       'myeventlane_vendor.console.settings' => 'settings',
+      'myeventlane_vendor.console.messaging_brand' => 'settings',
       'myeventlane_vendor.dashboard' => 'dashboard',
       'myeventlane_vendor.console.dashboard' => 'dashboard',
-      'myeventlane_help_centre.vendor_index' => 'help',
-      'myeventlane_help_centre.vendor_topic' => 'help',
-      'myeventlane_escalations_portal.vendor_list' => 'support',
-      'myeventlane_escalations_portal.vendor_view' => 'support',
-      'myeventlane_escalations_refunds.vendor_refund_summary' => 'refunds',
-      'myeventlane_escalations_analytics.vendor_dashboard' => 'support_analytics',
     ];
     return $mapping[$route_name] ?? 'dashboard';
+  }
+
+  /**
+   * Builds primary vendor navigation items for the shared shell sidebar.
+   *
+   * @param string $active_section
+   *   The active section key.
+   * @param string|null $route_name
+   *   The current route name.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Sidebar navigation items with safe route handling.
+   */
+  private function buildVendorShellNavItems(string $active_section, ?string $route_name): array {
+    $wizard_menu = $this->buildEventWizardSubmenu($route_name);
+    $items = [
+      [
+        'key' => 'dashboard',
+        'label' => $this->t('Dashboard'),
+        'icon' => 'dashboard',
+        'route' => 'myeventlane_vendor.console.dashboard',
+      ],
+      [
+        'key' => 'events',
+        'label' => $this->t('Events'),
+        'icon' => 'events',
+        'route' => 'myeventlane_vendor.console.events',
+        'children' => $wizard_menu,
+      ],
+      [
+        'key' => 'orders',
+        'label' => $this->t('Orders'),
+        'icon' => 'orders',
+        'route' => NULL,
+      ],
+      [
+        'key' => 'attendees',
+        'label' => $this->t('Attendees'),
+        'icon' => 'attendees',
+        'route' => 'myeventlane_checkout_flow.vendor_attendees',
+      ],
+      [
+        'key' => 'audience',
+        'label' => $this->t('Audience'),
+        'icon' => 'audience',
+        'route' => 'myeventlane_vendor.console.audience',
+      ],
+      [
+        'key' => 'payouts',
+        'label' => $this->t('Payouts'),
+        'icon' => 'payouts',
+        'route' => 'myeventlane_vendor.console.payouts',
+      ],
+      [
+        'key' => 'growth',
+        'label' => $this->t('Growth'),
+        'icon' => 'growth',
+        'route' => 'myeventlane_vendor.console.boost',
+      ],
+      [
+        'key' => 'settings',
+        'label' => $this->t('Settings'),
+        'icon' => 'settings',
+        'route' => 'myeventlane_vendor.console.settings',
+      ],
+      [
+        'key' => 'help',
+        'label' => $this->t('Help'),
+        'icon' => 'help',
+        'route' => NULL,
+      ],
+    ];
+
+    $built = [];
+    foreach ($items as $item) {
+      $url = NULL;
+      $is_disabled = FALSE;
+
+      if (!empty($item['route'])) {
+        try {
+          $url = Url::fromRoute((string) $item['route'])->toString();
+        }
+        catch (\Throwable) {
+          $is_disabled = TRUE;
+        }
+      }
+      else {
+        $is_disabled = TRUE;
+      }
+
+      $item['url'] = $url;
+      $item['is_disabled'] = $is_disabled;
+      $item['is_active'] = $active_section === $item['key'];
+      $built[] = $item;
+    }
+
+    return $built;
+  }
+
+  /**
+   * Builds events submenu links for canonical event wizard steps.
+   *
+   * @param string|null $route_name
+   *   The current route name.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Child menu items for the events navigation item.
+   */
+  private function buildEventWizardSubmenu(?string $route_name): array {
+    $active_routes = [
+      'myeventlane_event.wizard.create',
+      'myeventlane_event.wizard.edit',
+      'myeventlane_event.wizard.basics',
+      'myeventlane_event.wizard.when_where',
+      'myeventlane_event.wizard.tickets',
+      'myeventlane_event.wizard.details',
+      'myeventlane_event.wizard.review',
+      'myeventlane_event.wizard.publish',
+    ];
+
+    $event_id = $this->resolveCurrentEventId();
+    $has_event_context = $event_id !== NULL;
+    if (!$has_event_context) {
+      // Only show wizard step tabs when editing/viewing a specific event context.
+      return [];
+    }
+
+    $items = [];
+    $wizard_steps = [
+      [
+        'label' => (string) $this->t('Basics'),
+        'route' => 'myeventlane_event.wizard.basics',
+      ],
+      [
+        'label' => (string) $this->t('When & Where'),
+        'route' => 'myeventlane_event.wizard.when_where',
+      ],
+      [
+        'label' => (string) $this->t('Tickets'),
+        'route' => 'myeventlane_event.wizard.tickets',
+      ],
+      [
+        'label' => (string) $this->t('Details'),
+        'route' => 'myeventlane_event.wizard.details',
+      ],
+      [
+        'label' => (string) $this->t('Review'),
+        'route' => 'myeventlane_event.wizard.review',
+      ],
+      [
+        'label' => (string) $this->t('Publish'),
+        'route' => 'myeventlane_event.wizard.publish',
+      ],
+    ];
+
+    foreach ($wizard_steps as $wizard_step) {
+      $url = NULL;
+      if ($has_event_context) {
+        $url = $this->safeRouteToString((string) $wizard_step['route'], ['node' => $event_id]);
+      }
+
+      $items[] = [
+        'label' => $wizard_step['label'],
+        'url' => $url,
+        'is_disabled' => !$has_event_context || $url === NULL,
+        'is_active' => (string) $route_name === (string) $wizard_step['route'],
+      ];
+    }
+
+    return $items;
+  }
+
+  /**
+   * Resolves the current event id from route parameters when available.
+   *
+   * @return int|null
+   *   The event node id, or NULL if there is no event context.
+   */
+  private function resolveCurrentEventId(): ?int {
+    $node = $this->routeMatch->getParameter('node');
+    if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+      return (int) $node->id();
+    }
+
+    $event = $this->routeMatch->getParameter('event');
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      return (int) $event->id();
+    }
+
+    if (is_numeric($node) && (int) $node > 0) {
+      return (int) $node;
+    }
+    if (is_numeric($event) && (int) $event > 0) {
+      return (int) $event;
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Builds a route URL string and safely returns NULL on failures.
+   *
+   * @param string $route_name
+   *   Route machine name.
+   * @param array<string, mixed> $route_parameters
+   *   Optional route parameters.
+   *
+   * @return string|null
+   *   Route URL string or NULL if route is unavailable.
+   */
+  private function safeRouteToString(string $route_name, array $route_parameters = []): ?string {
+    try {
+      return Url::fromRoute($route_name, $route_parameters)->toString();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+  }
+
+  /**
+   * Returns a user-friendly page title for the shell header.
+   */
+  private function getShellPageTitle(?string $route_name): string {
+    $mapping = [
+      'myeventlane_vendor.console.dashboard' => (string) $this->t('Dashboard'),
+      'myeventlane_vendor.console.events' => (string) $this->t('Events'),
+      'myeventlane_vendor.console.payouts' => (string) $this->t('Payouts'),
+      'myeventlane_vendor.console.boost' => (string) $this->t('Growth'),
+      'myeventlane_vendor.console.audience' => (string) $this->t('Audience'),
+      'myeventlane_vendor.console.settings' => (string) $this->t('Settings'),
+      'myeventlane_vendor.console.studio' => (string) $this->t('Studio'),
+    ];
+
+    return $mapping[$route_name ?? ''] ?? (string) $this->t('Vendor workspace');
+  }
+
+  /**
+   * Returns a short subtitle for the shell header.
+   */
+  private function getShellPageSubtitle(?string $route_name): string {
+    $mapping = [
+      'myeventlane_vendor.console.dashboard' => (string) $this->t('Track performance and keep your next steps clear.'),
+      'myeventlane_vendor.console.events' => (string) $this->t('Manage your event lineup and publish with confidence.'),
+      'myeventlane_vendor.console.payouts' => (string) $this->t('Review balances, transfers, and payout readiness.'),
+      'myeventlane_vendor.console.boost' => (string) $this->t('Grow your reach with promotion tools.'),
+      'myeventlane_vendor.console.audience' => (string) $this->t('Understand and engage your attendees.'),
+      'myeventlane_vendor.console.settings' => (string) $this->t('Update account, profile, and workspace preferences.'),
+      'myeventlane_vendor.console.studio' => (string) $this->t('Build and refine your event experience.'),
+    ];
+
+    return $mapping[$route_name ?? ''] ?? (string) $this->t('Welcome to your MyEventLane organiser workspace.');
+  }
+
+  /**
+   * Returns shell header primary action when available.
+   *
+   * @return array<string, string>|null
+   *   Primary action link data.
+   */
+  private function getShellPrimaryAction(): ?array {
+    if (!$this->currentUser->isAuthenticated()) {
+      return NULL;
+    }
+
+    try {
+      return [
+        'label' => (string) $this->t('Create event'),
+        'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString(),
+      ];
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
 }

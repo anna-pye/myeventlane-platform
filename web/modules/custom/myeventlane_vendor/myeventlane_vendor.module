@@ -24,6 +24,8 @@ use Drupal\node\NodeInterface;
  * Implements hook_theme().
  */
 function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
+  $main_theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $vendor_theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_vendor_theme');
   return [
     'myeventlane_vendor_list' => [
       'variables' => ['vendors' => NULL],
@@ -81,6 +83,7 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'header_actions' => [],
         'tabs' => [],
         'body' => NULL,
+        'workspace' => NULL,
       ],
       'template' => 'vendor-console-page',
     ],
@@ -114,6 +117,151 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       ],
       'template' => 'components/vendor-onboarding-panel',
       'path' => \Drupal::service('extension.list.theme')->getPath('myeventlane_vendor_theme') . '/templates',
+    ],
+    'myeventlane_vendor_events_grid' => [
+      'variables' => [
+        'events' => [],
+      ],
+      'template' => 'myeventlane-vendor-events-grid',
+      'path' => $vendor_theme_path . '/templates',
+    ],
+    'myeventlane_vendor_studio' => [
+      'variables' => [
+        'active_event' => NULL,
+        'event_cards' => [],
+        'create_event_url' => NULL,
+        'overview_save_token' => NULL,
+      ],
+      'template' => 'myeventlane-vendor-studio',
+      'path' => $vendor_theme_path . '/templates',
+    ],
+    'myeventlane_studio_inspector' => [
+      'variables' => [
+        'workspace' => NULL,
+        'workspace_id' => NULL,
+        'state' => NULL,
+        'checklist' => [],
+        'preview_link' => NULL,
+        'edit_link' => NULL,
+        'submit_link' => NULL,
+        'submit_token' => NULL,
+        'ticket_percent' => 0,
+        'rsvp_count' => 0,
+        'revenue' => '0',
+      ],
+      'template' => 'myeventlane-studio-inspector',
+      'path' => $vendor_theme_path . '/templates',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_console_page.
+ */
+function myeventlane_vendor_preprocess_myeventlane_vendor_console_page(array &$variables): void {
+  $event = \Drupal::routeMatch()->getParameter('event');
+  if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+    return;
+  }
+
+  $event_id = (int) $event->id();
+  $title = $event->label();
+
+  $status_key = 'draft';
+  $status_label = t('Draft');
+  if ($event->isPublished()) {
+    $status_key = 'published';
+    $status_label = t('Published');
+  }
+  if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()) {
+    $moderation_state = (string) $event->get('moderation_state')->value;
+    if ($moderation_state === 'review') {
+      $status_key = 'review';
+      $status_label = t('In review');
+    }
+  }
+
+  $checklist = [
+    'title' => trim($title) !== '',
+    'date' => $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty(),
+    'image' => $event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty(),
+    'location' => ($event->hasField('field_location') && !$event->get('field_location')->isEmpty())
+      || ($event->hasField('field_event_venue') && !$event->get('field_event_venue')->isEmpty())
+      || ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()),
+    'tickets' => TRUE,
+    'promotion' => TRUE,
+  ];
+
+  if ($event->hasField('field_ticket_config')) {
+    $checklist['tickets'] = !$event->get('field_ticket_config')->isEmpty();
+  }
+  if ($event->hasField('field_promo_config')) {
+    $checklist['promotion'] = !$event->get('field_promo_config')->isEmpty();
+  }
+
+  $health_status = t('Ready to publish');
+  if (!$checklist['tickets']) {
+    $health_status = t('Needs ticket setup');
+  }
+  elseif (!$checklist['image']) {
+    $health_status = t('Missing image');
+  }
+  elseif (!$checklist['location']) {
+    $health_status = t('Missing location');
+  }
+  elseif (!$checklist['promotion']) {
+    $health_status = t('Promotion incomplete');
+  }
+
+  $workspace_tabs = [
+    ['key' => 'overview', 'route' => 'myeventlane_vendor.console.event_overview', 'label' => t('Overview'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_overview', ['event' => $event_id])->toString()],
+    ['key' => 'tickets', 'route' => 'myeventlane_vendor.console.event_tickets', 'label' => t('Tickets'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString()],
+    ['key' => 'attendees', 'route' => 'myeventlane_vendor.console.event_attendees', 'label' => t('Attendees'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $event_id])->toString()],
+    ['key' => 'orders', 'route' => 'myeventlane_vendor.console.event_orders', 'label' => t('Orders'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $event_id])->toString()],
+    ['key' => 'promotion', 'route' => 'myeventlane_vendor.console.event_promotion', 'label' => t('Promotion'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_promotion', ['event' => $event_id])->toString()],
+    ['key' => 'analytics', 'route' => 'myeventlane_vendor.console.event_analytics', 'label' => t('Analytics'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_analytics', ['event' => $event_id])->toString()],
+    ['key' => 'settings', 'route' => 'myeventlane_vendor.console.event_settings', 'label' => t('Settings'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_settings', ['event' => $event_id])->toString()],
+    ['key' => 'publish', 'route' => 'myeventlane_vendor.console.event_publish', 'label' => t('Publish'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_publish', ['event' => $event_id])->toString()],
+  ];
+
+  $current_route_name = (string) \Drupal::routeMatch()->getRouteName();
+  foreach ($workspace_tabs as &$tab) {
+    $tab['active'] = ($tab['route'] === $current_route_name);
+  }
+  unset($tab);
+
+  $variables['workspace'] = [
+    'title' => $title,
+    'status_key' => $status_key,
+    'status_label' => $status_label,
+    'health_status' => $health_status,
+    'tabs' => $workspace_tabs,
+    'checklist' => $checklist,
+    'actions' => [
+      [
+        'label' => t('Save changes'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.event_settings', ['event' => $event_id])->toString(),
+        'class' => 'mel-btn--secondary',
+      ],
+      [
+        'label' => t('Publish event'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.event_publish', ['event' => $event_id])->toString(),
+        'class' => 'mel-btn--primary',
+      ],
+    ],
+    'quick_actions' => [
+      [
+        'label' => t('View event page'),
+        'url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+      ],
+      [
+        'label' => t('Review attendees'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $event_id])->toString(),
+      ],
+      [
+        'label' => t('Open ticket setup'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString(),
+      ],
     ],
   ];
 }
@@ -318,6 +466,37 @@ function myeventlane_vendor_page_attachments_alter(array &$attachments): void {
     $attachments['#attached']['library'][] =
       'myeventlane_vendor/hide_admin_sidebar';
   }
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_vendor_preprocess_node(array &$variables): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if ($route_name !== 'myeventlane_vendor.console.studio') {
+    return;
+  }
+
+  $desk = (string) \Drupal::request()->query->get('desk', '');
+  if ($desk !== 'overview') {
+    return;
+  }
+
+  if (($variables['view_mode'] ?? '') !== 'teaser') {
+    return;
+  }
+
+  $node = $variables['node'] ?? NULL;
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+    return;
+  }
+
+  $variables['url'] = Url::fromRoute('myeventlane_vendor.console.studio', [], [
+    'query' => [
+      'desk' => 'overview',
+      'event' => (int) $node->id(),
+    ],
+  ])->toString();
 }
 
 /**

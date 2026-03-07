@@ -1,425 +1,184 @@
-{#
-/**
- * @file
- * Vendor dashboard template - Full functional control centre.
- *
- * Variables:
- * - kpis: Array of KPI card data
- * - events: Array of events with full data
- * - best_event: Best performing event data
- * - stripe: Stripe Connect status
- * - notifications: Array of notifications
- * - account: Account summary data
- * - quick_actions: Array of quick action buttons
- * - charts: Array of chart configurations
- * - show_welcome: Boolean for welcome banner
- */
-#}
-<div class="mel-dashboard">
+{% set create_event_url = path('myeventlane_event.wizard.create') %}
+{% if quick_actions is iterable and quick_actions|length > 0 and quick_actions.0.url is defined %}
+  {% set create_event_url = quick_actions.0.url %}
+{% endif %}
 
-  {# Onboarding panel: show only when incomplete (passed from controller). #}
+<section class="mel-dashboard-page">
   {% if onboarding_panel is defined and onboarding_panel %}
-    <div class="mel-dashboard__onboarding-panel">
-      {{ onboarding_panel }}
-    </div>
+    <div class="mel-dashboard-page__onboarding">{{ onboarding_panel }}</div>
   {% endif %}
 
-  {# Dashboard Header #}
-  <div class="mel-dashboard__header">
-    <div class="mel-dashboard__header-content">
-      <div class="mel-dashboard__header-user">
-        {% if account.display_name %}
-          <div class="mel-dashboard__avatar">{{ account.display_name|first|upper }}</div>
-        {% endif %}
-        <div class="mel-dashboard__header-text">
-          <h1 class="mel-dashboard__title">
-            {{ 'Welcome back'|t }}{% if account.display_name %}, {{ account.display_name }}{% endif %}
-            {% if is_pro %}
-              <span class="mel-pro-badge">PRO</span>
-            {% endif %}
-          </h1>
-          <p class="mel-dashboard__subtitle">{{ 'Your event control centre'|t }}</p>
-        </div>
-      </div>
+  <header class="mel-dashboard-hero">
+    <div class="mel-dashboard-hero__copy">
+      <h2 class="mel-dashboard-hero__title">
+        {{ 'Welcome back'|t }}{% if account.display_name is defined and account.display_name %}, {{ account.display_name }}{% endif %}
+      </h2>
+      <p class="mel-dashboard-hero__subtitle">{{ 'Track what matters today and take your next best action in one place.'|t }}</p>
+    </div>
+    <div class="mel-dashboard-hero__actions">
+      <a class="mel-btn mel-btn--primary" href="{{ create_event_url }}">{{ 'Create Event'|t }}</a>
+    </div>
+  </header>
 
-      {# Setup incomplete badge #}
-      {% if show_onboarding_badge and next_onboarding_route %}
-        <a href="{{ path(next_onboarding_route) }}" class="mel-dashboard__setup-badge">
-          {{ 'Setup incomplete'|t }}
-        </a>
-      {% endif %}
-      
-      {# Stripe Status Badge #}
-      {% if stripe.status_label is defined %}
-        <div class="mel-dashboard__stripe-badge mel-dashboard__stripe-badge--{{ stripe.status|default('not_connected') }}">
-          <span class="mel-dashboard__stripe-dot"></span>
-          {{ stripe.status_label }}
-        </div>
-      {% endif %}
-    </div>
-    
-    <div class="mel-dashboard__actions">
-      <a class="mel-btn mel-btn--cta mel-btn--lg" href="{{ path('myeventlane_event.wizard.create') }}">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        {{ 'Create New Event'|t }}
-      </a>
-      <a class="mel-btn mel-btn--secondary mel-btn--lg" href="{{ path('myeventlane_analytics.dashboard') }}">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-        </svg>
-        {{ 'View Analytics'|t }}
-      </a>
-      {% if has_boost and boost_export_url %}
-        <a class="mel-pill" href="{{ boost_export_url }}">{{ 'Export Boost performance'|t }}</a>
-        <a class="mel-pill" href="{{ path('myeventlane_boost.performance_guide_pdf') }}">{{ 'Boost performance guide (PDF)'|t }}</a>
-      {% endif %}
-    </div>
-  </div>
-
-  {# Pro upgrade prompt: shown when vendor has 2+ published events and is not Pro #}
-  {% if show_pro_prompt and pro_upgrade_url %}
-    <div class="mel-pro-prompt">
-      <span class="mel-pro-prompt__text">{{ 'Upgrade to Pro to grow and automate.'|t }}</span>
-      <a href="{{ pro_upgrade_url }}" class="mel-pro-prompt__cta">{{ 'Learn More'|t }}</a>
-    </div>
+  {% if show_welcome %}
+    {% include '@myeventlane_vendor_theme/components/empty-state.html.twig' with {
+      title: 'Create your first event'|t,
+      message: 'Once your event is published, tickets, RSVPs, and revenue insights will appear here automatically.'|t,
+      cta_label: 'Create your first event'|t,
+      cta_url: create_event_url
+    } only %}
   {% endif %}
 
-  {% if active_boost_entitlements is defined and active_boost_entitlements %}
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <h3 class="mel-card__title">{{ 'Active Boost entitlements'|t }}</h3>
-      </div>
-      <div class="mel-card__body">
-        <div class="mel-table">
-          <div class="mel-table__head">
-            <div>{{ 'Event'|t }}</div>
-            <div>{{ 'Ends'|t }}</div>
-            <div>{{ 'Action'|t }}</div>
-          </div>
-          <div class="mel-table__body">
-            {% for entitlement in active_boost_entitlements %}
-              <div class="mel-table__row">
-                <div>{{ entitlement.event_title }}</div>
-                <div>{{ entitlement.ends_at }}</div>
-                <div>
-                  {% if entitlement.manage_url %}
-                    <a href="{{ entitlement.manage_url }}" class="mel-link">{{ 'Manage'|t }}</a>
-                  {% endif %}
-                </div>
+  <div class="mel-dashboard-layout">
+    <div class="mel-dashboard-layout__main">
+      <section class="mel-dashboard-section">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Key numbers'|t,
+          subtitle: 'A quick snapshot of your current business health.'|t
+        } only %}
+        <div class="mel-kpi-grid">
+          {% for kpi in dashboard_kpis|default([]) %}
+            {% include '@myeventlane_vendor_theme/components/kpi-card.html.twig' with {
+              label: kpi.label,
+              value: kpi.value,
+              currency: kpi.currency|default(''),
+              icon: kpi.icon|default('dashboard'),
+              color: kpi.color|default('blue'),
+              delta: null
+            } only %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="mel-dashboard-section">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Priority actions'|t,
+          subtitle: 'Stay on top of setup, growth, and operations.'|t
+        } only %}
+        <div class="mel-dashboard-action-grid">
+          {% for card in dashboard_action_cards|default([]) %}
+            {% if card.url %}
+              <a href="{{ card.url }}" class="mel-panel-card mel-action-card">
+                <h3 class="mel-action-card__title">{{ card.title }}</h3>
+                <p class="mel-action-card__description">{{ card.description }}</p>
+              </a>
+            {% else %}
+              <div class="mel-panel-card mel-action-card mel-action-card--disabled" aria-disabled="true">
+                <h3 class="mel-action-card__title">{{ card.title }}</h3>
+                <p class="mel-action-card__description">{{ card.description }}</p>
               </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="mel-dashboard-section">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Recent activity'|t
+        } only %}
+        <div class="mel-panel-card">
+          {% if dashboard_activity_items|default([]) %}
+            <ul class="mel-activity-list" role="list">
+              {% for item in dashboard_activity_items %}
+                <li class="mel-activity-list__item">
+                  {% include '@myeventlane_vendor_theme/components/status-badge.html.twig' with {
+                    status: item.type|default('info'),
+                    label: (item.type|default('info')|capitalize)
+                  } only %}
+                  <span class="mel-activity-list__text">{{ item.message }}</span>
+                  {% if item.url %}
+                    <a href="{{ item.url }}" class="mel-link">{{ 'Open'|t }}</a>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            {% include '@myeventlane_vendor_theme/components/empty-state.html.twig' with {
+              title: 'No recent activity yet'|t,
+              message: 'New check-ins, updates, and reminders will appear here.'|t
+            } only %}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="mel-dashboard-section">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Event performance'|t
+        } only %}
+        <div class="mel-panel-card">
+          {% if dashboard_event_performance|default([]) %}
+            <ul class="mel-performance-list" role="list">
+              {% for event in dashboard_event_performance %}
+                <li class="mel-performance-list__item">
+                  <div class="mel-performance-list__meta">
+                    <h3 class="mel-performance-list__title">{{ event.title }}</h3>
+                    <p class="mel-performance-list__sub">{{ event.date|default('Date not set'|t) }}{% if event.venue %} - {{ event.venue }}{% endif %}</p>
+                  </div>
+                  <div class="mel-performance-list__metrics">
+                    <span>{{ 'Tickets'|t }}: {{ event.tickets_sold|default(0) }}</span>
+                    <span>{{ 'RSVPs'|t }}: {{ event.rsvps|default(0) }}</span>
+                    <span>{{ 'Revenue'|t }}: {{ event.revenue_formatted|default('$0') }}</span>
+                  </div>
+                  <div class="mel-performance-list__actions">
+                    {% include '@myeventlane_vendor_theme/components/status-badge.html.twig' with {
+                      status: event.status_badge|default('neutral'),
+                      label: event.status_badge_label|default('Active'|t)
+                    } only %}
+                    {% if event.manage_url %}
+                      <a href="{{ event.manage_url }}" class="mel-link">{{ 'Open workspace'|t }}</a>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            {% include '@myeventlane_vendor_theme/components/empty-state.html.twig' with {
+              title: 'No event performance yet'|t,
+              message: 'Create and publish an event to start seeing live performance insights.'|t
+            } only %}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="mel-dashboard-layout__rail">
+      <section class="mel-panel-card mel-dashboard-rail-widget">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Alerts and next steps'|t
+        } only %}
+        {% if dashboard_alerts|default([]) %}
+          <div class="mel-dashboard-alert-stack">
+            {% for alert in dashboard_alerts %}
+              {% include '@myeventlane_vendor_theme/components/alert-box.html.twig' with {
+                type: alert.type|default('info'),
+                title: alert.title,
+                message: alert.message,
+                link_label: alert.link_label|default(''),
+                link_url: alert.url|default('')
+              } only %}
             {% endfor %}
           </div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
-
-  {% if is_pro and pro_recovery_stats is defined %}
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <h3 class="mel-card__title">{{ 'Abandoned Cart Recovery (Last 30 days)'|t }}</h3>
-      </div>
-      <div class="mel-card__body">
-        <div class="mel-kpi-grid">
-          <div class="mel-kpi-card">
-            <div class="mel-kpi-card__label">{{ 'Reminders sent'|t }}</div>
-            <div class="mel-kpi-card__value">{{ pro_recovery_stats.reminders_sent }}</div>
-          </div>
-          <div class="mel-kpi-card">
-            <div class="mel-kpi-card__label">{{ 'Orders recovered'|t }}</div>
-            <div class="mel-kpi-card__value">{{ pro_recovery_stats.recovered_orders }}</div>
-          </div>
-          <div class="mel-kpi-card">
-            <div class="mel-kpi-card__label">{{ 'Revenue recovered'|t }}</div>
-            <div class="mel-kpi-card__value">${{ pro_recovery_stats.recovered_revenue|number_format(2) }}</div>
-          </div>
-          <div class="mel-kpi-card">
-            <div class="mel-kpi-card__label">{{ 'Recovery rate'|t }}</div>
-            <div class="mel-kpi-card__value">{{ pro_recovery_stats.recovery_rate|number_format(1) }}%</div>
-          </div>
-        </div>
-        {% if pro_recovery_roi is defined %}
-          <p class="mel-muted">{{ 'Pro paid for itself @times times this month.'|t({'@times': pro_recovery_roi.roi_multiple|number_format(2)}) }}</p>
+        {% else %}
+          {% include '@myeventlane_vendor_theme/components/empty-state.html.twig' with {
+            title: 'All caught up'|t,
+            message: 'No urgent items right now. Keep building momentum.'|t
+          } only %}
         {% endif %}
-      </div>
-    </div>
-  {% elseif not is_pro and pro_recovery_locked_preview is defined %}
-    <div class="mel-pro-prompt mel-pro-locked">
-      <span class="mel-pro-prompt__text">{{ 'Pro recovered $@amount across MyEventLane this month.'|t({'@amount': pro_recovery_locked_preview.recovered_revenue|number_format(2)}) }}</span>
-      {% if pro_upgrade_url %}
-        <a href="{{ pro_upgrade_url }}" class="mel-pro-prompt__cta">{{ 'Upgrade to unlock recovery automation'|t }}</a>
-      {% endif %}
-    </div>
-  {% endif %}
+      </section>
 
-  {# KPI summary strip (STAGE A2): below vendor alert, above main content #}
-  {% if vendor_kpis is defined %}
-    {% include '@myeventlane_vendor_theme/components/vendor-kpi-strip.html.twig' with {
-      vendor_kpis: vendor_kpis
-    } %}
-  {% endif %}
-
-  {# Welcome Banner (for new vendors with no events) #}
-  {% if show_welcome %}
-    <div class="mel-welcome-banner">
-      <div class="mel-welcome-banner__content">
-        <div class="mel-welcome-banner__icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-          </svg>
-        </div>
-        <div>
-          <h2 class="mel-welcome-banner__title">{{ 'Welcome to MyEventLane!'|t }}</h2>
-          <p class="mel-welcome-banner__text">{{ 'Create your first event and start selling tickets in minutes.'|t }}</p>
-        </div>
-      </div>
-      <div class="mel-welcome-banner__actions">
-        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Create Event'|t }}</a>
-      </div>
-    </div>
-  {% endif %}
-
-  {# KPI Cards Row - Always show #}
-  <div class="mel-kpi-grid">
-    {% if kpis %}
-      {% for kpi in kpis %}
-        {% include '@myeventlane_vendor_theme/components/kpi-card.html.twig' with kpi %}
-      {% endfor %}
-    {% else %}
-      {# Default KPI cards when no data #}
-      <div class="mel-kpi-card">
-        <div class="mel-kpi-card__header">
-          <div class="mel-kpi-card__icon mel-kpi-card__icon--coral">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-          </div>
-        </div>
-        <div class="mel-kpi-card__label">{{ 'Total Revenue'|t }}</div>
-        <div class="mel-kpi-card__value"><span class="mel-kpi-card__currency">$</span>0</div>
-      </div>
-      <div class="mel-kpi-card">
-        <div class="mel-kpi-card__header">
-          <div class="mel-kpi-card__icon mel-kpi-card__icon--blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-        </div>
-        <div class="mel-kpi-card__label">{{ 'Upcoming Events'|t }}</div>
-        <div class="mel-kpi-card__value">0</div>
-      </div>
-      <div class="mel-kpi-card">
-        <div class="mel-kpi-card__header">
-          <div class="mel-kpi-card__icon mel-kpi-card__icon--green">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-            </svg>
-          </div>
-        </div>
-        <div class="mel-kpi-card__label">{{ 'Tickets Sold'|t }}</div>
-        <div class="mel-kpi-card__value">0</div>
-      </div>
-      <div class="mel-kpi-card">
-        <div class="mel-kpi-card__header">
-          <div class="mel-kpi-card__icon mel-kpi-card__icon--purple">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            </svg>
-          </div>
-        </div>
-        <div class="mel-kpi-card__label">{{ 'RSVPs'|t }}</div>
-        <div class="mel-kpi-card__value">0</div>
-      </div>
-    {% endif %}
+      <section class="mel-panel-card mel-dashboard-rail-widget">
+        {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
+          title: 'Payout status'|t
+        } only %}
+        {% include '@myeventlane_vendor_theme/components/stripe-panel.html.twig' with {
+          stripe: stripe|default({
+            connected: false,
+            status: 'not_connected',
+            status_label: 'Not connected',
+            connect_url: '/vendor/stripe/connect'
+          })
+        } only %}
+      </section>
+    </aside>
   </div>
-
-  {# Quick Actions Row - Always show #}
-  <div class="mel-dashboard__section">
-    <div class="mel-dashboard__section-header">
-      <h2 class="mel-dashboard__section-title">{{ 'Quick Actions'|t }}</h2>
-    </div>
-    <div class="mel-quick-actions-table">
-      <table>
-        <tbody>
-          <tr>
-            <td>
-              <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-action-btn mel-action-btn--primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                {{ 'Create Event'|t }}
-              </a>
-            </td>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-action-btn mel-action-btn--success">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
-                {{ 'Manage Payouts'|t }}
-              </a>
-            </td>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.audience') }}" class="mel-action-btn mel-action-btn--info">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                {{ 'View Attendees'|t }}
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.boost') }}" class="mel-action-btn mel-action-btn--warning">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                {{ 'Boost Event'|t }}
-              </a>
-            </td>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.audience') }}" class="mel-action-btn mel-action-btn--secondary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                {{ 'Contact Audience'|t }}
-              </a>
-            </td>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.settings') }}" class="mel-action-btn mel-action-btn--neutral">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-                {{ 'Edit Profile'|t }}
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <a href="{{ path('myeventlane_vendor.console.messaging_brand') }}" class="mel-action-btn mel-action-btn--secondary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-                </svg>
-                {{ 'Messaging Brand'|t }}
-              </a>
-            </td>
-            <td></td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  {# Main Content Area - Two Column Layout #}
-  <div class="mel-dashboard__main">
-    {# Left Column: Events Table #}
-    <div class="mel-dashboard__primary">
-      {# Events Table #}
-      <div class="mel-card">
-        <div class="mel-card__header">
-          <div>
-            <h3 class="mel-card__title">{{ 'Your Events'|t }}</h3>
-            <p class="mel-card__subtitle">{{ 'Manage and track all your events'|t }}</p>
-          </div>
-          <a class="mel-link" href="{{ path('myeventlane_vendor.console.events') }}">{{ 'View All'|t }} →</a>
-        </div>
-        <div class="mel-card__body mel-card__body--flush">
-          {# STAGE B: Event Performance List (replaces table). Below KPI strip, above secondary. #}
-          {% include '@myeventlane_vendor_theme/components/vendor-event-performance.html.twig' with {
-            events: events|default([])
-          } %}
-        </div>
-      </div>
-    </div>
-
-    {# Right Column: Stripe + Account + Help #}
-    <div class="mel-dashboard__secondary">
-      {# AI usage panel (tokens only) #}
-      {% if ai_usage_panel is defined and ai_usage_panel %}
-        <div class="mel-card mel-card--ai-usage">
-          <div class="mel-card__header mel-card__header--no-border">
-            <h3 class="mel-card__title">{{ 'AI Assistant'|t }}</h3>
-          </div>
-          <div class="mel-card__body">
-            {% if ai_usage_panel.ai_enabled %}
-              <p class="mel-ai-usage__stats">
-                {{ 'Tokens used today: @used of @limit'|t({'@used': ai_usage_panel.tokens_used|number_format, '@limit': ai_usage_panel.token_limit|number_format}) }}
-              </p>
-            {% else %}
-              <p class="mel-ai-usage__disabled">{{ 'AI is disabled'|t }}</p>
-              <p class="mel-muted mel-ai-usage__hint">{{ 'Enable in your profile settings to use the AI assistant.'|t }}</p>
-            {% endif %}
-          </div>
-        </div>
-      {% endif %}
-
-      {# Stripe Panel #}
-      <div class="mel-card">
-        <div class="mel-card__body mel-card__body--flush">
-          {% include '@myeventlane_vendor_theme/components/stripe-panel.html.twig' with { 
-            stripe: stripe|default({
-              connected: false,
-              status: 'not_connected',
-              status_label: 'Not Connected',
-              connect_url: '/vendor/stripe/connect'
-            }) 
-          } %}
-        </div>
-      </div>
-
-      {# Notifications Panel #}
-      {% if notifications %}
-        <div class="mel-card">
-          <div class="mel-card__body mel-card__body--flush">
-            {% include '@myeventlane_vendor_theme/components/notifications.html.twig' with { notifications: notifications } %}
-          </div>
-        </div>
-      {% endif %}
-
-      {# Account Summary #}
-      <div class="mel-card">
-        <div class="mel-card__header mel-card__header--no-border">
-          <h3 class="mel-card__title">{{ 'Account'|t }}</h3>
-        </div>
-        <div class="mel-card__body">
-          {% include '@myeventlane_vendor_theme/components/account-summary.html.twig' with { 
-            account: account|default({
-              display_name: 'Vendor',
-              email: '',
-              store_name: ''
-            }) 
-          } %}
-        </div>
-      </div>
-
-      {# Quick Tips #}
-      <div class="mel-card mel-card--help">
-        <div class="mel-card__header mel-card__header--no-border">
-          <h3 class="mel-card__title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            {{ 'Quick Tips'|t }}
-          </h3>
-        </div>
-        <div class="mel-card__body">
-          <div class="mel-help-links">
-            <div class="mel-help-link">
-              <span>💡 {{ 'Add eye-catching images to boost engagement'|t }}</span>
-            </div>
-            <div class="mel-help-link">
-              <span>🎯 {{ 'Connect Stripe to receive payouts'|t }}</span>
-            </div>
-            <div class="mel-help-link">
-              <span>⚡ {{ 'Use Boost to get featured on the homepage'|t }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+</section>

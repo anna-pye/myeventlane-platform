@@ -24,6 +24,7 @@ use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Vendor dashboard controller - Full functional control centre.
@@ -140,8 +141,13 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   public function dashboard(): array {
     $userId = (int) $this->currentUser->id();
 
-    // Load vendor entity for current user.
-    $vendor = $this->getCurrentVendorOrNull();
+    // Resolve vendor context for current user.
+    $vendor = $this->resolveDashboardVendor($userId);
+    if (!$vendor) {
+      \Drupal::logger('myeventlane_vendor')->warning('Vendor dashboard context resolution failed for uid @uid.', [
+        '@uid' => $userId,
+      ]);
+    }
     $vendorEditUrl = NULL;
     if ($vendor) {
       $vendorEditUrl = Url::fromRoute('entity.myeventlane_vendor.edit_form', [
@@ -150,17 +156,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     // Load vendor's events once for all queries.
-    $userEvents = $this->getUserEvents($userId);
+    $userEvents = $this->getUserEvents($userId, $vendor);
+    $eventNodes = $this->loadEventNodes($userEvents);
 
     // Build all dashboard data.
-    $kpis = $this->buildKpiCards($userId, $userEvents);
+    $kpis = $this->buildKpiCards($eventNodes);
     $events = $this->getEventsTableData($userEvents);
     $bestEvent = $this->getBestPerformingEvent($userEvents);
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
     $notifications = $this->getNotifications($userId, $userEvents, $vendor);
-    $accountSummary = $this->getAccountSummary($userId);
+    $accountSummary = $this->getAccountSummary($userId, $vendor);
     $quickActions = $this->getQuickActions();
-    $upcomingCount = $this->getUpcomingEventsCount($userEvents);
+    $upcomingCount = $this->getUpcomingEventsCount($this->getPublishedUserEvents($userId, $vendor));
 
     // Chart configurations.
     $charts = [
@@ -173,7 +180,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $showWelcome = empty($userEvents);
 
     // Boost export: visible only if vendor has at least one Boost.
-    $publishedEventIds = $this->getPublishedUserEvents($userId);
+    $publishedEventIds = $this->getPublishedUserEvents($userId, $vendor);
     $hasBoost = $this->vendorHasAnyBoost($publishedEventIds);
     $boostExportUrl = $hasBoost ? Url::fromRoute('myeventlane_vendor.console.boost_vendor_export')->toString() : NULL;
     $activeBoostEntitlements = $this->getActiveBoostEntitlements($userId);
@@ -238,6 +245,22 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'has_boost' => $hasBoost,
       'boost_export_url' => $boostExportUrl,
       'active_boost_entitlements' => $activeBoostEntitlements,
+      'dashboard_kpis' => $this->buildDashboardKpis($kpis),
+      'dashboard_action_cards' => $this->buildDashboardActionCards(),
+      'dashboard_activity_items' => $this->buildDashboardActivity($userEvents, $events),
+      'dashboard_alerts' => $this->buildDashboardAlerts($stripeStatusFormatted, $eventNodes),
+      'dashboard_event_performance' => array_slice($events, 0, 4),
+      // Legacy dashboard template compatibility (myeventlane_theme).
+      'upcoming_events' => $this->buildLegacyUpcomingEvents($events),
+      'past_events' => [],
+      'quick_links' => $this->buildLegacyQuickLinks($quickActions),
+      'stripe_status' => $stripeStatusFormatted,
+      'welcome_message' => (string) $this->t('Welcome back, @name. Here is an overview of your events.', [
+        '@name' => $accountSummary['display_name'] ?? $this->currentUser->getDisplayName(),
+      ]),
+      'dashboard' => [
+        'metrics' => $this->buildLegacyDashboardMetrics($kpis),
+      ],
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/global-styling',
@@ -283,11 +306,151 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         }
       }
       catch (\Throwable $e) {
-        $this->getLogger('myeventlane_vendor')->warning('Onboarding panel failed on dashboard: @m', ['@m' => $e->getMessage()]);
+        \Drupal::logger('myeventlane_vendor')->warning('Onboarding panel failed on dashboard: @m', ['@m' => $e->getMessage()]);
       }
     }
 
     return $this->buildVendorPage('myeventlane_vendor_dashboard', $pageVars);
+  }
+
+  /**
+   * Resolves the active vendor for dashboard context.
+   *
+   * Resolution order:
+   * 1) CurrentVendorResolver/current vendor ownership resolver paths.
+   * 2) Vendor linked to current user directly.
+   * 3) Vendor found via the user's owned store.
+   */
+  private function resolveDashboardVendor(int $userId) {
+    if ($userId <= 0) {
+      return NULL;
+    }
+
+    // Primary path: canonical resolver on vendor module.
+    $vendor = $this->getCurrentVendorOrNull();
+    if ($vendor) {
+      return $vendor;
+    }
+
+    try {
+      $user = $this->entityTypeManager->getStorage('user')->load($userId);
+      if ($user instanceof UserInterface) {
+        // Common account->vendor reference field patterns.
+        foreach (['field_vendor', 'field_vendor_account'] as $candidateField) {
+          if ($user->hasField($candidateField) && !$user->get($candidateField)->isEmpty()) {
+            $entity = $user->get($candidateField)->entity;
+            if ($entity) {
+              return $entity;
+            }
+          }
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Continue to store-based fallback.
+    }
+
+    // Fallback path: explicit vendor ownership/member lookups.
+    try {
+      $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $owner_ids = $vendorStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $userId)
+        ->range(0, 1)
+        ->execute();
+      if (!empty($owner_ids)) {
+        return $vendorStorage->load((int) reset($owner_ids));
+      }
+
+      $member_ids = $vendorStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('field_vendor_users', $userId)
+        ->range(0, 1)
+        ->execute();
+      if (!empty($member_ids)) {
+        return $vendorStorage->load((int) reset($member_ids));
+      }
+    }
+    catch (\Throwable) {
+      // Continue to store-based fallback.
+    }
+
+    // Fallback path: account -> store -> vendor.
+    try {
+      $store_ids = $this->entityTypeManager
+        ->getStorage('commerce_store')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $userId)
+        ->range(0, 1)
+        ->execute();
+      if (!empty($store_ids)) {
+        $store_id = (int) reset($store_ids);
+        $vendor_ids = $this->entityTypeManager
+          ->getStorage('myeventlane_vendor')
+          ->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('field_vendor_store', $store_id)
+          ->range(0, 1)
+          ->execute();
+        if (!empty($vendor_ids)) {
+          return $this->entityTypeManager->getStorage('myeventlane_vendor')->load((int) reset($vendor_ids));
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Fall through to NULL.
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Loads event nodes for known IDs.
+   *
+   * @param array<int, int|string> $eventIds
+   *   Event IDs.
+   *
+   * @return array<int, \Drupal\node\NodeInterface>
+   *   Loaded event nodes.
+   */
+  private function loadEventNodes(array $eventIds): array {
+    if (empty($eventIds)) {
+      return [];
+    }
+
+    try {
+      $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($eventIds);
+      return array_values(array_filter($nodes, static fn($node): bool => $node instanceof NodeInterface));
+    }
+    catch (\Throwable) {
+      return [];
+    }
+  }
+
+  /**
+   * Shell-level dashboard entrypoint for /dashboard and /vendor.
+   */
+  public function entrypointRedirect(): RedirectResponse {
+    if ($this->currentUser->hasPermission('access vendor console')) {
+      $target = Url::fromRoute('myeventlane_vendor.console.dashboard')->toString();
+      return new RedirectResponse($target, 302);
+    }
+
+    if ($this->currentUser->hasPermission('access myeventlane platform control centre')
+      || $this->currentUser->hasPermission('administer site configuration')
+      || $this->currentUser->id() === 1) {
+      $target = Url::fromRoute('myeventlane_admin_dashboard.platform_control')->toString();
+      return new RedirectResponse($target, 302);
+    }
+
+    if ($this->currentUser->isAuthenticated()) {
+      $target = Url::fromRoute('myeventlane_account.dashboard')->toString();
+      return new RedirectResponse($target, 302);
+    }
+
+    $target = Url::fromRoute('user.login')->toString();
+    return new RedirectResponse($target, 302);
   }
 
   /**
@@ -317,21 +480,56 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * @return array
    *   Array of event node IDs. Returns empty array if no events or invalid user.
    */
-  private function getUserEvents(int $userId): array {
-    if ($userId <= 0) {
+  private function getUserEvents(int $userId, $vendor = NULL): array {
+    if ($userId <= 0 && !$vendor) {
       return [];
     }
 
     try {
-      return $this->entityTypeManager
-        ->getStorage('node')
-        ->getQuery()
-        ->accessCheck(TRUE)
-        ->condition('type', 'event')
-        ->condition('uid', $userId)
-        ->execute();
+      $ids = [];
+      $storage = $this->entityTypeManager->getStorage('node');
+
+      if ($userId > 0) {
+        $ids += $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('type', 'event')
+          ->condition('uid', $userId)
+          ->sort('changed', 'DESC')
+          ->execute();
+      }
+
+      if ($vendor && method_exists($vendor, 'id')) {
+        $vendorId = (int) $vendor->id();
+        if ($vendorId > 0) {
+          try {
+            $ids += $storage->getQuery()
+              ->accessCheck(FALSE)
+              ->condition('type', 'event')
+              ->condition('field_event_vendor', $vendorId)
+              ->sort('changed', 'DESC')
+              ->execute();
+          }
+          catch (\Throwable) {
+            // Field may not exist in this environment.
+          }
+
+          try {
+            $ids += $storage->getQuery()
+              ->accessCheck(FALSE)
+              ->condition('type', 'event')
+              ->condition('field_vendor', $vendorId)
+              ->sort('changed', 'DESC')
+              ->execute();
+          }
+          catch (\Throwable) {
+            // Field may not exist in this environment.
+          }
+        }
+      }
+
+      return $ids;
     }
-    catch (\Exception $e) {
+    catch (\Throwable) {
       return [];
     }
   }
@@ -348,22 +546,59 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * @return array
    *   Array of published event node IDs. Returns empty array if no events or invalid user.
    */
-  private function getPublishedUserEvents(int $userId): array {
-    if ($userId <= 0) {
+  private function getPublishedUserEvents(int $userId, $vendor = NULL): array {
+    if ($userId <= 0 && !$vendor) {
       return [];
     }
 
     try {
-      return $this->entityTypeManager
-        ->getStorage('node')
-        ->getQuery()
-        ->accessCheck(TRUE)
-        ->condition('type', 'event')
-        ->condition('uid', $userId)
-        ->condition('status', 1)
-        ->execute();
+      $ids = [];
+      $storage = $this->entityTypeManager->getStorage('node');
+
+      if ($userId > 0) {
+        $ids += $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('type', 'event')
+          ->condition('uid', $userId)
+          ->condition('status', 1)
+          ->sort('changed', 'DESC')
+          ->execute();
+      }
+
+      if ($vendor && method_exists($vendor, 'id')) {
+        $vendorId = (int) $vendor->id();
+        if ($vendorId > 0) {
+          try {
+            $ids += $storage->getQuery()
+              ->accessCheck(FALSE)
+              ->condition('type', 'event')
+              ->condition('field_event_vendor', $vendorId)
+              ->condition('status', 1)
+              ->sort('changed', 'DESC')
+              ->execute();
+          }
+          catch (\Throwable) {
+            // Field may not exist in this environment.
+          }
+
+          try {
+            $ids += $storage->getQuery()
+              ->accessCheck(FALSE)
+              ->condition('type', 'event')
+              ->condition('field_vendor', $vendorId)
+              ->condition('status', 1)
+              ->sort('changed', 'DESC')
+              ->execute();
+          }
+          catch (\Throwable) {
+            // Field may not exist in this environment.
+          }
+        }
+      }
+
+      return $ids;
     }
-    catch (\Exception $e) {
+    catch (\Throwable) {
       return [];
     }
   }
@@ -455,50 +690,61 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * @return array
    *   Array of KPI card arrays. Returns empty array if services unavailable.
    */
-  private function buildKpiCards(int $userId, array $userEvents): array {
+  private function buildKpiCards(array $eventNodes): array {
     // Defensive guard: ensure services are available.
     if (!$this->rsvpStats || !$this->ticketSales) {
       return [];
     }
 
-    if ($userId <= 0) {
+    if (empty($eventNodes)) {
       return [];
     }
 
-    // Get published events for analytics (excludes drafts).
-    $publishedEvents = $this->getPublishedUserEvents($userId);
-    $eventCount = count($userEvents);
+    $publishedNodes = array_values(array_filter(
+      $eventNodes,
+      static fn(NodeInterface $node): bool => $node->isPublished()
+    ));
 
-    // Use TicketSalesService for revenue metrics (includes published filter).
-    $revenue = $this->ticketSales->getVendorRevenue($userId);
-    $totalRevenue = $revenue['gross_raw'] ?? 0.0;
-    $ticketsSold = $revenue['tickets'] ?? 0;
-
-    // Calculate last 30 days revenue using TicketSalesService method.
-    $thirtyDaysAgo = strtotime('-30 days');
+    $totalRevenue = 0.0;
+    $ticketsSold = 0;
+    $totalRsvps = 0;
     $last30DaysRevenue = 0.0;
-    try {
-      $last30DaysRevenue = $this->ticketSales->getVendorRevenueInRange($userId, $thirtyDaysAgo);
-    }
-    catch (\Exception $e) {
-      // Default to 0 if method fails.
+    $thirtyDaysAgo = strtotime('-30 days');
+
+    foreach ($publishedNodes as $node) {
+      $eventId = (int) $node->id();
+      try {
+        $salesSummary = $this->ticketSales->getSalesSummary($node);
+        $eventRevenue = (float) ($salesSummary['gross_raw'] ?? 0.0);
+        $totalRevenue += $eventRevenue;
+        $ticketsSold += (int) ($salesSummary['tickets_sold'] ?? 0);
+
+        if (method_exists($node, 'getChangedTime') && (int) $node->getChangedTime() >= (int) $thirtyDaysAgo) {
+          $last30DaysRevenue += $eventRevenue;
+        }
+      }
+      catch (\Throwable) {
+        // Keep dashboard resilient; continue with remaining events.
+      }
+
+      try {
+        $totalRsvps += $this->rsvpStats->getEventRsvpCount($eventId);
+      }
+      catch (\Throwable) {
+        // Keep dashboard resilient; continue with remaining events.
+      }
     }
 
-    // Use RsvpStatsService for RSVP count (includes published filter).
-    $total_rsvps = 0;
-    try {
-      $total_rsvps = $this->rsvpStats->getVendorRsvpCount($userId);
-    }
-    catch (\Exception $e) {
-      // Default to 0 if service fails.
-    }
-
-    // Get upcoming events count (filters by published internally).
-    $upcomingCount = $this->getUpcomingEventsCount($publishedEvents);
+    $activeEvents = $this->getUpcomingEventsCount(array_map(
+      static fn(NodeInterface $node): int => (int) $node->id(),
+      $publishedNodes
+    ));
+    $totalAttendees = $ticketsSold + $totalRsvps;
 
     return [
       [
-        'label' => 'Total Revenue',
+        'key' => 'total_revenue',
+        'label' => 'Total revenue',
         'value' => number_format($totalRevenue, 0),
         'currency' => '$',
         'icon' => 'revenue',
@@ -511,26 +757,41 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'highlight' => TRUE,
       ],
       [
-        'label' => 'Upcoming Events',
-        'value' => (string) $upcomingCount,
+        'key' => 'active_events',
+        'label' => 'Active events',
+        'value' => (string) $activeEvents,
         'icon' => 'calendar',
         'color' => 'blue',
         'delta' => [
-          'value' => (string) $eventCount,
+          'value' => (string) count($eventNodes),
           'label' => 'total events',
           'positive' => TRUE,
         ],
       ],
       [
-        'label' => 'Tickets Sold',
+        'key' => 'tickets_sold',
+        'label' => 'Tickets sold',
         'value' => (string) $ticketsSold,
         'icon' => 'tickets',
         'color' => 'green',
         'delta' => NULL,
       ],
       [
+        'key' => 'total_attendees',
+        'label' => 'Total attendees',
+        'value' => (string) $totalAttendees,
+        'icon' => 'users',
+        'color' => 'purple',
+        'delta' => [
+          'value' => (string) $totalRsvps,
+          'label' => 'RSVPs included',
+          'positive' => TRUE,
+        ],
+      ],
+      [
+        'key' => 'rsvps',
         'label' => 'RSVPs',
-        'value' => (string) $total_rsvps,
+        'value' => (string) $totalRsvps,
         'icon' => 'users',
         'color' => 'purple',
         'delta' => NULL,
@@ -619,6 +880,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
 
       $eventId = (int) $node->id();
+      $eventImageUrl = $this->extractEventImageUrl($node);
 
       // Get event date.
       $startDate = '';
@@ -786,6 +1048,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $events[] = [
         'id' => $eventId,
         'title' => $node->label(),
+        'image' => $eventImageUrl,
         'is_series_template' => $isSeriesTemplate,
         'venue' => $venue,
         'date' => $startDate,
@@ -810,7 +1073,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'boost' => $boost,
         'boost_wizard_url' => $boostWizardUrl,
         'view_url' => $node->toUrl()->toString(),
-        // Use wizard route for editing (vendors never see default node edit form).
         'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eventId])->toString(),
         'manage_url' => '/vendor/events/' . $eventId . '/overview',
         'tickets_url' => '/vendor/events/' . $eventId . '/tickets',
@@ -825,6 +1087,36 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     usort($events, fn($a, $b) => $b['start_timestamp'] <=> $a['start_timestamp']);
 
     return $events;
+  }
+
+  /**
+   * Extracts event image URL for dashboard event cards.
+   *
+   * Supports direct file references and media image references.
+   */
+  private function extractEventImageUrl(NodeInterface $event): ?string {
+    if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
+      return NULL;
+    }
+
+    $image_item = $event->get('field_event_image')->first();
+    if (!$image_item || !isset($image_item->entity) || !$image_item->entity) {
+      return NULL;
+    }
+
+    $image_entity = $image_item->entity;
+    if (method_exists($image_entity, 'createFileUrl')) {
+      return $image_entity->createFileUrl();
+    }
+
+    if (method_exists($image_entity, 'hasField') && $image_entity->hasField('field_media_image') && !$image_entity->get('field_media_image')->isEmpty()) {
+      $media_image = $image_entity->get('field_media_image')->entity;
+      if ($media_image && method_exists($media_image, 'createFileUrl')) {
+        return $media_image->createFileUrl();
+      }
+    }
+
+    return NULL;
   }
 
   /**
@@ -1044,7 +1336,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'message' => t('@title is missing a cover image', [
             '@title' => $node->label(),
           ]),
-          'url' => $node->toUrl('edit-form')->toString(),
+          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $node->id()])->toString(),
         ];
       }
 
@@ -1056,7 +1348,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'message' => t('@title is still in draft', [
             '@title' => $node->label(),
           ]),
-          'url' => $node->toUrl('edit-form')->toString(),
+          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $node->id()])->toString(),
         ];
       }
     }
@@ -1079,7 +1371,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   /**
    * Get account summary for vendor.
    */
-  private function getAccountSummary(int $userId): array {
+  private function getAccountSummary(int $userId, $vendor = NULL): array {
     $account = [
       'display_name' => '',
       'email' => '',
@@ -1097,12 +1389,17 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           $account['last_login'] = date('M j, Y g:ia', (int) $lastLogin);
         }
 
-        // Get vendor entity if exists.
-        $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')
-          ->loadByProperties(['uid' => $userId]);
-        if (!empty($vendors)) {
-          $vendor = reset($vendors);
+        if ($vendor) {
           $account['store_name'] = $vendor->label();
+        }
+        else {
+          // Get vendor entity if exists.
+          $vendors = $this->entityTypeManager->getStorage('myeventlane_vendor')
+            ->loadByProperties(['uid' => $userId]);
+          if (!empty($vendors)) {
+            $vendor = reset($vendors);
+            $account['store_name'] = $vendor->label();
+          }
         }
       }
     }
@@ -1120,7 +1417,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     return [
       [
         'label' => 'Create Event',
-        'url' => '/vendor/events/add',
+        'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString(),
         'icon' => 'plus',
         'style' => 'primary',
       ],
@@ -1161,6 +1458,423 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'style' => 'secondary',
       ],
     ];
+  }
+
+  /**
+   * Builds dashboard KPI cards in a stable display order.
+   *
+   * @param array<int, array<string, mixed>> $kpis
+   *   Raw KPI cards from buildKpiCards().
+   * @param int $upcomingCount
+   *   Upcoming event count.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Dashboard KPI cards.
+   */
+  private function buildDashboardKpis(array $kpis): array {
+    $index = [];
+    foreach ($kpis as $kpi) {
+      $key = (string) ($kpi['key'] ?? '');
+      if ($key !== '') {
+        $index[$key] = $kpi;
+      }
+    }
+
+    return [
+      [
+        'label' => (string) $this->t('Total revenue'),
+        'value' => (string) ($index['total_revenue']['value'] ?? '0'),
+        'currency' => (string) ($index['total_revenue']['currency'] ?? '$'),
+        'icon' => 'revenue',
+        'color' => 'coral',
+        'meta' => (string) $this->t('Gross sales'),
+      ],
+      [
+        'label' => (string) $this->t('Tickets sold'),
+        'value' => (string) ($index['tickets_sold']['value'] ?? '0'),
+        'icon' => 'tickets',
+        'color' => 'green',
+        'meta' => (string) $this->t('Completed orders'),
+      ],
+      [
+        'label' => (string) $this->t('Active events'),
+        'value' => (string) ($index['active_events']['value'] ?? '0'),
+        'icon' => 'calendar',
+        'color' => 'blue',
+        'meta' => (string) $this->t('Published and scheduled'),
+      ],
+      [
+        'label' => (string) $this->t('Total attendees'),
+        'value' => (string) ($index['total_attendees']['value'] ?? '0'),
+        'icon' => 'users',
+        'color' => 'purple',
+        'meta' => (string) $this->t('Tickets + RSVPs'),
+      ],
+    ];
+  }
+
+  /**
+   * Builds action cards for quick operational tasks.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Action card definitions.
+   */
+  private function buildDashboardActionCards(): array {
+    return [
+      [
+        'title' => (string) $this->t('Finish setup'),
+        'description' => (string) $this->t('Complete your organiser profile and settings.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.settings'),
+      ],
+      [
+        'title' => (string) $this->t('Boost an event'),
+        'description' => (string) $this->t('Increase visibility for your published events.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.boost'),
+      ],
+      [
+        'title' => (string) $this->t('Review attendees'),
+        'description' => (string) $this->t('See attendee trends and engagement insights.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.audience'),
+      ],
+      [
+        'title' => (string) $this->t('Check payouts'),
+        'description' => (string) $this->t('Review transfers and payout readiness.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
+      ],
+    ];
+  }
+
+  /**
+   * Normalizes dashboard recent activity rows.
+   *
+   * @param array<int, array<string, mixed>> $notifications
+   *   Notification rows.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Activity rows.
+   */
+  private function buildDashboardActivity(array $eventIds, array $eventRows): array {
+    if (empty($eventIds)) {
+      return [];
+    }
+
+    $eventTitles = [];
+    foreach ($eventRows as $row) {
+      if (!empty($row['id']) && !empty($row['title'])) {
+        $eventTitles[(int) $row['id']] = (string) $row['title'];
+      }
+    }
+
+    $items = [];
+
+    // 1) New ticket purchases.
+    try {
+      $orderItems = $this->entityTypeManager
+        ->getStorage('commerce_order_item')
+        ->loadByProperties(['field_target_event' => $eventIds]);
+      foreach (array_slice($orderItems, 0, 12) as $orderItem) {
+        if (!$orderItem instanceof OrderItemInterface) {
+          continue;
+        }
+        $order = $this->getOrderFromItem($orderItem);
+        if (!$order || $order->getState()->getId() !== 'completed') {
+          continue;
+        }
+        $eventId = (int) ($orderItem->hasField('field_target_event') && !$orderItem->get('field_target_event')->isEmpty()
+          ? $orderItem->get('field_target_event')->target_id
+          : 0);
+        if ($eventId <= 0) {
+          continue;
+        }
+        $items[] = [
+          'timestamp' => (int) ($order->getCompletedTime() ?? $order->getChangedTime()),
+          'type' => 'success',
+          'message' => (string) $this->t('New ticket purchase for @event.', [
+            '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
+          ]),
+          'url' => '/vendor/events/' . $eventId . '/orders',
+        ];
+        if (count($items) >= 2) {
+          break;
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Keep dashboard resilient when Commerce is unavailable.
+    }
+
+    // 2) New RSVPs.
+    try {
+      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+        $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
+        $rsvpIds = $rsvpStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $eventIds, 'IN')
+          ->condition('status', 'confirmed')
+          ->sort('created', 'DESC')
+          ->range(0, 2)
+          ->execute();
+        foreach ($rsvpStorage->loadMultiple($rsvpIds) as $rsvp) {
+          $eventId = (int) ($rsvp->hasField('event_id') ? $rsvp->get('event_id')->target_id : 0);
+          $items[] = [
+            'timestamp' => (int) ($rsvp->hasField('created') ? $rsvp->get('created')->value : time()),
+            'type' => 'info',
+            'message' => (string) $this->t('New RSVP confirmed for @event.', [
+              '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
+            ]),
+            'url' => $eventId > 0 ? '/vendor/events/' . $eventId . '/rsvps' : NULL,
+          ];
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Keep dashboard resilient when RSVP module is unavailable.
+    }
+
+    // 3) Recent event edits.
+    try {
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $editedIds = $nodeStorage->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('nid', $eventIds, 'IN')
+        ->sort('changed', 'DESC')
+        ->range(0, 2)
+        ->execute();
+      foreach ($nodeStorage->loadMultiple($editedIds) as $node) {
+        if (!$node instanceof NodeInterface) {
+          continue;
+        }
+        if ((int) $node->getChangedTime() <= (int) $node->getCreatedTime()) {
+          continue;
+        }
+        $eventId = (int) $node->id();
+        $items[] = [
+          'timestamp' => (int) $node->getChangedTime(),
+          'type' => 'neutral',
+          'message' => (string) $this->t('Recent event update: @event.', [
+            '@event' => $node->label(),
+          ]),
+          'url' => '/vendor/events/' . $eventId . '/overview',
+        ];
+      }
+    }
+    catch (\Throwable) {
+      // Keep dashboard resilient on entity query failures.
+    }
+
+    // 4) Recent check-ins.
+    try {
+      if ($this->entityTypeManager->hasDefinition('myeventlane_ticket')) {
+        $ticketStorage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+        $ticketIds = $ticketStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $eventIds, 'IN')
+          ->condition('status', 'checked_in')
+          ->sort('checked_in_at', 'DESC')
+          ->range(0, 2)
+          ->execute();
+        foreach ($ticketStorage->loadMultiple($ticketIds) as $ticket) {
+          $eventId = (int) ($ticket->hasField('event_id') ? $ticket->get('event_id')->target_id : 0);
+          $items[] = [
+            'timestamp' => (int) ($ticket->hasField('checked_in_at') ? $ticket->get('checked_in_at')->value : time()),
+            'type' => 'success',
+            'message' => (string) $this->t('Recent check-in for @event.', [
+              '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
+            ]),
+            'url' => $eventId > 0 ? '/vendor/events/' . $eventId . '/attendees' : NULL,
+          ];
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Keep dashboard resilient when tickets module is unavailable.
+    }
+
+    usort($items, static fn(array $a, array $b): int => ((int) ($b['timestamp'] ?? 0)) <=> ((int) ($a['timestamp'] ?? 0)));
+    $items = array_slice($items, 0, 6);
+    foreach ($items as &$item) {
+      unset($item['timestamp']);
+    }
+
+    return $items;
+  }
+
+  /**
+   * Builds dashboard alert boxes for next-step guidance.
+   *
+   * @param array<string, mixed> $stripe
+   *   Stripe status.
+   * @param array<int, array<string, mixed>> $notifications
+   *   Notification rows.
+   * @param bool $show_welcome
+   *   Whether this vendor is in welcome/empty state.
+   *
+   * @return array<int, array<string, string|null>>
+   *   Alert rows.
+   */
+  private function buildDashboardAlerts(array $stripe, array $eventNodes): array {
+    $alerts = [];
+
+    if (empty($stripe['connected'])) {
+      $alerts[] = [
+        'type' => 'warning',
+        'title' => (string) $this->t('Connect Stripe to receive payouts'),
+        'message' => (string) $this->t('Finish Stripe connection so ticket sales can pay out automatically.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
+        'link_label' => (string) $this->t('Open payouts'),
+      ];
+    }
+
+    $hasEvents = !empty($eventNodes);
+    if (!$hasEvents) {
+      $alerts[] = [
+        'type' => 'info',
+        'title' => (string) $this->t('Ready for your first launch'),
+        'message' => (string) $this->t('Create your first event and we will guide you through publishing.'),
+        'url' => $this->safeRouteUrl('myeventlane_event.wizard.create'),
+        'link_label' => (string) $this->t('Create event'),
+      ];
+    }
+
+    foreach ($eventNodes as $event) {
+      if (!$event instanceof NodeInterface) {
+        continue;
+      }
+
+      $eventTitle = $event->label();
+      $eventId = (int) $event->id();
+
+      if ($event->hasField('field_product_target') && $event->get('field_product_target')->isEmpty()) {
+        $alerts[] = [
+          'type' => 'warning',
+          'title' => (string) $this->t('Ticket setup required'),
+          'message' => (string) $this->t('@event has no ticket product configured.', ['@event' => $eventTitle]),
+          'url' => '/vendor/events/' . $eventId . '/tickets',
+          'link_label' => (string) $this->t('Configure tickets'),
+        ];
+      }
+
+      if ($event->hasField('field_event_image') && $event->get('field_event_image')->isEmpty()) {
+        $alerts[] = [
+          'type' => 'warning',
+          'title' => (string) $this->t('Event image missing'),
+          'message' => (string) $this->t('@event is missing a cover image.', ['@event' => $eventTitle]),
+          'url' => '/vendor/events/' . $eventId . '/overview',
+          'link_label' => (string) $this->t('Add image'),
+        ];
+      }
+
+      if (!$event->isPublished()) {
+        $alerts[] = [
+          'type' => 'info',
+          'title' => (string) $this->t('Publish pending'),
+          'message' => (string) $this->t('@event is still in draft and needs publishing.', ['@event' => $eventTitle]),
+          'url' => '/vendor/events/' . $eventId . '/publish',
+          'link_label' => (string) $this->t('Review publish'),
+        ];
+      }
+
+      if (count($alerts) >= 3) {
+        break;
+      }
+    }
+
+    return $alerts;
+  }
+
+  /**
+   * Resolves a route URL safely.
+   *
+   * @param string $route_name
+   *   Route name.
+   * @param array<string, mixed> $route_parameters
+   *   Optional route parameters.
+   *
+   * @return string|null
+   *   URL string or NULL if route is unavailable.
+   */
+  private function safeRouteUrl(string $route_name, array $route_parameters = []): ?string {
+    try {
+      return Url::fromRoute($route_name, $route_parameters)->toString();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
+  }
+
+  /**
+   * Maps modern event rows to legacy upcoming_events schema.
+   *
+   * @param array<int, array<string, mixed>> $events
+   *   Dashboard event rows.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Legacy event rows.
+   */
+  private function buildLegacyUpcomingEvents(array $events): array {
+    $rows = [];
+    foreach ($events as $event) {
+      $rows[] = [
+        'id' => (int) ($event['id'] ?? 0),
+        'title' => (string) ($event['title'] ?? ''),
+        'url' => (string) ($event['view_url'] ?? ''),
+        'edit_url' => (string) ($event['edit_url'] ?? ''),
+        'start_date' => (string) ($event['date'] ?? ''),
+        'start_time' => '',
+        'attendee_count' => (int) ($event['tickets_sold'] ?? 0),
+        'rsvp_count' => (int) ($event['rsvps'] ?? 0),
+        'revenue' => (float) ($event['revenue'] ?? 0),
+        'event_mode' => 'paid',
+        'status' => (string) ($event['status_label'] ?? ''),
+        'location' => (string) ($event['venue'] ?? ''),
+        'date' => (string) ($event['date'] ?? ''),
+      ];
+    }
+    return array_slice($rows, 0, 8);
+  }
+
+  /**
+   * Maps quick action cards to legacy quick_links schema.
+   *
+   * @param array<int, array<string, mixed>> $quickActions
+   *   Modern quick actions.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Legacy quick links.
+   */
+  private function buildLegacyQuickLinks(array $quickActions): array {
+    $rows = [];
+    foreach ($quickActions as $action) {
+      $rows[] = [
+        'title' => (string) ($action['label'] ?? ''),
+        'url' => (string) ($action['url'] ?? ''),
+        'icon' => (string) ($action['icon'] ?? ''),
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * Maps KPI cards to legacy dashboard.metrics schema.
+   *
+   * @param array<int, array<string, mixed>> $kpis
+   *   Modern KPI cards.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Legacy metric rows.
+   */
+  private function buildLegacyDashboardMetrics(array $kpis): array {
+    $rows = [];
+    foreach ($kpis as $kpi) {
+      $currency = (string) ($kpi['currency'] ?? '');
+      $value = (string) ($kpi['value'] ?? '0');
+      $rows[] = [
+        'label' => (string) ($kpi['label'] ?? ''),
+        'value' => $currency . $value,
+        'subtext' => is_array($kpi['delta'] ?? NULL) ? (string) ($kpi['delta']['label'] ?? '') : NULL,
+      ];
+    }
+    return array_slice($rows, 0, 4);
   }
 
   /**

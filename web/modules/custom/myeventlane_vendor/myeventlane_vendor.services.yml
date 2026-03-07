@@ -1,4 +1,7 @@
 services:
+  myeventlane_vendor.adapter.paragraph:
+    class: Drupal\myeventlane_vendor\Adapter\ParagraphAdapter
+
   myeventlane_vendor.footer_context:
     class: Drupal\myeventlane_vendor\Service\FooterContextService
     arguments:
@@ -102,7 +105,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_create:
     class: Drupal\myeventlane_vendor\Controller\VendorEventCreateController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@logger.channel.myeventlane_vendor']
     tags:
       - { name: controller.service_arguments }
 
@@ -213,5 +216,16 @@ services:
   myeventlane_vendor.controller.vendor_settings:
     class: Drupal\myeventlane_vendor\Controller\VendorSettingsController
     arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@form_builder']
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_vendor.controller.event_workspace:
+    class: Drupal\myeventlane_vendor\Controller\EventWorkspaceController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@logger.channel.myeventlane_vendor'
+      - '@request_stack'
     tags:
       - { name: controller.service_arguments }

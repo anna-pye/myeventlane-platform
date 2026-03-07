@@ -1,0 +1,39 @@
+<div class="mel-event-inspector">
+  <section class="mel-inspector-block">
+    <h3>Publishing</h3>
+    <p>Status: {{ event.status|default('Published') }}</p>
+    <p>{{ event.live_status|default('Live on storefront') }}</p>
+  </section>
+
+  <section class="mel-inspector-block">
+    <h3>Checklist</h3>
+    <ul>
+      <li>✓ Title</li>
+      <li>✓ Date</li>
+      <li>⚠ Location</li>
+      <li>✓ Banner image</li>
+    </ul>
+  </section>
+
+  <section class="mel-inspector-block">
+    <h3>Event Health</h3>
+
+    <div class="mel-health-metric">
+      <div>Tickets sold</div>
+      <div class="mel-progress">
+        <div class="mel-progress-bar"></div>
+      </div>
+      <span>60%</span>
+    </div>
+
+    <div>RSVPs {{ event.rsvps|default(event.rsvp_count|default(142)) }}</div>
+    <div>Revenue ${{ event.revenue|default(3420) }}</div>
+  </section>
+
+  <section class="mel-inspector-block">
+    <h3>Actions</h3>
+    <button class="mel-btn-primary">Preview Draft</button>
+    <button class="mel-btn-secondary">Edit Event</button>
+    <button class="mel-btn-disabled">Submit for Review</button>
+  </section>
+</div>

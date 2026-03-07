@@ -1,0 +1,101 @@
+{#
+/**
+ * @file
+ * Reusable vendor event card for Studio navigator.
+ */
+#}
+{% set event_title = event.title|default('Untitled event'|t) %}
+{% set event_date = event.date|default('Date TBD'|t) %}
+{% set event_location = event.location|default('Location TBD'|t) %}
+{% set ticket_count = event.tickets_sold|default(0) %}
+{% set rsvp_count = event.rsvp_count|default(0) %}
+{% set revenue_value = event.revenue|default(0) %}
+{% set event_mode = event.status|default('draft'|t) %}
+{% set studio_link = event.studio_link|default('') %}
+{% set read_url = event.read_url|default('') %}
+{% set save_url = event.save_url|default('') %}
+{% set preview_url = event.preview_url|default('') %}
+{% set view_url = event.view_url|default('') %}
+{% set overview_read_url = event.overview_read_url|default(read_url) %}
+{% set overview_save_url = event.overview_save_url|default(save_url) %}
+{% set tickets_save_url = event.tickets_save_url|default('') %}
+{% set attendees_save_url = event.attendees_save_url|default('') %}
+{% set promotion_save_url = event.promotion_save_url|default('') %}
+{% set settings_save_url = event.settings_save_url|default('') %}
+{% set publish_url = event.publish_url|default('') %}
+{% set is_studio_card = read_url is not empty and save_url is not empty %}
+
+{% if is_studio_card %}
+<button
+  type="button"
+  class="mel-event-card{{ event.active|default(false) ? ' active' : '' }}"
+  data-event-card
+  data-mel-studio-card
+  data-event-id="{{ event.id|default('') }}"
+  data-studio-link="{{ studio_link }}"
+  data-read-url="{{ read_url }}"
+  data-save-url="{{ save_url }}"
+  data-overview-read-url="{{ overview_read_url }}"
+  data-overview-save-url="{{ overview_save_url }}"
+  data-tickets-save-url="{{ tickets_save_url }}"
+  data-attendees-save-url="{{ attendees_save_url }}"
+  data-promotion-save-url="{{ promotion_save_url }}"
+  data-settings-save-url="{{ settings_save_url }}"
+  data-publish-url="{{ publish_url }}"
+  data-preview-url="{{ preview_url }}"
+  data-view-url="{{ view_url }}"
+  data-tickets="{{ ticket_count }}"
+  data-rsvps="{{ rsvp_count }}"
+  data-revenue="{{ revenue_value }}"
+  data-title="{{ event_title }}"
+  data-summary="{{ event.field_event_summary|default('') }}"
+  data-event-type="{{ event.field_event_type|default('rsvp') }}"
+  aria-pressed="{{ event.active|default(false) ? 'true' : 'false' }}">
+{% else %}
+<a
+  class="mel-event-card"
+  data-event-card
+  href="{{ event.edit_url|default(studio_link|default('#')) }}"
+  data-event-id="{{ event.id|default('') }}"
+  data-title="{{ event_title }}">
+{% endif %}
+  <div class="mel-event-card__thumb mel-event-thumb" aria-hidden="true">
+    {% if event.image is defined and event.image %}
+      <img src="{{ event.image }}" alt="{{ event_title }}">
+    {% else %}
+      <div class="mel-event-thumb-placeholder"></div>
+    {% endif %}
+  </div>
+
+  <div class="mel-event-card__body mel-event-content">
+    <div class="mel-event-card__top">
+      <h3 class="mel-event-card__title mel-event-title">{{ event_title }}</h3>
+    </div>
+
+    <div class="mel-event-card__meta mel-event-meta">
+      {{ event_date }}
+      <span class="mel-event-location"> • {{ event_location }}</span>
+    </div>
+
+    <div class="mel-event-card__metrics mel-event-metrics">
+      <span>{{ 'Tickets'|t }} {{ ticket_count }}</span>
+      <span>{{ 'RSVPs'|t }} {{ rsvp_count }}</span>
+      <span>
+        {{ 'Revenue'|t }}
+        {% if revenue_value is same as(false) or revenue_value is null %}
+          $0
+        {% elseif revenue_value starts with '$' %}
+          {{ revenue_value }}
+        {% else %}
+          ${{ revenue_value }}
+        {% endif %}
+      </span>
+    </div>
+  </div>
+
+  <span class="mel-event-card__badge mel-event-status">{{ event_mode|capitalize }}</span>
+{% if is_studio_card %}
+</button>
+{% else %}
+</a>
+{% endif %}

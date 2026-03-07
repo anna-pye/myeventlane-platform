@@ -1,0 +1,32 @@
+<div class="mel-event-list">
+  {% for event in events %}
+    <a
+      class="mel-event-card mel-event-row {{ event.active ? 'is-active selected' }}"
+      href="{{ event.studio_link }}"
+      data-event-id="{{ event.id }}"
+      data-studio-link="{{ event.studio_link }}"
+    >
+      <div class="mel-event-thumb">
+        {% if event.image %}
+          <img src="{{ event.image }}" alt="{{ event.title }}">
+        {% else %}
+          <div class="mel-event-placeholder" aria-hidden="true"></div>
+        {% endif %}
+      </div>
+
+      <div class="mel-event-content">
+        <div class="mel-event-title">{{ event.title }}</div>
+        <div class="mel-event-meta">{{ event.date }}{% if event.location %} • {{ event.location }}{% endif %}</div>
+        <div class="mel-event-metrics">
+          <span>{{ 'Tickets'|t }} {{ event.tickets_sold|default(0) }}</span>
+          <span>{{ 'RSVPs'|t }} {{ event.rsvp_count|default(0) }}</span>
+          <span>${{ event.revenue|default('0') }}</span>
+        </div>
+      </div>
+
+      <div class="mel-event-status mel-status-{{ event.status|default('draft') }}">
+        {{ event.status|default('draft')|capitalize }}
+      </div>
+    </a>
+  {% endfor %}
+</div>

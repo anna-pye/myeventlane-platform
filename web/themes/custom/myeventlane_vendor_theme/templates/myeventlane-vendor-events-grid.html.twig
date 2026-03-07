@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Vendor Studio events list.
+ */
+#}
+<div class="mel-event-list" data-mel-event-list>
+  {% for event in events %}
+    {% include '@myeventlane_vendor_theme/components/vendor-event-card.html.twig' with {
+      event: event
+    } only %}
+  {% else %}
+    <div class="mel-empty-state mel-empty-state--compact">
+      <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
+    </div>
+  {% endfor %}
+</div>

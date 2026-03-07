@@ -64,7 +64,7 @@ final class ManageSeriesInstancesController extends ManageEventControllerBase {
         [
           '#type' => 'link',
           '#title' => $this->t('Edit'),
-          '#url' => $node->toUrl('edit-form'),
+          '#url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $node->id()]),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--sm']],
         ],
       ];

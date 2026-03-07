@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor_comms\Controller;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -23,6 +24,7 @@ final class VendorCommsController extends ControllerBase {
    */
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
+    private readonly ?VendorOwnershipResolver $vendorOwnershipResolver = NULL,
   ) {}
 
   /**
@@ -30,20 +32,23 @@ final class VendorCommsController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->has('myeventlane_checkout_flow.vendor_ownership_resolver')
+        ? $container->get('myeventlane_checkout_flow.vendor_ownership_resolver')
+        : NULL,
     );
   }
 
   /**
    * Access callback for vendor communications pages.
    *
-   * @param \Drupal\node\NodeInterface|null $node
+   * @param \Drupal\node\NodeInterface|null $event
    *   The event node.
    *
    * @return \Drupal\Core\Access\AccessResultInterface
    *   Access result.
    */
-  public function checkAccess(?NodeInterface $node = NULL): AccessResult {
+  public function checkAccess(?NodeInterface $event = NULL): AccessResult {
     $account = $this->currentUser;
 
     // Admin users always allowed.
@@ -52,12 +57,11 @@ final class VendorCommsController extends ControllerBase {
     }
 
     // If event provided, verify vendor owns it.
-    if ($node) {
-      if (\Drupal::hasService('myeventlane_checkout_flow.vendor_ownership_resolver')) {
-        $vendorResolver = \Drupal::service('myeventlane_checkout_flow.vendor_ownership_resolver');
-        $store = $vendorResolver->getStoreForUser($account);
-        if ($store && $vendorResolver->vendorOwnsEvent($store, $node)) {
-          return AccessResult::allowed()->addCacheContexts(['user']);
+    if ($event) {
+      if ($this->vendorOwnershipResolver !== NULL) {
+        $store = $this->vendorOwnershipResolver->getStoreForUser($account);
+        if ($store && $this->vendorOwnershipResolver->vendorOwnsEvent($store, $event)) {
+          return AccessResult::allowed()->addCacheContexts(['user.permissions', 'user']);
         }
       }
       return AccessResult::forbidden('You do not own this event.')->addCacheContexts(['user']);

@@ -18,6 +18,16 @@ services:
     arguments:
       - '@myeventlane_admin_dashboard.dashboard_renderer'
       - '@myeventlane_admin_dashboard.metrics'
+      - '@myeventlane_admin_dashboard.platform_alert'
+      - '@myeventlane_admin_dashboard.platform_recent_activity'
+      - '@plugin.manager.block'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_admin_dashboard'
+
+  myeventlane_admin_dashboard.admin_dashboard_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\AdminDashboardController
+    arguments:
+      - '@myeventlane_admin_dashboard.platform_control_centre_controller'
 
   myeventlane_admin_dashboard.financial_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\FinancialController

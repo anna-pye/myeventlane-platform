@@ -157,6 +157,11 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // Determine active section from route.
   $route_name = $route_match->getRouteName();
   $variables['page']['active_section'] = _myeventlane_vendor_theme_get_active_section($route_name);
+  $variables['page']['vendor_shell_nav_items'] = _myeventlane_vendor_theme_build_vendor_shell_nav_items(
+    $variables['page']['active_section'],
+    $route_name,
+    $route_match
+  );
 
   // Build Event Wizard sidebar steps when on wizard route (requires event param).
   $variables['page']['wizard_steps'] = [];
@@ -589,6 +594,20 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
  */
 function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array {
   return [
+    'studio' => [
+      'template' => 'studio/studio',
+      'variables' => [
+        'events' => NULL,
+        'active_event' => NULL,
+        'overview_form' => NULL,
+        'overview_save_token' => NULL,
+        'sidebar' => NULL,
+      ],
+    ],
+    'vendor_sidebar' => [
+      'template' => 'includes/sidebar',
+      'variables' => [],
+    ],
     'myeventlane_vendor_console_page' => [
       'variables' => [
         'title' => NULL,
@@ -601,6 +620,16 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
     ],
     'myeventlane_vendor_dashboard' => [
       'variables' => [
+        'is_admin' => FALSE,
+        'vendor_store_id' => NULL,
+        'event_count' => 0,
+        'recent_events' => [],
+        'upcoming_events' => [],
+        'past_events' => [],
+        'quick_links' => [],
+        'stripe_status' => NULL,
+        'welcome_message' => NULL,
+        'dashboard' => [],
         'kpis' => [],
         'charts' => [],
         'events' => [],
@@ -610,6 +639,11 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'account' => [],
         'quick_actions' => [],
         'upcoming_count' => 0,
+        'dashboard_kpis' => [],
+        'dashboard_action_cards' => [],
+        'dashboard_activity_items' => [],
+        'dashboard_alerts' => [],
+        'dashboard_event_performance' => [],
         'show_welcome' => FALSE,
         'vendor_kpis' => NULL,
         'active_boost_entitlements' => [],
@@ -768,38 +802,211 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.dashboard' => 'dashboard',
     'myeventlane_vendor.console.events' => 'events',
     'myeventlane_vendor.console.events_add' => 'events',
+    'myeventlane_vendor.console.event_workspace' => 'events',
     'myeventlane_vendor.console.event_overview' => 'events',
-    'myeventlane_vendor.console.event_orders' => 'events',
-    'myeventlane_vendor.console.event_order_view' => 'events',
     'myeventlane_vendor.console.event_tickets' => 'events',
-    'myeventlane_vendor.console.event_attendees' => 'events',
-    'myeventlane_vendor.console.event_rsvps' => 'events',
-    'myeventlane_vendor.console.event_analytics' => 'events',
-    'myeventlane_vendor.console.event_settings' => 'events',
-    // Analytics routes.
-    'myeventlane_analytics.dashboard' => 'analytics',
-    'myeventlane_analytics.event' => 'analytics',
-    // Donations routes.
-    'myeventlane_donations.vendor_list' => 'donations',
-    'myeventlane_donations.platform' => 'donations',
+    'myeventlane_vendor.console.event_publish' => 'events',
+    'myeventlane_vendor.console.event_orders' => 'orders',
+    'myeventlane_vendor.console.event_order_view' => 'orders',
+    'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
+    'myeventlane_vendor.console.event_attendees' => 'attendees',
+    'myeventlane_vendor.console.event_rsvps' => 'attendees',
     'myeventlane_vendor.console.payouts' => 'payouts',
-    'myeventlane_vendor.console.boost' => 'boost',
+    'myeventlane_vendor.console.boost' => 'growth',
     'myeventlane_vendor.console.audience' => 'audience',
     'myeventlane_vendor.console.settings' => 'settings',
+    'myeventlane_vendor.console.messaging_brand' => 'settings',
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
-    // Support routes.
-    'myeventlane_escalations_portal.vendor_list' => 'support',
-    'myeventlane_escalations_portal.vendor_view' => 'support',
-    'myeventlane_escalations_refunds.vendor_refund_summary' => 'refunds',
-    'myeventlane_escalations_analytics.vendor_dashboard' => 'support_analytics',
-    // Help centre.
-    'myeventlane_help_centre.vendor_index' => 'help',
-    'myeventlane_help_centre.vendor_topic' => 'help',
   ];
 
   return $mapping[$route_name] ?? 'dashboard';
+}
+
+/**
+ * Builds sidebar navigation with Dashboard wizard submenu links.
+ *
+ * @param string $active_section
+ *   The active top-level section key.
+ * @param string|null $route_name
+ *   The current route name.
+ * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match.
+ *
+ * @return array<int, array<string, mixed>>
+ *   Sidebar items for vendor shell.
+ */
+function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
+  $wizard_children = _myeventlane_vendor_theme_build_event_wizard_submenu($route_name, $route_match);
+  $items = [
+    [
+      'key' => 'dashboard',
+      'label' => t('Dashboard'),
+      'icon' => 'dashboard',
+      'route' => 'myeventlane_vendor.console.dashboard',
+    ],
+    [
+      'key' => 'events',
+      'label' => t('Events'),
+      'icon' => 'events',
+      'route' => 'myeventlane_vendor.console.events',
+      'children' => $wizard_children,
+    ],
+    [
+      'key' => 'orders',
+      'label' => t('Orders'),
+      'icon' => 'orders',
+      'route' => NULL,
+    ],
+    [
+      'key' => 'attendees',
+      'label' => t('Attendees'),
+      'icon' => 'attendees',
+      'route' => 'myeventlane_checkout_flow.vendor_attendees',
+    ],
+    [
+      'key' => 'audience',
+      'label' => t('Audience'),
+      'icon' => 'audience',
+      'route' => 'myeventlane_vendor.console.audience',
+    ],
+    [
+      'key' => 'payouts',
+      'label' => t('Payouts'),
+      'icon' => 'payouts',
+      'route' => 'myeventlane_vendor.console.payouts',
+    ],
+    [
+      'key' => 'growth',
+      'label' => t('Growth'),
+      'icon' => 'growth',
+      'route' => 'myeventlane_vendor.console.boost',
+    ],
+    [
+      'key' => 'settings',
+      'label' => t('Settings'),
+      'icon' => 'settings',
+      'route' => 'myeventlane_vendor.console.settings',
+    ],
+    [
+      'key' => 'help',
+      'label' => t('Help'),
+      'icon' => 'help',
+      'route' => NULL,
+    ],
+  ];
+
+  $built = [];
+  foreach ($items as $item) {
+    $url = NULL;
+    $is_disabled = FALSE;
+    if (!empty($item['route'])) {
+      $url = _myeventlane_vendor_theme_safe_route_url((string) $item['route']);
+      $is_disabled = $url === NULL;
+    }
+    else {
+      $is_disabled = TRUE;
+    }
+    $item['url'] = $url;
+    $item['is_disabled'] = $is_disabled;
+    $item['is_active'] = ($active_section === $item['key']);
+    $built[] = $item;
+  }
+
+  return $built;
+}
+
+/**
+ * Builds Events submenu links for canonical event wizard pages.
+ *
+ * @param string|null $route_name
+ *   The current route name.
+ * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match.
+ *
+ * @return array<int, array<string, mixed>>
+ *   Dashboard child menu links.
+ */
+function _myeventlane_vendor_theme_build_event_wizard_submenu(?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
+  $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
+  $has_event = $event_id !== NULL;
+  if (!$has_event) {
+    // Wizard step links are only meaningful while editing a specific event.
+    return [];
+  }
+
+  $children = [];
+  $wizard_steps = [
+    ['label' => t('Basics'), 'route' => 'myeventlane_event.wizard.basics'],
+    ['label' => t('When & Where'), 'route' => 'myeventlane_event.wizard.when_where'],
+    ['label' => t('Tickets'), 'route' => 'myeventlane_event.wizard.tickets'],
+    ['label' => t('Details'), 'route' => 'myeventlane_event.wizard.details'],
+    ['label' => t('Review'), 'route' => 'myeventlane_event.wizard.review'],
+    ['label' => t('Publish'), 'route' => 'myeventlane_event.wizard.publish'],
+  ];
+
+  foreach ($wizard_steps as $step) {
+    $url = NULL;
+    $url = _myeventlane_vendor_theme_safe_route_url((string) $step['route'], ['event' => $event_id]);
+    $children[] = [
+      'label' => $step['label'],
+      'url' => $url,
+      'is_disabled' => $url === NULL,
+      'is_active' => $route_name === $step['route'],
+    ];
+  }
+
+  return $children;
+}
+
+/**
+ * Resolves current event id from route parameters.
+ *
+ * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match.
+ *
+ * @return int|null
+ *   Event node id if available.
+ */
+function _myeventlane_vendor_theme_resolve_event_id(\Drupal\Core\Routing\RouteMatchInterface $route_match): ?int {
+  $node = $route_match->getParameter('node');
+  if ($node instanceof \Drupal\node\NodeInterface && $node->bundle() === 'event') {
+    return (int) $node->id();
+  }
+  if (is_numeric($node) && (int) $node > 0) {
+    return (int) $node;
+  }
+
+  $event = $route_match->getParameter('event');
+  if ($event instanceof \Drupal\node\NodeInterface && $event->bundle() === 'event') {
+    return (int) $event->id();
+  }
+  if (is_numeric($event) && (int) $event > 0) {
+    return (int) $event;
+  }
+
+  return NULL;
+}
+
+/**
+ * Safely builds a route URL string.
+ *
+ * @param string $route_name
+ *   Route machine name.
+ * @param array<string, mixed> $parameters
+ *   Route parameters.
+ *
+ * @return string|null
+ *   URL string when route exists, otherwise NULL.
+ */
+function _myeventlane_vendor_theme_safe_route_url(string $route_name, array $parameters = []): ?string {
+  try {
+    return \Drupal\Core\Url::fromRoute($route_name, $parameters)->toString();
+  }
+  catch (\Exception $e) {
+    return NULL;
+  }
 }
 
 /**

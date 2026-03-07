@@ -12,6 +12,11 @@ use Drupal\Core\Form\FormStateInterface;
 final class TicketTypeFormAlter {
 
   /**
+   * Maximum safe recursion depth for form traversal.
+   */
+  private const MAX_RECURSION_DEPTH = 50;
+
+  /**
    * Alters the ticket type paragraph form to add conditional fields.
    *
    * @param array $form
@@ -83,8 +88,17 @@ final class TicketTypeFormAlter {
    * @param array &$form
    *   The form array to process recursively.
    */
-  private static function fixDatetimeFieldsRecursive(array &$form): void {
+  private static function fixDatetimeFieldsRecursive(array &$form, int $depth = 0): void {
+    if ($depth > self::MAX_RECURSION_DEPTH) {
+      return;
+    }
+
     foreach ($form as $key => &$element) {
+      // Only recurse through real child elements; Drupal metadata keys start with '#'.
+      if (is_string($key) && str_starts_with($key, '#')) {
+        continue;
+      }
+
       if (!is_array($element)) {
         continue;
       }
@@ -109,8 +123,9 @@ final class TicketTypeFormAlter {
       }
 
       // Recursively process child elements.
-      self::fixDatetimeFieldsRecursive($element);
+      self::fixDatetimeFieldsRecursive($element, $depth + 1);
     }
+    unset($element);
   }
 
 }

@@ -1,66 +1,103 @@
 {#
 /**
  * @file
- * Template for vendor console pages.
- *
- * Available variables:
- * - title: Page title.
- * - header_actions: Array of action buttons [{label, url}].
- * - tabs: Array of tab links [{label, url, active}].
- * - body: The main content render array.
+ * Shared template for vendor console pages and event workspace routes.
  */
 #}
-<div class="mel-console-page">
-  {# Page header #}
-  {% if title or header_actions %}
-    <div class="mel-console-page__header">
-      {% if title %}
-        <h1 class="mel-console-page__title">{{ title }}</h1>
-      {% endif %}
-      {% if header_actions %}
-        <div class="mel-console-page__actions">
-          {% for action in header_actions %}
-            <a href="{{ action.url }}" class="mel-btn mel-btn--{{ action.style|default('primary') }}">
+{% set is_workspace = workspace is not empty %}
+
+<div class="mel-console-page{% if is_workspace %} mel-console-page--workspace{% endif %}">
+  {% if is_workspace %}
+    <header class="mel-workspace-header mel-panel-card">
+      <div class="mel-workspace-header__main">
+        <h1 class="mel-workspace-header__title">{{ workspace.title }}</h1>
+        <span class="mel-status-badge mel-status-badge--{{ workspace.status_key|default('draft') }}">
+          {{ workspace.status_label }}
+        </span>
+      </div>
+      {% if workspace.actions %}
+        <div class="mel-workspace-header__actions mel-action-bar">
+          {% for action in workspace.actions %}
+            <a href="{{ action.url }}" class="mel-btn {{ action.class|default('mel-btn--secondary') }}">
               {{ action.label }}
             </a>
           {% endfor %}
         </div>
       {% endif %}
-    </div>
-  {% endif %}
+    </header>
 
-  {# Tabs navigation #}
-  {% if tabs %}
-    <nav class="mel-console-page__tabs" role="tablist">
-      {% for tab in tabs %}
-        <a href="{{ tab.url }}"
-           class="mel-console-page__tab{% if tab.active %} is-active{% endif %}"
-           role="tab"
-           aria-selected="{{ tab.active ? 'true' : 'false' }}">
+    <nav class="mel-workspace-tabs" aria-label="{{ 'Event workspace tabs'|t }}">
+      {% for tab in workspace.tabs %}
+        <a href="{{ tab.url }}" class="mel-workspace-tabs__item{% if tab.active %} is-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>
           {{ tab.label }}
         </a>
       {% endfor %}
     </nav>
+  {% elseif title or header_actions %}
+    <header class="mel-console-page__header mel-panel-card">
+      {% if title %}
+        <h1 class="mel-console-page__title">{{ title }}</h1>
+      {% endif %}
+      {% if header_actions %}
+        <div class="mel-console-page__actions mel-action-bar">
+          {% for action in header_actions %}
+            {% set action_class = action.class|default(action.style is defined ? 'mel-btn--' ~ action.style : 'mel-btn--secondary') %}
+            <a href="{{ action.url }}" class="mel-btn {{ action_class }}">
+              {{ action.label }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </header>
+    {% if tabs %}
+      <nav class="mel-console-page__tabs" aria-label="{{ 'Section tabs'|t }}">
+        {% for tab in tabs %}
+          <a href="{{ tab.url }}" class="mel-console-page__tab{% if tab.active %} is-active{% endif %}"{% if tab.active %} aria-current="page"{% endif %}>
+            {{ tab.label }}
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
   {% endif %}
 
-  {# Main body content #}
-  <div class="mel-console-page__body">
-    {{ body }}
-  </div>
+  {% if is_workspace %}
+    <div class="mel-workspace-page">
+  {% endif %}
+    <div class="mel-console-page__layout{% if is_workspace %} mel-console-page__layout--workspace{% endif %}">
+      <div class="mel-console-page__main mel-panel-card">
+        {{ body }}
+      </div>
+      {% if is_workspace %}
+        <aside class="mel-console-page__rail">
+          <section class="mel-right-rail-widget mel-panel-card">
+            <h2 class="mel-section-heading">{{ 'Event Health Indicator'|t }}</h2>
+            <p class="mel-right-rail-widget__text">{{ workspace.health_status }}</p>
+          </section>
+
+          <section class="mel-right-rail-widget mel-panel-card">
+            <h2 class="mel-section-heading">{{ 'Publish checklist'|t }}</h2>
+            <ul class="mel-checklist-card" role="list">
+              <li class="{% if workspace.checklist.title %}is-complete{% else %}is-missing{% endif %}">{{ 'Event title added'|t }}</li>
+              <li class="{% if workspace.checklist.date %}is-complete{% else %}is-missing{% endif %}">{{ 'Date and time set'|t }}</li>
+              <li class="{% if workspace.checklist.image %}is-complete{% else %}is-missing{% endif %}">{{ 'Cover image uploaded'|t }}</li>
+              <li class="{% if workspace.checklist.location %}is-complete{% else %}is-missing{% endif %}">{{ 'Location added'|t }}</li>
+              <li class="{% if workspace.checklist.tickets %}is-complete{% else %}is-missing{% endif %}">{{ 'Tickets configured'|t }}</li>
+              <li class="{% if workspace.checklist.promotion %}is-complete{% else %}is-missing{% endif %}">{{ 'Promotion details ready'|t }}</li>
+            </ul>
+          </section>
+
+          <section class="mel-right-rail-widget mel-panel-card">
+            <h2 class="mel-section-heading">{{ 'Quick actions'|t }}</h2>
+            <div class="mel-right-rail-widget__actions">
+              {% for link in workspace.quick_actions %}
+                <a href="{{ link.url }}" class="mel-btn mel-btn--ghost">{{ link.label }}</a>
+              {% endfor %}
+            </div>
+          </section>
+        </aside>
+      {% endif %}
+    </div>
+  {% if is_workspace %}
+    </div>
+  {% endif %}
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

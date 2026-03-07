@@ -28,12 +28,14 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
    */
   private const NAV_ITEMS = [
     'myeventlane_admin_dashboard.platform_control' => ['Overview', 'access myeventlane platform control centre'],
-    'myeventlane_admin_dashboard.financials' => ['Financials', 'view myeventlane financials'],
     'myeventlane_admin_dashboard.vendors' => ['Vendors', 'view myeventlane vendors'],
-    'entity.escalation.collection' => ['Escalations', 'view myeventlane escalations'],
+    'myeventlane_reporting.admin.events' => ['Events', 'view admin reports'],
+    'myeventlane_reporting.admin.finance' => ['Finance', 'view admin reports'],
     'myeventlane_admin_dashboard.payouts' => ['Payouts', 'view myeventlane payouts'],
     'myeventlane_admin_dashboard.reports' => ['Reports', 'view myeventlane reports'],
-    'myeventlane_admin_dashboard.financial_export' => ['Export (CSV)', 'export myeventlane financials'],
+    'entity.escalation.collection' => ['Escalations', 'view myeventlane escalations'],
+    'myeventlane_support_console.dashboard' => ['Support', 'administer escalations'],
+    'myeventlane_admin_dashboard.platform_studio' => ['Platform', 'access myeventlane platform control centre'],
   ];
 
   /**

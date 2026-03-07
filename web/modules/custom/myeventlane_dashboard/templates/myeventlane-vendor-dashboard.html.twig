@@ -15,6 +15,17 @@
 
   <h1 class="mel-dashboard-title">{{ 'Vendor Dashboard'|t }}</h1>
 
+  <div class="mel-dashboard-studio-entry">
+
+    <a href="/vendor/studio?desk=events"
+       class="mel-btn mel-btn-primary mel-open-studio">
+
+       Open Event Studio
+
+    </a>
+
+  </div>
+
   {# Admin-only debug panel #}
   {% if dashboard.debug %}
     <div class="mel-card mel-card--debug" style="margin-bottom: 1rem;">
@@ -227,148 +238,52 @@
   {# Upcoming events #}
   {% if upcoming_events is not empty %}
     <section class="mel-dashboard-section" aria-labelledby="upcoming-events-title">
-      <h2 id="upcoming-events-title" class="mel-section-title">{{ 'Upcoming Events'|t }}</h2>
-      <div class="mel-events-table">
-        <table class="mel-table">
-          <thead>
-            <tr>
-              <th>{{ 'Event'|t }}</th>
-              <th>{{ 'Date'|t }}</th>
-              <th>{{ 'Mode'|t }}</th>
-              <th>{{ 'Boost'|t }}</th>
-              <th>{{ 'RSVPs'|t }}</th>
-              <th>{{ 'Tickets'|t }}</th>
-              <th>{{ 'Revenue'|t }}</th>
-              <th>{{ 'Donations'|t }}</th>
-              <th>{{ 'Actions'|t }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for event in upcoming_events %}
-              <tr>
-                <td><a href="{{ event.url }}">{{ event.title }}</a></td>
-                <td>
-                  {% if event.start_date %}
-                    <time>{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time>
-                  {% else %}
-                    <span class="mel-muted">{{ 'No date'|t }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <span class="mel-badge mel-badge--{{ event.event_mode }}">
-                    {% if event.event_mode == 'rsvp' %}
-                      {{ 'RSVP'|t }}
-                    {% elseif event.event_mode == 'paid' %}
-                      {{ 'Paid'|t }}
-                    {% elseif event.event_mode == 'both' %}
-                      {{ 'Both'|t }}
-                    {% else %}
-                      {{ event.event_mode|capitalize }}
-                    {% endif %}
-                  </span>
-                </td>
-                <td>
-                  {% if event.boost_status %}
-                    {% if event.boost_status.is_boosted %}
-                      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span class="mel-badge mel-badge--success" style="align-self: flex-start;">{{ 'Boosted'|t }}</span>
-                        {% if event.boost_status.expires_date %}
-                          <div class="mel-muted" style="font-size: 0.875rem;">
-                            {{ 'Expires: @date'|t({'@date': event.boost_status.expires_date}) }}
-                          </div>
-                        {% endif %}
-                        {% if event.boost_status.boost_url %}
-                          <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small" style="margin-top: 0.25rem; align-self: flex-start;">{{ 'Extend'|t }}</a>
-                        {% endif %}
-                      </div>
-                    {% elseif event.boost_status.is_expired %}
-                      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span class="mel-badge mel-badge--warning" style="align-self: flex-start;">{{ 'Expired'|t }}</span>
-                        {% if event.boost_status.boost_url %}
-                          <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small" style="margin-top: 0.25rem; align-self: flex-start;">{{ 'Boost Again'|t }}</a>
-                        {% endif %}
-                      </div>
-                    {% else %}
-                      {% if event.boost_status.allowed %}
-                        <a href="{{ event.boost_status.boost_url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost_status.label }}</a>
-                      {% else %}
-                        <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost_status.label }}</span>
-                      {% endif %}
-                    {% endif %}
-                  {% elseif event.boost %}
-                    {# Support for new boost button structure from myeventlane_vendor controller #}
-                    {% if event.boost.allowed %}
-                      <a href="{{ event.boost.url }}" class="mel-btn mel-btn-small mel-btn-primary">{{ event.boost.label }}</a>
-                    {% else %}
-                      <span class="mel-btn mel-btn-small mel-btn--disabled" aria-disabled="true">{{ event.boost.label }}</span>
-                    {% endif %}
-                  {% endif %}
-                </td>
-                <td>
-                  {% if event.rsvp_count > 0 %}
-                    <strong>{{ event.rsvp_count }}</strong>
-                    {% if event.waitlist_count > 0 %}
-                      <span class="mel-muted" style="font-size: 0.875rem;">({{ event.waitlist_count }} waitlist)</span>
-                    {% endif %}
-                  {% else %}
-                    <span class="mel-muted">0</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if event.attendee_count > 0 %}
-                    <strong>{{ event.attendee_count }}</strong>
-                  {% else %}
-                    <span class="mel-muted">0</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if event.revenue > 0 %}
-                    ${{ event.revenue|number_format(2) }}
-                  {% else %}
-                    <span class="mel-muted">$0.00</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if event.donation_total > 0 %}
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                      <strong>${{ event.donation_total|number_format(2) }}</strong>
-                      {% if event.donation_count > 0 %}
-                        <span class="mel-muted" style="font-size: 0.875rem;">{{ event.donation_count }} {{ 'donation'|t }}{% if event.donation_count != 1 %}s{% endif %}</span>
-                      {% endif %}
-                    </div>
-                  {% else %}
-                    <span class="mel-muted">$0.00</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                    <a href="{{ event.edit_url }}" class="mel-btn mel-btn-small">{{ 'Edit'|t }}</a>
-                    <a href="{{ event.url }}" class="mel-btn mel-btn-small mel-btn-secondary">{{ 'View'|t }}</a>
-                    {% if event.rsvp_view_url %}
-                      <a href="{{ event.rsvp_view_url }}" class="mel-btn mel-btn-small mel-btn-link">{{ 'View RSVPs'|t }}</a>
-                    {% endif %}
-                    {% if event.attendee_view_url %}
-                      <a href="{{ event.attendee_view_url }}" class="mel-btn mel-btn-small mel-btn-link">{{ 'View Attendees'|t }}</a>
-                    {% endif %}
-                    {% if event.rsvp_export_url %}
-                      <a href="{{ event.rsvp_export_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Export RSVPs CSV'|t }}</a>
-                    {% endif %}
-                    {% if event.attendee_export_url %}
-                      <a href="{{ event.attendee_export_url }}" class="mel-btn mel-btn-small mel-btn-link" download>{{ 'Export Attendees CSV'|t }}</a>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <h2 id="upcoming-events-title" class="mel-section-title">{{ 'Your Events'|t }}</h2>
+      <div class="mel-dashboard-events">
+        {% for event in upcoming_events %}
+          <a class="mel-event-card" href="{{ event.edit_url }}">
+            <div class="mel-event-thumb" aria-hidden="true">
+              <div class="mel-event-placeholder"></div>
+            </div>
+
+            <div class="mel-event-content">
+              <div class="mel-event-title">{{ event.title }}</div>
+              <div class="mel-event-meta">
+                {% if event.start_date %}
+                  {{ event.start_date }}{% if event.start_time %} • {{ event.start_time }}{% endif %}
+                {% else %}
+                  {{ 'No date set'|t }}
+                {% endif %}
+              </div>
+              <div class="mel-event-metrics">
+                <span>{{ 'Tickets'|t }} {{ event.attendee_count|default(0) }}</span>
+                <span>{{ 'RSVPs'|t }} {{ event.rsvp_count|default(0) }}</span>
+                <span>${{ event.revenue|default(0)|number_format(2) }}</span>
+              </div>
+            </div>
+
+            <div class="mel-event-status">
+              {% if event.event_mode == 'rsvp' %}
+                {{ 'RSVP'|t }}
+              {% elseif event.event_mode == 'paid' %}
+                {{ 'Tickets'|t }}
+              {% elseif event.event_mode == 'external' %}
+                {{ 'External'|t }}
+              {% elseif event.event_mode == 'both' %}
+                {{ 'Both'|t }}
+              {% else %}
+                {{ event.event_mode|default('Draft'|t)|capitalize }}
+              {% endif %}
+            </div>
+          </a>
+        {% endfor %}
       </div>
     </section>
   {% else %}
     <section class="mel-dashboard-section">
       <div class="mel-card mel-card--empty">
         <p>{{ 'You have no upcoming events.'|t }}</p>
-        <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn-primary">{{ 'Create Your First Event'|t }}</a>
+        <a href="/vendor/studio?desk=events&create=1" class="mel-btn mel-btn-primary">{{ 'Create Your First Event'|t }}</a>
       </div>
     </section>
   {% endif %}

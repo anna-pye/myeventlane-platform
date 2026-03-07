@@ -1,157 +1,150 @@
 {#
 /**
  * @file
- * Platform Control Centre – executive dashboard layout.
- *
- * Sections: KPI cards, revenue chart, vendor ranking, payout liability,
- * alerts, recent activity, quick links.
- *
- * Variables:
- *   - days: active time window (30 or 90)
- *   - filter_url_30, filter_url_90: URLs for quick filter toggle
+ * Admin control centre overview page.
  */
 #}
-<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Platform Control Centre'|t }}">
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Admin control centre'|t }}">
   <header class="pcc__header">
-    <h1 class="pcc__title">{{ 'Platform Control Centre'|t }}</h1>
-    <p class="pcc__subtitle">
-      {{ 'Last updated'|t }}: {{ 'Data updates periodically'|t }}
-    </p>
+    <div>
+      <h1 class="pcc__title">{{ 'Admin Control Centre'|t }}</h1>
+      <p class="pcc__subtitle">{{ 'Monitor platform health, vendors, finance, and support in one view.'|t }}</p>
+    </div>
+    <div class="pcc__action-bar">
+      <a href="{{ export_url }}" class="pcc__action-link pcc__action-link--primary">{{ 'Download financial CSV'|t }}</a>
+      <a href="{{ path('entity.escalation.collection') }}" class="pcc__action-link">{{ 'Open escalations'|t }}</a>
+      <a href="{{ path('myeventlane_admin_dashboard.payouts') }}" class="pcc__action-link">{{ 'Open payouts'|t }}</a>
+    </div>
   </header>
 
-  {# Quick filter toggle #}
   <div class="pcc-filter" role="navigation" aria-label="{{ 'Time range filter'|t }}">
     <span class="pcc-filter__label">{{ 'Show:'|t }}</span>
     <a href="{{ filter_url_30 }}" class="pcc-filter__link{{ days == 30 ? ' pcc-filter__link--active' : '' }}"{% if days == 30 %} aria-current="true"{% endif %}>{{ 'Last 30 days'|t }}</a>
     <a href="{{ filter_url_90 }}" class="pcc-filter__link{{ days == 90 ? ' pcc-filter__link--active' : '' }}"{% if days == 90 %} aria-current="true"{% endif %}>{{ 'Last 90 days'|t }}</a>
   </div>
 
-  {# KPI cards row: Orders, Gross, Commission, Net, Unpaid Liability #}
-  <section class="pcc__section pcc__section--kpis" aria-labelledby="pcc-kpis-heading">
-    <h2 id="pcc-kpis-heading" class="visually-hidden">{{ 'Key metrics'|t }}</h2>
-    <div class="pcc-kpis pcc-kpis--metrics">
-      <div class="pcc-kpis__grid pcc-kpis__grid--wide">
-        <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
-          <div class="pcc-kpis__label">{{ 'Orders (@days d)'|t({'@days': days}) }}</div>
-          <div class="pcc-kpis__value">{{ kpis.total_orders|default(0) }}</div>
-        </div>
-        <div class="pcc-kpis__tile pcc-kpis__tile--green">
-          <div class="pcc-kpis__label">{{ 'Gross'|t }}</div>
-          <div class="pcc-kpis__value">${{ kpis.gross_total|default(0)|number_format(2) }}</div>
-        </div>
-        <div class="pcc-kpis__tile pcc-kpis__tile--neutral">
-          <div class="pcc-kpis__label">{{ 'Commission'|t }}</div>
-          <div class="pcc-kpis__value">${{ kpis.commission_total|default(0)|number_format(2) }}</div>
-        </div>
-        <div class="pcc-kpis__tile pcc-kpis__tile--green">
-          <div class="pcc-kpis__label">{{ 'Net'|t }}</div>
-          <div class="pcc-kpis__value">${{ kpis.net_total|default(0)|number_format(2) }}</div>
-        </div>
-        <div class="pcc-kpis__tile pcc-kpis__tile--amber">
-          <div class="pcc-kpis__label">{{ 'Unpaid liability'|t }}</div>
-          <div class="pcc-kpis__value">${{ kpis.unpaid_total|default(0)|number_format(2) }}</div>
-        </div>
-      </div>
+  <section class="pcc__section">
+    <h2 class="pcc__section-title">{{ 'Key metrics'|t }}</h2>
+    <div class="pcc-kpis__grid">
+      <article class="pcc-kpis__tile pcc-kpis__tile--green">
+        <div class="pcc-kpis__label">{{ 'Gross revenue'|t }}</div>
+        <div class="pcc-kpis__value">${{ kpis.gross_total|default(0)|number_format(2) }}</div>
+      </article>
+      <article class="pcc-kpis__tile pcc-kpis__tile--purple">
+        <div class="pcc-kpis__label">{{ 'Active vendors'|t }}</div>
+        <div class="pcc-kpis__value">{{ active_vendors_count|default(0) }}</div>
+      </article>
+      <article class="pcc-kpis__tile pcc-kpis__tile--indigo">
+        <div class="pcc-kpis__label">{{ 'Upcoming events'|t }}</div>
+        <div class="pcc-kpis__value">{{ upcoming_events_count|default(0) }}</div>
+      </article>
+      <article class="pcc-kpis__tile pcc-kpis__tile--coral">
+        <div class="pcc-kpis__label">{{ 'Open escalations'|t }}</div>
+        <div class="pcc-kpis__value">{{ open_escalations_count|default(0) }}</div>
+      </article>
     </div>
   </section>
 
-  {# Revenue chart #}
-  <section class="pcc__section pcc__section--chart" aria-labelledby="pcc-chart-heading">
-    <h2 id="pcc-chart-heading" class="visually-hidden">{{ 'Revenue chart'|t }}</h2>
-    <div class="pcc-chart">
-      <h3 class="pcc-chart__title">{{ 'Daily revenue (last @days days)'|t({'@days': days}) }}</h3>
-      {% if series.labels is not empty %}
-        <div class="pcc-chart__canvas-wrap">
-          <canvas id="mel-revenue-chart" aria-label="{{ 'Revenue over time'|t }}"></canvas>
-        </div>
+  <section class="pcc__section pcc__section--split">
+    <div class="pcc-panel">
+      <h2 class="pcc-panel__title">{{ 'Priority actions'|t }}</h2>
+      <div class="pcc-priority-actions">
+        <a href="{{ path('myeventlane_admin_dashboard.vendors') }}" class="pcc-priority-actions__item">
+          <strong>{{ 'Review vendor applications'|t }}</strong>
+          <span>{{ 'Approve new organisers and update compliance checks.'|t }}</span>
+        </a>
+        <a href="{{ path('myeventlane_admin_dashboard.payouts') }}" class="pcc-priority-actions__item">
+          <strong>{{ 'Resolve payout risks'|t }}</strong>
+          <span>{{ 'Inspect liabilities and process pending transfers.'|t }}</span>
+        </a>
+        <a href="{{ path('entity.escalation.collection') }}" class="pcc-priority-actions__item">
+          <strong>{{ 'Address active support escalations'|t }}</strong>
+          <span>{{ 'Keep customer incidents below service targets.'|t }}</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="pcc-panel">
+      <h2 class="pcc-panel__title">{{ 'Support and escalations'|t }}</h2>
+      {{ alerts }}
+    </div>
+  </section>
+
+  <section class="pcc__section pcc__section--split">
+    <div class="pcc-panel">
+      <h2 class="pcc-panel__title">{{ 'Vendor review table'|t }}</h2>
+      {% if vendor_ranking is not empty %}
+        <table class="pcc-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Vendor'|t }}</th>
+              <th scope="col" class="pcc-table__num">{{ 'Orders'|t }}</th>
+              <th scope="col" class="pcc-table__num">{{ 'Gross'|t }}</th>
+              <th scope="col" class="pcc-table__num">{{ 'Net'|t }}</th>
+              <th scope="col" class="pcc-table__num">{{ 'Unpaid'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in vendor_ranking %}
+              <tr>
+                <td>{{ row.store_label }}</td>
+                <td class="pcc-table__num">{{ row.orders }}</td>
+                <td class="pcc-table__num">${{ row.gross|number_format(2) }}</td>
+                <td class="pcc-table__num">${{ row.net|number_format(2) }}</td>
+                <td class="pcc-table__num pcc-table__num--liability">${{ row.unpaid_liability|number_format(2) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       {% else %}
-        <p class="pcc-chart__empty">{{ 'Data updating…'|t }}</p>
+        <p class="pcc-panel__empty">{{ 'No vendor data available for this period.'|t }}</p>
+      {% endif %}
+    </div>
+
+    <div class="pcc-panel pcc-panel--liability">
+      <h2 class="pcc-panel__title">{{ 'Payout risk'|t }}</h2>
+      <div class="pcc-liability__row">
+        <span class="pcc-liability__label">{{ 'Unpaid total'|t }}</span>
+        <span class="pcc-liability__value pcc-liability__value--coral">${{ payout_summary.unpaid_total|number_format(2) }}</span>
+      </div>
+      <div class="pcc-liability__row">
+        <span class="pcc-liability__label">{{ 'Paid total'|t }}</span>
+        <span class="pcc-liability__value">${{ payout_summary.paid_total|number_format(2) }}</span>
+      </div>
+      {% if payout_summary.unpaid_by_store is not empty %}
+        <ul class="pcc-liability__list">
+          {% for item in payout_summary.unpaid_by_store %}
+            <li class="pcc-liability__item">
+              <span class="pcc-liability__store">{{ item.store_label }}</span>
+              <span class="pcc-liability__amount">${{ item.unpaid|number_format(2) }}</span>
+            </li>
+          {% endfor %}
+        </ul>
       {% endif %}
     </div>
   </section>
 
-  {# Vendor ranking + Payout liability side by side #}
-  <section class="pcc__section pcc__section--tables" aria-labelledby="pcc-tables-heading">
-    <h2 id="pcc-tables-heading" class="visually-hidden">{{ 'Vendor ranking and payout liability'|t }}</h2>
-    <div class="pcc-tables">
-      <div class="pcc-tables__col">
-        <div class="pcc-panel">
-          <h3 class="pcc-panel__title">{{ 'Top vendors (@days d)'|t({'@days': days}) }}</h3>
-          {% if vendor_ranking is not empty %}
-            <table class="pcc-table">
-              <thead>
-                <tr>
-                  <th scope="col">{{ 'Store'|t }}</th>
-                  <th scope="col" class="pcc-table__num">{{ 'Orders'|t }}</th>
-                  <th scope="col" class="pcc-table__num">{{ 'Gross'|t }}</th>
-                  <th scope="col" class="pcc-table__num">{{ 'Commission'|t }}</th>
-                  <th scope="col" class="pcc-table__num">{{ 'Net'|t }}</th>
-                  <th scope="col" class="pcc-table__num pcc-table__num--liability">{{ 'Unpaid'|t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in vendor_ranking %}
-                  <tr>
-                    <td>{{ row.store_label }}</td>
-                    <td class="pcc-table__num">{{ row.orders }}</td>
-                    <td class="pcc-table__num">${{ row.gross|number_format(2) }}</td>
-                    <td class="pcc-table__num">${{ row.commission|number_format(2) }}</td>
-                    <td class="pcc-table__num">${{ row.net|number_format(2) }}</td>
-                    <td class="pcc-table__num pcc-table__num--liability">${{ row.unpaid_liability|number_format(2) }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <p class="pcc-panel__empty">{{ 'No vendor data for this period'|t }}</p>
-          {% endif %}
+  <section class="pcc__section">
+    <div class="pcc-panel">
+      <h2 class="pcc-panel__title">{{ 'Financial trend'|t }}</h2>
+      {% if series.labels is not empty %}
+        <div class="pcc-chart__canvas-wrap">
+          <canvas id="mel-revenue-chart" aria-label="{{ 'Financial trend chart'|t }}"></canvas>
         </div>
-      </div>
-      <div class="pcc-tables__col">
-        <div class="pcc-panel pcc-panel--liability">
-          <h3 class="pcc-panel__title">{{ 'Payout liability (@days d)'|t({'@days': days}) }}</h3>
-          <div class="pcc-liability">
-            <div class="pcc-liability__row">
-              <span class="pcc-liability__label">{{ 'Unpaid total'|t }}</span>
-              <span class="pcc-liability__value pcc-liability__value--coral">${{ payout_summary.unpaid_total|number_format(2) }}</span>
-            </div>
-            <div class="pcc-liability__row">
-              <span class="pcc-liability__label">{{ 'Paid total'|t }}</span>
-              <span class="pcc-liability__value">${{ payout_summary.paid_total|number_format(2) }}</span>
-            </div>
-          </div>
-          {% if payout_summary.unpaid_by_store is not empty %}
-            <h4 class="pcc-liability__subtitle">{{ 'Unpaid by store (top 10)'|t }}</h4>
-            <ul class="pcc-liability__list">
-              {% for item in payout_summary.unpaid_by_store %}
-                <li class="pcc-liability__item">
-                  <span class="pcc-liability__store">{{ item.store_label }}</span>
-                  <span class="pcc-liability__amount">${{ item.unpaid|number_format(2) }}</span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </div>
-      </div>
+      {% else %}
+        <p class="pcc-panel__empty">{{ 'Trend data is updating.'|t }}</p>
+      {% endif %}
     </div>
   </section>
 
-  <section class="pcc__section pcc__section--pro" aria-labelledby="pcc-pro-heading">
-    <h2 id="pcc-pro-heading" class="visually-hidden">{{ 'Pro subscriptions'|t }}</h2>
+  <section class="pcc__section">
+    <div class="pcc-panel">
+      <h2 class="pcc-panel__title">{{ 'Recent activity'|t }}</h2>
+      {{ recent_activity }}
+    </div>
+  </section>
+
+  <section class="pcc__section">
     {{ pro_subscriptions }}
   </section>
-
-  <section class="pcc__section pcc__section--alerts" aria-labelledby="pcc-alerts-heading">
-    <h2 id="pcc-alerts-heading" class="visually-hidden">{{ 'Operational alerts'|t }}</h2>
-    {{ alerts }}
-  </section>
-
-  <section class="pcc__section pcc__section--recent" aria-labelledby="pcc-recent-heading">
-    <h2 id="pcc-recent-heading" class="visually-hidden">{{ 'Recent activity'|t }}</h2>
-    {{ recent_activity }}
-  </section>
-
-  <p class="pcc__export-hint">
-    <a href="{{ export_url }}" class="pcc__action-link pcc__action-link--export">{{ 'Download Financial CSV'|t }}</a>
-  </p>
 </div>

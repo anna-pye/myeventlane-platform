@@ -1,0 +1,255 @@
+.mel-studio-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.mel-studio-shell__left,
+.mel-studio-shell__main,
+.mel-studio-shell__right {
+  background: #fff;
+  border: 1px solid #e7e9ef;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.mel-studio-shell.mel-studio-shell--drawer {
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.mel-studio-shell__right.mel-studio-shell__right--drawer {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+}
+
+.mel-studio-shell__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.mel-studio-shell__subtitle {
+  margin: 0 0 1rem;
+  color: #5b6475;
+}
+
+.mel-studio-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.mel-studio-nav__link {
+  display: block;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1e2430;
+}
+
+.mel-studio-nav__link.mel-studio-nav__item--active {
+  background: #eef3ff;
+  color: #173c9b;
+  font-weight: 600;
+}
+
+.mel-studio-nav__link:hover {
+  background: #f5f7fc;
+}
+
+.mel-studio-nav__link--disabled {
+  color: #8c93a3;
+  cursor: not-allowed;
+}
+
+.mel-studio-panel {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.mel-studio-panel h2,
+.mel-studio-panel h3 {
+  margin-top: 0;
+}
+
+.mel-studio-panel .button {
+  margin-top: 12px;
+}
+
+.mel-studio-sidepanel h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.mel-studio-sidepanel ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+@media (max-width: 1200px) {
+  .mel-studio-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .mel-studio-shell__right {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .mel-studio-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Vendor Studio SaaS workspace layout */
+.mel-studio {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.mel-studio > .mel-studio-nav {
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.mel-studio-canvas {
+  min-width: 0;
+}
+
+.mel-studio > .mel-studio-inspector {
+  position: sticky;
+  top: 90px;
+}
+
+.mel-workspace-tabs {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.mel-workspace-tabs a {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  text-decoration: none;
+  padding-bottom: 4px;
+}
+
+.mel-workspace-tabs a.active {
+  color: #6b46ff;
+  border-bottom: 2px solid #6b46ff;
+}
+
+.mel-studio-nav-actions {
+  margin-bottom: 14px;
+}
+
+.mel-studio-nav-create {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.mel-studio-nav-search-wrap {
+  margin-bottom: 14px;
+}
+
+.mel-studio-nav-search {
+  width: 100%;
+  border: 1px solid #dde1eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.mel-studio-nav-list {
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+.mel-studio .mel-event-row {
+  cursor: pointer;
+}
+
+.mel-studio-nav .mel-event-row {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+}
+
+.mel-studio-nav .mel-event-thumb {
+  flex: 0 0 auto;
+}
+
+.mel-studio-nav .mel-event-thumb img {
+  width: 86px;
+  height: 64px;
+  object-fit: cover;
+}
+
+.mel-studio-nav .mel-event-main {
+  min-width: 0;
+}
+
+.mel-studio-nav .mel-event-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.mel-studio-nav .mel-event-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.mel-studio-nav .mel-event-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.mel-studio-nav .mel-event-metrics .mel-metric:first-child {
+  grid-column: 1 / -1;
+}
+
+.mel-studio-nav .mel-progress {
+  width: 100%;
+}
+
+.mel-studio .mel-event-actions {
+  display: none;
+}
+
+@media (max-width: 1240px) {
+  .mel-studio {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .mel-studio > .mel-studio-inspector {
+    grid-column: 1 / -1;
+    position: static;
+  }
+}

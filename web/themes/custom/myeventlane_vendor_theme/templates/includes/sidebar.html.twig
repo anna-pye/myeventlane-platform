@@ -2,30 +2,17 @@
 /**
  * @file
  * Left navigation sidebar for MyEventLane Vendor Console.
- *
- * mel-sidebar navigation with:
- * - Logo/brand
- * - Main navigation items
- * - Workspace info
- * - User/logout
  */
 #}
 <nav class="mel-sidebar" aria-label="{{ 'Vendor navigation'|t }}">
-  {# Back to Administration link (admins only) #}
   {% if page.is_admin and page.admin_portal_url %}
     <div class="mel-sidebar__admin-link">
       <a href="{{ page.admin_portal_url }}" class="mel-sidebar__link mel-sidebar__link--admin" target="_blank" rel="noopener noreferrer">
-        <span class="mel-sidebar__link-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </span>
         <span class="mel-sidebar__link-label">{{ '< Back to Administration'|t }}</span>
       </a>
     </div>
   {% endif %}
 
-  {# Brand / Logo #}
   <div class="mel-sidebar__brand">
     <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
       <span class="mel-sidebar__logo-mark">M</span>
@@ -33,198 +20,79 @@
     </a>
   </div>
 
-  {# Main Navigation #}
+  {% set nav_items = page.vendor_shell_nav_items|default([
+    { key: 'dashboard', label: 'Dashboard'|t, icon: 'dashboard', url: path('myeventlane_vendor.console.dashboard'), is_active: page.active_section|default('dashboard') == 'dashboard', is_disabled: false },
+    { key: 'events', label: 'Events'|t, icon: 'events', url: path('myeventlane_vendor.console.events'), is_active: page.active_section|default('dashboard') == 'events', is_disabled: false },
+    { key: 'orders', label: 'Orders'|t, icon: 'orders', url: null, is_active: page.active_section|default('dashboard') == 'orders', is_disabled: true },
+    { key: 'attendees', label: 'Attendees'|t, icon: 'attendees', url: path('myeventlane_checkout_flow.vendor_attendees'), is_active: page.active_section|default('dashboard') == 'attendees', is_disabled: false },
+    { key: 'audience', label: 'Audience'|t, icon: 'audience', url: path('myeventlane_vendor.console.audience'), is_active: page.active_section|default('dashboard') == 'audience', is_disabled: false },
+    { key: 'payouts', label: 'Payouts'|t, icon: 'payouts', url: path('myeventlane_vendor.console.payouts'), is_active: page.active_section|default('dashboard') == 'payouts', is_disabled: false },
+    { key: 'growth', label: 'Growth'|t, icon: 'growth', url: path('myeventlane_vendor.console.boost'), is_active: page.active_section|default('dashboard') == 'growth', is_disabled: false },
+    { key: 'settings', label: 'Settings'|t, icon: 'settings', url: path('myeventlane_vendor.console.settings'), is_active: page.active_section|default('dashboard') == 'settings', is_disabled: false },
+    { key: 'help', label: 'Help'|t, icon: 'help', url: null, is_active: page.active_section|default('dashboard') == 'help', is_disabled: true }
+  ]) %}
+
   <ul class="mel-sidebar__nav" role="list">
-    {% set active = page.active_section|default('dashboard') %}
-    
-    {# Primary nav items #}
-    {% set nav_items = [
-      { route: 'myeventlane_vendor.console.dashboard', label: 'Dashboard'|t, key: 'dashboard', icon: 'dashboard' },
-      { route: 'myeventlane_vendor.console.events', label: 'Events'|t, key: 'events', icon: 'events' },
-      { route: 'myeventlane_analytics.dashboard', label: 'Analytics'|t, key: 'analytics', icon: 'analytics' },
-    ] %}
-    
     {% for item in nav_items %}
-      <li class="mel-sidebar__item">
-        <a href="{{ path(item.route) }}"
-           class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
-           {% if active == item.key %}aria-current="page"{% endif %}>
-          <span class="mel-sidebar__link-icon" aria-hidden="true">
-            {% if item.icon == 'dashboard' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
-              </svg>
-            {% elseif item.icon == 'events' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            {% elseif item.icon == 'analytics' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-            {% endif %}
-          </span>
-          <span class="mel-sidebar__link-label">{{ item.label }}</span>
-        </a>
-      </li>
-    {% endfor %}
-    
-    {# Event Wizard steps (when on wizard create/edit) #}
-    {% if page.wizard_steps is defined and page.wizard_steps|length > 0 %}
-      <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
-      <li class="mel-sidebar__section-label">{{ 'Create event'|t }}</li>
-      {% for step in page.wizard_steps %}
-        <li class="mel-sidebar__item">
-          <a href="{{ step.url }}"
-             class="mel-sidebar__link mel-sidebar__link--wizard is-wizard-step{% if step.is_active %} is-active{% endif %}"
-             {% if step.is_active %}aria-current="step"{% endif %}>
-            <span class="mel-sidebar__link-label">{{ step.label }}</span>
+      <li class="mel-sidebar__item{% if item.children|default([]) %} mel-sidebar__item--with-subnav{% endif %}">
+        {% if item.url and not item.is_disabled %}
+          <a href="{{ item.url }}"
+             class="mel-sidebar__link{% if item.is_active %} is-active{% endif %}"
+             {% if item.is_active %}aria-current="page"{% endif %}>
+            <span class="mel-sidebar__link-icon" aria-hidden="true">
+              {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
+            </span>
+            <span class="mel-sidebar__link-label">{{ item.label }}</span>
           </a>
-        </li>
-      {% endfor %}
-    {% endif %}
-
-    {# Section divider #}
-    <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
-    <li class="mel-sidebar__section-label">{{ 'Management'|t }}</li>
-    
-    {# Management items - using actual routes from routing.yml #}
-    {% set mgmt_items = [
-      { route: 'myeventlane_escalations_portal.vendor_list', label: 'Support'|t, key: 'support', icon: 'support' },
-      { route: 'myeventlane_escalations_refunds.vendor_refund_summary', label: 'Refund Summary'|t, key: 'refunds', icon: 'refund' },
-      { route: 'myeventlane_escalations_analytics.vendor_dashboard', label: 'Support Analytics'|t, key: 'support_analytics', icon: 'chart' },
-      { route: 'myeventlane_vendor.console.audience', label: 'Audience'|t, key: 'audience', icon: 'users' },
-      { route: 'myeventlane_donations.vendor_list', label: 'Donations'|t, key: 'donations', icon: 'heart' },
-      { route: 'myeventlane_vendor.console.payouts', label: 'Payouts'|t, key: 'payouts', icon: 'dollar' },
-      { route: 'myeventlane_finance.vendor_bas', label: 'BAS Report'|t, key: 'bas', icon: 'document' },
-    ] %}
-    
-    {% for item in mgmt_items %}
-      <li class="mel-sidebar__item">
-        <a href="{{ path(item.route) }}"
-           class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
-           {% if active == item.key %}aria-current="page"{% endif %}>
-          <span class="mel-sidebar__link-icon" aria-hidden="true">
-            {% if item.icon == 'support' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            {% elseif item.icon == 'users' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            {% elseif item.icon == 'heart' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-            {% elseif item.icon == 'dollar' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-              </svg>
-            {% elseif item.icon == 'document' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-              </svg>
-            {% elseif item.icon == 'refund' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-              </svg>
-            {% elseif item.icon == 'chart' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-            {% endif %}
+        {% else %}
+          <span class="mel-sidebar__link mel-sidebar__link--disabled"
+                aria-disabled="true"
+                title="{{ 'Coming soon'|t }}">
+            <span class="mel-sidebar__link-icon" aria-hidden="true">
+              {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
+            </span>
+            <span class="mel-sidebar__link-label">{{ item.label }}</span>
+            <span class="mel-sidebar__link-badge">{{ 'Soon'|t }}</span>
           </span>
-          <span class="mel-sidebar__link-label">{{ item.label }}</span>
-        </a>
+        {% endif %}
+
+        {% if item.children|default([]) %}
+          <ul class="mel-sidebar__subnav" role="list">
+            {% for child in item.children %}
+              <li class="mel-sidebar__subitem">
+                {% if child.url and not child.is_disabled %}
+                  <a href="{{ child.url }}"
+                     class="mel-sidebar__subnav-link{% if child.is_active %} is-active{% endif %}"
+                     {% if child.is_active %}aria-current="page"{% endif %}>
+                    {{ child.label }}
+                  </a>
+                {% else %}
+                  <span class="mel-sidebar__subnav-link"
+                        aria-disabled="true"
+                        title="{{ 'Select an event first'|t }}">
+                    {{ child.label }}
+                  </span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
       </li>
     {% endfor %}
-    
-    {# Section divider #}
-    <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
-    <li class="mel-sidebar__section-label">{{ 'Growth'|t }}</li>
-    
-    {# Growth items - using actual routes from routing.yml #}
-    {% set growth_items = [
-      { route: 'myeventlane_vendor.console.boost', label: 'Boost'|t, key: 'boost', icon: 'zap' },
-    ] %}
-    {% if page.pro_overview_url %}
-      {% set growth_items = growth_items|merge([
-        { url: page.pro_overview_url, label: 'Pro'|t, key: 'pro', icon: 'pro' },
-      ]) %}
-    {% endif %}
-    
-    {% for item in growth_items %}
-      <li class="mel-sidebar__item">
-        <a href="{% if item.url is defined %}{{ item.url }}{% else %}{{ path(item.route) }}{% endif %}"
-           class="mel-sidebar__link{% if active == item.key %} is-active{% endif %}"
-           {% if active == item.key %}aria-current="page"{% endif %}>
-          <span class="mel-sidebar__link-icon" aria-hidden="true">
-            {% if item.icon == 'zap' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            {% elseif item.icon == 'pro' %}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            {% endif %}
-          </span>
-          <span class="mel-sidebar__link-label">{{ item.label }}</span>
-        </a>
-      </li>
-    {% endfor %}
-    
-    {# Settings & Help #}
-    <li aria-hidden="true"><hr class="mel-sidebar__divider"></li>
-    
-    <li class="mel-sidebar__item">
-      <a href="{{ path('myeventlane_vendor.console.settings') }}"
-         class="mel-sidebar__link{% if active == 'settings' %} is-active{% endif %}">
-        <span class="mel-sidebar__link-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </span>
-        <span class="mel-sidebar__link-label">{{ 'Settings'|t }}</span>
-      </a>
-    </li>
-
-    <li class="mel-sidebar__item">
-      <a href="{{ path('myeventlane_help_centre.vendor_index') }}"
-         class="mel-sidebar__link{% if active == 'help' %} is-active{% endif %}"
-         {% if active == 'help' %}aria-current="page"{% endif %}>
-        <span class="mel-sidebar__link-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </span>
-        <span class="mel-sidebar__link-label">{{ 'Help centre'|t }}</span>
-      </a>
-    </li>
   </ul>
 
-  {# Footer / User Info #}
   <div class="mel-sidebar__footer">
-    {# Back to main site #}
     <a class="mel-sidebar__link" href="{{ page.main_site_url|default('/') }}">
-      <span class="mel-sidebar__link-icon" aria-hidden="true">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-        </svg>
-      </span>
       <span class="mel-sidebar__link-label">{{ 'Back to main site'|t }}</span>
     </a>
-    
-    {# Workspace info #}
+
     {% if page.workspace_name %}
       <div class="mel-sidebar__workspace">
         <div class="mel-sidebar__workspace-label">{{ 'Workspace'|t }}</div>
         <div class="mel-sidebar__workspace-name">{{ page.workspace_name }}</div>
       </div>
     {% endif %}
-    
-    {# User info #}
+
     {% if page.user_name %}
       <div class="mel-sidebar__user">
         <div class="mel-sidebar__user-avatar">
@@ -236,8 +104,7 @@
         </div>
       </div>
     {% endif %}
-    
-    {# Logout #}
+
     {% if page.logout_link %}
       <div class="mel-sidebar__logout">
         {{ page.logout_link }}

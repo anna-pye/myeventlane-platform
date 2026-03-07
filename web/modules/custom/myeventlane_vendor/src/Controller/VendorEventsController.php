@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -65,7 +66,7 @@ final class VendorEventsController extends VendorConsoleBaseController implement
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
       'title' => t('Events'),
       'header_actions' => [
-        ['label' => t('Create Event'), 'url' => '/vendor/events/add'],
+        ['label' => t('Create Event'), 'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString()],
       ],
       'tabs' => [],
       'body' => $form,

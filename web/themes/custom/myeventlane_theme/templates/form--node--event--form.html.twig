@@ -13,37 +13,26 @@
   {{ form.form_token }}
   {{ form.form_id }}
 
-  {# Wizard wrapper - contains stepper and all steps #}
+  {# Canonical wizard rendering (vendor workflow routes). #}
   {% if form.mel_wizard %}
     {{ form.mel_wizard }}
+    {% if form.wizard_current_step %}
+      {{ form.wizard_current_step }}
+    {% endif %}
+    {% if form.wizard_target_step %}
+      {{ form.wizard_target_step }}
+    {% endif %}
+    {% if form.field_event_vendor %}
+      {{ form.field_event_vendor }}
+    {% endif %}
+    {% if form.field_event_store %}
+      {{ form.field_event_store }}
+    {% endif %}
+    {% if form.actions %}
+      {{ form.actions }}
+    {% endif %}
+  {% else %}
+    {# Raw node form fallback (admin advanced edit / non-wizard contexts). #}
+    {{ form|without('form_build_id', 'form_token', 'form_id') }}
   {% endif %}
-
-  {# Hidden wizard state fields #}
-  {% if form.wizard_current_step %}
-    {{ form.wizard_current_step }}
-  {% endif %}
-  {% if form.wizard_target_step %}
-    {{ form.wizard_target_step }}
-  {% endif %}
-
-  {# Hidden vendor/store fields (auto-populated) #}
-  {% if form.field_event_vendor %}
-    {{ form.field_event_vendor }}
-  {% endif %}
-  {% if form.field_event_store %}
-    {{ form.field_event_store }}
-  {% endif %}
-
-  {# Form actions (Next/Back/Submit) #}
-  {% if form.actions %}
-    {{ form.actions }}
-  {% endif %}
-
-  {# Render any remaining system fields that must be present #}
-  {{ form|without(
-    'form_build_id', 'form_token', 'form_id',
-    'mel_wizard', 'wizard_current_step', 'wizard_target_step',
-    'field_event_vendor', 'field_event_store',
-    'actions'
-  ) }}
 </form>

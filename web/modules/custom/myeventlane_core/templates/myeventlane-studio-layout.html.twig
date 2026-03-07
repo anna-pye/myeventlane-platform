@@ -1,0 +1,30 @@
+{{ attach_library('myeventlane_core/studio_layout') }}
+
+<section class="mel-studio-shell-wrapper">
+  {% if title %}
+    <h1 class="mel-studio-shell__title">{{ title }}</h1>
+  {% endif %}
+  {% if subtitle %}
+    <p class="mel-studio-shell__subtitle">{{ subtitle }}</p>
+  {% endif %}
+
+  <div class="mel-studio-shell">
+    <aside class="mel-studio-shell__left" aria-label="{{ 'Studio navigation'|t }}">
+      {% if left_nav %}
+        {{ left_nav }}
+      {% endif %}
+    </aside>
+
+    <main class="mel-studio-shell__main">
+      {% if main %}
+        {{ main }}
+      {% endif %}
+    </main>
+
+    <aside class="mel-studio-shell__right" aria-label="{{ 'Studio side panel'|t }}">
+      {% if right_panel %}
+        {{ right_panel }}
+      {% endif %}
+    </aside>
+  </div>
+</section>

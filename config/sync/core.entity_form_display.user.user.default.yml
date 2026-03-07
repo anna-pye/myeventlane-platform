@@ -95,6 +95,7 @@ hidden:
   commerce_remote_id: true
   customer_profiles: true
   field_mel_account_type: true
+  field_pro_grace_expires: true
   field_pro_subscription_managed: true
   langcode: true
   vendor_profiles: true

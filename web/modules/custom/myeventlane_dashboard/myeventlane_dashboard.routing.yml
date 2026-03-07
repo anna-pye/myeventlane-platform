@@ -1,18 +1,3 @@
-# NOTE: Vendor dashboard at /vendor/dashboard (myeventlane_vendor.console.dashboard).
-# Customer dashboard at /my-account (myeventlane_account.dashboard).
-
-# Legacy /dashboard path — role-aware redirect.
-# - Vendors (access vendor console) → /vendor/dashboard
-# - Logged-in customers → /my-account
-# - Anonymous → /user/login
-myeventlane_dashboard.legacy_redirect:
-  path: '/dashboard'
-  defaults:
-    _controller: '\Drupal\myeventlane_dashboard\Controller\DashboardRedirectController::build'
-    _title: 'Dashboard'
-  requirements:
-    _access: 'TRUE'
-
 # Customer "My Events" dashboard.
 myeventlane_dashboard.customer:
   path: '/my-events'

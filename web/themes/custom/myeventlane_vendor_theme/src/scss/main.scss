@@ -75,6 +75,9 @@
 @use 'components/support';
 @use 'components/ai-panels';
 @use 'components/klaro-consent';
+@use '../../../myeventlane_theme/src/scss/components/vendor-events';
+@use '../../../myeventlane_theme/src/scss/components/vendor-studio-editor';
+@use '../../../myeventlane_theme/src/scss/components/studio-inspector';
 
 // ============================================================================
 // PAGE-SPECIFIC STYLES

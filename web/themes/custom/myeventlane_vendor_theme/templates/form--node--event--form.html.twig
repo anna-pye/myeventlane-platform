@@ -4,7 +4,7 @@
   Twig only prints it.
   
   If form.mel_wizard exists, it contains the full wizard layout (stepper, content, diagnostics).
-  Otherwise, render the form normally (fallback for non-wizard contexts).
+  Otherwise, render the raw node form normally (admin advanced edit fallback).
 #}
 
 <form{{ attributes.addClass('mel-event-form-page') }}>
@@ -17,7 +17,7 @@
     {# Render the wizard structure built by EventFormAlter #}
     {{ form.mel_wizard }}
   {% else %}
-    {# No wizard - render form fields normally (shouldn't happen in vendor context, but fallback) #}
+    {# No wizard - render raw node form fallback (admin advanced edit). #}
     {{ form|without(
       'form_build_id',
       'form_token',

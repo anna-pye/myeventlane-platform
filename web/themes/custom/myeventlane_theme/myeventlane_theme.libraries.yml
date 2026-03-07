@@ -105,3 +105,12 @@ auth_pages:
   dependencies:
     - core/drupal
     - core/once
+
+vendor-studio:
+  js:
+    js/event-navigator.js: {}
+    js/editor-sections.js: {}
+  dependencies:
+    - myeventlane_theme/global-styling
+    - core/drupal
+    - core/once

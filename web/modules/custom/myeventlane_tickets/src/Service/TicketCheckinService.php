@@ -37,7 +37,7 @@ final class TicketCheckinService {
     // Reserved for optional policy checks (e.g. event check-in windows).
     $this->configFactory->get('myeventlane_tickets.settings');
 
-    $normalized_input = trim($input);
+    $normalized_input = $this->normalizeInput($input);
     if ($normalized_input === '') {
       $result = $this->result(FALSE, 'invalid', 'Ticket code is required.', '');
       $this->checkinLogger->logResult($route_event_id, NULL, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
@@ -58,9 +58,13 @@ final class TicketCheckinService {
       return $result;
     }
 
-    $ticket = $this->loadTicketByCode((string) $parsed['ticket_code']);
+    $ticket_code = (string) $parsed['ticket_code'];
+    $ticket = $this->loadTicketByCode($ticket_code);
     if (!$ticket instanceof Ticket) {
-      $result = $this->result(FALSE, 'invalid', 'Ticket not found.', (string) $parsed['ticket_code']);
+      $ticket = $this->resolveLegacyOrderItemTicket($route_event_id, $ticket_code);
+    }
+    if (!$ticket instanceof Ticket) {
+      $result = $this->result(FALSE, 'invalid', 'Ticket not found.', $ticket_code);
       $this->checkinLogger->logResult($route_event_id, NULL, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
       return $result;
     }
@@ -132,6 +136,96 @@ final class TicketCheckinService {
     }
     $ticket = $storage->load((int) reset($ids));
     return $ticket instanceof Ticket ? $ticket : NULL;
+  }
+
+  /**
+   * Resolves legacy MEL-{event}-{order}-{order_item}-{hash} codes.
+   *
+   * Legacy order-item PDFs generated codes that were never persisted on the
+   * ticket entity. This fallback maps that code to the next valid ticket on
+   * the order item for the current event.
+   */
+  private function resolveLegacyOrderItemTicket(int $route_event_id, string $input): ?Ticket {
+    $legacy = $this->parseLegacyOrderItemCode($input);
+    if ($legacy === NULL) {
+      return NULL;
+    }
+
+    if ($legacy['event_id'] !== $route_event_id) {
+      return NULL;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+
+    // Prefer the next ticket that can still be admitted.
+    $candidate_ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event_id', $route_event_id)
+      ->condition('order_item_id', $legacy['order_item_id'])
+      ->condition('status', [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED, Ticket::STATUS_CHECKED_IN], 'NOT IN')
+      ->sort('id', 'ASC')
+      ->range(0, 1)
+      ->execute();
+
+    if (!$candidate_ids) {
+      // If all are already checked in, return one checked-in ticket so UI can
+      // consistently show "already checked in" instead of "not found".
+      $candidate_ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event_id', $route_event_id)
+        ->condition('order_item_id', $legacy['order_item_id'])
+        ->sort('id', 'ASC')
+        ->range(0, 1)
+        ->execute();
+    }
+
+    if (!$candidate_ids) {
+      return NULL;
+    }
+
+    $ticket = $storage->load((int) reset($candidate_ids));
+    return $ticket instanceof Ticket ? $ticket : NULL;
+  }
+
+  /**
+   * Parses a legacy order-item ticket code.
+   *
+   * @return array{event_id:int,order_id:int,order_item_id:int}|null
+   *   Parsed segments, or NULL for non-legacy input.
+   */
+  private function parseLegacyOrderItemCode(string $input): ?array {
+    $code = strtoupper(trim($input));
+    if (!preg_match('/^MEL-(\d+)-(\d+)-(\d+)-[A-Z0-9]+$/', $code, $matches)) {
+      return NULL;
+    }
+
+    return [
+      'event_id' => (int) $matches[1],
+      'order_id' => (int) $matches[2],
+      'order_item_id' => (int) $matches[3],
+    ];
+  }
+
+  /**
+   * Normalizes scanner/manual input into a ticket token.
+   */
+  private function normalizeInput(string $input): string {
+    $value = trim($input);
+
+    // Accept pasted labels from PDFs, e.g. "Ticket Code: MEL-...".
+    if (str_starts_with(strtolower($value), 'ticket code:')) {
+      $value = trim(substr($value, strlen('Ticket Code:')));
+    }
+
+    // Accept canonical download links and extract /ticket/{code}/pdf.
+    if (filter_var($value, FILTER_VALIDATE_URL)) {
+      $path = (string) parse_url($value, PHP_URL_PATH);
+      if (preg_match('#^/ticket/([^/]+)/pdf$#', $path, $matches)) {
+        $value = urldecode((string) $matches[1]);
+      }
+    }
+
+    return trim($value);
   }
 
   /**

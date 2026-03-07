@@ -903,6 +903,99 @@ function myeventlane_pro_update_10010(): void {
 }
 
 /**
+ * Installs Pro vendor comms entity type and reconciles managed user field.
+ */
+function myeventlane_pro_update_10011(): void {
+  $entityTypeManager = \Drupal::entityTypeManager();
+  $definitionUpdateManager = \Drupal::entityDefinitionUpdateManager();
+
+  $changeList = $definitionUpdateManager->getChangeList();
+
+  if (
+    isset($changeList['myeventlane_pro_vendor_comms']['entity_type']) &&
+    $changeList['myeventlane_pro_vendor_comms']['entity_type'] === \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED
+  ) {
+    $entityType = $entityTypeManager->getDefinition('myeventlane_pro_vendor_comms', FALSE);
+    if ($entityType !== NULL) {
+      $definitionUpdateManager->installEntityType($entityType);
+    }
+  }
+
+  if (
+    isset($changeList['user']['field_storage_definitions']['field_pro_subscription_managed']) &&
+    $changeList['user']['field_storage_definitions']['field_pro_subscription_managed'] === \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::DEFINITION_UPDATED
+  ) {
+    $storageDefinitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('user');
+    if (isset($storageDefinitions['field_pro_subscription_managed'])) {
+      $definitionUpdateManager->updateFieldStorageDefinition($storageDefinitions['field_pro_subscription_managed']);
+    }
+  }
+}
+
+/**
+ * Ensures Pro vendor comms entity type is installed on upgraded sites.
+ */
+function myeventlane_pro_update_10012(): void {
+  $entityTypeManager = \Drupal::entityTypeManager();
+  $definitionUpdateManager = \Drupal::entityDefinitionUpdateManager();
+  $entityTypeId = 'myeventlane_pro_vendor_comms';
+
+  if (!$entityTypeManager->hasDefinition($entityTypeId)) {
+    \Drupal::logger('myeventlane_pro')->error('Pro vendor comms entity type definition is missing from code.');
+    throw new \Drupal\Core\Utility\UpdateException('Pro vendor comms entity type definition is missing from code.');
+  }
+
+  $changeList = $definitionUpdateManager->getChangeList();
+  if (
+    !isset($changeList[$entityTypeId]['entity_type']) ||
+    $changeList[$entityTypeId]['entity_type'] !== \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED
+  ) {
+    \Drupal::logger('myeventlane_pro')->notice('No Pro vendor comms entity definition install required in update_10012.');
+    return;
+  }
+
+  $entityType = $entityTypeManager->getDefinition($entityTypeId, FALSE);
+  if ($entityType === NULL) {
+    \Drupal::logger('myeventlane_pro')->error('Pro vendor comms entity type definition could not be loaded.');
+    throw new \Drupal\Core\Utility\UpdateException('Pro vendor comms entity type definition could not be loaded.');
+  }
+
+  $definitionUpdateManager->installEntityType($entityType);
+  \Drupal::logger('myeventlane_pro')->notice('Installed Pro vendor comms entity type via update_10012.');
+}
+
+/**
+ * Force-installs Pro vendor comms entity type if not last-installed.
+ */
+function myeventlane_pro_update_10013(): void {
+  $entityTypeId = 'myeventlane_pro_vendor_comms';
+  $entityTypeManager = \Drupal::entityTypeManager();
+  $definitionUpdateManager = \Drupal::entityDefinitionUpdateManager();
+  $lastInstalledSchema = \Drupal::service('entity.last_installed_schema.repository');
+
+  if (!$entityTypeManager->hasDefinition($entityTypeId)) {
+    \Drupal::logger('myeventlane_pro')->error('Pro vendor comms entity type definition is missing from code.');
+    throw new \Drupal\Core\Utility\UpdateException('Pro vendor comms entity type definition is missing from code.');
+  }
+
+  if ($lastInstalledSchema->getLastInstalledDefinition($entityTypeId) !== NULL) {
+    \Drupal::logger('myeventlane_pro')->notice('Pro vendor comms entity type already installed (last installed schema exists).');
+    return;
+  }
+
+  $entityType = $entityTypeManager->getDefinition($entityTypeId, FALSE);
+  if ($entityType === NULL) {
+    \Drupal::logger('myeventlane_pro')->error('Pro vendor comms entity type definition could not be loaded.');
+    throw new \Drupal\Core\Utility\UpdateException('Pro vendor comms entity type definition could not be loaded.');
+  }
+
+  $definitionUpdateManager->installEntityType($entityType);
+  $entityTypeManager->clearCachedDefinitions();
+
+  \Drupal::logger('myeventlane_pro')->notice('Installed Pro vendor comms entity type via update_10013.');
+}
+
+/**
  * Installs the field_is_pro_support base field on the escalation entity.
  *
  * Shared by hook_install() and update_10002().

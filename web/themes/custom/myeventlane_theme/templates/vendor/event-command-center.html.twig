@@ -1,0 +1,29 @@
+<div class="mel-command-center" data-mel-command-center>
+  <div class="mel-cc-metric">
+    <div class="mel-cc-label">{{ 'Tickets Sold'|t }}</div>
+    <div class="mel-cc-value" data-mel-cc-tickets>
+      {{ ticket_percent is defined ? ticket_percent ~ '%' : '-' }}
+    </div>
+    <div class="mel-progress" aria-hidden="true">
+      <div
+        class="mel-progress-bar"
+        data-mel-cc-progress
+        style="width: {{ ticket_percent is defined ? ticket_percent : 0 }}%;"
+      ></div>
+    </div>
+  </div>
+
+  <div class="mel-cc-metric">
+    <div class="mel-cc-label">{{ 'RSVPs'|t }}</div>
+    <div class="mel-cc-value" data-mel-cc-rsvps>
+      {{ rsvp_count is defined ? rsvp_count : '-' }}
+    </div>
+  </div>
+
+  <div class="mel-cc-metric">
+    <div class="mel-cc-label">{{ 'Revenue'|t }}</div>
+    <div class="mel-cc-value" data-mel-cc-revenue>
+      ${{ revenue is defined ? revenue : '-' }}
+    </div>
+  </div>
+</div>

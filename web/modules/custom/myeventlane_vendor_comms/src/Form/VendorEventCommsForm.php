@@ -49,7 +49,8 @@ final class VendorEventCommsForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $event = NULL): array {
+    $node = $event;
     if (!$node) {
       return ['#markup' => $this->t('Event not found.')];
     }
@@ -250,7 +251,7 @@ final class VendorEventCommsForm extends FormBase {
     $this->messenger()->addStatus($this->t('Message queued for sending to @count recipient(s).', ['@count' => $recipientCount]));
 
     // Redirect back to form.
-    $form_state->setRedirect('myeventlane_vendor_comms.send', ['node' => $node->id()]);
+    $form_state->setRedirect('myeventlane_vendor.console.event_promotion', ['event' => $node->id()]);
   }
 
   /**

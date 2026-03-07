@@ -1,541 +1,296 @@
 /**
  * @file
- * Dashboard page styles for MyEventLane Vendor Theme.
+ * Vendor dashboard styles.
  */
 
-@use "sass:color";
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/typography' as *;
 @use '../tokens/radii' as *;
 @use '../tokens/breakpoints' as *;
+.mel-dashboard-page {
+  display: grid;
+  gap: $spacing-6;
 
-// ============================================================================
-// DASHBOARD LAYOUT
-// ============================================================================
-
-.mel-dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: $section-gap;
-  padding: $spacing-6 0;
-  
-  @include respond-to(md) {
-    padding: $spacing-8 0;
+  .mel-dashboard-hero {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-4;
+    background: linear-gradient(135deg, #fff5f4 0%, #f5f1ff 100%);
+    border: 1px solid #f0dcdc;
+    border-radius: $radius-card;
+    padding: $spacing-6;
   }
-}
 
-// Container utility class for dashboard content if needed (not used by default)
-.mel-dashboard__container {
-  max-width: $layout-content-max-width;
-  margin: 0 auto;
-  padding: 0 $spacing-4;
-  
-  @include respond-to(md) {
-    padding: 0 $layout-gutter;
+  .mel-dashboard-hero__title {
+    margin: 0;
+    font-size: 1.55rem;
+    color: $ml-vendor-navy;
   }
-}
 
-// ============================================================================
-// DASHBOARD HEADER
-// ============================================================================
-
-.mel-dashboard__header {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-4;
-  
-  @include respond-to(md) {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
+  .mel-dashboard-hero__subtitle {
+    margin: $spacing-2 0 0;
+    color: $text-secondary;
+    max-width: 62ch;
   }
-}
 
-.mel-dashboard__header-content {
-  flex: 1;
-}
-
-.mel-dashboard__title {
-  @include page-title;
-  margin: 0;
-}
-
-.mel-dashboard__subtitle {
-  font-size: $font-size-body;
-  color: $text-secondary;
-  margin-top: $spacing-1;
-}
-
-.mel-dashboard__actions {
-  display: flex;
-  align-items: center;
-  gap: $spacing-3;
-  flex-wrap: wrap;
-}
-
-// ============================================================================
-// DASHBOARD EVENT CONTEXT (when viewing single event)
-// ============================================================================
-
-.mel-dashboard__event-header {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-4;
-  padding: $spacing-6;
-  background: $bg-primary;
-  border: 1px solid $border-color;
-  border-radius: $radius-card;
-  margin-bottom: $section-gap;
-  
-  @include respond-to(md) {
-    flex-direction: row;
+  .mel-dashboard-hero__actions {
+    display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: $spacing-2;
   }
-}
 
-.mel-dashboard__event-info {
-  display: flex;
-  align-items: center;
-  gap: $spacing-4;
-}
+  .mel-dashboard-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-6;
 
-.mel-dashboard__event-image {
-  width: 64px;
-  height: 64px;
-  border-radius: $radius-md;
-  object-fit: cover;
-  background: $bg-secondary;
-  flex-shrink: 0;
-}
-
-.mel-dashboard__event-name {
-  @include section-title;
-  margin: 0;
-}
-
-.mel-dashboard__event-meta {
-  display: flex;
-  align-items: center;
-  gap: $spacing-4;
-  margin-top: $spacing-2;
-  font-size: $font-size-sm;
-  color: $text-secondary;
-}
-
-// ============================================================================
-// DASHBOARD SECTIONS
-// ============================================================================
-
-.mel-dashboard__section {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-4;
-}
-
-.mel-dashboard__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-4;
-}
-
-.mel-dashboard__section-title {
-  @include section-title;
-  margin: 0;
-}
-
-// ============================================================================
-// TOOLS ROW
-// ============================================================================
-
-.mel-dashboard__tools {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-4;
-  
-  @include respond-to(md) {
-    grid-template-columns: repeat(3, 1fr);
+    @include respond-to(xl) {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
   }
-  
-  @include respond-to(lg) {
-    grid-template-columns: repeat(5, 1fr);
-  }
-}
 
-.mel-dashboard__tool {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $spacing-3;
-  padding: $spacing-5;
-  background: $bg-primary;
-  border: 1px solid $border-color;
-  border-radius: $radius-lg;
-  text-decoration: none;
-  color: $text-primary;
-  text-align: center;
-  transition: all 0.15s ease-in-out;
-  
-  &:hover {
-    border-color: $primary;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+  .mel-dashboard-layout__main {
+    display: grid;
+    gap: $spacing-6;
+  }
+
+  .mel-dashboard-layout__rail {
+    display: grid;
+    gap: $spacing-6;
+    align-content: start;
+  }
+
+  .mel-dashboard-section {
+    display: grid;
+    gap: $spacing-4;
+  }
+
+  .mel-section-heading {
+    display: grid;
+    gap: $spacing-1;
+  }
+
+  .mel-section-heading__title {
+    margin: 0;
+    color: $ml-vendor-navy;
+    font-size: 1.125rem;
+  }
+
+  .mel-section-heading__subtitle {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  .mel-panel-card {
+    background: #fff;
+    border: 1px solid $border-color;
+    border-radius: $radius-card;
+    padding: $spacing-5;
+    box-shadow: 0 8px 22px rgba(20, 30, 60, 0.06);
+  }
+
+  .mel-dashboard-action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-4;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .mel-action-card {
+    display: grid;
+    gap: $spacing-2;
     text-decoration: none;
+    color: inherit;
+    min-height: 120px;
+    border: 1px solid transparent;
+
+    &:hover,
+    &:focus {
+      border-color: #eac2c2;
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
   }
-}
 
-.mel-dashboard__tool-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: $bg-secondary;
-  border-radius: $radius-md;
-  color: $text-secondary;
-  
-  svg {
-    width: 22px;
-    height: 22px;
+  .mel-action-card__title {
+    margin: 0;
+    color: $ml-vendor-navy;
+    font-size: 1rem;
   }
-}
 
-.mel-dashboard__tool-label {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
-}
-
-// ============================================================================
-// SIDEBAR PANEL CONTENT
-// ============================================================================
-
-.mel-dashboard__panels {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: $spacing-6;
-  
-  @include respond-to(lg) {
-    grid-template-columns: 2fr 1fr;
+  .mel-action-card__description {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
   }
-}
 
-.mel-dashboard__panel-stack {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-6;
-}
+  .mel-action-card--disabled {
+    opacity: 0.6;
+  }
 
-// ============================================================================
-// WELCOME BANNER (for new vendors)
-// ============================================================================
+  .mel-empty-state-card {
+    border: 1px dashed #e2cfda;
+    border-radius: $radius-card;
+    background: #fff;
+    padding: $spacing-6;
+    display: grid;
+    gap: $spacing-3;
+  }
 
-.mel-welcome-banner {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-4;
-  padding: $spacing-6;
-  background: linear-gradient(135deg, $ml-vendor-navy 0%, $ml-navy-800 100%);
-  color: $text-inverse;
-  border-radius: $radius-card;
-  margin-bottom: $section-gap;
-  
-  @include respond-to(md) {
-    flex-direction: row;
+  .mel-empty-state-card__title {
+    margin: 0;
+    color: $ml-vendor-navy;
+    font-size: 1.2rem;
+  }
+
+  .mel-empty-state-card__message {
+    margin: 0;
+    color: $text-secondary;
+    max-width: 58ch;
+  }
+
+  .mel-activity-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: $spacing-3;
+  }
+
+  .mel-activity-list__item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    justify-content: space-between;
-  }
-}
+    gap: $spacing-3;
+    border-bottom: 1px solid $border-color-light;
+    padding-bottom: $spacing-3;
 
-.mel-welcome-banner__content {
-  flex: 1;
-}
-
-.mel-welcome-banner__title {
-  font-size: $font-size-2xl;
-  font-weight: $font-weight-semibold;
-  margin: 0 0 $spacing-2 0;
-}
-
-.mel-welcome-banner__text {
-  font-size: $font-size-body;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-}
-
-.mel-welcome-banner__actions {
-  display: flex;
-  gap: $spacing-3;
-}
-
-.mel-welcome-banner__btn {
-  padding: $spacing-3 $spacing-5;
-  font-weight: $font-weight-medium;
-  background: $ml-accent-coral;
-  color: $text-inverse;
-  border: none;
-  border-radius: $radius-button;
-  text-decoration: none;
-  
-  &:hover {
-    background: rgba($ml-accent-coral, 0.9);
-    text-decoration: none;
-    color: $text-inverse;
-  }
-}
-
-.mel-welcome-banner__btn--secondary {
-  background: rgba(255, 255, 255, 0.15);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
-}
-
-// ============================================================================
-// ENHANCED DASHBOARD HEADER
-// ============================================================================
-
-.mel-dashboard__header-user {
-  display: flex;
-  align-items: center;
-  gap: $spacing-4;
-}
-
-.mel-dashboard__avatar {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, $primary 0%, #8b5cf6 100%);
-  color: white;
-  font-size: 20px;
-  font-weight: $font-weight-semibold;
-  border-radius: 12px;
-}
-
-.mel-dashboard__header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.mel-dashboard__setup-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-  transition: background 0.2s, color 0.2s;
-
-  &:hover {
-    background: rgba(245, 158, 11, 0.25);
-    color: #b45309;
-  }
-}
-
-.mel-dashboard__stripe-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
-
-  &--connected {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
+    &:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
   }
 
-  &--pending {
-    background: rgba(245, 158, 11, 0.1);
-    color: #d97706;
+  .mel-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 $spacing-2;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: $font-weight-semibold;
+    text-transform: capitalize;
   }
 
-  &--not_connected {
-    background: rgba(107, 114, 128, 0.1);
-    color: #6b7280;
-  }
-}
+  .mel-status-badge--info { background: #e8f3ff; color: #135ea8; }
+  .mel-status-badge--success { background: #e8f9f0; color: #166447; }
+  .mel-status-badge--warning { background: #fff5de; color: #915f00; }
+  .mel-status-badge--error { background: #ffe9e9; color: #a83939; }
+  .mel-status-badge--neutral { background: #f2f3f6; color: #495a70; }
+  .mel-status-badge--sold-out { background: #ffe9e9; color: #a83939; }
+  .mel-status-badge--upcoming { background: #e8f3ff; color: #135ea8; }
+  .mel-status-badge--past { background: #f2f3f6; color: #495a70; }
+  .mel-status-badge--draft { background: #fff5de; color: #915f00; }
 
-.mel-dashboard__stripe-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-// ============================================================================
-// MAIN TWO-COLUMN LAYOUT
-// ============================================================================
-
-.mel-dashboard__main {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: $section-gap;
-  
-  @include respond-to(lg) {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
-.mel-dashboard__primary {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-6;
-}
-
-.mel-dashboard__secondary {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-6;
-}
-
-// ============================================================================
-// ENHANCED WELCOME BANNER
-// ============================================================================
-
-.mel-welcome-banner__icon {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  color: $ml-accent-coral;
-  margin-right: $spacing-4;
-  flex-shrink: 0;
-}
-
-// ============================================================================
-// HELP SIDEBAR CARD
-// ============================================================================
-
-.mel-card--help {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-color: #bae6fd;
-}
-
-.mel-help-links {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mel-help-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 8px;
-  text-decoration: none;
-  color: $text-primary;
-  font-size: 14px;
-  transition: all 0.15s;
-
-  &:hover {
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  .mel-performance-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: $spacing-3;
   }
 
-  svg {
+  .mel-performance-list__item {
+    display: grid;
+    gap: $spacing-2;
+    border: 1px solid $border-color-light;
+    border-radius: $radius-md;
+    padding: $spacing-4;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+      align-items: center;
+    }
+  }
+
+  .mel-performance-list__title {
+    margin: 0;
+    font-size: 1rem;
+    color: $ml-vendor-navy;
+  }
+
+  .mel-performance-list__sub {
+    margin: $spacing-1 0 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  .mel-performance-list__metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-3;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  .mel-performance-list__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+  }
+
+  .mel-dashboard-alert-stack {
+    display: grid;
+    gap: $spacing-3;
+  }
+
+  .mel-alert-box {
+    border-radius: $radius-md;
+    border: 1px solid;
+    padding: $spacing-3 $spacing-4;
+    display: grid;
+    gap: $spacing-2;
+  }
+
+  .mel-alert-box__title {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $ml-vendor-navy;
+  }
+
+  .mel-alert-box__message {
+    margin: 0;
+    font-size: $font-size-sm;
     color: $text-secondary;
   }
-}
 
-// ============================================================================
-// CHART PERIOD SELECTOR
-// ============================================================================
-
-.mel-chart-period {
-  display: flex;
-  gap: 4px;
-  background: $bg-secondary;
-  padding: 4px;
-  border-radius: 8px;
-}
-
-.mel-chart-period__btn {
-  padding: 6px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $text-secondary;
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover {
-    color: $text-primary;
+  .mel-alert-box__link {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
   }
 
-  &.is-active {
-    background: white;
-    color: $text-primary;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  .mel-alert-box--info { background: #eef6ff; border-color: #c9e0ff; }
+  .mel-alert-box--success { background: #ebfbf2; border-color: #caeed9; }
+  .mel-alert-box--warning { background: #fff7e7; border-color: #f7ddaa; }
+  .mel-alert-box--error { background: #fff0ef; border-color: #f2c4c0; }
+}
+
+.mel-workspace-page {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  min-height: 600px;
+  background: #ffffff;
+}
+
+@include respond-to(lg) {
+  .mel-workspace-page {
+    grid-template-columns: 1fr;
   }
 }
-
-// ============================================================================
-// NOTE / MESSAGE COMPONENT (for "Publish to boost" messages)
-// ============================================================================
-
-.mel-note {
-  display: flex;
-  align-items: flex-start;
-  gap: $spacing-2;
-  padding: $spacing-3 $spacing-4;
-  font-size: $font-size-sm;
-  color: $text-secondary;
-  background: $bg-secondary;
-  border-left: 3px solid $text-muted;
-  border-radius: $radius-md;
-
-  &--info {
-    background: $info-light;
-    border-left-color: $info;
-    color: color.adjust($info, $lightness: -10%);
-  }
-
-  &--warning {
-    background: $warning-light;
-    border-left-color: $warning;
-    color: color.adjust($warning, $lightness: -10%);
-  }
-}
-
-.mel-note__icon {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-}
-
-.mel-note__text {
-  flex: 1;
-  line-height: $line-height-relaxed;
-}
-
-// ============================================================================
-// DASHBOARD CONTAINER
-// ============================================================================
-
-.mel-dashboard__container {
-  max-width: $layout-content-max-width;
-  margin: 0 auto;
-  padding: 0 $layout-gutter;
-
-  @media (max-width: 768px) {
-    padding: 0 $spacing-4;
-  }
-}
-

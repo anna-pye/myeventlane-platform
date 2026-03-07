@@ -57,7 +57,7 @@ final class EventDesignForm extends FormBase {
       }
 
       // Direct users to Event information step for image editing.
-      $edit_url = Url::fromRoute('myeventlane_vendor.manage_event.edit', ['event' => $event->id()]);
+      $edit_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()]);
       $form['hero']['edit_link'] = [
         '#type' => 'link',
         '#title' => $this->t('Edit hero image in Event information'),
@@ -84,7 +84,7 @@ final class EventDesignForm extends FormBase {
       }
 
       // Direct users to Event information step for image editing.
-      $edit_url = Url::fromRoute('myeventlane_vendor.manage_event.edit', ['event' => $event->id()]);
+      $edit_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()]);
       $form['logo']['edit_link'] = [
         '#type' => 'link',
         '#title' => $this->t('Edit logo in Event information'),

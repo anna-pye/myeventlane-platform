@@ -2,12 +2,38 @@
 myeventlane_admin_dashboard.platform_control:
   path: '/admin/myeventlane'
   defaults:
-    _controller: 'myeventlane_admin_dashboard.platform_control_centre_controller:overview'
+    _controller: 'myeventlane_admin_dashboard.admin_dashboard_controller:dashboard'
     _title: 'Platform Control Centre'
   requirements:
     _permission: 'access myeventlane platform control centre'
   options:
     _admin_route: TRUE
+
+myeventlane_admin_dashboard.platform_studio:
+  path: '/admin/myeventlane/platform'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.platform_control_centre_controller:studio'
+    _title: 'Admin Studio'
+  requirements:
+    _permission: 'access myeventlane platform control centre'
+  options:
+    _admin_route: TRUE
+
+myeventlane_admin_dashboard.review_approve_deploy:
+  path: '/admin/myeventlane/review/{node}/approve-deploy'
+  defaults:
+    _form: '\Drupal\myeventlane_admin_dashboard\Form\AdminApproveDeployEventForm'
+    _title: 'Approve and Deploy Event'
+  requirements:
+    _permission: 'access myeventlane platform control centre'
+    node: '\d+'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
 
 # Financials tab.
 myeventlane_admin_dashboard.financials:

@@ -77,3 +77,17 @@ fix_form_action:
     js/fix-form-action.js: {}
   dependencies:
     - core/drupal
+
+mel_publish_panel:
+  js:
+    js/mel-publish-panel.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+
+mel_studio_search:
+  js:
+    js/mel-studio-search.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

@@ -37,6 +37,17 @@ analytics:
     - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/chartjs
 
+# Vendor workspace UI shell.
+vendor-workspace:
+  css:
+    theme:
+      css/vendor-workspace.css: {}
+  js:
+    js/vendor-studio.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Vendor Event Wizard
 vendor_wizard:
   css:

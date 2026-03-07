@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Reusable status badge.
+ *
+ * Variables:
+ * - status: info|success|warning|error|neutral.
+ * - label: Badge text.
+ */
+#}
+<span class="mel-status-badge mel-status-badge--{{ status|default('neutral') }}">
+  {{ label }}
+</span>

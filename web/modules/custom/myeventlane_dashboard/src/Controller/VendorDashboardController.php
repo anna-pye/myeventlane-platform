@@ -313,8 +313,7 @@ final class VendorDashboardController extends ControllerBase {
         'id' => $event->id(),
         'title' => $event->label(),
         'url' => $event->toUrl()->toString(),
-        // Use wizard route for editing (vendors never see default node edit form).
-        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event->id()])->toString(),
+        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()])->toString(),
         'start_date' => $startTime ? date('M j, Y', $startTime) : '',
         'start_time' => $startTime ? date('g:ia', $startTime) : '',
         'attendee_count' => $stats['attendee_count'],
@@ -346,7 +345,6 @@ final class VendorDashboardController extends ControllerBase {
     $quickLinks = [
       [
         'title' => $this->t('Create Event'),
-        // Use canonical wizard route for event creation.
         'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString(),
         'icon' => 'add',
       ],

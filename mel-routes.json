@@ -1,0 +1,1947 @@
+{
+    "config_translation.item.add.entity.field_config.myeventlane_vendor_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}\/translate\/{langcode}\/add",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.add.entity.field_config.myeventlane_venue_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}\/translate\/{langcode}\/add",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.add.entity.myeventlane_page_visual.edit_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}\/translate\/{langcode}\/add",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.delete.entity.field_config.myeventlane_vendor_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}\/translate\/{langcode}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.delete.entity.field_config.myeventlane_venue_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}\/translate\/{langcode}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.delete.entity.myeventlane_page_visual.edit_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}\/translate\/{langcode}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.edit.entity.field_config.myeventlane_vendor_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}\/translate\/{langcode}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.edit.entity.field_config.myeventlane_venue_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}\/translate\/{langcode}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "config_translation.item.edit.entity.myeventlane_page_visual.edit_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}\/translate\/{langcode}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "entity.entity_form_display.myeventlane_vendor.default": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display",
+        "controller": null,
+        "title": "Manage form display"
+    },
+    "entity.entity_form_display.myeventlane_vendor.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display\/{form_mode_name}",
+        "controller": null,
+        "title": "Manage form display"
+    },
+    "entity.entity_form_display.myeventlane_venue.default": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display",
+        "controller": null,
+        "title": "Manage form display"
+    },
+    "entity.entity_form_display.myeventlane_venue.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display\/{form_mode_name}",
+        "controller": null,
+        "title": "Manage form display"
+    },
+    "entity.entity_view_display.myeventlane_vendor.default": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display",
+        "controller": null,
+        "title": "Manage display"
+    },
+    "entity.entity_view_display.myeventlane_vendor.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}",
+        "controller": null,
+        "title": "Manage display"
+    },
+    "entity.entity_view_display.myeventlane_venue.default": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display",
+        "controller": null,
+        "title": "Manage display"
+    },
+    "entity.entity_view_display.myeventlane_venue.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}",
+        "controller": null,
+        "title": "Manage display"
+    },
+    "entity.field_config.config_translation_overview.myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}\/translate",
+        "controller": "\\Drupal\\config_translation\\Controller\\ConfigTranslationController::itemPage",
+        "title": null
+    },
+    "entity.field_config.config_translation_overview.myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}\/translate",
+        "controller": "\\Drupal\\config_translation\\Controller\\ConfigTranslationController::itemPage",
+        "title": null
+    },
+    "entity.field_config.myeventlane_vendor_field_delete_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.field_config.myeventlane_vendor_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/{field_config}",
+        "controller": null,
+        "title": null
+    },
+    "entity.field_config.myeventlane_venue_field_delete_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.field_config.myeventlane_venue_field_edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/{field_config}",
+        "controller": null,
+        "title": null
+    },
+    "entity.mel_event_ticket_settings.edit_form": {
+        "path": "\/vendor\/events\/{event}\/tickets\/settings",
+        "controller": null,
+        "title": null
+    },
+    "entity.mel_purchase_surface.delete_form": {
+        "path": "\/vendor\/events\/{event}\/tickets\/widgets\/{mel_purchase_surface}\/delete",
+        "controller": null,
+        "title": "Delete widget"
+    },
+    "entity.mel_ticket_group.delete_form": {
+        "path": "\/vendor\/events\/{event}\/tickets\/groups\/{mel_ticket_group}\/delete",
+        "controller": null,
+        "title": "Delete ticket group"
+    },
+    "entity.myeventlane_boost_entitlement.collection": {
+        "path": "\/admin\/commerce\/orders\/boost-entitlements",
+        "controller": null,
+        "title": "Boost entitlements"
+    },
+    "entity.myeventlane_onboarding_state.collection": {
+        "path": "\/admin\/config\/myeventlane\/onboarding",
+        "controller": null,
+        "title": "Onboarding states"
+    },
+    "entity.myeventlane_page_visual.add_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/add",
+        "controller": null,
+        "title": "Add page visual"
+    },
+    "entity.myeventlane_page_visual.collection": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals",
+        "controller": null,
+        "title": "Page Visuals"
+    },
+    "entity.myeventlane_page_visual.config_translation_overview": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}\/translate",
+        "controller": "\\Drupal\\config_translation\\Controller\\ConfigTranslationController::itemPage",
+        "title": null
+    },
+    "entity.myeventlane_page_visual.delete_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}\/delete",
+        "controller": null,
+        "title": "Delete page visual"
+    },
+    "entity.myeventlane_page_visual.edit_form": {
+        "path": "\/admin\/config\/myeventlane\/page-visuals\/manage\/{myeventlane_page_visual}",
+        "controller": null,
+        "title": "Edit page visual"
+    },
+    "entity.myeventlane_vendor.add_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/add",
+        "controller": null,
+        "title": "Add vendor"
+    },
+    "entity.myeventlane_vendor.canonical": {
+        "path": "\/vendor\/{myeventlane_vendor}",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorDetailController::view",
+        "title": null
+    },
+    "entity.myeventlane_vendor.collection": {
+        "path": "\/admin\/structure\/myeventlane\/vendor",
+        "controller": null,
+        "title": "Vendors"
+    },
+    "entity.myeventlane_vendor.delete_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/{myeventlane_vendor}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_vendor.edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/{myeventlane_vendor}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_vendor.field_ui_fields": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields",
+        "controller": "\\Drupal\\field_ui\\Controller\\FieldConfigListController::listing",
+        "title": "Manage fields"
+    },
+    "entity.myeventlane_venue.add_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/add",
+        "controller": null,
+        "title": "Add venue"
+    },
+    "entity.myeventlane_venue.canonical": {
+        "path": "\/venues\/{myeventlane_venue}",
+        "controller": "\\Drupal\\myeventlane_venue\\Controller\\VenueViewController::view",
+        "title": null
+    },
+    "entity.myeventlane_venue.collection": {
+        "path": "\/admin\/structure\/myeventlane\/venues",
+        "controller": null,
+        "title": "Venues"
+    },
+    "entity.myeventlane_venue.delete_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/{myeventlane_venue}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue.edit_form": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/{myeventlane_venue}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue.field_ui_fields": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields",
+        "controller": "\\Drupal\\field_ui\\Controller\\FieldConfigListController::listing",
+        "title": "Manage fields"
+    },
+    "entity.myeventlane_venue_access.collection": {
+        "path": "\/admin\/structure\/myeventlane\/venue-access",
+        "controller": null,
+        "title": "Venue Access Grants"
+    },
+    "entity.myeventlane_venue_issue.collection": {
+        "path": "\/admin\/structure\/myeventlane\/venue-issues",
+        "controller": null,
+        "title": "Venue Issues"
+    },
+    "entity.myeventlane_venue_issue.delete_form": {
+        "path": "\/admin\/structure\/myeventlane\/venue-issues\/{myeventlane_venue_issue}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue_location.add_form": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/add",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue_location.canonical": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue_location.collection": {
+        "path": "\/admin\/structure\/myeventlane\/venue-locations",
+        "controller": null,
+        "title": "Venue Locations"
+    },
+    "entity.myeventlane_venue_location.delete_form": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "entity.myeventlane_venue_location.edit_form": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}\/edit",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_add_myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/add-field\/{entity_type}\/{field_name}",
+        "controller": "Drupal\\field_ui\\Controller\\FieldConfigAddController::fieldConfigAddConfigureForm",
+        "title": "Add field"
+    },
+    "field_ui.field_add_myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/add-field\/{entity_type}\/{field_name}",
+        "controller": "Drupal\\field_ui\\Controller\\FieldConfigAddController::fieldConfigAddConfigureForm",
+        "title": "Add field"
+    },
+    "field_ui.field_group_add_myeventlane_vendor.display": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_vendor.display.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_vendor.form_display": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_vendor.form_display.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display\/{form_mode_name}\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_venue.display": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_venue.display.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_venue.form_display": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_add_myeventlane_venue.form_display.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display\/{form_mode_name}\/add-group",
+        "controller": null,
+        "title": "Add field group"
+    },
+    "field_ui.field_group_delete_myeventlane_vendor.display": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_vendor.display.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_vendor.form_display": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_vendor.form_display.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/form-display\/{form_mode_name}\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_venue.display": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_venue.display.view_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_venue.form_display": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_group_delete_myeventlane_venue.form_display.form_mode": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/form-display\/{form_mode_name}\/{field_group_name}\/delete",
+        "controller": null,
+        "title": null
+    },
+    "field_ui.field_storage_config_add_myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/add-field",
+        "controller": "Drupal\\field_ui\\Controller\\FieldStorageAddController::getFieldSelectionLinks",
+        "title": "Add field"
+    },
+    "field_ui.field_storage_config_add_myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/add-field",
+        "controller": "Drupal\\field_ui\\Controller\\FieldStorageAddController::getFieldSelectionLinks",
+        "title": "Add field"
+    },
+    "field_ui.field_storage_config_add_sub_myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/add-field\/{selected_field_type}\/{display_as_group}",
+        "controller": null,
+        "title": "Add Sub-field"
+    },
+    "field_ui.field_storage_config_add_sub_myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/add-field\/{selected_field_type}\/{display_as_group}",
+        "controller": null,
+        "title": "Add Sub-field"
+    },
+    "field_ui.field_storage_config_reset_add_myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/reset-add-field\/{field_name}",
+        "controller": "Drupal\\field_ui\\Controller\\FieldStorageAddController::resetField",
+        "title": "Add field"
+    },
+    "field_ui.field_storage_config_reset_add_myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/reset-add-field\/{field_name}",
+        "controller": "Drupal\\field_ui\\Controller\\FieldStorageAddController::resetField",
+        "title": "Add field"
+    },
+    "field_ui.field_storage_config_reuse_myeventlane_vendor": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/fields\/reuse",
+        "controller": null,
+        "title": "Re-use an existing field"
+    },
+    "field_ui.field_storage_config_reuse_myeventlane_venue": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/fields\/reuse",
+        "controller": null,
+        "title": "Re-use an existing field"
+    },
+    "layout_builder.defaults.myeventlane_vendor.disable": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}\/layout\/disable",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.defaults.myeventlane_vendor.discard_changes": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}\/layout\/discard-changes",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.defaults.myeventlane_vendor.view": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings\/display\/{view_mode_name}\/layout",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.defaults.myeventlane_venue.disable": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}\/layout\/disable",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.defaults.myeventlane_venue.discard_changes": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}\/layout\/discard-changes",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.defaults.myeventlane_venue.view": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings\/display\/{view_mode_name}\/layout",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_vendor.discard_changes": {
+        "path": "\/vendor\/{myeventlane_vendor}\/layout\/discard-changes",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_vendor.revert": {
+        "path": "\/vendor\/{myeventlane_vendor}\/layout\/revert",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_vendor.view": {
+        "path": "\/vendor\/{myeventlane_vendor}\/layout",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue.discard_changes": {
+        "path": "\/venues\/{myeventlane_venue}\/layout\/discard-changes",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue.revert": {
+        "path": "\/venues\/{myeventlane_venue}\/layout\/revert",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue.view": {
+        "path": "\/venues\/{myeventlane_venue}\/layout",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue_location.discard_changes": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}\/layout\/discard-changes",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue_location.revert": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}\/layout\/revert",
+        "controller": null,
+        "title": null
+    },
+    "layout_builder.overrides.myeventlane_venue_location.view": {
+        "path": "\/venues\/{myeventlane_venue}\/locations\/{myeventlane_venue_location}\/layout",
+        "controller": null,
+        "title": null
+    },
+    "mel_search.autocomplete": {
+        "path": "\/search\/autocomplete",
+        "controller": "\\Drupal\\myeventlane_search\\Controller\\SearchAutocompleteController::autocomplete",
+        "title": null
+    },
+    "mel_search.view": {
+        "path": "\/search",
+        "controller": "\\Drupal\\myeventlane_search\\Controller\\SearchController::build",
+        "title": "Search"
+    },
+    "myeventlane_account.dashboard": {
+        "path": "\/my-account",
+        "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::dashboard",
+        "title": "My Account"
+    },
+    "myeventlane_account.event_review": {
+        "path": "\/event\/{node}\/review",
+        "controller": "\\Drupal\\myeventlane_account\\Controller\\EventReviewController::reviewForm",
+        "title": "Leave a review"
+    },
+    "myeventlane_account.past_events": {
+        "path": "\/my-past-events",
+        "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::pastEvents",
+        "title": "Past Events"
+    },
+    "myeventlane_account.settings": {
+        "path": "\/my-settings",
+        "controller": "\\Drupal\\myeventlane_account\\Controller\\MyAccountController::settings",
+        "title": "Profile & Settings"
+    },
+    "myeventlane_admin_dashboard.financials": {
+        "path": "\/admin\/myeventlane\/financials",
+        "controller": "myeventlane_admin_dashboard.financial_controller:overview",
+        "title": "Financials"
+    },
+    "myeventlane_admin_dashboard.financial_export": {
+        "path": "\/admin\/myeventlane\/export\/financial",
+        "controller": "myeventlane_admin_dashboard.financial_export_controller:export",
+        "title": "Financial export"
+    },
+    "myeventlane_admin_dashboard.payouts": {
+        "path": "\/admin\/myeventlane\/payouts",
+        "controller": "myeventlane_admin_dashboard.payout_controller:overview",
+        "title": "Payouts"
+    },
+    "myeventlane_admin_dashboard.payout_batches": {
+        "path": "\/admin\/myeventlane\/payouts\/batches",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:list",
+        "title": "Payout batches"
+    },
+    "myeventlane_admin_dashboard.payout_batch_approve": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/{batch_id}\/approve",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:approve",
+        "title": "Approve payout batch"
+    },
+    "myeventlane_admin_dashboard.payout_batch_cancel": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/{batch_id}\/cancel",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:cancel",
+        "title": "Cancel payout batch"
+    },
+    "myeventlane_admin_dashboard.payout_batch_create": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/create",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:createFromLedgerSelection",
+        "title": "Create payout batch"
+    },
+    "myeventlane_admin_dashboard.payout_batch_execute": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/{batch_id}\/execute",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:execute",
+        "title": "Execute payout batch"
+    },
+    "myeventlane_admin_dashboard.payout_batch_submit": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/{batch_id}\/submit",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:submit",
+        "title": "Submit payout batch"
+    },
+    "myeventlane_admin_dashboard.payout_batch_transfer": {
+        "path": "\/admin\/myeventlane\/payout\/batch-transfer",
+        "controller": "myeventlane_admin_dashboard.payout_batch_controller:executeBatch",
+        "title": "Batch payout transfer"
+    },
+    "myeventlane_admin_dashboard.payout_batch_view": {
+        "path": "\/admin\/myeventlane\/payouts\/batches\/{batch_id}",
+        "controller": "myeventlane_admin_dashboard.payout_batch_ui_controller:view",
+        "title": null
+    },
+    "myeventlane_admin_dashboard.payout_bulk_mark_paid": {
+        "path": "\/admin\/myeventlane\/payout\/bulk-mark-paid",
+        "controller": "myeventlane_admin_dashboard.payout_action_controller:bulkMarkPaid",
+        "title": "Bulk mark paid"
+    },
+    "myeventlane_admin_dashboard.payout_create_transfer": {
+        "path": "\/admin\/myeventlane\/payout\/{ledger_id}\/create-transfer",
+        "controller": "myeventlane_admin_dashboard.payout_transfer_controller:createTransfer",
+        "title": "Create payout transfer"
+    },
+    "myeventlane_admin_dashboard.payout_mark_paid": {
+        "path": "\/admin\/myeventlane\/payout\/{ledger_id}\/mark-paid",
+        "controller": "myeventlane_admin_dashboard.payout_action_controller:markPaid",
+        "title": "Mark payout paid"
+    },
+    "myeventlane_admin_dashboard.payout_mark_unpaid": {
+        "path": "\/admin\/myeventlane\/payout\/{ledger_id}\/mark-unpaid",
+        "controller": "myeventlane_admin_dashboard.payout_action_controller:markUnpaid",
+        "title": "Reverse payout"
+    },
+    "myeventlane_admin_dashboard.platform_control": {
+        "path": "\/admin\/myeventlane",
+        "controller": "myeventlane_admin_dashboard.platform_control_centre_controller:overview",
+        "title": "Platform Control Centre"
+    },
+    "myeventlane_admin_dashboard.platform_studio": {
+        "path": "\/admin\/platform",
+        "controller": "myeventlane_admin_dashboard.platform_control_centre_controller:studio",
+        "title": "Admin Studio"
+    },
+    "myeventlane_admin_dashboard.reports": {
+        "path": "\/admin\/myeventlane\/reports",
+        "controller": "myeventlane_admin_dashboard.reports_controller:overview",
+        "title": "Reports"
+    },
+    "myeventlane_admin_dashboard.review_approve_deploy": {
+        "path": "\/admin\/platform\/review\/{node}\/approve-deploy",
+        "controller": null,
+        "title": "Approve and Deploy Event"
+    },
+    "myeventlane_admin_dashboard.stripe_payout_webhook": {
+        "path": "\/stripe\/webhook\/payout",
+        "controller": "myeventlane_admin_dashboard.stripe_webhook_controller:handle",
+        "title": "Stripe Payout Webhook"
+    },
+    "myeventlane_admin_dashboard.vendors": {
+        "path": "\/admin\/myeventlane\/vendors",
+        "controller": "myeventlane_admin_dashboard.vendor_controller:overview",
+        "title": "Vendors"
+    },
+    "myeventlane_ai.job_poll": {
+        "path": "\/ai\/job\/{ai_job}",
+        "controller": "\\Drupal\\myeventlane_ai\\Controller\\AiJobPollController::poll",
+        "title": null
+    },
+    "myeventlane_ai.usage_guardrails": {
+        "path": "\/admin\/config\/myeventlane\/ai-usage",
+        "controller": null,
+        "title": "AI Usage & Guardrails"
+    },
+    "myeventlane_analytics.admin_revenue": {
+        "path": "\/admin\/myeventlane\/revenue",
+        "controller": "\\Drupal\\myeventlane_analytics\\Controller\\AdminRevenueDashboardController::build",
+        "title": "Revenue (Admin only)"
+    },
+    "myeventlane_analytics.dashboard": {
+        "path": "\/vendor\/analytics",
+        "controller": "\\Drupal\\myeventlane_analytics\\Controller\\AnalyticsDashboardController::dashboard",
+        "title": "Analytics Dashboard"
+    },
+    "myeventlane_analytics.event": {
+        "path": "\/vendor\/analytics\/event\/{node}",
+        "controller": "\\Drupal\\myeventlane_analytics\\Controller\\AnalyticsDashboardController::eventAnalytics",
+        "title": null
+    },
+    "myeventlane_analytics.export_excel": {
+        "path": "\/vendor\/analytics\/event\/{node}\/export\/excel",
+        "controller": "\\Drupal\\myeventlane_analytics\\Controller\\AnalyticsDashboardController::exportExcel",
+        "title": "Export Analytics Excel"
+    },
+    "myeventlane_analytics.export_pdf": {
+        "path": "\/vendor\/analytics\/event\/{node}\/export\/pdf",
+        "controller": "\\Drupal\\myeventlane_analytics\\Controller\\AnalyticsDashboardController::exportPdf",
+        "title": "Export Analytics PDF"
+    },
+    "myeventlane_api.public.events.get": {
+        "path": "\/api\/v1\/events\/{node}",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\PublicEventApiController::getEvent",
+        "title": null
+    },
+    "myeventlane_api.public.events.list": {
+        "path": "\/api\/v1\/events",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\PublicEventApiController::listEvents",
+        "title": null
+    },
+    "myeventlane_api.vendor.attendees.checkin": {
+        "path": "\/api\/v1\/vendor\/events\/{node}\/attendees\/{attendee_id}\/checkin",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\VendorAttendeeApiController::checkIn",
+        "title": null
+    },
+    "myeventlane_api.vendor.attendees.list": {
+        "path": "\/api\/v1\/vendor\/events\/{node}\/attendees",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\VendorAttendeeApiController::listAttendees",
+        "title": null
+    },
+    "myeventlane_api.vendor.events.get": {
+        "path": "\/api\/v1\/vendor\/events\/{node}",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\VendorEventApiController::getEvent",
+        "title": null
+    },
+    "myeventlane_api.vendor.events.list": {
+        "path": "\/api\/v1\/vendor\/events",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\VendorEventApiController::listEvents",
+        "title": null
+    },
+    "myeventlane_api.vendor.exports.csv": {
+        "path": "\/api\/v1\/vendor\/events\/{node}\/exports\/csv",
+        "controller": "\\Drupal\\myeventlane_api\\Controller\\VendorExportApiController::requestCsvExport",
+        "title": null
+    },
+    "myeventlane_boost.boost_page": {
+        "path": "\/event\/{node}\/boost",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\BoostController::build",
+        "title": null
+    },
+    "myeventlane_boost.bridge_add_to_cart": {
+        "path": "\/boost\/bridge\/{node}",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\BoostController::bridgeAddToCart",
+        "title": "Add Boost to Cart"
+    },
+    "myeventlane_boost.performance_guide_pdf": {
+        "path": "\/boost-performance-guide.pdf",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\BoostPerformanceGuidePdfController::download",
+        "title": "Boost Performance Summary"
+    },
+    "myeventlane_boost.settings": {
+        "path": "\/admin\/config\/myeventlane\/boost",
+        "controller": null,
+        "title": "Boost settings"
+    },
+    "myeventlane_boost.vendor_boost_wizard": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::wizard",
+        "title": "Boost wizard"
+    },
+    "myeventlane_boost.wizard.step1": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard\/step-1",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::step1",
+        "title": "Choose Boost Placement"
+    },
+    "myeventlane_boost.wizard.step2": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard\/step-2",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::step2",
+        "title": "Choose Boost Budget"
+    },
+    "myeventlane_boost.wizard.step3": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard\/step-3",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::step3",
+        "title": "Choose Boost Dates"
+    },
+    "myeventlane_boost.wizard.step4": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard\/step-4",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::step4",
+        "title": "Preview & Confirm"
+    },
+    "myeventlane_boost.wizard.step5": {
+        "path": "\/vendor\/events\/{event}\/boost\/wizard\/step-5",
+        "controller": "\\Drupal\\myeventlane_boost\\Controller\\WizardController::step5",
+        "title": "Pay for Boost"
+    },
+    "myeventlane_checkin.list": {
+        "path": "\/vendor\/events\/{node}\/check-in\/list",
+        "controller": "\\Drupal\\myeventlane_checkin\\Controller\\CheckInController::list",
+        "title": "Attendee List"
+    },
+    "myeventlane_checkin.page": {
+        "path": "\/vendor\/events\/{node}\/check-in",
+        "controller": "\\Drupal\\myeventlane_checkin\\Controller\\CheckInController::page",
+        "title": "Check-in"
+    },
+    "myeventlane_checkin.scan": {
+        "path": "\/vendor\/events\/{node}\/check-in\/scan",
+        "controller": "\\Drupal\\myeventlane_checkin\\Controller\\CheckInController::scan",
+        "title": "QR Scan Check-in"
+    },
+    "myeventlane_checkin.search": {
+        "path": "\/vendor\/events\/{node}\/check-in\/search",
+        "controller": "\\Drupal\\myeventlane_checkin\\Controller\\CheckInController::search",
+        "title": null
+    },
+    "myeventlane_checkin.toggle": {
+        "path": "\/vendor\/events\/{node}\/check-in\/toggle\/{attendee_id}",
+        "controller": "\\Drupal\\myeventlane_checkin\\Controller\\CheckInController::toggle",
+        "title": null
+    },
+    "myeventlane_checkout_flow.my_tickets": {
+        "path": "\/my-tickets",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\MyTicketsController::overview",
+        "title": "My Tickets"
+    },
+    "myeventlane_checkout_flow.order_detail": {
+        "path": "\/my-tickets\/order\/{commerce_order}",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\MyTicketsController::orderDetail",
+        "title": null
+    },
+    "myeventlane_checkout_flow.vendor_attendees": {
+        "path": "\/vendor\/attendees",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\VendorAttendeesController::dashboard",
+        "title": "Attendees & Sales"
+    },
+    "myeventlane_checkout_flow.vendor_checkin": {
+        "path": "\/vendor\/events\/{node}\/check-in",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\VendorCheckInController::checkInPage",
+        "title": "Check In"
+    },
+    "myeventlane_checkout_flow.vendor_checkin_action": {
+        "path": "\/vendor\/check-in\/paragraph\/{paragraph}",
+        "controller": null,
+        "title": null
+    },
+    "myeventlane_checkout_flow.vendor_checkin_scan": {
+        "path": "\/vendor\/check-in\/scan\/{token}",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\VendorCheckInController::scanCheckIn",
+        "title": "Check In via QR Code"
+    },
+    "myeventlane_checkout_flow.vendor_event_attendees": {
+        "path": "\/vendor\/events\/{node}\/attendees",
+        "controller": "\\Drupal\\myeventlane_checkout_flow\\Controller\\VendorAttendeesController::eventAttendees",
+        "title": null
+    },
+    "myeventlane_checkout_paragraph.export_csv": {
+        "path": "\/vendor\/export-attendees\/{event}\/download",
+        "controller": "\\Drupal\\myeventlane_checkout_paragraph\\Controller\\AttendeeExportController::export",
+        "title": "Export Attendees CSV"
+    },
+    "myeventlane_checkout_paragraph.export_csv_queue": {
+        "path": "\/vendor\/export-attendees\/{event}\/request",
+        "controller": "\\Drupal\\myeventlane_checkout_paragraph\\Controller\\AttendeeExportController::queueExport",
+        "title": "Request CSV Export"
+    },
+    "myeventlane_checkout_paragraph.vendor_attendees": {
+        "path": "\/vendor\/orders\/{commerce_order}\/attendees",
+        "controller": "\\Drupal\\myeventlane_checkout_paragraph\\Controller\\VendorOrderController::attendees",
+        "title": "Attendee Details"
+    },
+    "myeventlane_commerce.attendee": {
+        "path": "\/attendee",
+        "controller": "\\Drupal\\myeventlane_commerce\\Controller\\AttendeeInfoController::build",
+        "title": "Attendee"
+    },
+    "myeventlane_commerce.attendee_info.edit": {
+        "path": "\/cart\/attendee-info\/{order_item}",
+        "controller": "\\Drupal\\myeventlane_commerce\\Controller\\AttendeeInfoController::edit",
+        "title": "Edit Ticket Info"
+    },
+    "myeventlane_commerce.event_book": {
+        "path": "\/event\/{node}\/book",
+        "controller": "\\Drupal\\myeventlane_commerce\\Controller\\BookController::book",
+        "title": "Book tickets"
+    },
+    "myeventlane_core.config": {
+        "path": "\/admin\/config\/myeventlane",
+        "controller": "\\Drupal\\system\\Controller\\SystemController::systemAdminMenuBlockPage",
+        "title": "MyEventLane"
+    },
+    "myeventlane_core.my_categories": {
+        "path": "\/my-categories",
+        "controller": "\\Drupal\\myeventlane_core\\Controller\\MyCategoriesController::myCategories",
+        "title": "My Categories"
+    },
+    "myeventlane_core.onboard.account": {
+        "path": "\/onboard\/account",
+        "controller": "\\Drupal\\myeventlane_core\\Controller\\CustomerOnboardAccountController::account",
+        "title": "Create your account"
+    },
+    "myeventlane_core.onboard.explore": {
+        "path": "\/onboard\/explore",
+        "controller": "\\Drupal\\myeventlane_core\\Controller\\CustomerOnboardExploreController::explore",
+        "title": "How MyEventLane works"
+    },
+    "myeventlane_core.onboard.first_action": {
+        "path": "\/onboard\/first-action",
+        "controller": "\\Drupal\\myeventlane_core\\Controller\\CustomerOnboardFirstActionController::firstAction",
+        "title": "Find your first event"
+    },
+    "myeventlane_core.onboard.my_tickets": {
+        "path": "\/onboard\/my-tickets",
+        "controller": "\\Drupal\\myeventlane_core\\Controller\\CustomerOnboardMyTicketsController::myTickets",
+        "title": "You're all set!"
+    },
+    "myeventlane_core.settings": {
+        "path": "\/admin\/config\/myeventlane\/general",
+        "controller": null,
+        "title": "General settings"
+    },
+    "myeventlane_dashboard.customer": {
+        "path": "\/my-events",
+        "controller": "\\Drupal\\myeventlane_dashboard\\Controller\\CustomerDashboardController::myEvents",
+        "title": "My Events"
+    },
+    "myeventlane_dashboard.legacy_redirect": {
+        "path": "\/dashboard",
+        "controller": "\\Drupal\\myeventlane_dashboard\\Controller\\DashboardRedirectController::build",
+        "title": "Dashboard"
+    },
+    "myeventlane_donations.admin_export": {
+        "path": "\/admin\/reports\/myeventlane\/donations\/export",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationReportController::export",
+        "title": "Export donations"
+    },
+    "myeventlane_donations.admin_report": {
+        "path": "\/admin\/reports\/myeventlane\/donations",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationReportController::report",
+        "title": "Donation reports"
+    },
+    "myeventlane_donations.platform": {
+        "path": "\/vendor\/donate",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationPlatformController::donate",
+        "title": "Support MyEventLane"
+    },
+    "myeventlane_donations.platform_cancel": {
+        "path": "\/vendor\/donate\/cancel",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationPlatformController::cancel",
+        "title": "Donation cancelled"
+    },
+    "myeventlane_donations.platform_success": {
+        "path": "\/vendor\/donate\/success",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationPlatformController::success",
+        "title": "Thank you for your donation"
+    },
+    "myeventlane_donations.settings": {
+        "path": "\/admin\/config\/myeventlane\/donations",
+        "controller": null,
+        "title": "Donation settings"
+    },
+    "myeventlane_donations.unattributed": {
+        "path": "\/admin\/reports\/myeventlane\/donations\/unattributed",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationReportController::unattributed",
+        "title": "Unattributed RSVP donations"
+    },
+    "myeventlane_donations.vendor_list": {
+        "path": "\/vendor\/donations",
+        "controller": "\\Drupal\\myeventlane_donations\\Controller\\DonationVendorController::list",
+        "title": "Donations received"
+    },
+    "myeventlane_escalations_ai.generate_draft": {
+        "path": "\/admin\/myeventlane\/escalations\/{escalation}\/ai\/draft",
+        "controller": "\\Drupal\\myeventlane_escalations_ai\\Controller\\EscalationAiController::generateDraft",
+        "title": null
+    },
+    "myeventlane_escalations_ai_draft.generate": {
+        "path": "\/admin\/myeventlane\/escalations\/{escalation}\/ai\/instant-draft",
+        "controller": "\\Drupal\\myeventlane_escalations_ai_draft\\Controller\\EscalationAiDraftController::generate",
+        "title": null
+    },
+    "myeventlane_escalations_analytics.staff_dashboard": {
+        "path": "\/admin\/myeventlane\/escalations\/analytics",
+        "controller": "\\Drupal\\myeventlane_escalations_analytics\\Controller\\StaffAnalyticsController::dashboard",
+        "title": "Escalation Analytics"
+    },
+    "myeventlane_escalations_analytics.staff_export": {
+        "path": "\/admin\/myeventlane\/escalations\/analytics\/export",
+        "controller": "\\Drupal\\myeventlane_escalations_analytics\\Controller\\StaffAnalyticsController::export",
+        "title": null
+    },
+    "myeventlane_escalations_analytics.vendor_dashboard": {
+        "path": "\/vendor\/support\/analytics",
+        "controller": "\\Drupal\\myeventlane_escalations_analytics\\Controller\\VendorAnalyticsController::dashboard",
+        "title": "Support Analytics"
+    },
+    "myeventlane_escalations_capacity.dashboard": {
+        "path": "\/admin\/myeventlane\/escalations\/capacity",
+        "controller": "\\Drupal\\myeventlane_escalations_capacity\\Controller\\CapacityDashboardController::dashboard",
+        "title": "Escalation Capacity"
+    },
+    "myeventlane_escalations_policy.report": {
+        "path": "\/admin\/myeventlane\/escalations\/policy",
+        "controller": "\\Drupal\\myeventlane_escalations_policy\\Controller\\PolicyReportController::report",
+        "title": "Escalation Policy Report"
+    },
+    "myeventlane_escalations_portal.customer_add": {
+        "path": "\/my\/support\/escalations\/add",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\CustomerEscalationController::add",
+        "title": "Submit an Escalation"
+    },
+    "myeventlane_escalations_portal.customer_list": {
+        "path": "\/my\/support\/escalations",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\CustomerEscalationController::list",
+        "title": "My Escalations"
+    },
+    "myeventlane_escalations_portal.customer_reopen": {
+        "path": "\/my\/support\/escalations\/{escalation}\/reopen",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\CustomerEscalationController::reopen",
+        "title": null
+    },
+    "myeventlane_escalations_portal.customer_support": {
+        "path": "\/my\/support",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\CustomerEscalationController::list",
+        "title": "My Support"
+    },
+    "myeventlane_escalations_portal.customer_view": {
+        "path": "\/my\/support\/escalations\/{escalation}",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\CustomerEscalationController::view",
+        "title": null
+    },
+    "myeventlane_escalations_portal.vendor_list": {
+        "path": "\/vendor\/support",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\VendorEscalationController::list",
+        "title": "Vendor Support"
+    },
+    "myeventlane_escalations_portal.vendor_reopen": {
+        "path": "\/vendor\/support\/{escalation}\/reopen",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\VendorEscalationController::reopen",
+        "title": null
+    },
+    "myeventlane_escalations_portal.vendor_resolve": {
+        "path": "\/vendor\/support\/{escalation}\/resolve",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\VendorEscalationController::resolve",
+        "title": null
+    },
+    "myeventlane_escalations_portal.vendor_view": {
+        "path": "\/vendor\/support\/{escalation}",
+        "controller": "\\Drupal\\myeventlane_escalations_portal\\Controller\\VendorEscalationController::view",
+        "title": null
+    },
+    "myeventlane_escalations_refunds.vendor_refund_summary": {
+        "path": "\/vendor\/support\/refunds",
+        "controller": "\\Drupal\\myeventlane_escalations_refunds\\Controller\\VendorRefundSummaryController::summary",
+        "title": "Refund Summary"
+    },
+    "myeventlane_escalations_sla.dashboard": {
+        "path": "\/admin\/myeventlane\/escalations\/dashboard",
+        "controller": "\\Drupal\\myeventlane_escalations_sla\\Controller\\EscalationSlaDashboardController::dashboard",
+        "title": "Escalation SLA Dashboard"
+    },
+    "myeventlane_event.generate_series_instances": {
+        "path": "\/vendor\/event\/{event}\/series\/generate",
+        "controller": null,
+        "title": "Generate instances"
+    },
+    "myeventlane_event.wizard.basics": {
+        "path": "\/vendor\/events\/{event}\/build\/basics",
+        "controller": null,
+        "title": "Event basics"
+    },
+    "myeventlane_event.wizard.create": {
+        "path": "\/vendor\/events\/create",
+        "controller": "\\Drupal\\myeventlane_event\\Controller\\EventWizardCreateController::createDraft",
+        "title": "Create event"
+    },
+    "myeventlane_event.wizard.details": {
+        "path": "\/vendor\/events\/{event}\/build\/details",
+        "controller": null,
+        "title": "Details"
+    },
+    "myeventlane_event.wizard.edit": {
+        "path": "\/vendor\/events\/{node}\/edit",
+        "controller": "\\Drupal\\myeventlane_event\\Controller\\EventWizardCreateController::edit",
+        "title": "Edit event"
+    },
+    "myeventlane_event.wizard.publish": {
+        "path": "\/vendor\/events\/{event}\/build\/publish",
+        "controller": null,
+        "title": "Publish event"
+    },
+    "myeventlane_event.wizard.review": {
+        "path": "\/vendor\/events\/{event}\/build\/review",
+        "controller": null,
+        "title": "Review & Publish"
+    },
+    "myeventlane_event.wizard.success": {
+        "path": "\/vendor\/events\/{event}\/build\/success",
+        "controller": "\\Drupal\\myeventlane_event\\Controller\\VendorEventWizardController::success",
+        "title": "Event published successfully"
+    },
+    "myeventlane_event.wizard.tickets": {
+        "path": "\/vendor\/events\/{event}\/build\/tickets",
+        "controller": null,
+        "title": "Tickets"
+    },
+    "myeventlane_event.wizard.when_where": {
+        "path": "\/vendor\/events\/{event}\/build\/when-where",
+        "controller": null,
+        "title": "When & Where"
+    },
+    "myeventlane_event_attendees.collection": {
+        "path": "\/admin\/structure\/event-attendees",
+        "controller": null,
+        "title": "Event Attendees"
+    },
+    "myeventlane_event_attendees.vendor_checkin": {
+        "path": "\/vendor\/attendee\/{event_attendee}\/checkin",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\VendorAttendeeController::checkIn",
+        "title": "Check In"
+    },
+    "myeventlane_event_attendees.vendor_export": {
+        "path": "\/vendor\/event\/{node}\/attendees\/export",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\VendorAttendeeController::export",
+        "title": "Export Attendees"
+    },
+    "myeventlane_event_attendees.vendor_list": {
+        "path": "\/vendor\/event\/{node}\/attendees",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\VendorAttendeeController::list",
+        "title": null
+    },
+    "myeventlane_event_attendees.view": {
+        "path": "\/admin\/structure\/event-attendees\/{event_attendee}",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\EventAttendeeController::view",
+        "title": "Attendee"
+    },
+    "myeventlane_event_attendees.waitlist_export": {
+        "path": "\/vendor\/event\/{node}\/waitlist\/export",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\WaitlistManagementController::export",
+        "title": "Export Waitlist"
+    },
+    "myeventlane_event_attendees.waitlist_manage": {
+        "path": "\/vendor\/event\/{node}\/waitlist",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\WaitlistManagementController::list",
+        "title": null
+    },
+    "myeventlane_event_attendees.waitlist_position": {
+        "path": "\/event\/{node}\/waitlist\/position",
+        "controller": "\\Drupal\\myeventlane_event_attendees\\Controller\\WaitlistController::getPosition",
+        "title": null
+    },
+    "myeventlane_event_attendees.waitlist_signup": {
+        "path": "\/event\/{node}\/waitlist\/signup",
+        "controller": null,
+        "title": "Join Waitlist"
+    },
+    "myeventlane_event_state.cancel_event": {
+        "path": "\/vendor\/events\/{node}\/cancel",
+        "controller": null,
+        "title": "Cancel Event"
+    },
+    "myeventlane_event_state.refunds": {
+        "path": "\/vendor\/events\/{node}\/refunds",
+        "controller": "\\Drupal\\myeventlane_event_state\\Controller\\EventRefundsController::list",
+        "title": "Request Refunds"
+    },
+    "myeventlane_event_state.refund_request": {
+        "path": "\/vendor\/events\/{node}\/refunds\/request",
+        "controller": null,
+        "title": "Request Refunds"
+    },
+    "myeventlane_finance.admin_bas": {
+        "path": "\/admin\/myeventlane\/finance\/bas",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\AdminBasController::bas",
+        "title": "BAS Report"
+    },
+    "myeventlane_finance.admin_bas_csv": {
+        "path": "\/admin\/myeventlane\/finance\/bas\/export\/csv",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\AdminBasController::exportCsv",
+        "title": null
+    },
+    "myeventlane_finance.admin_bas_pdf": {
+        "path": "\/admin\/myeventlane\/finance\/bas\/export\/pdf",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\AdminBasController::exportPdf",
+        "title": null
+    },
+    "myeventlane_finance.vendor_bas": {
+        "path": "\/vendor\/finance\/bas",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\VendorBasController::bas",
+        "title": "BAS Report"
+    },
+    "myeventlane_finance.vendor_bas_csv": {
+        "path": "\/vendor\/finance\/bas\/export\/csv",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\VendorBasController::exportCsv",
+        "title": null
+    },
+    "myeventlane_finance.vendor_bas_pdf": {
+        "path": "\/vendor\/finance\/bas\/export\/pdf",
+        "controller": "\\Drupal\\myeventlane_finance\\Controller\\VendorBasController::exportPdf",
+        "title": null
+    },
+    "myeventlane_help_centre.public_index": {
+        "path": "\/help",
+        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::publicIndex",
+        "title": "Help Centre"
+    },
+    "myeventlane_help_centre.staff_snippet_authoring": {
+        "path": "\/help\/internal\/staff-snippet-authoring",
+        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::staffSnippetAuthoring",
+        "title": "Staff Snippet Authoring Guide"
+    },
+    "myeventlane_help_centre.vendor_index": {
+        "path": "\/vendor\/help",
+        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::vendorIndex",
+        "title": "Help Centre"
+    },
+    "myeventlane_help_centre.vendor_topic": {
+        "path": "\/vendor\/help\/topic\/{category}",
+        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::vendorTopic",
+        "title": "Help Centre"
+    },
+    "myeventlane_help_centre_ai.ask": {
+        "path": "\/help\/ask",
+        "controller": "\\Drupal\\myeventlane_help_centre_ai\\Controller\\HelpCentreAiController::ask",
+        "title": "Ask a question"
+    },
+    "myeventlane_legal.cookies": {
+        "path": "\/cookies",
+        "controller": "\\Drupal\\myeventlane_legal\\Controller\\CookiePolicyController::page",
+        "title": "Cookie preferences"
+    },
+    "myeventlane_legal.cookie_preferences": {
+        "path": "\/cookies\/preferences",
+        "controller": "\\Drupal\\myeventlane_legal\\Controller\\CookiePreferencesController::update",
+        "title": "Update cookie preferences"
+    },
+    "myeventlane_legal.settings": {
+        "path": "\/admin\/config\/myeventlane\/legal",
+        "controller": null,
+        "title": "Legal settings"
+    },
+    "myeventlane_legal.vendor_terms": {
+        "path": "\/vendor\/onboard\/terms",
+        "controller": null,
+        "title": "Vendor terms"
+    },
+    "myeventlane_location.settings": {
+        "path": "\/admin\/config\/myeventlane\/location",
+        "controller": null,
+        "title": "MyEventLane location settings"
+    },
+    "myeventlane_messaging.settings": {
+        "path": "\/admin\/config\/myeventlane\/messaging",
+        "controller": null,
+        "title": "Messaging settings"
+    },
+    "myeventlane_messaging.unsubscribe": {
+        "path": "\/email\/unsubscribe\/{uid}\/{ts}\/{h}",
+        "controller": "myeventlane_messaging.unsubscribe_controller:unsubscribe",
+        "title": "Email preferences"
+    },
+    "myeventlane_privacy.settings": {
+        "path": "\/admin\/config\/system\/myeventlane-privacy",
+        "controller": null,
+        "title": "Privacy & Tracking"
+    },
+    "myeventlane_pro.admin_report": {
+        "path": "\/admin\/platform\/pro",
+        "controller": "\\Drupal\\myeventlane_pro\\Controller\\ProAdminReportController::report",
+        "title": "Pro subscriptions"
+    },
+    "myeventlane_pro.branding": {
+        "path": "\/vendor\/settings\/branding",
+        "controller": "\\Drupal\\myeventlane_pro\\Controller\\ProBrandingController::settings",
+        "title": "Branding"
+    },
+    "myeventlane_pro.cancel": {
+        "path": "\/vendor\/pro\/cancel",
+        "controller": null,
+        "title": "Cancel Pro Subscription"
+    },
+    "myeventlane_pro.manage": {
+        "path": "\/vendor\/pro\/manage",
+        "controller": "\\Drupal\\myeventlane_pro\\Controller\\ProOverviewController::manage",
+        "title": "Manage Pro Subscription"
+    },
+    "myeventlane_pro.overview": {
+        "path": "\/vendor\/pro",
+        "controller": "\\Drupal\\myeventlane_pro\\Controller\\ProOverviewController::overview",
+        "title": "MyEventLane Pro"
+    },
+    "myeventlane_pro.settings": {
+        "path": "\/admin\/config\/myeventlane\/pro",
+        "controller": null,
+        "title": "MyEventLane Pro settings"
+    },
+    "myeventlane_pro.subscribe": {
+        "path": "\/vendor\/pro\/subscribe",
+        "controller": null,
+        "title": "Subscribe to Pro"
+    },
+    "myeventlane_pro.success": {
+        "path": "\/vendor\/pro\/success",
+        "controller": "\\Drupal\\myeventlane_pro\\Controller\\ProOverviewController::success",
+        "title": "Welcome to Pro"
+    },
+    "myeventlane_pro.vendor_comms": {
+        "path": "\/vendor\/pro\/settings\/comms",
+        "controller": null,
+        "title": "Pro communications"
+    },
+    "myeventlane_public_trust.page": {
+        "path": "\/trust",
+        "controller": "\\Drupal\\myeventlane_public_trust\\Controller\\PublicTrustController::page",
+        "title": "Trust & transparency"
+    },
+    "myeventlane_refunds.buyer_refund": {
+        "path": "\/my-tickets\/order\/{commerce_order}\/refund",
+        "controller": null,
+        "title": "Request Refund"
+    },
+    "myeventlane_refunds.vendor_cancel_event": {
+        "path": "\/vendor\/events\/{node}\/cancel",
+        "controller": null,
+        "title": "Cancel Event"
+    },
+    "myeventlane_refunds.vendor_refund": {
+        "path": "\/vendor\/orders\/{commerce_order}\/refund",
+        "controller": null,
+        "title": "Refund Order"
+    },
+    "myeventlane_refunds.vendor_refund_requests": {
+        "path": "\/vendor\/events\/{node}\/refund-requests",
+        "controller": "\\Drupal\\myeventlane_refunds\\Controller\\VendorRefundRequestsController::list",
+        "title": "Refund Requests"
+    },
+    "myeventlane_refunds.vendor_refund_request_approve": {
+        "path": "\/vendor\/events\/{node}\/refund-requests\/{refund_request}\/approve",
+        "controller": null,
+        "title": "Approve Refund Request"
+    },
+    "myeventlane_refunds.vendor_refund_request_reject": {
+        "path": "\/vendor\/events\/{node}\/refund-requests\/{refund_request}\/reject",
+        "controller": null,
+        "title": "Reject Refund Request"
+    },
+    "myeventlane_reporting.admin.events": {
+        "path": "\/admin\/myeventlane\/reports\/events",
+        "controller": "myeventlane_reporting.admin_reports:events",
+        "title": "Event Reports"
+    },
+    "myeventlane_reporting.admin.finance": {
+        "path": "\/admin\/myeventlane\/reports\/finance",
+        "controller": "myeventlane_reporting.admin_reports:finance",
+        "title": "Finance Reports"
+    },
+    "myeventlane_reporting.admin.overview": {
+        "path": "\/admin\/myeventlane\/reports\/dashboard",
+        "controller": "myeventlane_reporting.admin_reports:overview",
+        "title": "Platform Reports"
+    },
+    "myeventlane_reporting.admin.vendors": {
+        "path": "\/admin\/myeventlane\/reports\/vendors",
+        "controller": "myeventlane_reporting.admin_reports:vendors",
+        "title": "Vendor Reports"
+    },
+    "myeventlane_reporting.chart.checkins": {
+        "path": "\/vendor\/charts\/checkins\/{event}",
+        "controller": "myeventlane_reporting.chart_data:checkins",
+        "title": null
+    },
+    "myeventlane_reporting.chart.revenue": {
+        "path": "\/vendor\/charts\/revenue\/{event}",
+        "controller": "myeventlane_reporting.chart_data:revenue",
+        "title": null
+    },
+    "myeventlane_reporting.chart.sales": {
+        "path": "\/vendor\/charts\/sales\/{event}",
+        "controller": "myeventlane_reporting.chart_data:sales",
+        "title": null
+    },
+    "myeventlane_reporting.chart.ticket_breakdown": {
+        "path": "\/vendor\/charts\/ticket-breakdown\/{event}",
+        "controller": "myeventlane_reporting.chart_data:ticketBreakdown",
+        "title": null
+    },
+    "myeventlane_reporting.event_insights.attendees": {
+        "path": "\/vendor\/events\/{event}\/insights\/attendees",
+        "controller": "myeventlane_reporting.event_insights:attendees",
+        "title": "Attendee Insights"
+    },
+    "myeventlane_reporting.event_insights.checkins": {
+        "path": "\/vendor\/events\/{event}\/insights\/checkins",
+        "controller": "myeventlane_reporting.event_insights:checkins",
+        "title": "Check-in Insights"
+    },
+    "myeventlane_reporting.event_insights.overview": {
+        "path": "\/vendor\/events\/{event}\/insights",
+        "controller": "myeventlane_reporting.event_insights:overview",
+        "title": "Event Insights"
+    },
+    "myeventlane_reporting.event_insights.sales": {
+        "path": "\/vendor\/events\/{event}\/insights\/sales",
+        "controller": "myeventlane_reporting.event_insights:sales",
+        "title": "Sales Insights"
+    },
+    "myeventlane_reporting.event_insights.traffic": {
+        "path": "\/vendor\/events\/{event}\/insights\/traffic",
+        "controller": "myeventlane_reporting.event_insights:traffic",
+        "title": "Traffic Insights"
+    },
+    "myeventlane_reporting.export.request_csv": {
+        "path": "\/vendor\/exports\/request-csv\/{event}",
+        "controller": "myeventlane_reporting.export_centre:requestCsv",
+        "title": "Request CSV Export"
+    },
+    "myeventlane_reporting.export.request_sales": {
+        "path": "\/vendor\/exports\/request-sales\/{event}",
+        "controller": "myeventlane_reporting.export_centre:requestSales",
+        "title": "Request Sales Export"
+    },
+    "myeventlane_reporting.export_centre": {
+        "path": "\/vendor\/exports",
+        "controller": "myeventlane_reporting.export_centre:list",
+        "title": "Export Centre"
+    },
+    "myeventlane_reporting.vendor_insights": {
+        "path": "\/vendor\/insights",
+        "controller": "myeventlane_reporting.vendor_insights:dashboard",
+        "title": "Insights"
+    },
+    "myeventlane_rsvp.cancel_confirm": {
+        "path": "\/rsvp\/{rsvp_id}\/cancel",
+        "controller": null,
+        "title": "Cancel RSVP"
+    },
+    "myeventlane_rsvp.checkin_list": {
+        "path": "\/vendor\/event\/{event}\/rsvps\/checkin",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpCheckinController::checkinPage",
+        "title": "RSVP Check-In"
+    },
+    "myeventlane_rsvp.checkin_list_pdf": {
+        "path": "\/vendor\/event\/{event}\/rsvps\/checkin\/pdf",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpCheckinController::pdf",
+        "title": "RSVP Check-In PDF"
+    },
+    "myeventlane_rsvp.checkin_scan": {
+        "path": "\/vendor\/event\/{event}\/scan",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\QrCheckinController::scanPage",
+        "title": "QR Scan Check-In"
+    },
+    "myeventlane_rsvp.checkin_validate": {
+        "path": "\/vendor\/qr\/validate",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\QrCheckinController::validate",
+        "title": null
+    },
+    "myeventlane_rsvp.export_csv": {
+        "path": "\/vendor\/event\/{event}\/rsvps\/export",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\VendorRsvpExportController::export",
+        "title": "Export CSV"
+    },
+    "myeventlane_rsvp.form": {
+        "path": "\/event\/{node}\/rsvp\/form",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpFormController::form",
+        "title": "RSVP"
+    },
+    "myeventlane_rsvp.ics_bundle": {
+        "path": "\/my-profile\/download-rsvps.ics",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpIcsBundleController::download",
+        "title": "Download all my RSVPs"
+    },
+    "myeventlane_rsvp.ics_download": {
+        "path": "\/event\/{node}\/ics",
+        "controller": "myeventlane_rsvp.ics_controller:download",
+        "title": "Download ICS"
+    },
+    "myeventlane_rsvp.public_rsvp_form": {
+        "path": "\/event\/{event}\/rsvp",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpRedirectController::redirectToBooking",
+        "title": "RSVP"
+    },
+    "myeventlane_rsvp.settings": {
+        "path": "\/admin\/config\/myeventlane\/rsvp",
+        "controller": null,
+        "title": "RSVP settings"
+    },
+    "myeventlane_rsvp.sms_settings": {
+        "path": "\/admin\/config\/myeventlane\/sms",
+        "controller": null,
+        "title": "SMS settings"
+    },
+    "myeventlane_rsvp.thankyou": {
+        "path": "\/event\/{event}\/rsvp\/thank-you",
+        "controller": "myeventlane_rsvp.thank_you_controller:page",
+        "title": "RSVP Confirmed"
+    },
+    "myeventlane_rsvp.user_list": {
+        "path": "\/user\/{user}\/rsvps",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\RsvpFormController::userList",
+        "title": "My RSVPs"
+    },
+    "myeventlane_rsvp.vendor_event_rsvps": {
+        "path": "\/vendor\/event\/{event}\/rsvps",
+        "controller": "\\Drupal\\myeventlane_rsvp\\Controller\\VendorEventRsvpController::view",
+        "title": "Manage RSVPs"
+    },
+    "myeventlane_staff_playbooks.governance_dashboard": {
+        "path": "\/admin\/myeventlane\/governance",
+        "controller": "\\Drupal\\myeventlane_staff_playbooks\\Controller\\GovernanceDashboardController::build",
+        "title": "Internal Governance"
+    },
+    "myeventlane_staff_playbooks_ai.summary": {
+        "path": "\/admin\/myeventlane\/playbooks\/{node}\/ai\/summary",
+        "controller": "\\Drupal\\myeventlane_staff_playbooks_ai\\Controller\\PlaybookAiController::generateSummary",
+        "title": null
+    },
+    "myeventlane_support_console.dashboard": {
+        "path": "\/admin\/myeventlane\/support-console",
+        "controller": "\\Drupal\\myeventlane_support_console\\Controller\\SupportConsoleController::dashboard",
+        "title": "Support Console"
+    },
+    "myeventlane_theme_settings.hero": {
+        "path": "\/admin\/appearance\/myeventlane\/hero-settings",
+        "controller": null,
+        "title": "MyEventLane hero images"
+    },
+    "myeventlane_tickets.add_ticket_modal": {
+        "path": "\/vendor\/events\/{event}\/tickets\/types\/add-modal",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::addTicketModal",
+        "title": "Add ticket type"
+    },
+    "myeventlane_tickets.assign_ticket": {
+        "path": "\/ticket\/assign\/{token}",
+        "controller": null,
+        "title": "Assign ticket"
+    },
+    "myeventlane_tickets.download_pdf": {
+        "path": "\/ticket\/pdf\/{order_item_id}",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketDownloadController::download",
+        "title": "Download Ticket PDF"
+    },
+    "myeventlane_tickets.download_pdf_by_code": {
+        "path": "\/ticket\/{ticket_code}\/pdf",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketDownloadController::downloadByCode",
+        "title": "Download Ticket PDF"
+    },
+    "myeventlane_tickets.event_tickets_access_codes": {
+        "path": "\/vendor\/events\/{event}\/tickets\/access-codes",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\VendorEventAccessCodesController::list",
+        "title": "Access codes"
+    },
+    "myeventlane_tickets.event_tickets_access_codes_add": {
+        "path": "\/vendor\/events\/{event}\/tickets\/access-codes\/add",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::accessCodesAdd",
+        "title": "Add access code"
+    },
+    "myeventlane_tickets.event_tickets_access_codes_edit": {
+        "path": "\/vendor\/events\/{event}\/tickets\/access-codes\/{mel_access_code}\/edit",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::accessCodesEdit",
+        "title": "Edit access code"
+    },
+    "myeventlane_tickets.event_tickets_groups": {
+        "path": "\/vendor\/events\/{event}\/tickets\/groups",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\VendorEventTicketGroupsController::list",
+        "title": "Ticket groups"
+    },
+    "myeventlane_tickets.event_tickets_groups_add": {
+        "path": "\/vendor\/events\/{event}\/tickets\/groups\/add",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::groupsAdd",
+        "title": "Add ticket group"
+    },
+    "myeventlane_tickets.event_tickets_groups_edit": {
+        "path": "\/vendor\/events\/{event}\/tickets\/groups\/{mel_ticket_group}\/edit",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::groupsEdit",
+        "title": "Edit ticket group"
+    },
+    "myeventlane_tickets.event_tickets_overview": {
+        "path": "\/vendor\/events\/{event}\/tickets",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::overview",
+        "title": "Tickets"
+    },
+    "myeventlane_tickets.event_tickets_settings": {
+        "path": "\/vendor\/events\/{event}\/tickets\/settings",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::settings",
+        "title": "Ticket settings"
+    },
+    "myeventlane_tickets.event_tickets_types": {
+        "path": "\/vendor\/events\/{event}\/tickets\/types",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::typesList",
+        "title": "Ticket types"
+    },
+    "myeventlane_tickets.event_tickets_widgets": {
+        "path": "\/vendor\/events\/{event}\/tickets\/widgets",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\VendorEventWidgetsController::list",
+        "title": "Embedded widgets"
+    },
+    "myeventlane_tickets.event_tickets_widgets_add": {
+        "path": "\/vendor\/events\/{event}\/tickets\/widgets\/add",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::widgetsAdd",
+        "title": "Add widget"
+    },
+    "myeventlane_tickets.event_tickets_widgets_edit": {
+        "path": "\/vendor\/events\/{event}\/tickets\/widgets\/{mel_purchase_surface}\/edit",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\EventTicketsController::widgetsEdit",
+        "title": "Edit widget"
+    },
+    "myeventlane_tickets.settings": {
+        "path": "\/admin\/config\/myeventlane\/tickets",
+        "controller": null,
+        "title": "Ticket settings"
+    },
+    "myeventlane_tickets.ticket_checkin": {
+        "path": "\/event\/{event}\/tickets\/checkin",
+        "controller": null,
+        "title": "Ticket check-in"
+    },
+    "myeventlane_tickets.ticket_checkin_analytics": {
+        "path": "\/event\/{event}\/tickets\/checkin\/analytics",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinAnalyticsController::page",
+        "title": "Check-in analytics"
+    },
+    "myeventlane_tickets.ticket_checkin_analytics_json": {
+        "path": "\/event\/{event}\/tickets\/checkin\/analytics.json",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinAnalyticsController::json",
+        "title": null
+    },
+    "myeventlane_tickets.ticket_checkin_api_batch": {
+        "path": "\/event\/{event}\/tickets\/checkin\/api\/batch",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinApiController::batch",
+        "title": null
+    },
+    "myeventlane_tickets.ticket_checkin_api_submit": {
+        "path": "\/event\/{event}\/tickets\/checkin\/api",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinApiController::submit",
+        "title": null
+    },
+    "myeventlane_tickets.ticket_checkin_manifest": {
+        "path": "\/event\/{event}\/tickets\/checkin\/manifest.json",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinPwaController::manifest",
+        "title": null
+    },
+    "myeventlane_tickets.ticket_checkin_sw": {
+        "path": "\/event\/{event}\/tickets\/checkin\/sw.js",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketCheckinPwaController::serviceWorker",
+        "title": null
+    },
+    "myeventlane_tickets.ticket_checkin_validate": {
+        "path": "\/event\/{event}\/tickets\/checkin\/validate",
+        "controller": null,
+        "title": "Ticket check-in"
+    },
+    "myeventlane_tickets.ticket_resend": {
+        "path": "\/ticket\/{myeventlane_ticket}\/resend",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketResendController::resend",
+        "title": "Resend ticket"
+    },
+    "myeventlane_tickets.ticket_scan": {
+        "path": "\/event\/{event}\/tickets\/scan",
+        "controller": "\\Drupal\\myeventlane_tickets\\Controller\\TicketScanController::page",
+        "title": "Scan tickets"
+    },
+    "myeventlane_vendor.console.audience": {
+        "path": "\/vendor\/audience",
+        "controller": "myeventlane_vendor.controller.vendor_audience:audience",
+        "title": "Audience"
+    },
+    "myeventlane_vendor.console.boost": {
+        "path": "\/vendor\/boost",
+        "controller": "myeventlane_vendor.controller.vendor_boost:boost",
+        "title": "Boost"
+    },
+    "myeventlane_vendor.console.boost_event_export": {
+        "path": "\/vendor\/events\/{event}\/boost\/export",
+        "controller": "myeventlane_vendor.controller.boost_event_export:export",
+        "title": "Export Boost performance"
+    },
+    "myeventlane_vendor.console.boost_vendor_export": {
+        "path": "\/vendor\/dashboard\/boost\/export",
+        "controller": "myeventlane_vendor.controller.boost_vendor_export:export",
+        "title": "Export Boost performance"
+    },
+    "myeventlane_vendor.console.dashboard": {
+        "path": "\/vendor\/dashboard",
+        "controller": "myeventlane_vendor.controller.vendor_dashboard:dashboard",
+        "title": "Vendor dashboard"
+    },
+    "myeventlane_vendor.console.events": {
+        "path": "\/vendor\/events",
+        "controller": "myeventlane_vendor.controller.vendor_events:list",
+        "title": "Events"
+    },
+    "myeventlane_vendor.console.events_add": {
+        "path": "\/vendor\/events\/add",
+        "controller": "myeventlane_vendor.controller.vendor_event_create:buildForm",
+        "title": "Create event"
+    },
+    "myeventlane_vendor.console.event_analytics": {
+        "path": "\/vendor\/events\/{event}\/analytics",
+        "controller": "myeventlane_vendor.controller.vendor_event_analytics:analytics",
+        "title": "Event analytics"
+    },
+    "myeventlane_vendor.console.event_attendees": {
+        "path": "\/vendor\/events\/{event}\/attendees",
+        "controller": "myeventlane_vendor.controller.vendor_event_attendees:attendees",
+        "title": "Event attendees"
+    },
+    "myeventlane_vendor.console.event_orders": {
+        "path": "\/vendor\/events\/{event}\/orders",
+        "controller": "myeventlane_vendor.controller.vendor_event_orders:orders",
+        "title": "Event orders"
+    },
+    "myeventlane_vendor.console.event_order_view": {
+        "path": "\/vendor\/events\/{event}\/orders\/{order}",
+        "controller": "myeventlane_vendor.controller.vendor_event_order_view:view",
+        "title": "Order detail"
+    },
+    "myeventlane_vendor.console.event_overview": {
+        "path": "\/vendor\/events\/{event}\/overview",
+        "controller": "myeventlane_vendor.controller.vendor_event_overview:overview",
+        "title": "Event overview"
+    },
+    "myeventlane_vendor.console.event_rsvps": {
+        "path": "\/vendor\/events\/{event}\/rsvps",
+        "controller": "myeventlane_vendor.controller.vendor_event_rsvps:rsvps",
+        "title": "Event RSVPs"
+    },
+    "myeventlane_vendor.console.event_settings": {
+        "path": "\/vendor\/events\/{event}\/settings",
+        "controller": "myeventlane_vendor.controller.vendor_event_settings:settings",
+        "title": "Event settings"
+    },
+    "myeventlane_vendor.console.event_tickets": {
+        "path": "\/vendor\/events\/{event}\/tickets",
+        "controller": "myeventlane_vendor.controller.vendor_event_tickets:tickets",
+        "title": "Event tickets"
+    },
+    "myeventlane_vendor.console.messaging_brand": {
+        "path": "\/vendor\/dashboard\/messaging\/brand",
+        "controller": "myeventlane_vendor.controller.vendor_dashboard_messaging_brand:brand",
+        "title": "Messaging brand"
+    },
+    "myeventlane_vendor.console.payouts": {
+        "path": "\/vendor\/payouts",
+        "controller": "myeventlane_vendor.controller.vendor_payouts:payouts",
+        "title": "Payouts"
+    },
+    "myeventlane_vendor.console.settings": {
+        "path": "\/vendor\/settings",
+        "controller": "myeventlane_vendor.controller.vendor_settings:settings",
+        "title": "Vendor settings"
+    },
+    "myeventlane_vendor.console.studio": {
+        "path": "\/vendor\/studio",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::studio",
+        "title": "Vendor Studio"
+    },
+    "myeventlane_vendor.console.studio.event_attendees_save": {
+        "path": "\/vendor\/studio\/event\/{event}\/attendees",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::saveAttendees",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_data": {
+        "path": "\/vendor\/studio\/event\/{event}\/data",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::eventData",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_overview_save": {
+        "path": "\/vendor\/studio\/event\/{event}\/overview",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::saveOverview",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_promotion_save": {
+        "path": "\/vendor\/studio\/event\/{event}\/promotion",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::savePromotion",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_publish": {
+        "path": "\/vendor\/studio\/event\/{event}\/publish",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::publishEvent",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_settings_save": {
+        "path": "\/vendor\/studio\/event\/{event}\/settings",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::saveSettings",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.event_tickets_save": {
+        "path": "\/vendor\/studio\/event\/{event}\/tickets",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::saveTickets",
+        "title": null
+    },
+    "myeventlane_vendor.console.studio.submit_review": {
+        "path": "\/vendor\/studio\/event\/{event}\/submit-review",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorStudioController::submitReview",
+        "title": "Submit Event for Review"
+    },
+    "myeventlane_vendor.create_event_gateway": {
+        "path": "\/create-event",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\CreateEventGatewayController::gateway",
+        "title": "Create your event"
+    },
+    "myeventlane_vendor.manage_event.advanced": {
+        "path": "\/vendor\/event\/{event}\/advanced",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventPlaceholderController::placeholder",
+        "title": "Advanced"
+    },
+    "myeventlane_vendor.manage_event.checkout_questions": {
+        "path": "\/vendor\/event\/{event}\/checkout-questions",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventCheckoutQuestionsController::checkoutQuestions",
+        "title": "Checkout questions"
+    },
+    "myeventlane_vendor.manage_event.comms": {
+        "path": "\/vendor\/event\/{event}\/comms",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventPlaceholderController::placeholder",
+        "title": "Comms"
+    },
+    "myeventlane_vendor.manage_event.content": {
+        "path": "\/vendor\/event\/{event}\/content",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventContentController::content",
+        "title": "Page content"
+    },
+    "myeventlane_vendor.manage_event.design": {
+        "path": "\/vendor\/event\/{event}\/design",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventDesignController::design",
+        "title": "Page design"
+    },
+    "myeventlane_vendor.manage_event.edit": {
+        "path": "\/vendor\/event\/{event}\/edit",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventEditController::edit",
+        "title": "Event information"
+    },
+    "myeventlane_vendor.manage_event.payments": {
+        "path": "\/vendor\/event\/{event}\/payments",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventPlaceholderController::placeholder",
+        "title": "Payments & fees"
+    },
+    "myeventlane_vendor.manage_event.promote": {
+        "path": "\/vendor\/event\/{event}\/promote",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventPlaceholderController::placeholder",
+        "title": "Promote"
+    },
+    "myeventlane_vendor.manage_event.series": {
+        "path": "\/vendor\/event\/{event}\/series",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageSeriesInstancesController::listInstances",
+        "title": "Series instances"
+    },
+    "myeventlane_vendor.manage_event.tickets": {
+        "path": "\/vendor\/event\/{event}\/tickets",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\ManageEventTicketsController::tickets",
+        "title": "Ticket types"
+    },
+    "myeventlane_vendor.onboard": {
+        "path": "\/vendor\/onboard",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardAccountController::account",
+        "title": "Create your organiser account"
+    },
+    "myeventlane_vendor.onboard.account": {
+        "path": "\/vendor\/onboard\/account",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardAccountController::account",
+        "title": "Create your organiser account"
+    },
+    "myeventlane_vendor.onboard.boost": {
+        "path": "\/vendor\/onboard\/boost",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardBoostController::boost",
+        "title": "Promote your event with Boost"
+    },
+    "myeventlane_vendor.onboard.branding": {
+        "path": "\/vendor\/onboard\/branding",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardBrandingController::branding",
+        "title": "Add your branding"
+    },
+    "myeventlane_vendor.onboard.complete": {
+        "path": "\/vendor\/onboard\/complete",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardCompleteController::complete",
+        "title": "You're all set!"
+    },
+    "myeventlane_vendor.onboard.first_event": {
+        "path": "\/vendor\/onboard\/first-event",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardFirstEventController::firstEvent",
+        "title": "Create your first event"
+    },
+    "myeventlane_vendor.onboard.profile": {
+        "path": "\/vendor\/onboard\/profile",
+        "controller": null,
+        "title": "Set up your organiser profile"
+    },
+    "myeventlane_vendor.onboard.stripe": {
+        "path": "\/vendor\/onboard\/stripe",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorOnboardStripeController::stripe",
+        "title": "Set up payments"
+    },
+    "myeventlane_vendor.organisers": {
+        "path": "\/organisers",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorPublicController::list",
+        "title": "Event Organisers"
+    },
+    "myeventlane_vendor.public_list": {
+        "path": "\/vendors",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\VendorPublicController::list",
+        "title": "Event Organisers"
+    },
+    "myeventlane_vendor.settings": {
+        "path": "\/admin\/structure\/myeventlane\/vendor\/settings",
+        "controller": null,
+        "title": "Vendor settings"
+    },
+    "myeventlane_vendor.stripe_callback": {
+        "path": "\/stripe\/connect\/callback",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\StripeConnectController::callback",
+        "title": "Stripe Connect Callback"
+    },
+    "myeventlane_vendor.stripe_connect": {
+        "path": "\/vendor\/stripe\/connect",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\StripeConnectController::connect",
+        "title": "Connect Stripe"
+    },
+    "myeventlane_vendor.stripe_manage": {
+        "path": "\/vendor\/stripe\/manage",
+        "controller": "\\Drupal\\myeventlane_vendor\\Controller\\StripeConnectController::manage",
+        "title": "Manage Stripe"
+    },
+    "myeventlane_vendor_ai.assistant": {
+        "path": "\/vendor\/support\/{escalation}\/ai",
+        "controller": "\\Drupal\\myeventlane_vendor_ai\\Controller\\VendorAiAssistantController::panel",
+        "title": "MEL Assistant"
+    },
+    "myeventlane_vendor_comms.branding": {
+        "path": "\/vendor\/events\/{node}\/comms\/branding",
+        "controller": null,
+        "title": "Event branding"
+    },
+    "myeventlane_vendor_comms.send": {
+        "path": "\/vendor\/events\/{node}\/comms",
+        "controller": null,
+        "title": "Send Event Update"
+    },
+    "myeventlane_venue.admin_settings": {
+        "path": "\/admin\/structure\/myeventlane\/venues\/settings",
+        "controller": null,
+        "title": "Venue settings"
+    },
+    "myeventlane_venue.autocomplete": {
+        "path": "\/myeventlane\/venues\/autocomplete",
+        "controller": "\\Drupal\\myeventlane_venue\\Controller\\VenueAutocompleteController::autocomplete",
+        "title": null
+    },
+    "myeventlane_venue.locations_ajax": {
+        "path": "\/myeventlane\/venues\/{myeventlane_venue}\/locations",
+        "controller": "\\Drupal\\myeventlane_venue\\Controller\\VenueLocationsController::getLocations",
+        "title": null
+    },
+    "myeventlane_venue.quick_create": {
+        "path": "\/vendor\/venues\/quick-create",
+        "controller": null,
+        "title": "Add venue"
+    },
+    "myeventlane_venue.report_issue": {
+        "path": "\/venues\/{myeventlane_venue}\/report",
+        "controller": null,
+        "title": "Report an issue"
+    },
+    "myeventlane_venue.share_accept": {
+        "path": "\/vendor\/venues\/share\/{token}",
+        "controller": "\\Drupal\\myeventlane_venue\\Controller\\VenueShareController::accept",
+        "title": "Accept shared venue"
+    },
+    "myeventlane_venue.vendor_venues": {
+        "path": "\/vendor\/settings\/venues",
+        "controller": "\\Drupal\\myeventlane_venue\\Controller\\VendorVenuesController::list",
+        "title": "Venues"
+    },
+    "myeventlane_venue.vendor_venue_add": {
+        "path": "\/vendor\/settings\/venues\/add",
+        "controller": null,
+        "title": "Add venue"
+    },
+    "myeventlane_venue.vendor_venue_delete": {
+        "path": "\/vendor\/settings\/venues\/{myeventlane_venue}\/delete",
+        "controller": null,
+        "title": "Delete venue"
+    },
+    "myeventlane_venue.vendor_venue_edit": {
+        "path": "\/vendor\/settings\/venues\/{myeventlane_venue}\/edit",
+        "controller": null,
+        "title": "Edit venue"
+    },
+    "myeventlane_views.attendee_csv": {
+        "path": "\/dashboard\/attendees\/export",
+        "controller": "\\Drupal\\myeventlane_views\\Controller\\AttendeeCsvController::handle",
+        "title": "Attendee CSV Export"
+    },
+    "myeventlane_wallet.apple": {
+        "path": "\/wallet\/apple\/{order_item_id}",
+        "controller": "\\Drupal\\myeventlane_wallet\\Controller\\WalletAppleController::download",
+        "title": "Apple Wallet Pass"
+    },
+    "myeventlane_wallet.google": {
+        "path": "\/wallet\/google\/{order_item_id}",
+        "controller": "\\Drupal\\myeventlane_wallet\\Controller\\WalletGoogleController::link",
+        "title": "Google Wallet"
+    },
+    "myeventlane_wallet.settings": {
+        "path": "\/admin\/config\/myeventlane\/wallet",
+        "controller": null,
+        "title": "Wallet settings"
+    },
+    "view.mel_admin_review_queue.page_review": {
+        "path": "\/admin\/platform\/review",
+        "controller": "Drupal\\views\\Routing\\ViewPageController::handle",
+        "title": null
+    },
+    "view.myeventlane_vendor_rsvps.page_1": {
+        "path": "\/dashboard\/rsvps",
+        "controller": "Drupal\\views\\Routing\\ViewPageController::handle",
+        "title": null
+    }
+}
