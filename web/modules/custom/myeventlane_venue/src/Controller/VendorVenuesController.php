@@ -9,7 +9,9 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueAccessResolver;
 use Drupal\myeventlane_venue\Service\VenueManager;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
 /**
  * Controller for the vendor venues list.
@@ -27,14 +29,21 @@ class VendorVenuesController extends ControllerBase {
   protected VenueManager $venueManager;
 
   /**
+   * The module logger.
+   */
+  protected LoggerInterface $logger;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
     VenueAccessResolver $access_resolver,
     VenueManager $venue_manager,
+    LoggerChannelFactoryInterface $logger_factory,
   ) {
     $this->accessResolver = $access_resolver;
     $this->venueManager = $venue_manager;
+    $this->logger = $logger_factory->get('myeventlane_venue');
   }
 
   /**
@@ -44,6 +53,7 @@ class VendorVenuesController extends ControllerBase {
     return new static(
       $container->get('myeventlane_venue.access_resolver'),
       $container->get('myeventlane_venue.manager'),
+      $container->get('logger.factory'),
     );
   }
 
@@ -108,13 +118,22 @@ class VendorVenuesController extends ControllerBase {
       ];
 
       // Copy share link (owner only).
-      $actions['share'] = [
-        'url' => NULL,
-        'title' => $this->t('Copy share link'),
-        'share_url' => Url::fromRoute('myeventlane_venue.share_accept', [
-          'token' => $venue->getShareToken(),
-        ], ['absolute' => TRUE])->toString(),
-      ];
+      $shareToken = $venue->getShareToken();
+      if (!empty($shareToken)) {
+        $actions['share'] = [
+          'url' => NULL,
+          'title' => $this->t('Copy share link'),
+          'share_url' => Url::fromRoute('myeventlane_venue.share_accept', [
+            'token' => $shareToken,
+          ], ['absolute' => TRUE])->toString(),
+        ];
+      }
+      else {
+        $this->logger->error('Venue @venue_id is missing share token; share link button omitted for owner @owner_id.', [
+          '@venue_id' => $venue->id(),
+          '@owner_id' => $this->currentUser()->id(),
+        ]);
+      }
 
       // Delete action (owner only).
       $actions['delete'] = [
