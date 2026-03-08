@@ -87,7 +87,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   /**
    * Vendor metrics read model.
    */
-  protected VendorMetricsReadModel $vendorMetricsReadModel;
+  protected ?VendorMetricsReadModel $vendorMetricsReadModel;
 
   /**
    * Constructs the controller.
@@ -101,7 +101,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
-    VendorMetricsReadModel $vendor_metrics_read_model,
+    ?VendorMetricsReadModel $vendor_metrics_read_model,
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
@@ -135,7 +135,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
-      $container->get('myeventlane_domain_events.read_model.vendor_metrics'),
+      $container->has('myeventlane_domain_events.read_model.vendor_metrics') ? $container->get('myeventlane_domain_events.read_model.vendor_metrics') : NULL,
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
@@ -715,7 +715,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ));
 
     $vendorId = ($vendor && method_exists($vendor, 'id')) ? (int) $vendor->id() : 0;
-    $useReadModel = $vendorId > 0;
+    $useReadModel = $vendorId > 0 && $this->vendorMetricsReadModel !== NULL;
     $vendorMetrics = $useReadModel ? $this->vendorMetricsReadModel->getVendorMetrics($vendorId) : [];
 
     $totalRevenue = (float) ($vendorMetrics['total_revenue'] ?? 0.0);

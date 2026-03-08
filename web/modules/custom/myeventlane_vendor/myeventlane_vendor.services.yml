@@ -99,7 +99,7 @@ services:
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.rsvp_stats', '@entity_type.manager', '@myeventlane_vendor.service.boost_status', '@myeventlane_vendor.service.ticket_sales', '@myeventlane_vendor_analytics.vendor_kpi', '@myeventlane_domain_events.read_model.vendor_metrics', '@?myeventlane_capacity.service', '@myeventlane_onboarding.manager', '@myeventlane_event_state.resolver']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.rsvp_stats', '@entity_type.manager', '@myeventlane_vendor.service.boost_status', '@myeventlane_vendor.service.ticket_sales', '@myeventlane_vendor_analytics.vendor_kpi', '@?myeventlane_domain_events.read_model.vendor_metrics', '@?myeventlane_capacity.service', '@myeventlane_onboarding.manager', '@myeventlane_event_state.resolver']
     tags:
       - { name: controller.service_arguments }
 
