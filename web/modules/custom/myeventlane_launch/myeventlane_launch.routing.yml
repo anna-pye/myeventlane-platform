@@ -1,0 +1,7 @@
+myeventlane_launch.vendor_finance:
+  path: '/vendor/finance'
+  defaults:
+    _controller: '\Drupal\myeventlane_launch\Controller\VendorFinanceController::finance'
+    _title: 'Finance'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'

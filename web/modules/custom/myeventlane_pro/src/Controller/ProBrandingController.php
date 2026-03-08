@@ -13,24 +13,25 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_messaging\Form\VendorBrandConfigForm;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Renders the Pro-only branding settings page at /vendor/settings/branding.
  *
  * Reuses the existing VendorBrandConfigForm from myeventlane_messaging,
- * gated by vendor + pro_organiser role requirement.
+ * gated by vendor role and canonical Pro entitlement resolver.
  */
 final class ProBrandingController implements ContainerInjectionInterface {
 
   use StringTranslationTrait;
 
-  private const PRO_ROLE = 'pro_organiser';
-
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FormBuilderInterface $formBuilder,
+    private readonly ProActiveResolver $proActiveResolver,
   ) {}
 
   /**
@@ -41,6 +42,7 @@ final class ProBrandingController implements ContainerInjectionInterface {
       $container->get('current_user'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
+      $container->get('myeventlane_pro.active_resolver'),
     );
   }
 
@@ -77,14 +79,16 @@ final class ProBrandingController implements ContainerInjectionInterface {
   }
 
   /**
-   * Access check: requires vendor + pro_organiser roles.
+   * Access check: requires vendor role + active Pro entitlement.
    */
   public function access(AccountInterface $account): AccessResultInterface {
     $hasVendor = in_array('vendor', $account->getRoles(), TRUE);
-    $hasPro = in_array(self::PRO_ROLE, $account->getRoles(), TRUE);
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $account->id());
+    $hasPro = $user instanceof UserInterface && $this->proActiveResolver->isUserProActive($user);
 
     return AccessResult::allowedIf($hasVendor && $hasPro)
-      ->addCacheContexts(['user.roles']);
+      ->addCacheContexts(['user.roles'])
+      ->addCacheTags(['user:' . (int) $account->id()]);
   }
 
   /**

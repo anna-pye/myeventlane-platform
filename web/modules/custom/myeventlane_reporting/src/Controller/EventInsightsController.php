@@ -14,6 +14,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_domain_events\ProjectionReadModel\EventMetricsReadModel;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
 use Drupal\node\NodeInterface;
@@ -33,6 +34,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventMetricsServiceInterface $metricsService,
+    private readonly EventMetricsReadModel $eventMetricsReadModel,
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly AutomationAuditLogger $auditLogger,
   ) {
@@ -49,6 +51,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
+      $container->get('myeventlane_domain_events.read_model.event_metrics'),
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('myeventlane_automation.audit_logger'),
     );
@@ -249,12 +252,17 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds event-level KPIs.
    */
   private function buildEventKpis(NodeInterface $event): array {
+    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
+    $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
+    $attendeeCount = $ticketsSold + $rsvpCount;
+    $checkedInCount = (int) ($metrics['checkin_count'] ?? 0);
+    $checkInRate = $attendeeCount > 0 ? round(($checkedInCount / $attendeeCount) * 100, 1) : 0.0;
+    $revenueTotal = (float) ($metrics['revenue_total'] ?? 0.0);
+    $refundCount = (int) ($metrics['refund_count'] ?? 0);
+
     $capacityTotal = $this->metricsService->getCapacityTotal($event);
     $remainingCapacity = $this->metricsService->getRemainingCapacity($event);
-    $attendeeCount = $this->metricsService->getAttendeeCount($event);
-    $checkedInCount = $this->metricsService->getCheckedInCount($event);
-    $checkInRate = $this->metricsService->getCheckInRate($event);
-    $revenue = $this->metricsService->getRevenue($event);
     $isSoldOut = $this->metricsService->isSoldOut($event);
 
     return [
@@ -278,8 +286,8 @@ final class EventInsightsController extends VendorConsoleBaseController {
       ],
       [
         'label' => 'Revenue',
-        'value' => $revenue ? '$' . number_format((float) $revenue->getNumber(), 2) : 'N/A',
-        'subtitle' => $isSoldOut ? 'Sold out' : 'Active sales',
+        'value' => '$' . number_format($revenueTotal, 2),
+        'subtitle' => $isSoldOut ? 'Sold out' : ($refundCount > 0 ? $refundCount . ' refunds' : 'Active sales'),
         'icon' => 'dollar-sign',
       ],
     ];
@@ -289,17 +297,15 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds sales-specific KPIs.
    */
   private function buildSalesKpis(NodeInterface $event): array {
-    $revenue = $this->metricsService->getRevenue($event);
+    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $totalTickets = (int) ($metrics['tickets_sold'] ?? 0);
+    $revenueTotal = (float) ($metrics['revenue_total'] ?? 0.0);
     $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
-    $totalTickets = 0;
-    foreach ($ticketBreakdown as $type) {
-      $totalTickets += $type['sold'] ?? 0;
-    }
 
     return [
       [
         'label' => 'Total Revenue',
-        'value' => $revenue ? '$' . number_format((float) $revenue->getNumber(), 2) : '$0.00',
+        'value' => '$' . number_format($revenueTotal, 2),
         'subtitle' => 'Gross revenue',
         'icon' => 'dollar-sign',
       ],
@@ -311,7 +317,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
       ],
       [
         'label' => 'Average Ticket Price',
-        'value' => $totalTickets > 0 && $revenue ? '$' . number_format((float) $revenue->getNumber() / $totalTickets, 2) : '$0.00',
+        'value' => $totalTickets > 0 ? '$' . number_format($revenueTotal / $totalTickets, 2) : '$0.00',
         'subtitle' => 'Per ticket',
         'icon' => 'tag',
       ],
@@ -322,32 +328,27 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds attendee-specific KPIs.
    */
   private function buildAttendeeKpis(NodeInterface $event): array {
-    $attendeeCount = $this->metricsService->getAttendeeCount($event);
-    $repository = $this->repositoryResolver->getRepository($event);
-    $attendees = $repository->loadByEvent($event);
-
-    $bySource = ['rsvp' => 0, 'ticket' => 0];
-    foreach ($attendees as $attendee) {
-      $source = $attendee->getSource() ?? 'rsvp';
-      $bySource[$source] = ($bySource[$source] ?? 0) + 1;
-    }
+    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
+    $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
+    $attendeeCount = $ticketsSold + $rsvpCount;
 
     return [
       [
         'label' => 'Total Attendees',
         'value' => (string) $attendeeCount,
-        'subtitle' => $bySource['ticket'] . ' tickets, ' . $bySource['rsvp'] . ' RSVPs',
+        'subtitle' => $ticketsSold . ' tickets, ' . $rsvpCount . ' RSVPs',
         'icon' => 'users',
       ],
       [
         'label' => 'RSVPs',
-        'value' => (string) $bySource['rsvp'],
+        'value' => (string) $rsvpCount,
         'subtitle' => 'Free registrations',
         'icon' => 'calendar',
       ],
       [
         'label' => 'Paid Tickets',
-        'value' => (string) $bySource['ticket'],
+        'value' => (string) $ticketsSold,
         'subtitle' => 'Purchased tickets',
         'icon' => 'ticket',
       ],
@@ -358,9 +359,12 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds check-in specific KPIs.
    */
   private function buildCheckInKpis(NodeInterface $event): array {
-    $attendeeCount = $this->metricsService->getAttendeeCount($event);
-    $checkedInCount = $this->metricsService->getCheckedInCount($event);
-    $checkInRate = $this->metricsService->getCheckInRate($event);
+    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
+    $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
+    $attendeeCount = $ticketsSold + $rsvpCount;
+    $checkedInCount = (int) ($metrics['checkin_count'] ?? 0);
+    $checkInRate = $attendeeCount > 0 ? round(($checkedInCount / $attendeeCount) * 100, 1) : 0.0;
     $notCheckedIn = $attendeeCount - $checkedInCount;
 
     return [

@@ -73,13 +73,20 @@ final class AttendeeParagraphAccessResolver {
       return NULL;
     }
 
-    try {
-      $order = $order_item->getOrder();
-      return $order instanceof OrderInterface ? $order : NULL;
-    }
-    catch (\Exception $e) {
+    if ($order_item->get('order_id')->isEmpty()) {
       return NULL;
     }
+
+    $order_id = (int) $order_item->get('order_id')->target_id;
+    if ($order_id <= 0) {
+      return NULL;
+    }
+
+    $order = $this->entityTypeManager
+      ->getStorage('commerce_order')
+      ->load($order_id);
+
+    return $order instanceof OrderInterface ? $order : NULL;
   }
 
   /**

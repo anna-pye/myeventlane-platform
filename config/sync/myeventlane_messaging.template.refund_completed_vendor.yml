@@ -4,6 +4,10 @@ body_html: |-
   The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
 
   The customer has been notified.
+
+  {% if tickets_cancelled and tickets_cancelled > 0 %}
+  Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+  {% endif %}
 utm:
   enable: true
   params:

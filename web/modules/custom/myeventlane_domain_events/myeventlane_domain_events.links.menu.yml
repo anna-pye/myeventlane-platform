@@ -1,0 +1,5 @@
+myeventlane_domain_events.admin.events:
+  title: 'MEL Domain Events'
+  description: 'Projection status and replay controls.'
+  route_name: myeventlane_domain_events.admin.events
+  parent: system.admin_reports

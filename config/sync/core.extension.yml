@@ -97,6 +97,7 @@ module:
   myeventlane_core: 0
   myeventlane_dashboard: 0
   myeventlane_demo: 0
+  myeventlane_domain_events: 0
   myeventlane_donations: 0
   myeventlane_escalations: 0
   myeventlane_escalations_ai: 0
@@ -114,6 +115,7 @@ module:
   myeventlane_front: 0
   myeventlane_help_centre: 0
   myeventlane_help_centre_ai: 0
+  myeventlane_launch: 0
   myeventlane_legal: 0
   myeventlane_location: 0
   myeventlane_messaging: 0

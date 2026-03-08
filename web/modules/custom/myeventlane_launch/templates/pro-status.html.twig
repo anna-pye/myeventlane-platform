@@ -1,0 +1,15 @@
+{% if is_pro %}
+  <div class="mel-pro-badge active">
+    {{ 'Vendor status: PRO'|t }}
+    <a href="{{ path('myeventlane_pro.manage') }}">{{ 'Manage'|t }}</a>
+  </div>
+{% else %}
+  <div class="mel-pro-badge upgrade">
+    {{ 'Vendor status: Free'|t }}
+    {% if upgrade_url %}
+      <a href="{{ upgrade_url }}">{{ 'Upgrade to MEL Pro'|t }}</a>
+    {% else %}
+      <a href="{{ path('myeventlane_pro.overview') }}">{{ 'Upgrade to MEL Pro'|t }}</a>
+    {% endif %}
+  </div>
+{% endif %}

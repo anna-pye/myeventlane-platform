@@ -15,6 +15,17 @@
 
   <h1 class="mel-dashboard-title">{{ 'Vendor Dashboard'|t }}</h1>
 
+  {% if mel_vendor_is_pro %}
+    <div class="mel-pro-badge active">
+      PRO PLAN ✓ Active
+    </div>
+  {% else %}
+    <div class="mel-pro-badge upgrade">
+      FREE PLAN
+      <a href="{{ path('myeventlane_pro.overview') }}">Upgrade to Pro</a>
+    </div>
+  {% endif %}
+
   <div class="mel-dashboard-studio-entry">
 
     <a href="/vendor/studio?desk=events"

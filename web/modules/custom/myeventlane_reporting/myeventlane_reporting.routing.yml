@@ -7,6 +7,7 @@ myeventlane_reporting.vendor_insights:
   requirements:
     _permission: 'view vendor insights'
     _custom_access: '\Drupal\myeventlane_reporting\Access\VendorReportingAccess::access'
+    _myeventlane_pro_access: 'TRUE'
 
 # Event Insights Overview
 myeventlane_reporting.event_insights.overview:
@@ -17,6 +18,7 @@ myeventlane_reporting.event_insights.overview:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\EventInsightsController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -33,6 +35,7 @@ myeventlane_reporting.event_insights.sales:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\EventInsightsController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -49,6 +52,7 @@ myeventlane_reporting.event_insights.attendees:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\EventInsightsController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -65,6 +69,7 @@ myeventlane_reporting.event_insights.checkins:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\EventInsightsController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -81,6 +86,7 @@ myeventlane_reporting.event_insights.traffic:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\EventInsightsController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -97,6 +103,7 @@ myeventlane_reporting.chart.sales:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ChartDataController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -112,6 +119,7 @@ myeventlane_reporting.chart.ticket_breakdown:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ChartDataController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -127,6 +135,7 @@ myeventlane_reporting.chart.checkins:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ChartDataController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -142,6 +151,7 @@ myeventlane_reporting.chart.revenue:
   requirements:
     _permission: 'view event insights'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ChartDataController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -158,6 +168,7 @@ myeventlane_reporting.export_centre:
   requirements:
     _permission: 'request exports'
     _custom_access: '\Drupal\myeventlane_reporting\Access\VendorReportingAccess::access'
+    _myeventlane_pro_access: 'TRUE'
 
 myeventlane_reporting.export.request_csv:
   path: '/vendor/exports/request-csv/{event}'
@@ -167,6 +178,7 @@ myeventlane_reporting.export.request_csv:
   requirements:
     _permission: 'request exports'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ExportCentreController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:
@@ -182,6 +194,7 @@ myeventlane_reporting.export.request_sales:
   requirements:
     _permission: 'request exports'
     _custom_access: '\Drupal\myeventlane_reporting\Controller\ExportCentreController::access'
+    _myeventlane_pro_access: 'TRUE'
   options:
     parameters:
       event:

@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
-use Drupal\myeventlane_vendor\Service\VendorSubscriptionService;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Drupal\user\UserInterface;
 
 /**
  * Event analytics controller.
@@ -27,9 +28,10 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly MetricsAggregator $metricsAggregator,
     private readonly VendorEventTabsService $eventTabsService,
-    private readonly VendorSubscriptionService $subscriptionService,
+    private readonly ?ProActiveResolver $proActiveResolver = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -39,8 +41,13 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
    */
   public function analytics(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    $vendorId = $this->resolveVendorId($event);
-    $this->subscriptionService->requirePro($vendorId);
+    if (!$this->proActiveResolver) {
+      throw $this->createAccessDeniedException('Pro resolver service is unavailable.');
+    }
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    if (!$user instanceof UserInterface || !$this->proActiveResolver->isUserProActive($user)) {
+      throw $this->createAccessDeniedException('Pro subscription is required.');
+    }
     $tabs = $this->eventTabsService->getTabs($event, 'analytics');
     $charts = $this->metricsAggregator->getEventCharts($event);
     $overview = $this->metricsAggregator->getEventOverview($event);
@@ -87,22 +94,6 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ]);
-  }
-
-  /**
-   * Resolves vendor ID for Pro-gated event analytics.
-   */
-  private function resolveVendorId(NodeInterface $event): int {
-    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-      return (int) $event->get('field_event_vendor')->target_id;
-    }
-
-    $vendor = $this->getCurrentVendorOrNull();
-    if ($vendor) {
-      return (int) $vendor->id();
-    }
-
-    throw new AccessDeniedHttpException('Vendor context could not be resolved.');
   }
 
 }

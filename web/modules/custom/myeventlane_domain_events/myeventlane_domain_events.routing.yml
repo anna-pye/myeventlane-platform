@@ -1,0 +1,15 @@
+myeventlane_domain_events.admin.events:
+  path: '/admin/mel/events'
+  defaults:
+    _controller: '\Drupal\myeventlane_domain_events\Controller\ProjectionAdminController::page'
+    _title: 'MEL Domain Events'
+  requirements:
+    _permission: 'administer site configuration'
+
+myeventlane_domain_events.admin.events_replay_confirm:
+  path: '/admin/mel/events/replay'
+  defaults:
+    _form: '\Drupal\myeventlane_domain_events\Form\ProjectionReplayConfirmForm'
+    _title: 'Replay Projections'
+  requirements:
+    _permission: 'administer site configuration'

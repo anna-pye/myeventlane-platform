@@ -36,6 +36,16 @@
         <span class="mel-event-status">
           {{ event.status|default('Published'|t) }} • {{ event.date|default(event.start_date|default('TBD'|t)) }} • {{ event.location|default('Location TBD'|t) }}
         </span>
+        {% if mel_vendor_is_pro %}
+          <div class="mel-pro-badge active">
+            PRO PLAN ✓ Active
+          </div>
+        {% else %}
+          <div class="mel-pro-badge upgrade">
+            FREE PLAN
+            <a href="{{ path('myeventlane_pro.overview') }}">Upgrade to Pro</a>
+          </div>
+        {% endif %}
       </div>
     </header>
 

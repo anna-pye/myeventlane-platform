@@ -155,14 +155,16 @@ final class ProRecoveryAnalyticsService {
     $effectiveLimit = max(1, $limit);
 
     try {
-      $rows = $this->database->select('myeventlane_pro_recovery_attribution', 'a')
+      $query = $this->database->select('myeventlane_pro_recovery_attribution', 'a')
         ->fields('a', ['store_id'])
-        ->addExpression('SUM(a.order_total)', 'revenue_total')
         ->condition('a.recovered', 1)
         ->condition('a.recovered_at', $windowStart, '>=')
         ->groupBy('a.store_id')
         ->orderBy('revenue_total', 'DESC')
-        ->range(0, $effectiveLimit)
+        ->range(0, $effectiveLimit);
+      $query->addExpression('SUM(a.order_total)', 'revenue_total');
+
+      $rows = $query
         ->execute()
         ->fetchAllAssoc('store_id');
 
@@ -201,9 +203,9 @@ final class ProRecoveryAnalyticsService {
    */
   private function sumRecoveredRevenue(int $windowStart, ?int $storeId = NULL): float {
     $query = $this->database->select('myeventlane_pro_recovery_attribution', 'a')
-      ->addExpression('SUM(a.order_total)', 'recovered_revenue')
       ->condition('a.recovered', 1)
       ->condition('a.recovered_at', $windowStart, '>=');
+    $query->addExpression('SUM(a.order_total)', 'recovered_revenue');
 
     if ($storeId !== NULL) {
       $query->condition('a.store_id', $storeId);

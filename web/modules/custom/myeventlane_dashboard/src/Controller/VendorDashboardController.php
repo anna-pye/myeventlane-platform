@@ -15,7 +15,9 @@ use Drupal\myeventlane_dashboard\Service\DashboardAccess;
 use Drupal\myeventlane_dashboard\Service\DashboardEventLoader;
 use Drupal\myeventlane_dashboard\Service\VendorContextServiceInterface;
 use Drupal\myeventlane_dashboard\Service\VendorMetricsServiceInterface;
+use Drupal\myeventlane_domain_events\ProjectionReadModel\EventMetricsReadModel;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
+use Drupal\myeventlane_pro\Service\VendorProState;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -37,7 +39,9 @@ final class VendorDashboardController extends ControllerBase {
     private readonly ?StripeService $stripeService = NULL,
     private readonly ?VendorContextServiceInterface $vendorContext = NULL,
     private readonly ?VendorMetricsServiceInterface $vendorMetrics = NULL,
+    private readonly ?EventMetricsReadModel $eventMetricsReadModel = NULL,
     private readonly ?RequestStack $requestStack = NULL,
+    private readonly ?VendorProState $vendorProState = NULL,
   ) {}
 
   /**
@@ -79,6 +83,20 @@ final class VendorDashboardController extends ControllerBase {
       $vendorMetrics = NULL;
     }
 
+    try {
+      $eventMetricsReadModel = $container->get('myeventlane_domain_events.read_model.event_metrics');
+    }
+    catch (\Exception) {
+      $eventMetricsReadModel = NULL;
+    }
+
+    try {
+      $vendorProState = $container->get('myeventlane_pro.vendor_pro_state');
+    }
+    catch (\Exception) {
+      $vendorProState = NULL;
+    }
+
     return new static(
       $container->get('myeventlane_dashboard.access'),
       $container->get('myeventlane_dashboard.event_loader'),
@@ -88,7 +106,9 @@ final class VendorDashboardController extends ControllerBase {
       $stripeService,
       $vendorContext,
       $vendorMetrics,
+      $eventMetricsReadModel,
       $container->get('request_stack'),
+      $vendorProState,
     );
   }
 
@@ -102,28 +122,81 @@ final class VendorDashboardController extends ControllerBase {
    *   Array with 'attendee_count', 'rsvp_count', 'waitlist_count', 'revenue', 'mode', and action URLs.
    */
   private function getEventStats(int $eventId): array {
-    // Get attendee count (ticket-based attendees).
-    $attendeeCount = $this->entityTypeManager()
-      ->getStorage('event_attendee')
-      ->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('event', $eventId)
-      ->condition('status', 'confirmed')
-      ->count()
-      ->execute();
-
-    // Get RSVP counts (separate from ticket attendees).
+    $attendeeCount = 0;
     $rsvpCount = 0;
     $waitlistCount = 0;
-    try {
-      $rsvpStorage = $this->entityTypeManager()->getStorage('rsvp_submission');
-      $rsvpCount = (int) $rsvpStorage->getQuery()
+    $revenue = 0.0;
+
+    if ($this->eventMetricsReadModel) {
+      $metrics = $this->eventMetricsReadModel->getEventMetrics($eventId);
+      $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
+      $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
+      $attendeeCount = $ticketsSold + $rsvpCount;
+      $revenue = (float) ($metrics['revenue_total'] ?? 0.0);
+    }
+    else {
+      // Legacy fallback when read model service is unavailable.
+      $attendeeCount = $this->entityTypeManager()
+        ->getStorage('event_attendee')
+        ->getQuery()
         ->accessCheck(FALSE)
-        ->condition('event_id', $eventId)
+        ->condition('event', $eventId)
         ->condition('status', 'confirmed')
         ->count()
         ->execute();
 
+      try {
+        $rsvpStorage = $this->entityTypeManager()->getStorage('rsvp_submission');
+        $rsvpCount = (int) $rsvpStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $eventId)
+          ->condition('status', 'confirmed')
+          ->count()
+          ->execute();
+      }
+      catch (\Exception) {
+        // RSVP module may not be available.
+      }
+
+      $orderItemStorage = $this->entityTypeManager()->getStorage('commerce_order_item');
+      $orderItems = $orderItemStorage->loadByProperties([
+        'field_target_event' => $eventId,
+      ]);
+
+      foreach ($orderItems as $item) {
+        if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
+          continue;
+        }
+
+        $order_id = $item->get('order_id')->target_id;
+        if (!$order_id) {
+          continue;
+        }
+
+        try {
+          $order = $this->entityTypeManager()
+            ->getStorage('commerce_order')
+            ->load($order_id);
+          if ($order && $order->getState()->getId() === 'completed') {
+            $totalPrice = $item->getTotalPrice();
+            if ($totalPrice) {
+              $revenue += (float) $totalPrice->getNumber();
+            }
+          }
+        }
+        catch (\Exception $e) {
+          \Drupal::logger('myeventlane_dashboard')->warning('Skipping order item @id with invalid order reference: @message', [
+            '@id' => $item->id(),
+            '@message' => $e->getMessage(),
+          ]);
+          continue;
+        }
+      }
+    }
+
+    // Waitlist remains from RSVP entities (not included in projection metric).
+    try {
+      $rsvpStorage = $this->entityTypeManager()->getStorage('rsvp_submission');
       $waitlistCount = (int) $rsvpStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('event_id', $eventId)
@@ -133,49 +206,6 @@ final class VendorDashboardController extends ControllerBase {
     }
     catch (\Exception) {
       // RSVP module may not be available.
-    }
-
-    // Get revenue from Commerce orders.
-    // Find all order items linked to this event.
-    $orderItemStorage = $this->entityTypeManager()->getStorage('commerce_order_item');
-    $orderItems = $orderItemStorage->loadByProperties([
-      'field_target_event' => $eventId,
-    ]);
-
-    $revenue = 0;
-    foreach ($orderItems as $item) {
-      // Check if order reference field exists and has a value before accessing.
-      if (!$item->hasField('order_id') || $item->get('order_id')->isEmpty()) {
-        continue;
-      }
-
-      // Safely load the order entity to avoid getOrder() warnings.
-      $order_id = $item->get('order_id')->target_id;
-      if (!$order_id) {
-        continue;
-      }
-
-      try {
-        $order = $this->entityTypeManager()
-          ->getStorage('commerce_order')
-          ->load($order_id);
-        // Only count revenue from completed orders.
-        if ($order && $order->getState()->getId() === 'completed') {
-          $totalPrice = $item->getTotalPrice();
-          if ($totalPrice) {
-            $revenue += (float) $totalPrice->getNumber();
-          }
-        }
-      }
-      catch (\Exception $e) {
-        // Skip order items with broken or missing order references.
-        // Log error for debugging but don't break the dashboard.
-        \Drupal::logger('myeventlane_dashboard')->warning('Skipping order item @id with invalid order reference: @message', [
-          '@id' => $item->id(),
-          '@message' => $e->getMessage(),
-        ]);
-        continue;
-      }
     }
 
     // Get event mode.
@@ -452,6 +482,7 @@ final class VendorDashboardController extends ControllerBase {
       '#past_events' => $pastEvents,
       '#quick_links' => $quickLinks,
       '#stripe_status' => $stripeStatus,
+      '#mel_vendor_is_pro' => $this->vendorProState?->isPro() ?? FALSE,
       '#welcome_message' => $this->t('Welcome back, @name. Here is an overview of your events.', [
         '@name' => $currentUser->getDisplayName(),
       ]),

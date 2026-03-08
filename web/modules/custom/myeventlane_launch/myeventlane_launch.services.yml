@@ -1,0 +1,100 @@
+services:
+  logger.channel.myeventlane_launch:
+    parent: logger.channel_base
+    arguments: ['myeventlane_launch']
+
+  logger.channel.myeventlane_monitoring:
+    parent: logger.channel_base
+    arguments: ['myeventlane_monitoring']
+
+  myeventlane_launch.vendor_finance_summary:
+    class: Drupal\myeventlane_launch\Service\VendorFinanceSummaryBuilder
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.service.metrics_aggregator'
+      - '@myeventlane_commerce.stripe_connect_payment'
+      - '@myeventlane_domain_events.read_model.finance'
+      - '@myeventlane_domain_events.read_model.vendor_metrics'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.vendor_dashboard_health:
+    class: Drupal\myeventlane_launch\Service\VendorDashboardHealthBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_analytics.conversion'
+      - '@myeventlane_vendor.service.metrics_aggregator'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.monitoring:
+    class: Drupal\myeventlane_launch\Service\MELMonitoringService
+    arguments:
+      - '@logger.channel.myeventlane_monitoring'
+
+  myeventlane_launch.webhook_processor:
+    class: Drupal\myeventlane_launch\Service\StripeWebhookProcessor
+    arguments:
+      - '@keyvalue'
+      - '@logger.channel.myeventlane_launch'
+      - '@myeventlane_launch.monitoring'
+
+  myeventlane_launch.checkout_guard:
+    class: Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard
+    arguments:
+      - '@keyvalue'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.email_sender:
+    class: Drupal\myeventlane_launch\Service\ReliableEmailSender
+    arguments:
+      - '@queue'
+      - '@keyvalue'
+      - '@logger.channel.myeventlane_launch'
+      - '@myeventlane_launch.monitoring'
+
+  myeventlane_launch.rate_limiter:
+    class: Drupal\myeventlane_launch\Service\PlatformRateLimiter
+    arguments:
+      - '@flood'
+      - '@current_user'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.event_bridge:
+    class: Drupal\myeventlane_launch\Service\LaunchPlatformEventBridge
+    arguments:
+      - '@myeventlane_launch.monitoring'
+      - '@myeventlane_launch.email_sender'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.stripe_webhook_controller:
+    class: Drupal\myeventlane_launch\Decorator\StripeWebhookControllerDecorator
+    decorates: myeventlane_admin_dashboard.stripe_webhook_controller
+    arguments:
+      - '@myeventlane_launch.stripe_webhook_controller.inner'
+      - '@myeventlane_launch.webhook_processor'
+      - '@myeventlane_launch.monitoring'
+      - '@logger.channel.myeventlane_launch'
+
+  myeventlane_launch.order_completed_subscriber:
+    class: Drupal\myeventlane_launch\EventSubscriber\LaunchOrderCompletedSubscriber
+    arguments:
+      - '@myeventlane_launch.checkout_guard'
+      - '@myeventlane_launch.event_bridge'
+      - '@myeventlane_launch.monitoring'
+      - '@entity_type.manager'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_launch'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_launch.request_protection_subscriber:
+    class: Drupal\myeventlane_launch\EventSubscriber\LaunchRequestProtectionSubscriber
+    arguments:
+      - '@myeventlane_launch.rate_limiter'
+      - '@myeventlane_launch.checkout_guard'
+      - '@myeventlane_launch.monitoring'
+      - '@logger.channel.myeventlane_launch'
+    tags:
+      - { name: event_subscriber }

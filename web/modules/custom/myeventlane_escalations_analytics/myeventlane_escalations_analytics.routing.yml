@@ -24,3 +24,4 @@ myeventlane_escalations_analytics.vendor_dashboard:
     _title: 'Support Analytics'
   requirements:
     _permission: 'view vendor escalations'
+    _myeventlane_pro_access: 'TRUE'

@@ -3,11 +3,11 @@ _core:
 langcode: en
 uuid: 91e98c0b-e383-4ebd-aaf9-c4616bd79b23
 name: MyEventLane
-mail: anna_pye@icloud.com
+mail: admin@myeventlane.com.au
 slogan: 'Your lane to great evnts'
 page:
-  403: ''
-  404: ''
+  403: /mel/403
+  404: /mel/404
   front: /home
 admin_compact_mode: false
 weight_select_max: 100

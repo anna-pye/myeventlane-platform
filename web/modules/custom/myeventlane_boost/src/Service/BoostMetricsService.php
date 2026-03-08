@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -170,7 +171,7 @@ final class BoostMetricsService {
         continue;
       }
 
-      $order = $orderItem->getOrder();
+      $order = $this->loadParentOrder($orderItem);
       if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
         continue;
       }
@@ -254,7 +255,7 @@ final class BoostMetricsService {
     // we'll use the order creation time of the first boost order item as proxy.
     $boostStartTime = NULL;
     foreach ($boostOrderItems as $orderItem) {
-      $order = $orderItem->getOrder();
+      $order = $this->loadParentOrder($orderItem);
       if ($order) {
         $orderCreated = $order->getCreatedTime();
         if ($boostStartTime === NULL || $orderCreated < $boostStartTime) {
@@ -296,7 +297,7 @@ final class BoostMetricsService {
         continue;
       }
 
-      $order = $orderItem->getOrder();
+      $order = $this->loadParentOrder($orderItem);
       if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
         continue;
       }
@@ -407,7 +408,7 @@ final class BoostMetricsService {
             $spendToDate = $budget;
           }
 
-          $order = $orderItem->getOrder();
+          $order = $this->loadParentOrder($orderItem);
           if ($order) {
             $orderState = $order->getState()->getId();
             if ($orderState === 'completed' || $orderState === 'fulfillment') {
@@ -591,7 +592,7 @@ final class BoostMetricsService {
       if (!$item instanceof OrderItemInterface || $item->bundle() === 'boost') {
         continue;
       }
-      $order = $item->getOrder();
+      $order = $this->loadParentOrder($item);
       if (!$order || !in_array($order->getState()->getId(), ['completed', 'fulfillment'], TRUE)) {
         continue;
       }
@@ -725,6 +726,29 @@ final class BoostMetricsService {
     }
 
     return $out;
+  }
+
+  /**
+   * Safely loads the parent order for an order item.
+   *
+   * Avoids OrderItem::getOrder(), which can emit warnings when order_id is
+   * unresolved during order refresh/post-load flows.
+   */
+  private function loadParentOrder(OrderItemInterface $orderItem): ?OrderInterface {
+    if ($orderItem->get('order_id')->isEmpty()) {
+      return NULL;
+    }
+
+    $orderId = (int) $orderItem->get('order_id')->target_id;
+    if ($orderId <= 0) {
+      return NULL;
+    }
+
+    $order = $this->entityTypeManager
+      ->getStorage('commerce_order')
+      ->load($orderId);
+
+    return $order instanceof OrderInterface ? $order : NULL;
   }
 
 }

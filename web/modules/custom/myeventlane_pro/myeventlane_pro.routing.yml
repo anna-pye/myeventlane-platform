@@ -45,6 +45,7 @@ myeventlane_pro.branding:
     _title: 'Branding'
   requirements:
     _custom_access: '\Drupal\myeventlane_pro\Controller\ProBrandingController::access'
+    _myeventlane_pro_access: 'TRUE'
 
 myeventlane_pro.admin_report:
   path: '/admin/platform/pro'

@@ -1,0 +1,19 @@
+enabled: true
+subject: 'Refund failure alert – {{ event_title }}'
+body_html: |-
+  A refund process reported a failure and needs admin review.
+
+  Event: {{ event_title }}
+  Order: {{ order_number }}
+  Amount: {{ refunded_amount }}
+  Reason: {{ error_message }}
+
+  {% if stripe_refund_id %}
+  Stripe refund reference: {{ stripe_refund_id }}
+  {% endif %}
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_failed_admin

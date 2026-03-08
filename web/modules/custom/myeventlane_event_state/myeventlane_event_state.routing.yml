@@ -1,18 +1,3 @@
-myeventlane_event_state.cancel_event:
-  path: '/vendor/events/{node}/cancel'
-  defaults:
-    _form: '\Drupal\myeventlane_event_state\Form\EventCancelForm'
-    _title: 'Cancel Event'
-  requirements:
-    _permission: 'myeventlane_event_state.cancel_event'
-    node: \d+
-  options:
-    parameters:
-      node:
-        type: entity:node
-        bundle:
-          - event
-
 myeventlane_event_state.refunds:
   path: '/vendor/events/{node}/refunds'
   defaults:

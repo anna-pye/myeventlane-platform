@@ -84,3 +84,20 @@ entity.myeventlane_onboarding_state.collection:
     _permission: 'administer myeventlane onboarding'
   options:
     _admin_route: TRUE
+
+# Custom error routes.
+myeventlane_core.error_403:
+  path: '/mel/403'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\ErrorController::accessDenied'
+    _title: 'Access denied'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_core.error_404:
+  path: '/mel/404'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\ErrorController::pageNotFound'
+    _title: 'Page not found'
+  requirements:
+    _access: 'TRUE'

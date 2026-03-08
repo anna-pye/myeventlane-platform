@@ -10,6 +10,10 @@ body_html: |-
   The refund should appear on your card within 2–5 business days.
 
   <a href="{{ my_tickets_url }}">View your tickets</a>
+
+  {% if tickets_cancelled and tickets_cancelled > 0 %}
+  Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+  {% endif %}
 utm:
   enable: true
   params:

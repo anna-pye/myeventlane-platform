@@ -67,7 +67,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
     /** @var static $instance */
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
-    $instance->logger = $container->get('logger.factory')->get('myeventlane_checkout');
+    $instance->logger = $container->get('logger.factory')->get('myeventlane_checkout_paragraph');
     $instance->emailValidator = $container->get('email.validator');
     $instance->ticketLabelResolver = $container->get('myeventlane_core.ticket_label_resolver');
     return $instance;
@@ -78,6 +78,10 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $pane_form['#tree'] = TRUE;
+
+    if (!$this->isVisible()) {
+      return $pane_form;
+    }
 
     $pane_form['intro'] = [
       '#type' => 'container',
@@ -91,8 +95,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     ];
 
     foreach ($this->order->getItems() as $index => $order_item) {
-      if (!$order_item->hasField('field_ticket_holder')) {
-        $this->logger->warning('Order item @id missing field_ticket_holder.', ['@id' => $order_item->id()]);
+      if (!$this->shouldCollectTicketHolders($order_item)) {
         continue;
       }
 
@@ -224,7 +227,12 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function isVisible(): bool {
-    return TRUE;
+    foreach ($this->order->getItems() as $order_item) {
+      if ($this->shouldCollectTicketHolders($order_item)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -271,7 +279,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     foreach ($this->order->getItems() as $index => $order_item) {
-      if (!$order_item->hasField('field_ticket_holder')) {
+      if (!$this->shouldCollectTicketHolders($order_item)) {
         continue;
       }
 
@@ -462,6 +470,51 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     return $event->get('field_attendee_questions')->referencedEntities();
+  }
+
+  /**
+   * Determines whether an order item should collect ticket holder fields.
+   */
+  private function shouldCollectTicketHolders(OrderItemInterface $order_item): bool {
+    if (!$order_item->hasField('field_ticket_holder')) {
+      return FALSE;
+    }
+
+    if ($this->isProSubscriptionOrderItem($order_item)) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Detects Pro subscription line items that must skip attendee collection.
+   */
+  private function isProSubscriptionOrderItem(OrderItemInterface $order_item): bool {
+    $purchased_entity = $order_item->getPurchasedEntity();
+    if ($purchased_entity === NULL) {
+      return FALSE;
+    }
+
+    if (method_exists($purchased_entity, 'bundle') && $purchased_entity->bundle() === 'mel_pro_subscription_variation') {
+      return TRUE;
+    }
+
+    if (method_exists($purchased_entity, 'getSku')) {
+      $sku = strtolower(trim((string) $purchased_entity->getSku()));
+      if ($sku !== '' && str_starts_with($sku, 'mel-pro')) {
+        return TRUE;
+      }
+    }
+
+    if (method_exists($purchased_entity, 'getProduct')) {
+      $product = $purchased_entity->getProduct();
+      if ($product !== NULL && method_exists($product, 'bundle') && $product->bundle() === 'mel_pro_subscription_product') {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
 }

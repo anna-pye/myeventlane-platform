@@ -1,0 +1,376 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install hooks for MyEventLane Domain Events.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_domain_events_schema(): array {
+  $schema = [];
+
+  $schema['myeventlane_domain_event'] = [
+    'description' => 'Append-only domain events.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'event_uuid' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'event_type' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'aggregate_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'aggregate_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'vendor_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'event_node_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'user_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'payload_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'source_module' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'source_idempotency_key' => [
+        'type' => 'varchar',
+        'length' => 191,
+        'not null' => FALSE,
+      ],
+      'occurred_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'created_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'event_uuid' => ['event_uuid'],
+    ],
+    'indexes' => [
+      'event_type' => ['event_type'],
+      'aggregate_type_aggregate_id' => ['aggregate_type', 'aggregate_id'],
+      'vendor_id' => ['vendor_id'],
+      'event_node_id' => ['event_node_id'],
+      'order_id' => ['order_id'],
+      'occurred_at' => ['occurred_at'],
+    ],
+  ];
+
+  $schema['myeventlane_domain_projection_state'] = [
+    'description' => 'Per-projector processing state for each domain event.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'projector_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'processed_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'retry_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'last_error' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'projector_event' => ['projector_id', 'event_id'],
+    ],
+    'indexes' => [
+      'projector_id' => ['projector_id'],
+      'event_id' => ['event_id'],
+      'status' => ['status'],
+    ],
+  ];
+
+  $schema['myeventlane_domain_projection_checkpoint'] = [
+    'description' => 'Per-projector checkpoint for highest processed domain event.',
+    'fields' => [
+      'projector_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'last_event_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'last_event_occurred_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ],
+      'updated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'replay_lock' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['projector_id'],
+    'indexes' => [
+      'last_event_id' => ['last_event_id'],
+      'updated_at' => ['updated_at'],
+    ],
+  ];
+
+  $schema['myeventlane_projection_finance'] = [
+    'description' => 'Finance projection read model.',
+    'fields' => [
+      'vendor_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'event_node_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'gross_revenue' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'mel_fee' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'stripe_fee' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'net_revenue' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'refund_total' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'updated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+    ],
+    'primary key' => ['vendor_id', 'event_node_id'],
+    'indexes' => [
+      'vendor_id' => ['vendor_id'],
+      'event_node_id' => ['event_node_id'],
+    ],
+  ];
+
+  $schema['myeventlane_projection_event_metrics'] = [
+    'description' => 'Per-event metrics projection read model.',
+    'fields' => [
+      'event_node_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'tickets_sold' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'rsvp_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'revenue_total' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'refund_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'checkin_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'updated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+    ],
+    'primary key' => ['event_node_id'],
+  ];
+
+  $schema['myeventlane_projection_vendor_metrics'] = [
+    'description' => 'Per-vendor metrics projection read model.',
+    'fields' => [
+      'vendor_id' => [
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+      'total_revenue' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'tickets_sold' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'active_events' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+      ],
+      'refund_total' => [
+        'type' => 'numeric',
+        'precision' => 16,
+        'scale' => 2,
+        'not null' => TRUE,
+        'default' => '0.00',
+      ],
+      'updated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ],
+    ],
+    'primary key' => ['vendor_id'],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Adds projection checkpoint storage.
+ */
+function myeventlane_domain_events_update_11001(): void {
+  $schema = myeventlane_domain_events_schema();
+  if (!isset($schema['myeventlane_domain_projection_checkpoint'])) {
+    return;
+  }
+
+  $database_schema = \Drupal::database()->schema();
+  if (!$database_schema->tableExists('myeventlane_domain_projection_checkpoint')) {
+    $database_schema->createTable(
+      'myeventlane_domain_projection_checkpoint',
+      $schema['myeventlane_domain_projection_checkpoint']
+    );
+  }
+}
+

@@ -996,6 +996,37 @@ function myeventlane_pro_update_10013(): void {
 }
 
 /**
+ * Grants cart access to vendor role for Pro checkout completion.
+ */
+function myeventlane_pro_update_10014(): void {
+  $permissionKey = 'access cart';
+  $permissions = \Drupal::service('user.permissions')->getPermissions();
+  if (!isset($permissions[$permissionKey])) {
+    \Drupal::logger('myeventlane_pro')->notice('Skipped vendor cart permission update: permission "@permission" is not defined on this site.', [
+      '@permission' => $permissionKey,
+    ]);
+    return;
+  }
+
+  $role = Role::load('vendor');
+  if (!$role) {
+    \Drupal::logger('myeventlane_pro')->error('Cannot grant cart access: vendor role does not exist.');
+    return;
+  }
+
+  if ($role->hasPermission($permissionKey)) {
+    return;
+  }
+
+  $role->grantPermission($permissionKey);
+  $role->save();
+
+  \Drupal::logger('myeventlane_pro')->notice('Granted "@permission" permission to vendor role for Pro checkout.', [
+    '@permission' => $permissionKey,
+  ]);
+}
+
+/**
  * Installs the field_is_pro_support base field on the escalation entity.
  *
  * Shared by hook_install() and update_10002().

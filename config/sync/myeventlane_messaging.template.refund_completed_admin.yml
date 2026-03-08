@@ -1,0 +1,21 @@
+enabled: true
+subject: 'Refund completed (admin copy) – {{ event_title }}'
+body_html: |-
+  A refund has completed for <strong>{{ event_title }}</strong>.
+
+  Order: {{ order_number }}
+  Amount: {{ refunded_amount }}
+
+  {% if stripe_refund_id %}
+  Stripe refund reference: {{ stripe_refund_id }}
+  {% endif %}
+
+  {% if tickets_cancelled and tickets_cancelled > 0 %}
+  Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
+  {% endif %}
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_completed_admin

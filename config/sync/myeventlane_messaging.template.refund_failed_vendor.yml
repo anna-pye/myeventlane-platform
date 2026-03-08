@@ -1,0 +1,12 @@
+enabled: true
+subject: 'Refund needs attention – {{ event_title }}'
+body_html: |-
+  A refund for Order {{ order_number }} ({{ refunded_amount }}) requires review.
+
+  Reason: {{ error_message }}
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_failed_vendor

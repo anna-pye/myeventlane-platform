@@ -22,6 +22,14 @@ services:
       - '@myeventlane_pro.entitlement'
       - '@logger.channel.myeventlane_pro'
 
+  myeventlane_pro.access.pro:
+    class: Drupal\myeventlane_pro\Access\ProAccessCheck
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_pro.active_resolver'
+    tags:
+      - { name: access_check, applies_to: _myeventlane_pro_access }
+
   myeventlane_pro.subscription_state_resolver:
     class: Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver
     arguments:
@@ -132,4 +140,11 @@ services:
       - '@entity_type.manager'
       - '@token'
       - '@logger.channel.myeventlane_pro'
+      - '@myeventlane_pro.active_resolver'
+
+  myeventlane_pro.vendor_pro_state:
+    class: Drupal\myeventlane_pro\Service\VendorProState
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
       - '@myeventlane_pro.active_resolver'

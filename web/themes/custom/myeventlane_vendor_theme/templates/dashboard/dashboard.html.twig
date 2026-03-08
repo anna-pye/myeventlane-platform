@@ -14,9 +14,35 @@
         {{ 'Welcome back'|t }}{% if account.display_name is defined and account.display_name %}, {{ account.display_name }}{% endif %}
       </h2>
       <p class="mel-dashboard-hero__subtitle">{{ 'Track what matters today and take your next best action in one place.'|t }}</p>
+      {% if launch_pro_status is defined and launch_pro_status %}
+        {{ launch_pro_status }}
+      {% elseif is_pro %}
+        <div class="mel-pro-badge active">
+          PRO PLAN ✓ Active
+          <a href="{{ path('myeventlane_pro.manage') }}">{{ 'Manage'|t }}</a>
+        </div>
+      {% else %}
+        <div class="mel-pro-badge upgrade">
+          FREE PLAN
+          {% if pro_upgrade_url %}
+            <a href="{{ pro_upgrade_url }}">{{ 'Upgrade to Pro'|t }}</a>
+          {% else %}
+            <a href="{{ path('myeventlane_pro.overview') }}">{{ 'Upgrade to Pro'|t }}</a>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
     <div class="mel-dashboard-hero__actions">
       <a class="mel-btn mel-btn--primary" href="{{ create_event_url }}">{{ 'Create Event'|t }}</a>
+      {% if is_pro %}
+        <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_pro.manage') }}">{{ 'Manage Pro Subscription'|t }}</a>
+      {% else %}
+        {% if pro_upgrade_url %}
+          <a class="mel-btn mel-btn--secondary" href="{{ pro_upgrade_url }}">{{ 'Upgrade to Pro'|t }}</a>
+        {% else %}
+          <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_pro.overview') }}">{{ 'Upgrade to Pro'|t }}</a>
+        {% endif %}
+      {% endif %}
     </div>
   </header>
 
@@ -119,6 +145,14 @@
                     <span>{{ 'RSVPs'|t }}: {{ event.rsvps|default(0) }}</span>
                     <span>{{ 'Revenue'|t }}: {{ event.revenue_formatted|default('$0') }}</span>
                   </div>
+                  {% if event.event_health is defined %}
+                    <div class="mel-performance-list__metrics">
+                      <span>{{ 'Tickets sold progress'|t }}: {{ event.event_health.tickets_progress_pct|default(0)|number_format(1) }}%</span>
+                      <span>{{ 'RSVP count'|t }}: {{ event.event_health.rsvp_count|default(0) }}</span>
+                      <span>{{ 'Page views'|t }}: {{ event.event_health.page_views|default(0) }}</span>
+                      <span>{{ 'Conversion rate'|t }}: {{ event.event_health.conversion_rate_pct|default(0)|number_format(1) }}%</span>
+                    </div>
+                  {% endif %}
                   <div class="mel-performance-list__actions">
                     {% include '@myeventlane_vendor_theme/components/status-badge.html.twig' with {
                       status: event.status_badge|default('neutral'),

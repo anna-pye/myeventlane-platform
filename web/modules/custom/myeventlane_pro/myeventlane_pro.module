@@ -138,11 +138,10 @@ function myeventlane_pro_mail(string $key, array &$message, array $params): void
  */
 function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
   $currentUser = \Drupal::currentUser();
-  $activeResolver = \Drupal::service('myeventlane_pro.active_resolver');
-  $user = \Drupal::entityTypeManager()->getStorage('user')->load((int) $currentUser->id());
-  $isPro = $user instanceof \Drupal\user\UserInterface ? $activeResolver->isUserProActive($user) : FALSE;
+  $isPro = \Drupal::service('myeventlane_pro.vendor_pro_state')->isPro();
 
   $variables['is_pro'] = $isPro;
+  $variables['mel_vendor_is_pro'] = $isPro;
   $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
 
   $showProPrompt = FALSE;

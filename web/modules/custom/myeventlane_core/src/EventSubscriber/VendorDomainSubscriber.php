@@ -71,6 +71,11 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     'myeventlane_vendor.public_list',
     'myeventlane_vendor.organisers',
     'system.form_action',
+    // Keep checkout/cart on the same domain as the initiating request to avoid
+    // cross-domain session drift during vendor subscription flows.
+    'commerce_cart.page',
+    'commerce_checkout.checkout',
+    'commerce_checkout.form',
   ];
 
   /**

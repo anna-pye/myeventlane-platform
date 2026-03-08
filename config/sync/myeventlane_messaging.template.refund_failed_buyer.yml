@@ -1,0 +1,16 @@
+enabled: true
+subject: 'Refund delayed – {{ event_title }}'
+body_html: |-
+  Hi there,
+
+  Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) could not be fully confirmed yet.
+
+  Our team has been notified and will review this.
+
+  Reference: {{ error_message }}
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: refund_refund_failed_buyer

@@ -1,0 +1,144 @@
+services:
+  logger.channel.myeventlane_domain_events:
+    parent: logger.channel_base
+    arguments: ['myeventlane_domain_events']
+
+  myeventlane_domain_events.repository:
+    class: Drupal\myeventlane_domain_events\Service\DomainEventRepository
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.projector_registry:
+    class: Drupal\myeventlane_domain_events\Service\ProjectorRegistry
+    arguments:
+      - !tagged_iterator myeventlane_domain_projector
+
+  myeventlane_domain_events.bus:
+    class: Drupal\myeventlane_domain_events\Service\DomainEventBus
+    arguments:
+      - '@uuid'
+      - '@queue'
+      - '@datetime.time'
+      - '@myeventlane_domain_events.repository'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.projector.finance:
+    class: Drupal\myeventlane_domain_events\Projector\FinanceProjector
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@cache_tags.invalidator'
+      - '@logger.channel.myeventlane_domain_events'
+    tags:
+      - { name: myeventlane_domain_projector }
+
+  myeventlane_domain_events.projector.event_metrics:
+    class: Drupal\myeventlane_domain_events\Projector\EventMetricsProjector
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@cache_tags.invalidator'
+      - '@logger.channel.myeventlane_domain_events'
+    tags:
+      - { name: myeventlane_domain_projector }
+
+  myeventlane_domain_events.projector.vendor_metrics:
+    class: Drupal\myeventlane_domain_events\Projector\VendorMetricsProjector
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@cache_tags.invalidator'
+      - '@logger.channel.myeventlane_domain_events'
+    tags:
+      - { name: myeventlane_domain_projector }
+
+  myeventlane_domain_events.read_model.event_metrics:
+    class: Drupal\myeventlane_domain_events\ProjectionReadModel\EventMetricsReadModel
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.read_model.vendor_metrics:
+    class: Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.read_model.finance:
+    class: Drupal\myeventlane_domain_events\ProjectionReadModel\FinanceReadModel
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.subscriber.order_placed:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\OrderPlacedDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.subscriber.payment_succeeded:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\PaymentSucceededDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.subscriber.ticket_issued:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\TicketIssuedDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.subscriber.rsvp_created:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\RsvpCreatedDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.subscriber.refund_completed:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\RefundCompletedDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.subscriber.checkin_completed:
+    class: Drupal\myeventlane_domain_events\EventSubscriber\CheckinCompletedDomainEventSubscriber
+    arguments:
+      - '@myeventlane_domain_events.bus'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_domain_events.projection_replay:
+    class: Drupal\myeventlane_domain_events\Service\ProjectionReplayService
+    arguments:
+      - '@database'
+      - '@myeventlane_domain_events.repository'
+      - '@myeventlane_domain_events.projector_registry'
+      - '@logger.channel.myeventlane_domain_events'
+
+  myeventlane_domain_events.projection_health:
+    class: Drupal\myeventlane_domain_events\Service\ProjectionHealthService
+    arguments:
+      - '@database'
+      - '@queue'
+      - '@myeventlane_domain_events.projector_registry'
+
+  myeventlane_domain_events.drush_command:
+    class: Drupal\myeventlane_domain_events\Commands\DomainEventsCommands
+    arguments:
+      - '@myeventlane_domain_events.projection_replay'
+    tags:
+      - { name: drush.command }
+

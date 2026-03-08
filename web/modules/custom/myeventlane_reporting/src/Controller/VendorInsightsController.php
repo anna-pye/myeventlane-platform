@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
 use Drupal\node\NodeInterface;
@@ -29,6 +30,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventMetricsServiceInterface $metricsService,
+    private readonly VendorMetricsReadModel $vendorMetricsReadModel,
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly AutomationAuditLogger $auditLogger,
   ) {
@@ -45,6 +47,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
+      $container->get('myeventlane_domain_events.read_model.vendor_metrics'),
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('myeventlane_automation.audit_logger'),
     );
@@ -132,11 +135,15 @@ final class VendorInsightsController extends VendorConsoleBaseController {
    *   Array of KPI card data.
    */
   private function buildVendorKpis(int $userId, array $events): array {
+    $vendor = $this->getCurrentVendorOrNull();
+    $vendorId = ($vendor && method_exists($vendor, 'id')) ? (int) $vendor->id() : 0;
+    $useReadModel = $vendorId > 0;
+    $vendorMetrics = $useReadModel ? $this->vendorMetricsReadModel->getVendorMetrics($vendorId) : [];
+
     $totalEvents = count($events);
     $totalAttendees = 0;
-    $totalRevenue = 0.0;
-    $totalTicketsSold = 0;
-    $totalRefunds = 0;
+    $totalRevenue = (float) ($vendorMetrics['total_revenue'] ?? 0.0);
+    $totalTicketsSold = (int) ($vendorMetrics['tickets_sold'] ?? 0);
     $totalCheckedIn = 0;
 
     // Aggregate metrics across all events.
@@ -151,19 +158,17 @@ final class VendorInsightsController extends VendorConsoleBaseController {
       $checkedInCount = $this->metricsService->getCheckedInCount($event);
       $totalCheckedIn += $checkedInCount;
 
-      $revenue = $this->metricsService->getRevenue($event);
-      if ($revenue) {
-        $totalRevenue += (float) $revenue->getNumber();
-      }
+      if (!$useReadModel) {
+        $revenue = $this->metricsService->getRevenue($event);
+        if ($revenue) {
+          $totalRevenue += (float) $revenue->getNumber();
+        }
 
-      // Count tickets sold from ticket breakdown.
-      $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
-      foreach ($ticketBreakdown as $type) {
-        $totalTicketsSold += $type['sold'] ?? 0;
+        $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
+        foreach ($ticketBreakdown as $type) {
+          $totalTicketsSold += $type['sold'] ?? 0;
+        }
       }
-
-      // @todo Get refund count from event state or commerce refunds.
-      // For now, stub with 0.
     }
 
     // Count events by state.

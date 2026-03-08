@@ -1,16 +1,30 @@
 /* Pro badge */
 .mel-pro-badge {
-  background: #8E7CFF;
-  color: #fff;
-  border-radius: 20px;
+  display: inline-block;
   padding: 4px 10px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  display: inline-block;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
   line-height: 1.4;
   vertical-align: middle;
+}
+
+.mel-pro-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.mel-pro-badge.upgrade {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.mel-pro-badge.upgrade a {
+  color: inherit;
+  font-weight: 700;
+  margin-left: 8px;
+  text-decoration: underline;
 }
 
 /* Overview page */

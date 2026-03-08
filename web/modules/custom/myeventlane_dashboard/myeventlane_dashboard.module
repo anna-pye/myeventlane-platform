@@ -72,6 +72,7 @@ function myeventlane_dashboard_theme(): array {
         'past_events' => [],
         'quick_links' => [],
         'stripe_status' => NULL,
+        'mel_vendor_is_pro' => FALSE,
         'welcome_message' => NULL,
       ],
       'template' => 'myeventlane-vendor-dashboard',

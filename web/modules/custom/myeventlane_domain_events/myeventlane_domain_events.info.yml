@@ -1,0 +1,11 @@
+name: MyEventLane Domain Events
+type: module
+description: "Durable append-only domain event store and queue-driven projectors."
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:commerce_order
+  - drupal:commerce_payment
+  - myeventlane_launch:myeventlane_launch
+  - myeventlane_rsvp:myeventlane_rsvp
+  - myeventlane_tickets:myeventlane_tickets

@@ -39,7 +39,7 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
   $order = $access_resolver->getParentOrder($entity);
   if (!$order) {
     // If we can't resolve the order, deny access (safety first).
-    \Drupal::logger('myeventlane_checkout')->error(
+    \Drupal::logger('myeventlane_checkout_paragraph')->error(
       'Access denied: attendee_answer paragraph @pid has no resolvable parent order.',
       [
         '@pid' => $entity->id(),
@@ -80,7 +80,7 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
           ->addCacheableDependency($entity)
           ->addCacheableDependency($order);
       }
-      \Drupal::logger('myeventlane_checkout')->warning(
+      \Drupal::logger('myeventlane_checkout_paragraph')->warning(
         'Access denied: attendee_answer paragraph @pid view not permitted for user @uid.',
         [
           '@pid' => $entity->id(),
@@ -101,7 +101,7 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
       // Check if order is locked (placed or later).
       if ($access_resolver->isOrderLocked($order)) {
         // Order is locked - deny update/delete for everyone except admin.
-        \Drupal::logger('myeventlane_checkout')->warning(
+        \Drupal::logger('myeventlane_checkout_paragraph')->warning(
           'Access denied: attendee_answer paragraph @pid @op blocked because order @order_id is locked.',
           [
             '@pid' => $entity->id(),
@@ -128,7 +128,7 @@ function myeventlane_checkout_paragraph_entity_access(EntityInterface $entity, s
       }
 
       // Vendors cannot update/delete attendee data (even for their events).
-      \Drupal::logger('myeventlane_checkout')->warning(
+      \Drupal::logger('myeventlane_checkout_paragraph')->warning(
         'Access denied: attendee_answer paragraph @pid @op not permitted for user @uid.',
         [
           '@pid' => $entity->id(),
@@ -193,7 +193,7 @@ function myeventlane_checkout_paragraph_paragraph_presave(ParagraphInterface $pa
       // Paragraph is being saved without a parent order item reference.
       // This could be legitimate during creation, but log a warning if it's not new.
       if (!$paragraph->isNew()) {
-        \Drupal::logger('myeventlane_checkout')->warning(
+        \Drupal::logger('myeventlane_checkout_paragraph')->warning(
           'Integrity check: attendee_answer paragraph @pid is being saved but is not referenced by any order item via field_ticket_holder.',
           ['@pid' => $paragraph->id()]
         );

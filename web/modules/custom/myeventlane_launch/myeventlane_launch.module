@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Hook implementations for MyEventLane Launch module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_launch_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'myeventlane_launch_pro_status' => [
+      'variables' => [
+        'is_pro' => FALSE,
+        'upgrade_url' => NULL,
+      ],
+      'template' => 'pro-status',
+    ],
+    'myeventlane_launch_vendor_finance_page' => [
+      'variables' => [
+        'summary' => [],
+      ],
+      'template' => 'vendor-finance-page',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ */
+function myeventlane_launch_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  $isPro = (bool) ($variables['mel_vendor_is_pro'] ?? $variables['is_pro'] ?? FALSE);
+  if (\Drupal::hasService('myeventlane_pro.vendor_pro_state')) {
+    try {
+      $isPro = (bool) \Drupal::service('myeventlane_pro.vendor_pro_state')->isPro();
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_launch')->warning('Unable to resolve Pro state in launch preprocess: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  $variables['launch_pro_status'] = [
+    '#theme' => 'myeventlane_launch_pro_status',
+    '#is_pro' => $isPro,
+    '#upgrade_url' => $variables['pro_upgrade_url'] ?? NULL,
+  ];
+
+  $rows = $variables['dashboard_event_performance'] ?? [];
+  if (!is_array($rows) || $rows === []) {
+    return;
+  }
+
+  try {
+    $builder = \Drupal::service('myeventlane_launch.vendor_dashboard_health');
+    $variables['dashboard_event_performance'] = $builder->enrichRows($rows);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_launch')->warning('Event health enrichment failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function myeventlane_launch_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'reliable_delivery') {
+    return;
+  }
+
+  $message['subject'] = (string) ($params['subject'] ?? 'MyEventLane notification');
+  $message['body'] = [(string) ($params['body'] ?? '')];
+  if (!empty($params['headers']) && is_array($params['headers'])) {
+    $message['headers'] = array_merge($message['headers'] ?? [], $params['headers']);
+  }
+}

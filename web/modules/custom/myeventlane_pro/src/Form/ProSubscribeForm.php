@@ -14,6 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -26,11 +27,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class ProSubscribeForm extends FormBase {
 
-  private const PRO_ROLE = 'pro_organiser';
-
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly ProProductResolver $productResolver,
+    private readonly ProActiveResolver $activeResolver,
     private readonly CartProviderInterface $cartProvider,
     private readonly CartManagerInterface $cartManager,
     private readonly AccessManagerInterface $accessManager,
@@ -45,6 +45,7 @@ final class ProSubscribeForm extends FormBase {
     return new static(
       $container->get('current_user'),
       $container->get('myeventlane_pro.product_resolver'),
+      $container->get('myeventlane_pro.active_resolver'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('commerce_cart.cart_manager'),
       $container->get('access_manager'),
@@ -64,7 +65,8 @@ final class ProSubscribeForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?string $pro_price = NULL): array {
-    if (in_array(self::PRO_ROLE, $this->currentUser->getRoles(), TRUE)) {
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    if ($user instanceof UserInterface && $this->activeResolver->isUserProActive($user)) {
       return $form;
     }
 
@@ -85,10 +87,18 @@ final class ProSubscribeForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $overviewUrl = new Url('myeventlane_pro.overview');
+    $manageUrl = new Url('myeventlane_pro.manage');
 
-    if (in_array(self::PRO_ROLE, $this->currentUser->getRoles(), TRUE)) {
-      $this->messenger()->addStatus($this->t('You already have an active Pro subscription.'));
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    if (!$user instanceof UserInterface) {
+      $this->logger->error('Unable to load current user @uid for Pro checkout.', ['@uid' => (string) $this->currentUser->id()]);
       $form_state->setRedirectUrl($overviewUrl);
+      return;
+    }
+
+    if ($this->activeResolver->isUserProActive($user)) {
+      $this->messenger()->addStatus($this->t('You already have an active Pro subscription.'));
+      $form_state->setRedirectUrl($manageUrl);
       return;
     }
 
@@ -123,13 +133,6 @@ final class ProSubscribeForm extends FormBase {
       return;
     }
 
-    $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
-    if (!$user instanceof UserInterface) {
-      $this->logger->error('Unable to load current user @uid for Pro checkout.', ['@uid' => (string) $this->currentUser->id()]);
-      $form_state->setRedirectUrl($overviewUrl);
-      return;
-    }
-
     $cart = $this->cartProvider->getCart('default', $store, $user);
     if (!$cart) {
       $cart = $this->cartProvider->createCart('default', $store, $user);
@@ -149,6 +152,20 @@ final class ProSubscribeForm extends FormBase {
     }
 
     $this->cartManager->addEntity($cart, $variation);
+    // Persist customer ownership defensively after cart mutations.
+    if ((int) $cart->getCustomerId() !== $currentUid) {
+      $cart->setCustomerId($currentUid);
+      $cart->save();
+    }
+    $this->logger->notice(
+      'Pro subscribe cart prepared. current_uid=@current_uid cart_order=@order_id cart_customer=@cart_customer store=@store_id',
+      [
+        '@current_uid' => (string) $currentUid,
+        '@order_id' => (string) $cart->id(),
+        '@cart_customer' => (string) $cart->getCustomerId(),
+        '@store_id' => (string) ($store->id() ?? 0),
+      ],
+    );
     $form_state->setRedirectUrl($this->buildCheckoutRedirectUrl($cart));
   }
 
@@ -157,6 +174,19 @@ final class ProSubscribeForm extends FormBase {
    */
   private function buildCheckoutRedirectUrl(OrderInterface $order): Url {
     try {
+      // Use generic checkout entrypoint first. Commerce resolves the active cart
+      // for the current customer and avoids order-specific access denials.
+      if ($this->accessManager->checkNamedRoute('commerce_checkout.checkout', [], $this->currentUser, TRUE)->isAllowed()) {
+        $this->logger->notice(
+          'Redirecting Pro checkout to generic checkout route for order @order_id and user @uid.',
+          [
+            '@order_id' => (string) $order->id(),
+            '@uid' => (string) $this->currentUser->id(),
+          ],
+        );
+        return Url::fromRoute('commerce_checkout.checkout');
+      }
+
       if ($order->hasField('checkout_flow') && !$order->get('checkout_flow')->isEmpty()) {
         $flow = $order->get('checkout_flow')->entity;
         if ($flow) {
@@ -182,7 +212,7 @@ final class ProSubscribeForm extends FormBase {
         }
       }
 
-      // Fallback for environments where checkout step is auto-resolved.
+      // Fallback for environments that require explicit order route params.
       $params = [
         'commerce_order' => $order->id(),
       ];

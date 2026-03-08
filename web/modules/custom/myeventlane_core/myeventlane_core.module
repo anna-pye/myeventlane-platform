@@ -23,6 +23,12 @@ use Symfony\Component\Routing\RouteCollection;
  */
 function myeventlane_core_theme(): array {
   return [
+    'mel_403' => [
+      'template' => 'mel-403',
+    ],
+    'mel_404' => [
+      'template' => 'mel-404',
+    ],
     'myeventlane_my_categories' => [
       'variables' => [
         'followed_categories' => [],

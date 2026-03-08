@@ -1,0 +1,12 @@
+name: MyEventLane Launch
+type: module
+description: "Launch readiness orchestration, hardening, and reliability safeguards."
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - myeventlane_admin_dashboard:myeventlane_admin_dashboard
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_pro:myeventlane_pro
+  - myeventlane_analytics:myeventlane_analytics
+  - myeventlane_reporting:myeventlane_reporting
+  - myeventlane_commerce:myeventlane_commerce

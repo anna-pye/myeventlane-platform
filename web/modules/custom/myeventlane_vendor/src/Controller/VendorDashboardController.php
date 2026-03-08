@@ -19,6 +19,7 @@ use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
+use Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel;
 use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
@@ -84,6 +85,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected ?ConfigFactoryInterface $configFactory;
 
   /**
+   * Vendor metrics read model.
+   */
+  protected VendorMetricsReadModel $vendorMetricsReadModel;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -95,6 +101,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
+    VendorMetricsReadModel $vendor_metrics_read_model,
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
@@ -107,6 +114,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->boostStatus = $boost_status;
     $this->ticketSales = $ticket_sales;
     $this->vendorKpiService = $vendor_kpi_service;
+    $this->vendorMetricsReadModel = $vendor_metrics_read_model;
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
     $this->eventStateResolver = $event_state_resolver;
@@ -127,6 +135,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
+      $container->get('myeventlane_domain_events.read_model.vendor_metrics'),
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
@@ -160,7 +169,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $eventNodes = $this->loadEventNodes($userEvents);
 
     // Build all dashboard data.
-    $kpis = $this->buildKpiCards($eventNodes);
+    $kpis = $this->buildKpiCards($eventNodes, $vendor);
     $events = $this->getEventsTableData($userEvents);
     $bestEvent = $this->getBestPerformingEvent($userEvents);
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
@@ -690,7 +699,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * @return array
    *   Array of KPI card arrays. Returns empty array if services unavailable.
    */
-  private function buildKpiCards(array $eventNodes): array {
+  private function buildKpiCards(array $eventNodes, $vendor = NULL): array {
     // Defensive guard: ensure services are available.
     if (!$this->rsvpStats || !$this->ticketSales) {
       return [];
@@ -705,26 +714,33 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       static fn(NodeInterface $node): bool => $node->isPublished()
     ));
 
-    $totalRevenue = 0.0;
-    $ticketsSold = 0;
+    $vendorId = ($vendor && method_exists($vendor, 'id')) ? (int) $vendor->id() : 0;
+    $useReadModel = $vendorId > 0;
+    $vendorMetrics = $useReadModel ? $this->vendorMetricsReadModel->getVendorMetrics($vendorId) : [];
+
+    $totalRevenue = (float) ($vendorMetrics['total_revenue'] ?? 0.0);
+    $ticketsSold = (int) ($vendorMetrics['tickets_sold'] ?? 0);
+    $activeEvents = (int) ($vendorMetrics['active_events'] ?? 0);
     $totalRsvps = 0;
     $last30DaysRevenue = 0.0;
     $thirtyDaysAgo = strtotime('-30 days');
 
     foreach ($publishedNodes as $node) {
       $eventId = (int) $node->id();
-      try {
-        $salesSummary = $this->ticketSales->getSalesSummary($node);
-        $eventRevenue = (float) ($salesSummary['gross_raw'] ?? 0.0);
-        $totalRevenue += $eventRevenue;
-        $ticketsSold += (int) ($salesSummary['tickets_sold'] ?? 0);
+      if (!$useReadModel) {
+        try {
+          $salesSummary = $this->ticketSales->getSalesSummary($node);
+          $eventRevenue = (float) ($salesSummary['gross_raw'] ?? 0.0);
+          $totalRevenue += $eventRevenue;
+          $ticketsSold += (int) ($salesSummary['tickets_sold'] ?? 0);
 
-        if (method_exists($node, 'getChangedTime') && (int) $node->getChangedTime() >= (int) $thirtyDaysAgo) {
-          $last30DaysRevenue += $eventRevenue;
+          if (method_exists($node, 'getChangedTime') && (int) $node->getChangedTime() >= (int) $thirtyDaysAgo) {
+            $last30DaysRevenue += $eventRevenue;
+          }
         }
-      }
-      catch (\Throwable) {
-        // Keep dashboard resilient; continue with remaining events.
+        catch (\Throwable) {
+          // Keep dashboard resilient; continue with remaining events.
+        }
       }
 
       try {
@@ -735,10 +751,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
     }
 
-    $activeEvents = $this->getUpcomingEventsCount(array_map(
-      static fn(NodeInterface $node): int => (int) $node->id(),
-      $publishedNodes
-    ));
+    if (!$useReadModel) {
+      $activeEvents = $this->getUpcomingEventsCount(array_map(
+        static fn(NodeInterface $node): int => (int) $node->id(),
+        $publishedNodes
+      ));
+    }
     $totalAttendees = $ticketsSold + $totalRsvps;
 
     return [
