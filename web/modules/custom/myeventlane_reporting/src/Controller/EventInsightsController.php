@@ -34,7 +34,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventMetricsServiceInterface $metricsService,
-    private readonly EventMetricsReadModel $eventMetricsReadModel,
+    private readonly ?EventMetricsReadModel $eventMetricsReadModel,
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly AutomationAuditLogger $auditLogger,
   ) {
@@ -51,7 +51,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
-      $container->get('myeventlane_domain_events.read_model.event_metrics'),
+      $container->has('myeventlane_domain_events.read_model.event_metrics') ? $container->get('myeventlane_domain_events.read_model.event_metrics') : NULL,
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('myeventlane_automation.audit_logger'),
     );
@@ -252,7 +252,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds event-level KPIs.
    */
   private function buildEventKpis(NodeInterface $event): array {
-    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $metrics = $this->getEventMetrics($event);
     $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
     $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
     $attendeeCount = $ticketsSold + $rsvpCount;
@@ -297,7 +297,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds sales-specific KPIs.
    */
   private function buildSalesKpis(NodeInterface $event): array {
-    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $metrics = $this->getEventMetrics($event);
     $totalTickets = (int) ($metrics['tickets_sold'] ?? 0);
     $revenueTotal = (float) ($metrics['revenue_total'] ?? 0.0);
     $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
@@ -328,7 +328,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds attendee-specific KPIs.
    */
   private function buildAttendeeKpis(NodeInterface $event): array {
-    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $metrics = $this->getEventMetrics($event);
     $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
     $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
     $attendeeCount = $ticketsSold + $rsvpCount;
@@ -359,7 +359,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
    * Builds check-in specific KPIs.
    */
   private function buildCheckInKpis(NodeInterface $event): array {
-    $metrics = $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    $metrics = $this->getEventMetrics($event);
     $ticketsSold = (int) ($metrics['tickets_sold'] ?? 0);
     $rsvpCount = (int) ($metrics['rsvp_count'] ?? 0);
     $attendeeCount = $ticketsSold + $rsvpCount;
@@ -420,6 +420,39 @@ final class EventInsightsController extends VendorConsoleBaseController {
         'url' => Url::fromRoute('myeventlane_reporting.event_insights.traffic', ['event' => $eventId])->toString(),
         'id' => 'traffic',
       ],
+    ];
+  }
+
+  /**
+   * Gets event metrics from read model with fallback for pre-enable states.
+   */
+  private function getEventMetrics(NodeInterface $event): array {
+    if ($this->eventMetricsReadModel !== NULL) {
+      return $this->eventMetricsReadModel->getEventMetrics((int) $event->id());
+    }
+
+    $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
+    $ticketsSold = 0;
+    foreach ($ticketBreakdown as $type) {
+      $ticketsSold += (int) ($type['sold'] ?? 0);
+    }
+
+    $rsvpCount = 0;
+    $repository = $this->repositoryResolver->getRepository($event);
+    foreach ($repository->loadByEvent($event) as $attendee) {
+      if (($attendee->getSource() ?? 'rsvp') === 'rsvp') {
+        $rsvpCount++;
+      }
+    }
+
+    $revenue = $this->metricsService->getRevenue($event);
+
+    return [
+      'tickets_sold' => $ticketsSold,
+      'rsvp_count' => $rsvpCount,
+      'checkin_count' => $this->metricsService->getCheckedInCount($event),
+      'revenue_total' => $revenue ? (float) $revenue->getNumber() : 0.0,
+      'refund_count' => 0,
     ];
   }
 

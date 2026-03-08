@@ -1,13 +1,13 @@
 services:
   myeventlane_reporting.vendor_insights:
     class: Drupal\myeventlane_reporting\Controller\VendorInsightsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_domain_events.read_model.vendor_metrics', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@?myeventlane_domain_events.read_model.vendor_metrics', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
     tags:
       - { name: controller.service_arguments }
 
   myeventlane_reporting.event_insights:
     class: Drupal\myeventlane_reporting\Controller\EventInsightsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_domain_events.read_model.event_metrics', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_metrics.service', '@?myeventlane_domain_events.read_model.event_metrics', '@myeventlane_attendee.repository_resolver', '@myeventlane_automation.audit_logger']
     tags:
       - { name: controller.service_arguments }
 

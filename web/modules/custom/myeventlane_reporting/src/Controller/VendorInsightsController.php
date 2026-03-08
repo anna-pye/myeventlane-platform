@@ -30,7 +30,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventMetricsServiceInterface $metricsService,
-    private readonly VendorMetricsReadModel $vendorMetricsReadModel,
+    private readonly ?VendorMetricsReadModel $vendorMetricsReadModel,
     private readonly AttendeeRepositoryResolver $repositoryResolver,
     private readonly AutomationAuditLogger $auditLogger,
   ) {
@@ -47,7 +47,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
-      $container->get('myeventlane_domain_events.read_model.vendor_metrics'),
+      $container->has('myeventlane_domain_events.read_model.vendor_metrics') ? $container->get('myeventlane_domain_events.read_model.vendor_metrics') : NULL,
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('myeventlane_automation.audit_logger'),
     );
@@ -137,7 +137,7 @@ final class VendorInsightsController extends VendorConsoleBaseController {
   private function buildVendorKpis(int $userId, array $events): array {
     $vendor = $this->getCurrentVendorOrNull();
     $vendorId = ($vendor && method_exists($vendor, 'id')) ? (int) $vendor->id() : 0;
-    $useReadModel = $vendorId > 0;
+    $useReadModel = $vendorId > 0 && $this->vendorMetricsReadModel !== NULL;
     $vendorMetrics = $useReadModel ? $this->vendorMetricsReadModel->getVendorMetrics($vendorId) : [];
 
     $totalEvents = count($events);
