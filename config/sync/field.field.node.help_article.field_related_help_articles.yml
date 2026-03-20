@@ -1,0 +1,23 @@
+uuid: 80d35615-51b1-42ae-8b04-2819f0ac6e31
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_related_help_articles
+    - node.type.help_article
+id: node.help_article.field_related_help_articles
+field_name: field_related_help_articles
+entity_type: node
+bundle: help_article
+label: 'Related Help Articles'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      help_article: help_article
+field_type: entity_reference

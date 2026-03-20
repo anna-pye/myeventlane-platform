@@ -29,7 +29,7 @@
 | myeventlane_escalations_portal.customer_add | create escalation | myeventlane_escalations_portal | Via /my/support page | N/A | OK |
 | myeventlane_escalations_portal.vendor_list | view vendor escalations | myeventlane_escalations_portal | ✅ vendor sidebar | N/A | OK |
 | myeventlane_help_centre.public_index | _access TRUE | myeventlane_help_centre | ✅ footer menu | N/A | FIXED |
-| myeventlane_help_centre.vendor_index | view vendor help centre | myeventlane_help_centre | ✅ vendor sidebar + account | N/A | OK |
+| myeventlane_help_centre.vendor_help | view vendor help centre | myeventlane_help_centre | ✅ vendor sidebar + account | N/A | OK |
 | myeventlane_help_centre_ai.ask | _access TRUE | myeventlane_help_centre_ai | ✅ Linked from /help (ask_url) | N/A | OK |
 | myeventlane_staff_playbooks.governance_dashboard | administer escalations | myeventlane_staff_playbooks | ✅ Yes | N/A | OK |
 | myeventlane_staff_playbooks_ai.summary | generate playbook ai summaries | myeventlane_staff_playbooks_ai | N/A (node-scoped action) | N/A | OK |

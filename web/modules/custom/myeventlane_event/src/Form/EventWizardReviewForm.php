@@ -103,6 +103,7 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
     return [
       '#theme' => 'myeventlane_event_wizard_review',
       '#title' => $title,
+      // Also expose entity on the form root for shared wizard helpers (e.g. suggestions).
       '#event' => $event,
       '#steps' => $steps,
       '#summary' => $payload['groups'],
@@ -111,6 +112,7 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
       '#tickets_edit_link' => $tickets_edit_link ? $this->ticketsEditLinkRenderArray($tickets_edit_link) : NULL,
       '#publish_url' => $publish_url,
       '#card_preview' => $card_preview,
+      '#step_id' => 'review',
       '#attached' => [
         'library' => ['myeventlane_event/event_wizard'],
       ],

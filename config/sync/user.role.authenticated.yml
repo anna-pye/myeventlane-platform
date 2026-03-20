@@ -14,6 +14,7 @@ dependencies:
     - media
     - myeventlane_checkin
     - myeventlane_escalations_portal
+    - myeventlane_help_assistant
     - myeventlane_event_state
     - paragraphs
     - profile
@@ -33,6 +34,7 @@ permissions:
   - 'access comments'
   - 'access commerce_order overview'
   - 'access content'
+  - 'access myeventlane help assistant'
   - 'access shortcuts'
   - 'access site-wide contact form'
   - 'change own username'

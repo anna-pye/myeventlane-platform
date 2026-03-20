@@ -4,25 +4,29 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_help_centre\Controller;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
 use Drupal\taxonomy\TermInterface;
+use Drupal\views\Views;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Controller for the help centre pages.
- *
- * Loads help_article nodes filtered by audience and grouped by
- * taxonomy term (field_help_category). No analytics, no tracking,
- * no behavioural scoring. Content is fully cacheable.
+ * Controller for public and vendor Help Centre pages.
  */
 final class HelpCentreController extends ControllerBase {
 
   public function __construct(
     private readonly EntityFieldManagerInterface $entityFieldManager,
+    private readonly EntityTypeManagerInterface $entityTypeManagerService,
+    private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
+    private readonly HelpAnalyticsService $analyticsService,
   ) {}
 
   /**
@@ -31,113 +35,174 @@ final class HelpCentreController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('entity_field.manager'),
+      $container->get('entity_type.manager'),
+      $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_help_centre'),
+      $container->get('myeventlane_help_centre.analytics'),
     );
   }
 
   /**
-   * Renders the public help centre index.
-   *
-   * Shows published help articles with audience "public", grouped by
-   * category and ordered by priority then title.
-   *
-   * @return array
-   *   A render array.
+   * Renders the Help Centre homepage.
    */
   public function publicIndex(): array {
-    $groups = $this->loadGroupedArticles('public');
-
-    return [
-      '#theme' => 'help_centre_index',
-      '#heading' => $this->t('Help Centre'),
-      '#groups' => $groups,
-      '#is_vendor' => FALSE,
-      '#cache' => [
-        'tags' => ['node_list:help_article'],
-        'contexts' => ['url'],
-      ],
-    ];
+    return $this->homepage();
   }
 
   /**
-   * Renders the vendor help centre index.
-   *
-   * Shows published help articles with audience "vendor", grouped by
-   * category and ordered by priority then title.
-   *
-   * @return array
-   *   A render array.
+   * Renders the Help Centre SaaS-style homepage.
    */
-  public function vendorIndex(): array {
-    $groups = $this->loadGroupedArticles('vendor');
+  public function homepage(): array {
+    $currentRequest = $this->requestStack->getCurrentRequest();
+    $queryValue = $currentRequest?->query->get('q');
+    $searchValue = is_string($queryValue) ? trim($queryValue) : '';
 
-    return [
-      '#theme' => 'help_centre_index',
-      '#heading' => $this->t('Help Centre'),
-      '#groups' => $groups,
-      '#is_vendor' => TRUE,
-      '#cache' => [
-        'tags' => ['node_list:help_article'],
-        'contexts' => ['url', 'user.permissions'],
+    $build = [
+      '#theme' => 'help_centre_home',
+      '#help_search' => [
+        'action' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
+        'value' => $searchValue,
+        'placeholder' => $this->t('Search help articles...'),
       ],
+      '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
+      '#help_categories' => $this->loadHelpCategories(),
+      '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
     ];
+
+    $cacheability = new CacheableMetadata();
+    $cacheability->setCacheTags([
+      'node_list:help_article',
+      'node_list:faq',
+      'taxonomy_term_list',
+      'config:taxonomy.vocabulary.help_topic',
+    ]);
+    $cacheability->setCacheContexts([
+      'url.path',
+      'url.query_args:q',
+      'languages:language_interface',
+      'user.permissions',
+    ]);
+    $cacheability->applyTo($build);
+
+    return $build;
   }
 
   /**
-   * Renders a vendor help centre topic page.
-   *
-   * Shows published help articles with audience "vendor" filtered to
-   * a specific help category taxonomy term.
-   *
-   * @param \Drupal\taxonomy\TermInterface $category
-   *   The help category taxonomy term.
-   *
-   * @return array
-   *   A render array.
+   * Renders the attendee Help Centre listing.
+   */
+  public function attendeesIndex(): array {
+    return $this->buildViewPage((string) $this->t('Attendee help'), 'mel_help_attendee_help', 'block_attendees');
+  }
+
+  /**
+   * Renders the organiser Help Centre listing.
+   */
+  public function organisersIndex(): array {
+    return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_organiser_help', 'block_organisers');
+  }
+
+  /**
+   * Renders the vendor Help Centre listing.
+   */
+  public function vendorsIndex(): array {
+    return $this->buildViewPage((string) $this->t('Vendor help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
+  }
+
+  /**
+   * Renders the policies and trust Help Centre listing.
+   */
+  public function policiesIndex(): array {
+    return $this->buildViewPage((string) $this->t('Policies and trust'), 'mel_help_policies_help', 'block_policies');
+  }
+
+  /**
+   * Renders Help Centre articles by category.
+   */
+  public function categoryIndex(TermInterface $category): array {
+    return $this->buildViewPage((string) $category->label(), 'mel_help_search', 'block_search');
+  }
+
+  /**
+   * Category page title callback.
+   */
+  public function categoryIndexTitle(TermInterface $category): string {
+    return (string) $category->label();
+  }
+
+  /**
+   * Renders scoped Help Centre search for articles and FAQs.
+   */
+  public function searchIndex(): array {
+    $request = $this->requestStack->getCurrentRequest();
+    $query = trim((string) ($request?->query->get('q') ?? ''));
+    if ($query !== '') {
+      $resultCount = $this->countSearchResults($request?->query->all() ?? []);
+      $this->analyticsService->logSearch($query, $resultCount);
+    }
+    return $this->buildViewPage((string) $this->t('Search help'), 'mel_help_search', 'block_search');
+  }
+
+  /**
+   * Vendor Help Centre homepage: same layout as /help, scoped for vendors.
+   */
+  public function vendorHelp(): array {
+    $currentRequest = $this->requestStack->getCurrentRequest();
+    $queryValue = $currentRequest?->query->get('q');
+    $searchValue = is_string($queryValue) ? trim($queryValue) : '';
+
+    $build = [
+      '#theme' => 'help_centre_home',
+      '#context' => 'vendor',
+      '#help_search' => [
+        'action' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
+        'value' => $searchValue,
+        'placeholder' => $this->t('Search help articles...'),
+      ],
+      '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
+      '#vendors' => $this->buildView('mel_help_vendor_help', 'block_vendors'),
+      '#help_categories' => $this->loadHelpCategories(),
+      '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
+    ];
+
+    $cacheability = new CacheableMetadata();
+    $cacheability->setCacheTags([
+      'node_list:help_article',
+      'node_list:faq',
+      'taxonomy_term_list',
+      'config:taxonomy.vocabulary.help_topic',
+      'config:taxonomy.vocabulary.help_audience',
+    ]);
+    $cacheability->setCacheContexts([
+      'url.path',
+      'url.query_args:q',
+      'languages:language_interface',
+      'user.permissions',
+    ]);
+    $cacheability->applyTo($build);
+
+    return $build;
+  }
+
+  /**
+   * Existing vendor topic route, retained for backward compatibility.
    */
   public function vendorTopic(TermInterface $category): array {
-    $groups = $this->loadGroupedArticles('vendor', $category);
-
-    return [
-      '#theme' => 'help_centre_index',
-      '#heading' => $category->label(),
-      '#groups' => $groups,
-      '#is_vendor' => TRUE,
-      '#cache' => [
-        'tags' => array_merge(
-          ['node_list:help_article'],
-          $category->getCacheTags(),
-        ),
-        'contexts' => ['url', 'user.permissions'],
-      ],
-    ];
+    return $this->buildViewPage((string) $category->label(), 'mel_help_vendor_help', 'block_vendors', TRUE, [(int) $category->id()]);
   }
 
   /**
-   * Title callback for vendor topic pages.
-   *
-   * @param \Drupal\taxonomy\TermInterface $category
-   *   The help category taxonomy term.
-   *
-   * @return string
-   *   The page title.
+   * Existing vendor topic title callback.
    */
   public function vendorTopicTitle(TermInterface $category): string {
     return (string) $category->label();
   }
 
   /**
-   * Renders the Staff Snippet Authoring Guide.
-   *
-   * Admin-only. Loads the help_article "Staff Snippet Authoring Guide"
-   * (audience: staff) and displays it.
-   *
-   * @return array
-   *   A render array.
+   * Renders the staff guide help article.
    */
   public function staffSnippetAuthoring(): array {
     try {
-      $nodes = $this->entityTypeManager()->getStorage('node')
+      $nodes = $this->entityTypeManagerService->getStorage('node')
         ->loadByProperties([
           'type' => 'help_article',
           'title' => 'Staff Snippet Authoring Guide',
@@ -145,9 +210,9 @@ final class HelpCentreController extends ControllerBase {
         ]);
       $node = $nodes ? reset($nodes) : NULL;
     }
-    catch (\Exception $e) {
+    catch (\Exception $exception) {
       $this->logger->error('Failed to load Staff Snippet Authoring Guide: @message', [
-        '@message' => $e->getMessage(),
+        '@message' => $exception->getMessage(),
       ]);
       return [
         '#markup' => '<p>' . $this->t('The guide is not yet available. Please contact your administrator.') . '</p>',
@@ -162,113 +227,121 @@ final class HelpCentreController extends ControllerBase {
       ];
     }
 
-    $view_builder = $this->entityTypeManager()->getViewBuilder('node');
-    $build = $view_builder->view($node, 'full');
+    $build = $this->entityTypeManagerService->getViewBuilder('node')->view($node, 'full');
+    $cacheability = CacheableMetadata::createFromRenderArray($build);
+    $cacheability->addCacheTags(['node:' . $node->id(), 'node_list:help_article']);
+    $cacheability->addCacheContexts(['user.permissions']);
+    $cacheability->applyTo($build);
 
-    $build['#cache']['tags'] = array_merge(
-      $build['#cache']['tags'] ?? [],
-      ['node:' . $node->id(), 'node_list:help_article'],
-    );
-    $build['#cache']['contexts'] = ['user.permissions'];
+    return $build;
+  }
+
+  private function buildViewPage(string $heading, string $viewId, string $displayId, bool $isVendor = FALSE, array $arguments = []): array {
+    $build = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['help-centre-page']],
+      'heading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => $heading,
+        '#attributes' => ['class' => ['help-centre-page__title']],
+      ],
+      'listing' => $this->buildView($viewId, $displayId, $arguments),
+      'support' => [
+        '#markup' => '<section class="mel-help-support-panel"><h2>' . $this->t('Still need help?') . '</h2><p>' . $this->t('If you still need a hand, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="/contact">' . $this->t('Contact support') . '</a></p></section>',
+      ],
+    ];
+
+    if ($isVendor) {
+      $build['#attributes']['class'][] = 'help-centre-page--vendor';
+    }
 
     return $build;
   }
 
   /**
-   * Loads help articles grouped by category.
+   * Builds a render array for a configured View display.
    *
-   * @param string $audience
-   *   The audience filter ('public' or 'vendor').
-   * @param \Drupal\taxonomy\TermInterface|null $category
-   *   Optional category to filter by.
-   *
-   * @return array
-   *   An array of groups, each containing:
-   *   - 'term_id': The taxonomy term ID.
-   *   - 'term_name': The taxonomy term label.
-   *   - 'term_url': URL to the vendor topic page (vendor only).
-   *   - 'articles': Array of article data.
+   * @param array<int, int|string> $arguments
+   *   Optional contextual arguments.
    */
-  private function loadGroupedArticles(string $audience, ?TermInterface $category = NULL): array {
-    $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
-    if (!isset($storageDefinitions['field_audience']) || !isset($storageDefinitions['field_priority'])) {
-      $this->logger->error(
-        'HelpCentreController: field_audience or field_priority missing from node field storage. Run config:import or verify myeventlane_help_centre is correctly installed.'
-      );
-      return [];
-    }
+  private function buildView(string $viewId, string $displayId, array $arguments = []): array {
+    return [
+      '#type' => 'view',
+      '#name' => $viewId,
+      '#display_id' => $displayId,
+      '#arguments' => $arguments,
+    ];
+  }
 
+  /**
+   * Loads Help Topic terms and article counts for the homepage.
+   */
+  private function loadHelpCategories(): array {
     try {
-      $nodeStorage = $this->entityTypeManager()->getStorage('node');
-
-      $query = $nodeStorage->getQuery()
-        ->condition('type', 'help_article')
-        ->condition('status', 1)
-        ->condition('field_audience', $audience)
-        ->sort('field_priority', 'ASC')
-        ->sort('title', 'ASC')
-        ->accessCheck(TRUE);
-
-      if ($category !== NULL) {
-        $query->condition('field_help_category', $category->id());
-      }
-
-      $nids = $query->execute();
-
-      if (empty($nids)) {
+      $vocabularyId = $this->vocabularyExists('help_topic') ? 'help_topic' : 'help_categories';
+      $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
+      $topicFieldName = isset($storageDefinitions['field_help_topic']) ? 'field_help_topic' : 'field_help_category';
+      $termStorage = $this->entityTypeManagerService->getStorage('taxonomy_term');
+      $terms = $termStorage->loadByProperties(['vid' => $vocabularyId]);
+      if (empty($terms)) {
         return [];
       }
 
-      $nodes = $nodeStorage->loadMultiple($nids);
-      $grouped = [];
+      usort($terms, static fn (TermInterface $a, TermInterface $b): int => strnatcasecmp($a->label(), $b->label()));
 
-      foreach ($nodes as $node) {
-        if ($node->get('field_help_category')->isEmpty()) {
-          continue;
-        }
+      $nodeStorage = $this->entityTypeManagerService->getStorage('node');
+      $categories = [];
+      foreach ($terms as $term) {
+        $articleCount = (int) $nodeStorage->getQuery()
+          ->condition('type', 'help_article')
+          ->condition('status', 1)
+          ->condition($topicFieldName . '.target_id', (int) $term->id())
+          ->accessCheck(TRUE)
+          ->count()
+          ->execute();
 
-        /** @var \Drupal\taxonomy\TermInterface $term */
-        $term = $node->get('field_help_category')->entity;
-        if ($term === NULL) {
-          continue;
-        }
-
-        $termId = (int) $term->id();
-        if (!isset($grouped[$termId])) {
-          $termUrl = NULL;
-          if ($audience === 'vendor') {
-            $termUrl = Url::fromRoute('myeventlane_help_centre.vendor_topic', [
-              'category' => $termId,
-            ])->toString();
-          }
-
-          $grouped[$termId] = [
-            'term_id' => $termId,
-            'term_name' => $term->label(),
-            'term_url' => $termUrl,
-            'articles' => [],
-          ];
-        }
-
-        $grouped[$termId]['articles'][] = [
-          'nid' => (int) $node->id(),
-          'title' => $node->label(),
-          'url' => $node->toUrl()->toString(),
-          'summary' => $node->hasField('body') && !$node->get('body')->isEmpty()
-            ? $node->get('body')->summary
-            : NULL,
+        $categories[] = [
+          'name' => $term->label(),
+          'url' => Url::fromRoute('myeventlane_help_centre.search', [], [
+            'query' => ['topic' => (int) $term->id()],
+          ])->toString(),
+          'article_count' => $articleCount,
         ];
       }
 
-      // Re-index to ensure sequential keys.
-      return array_values($grouped);
+      return $categories;
     }
-    catch (\Exception $e) {
-      $this->logger->error('Failed to load help articles: @message', [
-        '@message' => $e->getMessage(),
+    catch (\Exception $exception) {
+      $this->logger->error('Failed to load help categories: @message', [
+        '@message' => $exception->getMessage(),
       ]);
       return [];
     }
+  }
+
+  /**
+   * Returns TRUE when the taxonomy vocabulary exists.
+   */
+  private function vocabularyExists(string $vocabularyId): bool {
+    return $this->entityTypeManagerService->getStorage('taxonomy_vocabulary')->load($vocabularyId) !== NULL;
+  }
+
+  /**
+   * Executes the search view for analytics result counts.
+   *
+   * @param array<string, mixed> $query
+   *   Current query arguments.
+   */
+  private function countSearchResults(array $query): int {
+    $view = Views::getView('mel_help_search');
+    if (!$view) {
+      return 0;
+    }
+    $view->setDisplay('block_search');
+    $view->setExposedInput($query);
+    $view->execute();
+    return count($view->result);
   }
 
 }

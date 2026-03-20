@@ -1,0 +1,148 @@
+uuid: 4e30551b-8ebb-40fa-a12a-6c6bb1195732
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - node
+    - user
+id: mel_help_analytics_admin
+label: 'MEL Help Analytics Admin'
+module: views
+description: 'Admin analytics event log for Help Centre.'
+tag: myeventlane_help_centre
+base_table: myeventlane_help_analytics
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Help Analytics'
+      access:
+        type: perm
+        options:
+          perm: 'view mel help insights'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      exposed_form:
+        type: basic
+        options: {  }
+      pager:
+        type: full
+        options:
+          offset: 0
+          items_per_page: 50
+      style:
+        type: table
+        options:
+          columns:
+            event_type: event_type
+            node_id: node_id
+            query: query
+            created: created
+            uid: uid
+          default: created
+          info:
+            event_type:
+              sortable: true
+              default_sort_order: asc
+            node_id:
+              sortable: true
+              default_sort_order: asc
+            query:
+              sortable: true
+              default_sort_order: asc
+            created:
+              sortable: true
+              default_sort_order: desc
+            uid:
+              sortable: true
+              default_sort_order: asc
+          empty_table: true
+      row:
+        type: fields
+      fields:
+        event_type:
+          id: event_type
+          table: myeventlane_help_analytics
+          field: event_type
+          relationship: none
+          plugin_id: standard
+          label: 'Event type'
+        node_id:
+          id: node_id
+          table: myeventlane_help_analytics
+          field: node_id
+          relationship: none
+          plugin_id: numeric
+          label: 'Node ID'
+          alter:
+            make_link: true
+            path: 'node/{{ node_id }}'
+        query:
+          id: query
+          table: myeventlane_help_analytics
+          field: query
+          relationship: none
+          plugin_id: standard
+          label: Query
+        created:
+          id: created
+          table: myeventlane_help_analytics
+          field: created
+          relationship: none
+          plugin_id: date
+          label: Created
+          type: timestamp
+          settings:
+            date_format: short
+            custom_date_format: ''
+            timezone: ''
+        uid:
+          id: uid
+          table: myeventlane_help_analytics
+          field: uid
+          relationship: none
+          plugin_id: numeric
+          label: UID
+      filters: {  }
+      sorts:
+        created:
+          id: created
+          table: myeventlane_help_analytics
+          field: created
+          relationship: none
+          plugin_id: date
+          order: DESC
+      header: {  }
+      footer: {  }
+      empty: {  }
+      arguments: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      path: admin/mel/help-analytics
+      menu:
+        type: none
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }

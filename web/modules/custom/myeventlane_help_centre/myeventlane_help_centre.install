@@ -7,7 +7,105 @@
 
 declare(strict_types=1);
 
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\views\Entity\View;
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_help_centre_schema(): array {
+  $schema['myeventlane_help_feedback'] = [
+    'description' => 'Stores help article helpful feedback submissions.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'node_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'helpful' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'session_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'node_id' => ['node_id'],
+      'created' => ['created'],
+    ],
+  ];
+
+  $schema['myeventlane_help_analytics'] = [
+    'description' => 'Stores analytics events for Help Centre usage.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'event_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'node_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'query' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_type' => ['event_type'],
+      'node_id' => ['node_id'],
+      'created' => ['created'],
+    ],
+  ];
+
+  return $schema;
+}
 
 /**
  * Add 'staff' audience and create Staff Snippet Authoring Guide.
@@ -102,4 +200,1705 @@ function myeventlane_help_centre_update_10002(): string {
     return 'Created Footer menu for public navigation (Help, Trust links).';
   }
   return 'Footer menu already exists.';
+}
+
+/**
+ * Ensure Help Centre vocabularies and taxonomy terms exist.
+ */
+function myeventlane_help_centre_update_10003(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  $audienceVocabulary = _myeventlane_help_centre_ensure_vocabulary(
+    'help_audience',
+    'Audience',
+    'Audience segments for Help Centre content filtering.',
+  );
+  $categoryVocabulary = _myeventlane_help_centre_ensure_vocabulary(
+    'help_categories',
+    'Help Category',
+    'Categories used to organize Help Centre content.',
+  );
+
+  if (!$audienceVocabulary || !$categoryVocabulary) {
+    throw new \RuntimeException('Failed to ensure required Help Centre vocabularies.');
+  }
+
+  $audienceTerms = [
+    'Attendee',
+    'Organiser',
+    'Vendor',
+    'General',
+  ];
+  $helpCategoryTerms = [
+    'Accounts',
+    'Finding Events',
+    'Buying Tickets',
+    'Managing Tickets',
+    'Refunds',
+    'Event Day',
+    'Creating Events',
+    'Ticketing',
+    'Payments',
+    'Promotion',
+    'Managing Attendees',
+    'Vendors',
+    'Policies',
+    'Support',
+  ];
+
+  $createdAudience = _myeventlane_help_centre_ensure_terms('help_audience', $audienceTerms);
+  $createdCategory = _myeventlane_help_centre_ensure_terms('help_categories', $helpCategoryTerms);
+
+  $logger->notice('Help Centre taxonomy update complete. Audience terms created: @audience. Category terms created: @category.', [
+    '@audience' => (string) $createdAudience,
+    '@category' => (string) $createdCategory,
+  ]);
+
+  return 'Ensured help audience and help category vocabularies with baseline terms.';
+}
+
+/**
+ * Ensure Help Centre content model is present.
+ */
+function myeventlane_help_centre_update_10004(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  // Ensure FAQ content type exists.
+  $faqType = NodeType::load('faq');
+  if (!$faqType) {
+    $faqType = NodeType::create([
+      'type' => 'faq',
+      'name' => 'FAQ',
+      'description' => 'Frequently asked questions for Help Centre audiences.',
+      'new_revision' => TRUE,
+      'preview_mode' => 1,
+      'display_submitted' => FALSE,
+    ]);
+    $faqType->save();
+    $logger->notice('Created FAQ content type.');
+  }
+
+  // Ensure required field storages.
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_audience', 'entity_reference', [
+    'target_type' => 'taxonomy_term',
+  ], -1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_category', 'entity_reference', [
+    'target_type' => 'taxonomy_term',
+  ], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_related_articles', 'entity_reference', [
+    'target_type' => 'node',
+  ], -1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_last_updated', 'datetime', [
+    'datetime_type' => 'date',
+  ], 1, FALSE);
+
+  // Ensure body field is present for both content types.
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'body', 'Answer', 'text_with_summary', FALSE, [
+    'display_summary' => TRUE,
+    'required_summary' => FALSE,
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'body', 'Answer', 'text_with_summary', TRUE, [
+    'display_summary' => TRUE,
+    'required_summary' => FALSE,
+  ]);
+
+  // Ensure help_article fields.
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_audience', 'Audience', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_audience' => 'help_audience'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_category', 'Category', 'entity_reference', TRUE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_categories' => 'help_categories'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_related_articles', 'Related Articles', 'entity_reference', FALSE, [
+    'handler' => 'default:node',
+    'handler_settings' => [
+      'target_bundles' => [
+        'help_article' => 'help_article',
+        'faq' => 'faq',
+      ],
+      'sort' => ['field' => '_none'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_last_updated', 'Last Updated', 'datetime', FALSE, []);
+
+  // Ensure FAQ fields.
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'field_help_audience', 'Audience', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_audience' => 'help_audience'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'field_help_category', 'Category', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_categories' => 'help_categories'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+
+  return 'Ensured Help Centre content types and required fields for help_article and faq.';
+}
+
+/**
+ * Ensure baseline Help Centre views exist.
+ */
+function myeventlane_help_centre_update_10005(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $created = 0;
+
+  if (!View::load('mel_help_centre_homepage')) {
+    $view = View::create(_myeventlane_help_centre_build_view_definition(
+      'mel_help_centre_homepage',
+      'Help Centre Homepage',
+      'Featured and popular help articles for homepage rendering.',
+    ));
+    $view->save();
+    $created++;
+  }
+
+  if (!View::load('mel_help_articles_by_audience')) {
+    $view = View::create(_myeventlane_help_centre_build_view_definition(
+      'mel_help_articles_by_audience',
+      'Help Articles by Audience',
+      'Audience-filterable Help Centre article listing view.',
+      TRUE,
+    ));
+    $view->save();
+    $created++;
+  }
+
+  if (!View::load('mel_help_category_listing')) {
+    $view = View::create(_myeventlane_help_centre_build_view_definition(
+      'mel_help_category_listing',
+      'Help Category Listing',
+      'Category-filterable Help Centre article listing view.',
+      FALSE,
+      TRUE,
+    ));
+    $view->save();
+    $created++;
+  }
+
+  $logger->notice('Help Centre views update complete. Created @count views.', ['@count' => (string) $created]);
+  return 'Ensured core Help Centre views are available for homepage, audience, and category pages.';
+}
+
+/**
+ * Seed baseline Help Centre articles and FAQs.
+ */
+function myeventlane_help_centre_update_9001(): string {
+  return _myeventlane_help_centre_seed_content_update();
+}
+
+/**
+ * Backfill taxonomy audience from legacy help article audience values.
+ */
+function myeventlane_help_centre_update_10006(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $fieldStorageDefinitions = \Drupal::service('entity_field.manager')
+    ->getActiveFieldStorageDefinitions('node');
+
+  if (!isset($fieldStorageDefinitions['field_help_audience']) || !isset($fieldStorageDefinitions['field_audience'])) {
+    $logger->warning('Skipped help audience backfill because required fields are missing.');
+    return 'Skipped audience backfill: required fields missing.';
+  }
+
+  $termStorage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $mappedTerms = [
+    'public' => NULL,
+    'vendor' => NULL,
+    'staff' => NULL,
+  ];
+  $termMap = [
+    'public' => 'Attendee',
+    'vendor' => 'Vendor',
+    'staff' => 'General',
+  ];
+
+  foreach ($termMap as $legacyAudience => $targetTermName) {
+    $terms = $termStorage->loadByProperties([
+      'vid' => 'help_audience',
+      'name' => $targetTermName,
+    ]);
+    $term = $terms ? reset($terms) : NULL;
+    if ($term instanceof Term) {
+      $mappedTerms[$legacyAudience] = (int) $term->id();
+    }
+  }
+
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+  $batchSize = 100;
+  $lastNid = 0;
+  $scanned = 0;
+  $updated = 0;
+  $skipped = 0;
+  $unmapped = 0;
+
+  do {
+    $query = $nodeStorage->getQuery()
+      ->condition('type', 'help_article')
+      ->condition('status', 1)
+      ->condition('nid', $lastNid, '>')
+      ->sort('nid', 'ASC')
+      ->range(0, $batchSize)
+      ->accessCheck(TRUE);
+
+    $nids = $query->execute();
+    if ($nids === []) {
+      break;
+    }
+
+    $nodes = $nodeStorage->loadMultiple($nids);
+    foreach ($nodes as $node) {
+      $lastNid = max($lastNid, (int) $node->id());
+      $scanned++;
+
+      if ($node->get('field_help_audience')->isEmpty() === FALSE) {
+        $skipped++;
+        continue;
+      }
+
+      if ($node->get('field_audience')->isEmpty()) {
+        $skipped++;
+        continue;
+      }
+
+      $legacyValues = [];
+      foreach ($node->get('field_audience')->getValue() as $item) {
+        $value = (string) ($item['value'] ?? '');
+        if ($value !== '') {
+          $legacyValues[$value] = TRUE;
+        }
+      }
+
+      if ($legacyValues === []) {
+        $skipped++;
+        continue;
+      }
+
+      $targetAudience = [];
+      foreach (array_keys($legacyValues) as $legacyAudience) {
+        if (!array_key_exists($legacyAudience, $mappedTerms) || $mappedTerms[$legacyAudience] === NULL) {
+          $unmapped++;
+          continue;
+        }
+        $targetAudience[(int) $mappedTerms[$legacyAudience]] = [
+          'target_id' => (int) $mappedTerms[$legacyAudience],
+        ];
+      }
+
+      if ($targetAudience === []) {
+        $skipped++;
+        continue;
+      }
+
+      $node->set('field_help_audience', array_values($targetAudience));
+      $node->save();
+      $updated++;
+    }
+  } while (count($nids) === $batchSize);
+
+  $logger->notice('Help audience backfill complete. Scanned: @scanned, updated: @updated, skipped: @skipped, unmapped: @unmapped.', [
+    '@scanned' => (string) $scanned,
+    '@updated' => (string) $updated,
+    '@skipped' => (string) $skipped,
+    '@unmapped' => (string) $unmapped,
+  ]);
+
+  return sprintf(
+    'Help audience backfill complete. Scanned %d, updated %d, skipped %d, unmapped %d.',
+    $scanned,
+    $updated,
+    $skipped,
+    $unmapped,
+  );
+}
+
+/**
+ * Ensure FAQ fields and displays are present and usable.
+ */
+function myeventlane_help_centre_update_10007(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $created = 0;
+  $updated = 0;
+
+  $faqType = NodeType::load('faq');
+  if (!$faqType) {
+    $faqType = NodeType::create([
+      'type' => 'faq',
+      'name' => 'FAQ',
+      'description' => 'Frequently asked questions for Help Centre audiences.',
+      'new_revision' => TRUE,
+      'preview_mode' => 1,
+      'display_submitted' => FALSE,
+    ]);
+    $faqType->save();
+    $created++;
+  }
+
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'body', 'Answer', 'text_with_summary', TRUE, [
+    'display_summary' => TRUE,
+    'required_summary' => FALSE,
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'field_help_audience', 'Audience', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_audience' => 'help_audience'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'faq', 'field_help_category', 'Category', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => [
+      'target_bundles' => ['help_categories' => 'help_categories'],
+      'sort' => ['field' => 'name', 'direction' => 'asc'],
+      'auto_create' => FALSE,
+    ],
+  ]);
+
+  $formDisplay = EntityFormDisplay::load('node.faq.default');
+  if (!$formDisplay) {
+    $formDisplay = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'faq',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+    $created++;
+  }
+  $formComponents = [
+    'title' => [
+      'type' => 'string_textfield',
+      'weight' => -5,
+      'settings' => ['size' => 60, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ],
+    'body' => [
+      'type' => 'text_textarea_with_summary',
+      'weight' => 0,
+      'settings' => ['rows' => 9, 'summary_rows' => 3, 'show_summary' => TRUE, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ],
+    'field_help_category' => [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 5,
+      'settings' => ['match_operator' => 'CONTAINS', 'match_limit' => 10, 'size' => 60, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ],
+    'field_help_audience' => [
+      'type' => 'entity_reference_autocomplete_tags',
+      'weight' => 6,
+      'settings' => ['match_operator' => 'CONTAINS', 'match_limit' => 10, 'size' => 60, 'placeholder' => ''],
+      'third_party_settings' => [],
+    ],
+  ];
+  $formChanged = FALSE;
+  foreach ($formComponents as $componentName => $componentConfig) {
+    if ($formDisplay->getComponent($componentName) === NULL) {
+      $formDisplay->setComponent($componentName, $componentConfig);
+      $formChanged = TRUE;
+    }
+  }
+  if ($formChanged) {
+    $formDisplay->save();
+    $updated++;
+  }
+
+  $viewDisplay = EntityViewDisplay::load('node.faq.default');
+  if (!$viewDisplay) {
+    $viewDisplay = EntityViewDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'faq',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+    $created++;
+  }
+  $viewComponents = [
+    'body' => [
+      'type' => 'text_default',
+      'label' => 'hidden',
+      'weight' => 0,
+      'settings' => [],
+      'third_party_settings' => [],
+    ],
+    'field_help_category' => [
+      'type' => 'entity_reference_label',
+      'label' => 'above',
+      'weight' => 1,
+      'settings' => ['link' => FALSE],
+      'third_party_settings' => [],
+    ],
+    'field_help_audience' => [
+      'type' => 'entity_reference_label',
+      'label' => 'above',
+      'weight' => 2,
+      'settings' => ['link' => FALSE],
+      'third_party_settings' => [],
+    ],
+    'links' => [
+      'settings' => [],
+      'third_party_settings' => [],
+      'weight' => 100,
+      'region' => 'content',
+    ],
+  ];
+  $viewChanged = FALSE;
+  foreach ($viewComponents as $componentName => $componentConfig) {
+    if ($viewDisplay->getComponent($componentName) === NULL) {
+      $viewDisplay->setComponent($componentName, $componentConfig);
+      $viewChanged = TRUE;
+    }
+  }
+  if ($viewChanged) {
+    $viewDisplay->save();
+    $updated++;
+  }
+
+  $logger->notice('FAQ parity update complete. Created entities: @created. Updated displays: @updated.', [
+    '@created' => (string) $created,
+    '@updated' => (string) $updated,
+  ]);
+
+  return sprintf(
+    'FAQ parity update complete. Created %d entities and updated %d displays.',
+    $created,
+    $updated,
+  );
+}
+
+/**
+ * Extend Help Centre browse views to include FAQ content safely.
+ */
+function myeventlane_help_centre_update_10008(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $updatedViews = 0;
+  $viewIds = [
+    'mel_help_centre_homepage',
+    'mel_help_articles_by_audience',
+    'mel_help_category_listing',
+  ];
+
+  foreach ($viewIds as $viewId) {
+    $view = View::load($viewId);
+    if (!$view) {
+      continue;
+    }
+
+    $displays = $view->get('display');
+    if (!isset($displays['default']['display_options']['filters']['type']['value'])) {
+      continue;
+    }
+
+    $bundleFilter = $displays['default']['display_options']['filters']['type']['value'];
+    if (!is_array($bundleFilter)) {
+      $bundleFilter = [];
+    }
+
+    $changed = FALSE;
+    if (!isset($bundleFilter['help_article'])) {
+      $bundleFilter['help_article'] = 'help_article';
+      $changed = TRUE;
+    }
+    if (!isset($bundleFilter['faq'])) {
+      $bundleFilter['faq'] = 'faq';
+      $changed = TRUE;
+    }
+
+    $sorts = $displays['default']['display_options']['sorts'] ?? [];
+    if (!isset($sorts['type'])) {
+      $sorts = [
+        'type' => [
+          'id' => 'type',
+          'table' => 'node_field_data',
+          'field' => 'type',
+          'plugin_id' => 'standard',
+          'order' => 'DESC',
+        ],
+      ] + $sorts;
+      $changed = TRUE;
+    }
+    if (!isset($sorts['title'])) {
+      $sorts['title'] = [
+        'id' => 'title',
+        'table' => 'node_field_data',
+        'field' => 'title',
+        'plugin_id' => 'standard',
+        'order' => 'ASC',
+      ];
+      $changed = TRUE;
+    }
+
+    if (!$changed) {
+      continue;
+    }
+
+    $displays['default']['display_options']['filters']['type']['value'] = $bundleFilter;
+    $displays['default']['display_options']['sorts'] = $sorts;
+    $view->set('display', $displays);
+
+    $dependencies = $view->get('dependencies') ?? [];
+    $dependencies['config'] = $dependencies['config'] ?? [];
+    if (!in_array('node.type.faq', $dependencies['config'], TRUE)) {
+      $dependencies['config'][] = 'node.type.faq';
+      sort($dependencies['config']);
+      $view->set('dependencies', $dependencies);
+    }
+
+    $view->save();
+    $updatedViews++;
+  }
+
+  $logger->notice('Help browse views update complete. Updated views: @count.', [
+    '@count' => (string) $updatedViews,
+  ]);
+
+  return sprintf('Updated %d Help Centre views to include FAQ content.', $updatedViews);
+}
+
+/**
+ * Register Help Centre search update hook.
+ */
+function myeventlane_help_centre_update_10009(): string {
+  \Drupal::service('router.builder')->rebuild();
+  return 'Rebuilt routes to register Help Centre search page at /help/search.';
+}
+
+/**
+ * Align Help Centre information architecture for Drupal 11 production use.
+ */
+function myeventlane_help_centre_update_10010(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  $audienceVocabulary = _myeventlane_help_centre_ensure_vocabulary(
+    'help_audience',
+    'Help Audience',
+    'Audience segments for Help Centre content.',
+  );
+  $topicVocabulary = _myeventlane_help_centre_ensure_vocabulary(
+    'help_topic',
+    'Help Topic',
+    'Topics used to organise Help Centre content.',
+  );
+  $articleTypeVocabulary = _myeventlane_help_centre_ensure_vocabulary(
+    'help_article_type',
+    'Help Article Type',
+    'Article intent types for Help Centre content.',
+  );
+
+  if (!$audienceVocabulary || !$topicVocabulary || !$articleTypeVocabulary) {
+    throw new \RuntimeException('Failed to initialise required Help Centre vocabularies.');
+  }
+
+  _myeventlane_help_centre_ensure_terms('help_audience', [
+    'Attendees',
+    'Organisers',
+    'Vendors',
+    'Admin',
+    'General',
+  ]);
+  _myeventlane_help_centre_ensure_terms('help_topic', [
+    'Login',
+    'Registration',
+    'Password reset',
+    'Profile',
+    'Search',
+    'Categories',
+    'Following',
+    'Calendar',
+    'Tickets',
+    'RSVP',
+    'Refunds',
+    'Transfers',
+    'Check-in',
+    'Event cancellations',
+    'Event creation',
+    'Event editing',
+    'Ticket setup',
+    'Capacity',
+    'Payouts',
+    'Promotions',
+    'Analytics',
+    'Vendor applications',
+    'Privacy',
+    'Terms',
+    'Community guidelines',
+    'Safety',
+    'Accessibility',
+    'Moderation',
+    'Escalations',
+    'Fraud',
+    'Support workflows',
+    'Incident response',
+  ]);
+  _myeventlane_help_centre_ensure_terms('help_article_type', [
+    'Overview',
+    'Guide',
+    'FAQ',
+    'Policy',
+    'Procedure',
+    'Troubleshooting',
+    'Release note',
+  ]);
+
+  $landingType = NodeType::load('help_landing_page');
+  if (!$landingType) {
+    $landingType = NodeType::create([
+      'type' => 'help_landing_page',
+      'name' => 'Help Landing Page',
+      'description' => 'Landing pages for Help Centre hub and audience entry points.',
+      'new_revision' => TRUE,
+      'preview_mode' => 1,
+      'display_submitted' => FALSE,
+    ]);
+    $landingType->save();
+  }
+
+  $procedureType = NodeType::load('support_procedure');
+  if (!$procedureType) {
+    $procedureType = NodeType::create([
+      'type' => 'support_procedure',
+      'name' => 'Support Procedure',
+      'description' => 'Internal support and moderation procedures.',
+      'new_revision' => TRUE,
+      'preview_mode' => 1,
+      'display_submitted' => FALSE,
+    ]);
+    $procedureType->save();
+  }
+
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_summary', 'string_long', [], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_topic', 'entity_reference', ['target_type' => 'taxonomy_term'], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_article_type', 'entity_reference', ['target_type' => 'taxonomy_term'], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_featured_help', 'boolean', ['on_label' => 'Yes', 'off_label' => 'No'], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_related_help_articles', 'entity_reference', ['target_type' => 'node'], -1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_cta_label', 'string', ['max_length' => 255], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_cta_link', 'link', [], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_help_keywords', 'string_long', [], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_last_reviewed', 'datetime', ['datetime_type' => 'date'], 1, TRUE);
+  _myeventlane_help_centre_ensure_field_storage('node', 'field_content_owner', 'entity_reference', ['target_type' => 'user'], 1, TRUE);
+
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_summary', 'Help Summary', 'string_long', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_topic', 'Help Topic', 'entity_reference', TRUE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => ['target_bundles' => ['help_topic' => 'help_topic']],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_article_type', 'Help Article Type', 'entity_reference', TRUE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => ['target_bundles' => ['help_article_type' => 'help_article_type']],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_featured_help', 'Featured Help', 'boolean', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_related_help_articles', 'Related Help Articles', 'entity_reference', FALSE, [
+    'handler' => 'default:node',
+    'handler_settings' => ['target_bundles' => ['help_article' => 'help_article']],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_cta_label', 'Help CTA Label', 'string', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_cta_link', 'Help CTA Link', 'link', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_help_keywords', 'Help Keywords', 'string_long', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_last_reviewed', 'Last Reviewed', 'datetime', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_article', 'field_content_owner', 'Content Owner', 'entity_reference', FALSE, [
+    'handler' => 'default:user',
+    'handler_settings' => [],
+  ]);
+
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_landing_page', 'field_help_summary', 'Help Summary', 'string_long', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_landing_page', 'body', 'Body', 'text_with_summary', FALSE, [
+    'display_summary' => TRUE,
+    'required_summary' => FALSE,
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_landing_page', 'field_help_audience', 'Help Audience', 'entity_reference', FALSE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => ['target_bundles' => ['help_audience' => 'help_audience']],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'help_landing_page', 'field_featured_help', 'Featured Help', 'boolean', FALSE, []);
+
+  _myeventlane_help_centre_ensure_field_instance('node', 'support_procedure', 'field_help_summary', 'Help Summary', 'string_long', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'support_procedure', 'body', 'Body', 'text_with_summary', TRUE, [
+    'display_summary' => TRUE,
+    'required_summary' => FALSE,
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'support_procedure', 'field_help_topic', 'Help Topic', 'entity_reference', TRUE, [
+    'handler' => 'default:taxonomy_term',
+    'handler_settings' => ['target_bundles' => ['help_topic' => 'help_topic']],
+  ]);
+  _myeventlane_help_centre_ensure_field_instance('node', 'support_procedure', 'field_last_reviewed', 'Last Reviewed', 'datetime', FALSE, []);
+  _myeventlane_help_centre_ensure_field_instance('node', 'support_procedure', 'field_content_owner', 'Content Owner', 'entity_reference', FALSE, [
+    'handler' => 'default:user',
+    'handler_settings' => [],
+  ]);
+
+  $logger->notice('Help Centre architecture update completed for content model and taxonomy.');
+  return 'Help Centre architecture aligned: vocabularies, terms, bundles, and core fields ensured.';
+}
+
+/**
+ * Extend editorial moderation workflow to Help Centre bundles.
+ */
+function myeventlane_help_centre_update_10011(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('content_moderation') || !\Drupal::moduleHandler()->moduleExists('workflows')) {
+    return 'Skipped Help Centre moderation workflow update: required modules are not enabled.';
+  }
+
+  /** @var \Drupal\workflows\WorkflowInterface|null $workflow */
+  $workflow = \Drupal::entityTypeManager()->getStorage('workflow')->load('editorial');
+  if (!$workflow) {
+    return 'Skipped Help Centre moderation workflow update: editorial workflow not found.';
+  }
+
+  $typeSettings = $workflow->get('type_settings');
+  if (!is_array($typeSettings)) {
+    $typeSettings = [];
+  }
+  $entityTypes = $typeSettings['entity_types']['node'] ?? [];
+  if (!is_array($entityTypes)) {
+    $entityTypes = [];
+  }
+
+  foreach (['help_article', 'help_landing_page', 'support_procedure'] as $bundle) {
+    if (!in_array($bundle, $entityTypes, TRUE)) {
+      $entityTypes[] = $bundle;
+    }
+  }
+  sort($entityTypes);
+  $typeSettings['entity_types']['node'] = $entityTypes;
+
+  if (!empty($typeSettings['states']['review'])) {
+    $typeSettings['states']['review']['label'] = 'In review';
+  }
+
+  $workflow->set('type_settings', $typeSettings);
+  $workflow->save();
+
+  return 'Extended editorial workflow for help_article, help_landing_page, and support_procedure.';
+}
+
+/**
+ * Extend MEL Search API index to include Help Centre content.
+ */
+function myeventlane_help_centre_update_10012(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('search_api')) {
+    return 'Skipped Help Centre search indexing update: Search API is not enabled.';
+  }
+
+  $index = \Drupal::entityTypeManager()->getStorage('search_api_index')->load('mel_content');
+  if (!$index) {
+    return 'Skipped Help Centre search indexing update: mel_content index not found.';
+  }
+
+  $datasourceSettings = $index->get('datasource_settings');
+  $selectedBundles = $datasourceSettings['entity:node']['bundles']['selected'] ?? [];
+  if (!is_array($selectedBundles)) {
+    $selectedBundles = [];
+  }
+  foreach (['help_article', 'help_landing_page'] as $bundle) {
+    if (!in_array($bundle, $selectedBundles, TRUE)) {
+      $selectedBundles[] = $bundle;
+    }
+  }
+  sort($selectedBundles);
+  $datasourceSettings['entity:node']['bundles']['selected'] = $selectedBundles;
+  $index->set('datasource_settings', $datasourceSettings);
+
+  $fieldSettings = $index->get('field_settings');
+  if (!is_array($fieldSettings)) {
+    $fieldSettings = [];
+  }
+  $requiredFields = [
+    'field_help_summary' => [
+      'label' => 'Help summary',
+      'type' => 'text',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_summary',
+    ],
+    'field_help_keywords' => [
+      'label' => 'Help keywords',
+      'type' => 'text',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_keywords',
+    ],
+    'field_help_topic' => [
+      'label' => 'Help topic',
+      'type' => 'string',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_topic',
+    ],
+    'field_help_article_type' => [
+      'label' => 'Help article type',
+      'type' => 'string',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_article_type',
+    ],
+    'field_help_audience' => [
+      'label' => 'Help audience',
+      'type' => 'string',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_audience',
+    ],
+  ];
+  foreach ($requiredFields as $fieldId => $definition) {
+    if (!isset($fieldSettings[$fieldId])) {
+      $fieldSettings[$fieldId] = $definition;
+    }
+  }
+  $index->set('field_settings', $fieldSettings);
+
+  $index->save();
+  return 'Updated mel_content Search API index for Help Centre content fields and bundles.';
+}
+
+/**
+ * Create dedicated Help Centre Views for browse and search UX.
+ */
+function myeventlane_help_centre_update_10013(): string {
+  return 'Help Centre Views are managed through exported config in this phase.';
+}
+
+/**
+ * Migrate legacy FAQ nodes into help_article nodes.
+ */
+function myeventlane_help_centre_update_10020(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+
+  $faqTypeTerms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties([
+    'vid' => 'help_article_type',
+    'name' => 'FAQ',
+  ]);
+  if ($faqTypeTerms === []) {
+    $faqTerm = Term::create([
+      'vid' => 'help_article_type',
+      'name' => 'FAQ',
+    ]);
+    $faqTerm->save();
+  }
+  else {
+    $faqTerm = reset($faqTypeTerms);
+  }
+  $faqArticleTypeTid = $faqTerm instanceof Term ? (int) $faqTerm->id() : 0;
+
+  $nids = $nodeStorage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'faq')
+    ->execute();
+
+  $migrated = 0;
+  $skipped = 0;
+  foreach ($nids as $nid) {
+    $node = $nodeStorage->load($nid);
+    if (!$node instanceof Node) {
+      $skipped++;
+      continue;
+    }
+
+    $topicTid = 0;
+    if ($node->hasField('field_help_topic') && !$node->get('field_help_topic')->isEmpty()) {
+      $topicTid = (int) $node->get('field_help_topic')->target_id;
+    }
+    elseif ($node->hasField('field_help_category') && !$node->get('field_help_category')->isEmpty()) {
+      $legacyTerm = $node->get('field_help_category')->entity;
+      if ($legacyTerm instanceof Term) {
+        $topicTid = _myeventlane_help_centre_ensure_topic_term((string) $legacyTerm->label());
+      }
+    }
+
+    if ($node->hasField('field_help_topic') && $topicTid <= 0) {
+      $skipped++;
+      continue;
+    }
+
+    $created = (int) $node->getCreatedTime();
+    $changed = (int) $node->getChangedTime();
+    $pathValues = $node->hasField('path') ? $node->get('path')->getValue() : [];
+
+    $node->set('type', 'help_article');
+    if ($faqArticleTypeTid > 0 && $node->hasField('field_help_article_type')) {
+      $node->set('field_help_article_type', ['target_id' => $faqArticleTypeTid]);
+    }
+    if ($topicTid > 0 && $node->hasField('field_help_topic')) {
+      $node->set('field_help_topic', ['target_id' => $topicTid]);
+    }
+    if ($node->hasField('field_help_summary') && $node->get('field_help_summary')->isEmpty() && $node->hasField('body') && !$node->get('body')->isEmpty()) {
+      $summary = (string) $node->get('body')->summary;
+      if ($summary !== '') {
+        $node->set('field_help_summary', $summary);
+      }
+    }
+    if ($node->hasField('path') && $pathValues !== []) {
+      $node->set('path', $pathValues);
+    }
+
+    $node->setNewRevision(FALSE);
+    $node->setCreatedTime($created);
+    $node->setChangedTime($changed);
+    $node->save();
+    $migrated++;
+  }
+
+  $logger->notice('FAQ migration complete. Migrated: @migrated. Skipped: @skipped.', [
+    '@migrated' => (string) $migrated,
+    '@skipped' => (string) $skipped,
+  ]);
+
+  return sprintf(
+    'Migrated %d FAQ nodes to help_article. Skipped %d nodes without topic mapping. FAQ content type retained as deprecated.',
+    $migrated,
+    $skipped,
+  );
+}
+
+/**
+ * Migrate legacy help_categories references to help_topic.
+ */
+function myeventlane_help_centre_update_10021(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $termStorage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+
+  $legacyTerms = $termStorage->loadByProperties(['vid' => 'help_categories']);
+  $createdTopics = 0;
+  foreach ($legacyTerms as $legacyTerm) {
+    if (!$legacyTerm instanceof Term) {
+      continue;
+    }
+    $topicTid = _myeventlane_help_centre_ensure_topic_term((string) $legacyTerm->label());
+    if ($topicTid > 0) {
+      $createdTopics++;
+    }
+  }
+
+  $nids = $nodeStorage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'help_article')
+    ->execute();
+  $updated = 0;
+  $skipped = 0;
+  foreach ($nids as $nid) {
+    $node = $nodeStorage->load($nid);
+    if (!$node instanceof Node) {
+      $skipped++;
+      continue;
+    }
+    if (!$node->hasField('field_help_topic') || !$node->hasField('field_help_category')) {
+      $skipped++;
+      continue;
+    }
+    if (!$node->get('field_help_topic')->isEmpty()) {
+      continue;
+    }
+    if ($node->get('field_help_category')->isEmpty()) {
+      $skipped++;
+      continue;
+    }
+    $legacyTerm = $node->get('field_help_category')->entity;
+    if (!$legacyTerm instanceof Term) {
+      $skipped++;
+      continue;
+    }
+    $topicTid = _myeventlane_help_centre_ensure_topic_term((string) $legacyTerm->label());
+    if ($topicTid <= 0) {
+      $skipped++;
+      continue;
+    }
+    $node->set('field_help_topic', ['target_id' => $topicTid]);
+    $node->setNewRevision(FALSE);
+    $node->save();
+    $updated++;
+  }
+
+  $logger->notice('help_categories to help_topic migration complete. Updated nodes: @updated. Skipped: @skipped.', [
+    '@updated' => (string) $updated,
+    '@skipped' => (string) $skipped,
+  ]);
+
+  return sprintf(
+    'Mapped legacy help_categories to help_topic. Updated %d help_article nodes and skipped %d.',
+    $updated,
+    $skipped,
+  );
+}
+
+/**
+ * Audit legacy Help Centre views for pending removal.
+ */
+function myeventlane_help_centre_update_10022(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $legacyViews = [
+    'mel_help_articles_by_audience',
+    'mel_help_category_listing',
+    'mel_help_centre_homepage',
+  ];
+  $lines = [];
+  foreach ($legacyViews as $viewId) {
+    $view = \Drupal\views\Views::getView($viewId);
+    if (!$view) {
+      $lines[] = $viewId . ': missing';
+      continue;
+    }
+    $displayId = array_key_exists('block_1', $view->storage->get('display')) ? 'block_1' : 'default';
+    $view->setDisplay($displayId);
+    $view->execute();
+    $rows = count($view->result);
+    $lines[] = sprintf('%s (%s) rows=%d', $viewId, $displayId, $rows);
+  }
+  $message = 'Legacy views audit: ' . implode('; ', $lines);
+  $logger->notice($message);
+  return $message;
+}
+
+/**
+ * Create Help feedback and analytics tables for existing installs.
+ */
+function myeventlane_help_centre_update_10023(): string {
+  $schema = \Drupal::database()->schema();
+  $definitions = myeventlane_help_centre_schema();
+  $created = [];
+  foreach (['myeventlane_help_feedback', 'myeventlane_help_analytics'] as $table) {
+    if ($schema->tableExists($table)) {
+      continue;
+    }
+    if (!isset($definitions[$table])) {
+      continue;
+    }
+    $schema->createTable($table, $definitions[$table]);
+    $created[] = $table;
+  }
+  if ($created === []) {
+    return 'Help feedback and analytics tables already existed.';
+  }
+  return 'Created tables: ' . implode(', ', $created) . '.';
+}
+
+/**
+ * Improve Help search index relevance boosts.
+ */
+function myeventlane_help_centre_update_10024(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('search_api')) {
+    return 'Skipped relevance update: Search API is not enabled.';
+  }
+  $index = \Drupal::entityTypeManager()->getStorage('search_api_index')->load('mel_content');
+  if (!$index) {
+    return 'Skipped relevance update: mel_content index not found.';
+  }
+
+  $fieldSettings = $index->get('field_settings');
+  if (!is_array($fieldSettings)) {
+    $fieldSettings = [];
+  }
+  $boosts = [
+    'title' => 8.0,
+    'field_help_summary' => 5.0,
+    'field_help_keywords' => 5.0,
+    'body' => 2.0,
+  ];
+  foreach ($boosts as $fieldId => $boost) {
+    if (!isset($fieldSettings[$fieldId])) {
+      continue;
+    }
+    $fieldSettings[$fieldId]['boost'] = $boost;
+  }
+  if (!isset($fieldSettings['field_help_keywords'])) {
+    $fieldSettings['field_help_keywords'] = [
+      'label' => 'Help keywords',
+      'datasource_id' => 'entity:node',
+      'property_path' => 'field_help_keywords',
+      'type' => 'text',
+      'boost' => 5.0,
+    ];
+  }
+  $index->set('field_settings', $fieldSettings);
+  $index->save();
+
+  return 'Applied Help search relevance boosts for title, summary, keywords, and body.';
+}
+
+/**
+ * Phase 2.3: Align help article paths with contextual help map (ticket types + vendor).
+ */
+function myeventlane_help_centre_update_10025(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $messages = [];
+
+  $ticket_article = $storage->loadByProperties([
+    'type' => 'help_article',
+    'title' => 'Understanding ticket types',
+  ]);
+  $node = $ticket_article ? reset($ticket_article) : NULL;
+  if ($node instanceof Node && $node->hasField('path')) {
+    $node->set('path', [
+      'alias' => '/help/organisers/understanding-ticket-types',
+      'pathauto' => 0,
+    ]);
+    $node->save();
+    $messages[] = 'Updated alias for help article: Understanding ticket types.';
+  }
+
+  try {
+    $seeder = new \Drupal\myeventlane_help_centre\Service\HelpContentSeeder(
+      \Drupal::entityTypeManager(),
+      \Drupal::service('logger.factory'),
+    );
+    $created = $seeder->seedHelpArticles();
+    if ($created > 0) {
+      $messages[] = sprintf('Seeded %d new help article(s).', $created);
+    }
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_help_centre')->error('Phase 2.3 help article seed failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+    return 'Phase 2.3: path alias may be updated; help article seed failed (see logs).';
+  }
+
+  return $messages !== [] ? implode(' ', $messages) : 'Phase 2.3: contextual help paths already aligned.';
+}
+
+/**
+ * Widen analytics payload column for AI timing fields.
+ */
+function myeventlane_help_centre_update_10026(): string {
+  $connection = \Drupal::database();
+  $schema = $connection->schema();
+  if (!$schema->tableExists('myeventlane_help_analytics')) {
+    return 'Analytics table not found; skipped.';
+  }
+  $spec = [
+    'type' => 'varchar',
+    'length' => 512,
+    'not null' => FALSE,
+  ];
+  $schema->changeField('myeventlane_help_analytics', 'query', 'query', $spec);
+
+  return 'Help analytics query column widened to 512 characters.';
+}
+
+/**
+ * Move help_landing_page URLs off /help/* so module routes control those paths.
+ */
+function myeventlane_help_centre_update_10027(): string {
+  $map = [
+    'Help Centre Home' => '/help/landing/home',
+    'Attendee Help' => '/help/landing/attendees',
+    'Organiser Help' => '/help/landing/organisers',
+    'Vendor Help' => '/help/landing/vendors',
+    'Policies and Trust' => '/help/landing/policies',
+  ];
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $updated = 0;
+  foreach ($map as $title => $alias) {
+    $nodes = $storage->loadByProperties([
+      'type' => 'help_landing_page',
+      'title' => $title,
+    ]);
+    if ($nodes === []) {
+      continue;
+    }
+    $node = reset($nodes);
+    if (!$node instanceof Node || !$node->hasField('path')) {
+      continue;
+    }
+    $node->set('path', [
+      'alias' => $alias,
+      'pathauto' => 0,
+    ]);
+    $node->save();
+    $updated++;
+  }
+
+  return $updated > 0
+    ? sprintf('Relocated %d landing page path(s) to /help/landing/* so /help and audience routes use HelpCentreController.', $updated)
+    : 'No help_landing_page nodes matched; path relocation skipped.';
+}
+
+/**
+ * Remove legacy /help/* aliases that blocked Help Centre routes (after 10027).
+ */
+function myeventlane_help_centre_update_10028(): string {
+  $legacy = [
+    '/help',
+    '/help/attendees',
+    '/help/organisers',
+    '/help/vendors',
+    '/help/policies',
+  ];
+  $storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+  $ids = $storage->getQuery()
+    ->condition('alias', $legacy, 'IN')
+    ->accessCheck(FALSE)
+    ->execute();
+  if ($ids === []) {
+    return 'No legacy landing aliases to remove.';
+  }
+  $entities = $storage->loadMultiple($ids);
+  $storage->delete($entities);
+
+  return sprintf('Removed %d legacy path alias(es) so /help and audience URLs use controllers.', count($entities));
+}
+
+/**
+ * Executes Help Centre content seeding update logic.
+ */
+function _myeventlane_help_centre_seed_content_update(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  try {
+    $seeder = new \Drupal\myeventlane_help_centre\Service\HelpContentSeeder(
+      \Drupal::entityTypeManager(),
+      \Drupal::service('logger.factory'),
+    );
+    $createdLandingPages = $seeder->seedLandingPages();
+    $createdArticles = $seeder->seedHelpArticles();
+
+    $logger->notice('Help Centre content seeded. Landing pages created: @pages. Articles created: @articles.', [
+      '@pages' => (string) $createdLandingPages,
+      '@articles' => (string) $createdArticles,
+    ]);
+
+    return sprintf(
+      'Help Centre seeding complete. Created %d landing pages and %d help articles.',
+      $createdLandingPages,
+      $createdArticles,
+    );
+  }
+  catch (\Throwable $exception) {
+    $logger->error('Help Centre content seeding failed: @message', [
+      '@message' => $exception->getMessage(),
+    ]);
+    throw new \RuntimeException('Help Centre content seeding failed. Check logs for details.', 0, $exception);
+  }
+}
+
+/**
+ * Ensures a taxonomy vocabulary exists.
+ */
+function _myeventlane_help_centre_ensure_vocabulary(string $vid, string $name, string $description): ?Vocabulary {
+  $vocabulary = Vocabulary::load($vid);
+  if (!$vocabulary) {
+    $vocabulary = Vocabulary::create([
+      'vid' => $vid,
+      'name' => $name,
+      'description' => $description,
+      'weight' => 0,
+    ]);
+    $vocabulary->save();
+  }
+  else {
+    $changed = FALSE;
+    if ((string) $vocabulary->label() !== $name) {
+      $vocabulary->set('name', $name);
+      $changed = TRUE;
+    }
+    if ((string) $vocabulary->getDescription() !== $description) {
+      $vocabulary->set('description', $description);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $vocabulary->save();
+    }
+  }
+
+  return $vocabulary;
+}
+
+/**
+ * Ensures taxonomy terms exist in a vocabulary.
+ */
+function _myeventlane_help_centre_ensure_terms(string $vid, array $termNames): int {
+  $created = 0;
+  $termStorage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  foreach ($termNames as $name) {
+    $existing = $termStorage->loadByProperties([
+      'vid' => $vid,
+      'name' => $name,
+    ]);
+    if (!empty($existing)) {
+      continue;
+    }
+    $term = Term::create([
+      'vid' => $vid,
+      'name' => $name,
+    ]);
+    $term->save();
+    $created++;
+  }
+  return $created;
+}
+
+/**
+ * Ensures a field storage exists.
+ */
+function _myeventlane_help_centre_ensure_field_storage(string $entityType, string $fieldName, string $fieldType, array $settings, int $cardinality, bool $translatable): void {
+  $fieldStorage = FieldStorageConfig::loadByName($entityType, $fieldName);
+  if ($fieldStorage) {
+    return;
+  }
+
+  $fieldStorage = FieldStorageConfig::create([
+    'entity_type' => $entityType,
+    'field_name' => $fieldName,
+    'type' => $fieldType,
+    'settings' => $settings,
+    'cardinality' => $cardinality,
+    'translatable' => $translatable,
+  ]);
+  $fieldStorage->save();
+}
+
+/**
+ * Ensures a bundle field instance exists.
+ */
+function _myeventlane_help_centre_ensure_field_instance(string $entityType, string $bundle, string $fieldName, string $label, string $fieldType, bool $required, array $settings): void {
+  $field = FieldConfig::loadByName($entityType, $bundle, $fieldName);
+  if ($field) {
+    return;
+  }
+
+  $field = FieldConfig::create([
+    'entity_type' => $entityType,
+    'bundle' => $bundle,
+    'field_name' => $fieldName,
+    'label' => $label,
+    'field_type' => $fieldType,
+    'required' => $required,
+    'settings' => $settings,
+  ]);
+  $field->save();
+}
+
+/**
+ * Builds a simple, reusable Help Centre view definition.
+ */
+function _myeventlane_help_centre_build_view_definition(string $id, string $label, string $description, bool $withAudienceArgument = FALSE, bool $withCategoryArgument = FALSE): array {
+  $arguments = [];
+
+  if ($withAudienceArgument) {
+    $arguments['field_help_audience_target_id'] = [
+      'id' => 'field_help_audience_target_id',
+      'table' => 'node__field_help_audience',
+      'field' => 'field_help_audience_target_id',
+      'plugin_id' => 'numeric',
+      'default_action' => 'default',
+      'default_argument_type' => 'fixed',
+      'default_argument_options' => ['argument' => ''],
+      'summary_options' => ['base_path' => '', 'count' => TRUE],
+      'validate' => ['type' => 'none'],
+      'break_phrase' => FALSE,
+      'not' => FALSE,
+    ];
+  }
+
+  if ($withCategoryArgument) {
+    $arguments['field_help_category_target_id'] = [
+      'id' => 'field_help_category_target_id',
+      'table' => 'node__field_help_category',
+      'field' => 'field_help_category_target_id',
+      'plugin_id' => 'numeric',
+      'default_action' => 'default',
+      'default_argument_type' => 'fixed',
+      'default_argument_options' => ['argument' => ''],
+      'summary_options' => ['base_path' => '', 'count' => TRUE],
+      'validate' => ['type' => 'none'],
+      'break_phrase' => FALSE,
+      'not' => FALSE,
+    ];
+  }
+
+  return [
+    'id' => $id,
+    'label' => $label,
+    'module' => 'views',
+    'description' => $description,
+    'tag' => 'myeventlane_help_centre',
+    'base_table' => 'node_field_data',
+    'base_field' => 'nid',
+    'core' => '11.x',
+    'display' => [
+      'default' => [
+        'id' => 'default',
+        'display_title' => 'Default',
+        'display_plugin' => 'default',
+        'position' => 0,
+        'display_options' => [
+          'title' => $label,
+          'access' => [
+            'type' => 'perm',
+            'options' => ['perm' => 'access content'],
+          ],
+          'cache' => [
+            'type' => 'tag',
+            'options' => [],
+          ],
+          'query' => [
+            'type' => 'views_query',
+            'options' => [],
+          ],
+          'exposed_form' => [
+            'type' => 'basic',
+            'options' => [],
+          ],
+          'pager' => [
+            'type' => 'some',
+            'options' => [
+              'items_per_page' => 20,
+              'offset' => 0,
+            ],
+          ],
+          'style' => [
+            'type' => 'default',
+            'options' => [],
+          ],
+          'row' => [
+            'type' => 'entity:node',
+            'options' => ['view_mode' => 'teaser'],
+          ],
+          'fields' => [],
+          'filters' => [
+            'status' => [
+              'id' => 'status',
+              'table' => 'node_field_data',
+              'field' => 'status',
+              'entity_type' => 'node',
+              'entity_field' => 'status',
+              'plugin_id' => 'boolean',
+              'value' => '1',
+            ],
+            'type' => [
+              'id' => 'type',
+              'table' => 'node_field_data',
+              'field' => 'type',
+              'plugin_id' => 'bundle',
+              'value' => [
+                'help_article' => 'help_article',
+              ],
+            ],
+          ],
+          'sorts' => [
+            'changed' => [
+              'id' => 'changed',
+              'table' => 'node_field_data',
+              'field' => 'changed',
+              'plugin_id' => 'date',
+              'order' => 'DESC',
+            ],
+          ],
+          'arguments' => $arguments,
+        ],
+      ],
+      'block_1' => [
+        'id' => 'block_1',
+        'display_title' => 'Block',
+        'display_plugin' => 'block',
+        'position' => 1,
+        'display_options' => [],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Builds a generic Help Centre view definition with custom displays.
+ *
+ * @param array<int, string> $bundleFilters
+ *   Node bundle IDs.
+ * @param array<string, array<string, mixed>> $extraFilters
+ *   Additional view filters keyed by machine key.
+ * @param array<int, array<string, mixed>> $displays
+ *   Additional displays to append after default display.
+ */
+function _myeventlane_help_centre_build_custom_view_definition(
+  string $id,
+  string $label,
+  string $description,
+  array $bundleFilters,
+  array $extraFilters,
+  array $displays,
+): array {
+  $defaultFilters = [
+    'status' => [
+      'id' => 'status',
+      'table' => 'node_field_data',
+      'field' => 'status',
+      'entity_type' => 'node',
+      'entity_field' => 'status',
+      'plugin_id' => 'boolean',
+      'value' => '1',
+    ],
+    'type' => [
+      'id' => 'type',
+      'table' => 'node_field_data',
+      'field' => 'type',
+      'plugin_id' => 'bundle',
+      'value' => array_combine($bundleFilters, $bundleFilters),
+    ],
+  ] + $extraFilters;
+
+  $definition = [
+    'id' => $id,
+    'label' => $label,
+    'module' => 'views',
+    'description' => $description,
+    'tag' => 'myeventlane_help_centre',
+    'base_table' => 'node_field_data',
+    'base_field' => 'nid',
+    'core' => '11.x',
+    'display' => [
+      'default' => [
+        'id' => 'default',
+        'display_title' => 'Default',
+        'display_plugin' => 'default',
+        'position' => 0,
+        'display_options' => [
+          'title' => $label,
+          'access' => [
+            'type' => 'perm',
+            'options' => ['perm' => 'access content'],
+          ],
+          'cache' => [
+            'type' => 'tag',
+            'options' => [],
+          ],
+          'query' => [
+            'type' => 'views_query',
+            'options' => [],
+          ],
+          'exposed_form' => [
+            'type' => 'basic',
+            'options' => [],
+          ],
+          'pager' => [
+            'type' => 'some',
+            'options' => [
+              'items_per_page' => 12,
+              'offset' => 0,
+            ],
+          ],
+          'style' => [
+            'type' => 'default',
+            'options' => [],
+          ],
+          'row' => [
+            'type' => 'entity:node',
+            'options' => ['view_mode' => 'teaser'],
+          ],
+          'fields' => [],
+          'filters' => $defaultFilters,
+          'sorts' => [
+            'changed' => [
+              'id' => 'changed',
+              'table' => 'node_field_data',
+              'field' => 'changed',
+              'plugin_id' => 'date',
+              'order' => 'DESC',
+            ],
+            'title' => [
+              'id' => 'title',
+              'table' => 'node_field_data',
+              'field' => 'title',
+              'plugin_id' => 'standard',
+              'order' => 'ASC',
+            ],
+          ],
+          'arguments' => [],
+        ],
+      ],
+    ],
+  ];
+
+  foreach ($displays as $display) {
+    $definition['display'][$display['id']] = $display;
+  }
+
+  return $definition;
+}
+
+/**
+ * Upserts a Views config entity from definition data.
+ */
+function _myeventlane_help_centre_upsert_view(array $definition): void {
+  $view = View::load($definition['id']);
+  if (!$view) {
+    $view = View::create($definition);
+  }
+  else {
+    foreach ($definition as $key => $value) {
+      $view->set($key, $value);
+    }
+  }
+  $view->save();
+}
+
+/**
+ * Returns a taxonomy term ID by vocabulary and term name.
+ */
+function _myeventlane_help_centre_term_id(string $vocabularyId, string $termName): int {
+  $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties([
+    'vid' => $vocabularyId,
+    'name' => $termName,
+  ]);
+  if ($terms === []) {
+    return 0;
+  }
+  $term = reset($terms);
+  return $term instanceof Term ? (int) $term->id() : 0;
+}
+
+/**
+ * Builds a taxonomy-target-id numeric filter configuration.
+ */
+function _myeventlane_help_centre_tid_filter(string $filterId, string $table, string $field, int $tid, string $vocabularyId = ''): array {
+  if ($tid <= 0) {
+    return [];
+  }
+  $value = [$tid => $tid];
+  return [
+    $filterId => [
+      'id' => $filterId,
+      'table' => $table,
+      'field' => $field,
+      'plugin_id' => 'taxonomy_index_tid',
+      'operator' => 'or',
+      'value' => $value,
+      'reduce_duplicates' => FALSE,
+      'type' => 'select',
+      'vid' => $vocabularyId,
+    ],
+  ];
+}
+
+/**
+ * Ensures a help_topic term exists by name and returns its term ID.
+ */
+function _myeventlane_help_centre_ensure_topic_term(string $name): int {
+  if ($name === '') {
+    return 0;
+  }
+  $termStorage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $existing = $termStorage->loadByProperties([
+    'vid' => 'help_topic',
+    'name' => $name,
+  ]);
+  if ($existing !== []) {
+    $term = reset($existing);
+    return $term instanceof Term ? (int) $term->id() : 0;
+  }
+  $term = Term::create([
+    'vid' => 'help_topic',
+    'name' => $name,
+  ]);
+  $term->save();
+  return (int) $term->id();
 }

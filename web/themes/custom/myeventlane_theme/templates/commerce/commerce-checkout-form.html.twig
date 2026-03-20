@@ -26,6 +26,11 @@
 
   <div class="mel-checkout__grid">
     <div class="mel-checkout__main">
+      {% if mel_help_checkout_refund %}
+        <div class="mel-contextual-help mel-contextual-help--checkout">
+          {{ mel_help_checkout_refund }}
+        </div>
+      {% endif %}
       {{ form|without('progress', 'sidebar', 'actions') }}
       {% if form.actions %}
         <div class="mel-checkout__actions">

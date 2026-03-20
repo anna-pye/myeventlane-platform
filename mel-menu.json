@@ -96,7 +96,7 @@
     },
     "myeventlane_help_centre.vendor_help": {
         "title": "Help centre",
-        "route": "myeventlane_help_centre.vendor_index",
+        "route": "myeventlane_help_centre.vendor_help",
         "parent": ""
     },
     "myeventlane_help_centre.public_help": {

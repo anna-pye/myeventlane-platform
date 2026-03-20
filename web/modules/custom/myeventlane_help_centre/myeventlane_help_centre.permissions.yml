@@ -5,3 +5,23 @@ view vendor help centre:
 administer help articles:
   title: 'Administer help articles'
   description: 'Create, edit, and delete help centre articles.'
+
+administer help centre:
+  title: 'Administer help centre'
+  description: 'Administer Help Centre configuration, content model updates, and governance.'
+
+create help articles:
+  title: 'Create help articles'
+  description: 'Create new Help Centre help_article content.'
+
+edit help articles:
+  title: 'Edit help articles'
+  description: 'Edit existing Help Centre help_article content.'
+
+delete help articles:
+  title: 'Delete help articles'
+  description: 'Delete Help Centre help_article content.'
+
+view mel help insights:
+  title: 'View MEL help insights'
+  description: 'Access Help Centre admin feedback, analytics, and insights dashboards.'

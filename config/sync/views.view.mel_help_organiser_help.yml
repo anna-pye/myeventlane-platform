@@ -1,0 +1,118 @@
+uuid: e54bce7b-9712-4ddd-8342-e1957100c28e
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - node.type.help_article
+    - taxonomy.vocabulary.help_audience
+  content:
+    - 'taxonomy_term:help_audience:549b780b-ab2c-41c4-b21e-2363a32f4091'
+  module:
+    - node
+    - taxonomy
+    - user
+id: mel_help_organiser_help
+label: 'MEL Help Organiser Listing'
+module: views
+description: 'Organiser listing'
+tag: myeventlane_help_centre
+base_table: node_field_data
+base_field: nid
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'MEL Help Organiser Listing'
+      fields: {  }
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 12
+      exposed_form:
+        type: basic
+        options: {  }
+      access:
+        type: perm
+        options:
+          perm: 'access content'
+      cache:
+        type: tag
+        options: {  }
+      sorts:
+        changed:
+          id: changed
+          table: node_field_data
+          field: changed
+          plugin_id: date
+          order: DESC
+        title:
+          id: title
+          table: node_field_data
+          field: title
+          plugin_id: standard
+          order: ASC
+      arguments: {  }
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          value: '1'
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          plugin_id: bundle
+          value:
+            help_article: help_article
+        field_help_audience_target_id:
+          id: field_help_audience_target_id
+          table: node__field_help_audience
+          field: field_help_audience_target_id
+          plugin_id: taxonomy_index_tid
+          operator: or
+          value:
+            34: 34
+          reduce_duplicates: false
+          vid: help_audience
+          type: select
+      style:
+        type: default
+        options: {  }
+      row:
+        type: 'entity:node'
+        options:
+          view_mode: teaser
+      query:
+        type: views_query
+        options: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  block_organisers:
+    id: block_organisers
+    display_title: 'Organiser Block'
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }

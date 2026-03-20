@@ -1,0 +1,28 @@
+uuid: d743eecd-d640-489a-9b34-b563c6cc4602
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_category
+    - node.type.faq
+    - taxonomy.vocabulary.help_categories
+id: node.faq.field_help_category
+field_name: field_help_category
+entity_type: node
+bundle: faq
+label: Category
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      help_categories: help_categories
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+field_type: entity_reference

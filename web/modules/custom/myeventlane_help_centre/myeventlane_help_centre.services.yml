@@ -1,0 +1,20 @@
+services:
+  logger.channel.myeventlane_help_centre:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['myeventlane_help_centre']
+
+  myeventlane_help_centre.seeder:
+    class: Drupal\myeventlane_help_centre\Service\HelpContentSeeder
+    public: true
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+
+  myeventlane_help_centre.analytics:
+    class: Drupal\myeventlane_help_centre\Service\HelpAnalyticsService
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@current_user'
+      - '@datetime.time'

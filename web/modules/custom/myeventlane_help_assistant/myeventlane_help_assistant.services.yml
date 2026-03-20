@@ -1,0 +1,34 @@
+services:
+  logger.channel.myeventlane_help_assistant:
+    parent: logger.channel_base
+    arguments: ['myeventlane_help_assistant']
+
+  myeventlane_help_assistant.retriever:
+    class: Drupal\myeventlane_help_assistant\Service\HelpRetriever
+    arguments:
+      - '@entity_type.manager'
+      - '@path_alias.manager'
+      - '@logger.channel.myeventlane_help_assistant'
+
+  myeventlane_help_assistant.assistant:
+    class: Drupal\myeventlane_help_assistant\Service\HelpAssistantService
+    arguments:
+      - '@myeventlane_help_assistant.retriever'
+      - '@myeventlane_ai.manager'
+      - '@myeventlane_help_centre.analytics'
+      - '@config.factory'
+      - '@current_user'
+      - '@logger.channel.myeventlane_help_assistant'
+
+  myeventlane_help_assistant.event_suggestions:
+    class: Drupal\myeventlane_help_assistant\Service\EventSuggestionService
+    arguments:
+      - '@myeventlane_help_assistant.retriever'
+      - '@myeventlane_ai.manager'
+      - '@config.factory'
+      - '@current_user'
+      - '@logger.channel.myeventlane_help_assistant'
+      - '@?myeventlane_boost.manager'
+      - '@?myeventlane_event_attendees.manager'
+    calls:
+      - [setStringTranslation, ['@string_translation']]

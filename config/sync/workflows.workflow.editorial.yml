@@ -4,6 +4,9 @@ status: true
 dependencies:
   config:
     - node.type.event
+    - node.type.help_article
+    - node.type.help_landing_page
+    - node.type.support_procedure
   module:
     - content_moderation
 _core:
@@ -29,7 +32,7 @@ type_settings:
       published: true
       default_revision: true
     review:
-      label: Review
+      label: 'In review'
       weight: -1
   transitions:
     archive:
@@ -85,4 +88,7 @@ type_settings:
   entity_types:
     node:
       - event
+      - help_article
+      - help_landing_page
+      - support_procedure
   default_moderation_state: draft

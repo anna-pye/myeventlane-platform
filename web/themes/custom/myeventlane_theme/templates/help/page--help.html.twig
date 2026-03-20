@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Theme override for the /help page family.
+ */
+#}
+<div class="mel-help-page">
+  {% if page.breadcrumb %}
+    <div class="mel-help-page__breadcrumb">
+      {{ page.breadcrumb }}
+    </div>
+  {% endif %}
+
+  {% if page.highlighted %}
+    <div class="mel-help-page__highlighted">
+      {{ page.highlighted }}
+    </div>
+  {% endif %}
+
+  <main class="mel-help-page__content" role="main">
+    <a id="main-content" tabindex="-1"></a>
+    {{ page.content }}
+  </main>
+</div>

@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Compact teaser for help articles (views, related block, listings).
+ *
+ * Avoids node--help-article.html.twig so titles/body scale for lists, not
+ * full-page reader layout.
+ */
+#}
+<article{{ attributes.addClass('node', 'node--type-help-article', 'node--view-mode-teaser', 'mel-help-teaser') }}>
+  {{ title_prefix }}
+  <h3 class="mel-help-teaser__title">
+    <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+  </h3>
+  {{ title_suffix }}
+
+  <div class="mel-help-teaser__body">
+    {{ content|without('links') }}
+  </div>
+
+  <p class="mel-help-teaser__actions">
+    <a href="{{ url }}" class="mel-help-teaser__more">{{ 'Read more'|t }}<span class="visually-hidden"> — {{ label }}</span></a>
+  </p>
+</article>

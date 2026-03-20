@@ -92,6 +92,7 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
         'tickets_edit_link' => NULL,
         'publish_url' => NULL,
         'card_preview' => NULL,
+        'event_quality_panel' => NULL,
       ],
       'template' => 'event-wizard-review',
     ],

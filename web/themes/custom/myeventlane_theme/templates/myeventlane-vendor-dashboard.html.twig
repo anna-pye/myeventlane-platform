@@ -30,6 +30,11 @@
   </aside>
 
   <main class="vendor-workspace__workspace">
+    {% if mel_help_vendor_dashboard %}
+      <div class="mel-contextual-help mel-contextual-help--vendor-dashboard">
+        {{ mel_help_vendor_dashboard }}
+      </div>
+    {% endif %}
     <header class="mel-workspace-header">
       <div class="mel-event-context">
         <h1>{{ event.title|default('Vendor Dashboard'|t) }}</h1>

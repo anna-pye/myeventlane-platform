@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install and update hooks for MEL Ticket.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function mel_ticket_install(): void {
+  mel_ticket_grant_default_role_permissions();
+}
+
+/**
+ * Grants ticket permissions to vendor-facing roles when present.
+ */
+function mel_ticket_grant_default_role_permissions(): void {
+  foreach (['vendor', 'pro_organiser'] as $rid) {
+    $role = Role::load($rid);
+    if (!$role) {
+      continue;
+    }
+    foreach ([
+      'create mel_ticket_type entities',
+      'edit own mel_ticket_type entities',
+      'delete own mel_ticket_type entities',
+      'reuse mel_ticket_type entities',
+      'assign mel_ticket_type entities',
+      'view mel_ticket_type entities',
+    ] as $permission) {
+      $role->grantPermission($permission);
+    }
+    $role->save();
+  }
+}
+
+/**
+ * Drops legacy paragraph-based field_ticket_types storage on node.
+ *
+ * Drupal cannot change field storage type in place. After this runs, import
+ * config (drush cim) to create entity_reference → mel_ticket_type storage.
+ */
+function mel_ticket_update_9001(): string {
+  $storage = FieldStorageConfig::loadByName('node', 'field_ticket_types');
+  if (!$storage) {
+    return 'No node.field_ticket_types storage; nothing to remove. Run cim if the field is still missing.';
+  }
+
+  if ($storage->getType() === 'entity_reference' && $storage->getSetting('target_type') === 'mel_ticket_type') {
+    return 'node.field_ticket_types already targets mel_ticket_type.';
+  }
+
+  if ($storage->getType() !== 'entity_reference_revisions') {
+    return sprintf(
+      'node.field_ticket_types has type %s (expected entity_reference_revisions for migration). Remove or rename it manually before running cim.',
+      $storage->getType()
+    );
+  }
+
+  $field = FieldConfig::load('node.event.field_ticket_types');
+  if ($field) {
+    $field->delete();
+  }
+
+  $storage = FieldStorageConfig::loadByName('node', 'field_ticket_types');
+  if ($storage) {
+    $storage->delete();
+  }
+
+  return 'Removed legacy paragraph field_ticket_types on node. Run `drush cim` to add the mel_ticket_type reference field.';
+}
+
+/**
+ * Adds template_source (clone lineage) to ticket types.
+ */
+function mel_ticket_update_9002(): string {
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type');
+  $field = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type)['template_source'];
+  \Drupal::entityDefinitionUpdateManager()->installFieldStorageDefinition(
+    'template_source',
+    'mel_ticket_type',
+    'mel_ticket',
+    $field
+  );
+  return 'Installed mel_ticket_type.template_source for wizard template cloning.';
+}

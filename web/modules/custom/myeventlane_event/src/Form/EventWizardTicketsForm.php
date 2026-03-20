@@ -8,10 +8,13 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\mel_ticket\Entity\TicketType;
+use Drupal\mel_ticket\Service\TicketTypeCloneService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
+use InvalidArgumentException;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -32,6 +35,11 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
   protected TicketTypeManager $ticketTypeManager;
 
   /**
+   * Clones reusable templates into per-event ticket rows (persistence layer).
+   */
+  protected TicketTypeCloneService $ticketTypeCloneService;
+
+  /**
    * Constructs the form.
    */
   public function __construct(
@@ -41,10 +49,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     RendererInterface $renderer,
     LoggerInterface $logger,
     TicketTypeManager $ticket_type_manager,
+    TicketTypeCloneService $ticket_type_clone_service,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
     $this->ticketTypeManager = $ticket_type_manager;
+    $this->ticketTypeCloneService = $ticket_type_clone_service;
   }
 
   /**
@@ -58,6 +68,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       $container->get('renderer'),
       $container->get('logger.factory')->get('myeventlane_event'),
       $container->get('myeventlane_event.ticket_type_manager'),
+      $container->get('mel_ticket.ticket_type_clone'),
     );
   }
 
@@ -96,6 +107,9 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $form['mel_ticket_wizard'] = [
       '#type' => 'container',
+      // Required so nested fields use mel_ticket_wizard[...] names; #states
+      // selectors must match these names (see FormBuilder::doBuildForm).
+      '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-ticket-wizard', 'mel-cards']],
       '#weight' => 12,
     ];
@@ -105,80 +119,136 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       '#tag' => 'h3',
       '#value' => $this->t('Tickets for this event'),
       '#attributes' => ['class' => ['mel-ticket-wizard__title']],
+      '#weight' => -30,
     ];
 
     $allowed_kinds = $this->allowedTicketKindsForEventType($event_type);
+    $kind_states_input = ':input[name="mel_ticket_wizard[create][kind]"]';
+
+    $form['mel_ticket_wizard']['reuse'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Reuse an existing ticket'),
+      '#open' => TRUE,
+      '#weight' => -20,
+      '#attributes' => ['class' => ['mel-ticket-wizard__reuse']],
+      '#access' => $allowed_kinds !== [] && !in_array($event_type, ['external'], TRUE),
+      'path_label' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Option A — Reuse a saved template'),
+        '#attributes' => [
+          'class' => ['mel-ticket-wizard__path-label'],
+          'id' => 'mel-ticket-wizard-reuse-path',
+        ],
+        '#weight' => -25,
+      ],
+      'help' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Search by title. Only <em>your</em> RSVP or external tickets marked <em>reusable</em> appear here. Attaching creates a <strong>new copy</strong> for this event; the template is not modified. Paid tiers cannot be templates—add them under “Create a new ticket”.'),
+        '#attributes' => ['class' => ['description']],
+      ],
+      'ticket' => [
+        '#type' => 'entity_autocomplete',
+        '#title' => $this->t('Find reusable ticket'),
+        '#target_type' => 'mel_ticket_type',
+        '#selection_handler' => 'mel_ticket:reusable',
+        '#selection_settings' => [],
+        '#size' => 60,
+        '#placeholder' => $this->t('Start typing a ticket title…'),
+      ],
+      'attach' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Attach ticket'),
+        '#submit' => ['::attachReusableTicketSubmit'],
+        '#limit_validation_errors' => [['mel_ticket_wizard', 'reuse']],
+        '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
+      ],
+    ];
+
     $form['mel_ticket_wizard']['attached'] = $this->buildAttachedTicketsTable(
       $form_state,
       $allowed_kinds !== [],
       $event_type
     );
+    $form['mel_ticket_wizard']['attached']['#weight'] = -10;
 
     if ($allowed_kinds !== []) {
-      $form['mel_ticket_wizard']['reuse'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Reuse an existing ticket'),
-        '#attributes' => ['class' => ['mel-fieldset', 'mel-ticket-wizard__reuse']],
-        'help' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Attach a reusable ticket you have already created. Paid tickets cannot be reusable.'),
-          '#attributes' => ['class' => ['description']],
-        ],
-        'ticket' => [
-          '#type' => 'entity_autocomplete',
-          '#title' => $this->t('Reusable ticket'),
-          '#target_type' => 'mel_ticket_type',
-          '#selection_handler' => 'mel_ticket:reusable',
-          '#selection_settings' => [],
-        ],
-        'attach' => [
-          '#type' => 'submit',
-          '#value' => $this->t('Attach ticket'),
-          '#submit' => ['::attachReusableTicketSubmit'],
-          '#limit_validation_errors' => [['mel_ticket_wizard', 'reuse']],
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
-        ],
-      ];
-
       $currency = $this->ticketTypeManager->getDefaultCurrencyCodeForEvent($event);
-      $form['mel_ticket_wizard']['create'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Create a new ticket'),
-        '#attributes' => ['class' => ['mel-fieldset', 'mel-ticket-wizard__create']],
-        'kind' => [
+      $kind_fields = [];
+      if (count($allowed_kinds) === 1) {
+        $only_key = (string) array_key_first($allowed_kinds);
+        $kind_fields['kind'] = [
+          '#type' => 'hidden',
+          '#value' => $only_key,
+        ];
+        $kind_fields['kind_label'] = [
+          '#type' => 'item',
+          '#title' => $this->t('Ticket type'),
+          // Cast TranslatableMarkup to string for render.
+          '#markup' => (string) $allowed_kinds[$only_key],
+        ];
+      }
+      else {
+        $kind_fields['kind'] = [
           '#type' => 'select',
           '#title' => $this->t('Ticket type'),
           '#options' => $allowed_kinds,
-          '#required' => FALSE,
-          '#empty_option' => $this->t('- Select -'),
+          '#required' => TRUE,
+          '#default_value' => array_key_first($allowed_kinds),
+        ];
+      }
+
+      $form['mel_ticket_wizard']['create'] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Create a new ticket'),
+        '#weight' => 0,
+        '#attributes' => [
+          'class' => ['mel-fieldset', 'mel-ticket-wizard__create'],
+          'aria-labelledby' => 'mel-ticket-wizard-create-path',
         ],
+        'path_label' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Option B — Create a new ticket'),
+          '#attributes' => [
+            'class' => ['mel-ticket-wizard__path-label'],
+            'id' => 'mel-ticket-wizard-create-path',
+          ],
+          '#weight' => -40,
+        ],
+        'intro' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Create a brand-new ticket for this event only. For something you use often, check <em>Make this ticket reusable</em> (RSVP or external) so it appears under “Reuse” on future events—each reuse is copied automatically.'),
+          '#attributes' => ['class' => ['description']],
+        ],
+      ] + $kind_fields + [
         'title' => [
           '#type' => 'textfield',
           '#title' => $this->t('Title'),
           '#maxlength' => 255,
         ],
-        'price_amount' => [
-          '#type' => 'number',
-          '#title' => $this->t('Price'),
-          '#min' => 0,
-          '#step' => 0.01,
+        'paid_fields' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-wizard__group', 'mel-ticket-wizard__group--paid']],
           '#states' => [
             'visible' => [
-              ':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'paid'],
+              $kind_states_input => ['value' => 'paid'],
             ],
           ],
-        ],
-        'price_currency' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Currency'),
-          '#size' => 4,
-          '#maxlength' => 3,
-          '#default_value' => $currency,
-          '#states' => [
-            'visible' => [
-              ':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'paid'],
-            ],
+          'price_amount' => [
+            '#type' => 'number',
+            '#title' => $this->t('Price'),
+            '#min' => 0,
+            '#step' => 0.01,
+          ],
+          'price_currency' => [
+            '#type' => 'textfield',
+            '#title' => $this->t('Currency'),
+            '#size' => 4,
+            '#maxlength' => 3,
+            '#default_value' => $currency,
           ],
         ],
         'capacity' => [
@@ -188,8 +258,8 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
           '#states' => [
             'visible' => [
               'or' => [
-                [':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'rsvp']],
-                [':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'paid']],
+                [$kind_states_input => ['value' => 'rsvp']],
+                [$kind_states_input => ['value' => 'paid']],
               ],
             ],
           ],
@@ -200,7 +270,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
           '#min' => 0,
           '#states' => [
             'visible' => [
-              ':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'rsvp'],
+              $kind_states_input => ['value' => 'rsvp'],
             ],
           ],
         ],
@@ -209,28 +279,40 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
           '#title' => $this->t('External ticket URL'),
           '#states' => [
             'visible' => [
-              ':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'external'],
+              $kind_states_input => ['value' => 'external'],
             ],
           ],
         ],
-        'sale_start' => [
-          '#type' => 'datetime',
-          '#title' => $this->t('Sale start'),
-          '#date_increment' => 15,
-        ],
-        'sale_end' => [
-          '#type' => 'datetime',
-          '#title' => $this->t('Sale end'),
-          '#date_increment' => 15,
+        'sale_window' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-wizard__group', 'mel-ticket-wizard__group--sales']],
+          '#states' => [
+            'visible' => [
+              'or' => [
+                [$kind_states_input => ['value' => 'rsvp']],
+                [$kind_states_input => ['value' => 'paid']],
+              ],
+            ],
+          ],
+          'sale_start' => [
+            '#type' => 'datetime',
+            '#title' => $this->t('Sale start'),
+            '#date_increment' => 15,
+          ],
+          'sale_end' => [
+            '#type' => 'datetime',
+            '#title' => $this->t('Sale end'),
+            '#date_increment' => 15,
+          ],
         ],
         'is_reusable' => [
           '#type' => 'checkbox',
           '#title' => $this->t('Make this ticket reusable on other events'),
           '#states' => [
             'visible' => [
-              [':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'rsvp']],
+              [$kind_states_input => ['value' => 'rsvp']],
               'or',
-              [':input[name="mel_ticket_wizard[create][kind]"]' => ['value' => 'external']],
+              [$kind_states_input => ['value' => 'external']],
             ],
           ],
         ],
@@ -251,6 +333,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $form['#event'] = $event;
     $form['#step_id'] = 'tickets';
     $form['#attached']['library'][] = 'mel_ticket/wizard';
+    $form['#attached']['library'][] = 'core/drupal.states';
 
     $steps = $this->buildStepper($event, 'tickets');
     $form['#steps'] = $steps;
@@ -334,11 +417,20 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     }
 
     $create = $form_state->getValue(['mel_ticket_wizard', 'create']) ?? [];
-    if (!empty($create) && !empty(array_filter($create))) {
+    if (is_array($create) && $this->createSectionHasAnyUserInput($create)) {
       $has_title = !empty($create['title']);
       $has_kind = !empty($create['kind']);
       if ($has_title xor $has_kind) {
         $form_state->setErrorByName('mel_ticket_wizard][create', $this->t('Complete ticket type and title, or clear the create form, or use the “Add ticket” button.'));
+      }
+      elseif ($has_title && $has_kind && ($create['kind'] ?? '') === 'paid') {
+        $paid = $create['paid_fields'] ?? [];
+        $amount = (string) ($paid['price_amount'] ?? '');
+        $currency = strtoupper(trim((string) ($paid['price_currency'] ?? '')));
+        $msg = $this->validatePaidPriceForCommerce($amount, $currency);
+        if ($msg !== NULL) {
+          $form_state->setErrorByName('mel_ticket_wizard][create][paid_fields', $msg);
+        }
       }
     }
   }
@@ -389,6 +481,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
    * Appends a reusable ticket chosen from autocomplete.
    */
   public function attachReusableTicketSubmit(array &$form, FormStateInterface $form_state): void {
+    if (!$this->currentUser->hasPermission('reuse mel_ticket_type entities')) {
+      $this->messenger()->addError($this->t('You do not have permission to reuse ticket templates.'));
+      $form_state->setRebuild();
+      return;
+    }
+
     $target = $form_state->getValue(['mel_ticket_wizard', 'reuse', 'ticket']);
     if (empty($target)) {
       $this->messenger()->addWarning($this->t('Choose a ticket to attach.'));
@@ -403,22 +501,38 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $id = (int) $m[1];
     $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->load($id);
     if (!$ticket instanceof TicketType || !$ticket->isReusable()) {
-      $this->messenger()->addError($this->t('That ticket is not reusable.'));
+      $this->messenger()->addError($this->t('That ticket is not a reusable template.'));
       $form_state->setRebuild();
       return;
     }
     if ((int) $ticket->get('vendor_id')->target_id !== (int) $this->currentUser->id()) {
-      $this->messenger()->addError($this->t('You can only reuse your own tickets.'));
+      $this->messenger()->addError($this->t('You can only reuse templates you own.'));
       $form_state->setRebuild();
       return;
     }
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    if (!in_array($id, $ids, TRUE)) {
-      $ids[] = $id;
-      $form_state->set('mel_attached_ticket_ids', $ids);
+
+    $event = $this->getEvent();
+    try {
+      $clone = $this->ticketTypeCloneService->createFromTemplate($ticket, $event, $this->currentUser);
     }
+    catch (InvalidArgumentException $e) {
+      $this->messenger()->addError($e->getMessage());
+      $form_state->setRebuild();
+      return;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Ticket template clone failed: @msg', ['@msg' => $e->getMessage()]);
+      $this->messenger()->addError($this->t('Could not copy the ticket template. Try again or create a new ticket.'));
+      $form_state->setRebuild();
+      return;
+    }
+
+    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
+    $ids[] = (int) $clone->id();
+    $form_state->set('mel_attached_ticket_ids', array_values(array_unique($ids)));
+
     $form_state->setValue(['mel_ticket_wizard', 'reuse', 'ticket'], NULL);
-    $this->messenger()->addStatus($this->t('Ticket attached for this step. Continue to save the event.'));
+    $this->messenger()->addStatus($this->t('A copy of the template was added for this event. Continue to save.'));
     $form_state->setRebuild();
   }
 
@@ -469,10 +583,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     }
 
     if ($kind === 'paid') {
-      $amount = (string) ($create['price_amount'] ?? '');
-      $currency = strtoupper(trim((string) ($create['price_currency'] ?? '')));
-      if ($amount === '' || $currency === '') {
-        $this->messenger()->addError($this->t('Paid tickets require price and currency.'));
+      $paid = $create['paid_fields'] ?? [];
+      $amount = (string) ($paid['price_amount'] ?? '');
+      $currency = strtoupper(trim((string) ($paid['price_currency'] ?? '')));
+      $price_error = $this->validatePaidPriceForCommerce($amount, $currency);
+      if ($price_error !== NULL) {
+        $this->messenger()->addError($price_error);
         $form_state->setRebuild();
         return;
       }
@@ -487,8 +603,8 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     }
     elseif ($kind === 'external') {
       $uri = trim((string) ($create['external_uri'] ?? ''));
-      if ($uri === '' || !UrlHelper::isValid($uri, TRUE)) {
-        $this->messenger()->addError($this->t('Enter a valid external https URL.'));
+      if ($uri === '' || !UrlHelper::isValid($uri, TRUE) || !str_starts_with(strtolower($uri), 'https://')) {
+        $this->messenger()->addError($this->t('External tickets require a valid https booking URL.'));
         $form_state->setRebuild();
         return;
       }
@@ -501,9 +617,10 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       return;
     }
 
+    $sale_window = $create['sale_window'] ?? [];
     foreach (['sale_start', 'sale_end'] as $key) {
-      if (!empty($create[$key]) && $create[$key] instanceof DrupalDateTime) {
-        $values[$key] = $create[$key]->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
+      if (!empty($sale_window[$key]) && $sale_window[$key] instanceof DrupalDateTime) {
+        $values[$key] = $sale_window[$key]->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
       }
     }
 
@@ -531,6 +648,53 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
   /**
    * Builds the attachment table for tickets on this step.
    */
+  /**
+   * Whether the nested “create ticket” tree has any non-empty user input.
+   *
+   * Used so validation catches partially filled price/capacity rows, not only
+   * top-level keys.
+   */
+  private function createSectionHasAnyUserInput(array $values): bool {
+    foreach ($values as $val) {
+      if ($val === NULL || $val === '' || $val === []) {
+        continue;
+      }
+      if (is_array($val)) {
+        if ($this->createSectionHasAnyUserInput($val)) {
+          return TRUE;
+        }
+        continue;
+      }
+      if (is_numeric($val) && (float) $val === 0.0) {
+        continue;
+      }
+      if ($val instanceof DrupalDateTime) {
+        return TRUE;
+      }
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Validates numeric amount and ISO currency for Commerce-backed paid tickets.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup|null
+   *   A message when invalid; NULL when OK.
+   */
+  private function validatePaidPriceForCommerce(string $amount, string $currency): ?TranslatableMarkup {
+    if ($currency === '' || !preg_match('/^[A-Z]{3}$/', $currency)) {
+      return $this->t('Enter a valid 3-letter currency code (e.g. AUD).');
+    }
+    if ($amount === '' || !is_numeric($amount)) {
+      return $this->t('Paid tickets require a numeric price.');
+    }
+    if (round((float) $amount, 6) <= 0.0) {
+      return $this->t('Paid tickets must have a price greater than zero for checkout.');
+    }
+    return NULL;
+  }
+
   private function buildAttachedTicketsTable(FormStateInterface $form_state, bool $show_ticket_ui, string $event_type): array {
     $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
     $rows = [];
@@ -545,11 +709,16 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       $price_label = $price
         ? sprintf('%s %s', $price->getCurrencyCode(), $price->getNumber())
         : $this->t('Free / N/A');
+      $template_note = '';
+      if ($ticket->hasField('template_source') && !$ticket->get('template_source')->isEmpty()) {
+        $template_note = (string) $this->t('Copied from template');
+      }
       $rows[] = [
         'data' => [
           ['data' => ['#markup' => $ticket->label()]],
           ['data' => ['#markup' => strtoupper($kind)]],
           ['data' => ['#markup' => $price_label]],
+          ['data' => ['#markup' => $template_note]],
           [
             'data' => [
               'detach' => [
@@ -573,6 +742,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
           $this->t('Title'),
           $this->t('Type'),
           $this->t('Price'),
+          $this->t('Source'),
           $this->t('Remove'),
         ],
         '#rows' => $rows,

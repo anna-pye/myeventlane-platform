@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for Help Assistant.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Add rate limit settings aligned with Phase 3.0.1 hardening.
+ */
+function myeventlane_help_assistant_update_9001(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_help_assistant.settings');
+  if ($config->get('max_requests_per_10min') === NULL) {
+    $config->set('max_requests_per_10min', 5);
+  }
+  if ($config->get('max_requests_per_hour') === NULL) {
+    $config->set(
+      'max_requests_per_hour',
+      (int) ($config->get('rate_limit_per_session_hour') ?? 20),
+    );
+  }
+  $config->save();
+}

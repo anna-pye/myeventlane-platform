@@ -1,0 +1,77 @@
+{#
+/**
+ * @file
+ * Theme override for Help Article nodes.
+ */
+#}
+<article{{ attributes.addClass('node', 'node--type-help-article', 'mel-help-node') }}>
+  {{ title_prefix }}
+  {% if not page %}
+    <h2{{ title_attributes.addClass('mel-help-node__title') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+  {% else %}
+    <h1{{ title_attributes.addClass('mel-help-node__title') }}>{{ label }}</h1>
+  {% endif %}
+  {{ title_suffix }}
+
+  {% if page and content.field_help_summary %}
+    <div class="mel-help-node__summary">
+      {{ content.field_help_summary }}
+    </div>
+  {% endif %}
+
+  {% if page and content.field_last_reviewed %}
+    <div class="mel-help-node__meta">
+      {{ content.field_last_reviewed }}
+    </div>
+  {% endif %}
+
+  <div{{ content_attributes.addClass('mel-help-node__content') }}>
+    {{ content|without('links', 'field_help_summary', 'field_last_reviewed', 'field_help_cta_label', 'field_help_cta_link', 'field_related_help_articles') }}
+  </div>
+
+  {% if page and mel_help_cta %}
+    <div class="mel-help-node__cta">
+      <h2>{{ 'Next step'|t }}</h2>
+      <p><a class="mel-help-node__cta-button" href="{{ mel_help_cta.url }}">{{ mel_help_cta.label }}</a></p>
+    </div>
+  {% endif %}
+
+  {% if page and mel_help_related_articles %}
+    <section class="mel-help-node__related" aria-labelledby="mel-help-related-title">
+      <h2 id="mel-help-related-title">{{ 'Related articles'|t }}</h2>
+      {{ mel_help_related_articles }}
+    </section>
+  {% endif %}
+
+  {% if page and mel_help_support_panel %}
+    {{ mel_help_support_panel }}
+  {% endif %}
+
+  {% if page and mel_help_feedback_endpoint and mel_help_feedback_token %}
+    <section
+      class="mel-help-feedback"
+      aria-labelledby="mel-help-feedback-title"
+      data-endpoint="{{ mel_help_feedback_endpoint }}"
+      data-token="{{ mel_help_feedback_token }}"
+    >
+      <h2 id="mel-help-feedback-title">{{ 'Was this helpful?'|t }}</h2>
+      <div class="mel-help-feedback__actions">
+        <button type="button" class="mel-help-feedback__button" data-helpful="1">👍 {{ 'Yes'|t }}</button>
+        <button type="button" class="mel-help-feedback__button" data-helpful="0">👎 {{ 'No'|t }}</button>
+      </div>
+      <p class="mel-help-feedback__status" aria-live="polite"></p>
+      <p class="mel-help-feedback__no-hint" hidden>
+        {{ 'Tell us what is missing.'|t }}
+        <a href="/contact">{{ 'Contact support'|t }}</a>
+      </p>
+    </section>
+  {% endif %}
+
+  {% if content.links %}
+    <div class="mel-help-node__links">
+      {{ content.links }}
+    </div>
+  {% endif %}
+</article>

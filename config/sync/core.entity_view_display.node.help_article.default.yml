@@ -3,6 +3,23 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.help_article.body
+    - field.field.node.help_article.field_audience
+    - field.field.node.help_article.field_content_owner
+    - field.field.node.help_article.field_featured_help
+    - field.field.node.help_article.field_help_article_type
+    - field.field.node.help_article.field_help_audience
+    - field.field.node.help_article.field_help_category
+    - field.field.node.help_article.field_help_cta_label
+    - field.field.node.help_article.field_help_cta_link
+    - field.field.node.help_article.field_help_keywords
+    - field.field.node.help_article.field_help_summary
+    - field.field.node.help_article.field_help_topic
+    - field.field.node.help_article.field_last_reviewed
+    - field.field.node.help_article.field_last_updated
+    - field.field.node.help_article.field_priority
+    - field.field.node.help_article.field_related_articles
+    - field.field.node.help_article.field_related_help_articles
     - node.type.help_article
   module:
     - user
@@ -14,12 +31,35 @@ content:
   links:
     settings: {  }
     third_party_settings: {  }
-    weight: 0
+    weight: 100
     region: content
   search_api_excerpt:
     settings: {  }
     third_party_settings: {  }
-    weight: 1
+    weight: 101
+    region: content
+  body:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
     region: content
 hidden:
+  field_audience: true
+  field_content_owner: true
+  field_featured_help: true
+  field_help_article_type: true
+  field_help_audience: true
+  field_help_category: true
+  field_help_cta_label: true
+  field_help_cta_link: true
+  field_help_keywords: true
+  field_help_summary: true
+  field_help_topic: true
+  field_last_reviewed: true
+  field_last_updated: true
+  field_priority: true
+  field_related_articles: true
+  field_related_help_articles: true
   langcode: true

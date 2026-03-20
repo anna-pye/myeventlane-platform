@@ -1,0 +1,163 @@
+uuid: 88dae4ea-7ce1-4fec-a2d6-110f60b1edfe
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - node
+    - user
+id: mel_help_least_helpful
+label: 'MEL Help Least Helpful'
+module: views
+description: 'Articles with the highest volume of not-helpful feedback.'
+tag: myeventlane_help_centre
+base_table: myeventlane_help_feedback
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Least Helpful Articles'
+      access:
+        type: perm
+        options:
+          perm: 'view mel help insights'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options:
+          group_by: true
+      exposed_form:
+        type: basic
+        options: {  }
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 10
+      style:
+        type: table
+        options:
+          columns:
+            node_id: node_id
+            title: title
+            negative_count: negative_count
+            total_count: total_count
+          default: negative_count
+          info:
+            node_id:
+              sortable: false
+              default_sort_order: asc
+            title:
+              sortable: false
+              default_sort_order: asc
+            negative_count:
+              sortable: true
+              default_sort_order: desc
+            total_count:
+              sortable: true
+              default_sort_order: desc
+          empty_table: true
+      row:
+        type: fields
+      relationships:
+        node_rel:
+          id: node_rel
+          table: myeventlane_help_feedback
+          field: node_id
+          plugin_id: standard
+        total_rel:
+          id: total_rel
+          table: myeventlane_help_feedback
+          field: node_id_feedback_rel
+          plugin_id: standard
+      fields:
+        node_id:
+          id: node_id
+          table: myeventlane_help_feedback
+          field: node_id
+          relationship: none
+          plugin_id: numeric
+          label: 'Node ID'
+          group_type: group
+          alter:
+            make_link: true
+            path: 'node/{{ node_id }}'
+        title:
+          id: title
+          table: node_field_data
+          field: title
+          relationship: node_rel
+          plugin_id: field
+          label: 'Article title'
+          group_type: group
+          settings:
+            link_to_entity: true
+        negative_count:
+          id: negative_count
+          table: myeventlane_help_feedback
+          field: id
+          relationship: none
+          plugin_id: numeric
+          label: Negative
+          group_type: count_distinct
+        total_count:
+          id: total_count
+          table: myeventlane_help_feedback
+          field: id
+          relationship: total_rel
+          plugin_id: numeric
+          label: Total
+          group_type: count_distinct
+      filters:
+        helpful:
+          id: helpful
+          table: myeventlane_help_feedback
+          field: helpful
+          relationship: none
+          plugin_id: boolean
+          value: '0'
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          relationship: node_rel
+          plugin_id: bundle
+          value:
+            help_article: help_article
+      sorts:
+        negative_count:
+          id: negative_count
+          table: myeventlane_help_feedback
+          field: id
+          relationship: none
+          plugin_id: standard
+          group_type: count_distinct
+          order: DESC
+      header: {  }
+      footer: {  }
+      empty: {  }
+      arguments: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }

@@ -1,0 +1,11 @@
+uuid: 74ac35cb-0edb-479e-9185-be959abc6382
+langcode: en
+status: true
+dependencies: {  }
+name: 'Support Procedure'
+type: support_procedure
+description: 'Internal support and moderation procedures.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

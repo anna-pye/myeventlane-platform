@@ -6,36 +6,47 @@ namespace Drupal\myeventlane_help_centre_ai\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
-use Drupal\myeventlane_help_centre_ai\Form\HelpCentreAiForm;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Controller for the public Help Centre AI FAQ assistant.
+ * Legacy Help Centre AI route — redirects to the unified Help Assistant.
  */
 final class HelpCentreAiController extends ControllerBase {
 
+  public function __construct(
+    private readonly LoggerInterface $helpCentreAiLogger,
+  ) {}
+
   /**
-   * Renders the Help Centre AI ask form (GET + POST).
+   * {@inheritdoc}
    */
-  public function ask(): array {
-    $form = $this->formBuilder()->getForm(HelpCentreAiForm::class);
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('logger.factory')->get('myeventlane_help_centre_ai'),
+    );
+  }
 
-    $supportUrl = '/my/support';
-    try {
-      $supportUrl = Url::fromRoute('myeventlane_escalations_portal.customer_add')->toString();
+  /**
+   * Redirects /help/ask to /help/assistant (single AI entry point).
+   */
+  public function ask(): RedirectResponse {
+    $this->helpCentreAiLogger->warning('Deprecated AI endpoint used: /help/ask');
+
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+      try {
+        $target = Url::fromRoute('myeventlane_help_assistant.page')->toString();
+      }
+      catch (\Throwable) {
+        $target = '/help';
+      }
     }
-    catch (\Exception $e) {
-      // Route may not exist if escalations portal disabled.
+    else {
+      $target = '/help';
     }
 
-    return [
-      '#theme' => 'help_centre_ai',
-      '#form' => $form,
-      '#support_url' => $supportUrl,
-      '#attached' => [
-        'library' => ['myeventlane_help_centre_ai/ask'],
-      ],
-      '#cache' => ['contexts' => ['url.query_args'], 'max-age' => 0],
-    ];
+    return new RedirectResponse($target, 302);
   }
 
 }

@@ -2,6 +2,5 @@ myeventlane_help_centre_ai.ask:
   path: '/help/ask'
   defaults:
     _controller: '\Drupal\myeventlane_help_centre_ai\Controller\HelpCentreAiController::ask'
-    _title: 'Ask a question'
   requirements:
-    _permission: 'use help centre ai'
+    _permission: 'access myeventlane help assistant'

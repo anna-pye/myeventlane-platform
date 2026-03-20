@@ -1,0 +1,28 @@
+uuid: 6eb9f3c0-4236-41dd-9126-ccf2abe62bc6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_audience
+    - node.type.help_article
+    - taxonomy.vocabulary.help_audience
+id: node.help_article.field_help_audience
+field_name: field_help_audience
+entity_type: node
+bundle: help_article
+label: Audience
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      help_audience: help_audience
+    sort:
+      field: name
+      direction: asc
+    auto_create: false
+field_type: entity_reference

@@ -1,0 +1,21 @@
+uuid: ca646a1e-669f-4edf-9d1e-244478121ac2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_featured_help
+    - node.type.help_article
+id: node.help_article.field_featured_help
+field_name: field_featured_help
+entity_type: node
+bundle: help_article
+label: 'Featured Help'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

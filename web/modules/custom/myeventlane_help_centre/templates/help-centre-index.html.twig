@@ -71,8 +71,14 @@
                   </span>
                   <span class="help-centre__article-text">
                     <span class="help-centre__article-title">{{ article.title }}</span>
+                    {% if article.content_type_label %}
+                      <span class="help-centre__article-summary">{{ article.content_type_label }}</span>
+                    {% endif %}
                     {% if article.summary %}
                       <span class="help-centre__article-summary">{{ article.summary }}</span>
+                    {% endif %}
+                    {% if article.last_updated %}
+                      <span class="help-centre__article-summary">{{ 'Last updated:'|t }} {{ article.last_updated }}</span>
                     {% endif %}
                   </span>
                 </a>

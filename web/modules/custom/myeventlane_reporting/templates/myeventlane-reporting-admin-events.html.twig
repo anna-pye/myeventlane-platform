@@ -26,7 +26,7 @@
             {% for item in top_events %}
               <div class="mel-table__row">
                 <div>
-                  <a href="{{ item.event.toUrl() }}">{{ item.event.label }}</a>
+                  <a href="{{ item.event_url }}">{{ item.event_label }}</a>
                 </div>
                 <div>{{ item.attendees }}</div>
                 <div>${{ item.revenue|number_format(2) }}</div>

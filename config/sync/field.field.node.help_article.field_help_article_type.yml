@@ -1,0 +1,24 @@
+uuid: a36ce29b-d173-402f-a251-785d57683188
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_article_type
+    - node.type.help_article
+    - taxonomy.vocabulary.help_article_type
+id: node.help_article.field_help_article_type
+field_name: field_help_article_type
+entity_type: node
+bundle: help_article
+label: 'Help Article Type'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      help_article_type: help_article_type
+field_type: entity_reference

@@ -1,0 +1,115 @@
+uuid: 9a8ade58-ad0a-4d1f-bf1b-ca12bc347728
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - user
+id: mel_help_top_searches
+label: 'MEL Help Top Searches'
+module: views
+description: 'Top help search queries by frequency.'
+tag: myeventlane_help_centre
+base_table: myeventlane_help_analytics
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Top Searches'
+      access:
+        type: perm
+        options:
+          perm: 'view mel help insights'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options:
+          group_by: true
+      exposed_form:
+        type: basic
+        options: {  }
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 10
+      style:
+        type: table
+        options:
+          columns:
+            query: query
+            search_count: search_count
+          default: search_count
+          info:
+            query:
+              sortable: false
+              default_sort_order: asc
+            search_count:
+              sortable: true
+              default_sort_order: desc
+          empty_table: true
+      row:
+        type: fields
+      fields:
+        query:
+          id: query
+          table: myeventlane_help_analytics
+          field: query
+          relationship: none
+          plugin_id: standard
+          label: Query
+          group_type: group
+        search_count:
+          id: search_count
+          table: myeventlane_help_analytics
+          field: id
+          relationship: none
+          plugin_id: numeric
+          label: Count
+          group_type: count
+      filters:
+        event_type:
+          id: event_type
+          table: myeventlane_help_analytics
+          field: event_type
+          relationship: none
+          plugin_id: string
+          operator: '='
+          value: search
+      sorts:
+        search_count:
+          id: search_count
+          table: myeventlane_help_analytics
+          field: id
+          relationship: none
+          plugin_id: standard
+          group_type: count
+          order: DESC
+      header: {  }
+      footer: {  }
+      empty: {  }
+      arguments: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }

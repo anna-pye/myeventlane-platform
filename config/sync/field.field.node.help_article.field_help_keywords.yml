@@ -1,0 +1,19 @@
+uuid: ece17cf6-c22b-44ed-92db-b01fee58b87c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_keywords
+    - node.type.help_article
+id: node.help_article.field_help_keywords
+field_name: field_help_keywords
+entity_type: node
+bundle: help_article
+label: 'Help Keywords'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

@@ -1,0 +1,139 @@
+uuid: bb74c799-2a6b-45a0-9c6d-0a42e81f12d2
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - node
+    - user
+id: mel_help_top_articles
+label: 'MEL Help Top Articles'
+module: views
+description: 'Top viewed help articles based on analytics events.'
+tag: myeventlane_help_centre
+base_table: myeventlane_help_analytics
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Top Articles'
+      access:
+        type: perm
+        options:
+          perm: 'view mel help insights'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options:
+          group_by: true
+      exposed_form:
+        type: basic
+        options: {  }
+      pager:
+        type: some
+        options:
+          offset: 0
+          items_per_page: 10
+      style:
+        type: table
+        options:
+          columns:
+            node_id: node_id
+            title: title
+            views_count: views_count
+          default: views_count
+          info:
+            node_id:
+              sortable: false
+              default_sort_order: asc
+            title:
+              sortable: false
+              default_sort_order: asc
+            views_count:
+              sortable: true
+              default_sort_order: desc
+          empty_table: true
+      row:
+        type: fields
+      relationships:
+        node_rel:
+          id: node_rel
+          table: myeventlane_help_analytics
+          field: node_id
+          plugin_id: standard
+      fields:
+        node_id:
+          id: node_id
+          table: myeventlane_help_analytics
+          field: node_id
+          relationship: none
+          plugin_id: numeric
+          label: 'Node ID'
+          group_type: group
+          alter:
+            make_link: true
+            path: 'node/{{ node_id }}'
+        title:
+          id: title
+          table: node_field_data
+          field: title
+          relationship: node_rel
+          plugin_id: field
+          label: 'Article title'
+          group_type: group
+          settings:
+            link_to_entity: true
+        views_count:
+          id: views_count
+          table: myeventlane_help_analytics
+          field: id
+          relationship: none
+          plugin_id: numeric
+          label: Views
+          group_type: count
+      filters:
+        event_type:
+          id: event_type
+          table: myeventlane_help_analytics
+          field: event_type
+          relationship: none
+          plugin_id: string
+          operator: '='
+          value: view
+      sorts:
+        views_count:
+          id: views_count
+          table: myeventlane_help_analytics
+          field: id
+          relationship: none
+          plugin_id: standard
+          group_type: count
+          order: DESC
+      header: {  }
+      footer: {  }
+      empty: {  }
+      arguments: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }
+  block_1:
+    id: block_1
+    display_title: Block
+    display_plugin: block
+    position: 1
+    display_options:
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - user.permissions
+      tags: {  }

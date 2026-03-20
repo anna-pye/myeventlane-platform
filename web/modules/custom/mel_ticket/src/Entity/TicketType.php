@@ -260,6 +260,15 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 
+    $fields['template_source'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Source template'))
+      ->setDescription(t('If set, this row was created by cloning a reusable template; the template entity is unchanged.'))
+      ->setSetting('target_type', 'mel_ticket_type')
+      ->setSetting('handler', 'default')
+      ->setRequired(FALSE)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
       ->setDefaultValue(TRUE)

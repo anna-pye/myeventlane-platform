@@ -1,0 +1,13 @@
+myeventlane_help_assistant.settings:
+  title: 'Help Assistant'
+  description: 'Configure grounded Help Assistant behaviour.'
+  route_name: myeventlane_help_assistant.settings
+  parent: system.admin_config
+  weight: 30
+
+myeventlane_help_assistant.report:
+  title: 'Help Assistant report'
+  description: 'Operational notes for Help Assistant logging.'
+  route_name: myeventlane_help_assistant.report
+  parent: system.admin_reports
+  weight: 30

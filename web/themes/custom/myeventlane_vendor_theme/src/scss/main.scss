@@ -78,6 +78,8 @@
 @use '../../../myeventlane_theme/src/scss/components/vendor-events';
 @use '../../../myeventlane_theme/src/scss/components/vendor-studio-editor';
 @use '../../../myeventlane_theme/src/scss/components/studio-inspector';
+// Help Centre partial (includes .mel-ai-suggestions for event wizard).
+@use '../../../myeventlane_theme/src/scss/components/help-centre';
 
 // ============================================================================
 // PAGE-SPECIFIC STYLES

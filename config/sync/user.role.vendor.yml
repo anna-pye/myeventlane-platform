@@ -14,6 +14,7 @@ dependencies:
     - commerce_payment
     - commerce_product
     - commerce_stripe
+    - content_moderation
     - contextual
     - file
     - filter
@@ -43,6 +44,7 @@ dependencies:
     - social_auth
     - taxonomy
     - toolbar
+    - workflows
 id: vendor
 label: Vendor
 weight: -7
@@ -74,6 +76,7 @@ permissions:
   - 'create event content'
   - 'create paragraph content attendee_answer'
   - 'create paragraph content attendee_extra_field'
+  - 'create paragraph content event_highlight'
   - 'create paragraph content ticket_type_config'
   - 'create terms in tags'
   - 'create ticket commerce_product'
@@ -109,6 +112,8 @@ permissions:
   - 'update paragraph content attendee_extra_field'
   - 'update paragraph content event_highlight'
   - 'update paragraph content ticket_type_config'
+  - 'use editorial transition create_new_draft'
+  - 'use editorial transition publish'
   - 'use text format basic_html'
   - 'use vendor ai assistant'
   - 'view any profile'
@@ -123,6 +128,8 @@ permissions:
   - 'view own unpublished content'
   - 'view paragraph content attendee_answer'
   - 'view paragraph content attendee_extra_field'
+  - 'view paragraph content event_highlight'
+  - 'view paragraph content ticket_type_config'
   - 'view rsvp_donation commerce_order'
   - 'view stripe dashboard links'
   - 'view ticket commerce_product'

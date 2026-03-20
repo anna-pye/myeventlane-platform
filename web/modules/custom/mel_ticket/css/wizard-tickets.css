@@ -12,6 +12,19 @@
   font-weight: 600;
 }
 
+.mel-ticket-wizard__path-label {
+  margin: 0 0 0.75rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #5b4f7a;
+  background: #f0ebff;
+  border-radius: 8px;
+  border: 1px solid #e4dbf7;
+}
+
 .mel-ticket-wizard fieldset,
 .mel-ticket-wizard .fieldset {
   background: #faf8ff;

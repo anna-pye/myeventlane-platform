@@ -28,6 +28,10 @@ final class ReusableTicketSelection extends DefaultSelection {
     $query = parent::buildEntityQuery($match, $match_operator);
     $query->condition('is_reusable', 1);
     $query->condition('vendor_id', $this->currentUser->id());
+    $group = $query->orConditionGroup();
+    $group->condition('ticket_kind', 'rsvp');
+    $group->condition('ticket_kind', 'external');
+    $query->condition($group);
     return $query;
   }
 
