@@ -316,6 +316,8 @@ final class AdminReportsController extends ControllerBase {
 
         $events[] = [
           'event' => $event,
+          'event_label' => $event->label(),
+          'event_url' => $event->toUrl()->toString(),
           'attendees' => $attendeeCount,
           'revenue' => $revenueAmount,
         ];

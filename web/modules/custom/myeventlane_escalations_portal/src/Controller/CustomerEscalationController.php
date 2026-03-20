@@ -83,17 +83,22 @@ final class CustomerEscalationController extends ControllerBase {
       $helpBlock['help_centre'] = [
         '#type' => 'link',
         '#title' => $this->t('Help Centre'),
-        '#url' => Url::fromRoute('myeventlane_help_centre.public_index'),
+        '#url' => Url::fromRoute('myeventlane_help_centre.home'),
         '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--secondary']],
       ];
     }
-    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre_ai')) {
-      $helpBlock['ask'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Ask a question'),
-        '#url' => Url::fromRoute('myeventlane_help_centre_ai.ask'),
-        '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--secondary']],
-      ];
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+      try {
+        $helpBlock['ask'] = [
+          '#type' => 'link',
+          '#title' => $this->t('Ask a question'),
+          '#url' => Url::fromRoute('myeventlane_help_assistant.page'),
+          '#attributes' => ['class' => ['mel-support-actions__item', 'mel-button', 'mel-button--secondary']],
+        ];
+      }
+      catch (\Throwable) {
+        // Route unavailable; omit link.
+      }
     }
     $helpBlock['contact'] = [
       '#type' => 'link',

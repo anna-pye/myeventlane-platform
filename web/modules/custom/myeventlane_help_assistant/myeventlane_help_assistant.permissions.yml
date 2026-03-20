@@ -1,0 +1,8 @@
+access myeventlane help assistant:
+  title: 'Access MyEventLane Help Assistant'
+  description: 'Use the grounded Help Assistant page and block.'
+
+administer myeventlane help assistant:
+  title: 'Administer MyEventLane Help Assistant'
+  description: 'Manage Help Assistant settings and report page.'
+  restrict access: true

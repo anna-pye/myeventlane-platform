@@ -1,0 +1,208 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Theme hooks and integrations for MyEventLane Help Assistant.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_help_assistant_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'myeventlane_help_assistant_page' => [
+      'variables' => [
+        'endpoint' => '/help/assistant',
+      ],
+      'template' => 'help-assistant-page',
+    ],
+    'myeventlane_help_assistant_block' => [
+      'variables' => [
+        'endpoint' => '/help/assistant',
+      ],
+      'template' => 'help-assistant-block',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_help_centre_home().
+ */
+function myeventlane_help_assistant_preprocess_help_centre_home(array &$variables): void {
+  $config = \Drupal::config('myeventlane_help_assistant.settings');
+  if (!(bool) $config->get('enabled')) {
+    return;
+  }
+
+  $variables['help_assistant'] = [
+    '#theme' => 'myeventlane_help_assistant_block',
+    '#endpoint' => '/help/assistant',
+    '#attached' => [
+      'library' => [
+        'myeventlane_help_assistant/assistant',
+      ],
+      'drupalSettings' => [
+        'myeventlaneHelpAssistant' => [
+          'endpoint' => '/help/assistant',
+        ],
+      ],
+    ],
+    '#cache' => [
+      'max-age' => 0,
+      'tags' => ['config:myeventlane_help_assistant.settings'],
+      'contexts' => ['user.permissions'],
+    ],
+  ];
+}
+
+/**
+ * Builds the event wizard quality + suggestions panel (markup + settings fragment).
+ *
+ * @param int|string|null $event_id
+ *   Event node ID when known.
+ */
+function _myeventlane_help_assistant_event_quality_panel_build($event_id, string $wizard_step): array {
+  $csrf = \Drupal::csrfToken()->get('mel_event_suggestions');
+  $endpoint = '/mel/event-suggestions';
+  $eid = $event_id !== NULL && $event_id !== '' ? (int) $event_id : NULL;
+
+  $panel = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-ai-panel', 'mel-ai-panel--loading'],
+      'id' => 'mel-ai-suggestions-root',
+      'data-mel-wizard-step' => $wizard_step,
+    ],
+    'body' => [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'mel-ai-suggestions-panel',
+        'class' => ['mel-ai-panel__body'],
+        'aria-live' => 'polite',
+        'aria-relevant' => 'additions text',
+        'aria-busy' => 'true',
+      ],
+      'loading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => [
+          'class' => ['mel-ai-panel__loading-text'],
+        ],
+        '#value' => t('Checking your event setup…'),
+      ],
+    ],
+    'dismiss' => [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-ai-panel__dismiss-wrap'],
+        'hidden' => 'hidden',
+      ],
+      'btn' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-ai-panel__dismiss'],
+          'disabled' => 'disabled',
+          'aria-hidden' => 'true',
+          'tabindex' => '-1',
+        ],
+        '#value' => t('Dismiss'),
+      ],
+    ],
+  ];
+
+  return [
+    'panel' => $panel,
+    'settings' => [
+      'endpoint' => $endpoint,
+      'csrfToken' => $csrf,
+      'eventId' => $eid,
+      'wizardStep' => $wizard_step,
+    ],
+  ];
+}
+
+/**
+ * Attaches event wizard quality panel (JS + CSRF + Drupal settings).
+ */
+function _myeventlane_help_assistant_attach_event_wizard_suggestions(array &$form, ?FormStateInterface $form_state = NULL): void {
+  $event_id = NULL;
+  if (isset($form['#event']) && $form['#event'] instanceof NodeInterface && $form['#event']->bundle() === 'event') {
+    $event_id = (int) $form['#event']->id();
+  }
+
+  $wizard_step = (string) ($form['#step_id'] ?? 'wizard');
+  $built = _myeventlane_help_assistant_event_quality_panel_build($event_id, $wizard_step);
+
+  $form['mel_ai_suggestions'] = $built['panel'] + [
+    '#weight' => -18,
+  ];
+
+  $form['#attached']['library'][] = 'myeventlane_help_assistant/event_suggestions';
+  $form['#attached']['drupalSettings']['melEventSuggestions'] = $built['settings'];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for myeventlane_event_wizard.
+ */
+function myeventlane_help_assistant_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_basics_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_basics_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_tickets_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_tickets_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_details_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_details_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_when_where_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_when_where_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_publish_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_publish_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for event_wizard_review_form.
+ */
+function myeventlane_help_assistant_form_event_wizard_review_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $event_id = NULL;
+  if (isset($form['#event']) && $form['#event'] instanceof NodeInterface && $form['#event']->bundle() === 'event') {
+    $event_id = (int) $form['#event']->id();
+  }
+
+  $wizard_step = (string) ($form['#step_id'] ?? 'review');
+  $built = _myeventlane_help_assistant_event_quality_panel_build($event_id, $wizard_step);
+
+  $form['#event_quality_panel'] = $built['panel'];
+  $form['#attached']['library'][] = 'myeventlane_help_assistant/event_suggestions';
+  $form['#attached']['drupalSettings']['melEventSuggestions'] = $built['settings'];
+}

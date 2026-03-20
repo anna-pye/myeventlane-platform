@@ -1,0 +1,6 @@
+help_feedback:
+  js:
+    js/help-feedback.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

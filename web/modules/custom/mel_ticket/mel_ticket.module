@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Ticket type entity hooks for MyEventLane.
+ */
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function mel_ticket_mel_ticket_type_presave(\Drupal\mel_ticket\Entity\TicketType $entity): void {
+  // Extra invariant: reusable tickets must not pin a single event on the ticket.
+  if ($entity->isReusable() && !$entity->get('event')->isEmpty()) {
+    $entity->set('event', NULL);
+  }
+}

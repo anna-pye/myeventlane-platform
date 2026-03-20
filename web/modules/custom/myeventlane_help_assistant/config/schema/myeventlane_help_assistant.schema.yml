@@ -1,0 +1,25 @@
+myeventlane_help_assistant.settings:
+  type: config_object
+  label: 'MyEventLane Help Assistant settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    max_retrieved_articles:
+      type: integer
+      label: 'Maximum retrieved articles'
+    rate_limit_per_session_hour:
+      type: integer
+      label: 'Rate limit per session per hour (legacy; use max_requests_per_hour)'
+    max_requests_per_hour:
+      type: integer
+      label: 'Maximum requests per visitor per hour'
+    max_requests_per_10min:
+      type: integer
+      label: 'Maximum requests per IP per 10 minutes'
+    support_url:
+      type: string
+      label: 'Support URL'
+    event_suggestions_ai:
+      type: boolean
+      label: 'Use optional AI for event wizard suggestions (rule-first; AI fills remaining slots when enabled)'

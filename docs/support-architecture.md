@@ -16,7 +16,7 @@ Reference for the MyEventLane support subsystem. **No new features** — stabili
 | **myeventlane_escalations_portal** | Portal | Customer (/my/support) and vendor (/vendor/support) escalation UIs |
 | **myeventlane_vendor_nudges** | Vendor nudges | Educational tips on vendor dashboard |
 | **myeventlane_help_centre** | Help centre | Help articles, vendor help centre, staff snippet authoring |
-| **myeventlane_help_centre_ai** | Help centre AI | Public FAQ assistant at /help/ask |
+| **myeventlane_help_centre_ai** | Help centre (legacy shim) | Redirects `/help/ask` → `/help/assistant` (single AI entry point) |
 | **myeventlane_vendor_ai** | Vendor AI | MEL Assistant for vendors (policy questions, per-escalation) |
 | **myeventlane_staff_playbooks** | Staff playbooks | Governance dashboard, playbook content type, communication standards |
 | **myeventlane_staff_playbooks_ai** | Staff playbooks AI | AI summaries for playbooks (queue-based) |
@@ -65,7 +65,8 @@ Reference for the MyEventLane support subsystem. **No new features** — stabili
 | Route | Content safety | Module |
 |-------|----------------|--------|
 | `/help` | Help centre index (articles) | myeventlane_help_centre |
-| `/help/ask` | FAQ AI assistant; uses only public help articles | myeventlane_help_centre_ai |
+| `/help/ask` | **302** to `/help/assistant` (deprecated URL; logged) | myeventlane_help_centre_ai |
+| `/help/assistant` | Help Assistant (retrieval + `AiManager`) | myeventlane_help_assistant |
 | `/trust` | Trust signals (aggregated platform metrics; no PII, no numbers) | myeventlane_public_trust |
 
 ## Data Boundaries — What Must Never Be Exposed
@@ -88,16 +89,16 @@ Reference for the MyEventLane support subsystem. **No new features** — stabili
   - No exact numbers, percentages, or PII
   - Hedging language: “most”, “typically”, “generally”
 
-- **Help Centre AI (/help/ask):**
-  - Anonymous allowed; rate limited by IP
-  - Uses only public help articles; no escalation context
+- **Help Assistant (/help/assistant):**
+  - Anonymous allowed; flood limits per visitor + per IP burst
+  - Retrieval-first `help_article` content only; `AiManager` for completions
 
 ## Where Prompts and Guides Live
 
 | Location | Content |
 |---------|---------|
 | `myeventlane_escalations_ai/config/install/myeventlane_escalations_ai.settings.yml` | Configurable prompts: triage, reply_suggestion, risk_flag, breach_soon |
-| `myeventlane_help_centre_ai` | Prompt built inline in `HelpCentreAiForm::buildPrompt()` |
+| `myeventlane_help_assistant` | `HelpAssistantService` + `PromptDefinition` via `myeventlane_ai` |
 | `myeventlane_vendor_ai` | Prompt built inline in `VendorAiAssistantForm::buildPrompt()` |
 | `myeventlane_staff_playbooks_ai/config/install/myeventlane_staff_playbooks_ai.settings.yml` | AI summary settings |
 | `/help/internal/staff-snippet-authoring` | Staff communication guide (Help Centre route) |

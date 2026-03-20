@@ -1,0 +1,21 @@
+uuid: ccdc0eb3-7f46-455b-bb31-b032047135e5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_content_owner
+    - node.type.help_article
+id: node.help_article.field_content_owner
+field_name: field_content_owner
+entity_type: node
+bundle: help_article
+label: 'Content Owner'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings: {  }
+field_type: entity_reference

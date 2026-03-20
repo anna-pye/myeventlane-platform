@@ -1,0 +1,28 @@
+uuid: 695f6f82-b4ac-4ce2-9833-68bebbdabbfb
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_related_articles
+    - node.type.faq
+    - node.type.help_article
+id: node.help_article.field_related_articles
+field_name: field_related_articles
+entity_type: node
+bundle: help_article
+label: 'Related Articles'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      help_article: help_article
+      faq: faq
+    sort:
+      field: _none
+    auto_create: false
+field_type: entity_reference

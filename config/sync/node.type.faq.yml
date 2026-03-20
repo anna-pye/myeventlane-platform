@@ -1,0 +1,11 @@
+uuid: 35a5aabf-4e14-40e1-a1c6-eb7e171dd2ca
+langcode: en
+status: true
+dependencies: {  }
+name: FAQ
+type: faq
+description: 'Frequently asked questions for Help Centre audiences.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

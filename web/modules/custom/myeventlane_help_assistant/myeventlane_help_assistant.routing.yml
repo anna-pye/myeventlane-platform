@@ -1,0 +1,40 @@
+myeventlane_help_assistant.page:
+  path: '/help/assistant'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_assistant\Controller\HelpAssistantController::page'
+    _title: 'Help Assistant'
+  requirements:
+    _permission: 'access myeventlane help assistant'
+  methods: [GET]
+
+myeventlane_help_assistant.ask:
+  path: '/help/assistant'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_assistant\Controller\HelpAssistantController::ask'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+
+myeventlane_help_assistant.settings:
+  path: '/admin/config/myeventlane/help-assistant'
+  defaults:
+    _form: '\Drupal\myeventlane_help_assistant\Form\HelpAssistantSettingsForm'
+    _title: 'Help Assistant settings'
+  requirements:
+    _permission: 'administer myeventlane help assistant'
+
+myeventlane_help_assistant.report:
+  path: '/admin/reports/myeventlane/help-assistant'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_assistant\Controller\HelpAssistantReportController::page'
+    _title: 'Help Assistant report'
+  requirements:
+    _permission: 'administer myeventlane help assistant'
+
+myeventlane_help_assistant.event_suggestions:
+  path: '/mel/event-suggestions'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_assistant\Controller\EventSuggestionController::suggest'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+  methods: [POST]

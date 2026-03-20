@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Inline contextual help link (MEL Help Centre).
+ *
+ * Variables:
+ * - text: Visible link text.
+ * - url: Internal path or absolute URL string.
+ * - aria_label: Optional accessible name (defaults to text in preprocess).
+ */
+#}
+<div class="mel-help-link">
+  <a href="{{ url }}" class="mel-help-link__anchor"{% if aria_label %} aria-label="{{ aria_label }}"{% endif %}>
+    <span class="mel-help-link__icon" aria-hidden="true">?</span>
+    <span class="mel-help-link__text">{{ text }}</span>
+  </a>
+</div>

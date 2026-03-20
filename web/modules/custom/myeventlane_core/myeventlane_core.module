@@ -4,7 +4,7 @@
  * @file
  * Core services and utilities for MyEventLane platform.
  *
- * This module provides shared services used throughout MyEventLane:
+ * This module provides shared services used throughout the MyEventLane platform:
  * - myeventlane_core.date_formatter: Date formatting utilities for events.
  * - myeventlane_core.route_helper: Route lookup and URL generation helpers.
  */
@@ -23,10 +23,14 @@ use Symfony\Component\Routing\RouteCollection;
  */
 function myeventlane_core_theme(): array {
   return [
+    // Static templates still need an explicit variables array so ThemeManager
+    // does not hit the render-element branch (Undefined array key "render element").
     'mel_403' => [
+      'variables' => [],
       'template' => 'mel-403',
     ],
     'mel_404' => [
+      'variables' => [],
       'template' => 'mel-404',
     ],
     'myeventlane_my_categories' => [

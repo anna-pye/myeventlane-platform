@@ -1,4 +1,0 @@
-use help centre ai:
-  title: 'Use help centre AI'
-  description: 'Allows authenticated users to use the Help Centre AI assistant.'
-  restrict access: false

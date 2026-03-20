@@ -1,0 +1,21 @@
+uuid: a8bc32e2-030e-45db-a5e1-9cba2b9b295a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_content_owner
+    - node.type.support_procedure
+id: node.support_procedure.field_content_owner
+field_name: field_content_owner
+entity_type: node
+bundle: support_procedure
+label: 'Content Owner'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:user'
+  handler_settings: {  }
+field_type: entity_reference

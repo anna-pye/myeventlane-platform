@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Theme override for FAQ nodes.
+ */
+#}
+<article{{ attributes.addClass('node', 'node--type-faq', 'mel-faq-node') }}>
+  {{ title_prefix }}
+  {% if not page %}
+    <h2{{ title_attributes.addClass('mel-faq-node__question') }}>
+      <a href="{{ url }}" rel="bookmark">{{ label }}</a>
+    </h2>
+  {% else %}
+    <h1{{ title_attributes.addClass('mel-faq-node__question') }}>{{ label }}</h1>
+  {% endif %}
+  {{ title_suffix }}
+
+  <div{{ content_attributes.addClass('mel-faq-node__answer') }}>
+    {{ content|without('links') }}
+  </div>
+
+  {% if content.links %}
+    <div class="mel-faq-node__links">
+      {{ content.links }}
+    </div>
+  {% endif %}
+</article>

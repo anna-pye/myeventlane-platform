@@ -8,11 +8,13 @@ dependencies:
     - taxonomy.vocabulary.tags
   module:
     - comment
+    - mel_ticket
     - commerce_checkout
     - commerce_order
     - commerce_payment
     - commerce_product
     - commerce_stripe
+    - content_moderation
     - contextual
     - file
     - filter
@@ -32,6 +34,7 @@ dependencies:
     - myeventlane_refunds
     - myeventlane_rsvp
     - myeventlane_vendor
+    - myeventlane_vendor_ai
     - myeventlane_venue
     - node
     - paragraphs
@@ -41,6 +44,7 @@ dependencies:
     - social_auth
     - taxonomy
     - toolbar
+    - workflows
 id: vendor
 label: Vendor
 weight: -7
@@ -67,14 +71,18 @@ permissions:
   - 'change own username'
   - 'comment on vendor escalations'
   - 'create customer profile'
+  - 'assign mel_ticket_type entities'
+  - 'create mel_ticket_type entities'
   - 'create event content'
   - 'create paragraph content attendee_answer'
   - 'create paragraph content attendee_extra_field'
+  - 'create paragraph content event_highlight'
   - 'create paragraph content ticket_type_config'
   - 'create terms in tags'
   - 'create ticket commerce_product'
   - 'create url aliases'
   - 'delete default commerce_order'
+  - 'delete own mel_ticket_type entities'
   - 'delete own event content'
   - 'delete own social auth profile'
   - 'delete own ticket commerce_product'
@@ -82,6 +90,7 @@ permissions:
   - 'delete paragraph content event_highlight'
   - 'delete paragraph content ticket_type_config'
   - 'edit own comments'
+  - 'edit own mel_ticket_type entities'
   - 'edit own event content'
   - 'manage boost commerce_order_item'
   - 'manage checkout_donation commerce_order_item'
@@ -92,6 +101,7 @@ permissions:
   - 'manage rsvp_donation commerce_order_item'
   - manage_refunds
   - 'purchase boost for events'
+  - 'reuse mel_ticket_type entities'
   - request_refunds
   - 'resolve vendor escalations'
   - 'unlock orders'
@@ -102,11 +112,15 @@ permissions:
   - 'update paragraph content attendee_extra_field'
   - 'update paragraph content event_highlight'
   - 'update paragraph content ticket_type_config'
+  - 'use editorial transition create_new_draft'
+  - 'use editorial transition publish'
   - 'use text format basic_html'
+  - 'use vendor ai assistant'
   - 'view any profile'
   - 'view automation dispatch log'
   - 'view boost_upgrade commerce_product'
   - 'view commerce_product'
+  - 'view mel_ticket_type entities'
   - 'view own commerce_order'
   - 'view own event attendees'
   - 'view own profile'
@@ -114,6 +128,8 @@ permissions:
   - 'view own unpublished content'
   - 'view paragraph content attendee_answer'
   - 'view paragraph content attendee_extra_field'
+  - 'view paragraph content event_highlight'
+  - 'view paragraph content ticket_type_config'
   - 'view rsvp_donation commerce_order'
   - 'view stripe dashboard links'
   - 'view ticket commerce_product'

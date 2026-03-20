@@ -3,16 +3,15 @@ langcode: en
 status: true
 dependencies:
   module:
-    - entity_reference_revisions
+    - mel_ticket
     - node
-    - paragraphs
 id: node.field_ticket_types
 field_name: field_ticket_types
 entity_type: node
-type: entity_reference_revisions
+type: entity_reference
 settings:
-  target_type: paragraph
-module: entity_reference_revisions
+  target_type: mel_ticket_type
+module: core
 locked: false
 cardinality: -1
 translatable: true

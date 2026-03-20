@@ -1,11 +1,4 @@
 services:
-  myeventlane_help_centre_ai.retriever:
-    class: Drupal\myeventlane_help_centre_ai\Service\HelpCentreAiRetriever
-    arguments:
-      - '@entity_type.manager'
-      - '@entity_field.manager'
-      - '@logger.channel.myeventlane_help_centre_ai'
-
   logger.channel.myeventlane_help_centre_ai:
     parent: logger.channel_base
     arguments: ['myeventlane_help_centre_ai']

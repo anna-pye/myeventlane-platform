@@ -1,0 +1,24 @@
+uuid: 250b3648-9a23-4fc3-af0c-20092ebebfeb
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_topic
+    - node.type.support_procedure
+    - taxonomy.vocabulary.help_topic
+id: node.support_procedure.field_help_topic
+field_name: field_help_topic
+entity_type: node
+bundle: support_procedure
+label: 'Help Topic'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:taxonomy_term'
+  handler_settings:
+    target_bundles:
+      help_topic: help_topic
+field_type: entity_reference

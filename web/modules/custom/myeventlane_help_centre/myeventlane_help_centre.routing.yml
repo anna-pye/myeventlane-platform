@@ -1,16 +1,90 @@
-myeventlane_help_centre.public_index:
+myeventlane_help_centre.home:
   path: '/help'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::homepage'
+    _title: 'MyEventLane Help Centre'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_help_centre.public_index:
+  path: '/help/index'
   defaults:
     _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::publicIndex'
     _title: 'Help Centre'
   requirements:
     _access: 'TRUE'
 
-myeventlane_help_centre.vendor_index:
+myeventlane_help_centre.attendees_index:
+  path: '/help/attendees'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::attendeesIndex'
+    _title: 'Help for Attendees'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.organisers_index:
+  path: '/help/organisers'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::organisersIndex'
+    _title: 'Help for Organisers'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.vendors_index:
+  path: '/help/vendors'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorsIndex'
+    _title: 'Help for Vendors'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.policies_index:
+  path: '/help/policies'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::policiesIndex'
+    _title: 'Policies and Trust'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.category_index:
+  path: '/help/category/{category}'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::categoryIndex'
+    _title_callback: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::categoryIndexTitle'
+  requirements:
+    _access: 'TRUE'
+    category: \d+
+  options:
+    parameters:
+      category:
+        type: entity:taxonomy_term
+
+myeventlane_help_centre.search:
+  path: '/help/search'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::searchIndex'
+    _title: 'Search Help'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_help_centre.article_feedback:
+  path: '/help/article/{node}/feedback'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpFeedbackController::submitFeedback'
+  requirements:
+    _access: 'TRUE'
+    node: \d+
+  methods: [POST]
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+myeventlane_help_centre.vendor_help:
   path: '/vendor/help'
   defaults:
-    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorIndex'
-    _title: 'Help Centre'
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorHelp'
+    _title: 'Vendor help'
   requirements:
     _permission: 'view vendor help centre'
 
@@ -34,3 +108,11 @@ myeventlane_help_centre.staff_snippet_authoring:
     _title: 'Staff Snippet Authoring Guide'
   requirements:
     _permission: 'administer escalations'
+
+myeventlane_help_centre.help_insights_dashboard:
+  path: '/admin/mel/help-insights'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpInsightsController::dashboard'
+    _title: 'MEL Help Insights'
+  requirements:
+    _permission: 'view mel help insights'

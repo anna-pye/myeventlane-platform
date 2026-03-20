@@ -7,11 +7,31 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+
 /**
  * Implements hook_theme().
  */
 function myeventlane_help_centre_theme(): array {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+
   return [
+    'help_centre_home' => [
+      'variables' => [
+        'help_search' => [],
+        'help_assistant' => NULL,
+        'context' => NULL,
+        'featured_articles' => [],
+        'vendors' => [],
+        'help_categories' => [],
+        'faq_listing' => [],
+      ],
+      'template' => 'help-centre-home',
+      // Template ships with myeventlane_theme (see help_link pattern).
+      'path' => $theme_path . '/templates/help',
+    ],
     'help_centre_index' => [
       'variables' => [
         'heading' => NULL,
@@ -20,5 +40,272 @@ function myeventlane_help_centre_theme(): array {
       ],
       'template' => 'help-centre-index',
     ],
+    'help_centre_search' => [
+      'variables' => [
+        'search' => [],
+        'results' => [],
+      ],
+      'template' => 'help-centre-search',
+    ],
+    'help_link' => [
+      'variables' => [
+        'text' => '',
+        'url' => '',
+        'aria_label' => NULL,
+      ],
+      'template' => 'components/help-link',
+      'path' => $theme_path . '/templates',
+    ],
   ];
+}
+
+/**
+ * Returns contextual help URLs keyed by integration point.
+ *
+ * Paths align with HelpContentSeeder article aliases (see HelpContentSeeder.php).
+ *
+ * @return array<string, array{text: string, url: string}>
+ *   Map of context keys to label and internal path.
+ */
+function myeventlane_help_centre_get_context_map(): array {
+  return [
+    'event_create' => [
+      'text' => (string) t('Need help creating your event?'),
+      'url' => '/help/organisers/how-to-create-an-event',
+    ],
+    'ticket_types' => [
+      'text' => (string) t('Not sure how ticket types work?'),
+      'url' => '/help/organisers/understanding-ticket-types',
+    ],
+    'rsvp_vs_paid' => [
+      'text' => (string) t('What’s the difference between RSVP and paid events?'),
+      'url' => '/help/organisers/choosing-rsvp-or-paid-tickets',
+    ],
+    'refunds_checkout' => [
+      'text' => (string) t('How do refunds work?'),
+      'url' => '/help/attendees/how-to-request-a-refund',
+    ],
+    'vendor_dashboard' => [
+      'text' => (string) t('Need help using your dashboard?'),
+      'url' => '/help/vendors/vendor-dashboard-overview',
+    ],
+    'rsvp_after_submit' => [
+      'text' => (string) t('What happens after you RSVP?'),
+      'url' => '/help/attendees/how-to-rsvp-to-a-free-event',
+    ],
+    'managing_dashboard' => [
+      'text' => (string) t('Managing your event dashboard'),
+      'url' => '/help/organisers/managing-your-event-dashboard',
+    ],
+  ];
+}
+
+/**
+ * Gets one contextual help link definition by key.
+ *
+ * @return array{text: string, url: string}|null
+ *   The text and path, or NULL if unknown.
+ */
+function myeventlane_help_centre_get_link(string $key): ?array {
+  $map = myeventlane_help_centre_get_context_map();
+  return $map[$key] ?? NULL;
+}
+
+/**
+ * Builds a render array for the reusable help link component.
+ *
+ * @param string $text
+ *   Link label.
+ * @param string $url
+ *   Internal path (e.g. /help/...) or absolute URL.
+ *
+ * @return array<string, mixed>
+ *   Render array themed with help_link.
+ */
+function myeventlane_help_link(string $text, string $url): array {
+  $url_object = str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
+    ? Url::fromUri($url)
+    : Url::fromUserInput($url);
+
+  return [
+    '#theme' => 'help_link',
+    '#text' => $text,
+    '#url' => $url_object->toString(),
+  ];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for the event creation wizard.
+ */
+function myeventlane_help_centre_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
+    return;
+  }
+
+  $step = (string) ($form['wizard_step']['#value'] ?? '');
+  if ($step !== 'tickets_capacity') {
+    return;
+  }
+
+  if (!isset($form['wizard']['layout']['content']['card']['body']) || !is_array($form['wizard']['layout']['content']['card']['body'])) {
+    return;
+  }
+
+  $body = &$form['wizard']['layout']['content']['card']['body'];
+
+  $eventCreate = myeventlane_help_centre_get_link('event_create');
+  $rsvpPaid = myeventlane_help_centre_get_link('rsvp_vs_paid');
+  if ($eventCreate || $rsvpPaid) {
+    $body['mel_help_event_type_context'] = [
+      '#type' => 'container',
+      '#weight' => -12,
+      '#attributes' => [
+        'class' => ['mel-contextual-help', 'mel-contextual-help--wizard'],
+      ],
+    ];
+    if ($eventCreate) {
+      $body['mel_help_event_type_context']['event_create'] = myeventlane_help_link($eventCreate['text'], $eventCreate['url']);
+    }
+    if ($rsvpPaid) {
+      $body['mel_help_event_type_context']['rsvp_vs_paid'] = myeventlane_help_link($rsvpPaid['text'], $rsvpPaid['url']);
+    }
+  }
+
+  $ticketTypes = myeventlane_help_centre_get_link('ticket_types');
+  if ($ticketTypes) {
+    $body['mel_help_ticket_types_context'] = [
+      '#type' => 'container',
+      '#weight' => 5,
+      '#attributes' => [
+        'class' => ['mel-contextual-help', 'mel-contextual-help--wizard'],
+      ],
+      'link' => myeventlane_help_link($ticketTypes['text'], $ticketTypes['url']),
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for the public ticket selection matrix.
+ */
+function myeventlane_help_centre_form_myeventlane_ticket_selection_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_commerce')) {
+    return;
+  }
+
+  $item = myeventlane_help_centre_get_link('ticket_types');
+  if (!$item) {
+    return;
+  }
+
+  $form['mel_help_ticket_matrix'] = [
+    '#type' => 'container',
+    '#weight' => -8,
+    '#attributes' => [
+      'class' => ['mel-contextual-help', 'mel-contextual-help--ticket-matrix'],
+    ],
+    'link' => myeventlane_help_link($item['text'], $item['url']),
+  ];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for the public RSVP form.
+ */
+function myeventlane_help_centre_form_myeventlane_rsvp_public_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_rsvp')) {
+    return;
+  }
+
+  $item = myeventlane_help_centre_get_link('rsvp_after_submit');
+  if (!$item) {
+    return;
+  }
+
+  $form['mel_help_rsvp_after'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => [
+      'class' => ['mel-contextual-help', 'mel-contextual-help--rsvp'],
+    ],
+    'link' => myeventlane_help_link($item['text'], $item['url']),
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_checkout_form.
+ */
+function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('commerce')) {
+    return;
+  }
+
+  $item = myeventlane_help_centre_get_link('refunds_checkout');
+  if (!$item) {
+    return;
+  }
+
+  $variables['mel_help_checkout_refund'] = myeventlane_help_link($item['text'], $item['url']);
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ */
+function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  $item = myeventlane_help_centre_get_link('vendor_dashboard');
+  if (!$item) {
+    return;
+  }
+
+  $variables['mel_help_vendor_dashboard'] = myeventlane_help_link($item['text'], $item['url']);
+}
+
+/**
+ * Implements hook_entity_view().
+ */
+function myeventlane_help_centre_entity_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, string $view_mode): void {
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'help_article' || $view_mode !== 'full') {
+    return;
+  }
+  \Drupal::service('myeventlane_help_centre.analytics')->logArticleView((int) $entity->id());
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_help_centre_preprocess_node(array &$variables): void {
+  $node = $variables['node'] ?? NULL;
+  $viewMode = $variables['view_mode'] ?? '';
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'help_article' || $viewMode !== 'full') {
+    return;
+  }
+
+  // Full-page article enhancements (module-level so vendor + public themes share).
+  $variables['mel_help_related_articles'] = [
+    '#type' => 'view',
+    '#name' => 'mel_help_related_articles',
+    '#display_id' => 'block_related',
+    '#arguments' => [(int) $node->id()],
+  ];
+  $variables['mel_help_support_panel'] = [
+    '#markup' => '<section class="mel-help-support-panel"><h2>' . t('Still need help?') . '</h2><p>' . t('If this article did not resolve it, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="/contact">' . t('Contact support') . '</a></p></section>',
+  ];
+  $variables['mel_help_cta'] = NULL;
+  if ($node->hasField('field_help_cta_label') && !$node->get('field_help_cta_label')->isEmpty() && $node->hasField('field_help_cta_link') && !$node->get('field_help_cta_link')->isEmpty()) {
+    $label = (string) $node->get('field_help_cta_label')->value;
+    $uri = (string) $node->get('field_help_cta_link')->uri;
+    if ($label !== '' && $uri !== '') {
+      $url = str_starts_with($uri, 'internal:') ? substr($uri, 9) : $uri;
+      $variables['mel_help_cta'] = [
+        'label' => $label,
+        'url' => $url,
+      ];
+    }
+  }
+
+  $route = Url::fromRoute('myeventlane_help_centre.article_feedback', [
+    'node' => (int) $node->id(),
+  ])->toString();
+  $variables['mel_help_feedback_endpoint'] = $route;
+  $variables['mel_help_feedback_token'] = \Drupal::service('csrf_token')->get('myeventlane_help_feedback');
+
+  $variables['#attached']['library'][] = 'myeventlane_help_centre/help_feedback';
 }

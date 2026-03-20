@@ -1,0 +1,9 @@
+uuid: 03de1162-798a-4ba0-be90-013c1805f073
+langcode: en
+status: true
+dependencies: {  }
+name: 'Help Article Type'
+vid: help_article_type
+description: 'Article intent types for Help Centre content.'
+weight: 0
+new_revision: false

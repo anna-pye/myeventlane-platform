@@ -11,6 +11,7 @@ dependencies:
     - klaro
     - media
     - myeventlane_checkin
+    - myeventlane_help_assistant
     - paragraphs
     - search
     - system
@@ -26,6 +27,7 @@ permissions:
   - 'access comments'
   - 'access commerce_order overview'
   - 'access content'
+  - 'access myeventlane help assistant'
   - 'access site-wide contact form'
   - 'create platform_donation commerce_order'
   - 'create rsvp_donation commerce_order'

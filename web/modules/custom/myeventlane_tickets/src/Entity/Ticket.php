@@ -101,6 +101,12 @@ final class Ticket extends ContentEntityBase {
       ->setRequired(FALSE)
       ->setSetting('target_type', 'paragraph');
 
+    // Preferred pointer to mel_ticket_type for new ticket definitions.
+    $fields['mel_ticket_type'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Ticket type (MEL)'))
+      ->setRequired(FALSE)
+      ->setSetting('target_type', 'mel_ticket_type');
+
     // Purchaser = entity owner.
     $fields['purchaser_uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('Purchaser'))

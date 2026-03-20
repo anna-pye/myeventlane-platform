@@ -1,0 +1,19 @@
+uuid: d5bb0e03-8a00-4101-ba03-bf7593b283f1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_summary
+    - node.type.help_landing_page
+id: node.help_landing_page.field_help_summary
+field_name: field_help_summary
+entity_type: node
+bundle: help_landing_page
+label: 'Help Summary'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

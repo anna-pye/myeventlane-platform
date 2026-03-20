@@ -1,0 +1,13 @@
+name: 'MEL Ticket'
+type: module
+description: 'Reusable ticket type entities for MyEventLane events (RSVP, paid, external) with Commerce-backed pricing.'
+package: MyEventLane
+core_version_requirement: ^11
+
+dependencies:
+  - drupal:datetime
+  - drupal:link
+  - drupal:node
+  - drupal:user
+  - commerce_price:commerce_price
+  - commerce_product:commerce_product

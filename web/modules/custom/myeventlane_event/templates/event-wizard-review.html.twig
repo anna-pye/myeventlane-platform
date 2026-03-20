@@ -28,6 +28,9 @@
         </div>
 
         <div class="mel-wizard-step-card__content">
+          {% if event_quality_panel %}
+            {{ event_quality_panel }}
+          {% endif %}
           {# Non-blocking warnings (if any) #}
           {% if warnings is not empty %}
             <div class="mel-wizard-review__warnings" role="region" aria-label="{{ 'Review suggestions'|t }}">

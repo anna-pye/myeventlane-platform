@@ -1,0 +1,402 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\mel_ticket\Entity;
+
+use Drupal\commerce_price\Price;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Entity\EntityStorageException;
+
+/**
+ * Ticket type (RSVP, paid, or external) owned by a vendor user.
+ *
+ * @ContentEntityType(
+ *   id = "mel_ticket_type",
+ *   label = @Translation("Ticket type"),
+ *   label_collection = @Translation("Ticket types"),
+ *   label_singular = @Translation("ticket type"),
+ *   label_plural = @Translation("ticket types"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count ticket type",
+ *     plural = "@count ticket types",
+ *   ),
+ *   handlers = {
+ *     "access" = "Drupal\mel_ticket\Access\TicketTypeAccessControlHandler",
+ *     "form" = {
+ *       "default" = "Drupal\mel_ticket\Form\TicketTypeForm",
+ *       "add" = "Drupal\mel_ticket\Form\TicketTypeForm",
+ *       "edit" = "Drupal\mel_ticket\Form\TicketTypeForm",
+ *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm",
+ *     },
+ *     "route_provider" = {
+ *       "html" = "Drupal\Core\Entity\Routing\DefaultHtmlRouteProvider",
+ *     },
+ *     "views_data" = "Drupal\views\EntityViewsData",
+ *   },
+ *   base_table = "mel_ticket_type",
+ *   admin_permission = "administer mel_ticket_type entities",
+ *   entity_keys = {
+ *     "id" = "id",
+ *     "uuid" = "uuid",
+ *     "label" = "title",
+ *     "langcode" = "langcode",
+ *     "published" = "status",
+ *   },
+ *   links = {
+ *     "canonical" = "/ticket-type/{mel_ticket_type}",
+ *     "edit-form" = "/ticket-type/{mel_ticket_type}/edit",
+ *     "delete-form" = "/ticket-type/{mel_ticket_type}/delete",
+ *   },
+ * )
+ */
+final class TicketType extends ContentEntityBase implements TicketTypeInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTitle(): string {
+    return (string) $this->get('title')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTicketKind(): string {
+    return (string) $this->get('ticket_kind')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isReusable(): bool {
+    return (bool) $this->get('is_reusable')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toPriceValue(): ?Price {
+    $field = $this->get('price');
+    if ($field->isEmpty()) {
+      return NULL;
+    }
+    /** @var \Drupal\commerce_price\Plugin\Field\FieldType\PriceItem $item */
+    $item = $field->first();
+    $number = (string) $item->number;
+    $code = (string) $item->currency_code;
+    if ($number === '' || $code === '') {
+      return NULL;
+    }
+    return new Price($number, $code);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getExternalUrlString(): ?string {
+    if ($this->get('external_url')->isEmpty()) {
+      return NULL;
+    }
+    /** @var \Drupal\link\Plugin\Field\FieldType\LinkItem $item */
+    $item = $this->get('external_url')->first();
+    return $item->getUri();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
+    $fields = parent::baseFieldDefinitions($entity_type);
+
+    $fields['title'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Title'))
+      ->setDescription(t('Public ticket name (e.g. "General admission").'))
+      ->setRequired(TRUE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -10,
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => -10,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['ticket_kind'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Ticket type'))
+      ->setDescription(t('RSVP (free reservation), paid (Commerce-backed), or external link-out.'))
+      ->setRequired(TRUE)
+      ->setSetting('allowed_values', [
+        'rsvp' => 'RSVP',
+        'paid' => 'Paid',
+        'external' => 'External',
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'options_select',
+        'weight' => -9,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['price'] = BaseFieldDefinition::create('commerce_price')
+      ->setLabel(t('Price'))
+      ->setDescription(t('Required for paid tickets; source of truth is mirrored on the Commerce variation.'))
+      ->setRequired(FALSE)
+      ->setCardinality(1)
+      ->setDisplayOptions('form', [
+        'type' => 'commerce_price_default',
+        'weight' => 0,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['capacity'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Capacity'))
+      ->setDescription(t('Maximum tickets for this type (omit or zero for unlimited where allowed).'))
+      ->setDisplayOptions('form', [
+        'type' => 'number',
+        'weight' => 2,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['rsvp_limit'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('RSVP limit per booking'))
+      ->setDescription(t('Optional per-order cap for RSVP tickets.'))
+      ->setDisplayOptions('form', [
+        'type' => 'number',
+        'weight' => 3,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['is_reusable'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Reusable across events'))
+      ->setDescription(t('When enabled, this ticket is not tied to a single event entity.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 4,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['vendor_id'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Vendor'))
+      ->setDescription(t('User that owns this ticket definition.'))
+      ->setSetting('target_type', 'user')
+      ->setRequired(TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 5,
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['event'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Event'))
+      ->setDescription(t('Optional: event this non-reusable ticket was created for.'))
+      ->setSetting('target_type', 'node')
+      ->setSetting('handler_settings', ['target_bundles' => ['event' => 'event']])
+      ->setDisplayOptions('form', [
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 6,
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['external_url'] = BaseFieldDefinition::create('link')
+      ->setLabel(t('External URL'))
+      ->setDescription(t('Required for external tickets.'))
+      ->setDisplayOptions('form', [
+        'type' => 'link_default',
+        'weight' => 7,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['sale_start'] = BaseFieldDefinition::create('datetime')
+      ->setLabel(t('Sale start'))
+      ->setSetting('datetime_type', 'datetime')
+      ->setDisplayOptions('form', [
+        'type' => 'datetime_default',
+        'weight' => 8,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['sale_end'] = BaseFieldDefinition::create('datetime')
+      ->setLabel(t('Sale end'))
+      ->setSetting('datetime_type', 'datetime')
+      ->setDisplayOptions('form', [
+        'type' => 'datetime_default',
+        'weight' => 9,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['commerce_variation'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Commerce variation'))
+      ->setDescription(t('Synced product variation for paid tickets.'))
+      ->setSetting('target_type', 'commerce_product_variation')
+      ->setSetting('handler_settings', ['target_bundles' => ['ticket_variation' => 'ticket_variation']])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['template_source'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Source template'))
+      ->setDescription(t('If set, this row was created by cloning a reusable template; the template entity is unchanged.'))
+      ->setSetting('target_type', 'mel_ticket_type')
+      ->setSetting('handler', 'default')
+      ->setRequired(FALSE)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['status'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Published'))
+      ->setDefaultValue(TRUE)
+      ->setDisplayConfigurable('form', FALSE);
+
+    return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function preCreate(EntityStorageInterface $storage, array &$values) {
+    parent::preCreate($storage, $values);
+    if (empty($values['status'])) {
+      $values['status'] = 1;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function preSave(EntityStorageInterface $storage) {
+    $kind = (string) $this->get('ticket_kind')->value;
+    if ($kind === 'external') {
+      $this->set('capacity', NULL);
+      $this->set('rsvp_limit', NULL);
+      $this->set('price', NULL);
+    }
+    if ($kind === 'rsvp') {
+      $this->set('price', NULL);
+      $this->set('external_url', NULL);
+    }
+    if ($kind === 'paid') {
+      $this->set('external_url', NULL);
+    }
+    parent::preSave($storage);
+    $this->assertBusinessRules();
+  }
+
+  /**
+   * Validates RSVP / paid / external dependency rules.
+   */
+  private function assertBusinessRules(): void {
+    $kind = $this->getTicketKind();
+    $violations = [];
+
+    if ($this->hasField('sale_start') && $this->hasField('sale_end')
+        && !$this->get('sale_start')->isEmpty() && !$this->get('sale_end')->isEmpty()) {
+      $start = $this->get('sale_start')->date->getTimestamp();
+      $end = $this->get('sale_end')->date->getTimestamp();
+      if ($end <= $start) {
+        $violations[] = 'Sale end must be after sale start.';
+      }
+    }
+
+    switch ($kind) {
+      case 'paid':
+        if ($this->isReusable()) {
+          $violations[] = 'Paid tickets cannot be marked reusable: Commerce variations are created per event product. Use RSVP or external reusable tickets, or create a paid ticket per event.';
+        }
+        if ($this->toPriceValue() === NULL) {
+          $violations[] = 'Paid tickets must include a price.';
+        }
+        if (!$this->get('price')->isEmpty()) {
+          $price = $this->toPriceValue();
+          if ($price && (float) $price->getNumber() < 0) {
+            $violations[] = 'Paid ticket price cannot be negative.';
+          }
+        }
+        if (!$this->get('external_url')->isEmpty()) {
+          $violations[] = 'External URL must be empty for paid tickets.';
+        }
+        $this->requireNonZeroCapacity($violations);
+        break;
+
+      case 'rsvp':
+        if (!$this->get('price')->isEmpty()) {
+          $violations[] = 'RSVP tickets cannot store a price; use paid instead.';
+        }
+        if (!$this->get('external_url')->isEmpty()) {
+          $violations[] = 'External URL must be empty for RSVP tickets.';
+        }
+        $this->requireNonZeroCapacity($violations);
+        if (!$this->get('commerce_variation')->isEmpty()) {
+          $violations[] = 'RSVP tickets must not reference a Commerce variation.';
+        }
+        break;
+
+      case 'external':
+        $uri = $this->getExternalUrlString();
+        if ($uri === NULL || $uri === '') {
+          $violations[] = 'External tickets must include an external URL.';
+        }
+        elseif (!str_starts_with($uri, 'http://') && !str_starts_with($uri, 'https://')) {
+          $violations[] = 'External URL must be a valid http(s) URL.';
+        }
+        if (!$this->get('price')->isEmpty()) {
+          $violations[] = 'External tickets cannot store a price.';
+        }
+        if (!$this->get('commerce_variation')->isEmpty()) {
+          $violations[] = 'External tickets must not reference a Commerce variation.';
+        }
+        break;
+
+      default:
+        $violations[] = 'Invalid ticket type.';
+        break;
+    }
+
+    if ($violations) {
+      throw new EntityStorageException(implode(' ', $violations));
+    }
+  }
+
+  /**
+   * Ensures capacity is set and at least 1 when the field is used.
+   *
+   * @param array<string> $violations
+   *   Violation messages to append to.
+   */
+  private function requireNonZeroCapacity(array &$violations): void {
+    if ($this->get('capacity')->isEmpty()) {
+      $violations[] = 'Capacity is required and must be at least 1.';
+      return;
+    }
+    if ((int) $this->get('capacity')->value < 1) {
+      $violations[] = 'Capacity must be at least 1.';
+    }
+  }
+
+}

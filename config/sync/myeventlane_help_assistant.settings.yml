@@ -1,0 +1,9 @@
+_core:
+  default_config_hash: uQsTHQBjzSHcHtle4yjja7gQ-vJse6FYjGjwsTOnf2Y
+enabled: true
+max_retrieved_articles: 5
+rate_limit_per_session_hour: 20
+max_requests_per_hour: 20
+max_requests_per_10min: 5
+support_url: /contact/support
+event_suggestions_ai: false

@@ -6,4 +6,8 @@ package: MyEventLane
 dependencies:
   - drupal:node
   - drupal:taxonomy
+  - drupal:views
+  - drupal:search
+  - drupal:datetime
+  - drupal:text
   - myeventlane_vendor_nudges:myeventlane_vendor_nudges

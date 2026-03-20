@@ -1,0 +1,9 @@
+uuid: 35c4d0fc-2a7b-4d72-9e71-5a8a075c0148
+langcode: en
+status: true
+dependencies: {  }
+name: 'Help Topic'
+vid: help_topic
+description: 'Topics used to organise Help Centre content.'
+weight: 0
+new_revision: false

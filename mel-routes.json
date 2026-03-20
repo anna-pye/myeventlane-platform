@@ -1139,10 +1139,10 @@
         "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::staffSnippetAuthoring",
         "title": "Staff Snippet Authoring Guide"
     },
-    "myeventlane_help_centre.vendor_index": {
+    "myeventlane_help_centre.vendor_help": {
         "path": "\/vendor\/help",
-        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::vendorIndex",
-        "title": "Help Centre"
+        "controller": "\\Drupal\\myeventlane_help_centre\\Controller\\HelpCentreController::vendorHelp",
+        "title": "Vendor help"
     },
     "myeventlane_help_centre.vendor_topic": {
         "path": "\/vendor\/help\/topic\/{category}",

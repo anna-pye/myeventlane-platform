@@ -1,7 +1,7 @@
 myeventlane_help_centre.vendor_help:
   title: 'Help centre'
   description: 'View help articles and guides for vendors.'
-  route_name: myeventlane_help_centre.vendor_index
+  route_name: myeventlane_help_centre.vendor_help
   menu_name: account
   weight: 90
 
@@ -9,6 +9,13 @@ myeventlane_help_centre.vendor_help:
 myeventlane_help_centre.public_help:
   title: 'Help'
   description: 'Help centre and FAQ for customers.'
-  route_name: myeventlane_help_centre.public_index
+  route_name: myeventlane_help_centre.home
   menu_name: footer
   weight: 10
+
+myeventlane_help_centre.help_insights_dashboard:
+  title: 'Help insights'
+  description: 'Review Help Centre feedback, analytics, and insight blocks.'
+  route_name: myeventlane_help_centre.help_insights_dashboard
+  parent: system.admin_reports
+  weight: 40

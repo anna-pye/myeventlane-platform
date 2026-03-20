@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Help Assistant page wrapper.
+ */
+#}
+<section class="mel-help-assistant mel-help-assistant--page js-mel-help-assistant" data-endpoint="{{ endpoint }}">
+  <div class="mel-help-assistant__card">
+    <h2 class="mel-help-assistant__title">{{ 'Help Assistant'|t }}</h2>
+    <p class="mel-help-assistant__intro">{{ 'Ask a question and I will answer only from MyEventLane Help Centre content.'|t }}</p>
+    <form class="mel-help-assistant__form js-mel-help-assistant-form" novalidate>
+      <label class="visually-hidden" for="mel-help-assistant-page-question">{{ 'Ask a question'|t }}</label>
+      <textarea
+        id="mel-help-assistant-page-question"
+        class="mel-help-assistant__question js-mel-help-assistant-question"
+        name="question"
+        rows="4"
+        maxlength="500"
+        placeholder="{{ 'Ask your MyEventLane question here'|t }}"
+        required
+      ></textarea>
+      <button type="submit" class="button button--primary mel-help-assistant__submit js-mel-help-assistant-submit">
+        {{ 'Ask a question'|t }}
+      </button>
+    </form>
+    <div class="mel-help-assistant__response js-mel-help-assistant-response" hidden></div>
+  </div>
+</section>

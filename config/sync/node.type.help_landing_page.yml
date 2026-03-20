@@ -1,0 +1,11 @@
+uuid: 06fba6f1-ea81-4f0a-85d3-f2ccd5fd12d2
+langcode: en
+status: true
+dependencies: {  }
+name: 'Help Landing Page'
+type: help_landing_page
+description: 'Landing pages for Help Centre hub and audience entry points.'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

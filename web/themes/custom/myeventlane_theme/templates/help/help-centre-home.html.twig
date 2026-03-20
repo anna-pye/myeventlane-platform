@@ -1,0 +1,169 @@
+{#
+/**
+ * @file
+ * Homepage template for the MyEventLane Help Centre.
+ *
+ * Available variables:
+ * - context: Optional string; when 'vendor', copy and sections target vendors.
+ * - help_search: Search form metadata (action, value, placeholder).
+ * - help_assistant: Optional render array (AI assistant block).
+ * - featured_articles: Featured articles view render array.
+ * - vendors: Vendor help view render array (vendor context).
+ * - help_categories: List of topic terms with name, url, article_count.
+ * - faq_listing: FAQ view render array.
+ */
+#}
+{% set is_vendor_context = context == 'vendor' %}
+{% if is_vendor_context %}
+<div class="mel-help-page mel-help-page--embedded">
+{% endif %}
+<section class="mel-help-home{% if is_vendor_context %} mel-help-home--vendor{% endif %}">
+  <header class="mel-help-home__hero">
+    <p class="mel-help-home__eyebrow">{{ 'MyEventLane Help Centre'|t }}</p>
+    {% if is_vendor_context %}
+      <h1 class="mel-help-home__title">{{ 'Vendor help'|t }}</h1>
+    {% else %}
+      <h1 class="mel-help-home__title">{{ 'How can we help today?'|t }}</h1>
+    {% endif %}
+
+    <form action="{{ help_search.action }}" method="get" class="mel-help-home__search" role="search">
+      <label class="visually-hidden" for="mel-help-search">{{ 'Search help articles'|t }}</label>
+      <input
+        id="mel-help-search"
+        name="q"
+        type="search"
+        class="mel-help-home__search-input"
+        placeholder="{{ help_search.placeholder }}"
+        value="{{ help_search.value }}"
+      />
+      <button type="submit" class="mel-help-home__search-button">{{ 'Search'|t }}</button>
+    </form>
+  </header>
+
+  {% if help_assistant is defined and help_assistant %}
+    <section class="mel-help-home__section" aria-labelledby="mel-help-assistant-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-help-assistant-title">{{ 'Ask the AI Help Assistant'|t }}</h2>
+      </div>
+      {{ help_assistant }}
+    </section>
+  {% endif %}
+
+  {% if not is_vendor_context %}
+    <section class="mel-help-home__section" aria-labelledby="mel-audience-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-audience-title">{{ 'Start by audience'|t }}</h2>
+      </div>
+      <div class="mel-help-home__grid mel-help-home__grid--categories">
+        <article class="mel-help-home__card">
+          <h3 class="mel-help-home__card-title"><a href="/help/attendees">{{ 'Attendee help'|t }}</a></h3>
+          <p class="mel-help-home__card-excerpt">{{ 'Need help with tickets, RSVPs, refunds, or event-day access? Start here.'|t }}</p>
+        </article>
+        <article class="mel-help-home__card">
+          <h3 class="mel-help-home__card-title"><a href="/help/organisers">{{ 'Organiser help'|t }}</a></h3>
+          <p class="mel-help-home__card-excerpt">{{ 'Running an event? Find practical guides for setup, ticketing, and attendee updates.'|t }}</p>
+        </article>
+        <article class="mel-help-home__card">
+          <h3 class="mel-help-home__card-title"><a href="/help/vendors">{{ 'Vendor help'|t }}</a></h3>
+          <p class="mel-help-home__card-excerpt">{{ 'Looking after your vendor profile and applications? This section keeps it simple.'|t }}</p>
+        </article>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="mel-help-home__section" aria-labelledby="mel-popular-articles-title">
+    <div class="mel-help-home__section-head">
+      <h2 id="mel-popular-articles-title">{{ 'Featured articles'|t }}</h2>
+    </div>
+    {% if featured_articles is empty %}
+      <p class="mel-help-home__empty">{{ 'No help content available.'|t }}</p>
+    {% else %}
+      {{ featured_articles }}
+    {% endif %}
+  </section>
+
+  {% if is_vendor_context %}
+    <section class="mel-help-home__section mel-help-home__section--vendor-list" aria-labelledby="mel-vendor-guides-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-vendor-guides-title">{{ 'Vendor guides'|t }}</h2>
+      </div>
+      {% if vendors is empty %}
+        <p class="mel-help-home__empty">{{ 'No vendor help articles are available yet.'|t }}</p>
+      {% else %}
+        {{ vendors }}
+      {% endif %}
+    </section>
+  {% endif %}
+
+  <section class="mel-help-home__section" aria-labelledby="mel-help-categories-title">
+    <div class="mel-help-home__section-head">
+      <h2 id="mel-help-categories-title">{{ 'Browse by topic'|t }}</h2>
+    </div>
+    {% if help_categories is empty %}
+      <p class="mel-help-home__empty">{{ 'No help categories are available yet.'|t }}</p>
+    {% else %}
+      <div class="mel-help-home__grid mel-help-home__grid--categories">
+        {% for category in help_categories %}
+          <article class="mel-help-home__card mel-help-home__card--category">
+            <h3 class="mel-help-home__card-title">
+              <a href="{{ category.url }}">{{ category.name }}</a>
+            </h3>
+            <p class="mel-help-home__card-meta">
+              {% if category.article_count == 1 %}
+                {{ '1 article'|t }}
+              {% else %}
+                {{ '@count articles'|t({'@count': category.article_count}) }}
+              {% endif %}
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="mel-help-home__section" aria-labelledby="mel-faq-list-title">
+    <div class="mel-help-home__section-head">
+      <h2 id="mel-faq-list-title">{{ 'Frequently asked questions'|t }}</h2>
+    </div>
+    {% if faq_listing is empty %}
+      <p class="mel-help-home__empty">{{ 'No FAQs available yet.'|t }}</p>
+    {% else %}
+      {{ faq_listing }}
+    {% endif %}
+  </section>
+
+  <section class="mel-help-home__section" aria-labelledby="mel-policies-title">
+    <div class="mel-help-home__section-head">
+      <h2 id="mel-policies-title">{{ 'Policies and trust'|t }}</h2>
+    </div>
+    <div class="mel-help-home__grid mel-help-home__grid--categories">
+      <article class="mel-help-home__card">
+        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Refund policy'|t }}</a></h3>
+        <p class="mel-help-home__card-excerpt">{{ 'Here is how refunds work on MyEventLane.'|t }}</p>
+      </article>
+      <article class="mel-help-home__card">
+        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Community guidelines'|t }}</a></h3>
+        <p class="mel-help-home__card-excerpt">{{ 'A friendly community starts with respectful behaviour and clear expectations.'|t }}</p>
+      </article>
+      <article class="mel-help-home__card">
+        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Privacy and safety'|t }}</a></h3>
+        <p class="mel-help-home__card-excerpt">{{ 'Understand how we handle trust, privacy, and safety across the platform.'|t }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="mel-help-home__section" aria-labelledby="mel-help-support-title">
+    <div class="mel-help-home__section-head">
+      <h2 id="mel-help-support-title">{{ 'Still need a hand?'|t }}</h2>
+    </div>
+    <article class="mel-help-home__card">
+      <p class="mel-help-home__card-excerpt">{{ 'If you could not find the right answer, contact support and include your event or booking details so we can help faster.'|t }}</p>
+      <p class="mel-help-home__card-link-wrap">
+        <a href="/contact" class="mel-help-home__card-link">{{ 'Contact support'|t }} &rarr;</a>
+      </p>
+    </article>
+  </section>
+</section>
+{% if is_vendor_context %}
+</div>
+{% endif %}

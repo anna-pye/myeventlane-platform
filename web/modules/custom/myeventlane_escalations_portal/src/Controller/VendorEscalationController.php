@@ -118,7 +118,7 @@ final class VendorEscalationController extends ControllerBase {
           '#type' => 'markup',
           '#markup' => $this->t(
             '<a href=":url" class="mel-support-helper__link">Browse the Help Centre</a> for guides and policies.',
-            [':url' => Url::fromRoute('myeventlane_help_centre.vendor_index')->toString()],
+            [':url' => Url::fromRoute('myeventlane_help_centre.vendor_help')->toString()],
           ),
         ],
       ];

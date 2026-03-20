@@ -1,0 +1,21 @@
+uuid: 6ae361ff-8dbc-4162-baa4-8a834608df65
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_featured_help
+    - node.type.help_landing_page
+id: node.help_landing_page.field_featured_help
+field_name: field_featured_help
+entity_type: node
+bundle: help_landing_page
+label: 'Featured Help'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

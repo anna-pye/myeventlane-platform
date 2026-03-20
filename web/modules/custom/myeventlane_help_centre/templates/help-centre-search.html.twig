@@ -1,0 +1,67 @@
+{#
+/**
+ * @file
+ * Template for Help Centre scoped search at /help/search.
+ */
+#}
+<div class="help-centre-search">
+  <header class="help-centre-search__header">
+    <h1 class="help-centre-search__title">{{ 'Search Help'|t }}</h1>
+    <p class="help-centre-search__intro">{{ 'Search across Help Articles and FAQs.'|t }}</p>
+  </header>
+
+  <form class="help-centre-search__form" action="{{ search.action }}" method="get">
+    <div class="help-centre-search__row">
+      <label for="help-search-q">{{ 'Search'|t }}</label>
+      <input id="help-search-q" name="q" type="search" value="{{ search.query|default('') }}" />
+    </div>
+
+    <div class="help-centre-search__row">
+      <label for="help-search-audience">{{ 'Audience'|t }}</label>
+      <select id="help-search-audience" name="audience">
+        <option value="0">{{ 'All audiences'|t }}</option>
+        {% for tid, label in search.audience_options %}
+          <option value="{{ tid }}" {{ search.audience == tid ? 'selected' : '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="help-centre-search__row">
+      <label for="help-search-category">{{ 'Category'|t }}</label>
+      <select id="help-search-category" name="category">
+        <option value="0">{{ 'All categories'|t }}</option>
+        {% for tid, label in search.category_options %}
+          <option value="{{ tid }}" {{ search.category == tid ? 'selected' : '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="help-centre-search__actions">
+      <button type="submit">{{ 'Search'|t }}</button>
+    </div>
+  </form>
+
+  {% if results is empty %}
+    <p class="help-centre-search__empty">{{ 'No matching help content found.'|t }}</p>
+  {% else %}
+    <ul class="help-centre-search__results">
+      {% for item in results %}
+        <li class="help-centre-search__item">
+          <h2 class="help-centre-search__item-title"><a href="{{ item.url }}">{{ item.title }}</a></h2>
+          <div class="help-centre-search__meta">
+            <span>{{ item.content_type_label }}</span>
+            {% if item.category_label %}
+              <span>{{ 'Category:'|t }} {{ item.category_label }}</span>
+            {% endif %}
+            {% if item.audience_label %}
+              <span>{{ 'Audience:'|t }} {{ item.audience_label }}</span>
+            {% endif %}
+            {% if item.last_updated %}
+              <span>{{ 'Last updated:'|t }} {{ item.last_updated }}</span>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</div>

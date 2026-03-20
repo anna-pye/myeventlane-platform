@@ -1,0 +1,23 @@
+uuid: 5da460dc-bd57-46b5-b874-7865d513ae4f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_cta_link
+    - node.type.help_article
+  module:
+    - link
+id: node.help_article.field_help_cta_link
+field_name: field_help_cta_link
+entity_type: node
+bundle: help_article
+label: 'Help CTA Link'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  title: 1
+  link_type: 17
+field_type: link

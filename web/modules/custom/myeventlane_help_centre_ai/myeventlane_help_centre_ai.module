@@ -12,26 +12,19 @@ use Drupal\Core\Url;
 /**
  * Implements hook_preprocess_HOOK() for help_centre_index.
  *
- * Adds "Ask a question" link to public help centre only.
+ * Adds "Ask a question" link to the unified Help Assistant when enabled.
  */
 function myeventlane_help_centre_ai_preprocess_help_centre_index(array &$variables): void {
   if (!empty($variables['is_vendor'])) {
     return;
   }
-  $variables['ask_url'] = Url::fromRoute('myeventlane_help_centre_ai.ask')->toString();
-}
-
-/**
- * Implements hook_theme().
- */
-function myeventlane_help_centre_ai_theme(array $existing, string $type, string $theme, string $path): array {
-  return [
-    'help_centre_ai' => [
-      'variables' => [
-        'form' => [],
-        'support_url' => '',
-      ],
-      'template' => 'help-centre-ai',
-    ],
-  ];
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+    try {
+      $variables['ask_url'] = Url::fromRoute('myeventlane_help_assistant.page')->toString();
+      return;
+    }
+    catch (\Throwable) {
+    }
+  }
+  $variables['ask_url'] = '/help/assistant';
 }
