@@ -1,0 +1,5 @@
+wizard:
+  version: 1.x
+  css:
+    theme:
+      css/wizard-tickets.css: {}

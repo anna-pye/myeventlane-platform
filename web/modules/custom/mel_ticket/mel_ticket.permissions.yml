@@ -1,0 +1,24 @@
+administer mel_ticket_type entities:
+  title: 'Administer ticket types'
+  description: 'Create, edit, and delete any ticket type.'
+  restrict access: TRUE
+
+create mel_ticket_type entities:
+  title: 'Create ticket types'
+
+edit own mel_ticket_type entities:
+  title: 'Edit own ticket types'
+
+delete own mel_ticket_type entities:
+  title: 'Delete own ticket types'
+
+reuse mel_ticket_type entities:
+  title: 'Reuse ticket types'
+  description: 'Attach reusable ticket types owned by the account to events.'
+
+assign mel_ticket_type entities:
+  title: 'Assign ticket types to events'
+  description: 'Attach ticket types to event nodes when editing events (usually via the Event Wizard).'
+
+view mel_ticket_type entities:
+  title: 'View ticket types'
