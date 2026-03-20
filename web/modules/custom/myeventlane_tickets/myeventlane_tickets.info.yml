@@ -4,6 +4,7 @@ description: 'Handles ticket creation, ticket groups, access codes, purchase sur
 core_version_requirement: ^11
 package: 'Custom'
 dependencies:
+  - mel_ticket:mel_ticket
   - drupal:node
   - drupal:commerce
   - drupal:commerce_product

@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   module:
+    - mel_ticket
     - commerce_order
     - commerce_product
     - commerce_stripe
@@ -10,17 +11,25 @@ dependencies:
     - myeventlane_escalations_refunds
     - myeventlane_event_state
     - myeventlane_refunds
+    - myeventlane_vendor_ai
 id: pro_organiser
 label: 'Pro Organiser'
 weight: -6
 is_admin: false
 permissions:
+  - 'assign mel_ticket_type entities'
+  - 'create mel_ticket_type entities'
+  - 'delete own mel_ticket_type entities'
+  - 'edit own mel_ticket_type entities'
+  - 'reuse mel_ticket_type entities'
+  - 'view mel_ticket_type entities'
   - 'manage boost commerce_order_item'
   - 'manage checkout_donation commerce_order_item'
   - manage_refunds
   - 'purchase boost for events'
   - request_refunds
   - 'update own boost_upgrade commerce_product'
+  - 'use vendor ai assistant'
   - 'view boost_upgrade commerce_product'
   - 'view stripe dashboard links'
   - 'view vendor refund summary'

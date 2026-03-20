@@ -10,6 +10,7 @@ use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_product\Entity\ProductInterface;
+use Drupal\mel_ticket\Entity\TicketType;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -132,34 +133,15 @@ final class TicketSelectionForm extends FormBase {
       }
     }
 
-    // Get ticket type labels from paragraphs.
+    // Map Commerce variation UUIDs to mel_ticket_type titles.
     $ticket_type_labels = [];
     if ($node->hasField('field_ticket_types') && !$node->get('field_ticket_types')->isEmpty()) {
-      $ticket_type_paragraphs = $node->get('field_ticket_types')->referencedEntities();
-      $preset_labels = [
-        'full_price' => 'Full Price',
-        'concession' => 'Concession',
-        'child' => 'Child',
-        'member' => 'Member',
-        'free' => 'Free',
-        'student' => 'Student',
-        'senior' => 'Senior',
-        'early_bird' => 'Early Bird',
-        'vip' => 'VIP',
-      ];
-
-      foreach ($ticket_type_paragraphs as $paragraph) {
-        $uuid = $paragraph->get('field_ticket_variation_uuid')->value ?? '';
-        if (!empty($uuid)) {
-          $label_mode = $paragraph->get('field_ticket_label_mode')->value ?? 'preset';
-          if ($label_mode === 'custom') {
-            $label = $paragraph->get('field_ticket_label_custom')->value ?? '';
+      foreach ($node->get('field_ticket_types')->referencedEntities() as $ticket) {
+        if ($ticket instanceof TicketType && !$ticket->get('commerce_variation')->isEmpty()) {
+          $variation_entity = $ticket->get('commerce_variation')->entity;
+          if ($variation_entity) {
+            $ticket_type_labels[$variation_entity->uuid()] = $ticket->label();
           }
-          else {
-            $preset = $paragraph->get('field_ticket_label_preset')->value ?? '';
-            $label = $preset_labels[$preset] ?? ucfirst(str_replace('_', ' ', $preset));
-          }
-          $ticket_type_labels[$uuid] = $label;
         }
       }
     }

@@ -1,0 +1,15 @@
+name: MyEventLane Help Assistant
+type: module
+description: 'Grounded AI assistant for MyEventLane Help Centre content.'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - mel_ticket:mel_ticket
+  - drupal:block
+  - drupal:node
+  - drupal:search_api
+  - drupal:taxonomy
+  - drupal:text
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_help_centre:myeventlane_help_centre
+  - myeventlane_vendor:myeventlane_vendor
