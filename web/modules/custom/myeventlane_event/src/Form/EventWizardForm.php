@@ -1172,25 +1172,23 @@ final class EventWizardForm extends FormBase {
       }
     }
 
-    // Build ticket types paragraph field (for paid/both events).
-    // This is the main ticket configuration field with all ticket type details.
+    // Build ticket types field (mel_ticket_type entities; paid tiers sync to Commerce).
     if ($event->hasField('field_ticket_types')) {
       $this->buildEntityWidgets($event, ['field_ticket_types'], $form, $form_state);
       if (isset($form['wizard']['content']['field_ticket_types'])) {
         $form['wizard']['content']['field_ticket_types']['#weight'] = 6;
-        // Show only for paid/both events.
         $form['wizard']['content']['field_ticket_types']['#states'] = [
           'visible' => [
             ':input[name="' . $event_type_selector . '"]' => [
               ['value' => 'paid'],
               ['value' => 'both'],
+              ['value' => 'rsvp'],
             ],
           ],
         ];
-        // Add description to help users understand this field.
         if (!isset($form['wizard']['content']['field_ticket_types']['#description'])) {
           $form['wizard']['content']['field_ticket_types']['#description'] =
-            $this->t('Define ticket types for this event. Each ticket type will create a separate Commerce Product Variation. Only shown when Event Type is "Paid" or "Both".');
+            $this->t('Attach ticket definitions (RSVP, paid, or external). Paid types create Commerce variations when the event is saved.');
         }
       }
     }
