@@ -1,68 +1,75 @@
 {#
 /**
  * @file
- * Template for the event booking page.
+ * Event booking page — V2: event-first → context → purchase.
  *
- * Available variables:
- * - title: The event title.
- * - event_date_text: Formatted event date string.
- * - venue_text: Venue name or location.
- * - hero_url: URL to hero image (optional).
- * - matrix_form: Render array for the booking form (RSVP, tickets, or combined).
- * - rsvp_form: Render array for standalone RSVP form (if applicable).
- * - is_rsvp: Boolean, TRUE if event supports RSVP.
- * - is_paid: Boolean, TRUE if event supports paid tickets.
- * - event_mode: String, the event booking mode ('rsvp', 'paid', 'both', 'external', 'none').
- * - event: The event node entity.
- * - recommended_events: Render array for recommended events (optional).
+ * Access code, ticket matrix, and Add to cart render inside {{ matrix_form }}
+ * (TicketSelectionForm). Do not split into Twig-only access_code_form / add_to_cart.
+ *
+ * Variables: event_title, event_date, event_location, hero_url, event_image,
+ * event_description, matrix_form, rsvp_form, event_mode, recommended_events, etc.
  */
 #}
-<div class="mel-event-book" data-event-mode="{{ event_mode }}">
+<div class="mel-booking-v2 mel-booking mel-event-book" data-event-mode="{{ event_mode }}">
   <div class="mel-container">
-    <div class="mel-event-book__layout">
-      <main class="mel-event-book__main">
-        <div class="mel-event-book__details mel-card mel-card--surface">
-          {% if hero_url %}
-            <div class="mel-event-book__media">
-              <div class="mel-event-book__badge">
-                {% if event_mode == 'rsvp' %}
-                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'rsvp', label: 'RSVP'|t, size: 'md' } only %}
-                {% elseif event_mode == 'paid' %}
-                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'paid', label: 'Tickets'|t, size: 'md' } only %}
-                {% elseif event_mode == 'external' %}
-                  {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'external', label: 'External'|t, size: 'md' } only %}
-                {% endif %}
-              </div>
-              <img class="mel-event-book__image" src="{{ hero_url }}" alt="{{ title }}" loading="eager" />
-            </div>
+    {# HERO — emotion / anchor #}
+    <div class="mel-booking-hero{% if (event_image is not defined or event_image is empty) and not hero_url %} mel-booking-hero--no-media{% endif %}">
+      {% if event_image is defined and event_image is not empty %}
+        <div class="mel-booking-hero__image">
+          {{ event_image }}
+        </div>
+      {% elseif hero_url %}
+        <div class="mel-booking-hero__image">
+          <img class="mel-booking-hero__img-fallback" src="{{ hero_url }}" alt="{{ event_title }}" width="1200" height="600" loading="eager" />
+        </div>
+      {% endif %}
+
+      <div class="mel-booking-hero__overlay">
+        <div class="mel-booking-hero__badge">
+          {% if event_mode == 'rsvp' %}
+            {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'rsvp', label: 'RSVP'|t, size: 'md' } only %}
+          {% elseif event_mode == 'paid' %}
+            {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'paid', label: 'Tickets'|t, size: 'md' } only %}
+          {% elseif event_mode == 'external' %}
+            {% include '@myeventlane_theme/components/event-type-pill.html.twig' with { type: 'external', label: 'External'|t, size: 'md' } only %}
           {% endif %}
+        </div>
 
-          <div class="mel-event-book__body">
-            <h1 class="mel-event-book__title">{{ title }}</h1>
+        <div class="mel-booking-hero__content">
+          <h1 class="mel-booking-hero__title">{{ event_title }}</h1>
 
-            {% if event_date_text %}
-              <div class="mel-event-book__meta">
-                <span class="mel-event-book__meta-icon" aria-hidden="true"></span>
-                <span>{{ event_date_text }}</span>
-              </div>
+          <div class="mel-event-meta mel-booking-hero__meta">
+            {% if event_date %}
+              <span class="mel-booking-hero__meta-item">{{ event_date }}</span>
             {% endif %}
-
-            {% if venue_text %}
-              <div class="mel-event-book__meta">
-                <span class="mel-event-book__meta-icon mel-event-book__meta-icon--location" aria-hidden="true"></span>
-                <span>{{ venue_text }}</span>
-              </div>
+            {% if event_location %}
+              <span class="mel-booking-hero__meta-item">{{ event_location }}</span>
             {% endif %}
           </div>
         </div>
-      </main>
+      </div>
+    </div>
 
-      <aside class="mel-event-book__sidebar" role="complementary">
-        <section class="mel-event-book__form mel-card mel-card--surface" aria-labelledby="mel-event-book-form-title">
-          <div class="mel-event-book__form-head">
-            <h2 class="mel-event-book__form-title" id="mel-event-book-form-title">
+    {# CONTENT — context + decision #}
+    <div class="mel-booking-container">
+      {% if event_description is defined and event_description is not empty %}
+        <div class="mel-event-description-card">
+          {{ event_description }}
+        </div>
+      {% endif %}
+
+      <div class="mel-booking-layout{% if event_mode != 'paid' %} mel-booking-layout--single{% endif %}">
+        <div class="mel-booking-layout__main">
+          {% if event_mode == 'paid' %}
+            <p class="mel-booking-confidence mel-text--muted">
+              {{ "Select your tickets below, then continue to review. You won't be charged on this step."|t }}
+            </p>
+          {% endif %}
+
+          <div class="mel-ticket-panel mel-event-book__form" aria-labelledby="mel-ticket-panel-title">
+            <h2 class="mel-ticket-panel__title" id="mel-ticket-panel-title">
               {% if event_mode == 'paid' %}
-                {{ 'Buy tickets'|t }}
+                {{ 'Choose your tickets'|t }}
               {% elseif event_mode == 'rsvp' %}
                 {{ 'RSVP for this event'|t }}
               {% elseif event_mode == 'external' %}
@@ -71,25 +78,47 @@
                 {{ 'Registration'|t }}
               {% endif %}
             </h2>
-          </div>
 
-          <div class="mel-event-book__form-body">
-            {% if matrix_form is not empty %}
-              {{ matrix_form }}
-            {% elseif rsvp_form is not empty %}
-              {{ rsvp_form }}
-            {% else %}
-              <div class="mel-alert mel-alert--info" role="status">
-                {% if event_mode == 'none' %}
-                  {{ 'Registration opens soon.'|t }}
-                {% else %}
-                  {{ "We couldn't load the booking form. Please refresh the page."|t }}
-                {% endif %}
-              </div>
+            {% if event_mode == 'paid' %}
+              <p class="mel-ticket-panel__lead">{{ "Need help choosing? Check the descriptions for what's included. You can review everything before checkout."|t }}</p>
             {% endif %}
+
+            <div class="mel-ticket-panel__body mel-event-book__form-body">
+              {% if matrix_form is not empty %}
+                {{ matrix_form }}
+              {% elseif rsvp_form is not empty %}
+                {{ rsvp_form }}
+              {% else %}
+                <div class="mel-alert mel-alert--info" role="status">
+                  {% if event_mode == 'none' %}
+                    {{ 'Registration opens soon.'|t }}
+                  {% else %}
+                    {{ "We couldn't load the booking form. Please refresh the page."|t }}
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
           </div>
-        </section>
-      </aside>
+        </div>
+
+        {% if event_mode == 'paid' %}
+          <aside class="mel-booking-layout__aside" aria-label="{{ 'Order summary'|t }}">
+            <div class="mel-booking-summary" data-mel-booking-summary>
+              <h3 class="mel-booking-summary__title">{{ 'Your selection'|t }}</h3>
+              <div class="mel-booking-summary__empty" data-mel-summary-empty>
+                <p class="mel-booking-summary__empty-line">{{ 'Choose your tickets to see your total.'|t }}</p>
+                <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ 'You can review everything before checkout.'|t }}</p>
+              </div>
+              <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
+              <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
+                <span class="mel-booking-summary__subtotal-label">{{ 'Subtotal'|t }}</span>
+                <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
+              </div>
+              <p class="mel-booking-summary__cta-note">{{ 'Tickets are added to your cart first — secure checkout on the next step.'|t }}</p>
+            </div>
+          </aside>
+        {% endif %}
+      </div>
     </div>
 
     {% if recommended_events %}

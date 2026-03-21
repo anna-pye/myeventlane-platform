@@ -114,3 +114,12 @@ vendor-studio:
     - myeventlane_theme/global-styling
     - core/drupal
     - core/once
+
+# Live order summary + mobile totals on /event/{nid}/book (paid ticket matrix only).
+mel_booking_summary:
+  js:
+    js/mel-booking-summary.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

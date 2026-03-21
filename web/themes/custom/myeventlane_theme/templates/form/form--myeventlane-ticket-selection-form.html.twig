@@ -1,0 +1,49 @@
+{#
+/**
+ * @file
+ * Ticket selection form on the event book page: access code, ticket list, sticky CTA.
+ *
+ * Render only known children explicitly. Do not use a trailing form|without() catch-all:
+ * it can re-output actions (duplicate "Add to cart") and other elements already printed.
+ */
+#}
+<form{{ attributes.addClass('mel-booking-form').setAttribute('data-mel-booking-form', '1') }}>
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+
+  <div class="mel-booking-form__stack">
+    {% if form.mel_help_ticket_matrix is defined %}
+      {{ form.mel_help_ticket_matrix }}
+    {% endif %}
+
+    {{ form.waitlist_offer_banner }}
+    {{ form.sold_out }}
+
+    <div class="mel-ticket-list">
+      {{ form.tickets }}
+    </div>
+
+    {% if form.booking_access is defined %}
+      <div class="mel-access-code mel-access-code--after-tickets">
+        {{ form.booking_access }}
+      </div>
+    {% endif %}
+
+    {{ form.tier_waitlist }}
+    {{ form.empty }}
+  </div>
+
+  {% if form.actions is defined %}
+    <div class="mel-booking__cta" role="region" aria-labelledby="mel-booking-cta-heading">
+      <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
+        <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
+        <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
+      </div>
+      <h3 class="mel-booking__cta-heading" id="mel-booking-cta-heading">{{ 'Ready to continue?'|t }}</h3>
+      <p class="mel-booking__cta-lead mel-text--muted">{{ 'Review your tickets, then add them to your cart.'|t }}</p>
+      {{ form.actions }}
+      <p class="mel-booking__cta-reassurance">{{ 'You can review your order before payment. Secure checkout on the next step.'|t }}</p>
+    </div>
+  {% endif %}
+</form>
