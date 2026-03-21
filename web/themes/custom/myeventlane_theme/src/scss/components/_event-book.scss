@@ -1,0 +1,852 @@
+// ==========================================================================
+// Event booking — V2 (event-first → context → purchase)
+// ==========================================================================
+// Scoped under .mel-booking-v2. Uses MEL tokens; preserves ticket matrix + CTA.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing';
+@use '../tokens/typography';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// V2 shell
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2.mel-event-book,
+.mel-booking-v2 {
+  padding: spacing.mel-space(4) 0 spacing.mel-space(7);
+}
+
+// ---------------------------------------------------------------------------
+// Hero
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-booking-hero {
+  position: relative;
+  height: 300px;
+  border-radius: radii.$mel-radius-lg;
+  overflow: hidden;
+  margin-bottom: spacing.mel-space(4);
+  box-shadow: shadows.$mel-shadow-md;
+
+  &--no-media {
+    background: linear-gradient(
+      135deg,
+      color.adjust(colors.$mel-color-primary, $lightness: 18%) 0%,
+      color.adjust(colors.$mel-color-primary, $lightness: 8%) 50%,
+      colors.$mel-color-bg 100%
+    );
+  }
+}
+
+.mel-booking-v2 .mel-booking-hero__image {
+  position: absolute;
+  inset: 0;
+
+  img,
+  picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.mel-booking-v2 .mel-booking-hero__img-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mel-booking-v2 .mel-booking-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.22) 55%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  display: flex;
+  align-items: flex-end;
+  padding: spacing.mel-space(5) spacing.mel-space(4);
+  z-index: 1;
+}
+
+.mel-booking-v2 .mel-booking-hero__badge {
+  position: absolute;
+  top: spacing.mel-space(3);
+  right: spacing.mel-space(3);
+  z-index: 2;
+}
+
+.mel-booking-v2 .mel-booking-hero__content {
+  max-width: 48rem;
+}
+
+.mel-booking-v2 .mel-booking-hero__title {
+  margin: 0;
+  color: colors.$mel-color-on-primary;
+  font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+  font-weight: typography.$mel-font-bold;
+  line-height: typography.$mel-leading-snug;
+  letter-spacing: typography.$mel-tracking-tight;
+}
+
+.mel-booking-v2 .mel-booking-hero__meta.mel-event-meta {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(1);
+  margin-top: spacing.mel-space(2);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.45;
+}
+
+.mel-booking-v2 .mel-booking-hero__meta-item {
+  display: block;
+}
+
+// ---------------------------------------------------------------------------
+// Main column + description
+// ---------------------------------------------------------------------------
+
+// Full width of `.mel-container` (same as hero) — do not add a second max-width.
+.mel-booking-v2 .mel-booking-container {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 spacing.mel-space(5);
+}
+
+// ---------------------------------------------------------------------------
+// Level 3 — conversion layout (tickets + order summary)
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-booking-layout {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(5);
+  align-items: stretch;
+}
+
+.mel-booking-v2 .mel-booking-layout__main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mel-booking-v2 .mel-booking-layout__aside {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+@include breakpoints.mel-break(lg) {
+  .mel-booking-v2 .mel-booking-layout:not(.mel-booking-layout--single) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: spacing.mel-space(6);
+  }
+
+  .mel-booking-v2 .mel-booking-layout:not(.mel-booking-layout--single) .mel-booking-layout__main {
+    flex: 1 1 58%;
+  }
+
+  .mel-booking-v2 .mel-booking-layout:not(.mel-booking-layout--single) .mel-booking-layout__aside {
+    flex: 0 1 34%;
+    max-width: 22rem;
+    position: sticky;
+    top: spacing.mel-space(3);
+    align-self: flex-start;
+  }
+}
+
+.mel-booking-v2 .mel-booking-confidence {
+  margin: 0 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.5;
+  color: colors.$mel-color-text-muted;
+  max-width: 40rem;
+}
+
+.mel-booking-v2 .mel-booking-summary {
+  background: linear-gradient(
+    160deg,
+    color.adjust(colors.$mel-color-surface, $lightness: 1%) 0%,
+    color.adjust(colors.$mel-color-bg, $lightness: 2%) 100%
+  );
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg + 2px;
+  padding: spacing.mel-space(4);
+  box-shadow: 0 10px 36px rgba(41, 50, 65, 0.07);
+}
+
+.mel-booking-v2 .mel-booking-summary__title {
+  margin: 0 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  letter-spacing: typography.$mel-tracking-tight;
+}
+
+.mel-booking-v2 .mel-booking-summary__empty {
+  padding: spacing.mel-space(3) 0;
+}
+
+.mel-booking-v2 .mel-booking-summary__empty[hidden] {
+  display: none !important;
+}
+
+.mel-booking-v2 .mel-booking-summary__empty-line {
+  margin: 0 0 spacing.mel-space(1);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text;
+  line-height: 1.45;
+}
+
+.mel-booking-v2 .mel-booking-summary__empty-line--soft {
+  color: colors.$mel-color-text-muted;
+  margin-bottom: 0;
+}
+
+.mel-booking-v2 .mel-booking-summary__items {
+  margin: spacing.mel-space(2) 0;
+  min-height: 0;
+}
+
+.mel-booking-v2 .mel-booking-summary__items:empty {
+  margin: 0;
+  padding: 0;
+}
+
+.mel-booking-v2 .mel-booking-summary__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}
+
+.mel-booking-v2 .mel-booking-summary__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text;
+}
+
+.mel-booking-v2 .mel-booking-summary__item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.mel-booking-v2 .mel-booking-summary__item-amount {
+  flex: 0 0 auto;
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
+  white-space: nowrap;
+}
+
+.mel-booking-v2 .mel-booking-summary__subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  margin-top: spacing.mel-space(3);
+  padding-top: spacing.mel-space(3);
+  border-top: 1px solid colors.$mel-color-border;
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+}
+
+.mel-booking-v2 .mel-booking-summary__subtotal[hidden] {
+  display: none !important;
+}
+
+.mel-booking-v2 .mel-booking-summary__subtotal-value {
+  color: colors.$mel-color-primary;
+  font-variant-numeric: tabular-nums;
+}
+
+.mel-booking-v2 .mel-booking-summary__cta-note {
+  margin: spacing.mel-space(3) 0 0;
+  font-size: typography.mel-font-size(xs);
+  line-height: 1.45;
+  color: colors.$mel-color-text-muted;
+}
+
+@include breakpoints.mel-break(lg, max) {
+  .mel-booking-v2 .mel-booking-layout__aside .mel-booking-summary__cta-note {
+    display: none;
+  }
+}
+
+.mel-booking-v2 .mel-event-description-card {
+  background: colors.$mel-color-surface;
+  padding: spacing.mel-space(5);
+  border-radius: radii.$mel-radius-lg;
+  margin-bottom: spacing.mel-space(5);
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: 0 6px 24px rgba(41, 50, 65, 0.06);
+  color: colors.$mel-color-text;
+  font-size: typography.mel-font-size(base);
+  line-height: 1.55;
+
+  p {
+    margin: 0 0 spacing.mel-space(2);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ticket / RSVP panel
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-ticket-panel {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg + 2px;
+  padding: spacing.mel-space(5);
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: 0 12px 40px rgba(41, 50, 65, 0.08);
+  overflow: visible;
+}
+
+.mel-booking-v2 .mel-ticket-panel__title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  letter-spacing: typography.$mel-tracking-tight;
+}
+
+.mel-booking-v2 .mel-ticket-panel__lead {
+  margin: 0 0 spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.45;
+}
+
+.mel-booking-v2 .mel-ticket-panel__body {
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Global messages (booking page)
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2.mel-event-book {
+  .messages {
+    margin: 0 0 spacing.mel-space(4);
+    border-radius: radii.$mel-radius-lg;
+    padding: spacing.mel-space(3);
+  }
+
+  .messages--error,
+  .messages.messages--error {
+    background: colors.$mel-color-error-bg;
+    border: 1px solid rgba(colors.$mel-color-error, 0.22);
+    border-left: 6px solid rgba(colors.$mel-color-error, 0.6);
+    color: colors.$mel-color-text;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Paid form: stack + ticket rows (form--myeventlane-ticket-selection-form)
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.mel-booking-v2 .mel-booking-form__stack {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mel-booking-v2 .mel-access-code {
+  min-width: 0;
+  padding: spacing.mel-space(3);
+  border-radius: radii.$mel-radius-lg;
+  background: rgba(colors.$mel-color-primary, 0.06);
+  border: 1px solid rgba(colors.$mel-color-primary, 0.14);
+
+  &--after-tickets {
+    margin-top: spacing.mel-space(2);
+  }
+}
+
+.mel-booking-v2 .mel-ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(3);
+  min-width: 0;
+  margin-top: spacing.mel-space(1);
+}
+
+// ---------------------------------------------------------------------------
+// Form body: errors, fields, matrix
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-event-book__form-body {
+  .messages {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  .messages--error,
+  .messages.messages--error {
+    background: colors.$mel-color-error-bg;
+    border: 1px solid rgba(colors.$mel-color-error, 0.22);
+    border-left: 6px solid rgba(colors.$mel-color-error, 0.6);
+    border-radius: radii.$mel-radius-lg;
+    color: colors.$mel-color-text;
+    padding: spacing.mel-space(3);
+  }
+
+  .form-item--error-message {
+    margin-top: spacing.mel-space(2);
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text;
+    background: colors.$mel-color-error-bg;
+    border: 1px solid rgba(colors.$mel-color-error, 0.2);
+    border-radius: radii.$mel-radius-md;
+    padding: spacing.mel-space(2) spacing.mel-space(3);
+  }
+
+  .form-item--error input[type='text'],
+  .form-item--error input[type='email'],
+  .form-item--error input[type='tel'],
+  .form-item--error input[type='number'],
+  .form-item--error select,
+  .form-item--error textarea {
+    border-color: rgba(colors.$mel-color-error, 0.55);
+    box-shadow: 0 0 0 3px rgba(colors.$mel-color-error, 0.12);
+  }
+
+  .form-item {
+    margin-bottom: spacing.mel-space(3);
+  }
+
+  label {
+    display: block;
+    font-weight: typography.$mel-font-semibold;
+    margin-bottom: spacing.mel-space(1);
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='number'],
+  select,
+  textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: radii.$mel-radius-md;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: colors.$mel-focus-ring;
+    }
+  }
+
+  .mel-access-code .mel-ticket-booking-access {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+
+    legend {
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-bold;
+      padding: 0 spacing.mel-space(1);
+      color: colors.$mel-color-text;
+    }
+
+    .fieldset-description {
+      font-size: typography.mel-font-size(sm);
+      color: colors.$mel-color-text-muted;
+      margin-bottom: spacing.mel-space(2);
+    }
+  }
+
+  .mel-ticket-selection {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+    margin-bottom: spacing.mel-space(2);
+  }
+
+  .mel-ticket-selection .mel-event-title {
+    position: absolute !important;
+    height: 1px !important;
+    width: 1px !important;
+    overflow: hidden !important;
+    clip: rect(1px, 1px, 1px, 1px) !important;
+    white-space: nowrap !important;
+  }
+
+  .mel-ticket-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(5rem, 6.25rem);
+    grid-template-areas:
+      'label qty'
+      'price qty';
+    align-items: start;
+    gap: spacing.mel-space(1) spacing.mel-space(3);
+    padding: spacing.mel-space(3);
+    background: colors.$mel-color-bg;
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-lg;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .mel-ticket-row:hover {
+    border-color: rgba(colors.$mel-color-primary, 0.42);
+    background: colors.$mel-color-surface;
+    box-shadow: 0 6px 20px rgba(108, 126, 242, 0.1);
+  }
+
+  .mel-ticket-row:focus-within {
+    border-color: colors.$mel-color-secondary;
+    box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.14);
+  }
+
+  .mel-ticket-row.is-selected,
+  .mel-ticket-row.has-quantity,
+  .mel-ticket-row[aria-selected='true'],
+  .mel-ticket-row[data-selected='true'] {
+    border-width: 2px;
+    border-color: colors.$mel-color-secondary;
+    background: color.adjust(colors.$mel-color-secondary, $lightness: 46%);
+  }
+
+  @supports selector(:has(*)) {
+    .mel-ticket-row:has(.mel-ticket-quantity:disabled) {
+      opacity: 0.65;
+      border-style: dashed;
+    }
+  }
+
+  .mel-ticket-label-cell {
+    grid-area: label;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(1);
+    min-width: 0;
+  }
+
+  .mel-ticket-label {
+    font-size: typography.mel-font-size(base);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    min-width: 0;
+  }
+
+  .mel-ticket-description {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-regular;
+    line-height: 1.5;
+    min-width: 0;
+    margin-top: spacing.mel-space(1);
+    color: colors.$mel-color-text-muted;
+  }
+
+  .mel-ticket-row__status:empty {
+    display: none;
+  }
+
+  .mel-ticket-row__status {
+    margin-top: spacing.mel-space(2);
+    min-height: 0;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: color.adjust(colors.$mel-color-primary, $lightness: -8%);
+  }
+
+  .mel-ticket-description:empty {
+    display: none;
+  }
+
+  .mel-ticket-price {
+    grid-area: price;
+    margin-top: spacing.mel-space(1);
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-primary;
+    white-space: nowrap;
+  }
+
+  .mel-ticket-quantity {
+    grid-area: qty;
+    align-self: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    text-align: center;
+    border-radius: radii.$mel-radius-md;
+    border: 2px solid colors.$mel-color-border;
+    background: colors.$mel-color-surface;
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  .mel-ticket-quantity:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+    border-color: colors.$mel-color-secondary;
+  }
+
+  .mel-ticket-quantity:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  @include breakpoints.mel-break(sm, max) {
+    .mel-ticket-row {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'label'
+        'price'
+        'qty';
+      gap: spacing.mel-space(2);
+    }
+
+    .mel-ticket-label-cell {
+      grid-area: label;
+    }
+
+    .mel-ticket-price {
+      grid-area: price;
+      justify-self: start;
+    }
+
+    .mel-ticket-quantity {
+      grid-area: qty;
+      width: 100%;
+    }
+  }
+
+  .form-actions {
+    margin-top: spacing.mel-space(4);
+    padding-top: spacing.mel-space(4);
+    border-top: 1px solid colors.$mel-color-border;
+  }
+
+  .button,
+  input[type='submit'],
+  button[type='submit'] {
+    width: 100%;
+    border-radius: radii.$mel-radius-full;
+  }
+
+  .button--primary,
+  .mel-add-to-cart-button {
+    min-height: 48px;
+    font-weight: typography.$mel-font-extrabold;
+    letter-spacing: 0.01em;
+    box-shadow: none;
+  }
+
+  .mel-btn.mel-btn-lg {
+    font-size: typography.mel-font-size(base);
+    padding: 0.85rem 1rem;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mel-btn-primary:hover,
+    .button--primary:hover,
+    .mel-add-to-cart-button:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  .button--primary:focus-visible,
+  .mel-add-to-cart-button:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
+}
+
+// Sticky CTA — full-width inside panel
+.mel-booking-v2 .mel-event-book__form-body .mel-booking__cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  margin-top: spacing.mel-space(4);
+  margin-left: calc(-1 * #{spacing.mel-space(5)});
+  margin-right: calc(-1 * #{spacing.mel-space(5)});
+  margin-bottom: calc(-1 * #{spacing.mel-space(5)});
+  padding: spacing.mel-space(3) spacing.mel-space(5);
+  padding-bottom: calc(#{spacing.mel-space(3)} + env(safe-area-inset-bottom, 0));
+  background: color.adjust(colors.$mel-color-surface, $lightness: -1%);
+  border-top: 1px solid colors.$mel-color-border;
+  box-shadow: 0 -10px 32px rgba(41, 50, 65, 0.08);
+
+  .mel-booking__cta-heading {
+    margin: 0 0 spacing.mel-space(1);
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-booking__cta-lead {
+    margin: 0 0 spacing.mel-space(3);
+    font-size: typography.mel-font-size(sm);
+    line-height: 1.45;
+  }
+
+  .mel-booking__cta-reassurance {
+    margin: spacing.mel-space(2) 0 0;
+    font-size: typography.mel-font-size(sm);
+    line-height: 1.45;
+    color: colors.$mel-color-text-muted;
+    text-align: center;
+  }
+
+  .mel-mobile-booking-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: spacing.mel-space(2);
+    margin-bottom: spacing.mel-space(3);
+    padding: spacing.mel-space(2) spacing.mel-space(3);
+    border-radius: radii.$mel-radius-md;
+    background: rgba(colors.$mel-color-primary, 0.06);
+    border: 1px solid rgba(colors.$mel-color-primary, 0.12);
+  }
+
+  .mel-mobile-booking-bar__count {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mel-mobile-booking-bar__total {
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-extrabold;
+    color: colors.$mel-color-primary;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+
+  .form-actions {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .button--primary,
+  .mel-add-to-cart-button,
+  input[type='submit'].button--primary,
+  button[type='submit'].button--primary {
+    width: 100%;
+    min-height: 52px;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    border-radius: radii.$mel-radius-lg;
+    border: none;
+    font-weight: typography.$mel-font-extrabold;
+    font-size: typography.mel-font-size(md);
+    letter-spacing: 0.02em;
+    color: colors.$mel-color-on-primary;
+    background-image: linear-gradient(
+      135deg,
+      color.adjust(colors.$mel-color-primary, $lightness: 10%),
+      color.adjust(colors.$mel-color-primary, $lightness: -4%)
+    );
+    box-shadow: 0 4px 18px rgba(108, 126, 242, 0.35);
+
+    &:hover {
+      filter: brightness(1.04);
+    }
+  }
+
+  .button--primary:focus-visible,
+  .mel-add-to-cart-button:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
+
+  .mel-booking-submit--soft-idle {
+    opacity: 0.78;
+    filter: saturate(0.95);
+  }
+}
+
+@include breakpoints.mel-break(lg) {
+  .mel-booking-v2 .mel-event-book__form-body .mel-booking__cta .mel-mobile-booking-bar {
+    display: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-event-book__recommendations {
+  margin-top: spacing.mel-space(6);
+  padding-top: spacing.mel-space(5);
+  border-top: 1px solid colors.$mel-color-border;
+  width: 100%;
+}
+
+.mel-booking-v2 .mel-event-book__recommendations-title {
+  margin: 0 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+}
+
+.mel-booking-v2 .mel-event-book__recommendations-body {
+  .mel-recommended-context > .mel-section-head {
+    display: none;
+  }
+
+  .mel-recommended-context {
+    margin: 0;
+  }
+
+  .mel-card-carousel {
+    padding: 0;
+  }
+
+  .mel-card-carousel .swiper-button-prev,
+  .mel-card-carousel .swiper-button-next {
+    display: none;
+  }
+
+  .mel-card-carousel .swiper-slide:nth-child(n + 5) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-booking-v2 .mel-event-book__form-body .mel-ticket-row {
+    transition: none;
+  }
+}
