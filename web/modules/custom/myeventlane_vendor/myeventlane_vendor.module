@@ -155,6 +155,33 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       'template' => 'myeventlane-studio-inspector',
       'path' => $vendor_theme_path . '/templates',
     ],
+    'myeventlane_vendor_help_panel' => [
+      'variables' => [
+        'data' => [
+          'global' => [
+            'revenue' => 0,
+            'events_total' => 0,
+            'events_published' => 0,
+            'conversion_hint' => '',
+          ],
+          'event' => NULL,
+        ],
+        'show_boost' => FALSE,
+      ],
+      'template' => 'vendor/help-panel',
+    ],
+    'mel_ticket_card' => [
+      'variables' => [
+        'label' => '',
+        'kind_label' => '',
+        'price_display' => '',
+        'capacity_display' => '',
+        'sales_label' => '',
+        'status_badges' => [],
+        'sales_summary' => '',
+      ],
+      'template' => 'mel-ticket-card',
+    ],
   ];
 }
 

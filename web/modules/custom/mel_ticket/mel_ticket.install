@@ -91,3 +91,245 @@ function mel_ticket_update_9002(): string {
   );
   return 'Installed mel_ticket_type.template_source for wizard template cloning.';
 }
+
+/**
+ * Adds visibility, waitlist, and group-sale fields on ticket types.
+ */
+function mel_ticket_update_9004(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type');
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  $names = [
+    'visibility_mode',
+    'hidden_label',
+    'waitlist_enabled',
+    'waitlist_capacity',
+    'auto_promote_waitlist',
+    'group_sale_mode',
+    'group_min_size',
+    'group_bundle_size',
+  ];
+  $installed = [];
+  foreach ($names as $name) {
+    if (!isset($fields[$name])) {
+      continue;
+    }
+    try {
+      $update_manager->installFieldStorageDefinition(
+        $name,
+        'mel_ticket_type',
+        'mel_ticket',
+        $fields[$name]
+      );
+      $installed[] = $name;
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('mel_ticket')->warning(
+        'Could not install field @field on mel_ticket_type: @message',
+        ['@field' => $name, '@message' => $e->getMessage()]
+      );
+    }
+  }
+  return $installed === []
+    ? 'No new mel_ticket_type fields installed (may already exist).'
+    : 'Installed mel_ticket_type fields: ' . implode(', ', $installed);
+}
+
+/**
+ * Installs tier waitlist entry entity storage.
+ */
+function mel_ticket_update_9005(): string {
+  $table = 'mel_ticket_waitlist_entry';
+  if (\Drupal::database()->schema()->tableExists($table)) {
+    return 'mel_ticket_waitlist_entry table already exists.';
+  }
+  $definition = \Drupal::entityTypeManager()->getDefinition('mel_ticket_waitlist_entry', FALSE);
+  if (!$definition) {
+    return 'mel_ticket_waitlist_entry entity type not found; rebuild caches and re-run updates.';
+  }
+  \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  return 'Installed mel_ticket_waitlist_entry entity type.';
+}
+
+/**
+ * Ensures waitlist table exists (retry after entity discovery / cache).
+ */
+function mel_ticket_update_9006(): string {
+  $table = 'mel_ticket_waitlist_entry';
+  if (\Drupal::database()->schema()->tableExists($table)) {
+    return 'mel_ticket_waitlist_entry table already exists.';
+  }
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  $definition = \Drupal::entityTypeManager()->getDefinition('mel_ticket_waitlist_entry', FALSE);
+  if (!$definition) {
+    return 'mel_ticket_waitlist_entry still not defined after cache clear; run drush cr then drush updb again.';
+  }
+  \Drupal::entityDefinitionUpdateManager()->installEntityType($definition);
+  return \Drupal::database()->schema()->tableExists($table)
+    ? 'Installed mel_ticket_waitlist_entry entity type (9006).'
+    : 'installEntityType ran but table is still missing; check logs and database permissions.';
+}
+
+/**
+ * Adds mail_hash to waitlist entries for privacy-safe email matching.
+ */
+function mel_ticket_update_9007(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_waitlist_entry', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_waitlist_entry entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketWaitlistEntry::baseFieldDefinitions($entity_type);
+  if (!isset($fields['mail_hash'])) {
+    return 'mail_hash field definition missing; skipped.';
+  }
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'mail_hash',
+      'mel_ticket_waitlist_entry',
+      'mel_ticket',
+      $fields['mail_hash']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->warning(
+      'mel_ticket_update_9007 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('mel_ticket_waitlist_entry');
+  if (!\Drupal::database()->schema()->tableExists($storage->getEntityType()->getBaseTable())) {
+    return 'Waitlist table missing; mail_hash not backfilled.';
+  }
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  if (!$ids) {
+    return 'Installed mail_hash on mel_ticket_waitlist_entry (no rows to backfill).';
+  }
+  $updated = 0;
+  foreach ($storage->loadMultiple($ids) as $entry) {
+    if (!$entry instanceof \Drupal\mel_ticket\Entity\TicketWaitlistEntry) {
+      continue;
+    }
+    if (!$entry->get('mail_hash')->isEmpty()) {
+      continue;
+    }
+    if ($entry->get('mail')->isEmpty()) {
+      continue;
+    }
+    $mail = trim((string) $entry->get('mail')->value);
+    if ($mail === '') {
+      continue;
+    }
+    $entry->set('mail_hash', hash('sha256', mb_strtolower($mail)));
+    $entry->save();
+    $updated++;
+  }
+
+  return sprintf('Installed mail_hash on mel_ticket_waitlist_entry; backfilled %d row(s).', $updated);
+}
+
+/**
+ * Adds optional buyer-facing short description on ticket types.
+ */
+function mel_ticket_update_9008(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_type', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_type entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketType::baseFieldDefinitions($entity_type);
+  if (!isset($fields['short_description'])) {
+    return 'short_description field definition missing; skipped.';
+  }
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'short_description',
+      'mel_ticket_type',
+      'mel_ticket',
+      $fields['short_description']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->warning(
+      'mel_ticket_update_9008 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+  return 'Installed mel_ticket_type.short_description for optional buyer-facing copy.';
+}
+
+/**
+ * Adds offer_mail_sent for idempotent tier waitlist offer emails.
+ */
+function mel_ticket_update_9009(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_ticket_waitlist_entry', FALSE);
+  if (!$entity_type) {
+    return 'mel_ticket_waitlist_entry entity type not found; rebuild caches and re-run updates.';
+  }
+  $fields = \Drupal\mel_ticket\Entity\TicketWaitlistEntry::baseFieldDefinitions($entity_type);
+  if (!isset($fields['offer_mail_sent'])) {
+    return 'offer_mail_sent field definition missing; skipped.';
+  }
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'offer_mail_sent',
+      'mel_ticket_waitlist_entry',
+      'mel_ticket',
+      $fields['offer_mail_sent']
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('mel_ticket')->warning(
+      'mel_ticket_update_9009 installFieldStorageDefinition: @message',
+      ['@message' => $e->getMessage()]
+    );
+  }
+  return 'Installed mel_ticket_waitlist_entry.offer_mail_sent for offer email idempotency.';
+}
+
+/**
+ * Deletes ticket_type_config paragraph entities so config import can remove the type.
+ *
+ * Run `drush updb` then `drush cim`. Clears event field_ticket_types (if still
+ * paragraph-based) then deletes all paragraph entities. Ticket data is discarded.
+ */
+function mel_ticket_update_9003(): string {
+  if (!\Drupal::entityTypeManager()->hasDefinition('paragraph')) {
+    return 'Paragraphs module not enabled; nothing to purge.';
+  }
+
+  $field = FieldConfig::loadByName('node', 'event', 'field_ticket_types');
+  $events_cleared = 0;
+  if ($field && $field->getType() === 'entity_reference_revisions') {
+    $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+    $query = $node_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->exists('field_ticket_types')
+      ->execute();
+    foreach ($node_storage->loadMultiple($query) as $node) {
+      $node->set('field_ticket_types', []);
+      $node->save();
+      $events_cleared++;
+    }
+  }
+
+  $para_storage = \Drupal::entityTypeManager()->getStorage('paragraph');
+  $ids = $para_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'ticket_type_config')
+    ->execute();
+  $para_count = 0;
+  if ($ids) {
+    $entities = $para_storage->loadMultiple($ids);
+    $para_storage->delete($entities);
+    $para_count = count($entities);
+  }
+
+  $total = $events_cleared + $para_count;
+  return $total > 0
+    ? sprintf('Purged %d ticket_type_config paragraph(s) and cleared %d event(s). Run `drush cim`.', $para_count, $events_cleared)
+    : 'No ticket_type_config paragraphs found. Run `drush cim`.';
+}

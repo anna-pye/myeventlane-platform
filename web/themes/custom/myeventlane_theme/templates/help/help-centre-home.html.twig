@@ -23,7 +23,7 @@
     {% if is_vendor_context %}
       <h1 class="mel-help-home__title">{{ 'Vendor help'|t }}</h1>
     {% else %}
-      <h1 class="mel-help-home__title">{{ 'How can we help today?'|t }}</h1>
+      <h1 class="mel-help-home__title">{{ 'What do you need help with today?'|t }}</h1>
     {% endif %}
 
     <form action="{{ help_search.action }}" method="get" class="mel-help-home__search" role="search">
@@ -39,6 +39,14 @@
       <button type="submit" class="mel-help-home__search-button">{{ 'Search'|t }}</button>
     </form>
   </header>
+
+  {% if is_vendor_context %}
+    <section class="mel-help-home__section mel-help-home__section--vendor-intro" aria-labelledby="mel-vendor-context-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-vendor-context-title">{{ 'Help for event organisers'|t }}</h2>
+      </div>
+    </section>
+  {% endif %}
 
   {% if help_assistant is defined and help_assistant %}
     <section class="mel-help-home__section" aria-labelledby="mel-help-assistant-title">

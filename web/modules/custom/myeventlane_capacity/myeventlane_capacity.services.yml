@@ -9,16 +9,3 @@ services:
   logger.channel.myeventlane_capacity:
     parent: logger.channel_base
     arguments: ['myeventlane_capacity']
-
-  myeventlane_capacity.commerce_enforcement_subscriber:
-    class: Drupal\myeventlane_capacity\EventSubscriber\CommerceCapacityEnforcementSubscriber
-    arguments:
-      - '@myeventlane_capacity.service'
-      - '@myeventlane_capacity.order_inspector'
-      - '@entity_type.manager'
-      - '@lock'
-      - '@request_stack'
-      - '@string_translation'
-      - '@logger.channel.myeventlane_capacity'
-    tags:
-      - { name: event_subscriber }

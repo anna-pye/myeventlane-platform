@@ -94,6 +94,25 @@
     }
   }
 
+  function updateWizardFrame(scope, eventData, selectedCard) {
+    const frame = scope.querySelector('[data-mel-wizard-frame]');
+    if (!frame) {
+      return;
+    }
+
+    let wizardUrl = '';
+    if (eventData && eventData.wizard_url) {
+      wizardUrl = String(eventData.wizard_url);
+    }
+    else if (selectedCard && selectedCard.dataset && selectedCard.dataset.wizardUrl) {
+      wizardUrl = String(selectedCard.dataset.wizardUrl);
+    }
+
+    if (wizardUrl !== '' && frame.getAttribute('src') !== wizardUrl) {
+      frame.setAttribute('src', wizardUrl);
+    }
+  }
+
   function applyTabEndpoints(scope, endpointMap) {
     const normalized = {
       overview: endpointMap && endpointMap.overviewSave ? endpointMap.overviewSave : '',
@@ -736,7 +755,7 @@
     updateChecklist(scope, eventData.checklist || {});
     updateActions(scope, eventData);
     updateCardFromEvent(selectedCard, eventData);
-
+    updateWizardFrame(scope, eventData, selectedCard);
     const ticketsInput = scope.querySelector('[data-mel-tickets-config]');
     const attendeesInput = scope.querySelector('[data-mel-attendees-config]');
     const promotionInput = scope.querySelector('[data-mel-promotion-config]');
@@ -863,6 +882,18 @@
   function setupTabs(scope) {
     const tabs = scope.querySelectorAll('[data-studio-tab]');
     const panels = scope.querySelectorAll('[data-studio-panel]');
+    const queryTab = new URLSearchParams(window.location.search).get('tab') || '';
+    const requestedTab = String(scope.dataset.melActiveTab || queryTab).trim();
+    if (requestedTab !== '') {
+      tabs.forEach((tab) => {
+        const isActive = tab.dataset.studioTab === requestedTab;
+        tab.classList.toggle('active', isActive);
+      });
+      panels.forEach((panel) => {
+        const isActive = panel.dataset.studioPanel === requestedTab;
+        panel.classList.toggle('active', isActive);
+      });
+    }
 
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -951,6 +982,11 @@
         const cards = scope.querySelectorAll('[data-event-card], [data-mel-studio-card]');
         cards.forEach((card) => {
           card.addEventListener('click', () => {
+            const studioLink = String(card.dataset.studioLink || '').trim();
+            if (studioLink !== '') {
+              window.location.assign(studioLink);
+              return;
+            }
             fetchEventData(scope, card);
           });
         });
@@ -989,6 +1025,7 @@
 
         const initialId = scope.dataset.melSelectedEventId || '';
         const initialCard = Array.from(cards).find((card) => (card.dataset.eventId || '') === initialId);
+        updateWizardFrame(scope, null, initialCard || cards[0] || null);
         applyTabEndpoints(scope, collectCardEndpoints(initialCard || cards[0] || null));
         if (initialCard) {
           fetchEventData(scope, initialCard);

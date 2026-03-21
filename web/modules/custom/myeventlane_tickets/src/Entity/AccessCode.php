@@ -149,6 +149,31 @@ final class AccessCode extends ContentEntityBase implements EntityChangedInterfa
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+    // Optional: restrict code to specific mel_ticket_type rows (per tier).
+    $fields['allowed_ticket_types'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Allowed ticket tiers'))
+      ->setDescription(new TranslatableMarkup('If set, only these ticket types are unlocked. If empty, allowed ticket products (or all event tiers) apply.'))
+      ->setRequired(FALSE)
+      ->setCardinality(-1)
+      ->setSetting('target_type', 'mel_ticket_type')
+      ->setSetting('handler', 'default')
+      ->setDisplayOptions('form', [
+        'type' => 'entity_reference_autocomplete_tags',
+        'weight' => 6,
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+      ])
+      ->setDisplayOptions('view', [
+        'label' => 'inline',
+        'type' => 'entity_reference_label',
+        'weight' => 6,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
     // Usage limit.
     $fields['usage_limit'] = BaseFieldDefinition::create('integer')
       ->setLabel(new TranslatableMarkup('Usage Limit'))

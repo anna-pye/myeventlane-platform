@@ -1,3 +1,12 @@
+myeventlane_help_centre.help_action:
+  path: '/api/help-action/{action}'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpActionController::run'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    action: '[a-z0-9_]+'
+  methods: [POST]
+
 myeventlane_help_centre.home:
   path: '/help'
   defaults:
@@ -86,7 +95,7 @@ myeventlane_help_centre.vendor_help:
     _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorHelp'
     _title: 'Vendor help'
   requirements:
-    _permission: 'view vendor help centre'
+    _permission: 'access content'
 
 myeventlane_help_centre.vendor_topic:
   path: '/vendor/help/topic/{category}'

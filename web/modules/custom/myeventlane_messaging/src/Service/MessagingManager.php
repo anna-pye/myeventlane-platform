@@ -50,6 +50,7 @@ final class MessagingManager {
     'refund_failed_buyer',
     'refund_failed_vendor',
     'refund_failed_admin',
+    'ticket_tier_waitlist_offer',
   ];
 
   /**

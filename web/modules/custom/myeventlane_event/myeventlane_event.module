@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -28,9 +29,10 @@ function myeventlane_event_paragraph_access(ParagraphInterface $entity, string $
   }
 
   $event_paragraph_types = [
-    'ticket_type_config',
     'attendee_extra_field',
     'event_highlight',
+    // MIGRATION_ONLY: ticket_type_config removed from active config; keep for legacy DB rows.
+    'ticket_type_config',
   ];
   if (!in_array($entity->bundle(), $event_paragraph_types, TRUE)) {
     return AccessResult::neutral();
@@ -441,6 +443,20 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
   $route_name = (string) \Drupal::routeMatch()->getRouteName();
   $event = $form_state->getFormObject()->getEntity();
   $event_id = $event instanceof NodeInterface ? (int) $event->id() : 0;
+
+  if (isset($form['field_ticket_types'])) {
+    $form['field_ticket_types']['#access'] = FALSE;
+    if ($event_id > 0 && \Drupal::currentUser()->hasPermission('access vendor console')) {
+      $form['mel_manage_tickets_notice'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . t('Ticket types are managed under <a href=":url">Vendor → Event tickets</a> (mel_ticket_type).', [
+          ':url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString(),
+        ]) . '</p>',
+        '#weight' => -99,
+      ];
+    }
+  }
+
   $is_admin_advanced_editor = \Drupal::currentUser()->hasPermission('administer nodes');
 
   // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
@@ -586,7 +602,8 @@ function myeventlane_event_preprocess_field(array &$variables): void {
 /**
  * Implements hook_entity_load().
  *
- * Fixes corrupted datetime field values in ticket type paragraphs.
+ * MIGRATION_ONLY: Fixes corrupted datetime field values in ticket_type_config
+ * paragraphs. Paragraph ticketing removed; keep for legacy DB rows until purged.
  * This prevents the error: "DateTime::createFromFormat(): Argument #2 ($datetime)
  * must be of type string, array given".
  */
@@ -732,6 +749,7 @@ function myeventlane_event_entity_presave(EntityInterface $entity): void {
     return;
   }
 
+  // MIGRATION_ONLY: ticket_type_config paragraph ticketing removed.
   if ($entity->getEntityTypeId() !== 'paragraph' || $entity->bundle() !== 'ticket_type_config') {
     return;
   }
@@ -830,6 +848,54 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   if ($variables['mel_tickets_from'] === NULL && $node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
     if ($node->get('field_event_type')->value === 'rsvp') {
       $variables['mel_tickets_from'] = t('Free');
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * Syncs Commerce variations when mel_ticket_type is created (e.g. from core form).
+ */
+function myeventlane_event_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'mel_ticket_type') {
+    return;
+  }
+  _myeventlane_event_sync_events_for_ticket_type((int) $entity->id());
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Syncs Commerce variations when mel_ticket_type is updated (e.g. from edit form).
+ */
+function myeventlane_event_entity_update(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'mel_ticket_type') {
+    return;
+  }
+  _myeventlane_event_sync_events_for_ticket_type((int) $entity->id());
+}
+
+/**
+ * Syncs ticket variations for all events that reference this ticket type.
+ *
+ * @internal
+ */
+function _myeventlane_event_sync_events_for_ticket_type(int $ticketId): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $node_storage = $entity_type_manager->getStorage('node');
+  $query = $node_storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'event')
+    ->condition('field_ticket_types', $ticketId)
+    ->execute();
+  if (!$query) {
+    return;
+  }
+  $ticket_type_manager = \Drupal::service('myeventlane_event.ticket_type_manager');
+  foreach ($node_storage->loadMultiple($query) as $event) {
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      $ticket_type_manager->syncTicketTypesToVariations($event);
     }
   }
 }

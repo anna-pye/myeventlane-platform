@@ -41,25 +41,10 @@ final class VendorEventTicketsController extends VendorConsoleBaseController {
     $sales = $this->ticketSalesService->getSalesSummary($event);
     $tickets = $this->ticketSalesService->getTicketBreakdown($event);
 
-    // Get edit URL for product.
-    $editProductUrl = NULL;
-    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
-      $product = $event->get('field_product_target')->entity;
-      if ($product) {
-        $editProductUrl = '/admin/commerce/products/' . $product->id() . '/edit';
-      }
-    }
-
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
       'title' => $event->label() . ' — Tickets',
       'tabs' => $tabs,
-      'header_actions' => $editProductUrl ? [
-        [
-          'label' => 'Manage Tickets',
-          'url' => $editProductUrl,
-          'class' => 'mel-btn--secondary',
-        ],
-      ] : [],
+      'header_actions' => [],
       'body' => [
         '#theme' => 'myeventlane_vendor_event_tickets',
         '#event' => $event,

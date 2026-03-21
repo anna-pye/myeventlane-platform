@@ -138,7 +138,7 @@ final class EventSuggestionService {
         'critical',
         self::P_CRITICAL,
         (string) $this->t('You’ve chosen paid tickets but haven’t set them up yet. Add at least one ticket type so people can purchase.'),
-        $this->helpCta('ticket_types'),
+        $this->modalCreateTicketAction((string) $this->t('Create ticket')),
       );
     }
 
@@ -150,7 +150,7 @@ final class EventSuggestionService {
         'critical',
         self::P_CRITICAL,
         (string) $this->t('You’ve chosen paid tickets but haven’t set them up yet. Add at least one ticket type so people can purchase.'),
-        $this->helpCta('ticket_types'),
+        $this->modalCreateTicketAction((string) $this->t('Create ticket')),
       );
     }
 
@@ -162,7 +162,7 @@ final class EventSuggestionService {
         'critical',
         self::P_CRITICAL,
         (string) $this->t('Your tickets don’t have a quantity limit. This can lead to overselling if demand is high.'),
-        $this->helpCta('ticket_types'),
+        $this->wizardTicketsAction($event, (string) $this->t('Set limits')),
       );
     }
 
@@ -179,7 +179,7 @@ final class EventSuggestionService {
         'critical',
         self::P_CRITICAL,
         (string) $this->t('Your total ticket numbers are higher than your venue capacity. This could cause issues on the day.'),
-        $this->helpCta('ticket_types'),
+        $this->wizardTicketsAction($event, (string) $this->t('Review tickets')),
       );
     }
 
@@ -191,7 +191,7 @@ final class EventSuggestionService {
         'revenue',
         self::P_REVENUE,
         (string) $this->t('Events often perform better with a few ticket types, like early bird or concession options.'),
-        $this->helpCta('ticket_types'),
+        $event ? $this->wizardTicketsAction($event, (string) $this->t('Add ticket')) : $this->helpActionLink('ticket_types', (string) $this->t('Learn more')),
       );
     }
 
@@ -203,7 +203,7 @@ final class EventSuggestionService {
         'critical',
         self::P_CRITICAL,
         (string) $this->t('Your event has no RSVP limit. Adding one helps you manage numbers and avoid overcrowding.'),
-        $this->helpCta('rsvp_vs_paid'),
+        $event ? $this->wizardWhenWhereAction($event, (string) $this->t('Set limit')) : $this->helpActionLink('rsvp_vs_paid', (string) $this->t('Learn more')),
       );
     }
 
@@ -215,7 +215,7 @@ final class EventSuggestionService {
         'revenue',
         self::P_REVENUE,
         (string) $this->t('This looks like a free event. Using RSVP instead can make things simpler for your attendees.'),
-        $this->helpCta('rsvp_vs_paid'),
+        $this->helpActionLink('rsvp_vs_paid', (string) $this->t('Learn more')),
       );
     }
 
@@ -230,7 +230,7 @@ final class EventSuggestionService {
         'revenue',
         self::P_REVENUE,
         (string) $this->t('There’s a big gap between your ticket prices. Keeping pricing clear and balanced can improve conversions.'),
-        $this->helpCta('ticket_types'),
+        $event ? $this->wizardTicketsAction($event, (string) $this->t('Review pricing')) : $this->helpActionLink('ticket_types', (string) $this->t('Learn more')),
       );
     }
 
@@ -243,7 +243,7 @@ final class EventSuggestionService {
         'tips',
         self::P_TIPS,
         (string) $this->t('Your description is quite short. A bit more detail helps people understand what to expect.'),
-        $this->helpCta('event_create'),
+        $event ? $this->wizardDetailsAction($event, (string) $this->t('Improve this')) : $this->helpActionLink('event_create', (string) $this->t('Learn more')),
       );
     }
 
@@ -255,7 +255,7 @@ final class EventSuggestionService {
         'revenue',
         self::P_REVENUE,
         (string) $this->t('Events with images tend to get more attention and bookings.'),
-        $this->helpCta('event_create'),
+        $this->wizardBasicsAction($event, (string) $this->t('Add image')),
       );
     }
 
@@ -267,7 +267,7 @@ final class EventSuggestionService {
         'tips',
         self::P_TIPS,
         (string) $this->t('Adding a category helps people find your event when browsing.'),
-        $this->helpCta('event_create'),
+        $this->wizardBasicsAction($event, (string) $this->t('Choose category')),
       );
     }
 
@@ -279,20 +279,20 @@ final class EventSuggestionService {
         'tips',
         self::P_TIPS,
         (string) $this->t('Sharing accessibility information helps more people feel comfortable attending your event.'),
-        $this->helpCta('event_create'),
+        $this->wizardDetailsAction($event, (string) $this->t('Add details')),
       );
     }
 
     // 13. Boost (paid/both, not currently boosted).
     if ($hasPaidLeg && $event && !$this->isEventBoosted($event)) {
-      $cta = $this->boostWizardCta($event);
+      $action = $this->boostWizardAction($event);
       $out[] = $this->row(
         'boost_visibility',
         'success',
         'revenue',
         self::P_REVENUE,
         (string) $this->t('Boosting your event can help it reach more people and stand out in listings.'),
-        $cta,
+        $action,
       );
     }
 
@@ -300,28 +300,41 @@ final class EventSuggestionService {
     $rsvpConfig = $this->configFactory->get('myeventlane_rsvp.settings');
     $confirmationsOn = (bool) ($rsvpConfig->get('send_confirmation') ?? TRUE);
     if ($hasRsvpLeg && !$confirmationsOn) {
+      $confirmAction = $this->currentUser->hasPermission('administer myeventlane rsvp')
+        ? [
+          'type' => 'auto_fix',
+          'label' => (string) $this->t('Turn on now'),
+          'callback' => 'enable_confirmations',
+        ]
+        : $this->helpActionLink('rsvp_after_submit', (string) $this->t('Learn more'));
       $out[] = $this->row(
         'calendar_confirmations_off',
         'warning',
         'tips',
         self::P_TIPS,
         (string) $this->t('RSVP confirmations are switched off site-wide right now. When they’re on, attendees get details they can add to their calendar.'),
-        $this->helpCta('rsvp_after_submit'),
+        $confirmAction,
       );
     }
     elseif ($hasRsvpLeg && $event && $confirmationsOn && $event->isPublished()) {
-      $ics = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()], ['absolute' => FALSE])->toString();
-      $out[] = $this->row(
-        'calendar_ics_path',
-        'info',
-        'tips',
-        self::P_TIPS,
-        (string) $this->t('Let attendees add your event to their calendar so they don’t forget.'),
-        [
-          'label' => (string) $this->t('Learn more'),
-          'url' => $ics,
-        ],
-      );
+      try {
+        $ics = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()], ['absolute' => FALSE])->toString();
+        $out[] = $this->row(
+          'calendar_ics_path',
+          'info',
+          'tips',
+          self::P_TIPS,
+          (string) $this->t('Let attendees add your event to their calendar so they don’t forget.'),
+          [
+            'type' => 'link',
+            'label' => (string) $this->t('Get calendar link'),
+            'url' => $ics,
+          ],
+        );
+      }
+      catch (\Throwable $e) {
+        $this->logger->notice('ICS suggestion URL failed: @m', ['@m' => $e->getMessage()]);
+      }
     }
 
     // Analytics-driven (attendance vs capacity) when service present.
@@ -341,7 +354,7 @@ final class EventSuggestionService {
             (string) $this->t('You’re nearly at capacity (@remaining spots left). You might like to pause sales until you’ve double-checked your limits.', [
               '@remaining' => (string) $remaining,
             ]),
-            $this->helpCta('managing_dashboard'),
+            $this->helpActionLink('managing_dashboard', (string) $this->t('Learn more')),
           );
         }
       }
@@ -509,11 +522,21 @@ final class EventSuggestionService {
       'title' => (string) ($row['title'] ?? $this->titleForSuggestionId($id)),
       'message' => (string) ($row['message'] ?? ''),
     ];
-    if (!empty($row['cta']) && is_array($row['cta'])) {
+    if (!empty($row['action']) && is_array($row['action'])) {
+      $normalized = $this->normalizeActionForApi($row['action']);
+      if ($normalized !== NULL) {
+        $out['action'] = $normalized;
+      }
+    }
+    elseif (!empty($row['cta']) && is_array($row['cta'])) {
       $label = trim((string) ($row['cta']['label'] ?? ''));
       $url = trim((string) ($row['cta']['url'] ?? ''));
       if ($label !== '' && $url !== '') {
-        $out['cta'] = ['label' => $label, 'url' => $url];
+        $out['action'] = [
+          'type' => 'link',
+          'label' => $label,
+          'url' => $url,
+        ];
       }
     }
     return $out;
@@ -630,9 +653,9 @@ final class EventSuggestionService {
   }
 
   /**
-   * @return array{id: string, type: string, group: string, priority: int, message: string, title?: string, cta?: array<string, string>}
+   * @return array{id: string, type: string, group: string, priority: int, message: string, title?: string, action?: array<string, string>}
    */
-  private function row(string $id, string $type, string $group, int $priority, string $message, ?array $cta): array {
+  private function row(string $id, string $type, string $group, int $priority, string $message, ?array $action): array {
     $row = [
       'id' => $id,
       'type' => $type,
@@ -641,21 +664,129 @@ final class EventSuggestionService {
       'message' => $message,
       'title' => $this->titleForSuggestionId($id),
     ];
-    if ($cta !== NULL) {
-      $row['cta'] = $cta;
+    if ($action !== NULL) {
+      $normalized = $this->normalizeActionForApi($action);
+      if ($normalized !== NULL) {
+        $row['action'] = $normalized;
+      }
     }
     return $row;
   }
 
-  private function helpCta(string $key): ?array {
+  /**
+   * @param array<string, mixed> $action
+   *
+   * @return array<string, string>|null
+   */
+  private function normalizeActionForApi(array $action): ?array {
+    $type = (string) ($action['type'] ?? '');
+    if (!in_array($type, ['link', 'modal', 'auto_fix'], TRUE)) {
+      return NULL;
+    }
+    $label = trim((string) ($action['label'] ?? ''));
+    if ($label === '') {
+      return NULL;
+    }
+    if ($type === 'link') {
+      $url = trim((string) ($action['url'] ?? ''));
+      if ($url === '') {
+        return NULL;
+      }
+      return ['type' => 'link', 'label' => $label, 'url' => $url];
+    }
+    if ($type === 'modal') {
+      $modal = trim((string) ($action['modal'] ?? ''));
+      if ($modal === '' || !preg_match('/^[a-z0-9_]+$/', $modal)) {
+        return NULL;
+      }
+      return ['type' => 'modal', 'label' => $label, 'modal' => $modal];
+    }
+    $callback = trim((string) ($action['callback'] ?? ''));
+    $allowed = ['enable_confirmations', 'add_default_ticket'];
+    if (!in_array($callback, $allowed, TRUE)) {
+      return NULL;
+    }
+    return ['type' => 'auto_fix', 'label' => $label, 'callback' => $callback];
+  }
+
+  private function helpActionLink(string $key, string $label): ?array {
     $url = $this->helpPath($key);
     if ($url === NULL) {
       return NULL;
     }
     return [
-      'label' => (string) $this->t('Learn more'),
+      'type' => 'link',
+      'label' => $label,
       'url' => $url,
     ];
+  }
+
+  private function modalCreateTicketAction(string $label): array {
+    return [
+      'type' => 'modal',
+      'label' => $label,
+      'modal' => 'create_ticket',
+    ];
+  }
+
+  private function wizardTicketsAction(NodeInterface $event, string $label): ?array {
+    try {
+      $url = Url::fromRoute('myeventlane_event.wizard.tickets', ['event' => $event->id()])->toString();
+      return [
+        'type' => 'link',
+        'label' => $label,
+        'url' => $url,
+      ];
+    }
+    catch (\Throwable $e) {
+      $this->logger->notice('wizardTicketsAction: @m', ['@m' => $e->getMessage()]);
+      return $this->helpActionLink('ticket_types', (string) $this->t('Learn more'));
+    }
+  }
+
+  private function wizardWhenWhereAction(NodeInterface $event, string $label): ?array {
+    try {
+      $url = Url::fromRoute('myeventlane_event.wizard.when_where', ['event' => $event->id()])->toString();
+      return [
+        'type' => 'link',
+        'label' => $label,
+        'url' => $url,
+      ];
+    }
+    catch (\Throwable $e) {
+      $this->logger->notice('wizardWhenWhereAction: @m', ['@m' => $e->getMessage()]);
+      return $this->helpActionLink('rsvp_vs_paid', (string) $this->t('Learn more'));
+    }
+  }
+
+  private function wizardDetailsAction(NodeInterface $event, string $label): ?array {
+    try {
+      $url = Url::fromRoute('myeventlane_event.wizard.details', ['event' => $event->id()])->toString();
+      return [
+        'type' => 'link',
+        'label' => $label,
+        'url' => $url,
+      ];
+    }
+    catch (\Throwable $e) {
+      $this->logger->notice('wizardDetailsAction: @m', ['@m' => $e->getMessage()]);
+      return $this->helpActionLink('event_create', (string) $this->t('Learn more'));
+    }
+  }
+
+  private function wizardBasicsAction(NodeInterface $event, string $label): ?array {
+    try {
+      $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event->id()])->toString();
+      return [
+        'type' => 'link',
+        'label' => $label,
+        'url' => $url,
+      ];
+    }
+    catch (\Throwable $e) {
+      $this->logger->notice('wizardBasicsAction: @m', ['@m' => $e->getMessage()]);
+      return $this->helpActionLink('event_create', (string) $this->t('Learn more'));
+    }
   }
 
   /**
@@ -818,15 +949,17 @@ final class EventSuggestionService {
     return FALSE;
   }
 
-  private function boostWizardCta(NodeInterface $event): ?array {
+  private function boostWizardAction(NodeInterface $event): ?array {
     try {
       $url = Url::fromRoute('myeventlane_boost.vendor_boost_wizard', ['event' => $event->id()])->toString();
       return [
-        'label' => (string) $this->t('Learn more'),
+        'type' => 'link',
+        'label' => (string) $this->t('Boost event'),
         'url' => $url,
       ];
     }
-    catch (\Throwable) {
+    catch (\Throwable $e) {
+      $this->logger->notice('boostWizardAction: @m', ['@m' => $e->getMessage()]);
       return NULL;
     }
   }
@@ -956,15 +1089,16 @@ final class EventSuggestionService {
     if (!in_array($type, ['info', 'warning', 'success'], TRUE) || $message === '') {
       return $current;
     }
-    $cta = NULL;
+    $action = NULL;
     if (!empty($articles[0]['url'])) {
-      $cta = [
+      $action = [
+        'type' => 'link',
         'label' => (string) $this->t('Learn more'),
         'url' => (string) $articles[0]['url'],
       ];
     }
 
-    return [$this->row('ai_suggestion', $type, 'tips', self::P_TIPS, $message, $cta)];
+    return [$this->row('ai_suggestion', $type, 'tips', self::P_TIPS, $message, $action)];
   }
 
   /**

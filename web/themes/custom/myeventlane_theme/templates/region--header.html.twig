@@ -27,6 +27,18 @@
             {% endif %}
           </ul>
         </li>
+        <li class="mel-nav-dropdown">
+          <button class="mel-nav-link mel-nav-dropdown-toggle" aria-expanded="false" aria-haspopup="true">
+            {{ 'Support'|t }}
+            <svg class="mel-dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="mel-nav-dropdown-menu">
+            <li><a href="/support" class="mel-nav-dropdown-link">{{ 'Contact Support'|t }}</a></li>
+            <li><a href="/help" class="mel-nav-dropdown-link">{{ 'Help Centre'|t }}</a></li>
+          </ul>
+        </li>
       </ul>
     </nav>
 
@@ -68,6 +80,9 @@
         {% else %}
           <li><a href="/vendor/onboard">{{ 'Become a Vendor'|t }}</a></li>
         {% endif %}
+        <li class="mel-mobile-section-header">{{ 'Support'|t }}</li>
+        <li><a href="/support">{{ 'Contact Support'|t }}</a></li>
+        <li><a href="/help">{{ 'Help Centre'|t }}</a></li>
         <li class="mel-mobile-divider"></li>
         {% if logged_in %}
           {% if is_vendor %}

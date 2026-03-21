@@ -680,6 +680,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'event' => NULL,
         'overview' => [],
         'charts' => [],
+        'ticket_tier_rollup' => [],
       ],
       'template' => 'event/analytics',
     ],
@@ -816,6 +817,7 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.audience' => 'audience',
     'myeventlane_vendor.console.settings' => 'settings',
     'myeventlane_vendor.console.messaging_brand' => 'settings',
+    'myeventlane_help_centre.vendor_help' => 'help',
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
@@ -893,7 +895,8 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       'key' => 'help',
       'label' => t('Help'),
       'icon' => 'help',
-      'route' => NULL,
+      'route' => 'myeventlane_help_centre.vendor_help',
+      'path_fallback' => '/vendor/help',
     ],
   ];
 
@@ -903,6 +906,9 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
     $is_disabled = FALSE;
     if (!empty($item['route'])) {
       $url = _myeventlane_vendor_theme_safe_route_url((string) $item['route']);
+      if ($url === NULL && !empty($item['path_fallback'])) {
+        $url = (string) $item['path_fallback'];
+      }
       $is_disabled = $url === NULL;
     }
     else {

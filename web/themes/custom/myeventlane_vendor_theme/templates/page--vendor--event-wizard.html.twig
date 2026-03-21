@@ -12,6 +12,36 @@
 
 {% block content %}
   <div class="page--vendor-event-wizard">
+    {% if page.wizard_selected_event %}
+      <section class="mel-wizard-event-context mel-wizard-event-context--selected">
+        <h3>{{ 'Selected event'|t }}</h3>
+        <a class="mel-event-card" href="{{ page.wizard_selected_event.url|default('#') }}">
+          <div class="mel-event-card__body">
+            <div class="mel-event-title">{{ page.wizard_selected_event.title|default('Untitled event'|t) }}</div>
+            <div class="mel-event-meta">{{ page.wizard_selected_event.date|default('Date TBD'|t) }}</div>
+          </div>
+          <span class="mel-event-status">{{ page.wizard_selected_event.status|default('Draft'|t) }}</span>
+        </a>
+      </section>
+    {% endif %}
+
     {{ page.content }}
+
+    {% if page.wizard_other_events is not empty %}
+      <section class="mel-wizard-event-context mel-wizard-event-context--others">
+        <h3>{{ 'Other events'|t }}</h3>
+        <div class="mel-event-list">
+          {% for event in page.wizard_other_events %}
+            <a class="mel-event-card" href="{{ event.url|default('#') }}">
+              <div class="mel-event-card__body">
+                <div class="mel-event-title">{{ event.title|default('Untitled event'|t) }}</div>
+                <div class="mel-event-meta">{{ event.date|default('Date TBD'|t) }}</div>
+              </div>
+              <span class="mel-event-status">{{ event.status|default('Draft'|t) }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
   </div>
 {% endblock %}

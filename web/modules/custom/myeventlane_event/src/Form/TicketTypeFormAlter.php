@@ -8,6 +8,10 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Helper class for altering ticket type paragraph forms.
+ *
+ * MIGRATION_ONLY: ticket_type_config paragraph ticketing removed from config.
+ * This alter targets field_ticket_label_mode, field_ticket_sales_start, etc.
+ * Kept for legacy paragraph data; harmless no-op when those fields are absent.
  */
 final class TicketTypeFormAlter {
 

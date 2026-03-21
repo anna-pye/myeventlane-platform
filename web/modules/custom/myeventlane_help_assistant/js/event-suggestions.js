@@ -2,7 +2,7 @@
  * @file
  * MEL Event Wizard: quality score + grouped suggestions (debounced, non-blocking).
  */
-(function (Drupal, once) {
+(function (Drupal, once, drupalSettings) {
   'use strict';
 
   const DEBOUNCE_MS = 400;
@@ -152,6 +152,98 @@
     return div.innerHTML;
   }
 
+  /**
+   * @param {object} s
+   * @param {string|number|null} eventId
+   * @param {string} helpCsrf
+   * @param {string} helpBase
+   * @returns {string}
+   */
+  function renderSuggestionAction(s, eventId, helpCsrf, helpBase) {
+    const a = s.action;
+    if (a && a.type && a.label) {
+      const label = escapeHtml(String(a.label));
+      if (a.type === 'link' && a.url) {
+        return `<a class="mel-ai-suggestion-card__cta mel-btn mel-btn--small" href="${escapeHtml(String(a.url))}">${label}</a>`;
+      }
+      if (a.type === 'modal' && a.modal) {
+        return `<button type="button" class="mel-ai-suggestion-card__cta mel-btn mel-btn--small" data-modal="${escapeHtml(String(a.modal))}">${label}</button>`;
+      }
+      if (a.type === 'auto_fix' && a.callback) {
+        const hasCtx = helpCsrf && eventId;
+        const disabled = hasCtx ? '' : ' disabled';
+        return `<button type="button" class="mel-ai-suggestion-card__cta mel-btn mel-btn--small mel-auto-fix"${disabled} data-action="${escapeHtml(String(a.callback))}">${label}</button>`;
+      }
+    }
+    if (s.cta && s.cta.url && s.cta.label) {
+      return `<a class="mel-ai-suggestion-card__cta mel-btn mel-btn--small" href="${escapeHtml(String(s.cta.url))}">${escapeHtml(String(s.cta.label))}</a>`;
+    }
+    return '';
+  }
+
+  /**
+   * @param {HTMLElement} bodyEl
+   * @param {string|number|null} eventId
+   * @param {string} helpCsrf
+   * @param {string} helpBase
+   */
+  function bindGuidedActions(bodyEl, eventId, helpCsrf, helpBase) {
+    bodyEl.querySelectorAll('[data-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = btn.getAttribute('data-modal');
+        if (!name) {
+          return;
+        }
+        document.dispatchEvent(
+          new CustomEvent('mel-help-open-modal', { detail: { modal: name } }),
+        );
+      });
+    });
+
+    const eid = eventId ? Number(eventId) : 0;
+    if (!helpCsrf || !eid) {
+      return;
+    }
+
+    bodyEl.querySelectorAll('.mel-auto-fix').forEach((btn) => {
+      if (btn.hasAttribute('disabled')) {
+        return;
+      }
+      btn.addEventListener('click', async () => {
+        const action = btn.getAttribute('data-action');
+        if (!action) {
+          return;
+        }
+        const applying = Drupal.t('Applying…');
+        const done = Drupal.t('Done ✓');
+        const retry = Drupal.t('Try again');
+        btn.textContent = applying;
+        btn.setAttribute('disabled', 'disabled');
+        try {
+          const res = await fetch(helpBase + encodeURIComponent(action), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'X-CSRF-Token': helpCsrf,
+            },
+            body: JSON.stringify({ event: eid }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (data.success) {
+            btn.textContent = done;
+          } else {
+            btn.textContent = retry;
+            btn.removeAttribute('disabled');
+          }
+        } catch (err) {
+          btn.textContent = retry;
+          btn.removeAttribute('disabled');
+        }
+      });
+    });
+  }
+
   const GROUP_HEADINGS = {
     critical: Drupal.t('Improve your setup'),
     revenue: Drupal.t('Increase ticket sales'),
@@ -193,8 +285,18 @@
    * @param {object} data
    * @param {Array} suggestionsAll
    * @param {string|number|null} eventId
+   * @param {string} helpActionCsrfToken
+   * @param {string} helpActionBaseUrl
    */
-  function renderPanelBody(root, bodyEl, data, suggestionsAll, eventId) {
+  function renderPanelBody(
+    root,
+    bodyEl,
+    data,
+    suggestionsAll,
+    eventId,
+    helpActionCsrfToken,
+    helpActionBaseUrl,
+  ) {
     const score = clampScore(data.score ?? 0);
     const label = escapeHtml(String(data.score_label ?? ''));
     const summary = escapeHtml(String(data.score_summary ?? ''));
@@ -250,10 +352,7 @@
         const type = ['warning', 'success', 'info'].includes(s.type) ? s.type : 'info';
         const title = escapeHtml(String(s.title ?? ''));
         const msg = escapeHtml(String(s.message ?? ''));
-        const cta =
-          s.cta && s.cta.url && s.cta.label
-            ? `<a class="mel-ai-suggestion-card__cta" href="${escapeHtml(s.cta.url)}">${escapeHtml(s.cta.label)}</a>`
-            : '';
+        const cta = renderSuggestionAction(s, eventId, helpActionCsrfToken, helpActionBaseUrl);
         const icon =
           type === 'warning' ? '!' : type === 'success' ? '✓' : '◆';
         html += `<article class="mel-ai-suggestion-card mel-ai-suggestion-card--${type}" data-suggestion-id="${escapeHtml(String(s.id))}">`;
@@ -296,9 +395,19 @@
         }
         const next = getDismissed(eventId).concat([sid]);
         setDismissed(eventId, next);
-        renderPanelBody(root, bodyEl, data, suggestionsAll, eventId);
+        renderPanelBody(
+          root,
+          bodyEl,
+          data,
+          suggestionsAll,
+          eventId,
+          helpActionCsrfToken,
+          helpActionBaseUrl,
+        );
       });
     });
+
+    bindGuidedActions(bodyEl, eventId, helpActionCsrfToken, helpActionBaseUrl);
   }
 
   /**
@@ -319,6 +428,8 @@
       const csrfToken = settings.csrfToken || '';
       const eventId = settings.eventId ?? null;
       const wizardStep = settings.wizardStep || '';
+      const helpActionCsrfToken = settings.helpActionCsrfToken || '';
+      const helpActionBaseUrl = settings.helpActionBaseUrl || '/api/help-action/';
 
       const bodyEl = root.querySelector('#mel-ai-suggestions-panel');
       const form = root.closest('form');
@@ -346,7 +457,15 @@
         lastData = payload;
         setPanelState(root, 'ready');
         bodyEl.removeAttribute('aria-busy');
-        renderPanelBody(root, bodyEl, payload, suggestionsSource, eventId);
+        renderPanelBody(
+          root,
+          bodyEl,
+          payload,
+          suggestionsSource,
+          eventId,
+          helpActionCsrfToken,
+          helpActionBaseUrl,
+        );
       };
 
       const requestUpdate = () => {
@@ -434,4 +553,4 @@
       attachBehavior(context);
     },
   };
-})(Drupal, once);
+})(Drupal, once, drupalSettings);

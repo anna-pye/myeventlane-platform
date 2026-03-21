@@ -1,0 +1,19 @@
+enabled: true
+subject: 'Your waitlist spot: {{ event_title }} — {{ tier_title }}'
+body_html: |
+  <p>Good news — tickets have opened up for <strong>{{ event_title }}</strong>.</p>
+  {% if event_start %}
+  <p><strong>When:</strong> {{ event_start }}</p>
+  {% endif %}
+  <p><strong>Ticket type:</strong> {{ tier_title }}</p>
+  <p><strong>Reserved for you:</strong> {{ reserved_quantity }}</p>
+  <p>This invitation expires on <strong>{{ expires_at }}</strong>. Complete your purchase before then using your personal link below.</p>
+  <p><a href="{{ claim_url }}" style="display:inline-block;padding:12px 16px;border-radius:999px;background:#6c5ce7;color:#ffffff;text-decoration:none;font-weight:600;">Complete purchase</a></p>
+  <p style="font-size:14px;color:#5c6370;">If the button does not work, copy and paste this URL into your browser:<br /><span style="word-break:break-all;">{{ claim_url }}</span></p>
+  <p style="font-size:13px;color:#7b8190;">Reminder emails for this offer are not sent automatically; if you miss the window, join the waitlist again from the event page.</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: ticket_tier_waitlist_offer

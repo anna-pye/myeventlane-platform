@@ -1,4 +1,0 @@
-services:
-  mel_ticket.ticket_type_clone:
-    class: Drupal\mel_ticket\Service\TicketTypeCloneService
-    arguments: ['@entity_type.manager']

@@ -4,3 +4,10 @@ help_feedback:
   dependencies:
     - core/drupal
     - core/once
+
+help_redirect:
+  js:
+    js/help-redirect.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings

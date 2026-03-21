@@ -161,6 +161,11 @@ function myeventlane_schema_update_9001(): string {
 
 /**
  * Creates ticket type fields for event-driven ticket management.
+ *
+ * HISTORICAL: This update created ticket_type_config paragraph ticketing.
+ * Active install now uses mel_ticket_type (entity_reference). New sites get
+ * field_ticket_types from config/sync (handler: mel_ticket_type). Do not remove
+ * this hook; sites upgrading from pre-v2 may still run it.
  */
 function myeventlane_schema_update_9002(): string {
   $entity_type_manager = \Drupal::entityTypeManager();

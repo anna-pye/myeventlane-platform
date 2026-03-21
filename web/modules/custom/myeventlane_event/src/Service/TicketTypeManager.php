@@ -67,6 +67,9 @@ final class TicketTypeManager {
       if (!$ticket instanceof TicketTypeInterface || $ticket->getTicketKind() !== 'paid') {
         continue;
       }
+      if (!$ticket->isPublished()) {
+        continue;
+      }
       $variation = $this->syncTicketTypeToVariation($ticket, $product, $event);
       if ($variation) {
         $activeVariationUuids[] = $variation->uuid();

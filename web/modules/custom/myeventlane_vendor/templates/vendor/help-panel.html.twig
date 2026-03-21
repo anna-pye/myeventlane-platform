@@ -1,0 +1,76 @@
+<div class="mel-help-card" data-mel-help-panel>
+
+  <div class="mel-help-global">
+    <h3>{{ 'Your account'|t }}</h3>
+
+    <div class="mel-global-metrics">
+      <div>
+        <strong>${{ data.global.revenue|default(0) }}</strong>
+        <span>{{ 'Revenue'|t }}</span>
+      </div>
+
+      <div>
+        <strong>{{ data.global.events_published|default(0) }}/{{ data.global.events_total|default(0) }}</strong>
+        <span>{{ 'Events live'|t }}</span>
+      </div>
+    </div>
+
+    <p class="mel-hint">
+      {{ data.global.conversion_hint|default('') }}
+    </p>
+  </div>
+
+  {% if data.event %}
+    <div class="mel-help-event">
+      <h3>{{ data.event.title }}</h3>
+
+      <div class="mel-score">
+        <span class="score" data-mel-help-score>{{ data.event.score|default(0) }}%</span>
+        <span class="status mel-status-{{ data.event.status|default('good')|clean_class }}" data-mel-help-status>{{ data.event.status|default('') }}</span>
+      </div>
+
+      <div class="mel-suggestions" data-mel-help-suggestions>
+        {% for item in data.event.suggestions|default([]) %}
+          <div class="mel-suggestion">
+            <h4>{{ item.title }}</h4>
+            <p>{{ item.message }}</p>
+            {% if item.action is defined and item.action %}
+              {% if item.action.type == 'link' %}
+                <a href="{{ item.action.url }}" class="mel-btn mel-btn--small">
+                  {{ item.action.label }}
+                </a>
+              {% elseif item.action.type == 'modal' %}
+                <button type="button" class="mel-btn mel-btn--small" data-modal="{{ item.action.modal }}">
+                  {{ item.action.label }}
+                </button>
+              {% elseif item.action.type == 'auto_fix' %}
+                <button type="button" class="mel-btn mel-btn--small mel-auto-fix" data-action="{{ item.action.callback }}">
+                  {{ item.action.label }}
+                </button>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="mel-suggestion">
+            <h4>{{ 'No suggestions right now'|t }}</h4>
+            <p>{{ 'You are in a good place. Keep refining your event details.'|t }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if show_boost %}
+    <div class="mel-boost-tip">
+      <p>{{ 'Your event could use a visibility boost.'|t }}</p>
+      <a href="/vendor/boost" class="mel-btn">{{ 'Boost your event'|t }}</a>
+    </div>
+  {% endif %}
+
+  <div class="mel-help-ask">
+    <label for="mel-help-ask-input" class="visually-hidden">{{ 'Ask a question'|t }}</label>
+    <textarea id="mel-help-ask-input" placeholder="{{ 'Ask a question...'|t }}"></textarea>
+    <button class="mel-btn" type="button">{{ 'Ask'|t }}</button>
+  </div>
+
+</div>

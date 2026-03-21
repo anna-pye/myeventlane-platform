@@ -273,11 +273,27 @@ myeventlane_vendor.console.studio:
   path: '/vendor/studio'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::studio'
-    _title: 'Vendor Studio'
+    _title: 'Event Editor'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
   options:
     _theme: myeventlane_vendor_theme
+
+myeventlane_vendor.console.event_editor:
+  path: '/vendor/events/{event}/editor'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::eventEditor'
+    _title: 'Event Editor'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    _theme: myeventlane_vendor_theme
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
 
 myeventlane_vendor.studio_event_schema:
   path: '/vendor/studio/schema/event'

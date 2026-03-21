@@ -15,4 +15,5 @@ event_suggestions:
     js/event-suggestions.js: {}
   dependencies:
     - core/drupal
+    - core/drupalSettings
     - core/once

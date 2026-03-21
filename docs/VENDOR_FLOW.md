@@ -12,17 +12,13 @@
 
 ### Ticket Types Management
 
-**Data Model:**
-- Ticket types stored as `ticket_type_config` paragraphs on event nodes
-- Field: `field_ticket_types` (entity_reference_revisions to paragraphs)
-- Each paragraph defines: name, price, capacity, fees, label mode
-- `TicketTypeManager` service syncs paragraphs to Commerce Product Variations
-- Variations linked via UUID stored in paragraph field `field_ticket_variation_uuid`
+**Data Model (v2):**
+- Canonical tiers are `mel_ticket_type` entities; events reference them via `field_ticket_types` (entity reference), ordered on the node.
+- Paid tiers project to Commerce variations through `TicketTierLifecycleService` + `TicketTypeManager` (event `field_product_target` holds the ticket product).
+- Legacy `ticket_type_config` paragraph storage is not the active model; see `docs/TICKETING_V2_MIGRATION.md` for migration notes.
 
 **Current Editing:**
-- Ticket types edited inline within the event node edit form
-- Uses Paragraphs inline entity form widget
-- Conditional visibility based on event type (paid/both)
+- Vendor workspace: `/vendor/events/{event}/tickets` and wizard step `/vendor/events/{event}/build/tickets` both use `EventTicketsBuilder` + thin root forms (`EventTicketsWorkspaceForm`, `EventWizardTicketsForm`).
 
 ### Checkout Questions Management
 

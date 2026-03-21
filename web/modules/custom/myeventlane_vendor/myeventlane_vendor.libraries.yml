@@ -91,3 +91,23 @@ mel_studio_search:
   dependencies:
     - core/drupal
     - core/once
+
+vendor_help_panel:
+  js:
+    js/vendor-help-panel.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
+ticket_cards:
+  version: 1.4
+  js:
+    js/ticket-cards.js: {}
+  css:
+    theme:
+      css/ticket-cards.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.ajax
+    - core/once

@@ -20,6 +20,11 @@ services:
       - '@current_route_match'
       - '@entity_type.manager'
 
+  myeventlane_event.ticket_type_route_subscriber:
+    class: Drupal\myeventlane_event\Routing\TicketTypeRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_event.event_vendor_subscriber:
     class: Drupal\myeventlane_event\EventSubscriber\EventVendorSubscriber
     arguments:
@@ -49,6 +54,13 @@ services:
     class: Drupal\myeventlane_event\Service\TicketTypeManager
     arguments:
       - '@entity_type.manager'
+      - '@logger.factory'
+
+  myeventlane_event.ticket_tier_lifecycle:
+    class: Drupal\myeventlane_event\Service\TicketTierLifecycleService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_event.ticket_type_manager'
       - '@logger.factory'
 
   myeventlane_event.cta_resolver:

@@ -70,48 +70,58 @@ final class VendorStudioController extends VendorConsoleBaseController implement
   /**
    * Vendor Studio entrypoint at /vendor/studio.
    */
-  public function studio(Request $request): array {
-    $events = $this->buildEventCards();
-    $overview_form = [];
-    $request = \Drupal::request();
-
-    $event_id = $request->query->get('event');
-
-    $active_event = NULL;
-
-    if ($event_id && is_numeric($event_id)) {
-
-      $event = \Drupal\node\Entity\Node::load($event_id);
-
-      if ($event && $event->bundle() === 'event') {
-
-        $this->assertEventOwnership($event);
-
-        $active_event = [
-          'id' => $event->id(),
-          'title' => $event->label(),
-          'date' => $event->hasField('field_event_date')
-            ? ($event->get('field_event_date')->value ?? '')
-            : '',
-          'tickets_metric' => 0,
-          'rsvps_metric' => 0,
-          'revenue_metric' => 0,
-          'health_label' => 'Healthy',
-          'quick_actions' => [
-            'preview_url' => '/node/' . $event->id(),
-            'view_url' => '/node/' . $event->id(),
-          ],
-        ];
-
+  public function studio(Request $request): array|RedirectResponse {
+    $query_event_id = (int) $request->query->get('event', 0);
+    if ($query_event_id > 0) {
+      $event = $this->entityTypeManager->getStorage('node')->load($query_event_id);
+      if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+        try {
+          $this->assertEventOwnership($event);
+          $canonical_editor = $this->safeRouteUrl('myeventlane_vendor.console.event_editor', ['event' => (int) $event->id()]);
+          if ($canonical_editor !== NULL) {
+            return new RedirectResponse($canonical_editor);
+          }
+        }
+        catch (AccessDeniedHttpException) {
+          $this->logger->warning('Vendor Studio redirect denied for uid=@uid nid=@nid', [
+            '@uid' => (int) $this->currentUser->id(),
+            '@nid' => (int) $query_event_id,
+          ]);
+        }
       }
-
     }
+
+    return $this->buildStudioRenderArray(NULL);
+  }
+
+  /**
+   * Canonical Event Editor entrypoint for existing events.
+   */
+  public function eventEditor(NodeInterface $event): array {
+    $this->assertEventOwnership($event);
+
+    if ($event->bundle() !== 'event') {
+      throw new AccessDeniedHttpException('Only event nodes can be edited in the Event Editor.');
+    }
+
+    return $this->buildStudioRenderArray($event);
+  }
+
+  /**
+   * Builds the shared MEL Event Editor shell render array.
+   */
+  private function buildStudioRenderArray(?NodeInterface $active_event): array {
+    $active_event_id = $active_event instanceof NodeInterface ? (int) $active_event->id() : 0;
+    $events = $this->buildEventCards($active_event_id);
+    $overview_form = [];
+    $active_payload = $active_event instanceof NodeInterface ? $this->buildEventPayload($active_event) : NULL;
 
     return [
       '#theme' => 'studio',
       '#events' => $events,
-      '#active_event' => $active_event,
+      '#active_event' => $active_payload,
       '#overview_form' => $overview_form,
+      '#overview_save_token' => $this->csrfToken->get(self::OVERVIEW_SAVE_TOKEN_ID),
       '#sidebar' => [
         '#theme' => 'vendor_sidebar',
       ],
@@ -855,11 +865,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
    */
   public function submitReview(NodeInterface $event, Request $request): RedirectResponse {
     $event_id = (int) $event->id();
-    $redirect = Url::fromRoute('myeventlane_vendor.console.studio', [], [
-      'query' => [
-        'event' => $event_id,
-      ],
-    ])->toString();
+    $redirect = Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event_id])->toString();
 
     $token = (string) $request->request->get('token', '');
     if (!$this->csrfToken->validate($token, 'myeventlane_vendor_studio_submit_review')) {
@@ -991,10 +997,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'tickets_sold' => 0,
         'rsvp_count' => 0,
         'revenue' => '0',
-        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event_id])->toString(),
-        'studio_link' => Url::fromRoute('myeventlane_vendor.console.studio', [], [
-          'query' => ['event' => $event_id],
-        ])->toString(),
+        'edit_url' => Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event_id])->toString(),
+        'studio_link' => Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event_id])->toString(),
         'read_url' => $studio_endpoints['overview_read'],
         'save_url' => $studio_endpoints['overview_save'],
         'overview_read_url' => $studio_endpoints['overview_read'],
@@ -1006,6 +1010,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'publish_url' => $studio_endpoints['publish'],
         'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
         'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'wizard_url' => Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event_id])->toString(),
         'active' => $active_event_id > 0 && $active_event_id === $event_id,
       ];
     }
@@ -1038,6 +1043,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     return [
       'id' => $event_id,
       'title' => $event->label(),
+      'date' => $this->extractEventDateLabel($event),
       'field_event_summary' => $event->hasField('field_event_summary')
         ? (string) ($event->get('field_event_summary')->value ?? '')
         : '',
@@ -1068,6 +1074,8 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
         'duplicate_url' => NULL,
       ],
+      'wizard_url' => Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event_id])->toString(),
+      'editor_url' => Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event_id])->toString(),
       'read_url' => $studio_endpoints['overview_read'],
       'save_url' => $studio_endpoints['overview_save'],
       'endpoints' => $studio_endpoints,

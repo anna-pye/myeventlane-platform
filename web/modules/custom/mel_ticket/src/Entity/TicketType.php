@@ -6,6 +6,7 @@ namespace Drupal\mel_ticket\Entity;
 
 use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityPublishedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -54,6 +55,8 @@ use Drupal\Core\Entity\EntityStorageException;
  * )
  */
 final class TicketType extends ContentEntityBase implements TicketTypeInterface {
+
+  use EntityPublishedTrait;
 
   /**
    * {@inheritdoc}
@@ -125,6 +128,26 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayOptions('form', [
         'type' => 'string_textfield',
         'weight' => -10,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['short_description'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Short description'))
+      ->setDescription(t('Optional text shown to buyers (about two lines). Plain text.'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 320)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textarea',
+        'weight' => -5,
+        'settings' => [
+          'rows' => 2,
+        ],
+      ])
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'string',
+        'weight' => -9,
       ])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
@@ -269,6 +292,109 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 
+    $fields['visibility_mode'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Visibility'))
+      ->setDescription(t('Public tiers appear on the standard booking page. Hidden, access-code, and group-only tiers stay off the public list until access rules are satisfied.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue('public')
+      ->setSetting('allowed_values', [
+        'public' => 'Public',
+        'hidden' => 'Hidden',
+        'access_code' => 'Access code',
+        'group_only' => 'Group / partner only',
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'options_select',
+        'weight' => 20,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['hidden_label'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Internal label'))
+      ->setDescription(t('Optional organiser-only note (not shown to buyers).'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 21,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['waitlist_enabled'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Waitlist when sold out'))
+      ->setDescription(t('When the tier is sold out, buyers can join a waitlist instead of purchasing.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 22,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['waitlist_capacity'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Waitlist capacity'))
+      ->setDescription(t('Maximum number of waiting entries; leave empty for no cap.'))
+      ->setRequired(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'number',
+        'weight' => 23,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['auto_promote_waitlist'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Auto-offer waitlist when tickets free up'))
+      ->setDescription(t('When capacity becomes available, the next waiters receive a time-limited offer to purchase.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'weight' => 24,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['group_sale_mode'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(t('Group sales mode'))
+      ->setDescription(t('Enforces quantity rules on paid tiers at checkout (server-side).'))
+      ->setRequired(TRUE)
+      ->setDefaultValue('none')
+      ->setSetting('allowed_values', [
+        'none' => 'None (any quantity)',
+        'fixed_bundle' => 'Fixed bundle (e.g. table of N)',
+        'minimum_group_size' => 'Minimum group size',
+        'reserved_block' => 'Reserved block / partner allocation',
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'options_select',
+        'weight' => 25,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['group_min_size'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Minimum group size'))
+      ->setDescription(t('Minimum tickets per line item when using minimum group size mode.'))
+      ->setRequired(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'number',
+        'weight' => 26,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['group_bundle_size'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Bundle / block size'))
+      ->setDescription(t('For fixed bundle: quantity must be a multiple of this value. For reserved block, use with group-only visibility and access codes.'))
+      ->setRequired(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'number',
+        'weight' => 27,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
     $fields['status'] = BaseFieldDefinition::create('boolean')
       ->setLabel(t('Published'))
       ->setDefaultValue(TRUE)
@@ -303,6 +429,9 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     }
     if ($kind === 'paid') {
       $this->set('external_url', NULL);
+      // Invariant: paid tiers always have a Commerce variation per event product.
+      // The entity form may submit is_reusable from the checkbox; normalize here.
+      $this->set('is_reusable', FALSE);
     }
     parent::preSave($storage);
     $this->assertBusinessRules();
@@ -342,6 +471,7 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
           $violations[] = 'External URL must be empty for paid tickets.';
         }
         $this->requireNonZeroCapacity($violations);
+        $this->assertGroupSaleRules($violations);
         break;
 
       case 'rsvp':
@@ -396,6 +526,39 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     }
     if ((int) $this->get('capacity')->value < 1) {
       $violations[] = 'Capacity must be at least 1.';
+    }
+  }
+
+  /**
+   * Validates group sale mode dependencies.
+   *
+   * @param array<string> $violations
+   */
+  private function assertGroupSaleRules(array &$violations): void {
+    if (!$this->hasField('group_sale_mode')) {
+      return;
+    }
+    $mode = (string) ($this->get('group_sale_mode')->value ?? 'none');
+    switch ($mode) {
+      case 'none':
+        break;
+
+      case 'fixed_bundle':
+      case 'reserved_block':
+        if ($this->get('group_bundle_size')->isEmpty() || (int) $this->get('group_bundle_size')->value < 2) {
+          $violations[] = 'Bundle / block size must be at least 2 for this group mode.';
+        }
+        break;
+
+      case 'minimum_group_size':
+        if ($this->get('group_min_size')->isEmpty() || (int) $this->get('group_min_size')->value < 2) {
+          $violations[] = 'Minimum group size must be at least 2.';
+        }
+        break;
+
+      default:
+        $violations[] = 'Invalid group sales mode.';
+        break;
     }
   }
 

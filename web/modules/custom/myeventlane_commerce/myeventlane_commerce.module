@@ -234,6 +234,18 @@ function myeventlane_commerce_theme(): array {
       ],
       'template' => 'myeventlane-event-book',
     ],
+    'mel_waitlist_offer_countdown' => [
+      'variables' => [
+        'expires_timestamp' => 0,
+        'seconds_remaining' => 0,
+        'timer_initial' => '00:00:00',
+        'tier_title' => '',
+        'reserved_quantity' => 0,
+        'status_label' => '',
+        'helper_message' => '',
+      ],
+      'template' => 'mel-waitlist-offer-countdown',
+    ],
   ];
 }
 
@@ -537,4 +549,13 @@ function myeventlane_commerce_views_query_alter(ViewExecutable $view, QueryPlugi
   // Add condition to exclude Boost order items (bundle = 'boost').
   $order_items_alias = $view->relationship['order_items']->alias;
   $query->addWhere(0, $order_items_alias . '.type', 'boost', '!=');
+}
+
+/**
+ * Implements hook_cron().
+ */
+function myeventlane_commerce_cron(): void {
+  if (\Drupal::hasService('myeventlane_commerce.ticket_tier_waitlist')) {
+    \Drupal::service('myeventlane_commerce.ticket_tier_waitlist')->runCronMaintenance();
+  }
 }

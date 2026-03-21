@@ -4,10 +4,12 @@ description: 'Vendor and public help centre with contextual nudge-linked article
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
+  - myeventlane_event:myeventlane_event
   - drupal:node
   - drupal:taxonomy
   - drupal:views
   - drupal:search
   - drupal:datetime
   - drupal:text
+  - myeventlane_vendor:myeventlane_vendor
   - myeventlane_vendor_nudges:myeventlane_vendor_nudges

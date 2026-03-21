@@ -4,44 +4,28 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Form;
 
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
-use Drupal\mel_ticket\Entity\TicketType;
-use Drupal\mel_ticket\Service\TicketTypeCloneService;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
-use InvalidArgumentException;
+use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Event wizard step: Tickets (wizard_step_4).
+ *
+ * Ticket tier UI is injected via EventTicketsBuilder (single Form API tree).
  */
 final class EventWizardTicketsForm extends EventWizardBaseForm {
 
-  /**
-   * The logger.
-   */
   protected LoggerInterface $logger;
 
-  /**
-   * Ticket type manager (creates/links ticket product and variations).
-   */
   protected TicketTypeManager $ticketTypeManager;
 
-  /**
-   * Clones reusable templates into per-event ticket rows (persistence layer).
-   */
-  protected TicketTypeCloneService $ticketTypeCloneService;
+  protected EventTicketsBuilder $ticketBuilder;
 
-  /**
-   * Constructs the form.
-   */
   public function __construct(
     $entity_type_manager,
     $domain_detector,
@@ -49,12 +33,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     RendererInterface $renderer,
     LoggerInterface $logger,
     TicketTypeManager $ticket_type_manager,
-    TicketTypeCloneService $ticket_type_clone_service,
+    EventTicketsBuilder $ticket_builder,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
     $this->ticketTypeManager = $ticket_type_manager;
-    $this->ticketTypeCloneService = $ticket_type_clone_service;
+    $this->ticketBuilder = $ticket_builder;
   }
 
   /**
@@ -68,7 +52,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       $container->get('renderer'),
       $container->get('logger.factory')->get('myeventlane_event'),
       $container->get('myeventlane_event.ticket_type_manager'),
-      $container->get('mel_ticket.ticket_type_clone'),
+      $container->get('myeventlane_vendor.ticket_builder'),
     );
   }
 
@@ -85,246 +69,20 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
 
+    $form_state->set('event', $event);
+
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_4');
     $form_display->buildForm($event, $form, $form_state);
     unset($form['field_ticket_types']);
 
-    if ($form_state->get('mel_attached_ticket_ids') === NULL) {
-      $ids = [];
-      if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
-        foreach ($event->get('field_ticket_types')->getValue() as $row) {
-          if (!empty($row['target_id'])) {
-            $ids[] = (int) $row['target_id'];
-          }
-        }
-      }
-      $form_state->set('mel_attached_ticket_ids', array_values(array_unique($ids)));
-    }
-
-    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
-      ? (string) $event->get('field_event_type')->value
-      : '';
-
     $form['mel_ticket_wizard'] = [
       '#type' => 'container',
-      // Required so nested fields use mel_ticket_wizard[...] names; #states
-      // selectors must match these names (see FormBuilder::doBuildForm).
-      '#tree' => TRUE,
-      '#attributes' => ['class' => ['mel-ticket-wizard', 'mel-cards']],
+      '#attributes' => ['class' => ['mel-ticket-wizard']],
       '#weight' => 12,
     ];
 
-    $form['mel_ticket_wizard']['heading'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'h3',
-      '#value' => $this->t('Tickets for this event'),
-      '#attributes' => ['class' => ['mel-ticket-wizard__title']],
-      '#weight' => -30,
-    ];
-
-    $allowed_kinds = $this->allowedTicketKindsForEventType($event_type);
-    $kind_states_input = ':input[name="mel_ticket_wizard[create][kind]"]';
-
-    $form['mel_ticket_wizard']['reuse'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Reuse an existing ticket'),
-      '#open' => TRUE,
-      '#weight' => -20,
-      '#attributes' => ['class' => ['mel-ticket-wizard__reuse']],
-      '#access' => $allowed_kinds !== [] && !in_array($event_type, ['external'], TRUE),
-      'path_label' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Option A — Reuse a saved template'),
-        '#attributes' => [
-          'class' => ['mel-ticket-wizard__path-label'],
-          'id' => 'mel-ticket-wizard-reuse-path',
-        ],
-        '#weight' => -25,
-      ],
-      'help' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Search by title. Only <em>your</em> RSVP or external tickets marked <em>reusable</em> appear here. Attaching creates a <strong>new copy</strong> for this event; the template is not modified. Paid tiers cannot be templates—add them under “Create a new ticket”.'),
-        '#attributes' => ['class' => ['description']],
-      ],
-      'ticket' => [
-        '#type' => 'entity_autocomplete',
-        '#title' => $this->t('Find reusable ticket'),
-        '#target_type' => 'mel_ticket_type',
-        '#selection_handler' => 'mel_ticket:reusable',
-        '#selection_settings' => [],
-        '#size' => 60,
-        '#placeholder' => $this->t('Start typing a ticket title…'),
-      ],
-      'attach' => [
-        '#type' => 'submit',
-        '#value' => $this->t('Attach ticket'),
-        '#submit' => ['::attachReusableTicketSubmit'],
-        '#limit_validation_errors' => [['mel_ticket_wizard', 'reuse']],
-        '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
-      ],
-    ];
-
-    $form['mel_ticket_wizard']['attached'] = $this->buildAttachedTicketsTable(
-      $form_state,
-      $allowed_kinds !== [],
-      $event_type
-    );
-    $form['mel_ticket_wizard']['attached']['#weight'] = -10;
-
-    if ($allowed_kinds !== []) {
-      $currency = $this->ticketTypeManager->getDefaultCurrencyCodeForEvent($event);
-      $kind_fields = [];
-      if (count($allowed_kinds) === 1) {
-        $only_key = (string) array_key_first($allowed_kinds);
-        $kind_fields['kind'] = [
-          '#type' => 'hidden',
-          '#value' => $only_key,
-        ];
-        $kind_fields['kind_label'] = [
-          '#type' => 'item',
-          '#title' => $this->t('Ticket type'),
-          // Cast TranslatableMarkup to string for render.
-          '#markup' => (string) $allowed_kinds[$only_key],
-        ];
-      }
-      else {
-        $kind_fields['kind'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Ticket type'),
-          '#options' => $allowed_kinds,
-          '#required' => TRUE,
-          '#default_value' => array_key_first($allowed_kinds),
-        ];
-      }
-
-      $form['mel_ticket_wizard']['create'] = [
-        '#type' => 'fieldset',
-        '#title' => $this->t('Create a new ticket'),
-        '#weight' => 0,
-        '#attributes' => [
-          'class' => ['mel-fieldset', 'mel-ticket-wizard__create'],
-          'aria-labelledby' => 'mel-ticket-wizard-create-path',
-        ],
-        'path_label' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Option B — Create a new ticket'),
-          '#attributes' => [
-            'class' => ['mel-ticket-wizard__path-label'],
-            'id' => 'mel-ticket-wizard-create-path',
-          ],
-          '#weight' => -40,
-        ],
-        'intro' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Create a brand-new ticket for this event only. For something you use often, check <em>Make this ticket reusable</em> (RSVP or external) so it appears under “Reuse” on future events—each reuse is copied automatically.'),
-          '#attributes' => ['class' => ['description']],
-        ],
-      ] + $kind_fields + [
-        'title' => [
-          '#type' => 'textfield',
-          '#title' => $this->t('Title'),
-          '#maxlength' => 255,
-        ],
-        'paid_fields' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-wizard__group', 'mel-ticket-wizard__group--paid']],
-          '#states' => [
-            'visible' => [
-              $kind_states_input => ['value' => 'paid'],
-            ],
-          ],
-          'price_amount' => [
-            '#type' => 'number',
-            '#title' => $this->t('Price'),
-            '#min' => 0,
-            '#step' => 0.01,
-          ],
-          'price_currency' => [
-            '#type' => 'textfield',
-            '#title' => $this->t('Currency'),
-            '#size' => 4,
-            '#maxlength' => 3,
-            '#default_value' => $currency,
-          ],
-        ],
-        'capacity' => [
-          '#type' => 'number',
-          '#title' => $this->t('Capacity'),
-          '#min' => 1,
-          '#states' => [
-            'visible' => [
-              'or' => [
-                [$kind_states_input => ['value' => 'rsvp']],
-                [$kind_states_input => ['value' => 'paid']],
-              ],
-            ],
-          ],
-        ],
-        'rsvp_limit' => [
-          '#type' => 'number',
-          '#title' => $this->t('RSVP limit per booking'),
-          '#min' => 0,
-          '#states' => [
-            'visible' => [
-              $kind_states_input => ['value' => 'rsvp'],
-            ],
-          ],
-        ],
-        'external_uri' => [
-          '#type' => 'url',
-          '#title' => $this->t('External ticket URL'),
-          '#states' => [
-            'visible' => [
-              $kind_states_input => ['value' => 'external'],
-            ],
-          ],
-        ],
-        'sale_window' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-wizard__group', 'mel-ticket-wizard__group--sales']],
-          '#states' => [
-            'visible' => [
-              'or' => [
-                [$kind_states_input => ['value' => 'rsvp']],
-                [$kind_states_input => ['value' => 'paid']],
-              ],
-            ],
-          ],
-          'sale_start' => [
-            '#type' => 'datetime',
-            '#title' => $this->t('Sale start'),
-            '#date_increment' => 15,
-          ],
-          'sale_end' => [
-            '#type' => 'datetime',
-            '#title' => $this->t('Sale end'),
-            '#date_increment' => 15,
-          ],
-        ],
-        'is_reusable' => [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Make this ticket reusable on other events'),
-          '#states' => [
-            'visible' => [
-              [$kind_states_input => ['value' => 'rsvp']],
-              'or',
-              [$kind_states_input => ['value' => 'external']],
-            ],
-          ],
-        ],
-        'add' => [
-          '#type' => 'submit',
-          '#value' => $this->t('Add ticket'),
-          '#submit' => ['::addCreatedTicketSubmit'],
-          '#limit_validation_errors' => [['mel_ticket_wizard', 'create']],
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-wizard__add']],
-        ],
-      ];
-    }
+    $form_state->set('mel_ticket_builder_value_prefix', ['mel_ticket_wizard']);
+    $this->ticketBuilder->build($form['mel_ticket_wizard'], $form_state, $event);
 
     $this->applyTicketTypeStates($form);
     $this->addCapacityWarning($form, $event);
@@ -332,8 +90,9 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $form['#title'] = $this->t('Create event: Tickets');
     $form['#event'] = $event;
     $form['#step_id'] = 'tickets';
-    $form['#attached']['library'][] = 'mel_ticket/wizard';
-    $form['#attached']['library'][] = 'core/drupal.states';
+
+    $form['#attached']['library'][] = 'myeventlane_vendor/ticket_cards';
+    $form['#attached']['library'][] = 'core/drupal.ajax';
 
     $steps = $this->buildStepper($event, 'tickets');
     $form['#steps'] = $steps;
@@ -363,6 +122,23 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
   }
 
   /**
+   * Prefer event from form state (AJAX rebuilds); fall back to route entity.
+   */
+  private function getEventOrInjectedEvent(FormStateInterface $form_state): NodeInterface {
+    $event = $form_state->get('event');
+    return $event instanceof NodeInterface ? $event : $this->getEvent();
+  }
+
+  public function handleAction(array &$form, FormStateInterface $form_state): void {
+    $event = $this->getEventOrInjectedEvent($form_state);
+    $this->ticketBuilder->handleAction($form, $form_state, $event);
+  }
+
+  public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
+    return $form['mel_ticket_wizard']['builder_shell'] ?? [];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
@@ -386,7 +162,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       if (in_array($value, ['paid', 'both'], TRUE)) {
         if (!$this->ticketTypeManager->hasVendorStore($event)) {
           $this->logger->warning(
-            'Event @nid: tickets step blocked — no vendor store (field_event_store empty, field_event_vendor/store not set)',
+            'Event @nid: tickets step blocked — no vendor store',
             ['@nid' => $event->id()]
           );
           $form_state->setErrorByName(
@@ -396,379 +172,34 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
         }
       }
     }
-
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    $storage = $this->entityTypeManager->getStorage('mel_ticket_type');
-    foreach ($ids as $ticket_id) {
-      $ticket = $storage->load($ticket_id);
-      if (!$ticket instanceof TicketType) {
-        $form_state->setErrorByName('', $this->t('Invalid ticket reference.'));
-        continue;
-      }
-      if (!$this->currentUser->hasPermission('assign mel_ticket_type entities')) {
-        $form_state->setErrorByName('', $this->t('You cannot assign ticket types.'));
-        return;
-      }
-      if ((int) $ticket->get('vendor_id')->target_id !== (int) $this->currentUser->id()
-        && !$this->currentUser->hasPermission('administer mel_ticket_type entities')) {
-        $form_state->setErrorByName('', $this->t('You can only assign ticket types you own.'));
-        return;
-      }
-    }
-
-    $create = $form_state->getValue(['mel_ticket_wizard', 'create']) ?? [];
-    if (is_array($create) && $this->createSectionHasAnyUserInput($create)) {
-      $has_title = !empty($create['title']);
-      $has_kind = !empty($create['kind']);
-      if ($has_title xor $has_kind) {
-        $form_state->setErrorByName('mel_ticket_wizard][create', $this->t('Complete ticket type and title, or clear the create form, or use the “Add ticket” button.'));
-      }
-      elseif ($has_title && $has_kind && ($create['kind'] ?? '') === 'paid') {
-        $paid = $create['paid_fields'] ?? [];
-        $amount = (string) ($paid['price_amount'] ?? '');
-        $currency = strtoupper(trim((string) ($paid['price_currency'] ?? '')));
-        $msg = $this->validatePaidPriceForCommerce($amount, $currency);
-        if ($msg !== NULL) {
-          $form_state->setErrorByName('mel_ticket_wizard][create][paid_fields', $msg);
-        }
-      }
-    }
   }
 
   /**
    * {@inheritdoc}
+   *
+   * Saves event fields only. Ticket add/remove is handled by handleAction.
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEvent();
-    $trigger = $form_state->getTriggeringElement();
-    if (!empty($trigger['#submit']) && in_array('::attachReusableTicketSubmit', $trigger['#submit'], TRUE)) {
-      return;
-    }
-    if (!empty($trigger['#submit']) && in_array('::addCreatedTicketSubmit', $trigger['#submit'], TRUE)) {
-      return;
-    }
 
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    $detach = $form_state->getValue('mel_ticket_detach') ?? [];
-    if (is_array($detach)) {
-      foreach (array_keys(array_filter($detach)) as $remove_id) {
-        $ids = array_values(array_diff($ids, [(int) $remove_id]));
-      }
-    }
-    $event->set('field_ticket_types', array_map(static fn (int $id) => ['target_id' => $id], array_unique($ids)));
+    $saved_ticket_types = $event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()
+      ? $event->get('field_ticket_types')->getValue()
+      : [];
 
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_4');
-    $field_names = array_keys($form_display->getComponents());
+    $field_names = array_diff(array_keys($form_display->getComponents()), ['field_ticket_types']);
 
     $this->copyFormValuesToEvent($event, $form, $form_state, 'wizard_step_4');
 
-    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
-      ? (string) $event->get('field_event_type')->value
-      : '';
-    if (in_array($event_type, ['paid', 'both'], TRUE)) {
-      $this->ticketTypeManager->syncTicketTypesToVariations($event);
-    }
+    $event->set('field_ticket_types', $saved_ticket_types);
+    $event->save();
 
-    $this->logger->notice('Event wizard tickets saved: event_id=@id, fields=@fields', [
+    $this->logger->notice('Event wizard tickets step saved: event_id=@id, fields=@fields', [
       '@id' => $event->id(),
       '@fields' => implode(', ', $field_names),
     ]);
 
     $this->redirectToNextStep($form_state, 'tickets');
-  }
-
-  /**
-   * Appends a reusable ticket chosen from autocomplete.
-   */
-  public function attachReusableTicketSubmit(array &$form, FormStateInterface $form_state): void {
-    if (!$this->currentUser->hasPermission('reuse mel_ticket_type entities')) {
-      $this->messenger()->addError($this->t('You do not have permission to reuse ticket templates.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $target = $form_state->getValue(['mel_ticket_wizard', 'reuse', 'ticket']);
-    if (empty($target)) {
-      $this->messenger()->addWarning($this->t('Choose a ticket to attach.'));
-      $form_state->setRebuild();
-      return;
-    }
-    if (!preg_match('/\((\d+)\)\s*$/', (string) $target, $m)) {
-      $this->messenger()->addError($this->t('Invalid ticket selection.'));
-      $form_state->setRebuild();
-      return;
-    }
-    $id = (int) $m[1];
-    $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->load($id);
-    if (!$ticket instanceof TicketType || !$ticket->isReusable()) {
-      $this->messenger()->addError($this->t('That ticket is not a reusable template.'));
-      $form_state->setRebuild();
-      return;
-    }
-    if ((int) $ticket->get('vendor_id')->target_id !== (int) $this->currentUser->id()) {
-      $this->messenger()->addError($this->t('You can only reuse templates you own.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $event = $this->getEvent();
-    try {
-      $clone = $this->ticketTypeCloneService->createFromTemplate($ticket, $event, $this->currentUser);
-    }
-    catch (InvalidArgumentException $e) {
-      $this->messenger()->addError($e->getMessage());
-      $form_state->setRebuild();
-      return;
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Ticket template clone failed: @msg', ['@msg' => $e->getMessage()]);
-      $this->messenger()->addError($this->t('Could not copy the ticket template. Try again or create a new ticket.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    $ids[] = (int) $clone->id();
-    $form_state->set('mel_attached_ticket_ids', array_values(array_unique($ids)));
-
-    $form_state->setValue(['mel_ticket_wizard', 'reuse', 'ticket'], NULL);
-    $this->messenger()->addStatus($this->t('A copy of the template was added for this event. Continue to save.'));
-    $form_state->setRebuild();
-  }
-
-  /**
-   * Creates a new ticket entity from the create fieldset.
-   */
-  public function addCreatedTicketSubmit(array &$form, FormStateInterface $form_state): void {
-    $event = $this->getEvent();
-    $create = $form_state->getValue(['mel_ticket_wizard', 'create']) ?? [];
-    $kind = $create['kind'] ?? '';
-    $title = trim((string) ($create['title'] ?? ''));
-    if ($kind === '' || $title === '') {
-      $this->messenger()->addWarning($this->t('Select a ticket type and enter a title.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
-      ? (string) $event->get('field_event_type')->value
-      : '';
-    $allowed = array_keys($this->allowedTicketKindsForEventType($event_type));
-    if (!in_array($kind, $allowed, TRUE)) {
-      $this->messenger()->addError($this->t('This ticket type is not allowed for the current event mode.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    if (!$this->currentUser->hasPermission('create mel_ticket_type entities')) {
-      $this->messenger()->addError($this->t('You cannot create ticket types.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $values = [
-      'title' => $title,
-      'ticket_kind' => $kind,
-      'vendor_id' => ['target_id' => $this->currentUser->id()],
-      'status' => 1,
-    ];
-
-    $is_reusable = !empty($create['is_reusable']);
-    if ($kind === 'paid') {
-      $is_reusable = FALSE;
-    }
-    $values['is_reusable'] = $is_reusable;
-    if (!$is_reusable) {
-      $values['event'] = ['target_id' => $event->id()];
-    }
-
-    if ($kind === 'paid') {
-      $paid = $create['paid_fields'] ?? [];
-      $amount = (string) ($paid['price_amount'] ?? '');
-      $currency = strtoupper(trim((string) ($paid['price_currency'] ?? '')));
-      $price_error = $this->validatePaidPriceForCommerce($amount, $currency);
-      if ($price_error !== NULL) {
-        $this->messenger()->addError($price_error);
-        $form_state->setRebuild();
-        return;
-      }
-      $values['price'] = ['number' => $amount, 'currency_code' => $currency];
-      $values['capacity'] = (int) ($create['capacity'] ?? 0);
-    }
-    elseif ($kind === 'rsvp') {
-      $values['capacity'] = (int) ($create['capacity'] ?? 0);
-      if (!empty($create['rsvp_limit'])) {
-        $values['rsvp_limit'] = (int) $create['rsvp_limit'];
-      }
-    }
-    elseif ($kind === 'external') {
-      $uri = trim((string) ($create['external_uri'] ?? ''));
-      if ($uri === '' || !UrlHelper::isValid($uri, TRUE) || !str_starts_with(strtolower($uri), 'https://')) {
-        $this->messenger()->addError($this->t('External tickets require a valid https booking URL.'));
-        $form_state->setRebuild();
-        return;
-      }
-      $values['external_url'] = ['uri' => $uri, 'title' => ''];
-    }
-
-    if (($kind === 'rsvp' || $kind === 'paid') && (int) ($values['capacity'] ?? 0) < 1) {
-      $this->messenger()->addError($this->t('Capacity must be at least 1 for RSVP and paid tickets.'));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $sale_window = $create['sale_window'] ?? [];
-    foreach (['sale_start', 'sale_end'] as $key) {
-      if (!empty($sale_window[$key]) && $sale_window[$key] instanceof DrupalDateTime) {
-        $values[$key] = $sale_window[$key]->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
-      }
-    }
-
-    try {
-      /** @var \Drupal\mel_ticket\Entity\TicketType $ticket */
-      $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->create($values);
-      $ticket->save();
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Ticket create failed: @msg', ['@msg' => $e->getMessage()]);
-      $this->messenger()->addError($this->t('Could not create ticket: @msg', ['@msg' => $e->getMessage()]));
-      $form_state->setRebuild();
-      return;
-    }
-
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    $ids[] = (int) $ticket->id();
-    $form_state->set('mel_attached_ticket_ids', array_values(array_unique($ids)));
-
-    $form_state->setValue(['mel_ticket_wizard', 'create'], NULL);
-    $this->messenger()->addStatus($this->t('Ticket added. Continue to save, or add more tickets.'));
-    $form_state->setRebuild();
-  }
-
-  /**
-   * Builds the attachment table for tickets on this step.
-   */
-  /**
-   * Whether the nested “create ticket” tree has any non-empty user input.
-   *
-   * Used so validation catches partially filled price/capacity rows, not only
-   * top-level keys.
-   */
-  private function createSectionHasAnyUserInput(array $values): bool {
-    foreach ($values as $val) {
-      if ($val === NULL || $val === '' || $val === []) {
-        continue;
-      }
-      if (is_array($val)) {
-        if ($this->createSectionHasAnyUserInput($val)) {
-          return TRUE;
-        }
-        continue;
-      }
-      if (is_numeric($val) && (float) $val === 0.0) {
-        continue;
-      }
-      if ($val instanceof DrupalDateTime) {
-        return TRUE;
-      }
-      return TRUE;
-    }
-    return FALSE;
-  }
-
-  /**
-   * Validates numeric amount and ISO currency for Commerce-backed paid tickets.
-   *
-   * @return \Drupal\Core\StringTranslation\TranslatableMarkup|null
-   *   A message when invalid; NULL when OK.
-   */
-  private function validatePaidPriceForCommerce(string $amount, string $currency): ?TranslatableMarkup {
-    if ($currency === '' || !preg_match('/^[A-Z]{3}$/', $currency)) {
-      return $this->t('Enter a valid 3-letter currency code (e.g. AUD).');
-    }
-    if ($amount === '' || !is_numeric($amount)) {
-      return $this->t('Paid tickets require a numeric price.');
-    }
-    if (round((float) $amount, 6) <= 0.0) {
-      return $this->t('Paid tickets must have a price greater than zero for checkout.');
-    }
-    return NULL;
-  }
-
-  private function buildAttachedTicketsTable(FormStateInterface $form_state, bool $show_ticket_ui, string $event_type): array {
-    $ids = $form_state->get('mel_attached_ticket_ids') ?? [];
-    $rows = [];
-    $storage = $this->entityTypeManager->getStorage('mel_ticket_type');
-    foreach ($ids as $tid) {
-      $ticket = $storage->load($tid);
-      if (!$ticket instanceof TicketType) {
-        continue;
-      }
-      $kind = $ticket->getTicketKind();
-      $price = $ticket->toPriceValue();
-      $price_label = $price
-        ? sprintf('%s %s', $price->getCurrencyCode(), $price->getNumber())
-        : $this->t('Free / N/A');
-      $template_note = '';
-      if ($ticket->hasField('template_source') && !$ticket->get('template_source')->isEmpty()) {
-        $template_note = (string) $this->t('Copied from template');
-      }
-      $rows[] = [
-        'data' => [
-          ['data' => ['#markup' => $ticket->label()]],
-          ['data' => ['#markup' => strtoupper($kind)]],
-          ['data' => ['#markup' => $price_label]],
-          ['data' => ['#markup' => $template_note]],
-          [
-            'data' => [
-              'detach' => [
-                '#type' => 'checkbox',
-                '#title' => $this->t('Remove'),
-                '#parents' => ['mel_ticket_detach', (string) $ticket->id()],
-              ],
-            ],
-          ],
-        ],
-      ];
-    }
-
-    return [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Tickets on this event'),
-      '#attributes' => ['class' => ['mel-ticket-wizard__attached']],
-      'table' => [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Title'),
-          $this->t('Type'),
-          $this->t('Price'),
-          $this->t('Source'),
-          $this->t('Remove'),
-        ],
-        '#rows' => $rows,
-        '#empty' => $this->t('No tickets yet. Create one or attach a reusable ticket.'),
-      ],
-      '#access' => $show_ticket_ui && !in_array($event_type, ['external'], TRUE),
-    ];
-  }
-
-  /**
-   * Maps event type to creatable ticket kinds.
-   *
-   * @return array<string, string>
-   *   Options for a select list.
-   */
-  private function allowedTicketKindsForEventType(string $event_type): array {
-    return match ($event_type) {
-      'external' => ['external' => $this->t('External')],
-      'rsvp' => ['rsvp' => $this->t('RSVP')],
-      'paid' => ['paid' => $this->t('Paid')],
-      'both' => [
-        'rsvp' => $this->t('RSVP'),
-        'paid' => $this->t('Paid'),
-      ],
-      default => [],
-    };
   }
 
   /**

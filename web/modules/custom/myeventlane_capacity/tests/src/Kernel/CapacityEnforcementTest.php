@@ -15,8 +15,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\state_machine\Event\WorkflowTransitionEvent;
-
 /**
  * Kernel tests for Commerce capacity enforcement.
  *
@@ -56,13 +54,6 @@ final class CapacityEnforcementTest extends KernelTestBase {
    * @var \Drupal\myeventlane_capacity\Service\CapacityOrderInspector
    */
   private $orderInspector;
-
-  /**
-   * The enforcement subscriber.
-   *
-   * @var \Drupal\myeventlane_capacity\EventSubscriber\CommerceCapacityEnforcementSubscriber
-   */
-  private $enforcementSubscriber;
 
   /**
    * A test store.
@@ -116,7 +107,6 @@ final class CapacityEnforcementTest extends KernelTestBase {
 
     $this->capacityService = $this->container->get('myeventlane_capacity.service');
     $this->orderInspector = $this->container->get('myeventlane_capacity.order_inspector');
-    $this->enforcementSubscriber = $this->container->get('myeventlane_capacity.commerce_enforcement_subscriber');
   }
 
   /**
@@ -184,20 +174,8 @@ final class CapacityEnforcementTest extends KernelTestBase {
       $this->assertInstanceOf(CapacityExceededException::class, $e);
     }
 
-    // Simulate order placement pre-transition event.
-    $workflow = $order->getState()->getWorkflow();
-    $transition = $workflow->getTransition('place');
-    $transition_event = new WorkflowTransitionEvent($transition, $workflow, $order, 'state');
-
-    // This should throw CapacityExceededException.
-    try {
-      $this->enforcementSubscriber->onOrderPlacePreTransition($transition_event);
-      $this->fail('Expected CapacityExceededException was not thrown at order placement.');
-    }
-    catch (CapacityExceededException $e) {
-      $this->assertInstanceOf(CapacityExceededException::class, $e);
-      $this->assertStringContainsString('remaining', $e->getMessage() ?? '', 'Exception message should mention remaining tickets.');
-    }
+    // Order placement gate: myeventlane_commerce TicketAvailabilityCommerceSubscriber
+    // (kernel test stack does not enable that module).
   }
 
   /**
@@ -264,18 +242,6 @@ final class CapacityEnforcementTest extends KernelTestBase {
       $this->fail('Valid booking should not throw CapacityExceededException.');
     }
 
-    // Simulate order placement - should not throw.
-    $workflow = $order->getState()->getWorkflow();
-    $transition = $workflow->getTransition('place');
-    $transition_event = new WorkflowTransitionEvent($transition, $workflow, $order, 'state');
-
-    try {
-      $this->enforcementSubscriber->onOrderPlacePreTransition($transition_event);
-      $this->assertTrue(TRUE, 'Valid order placement should not throw exception.');
-    }
-    catch (CapacityExceededException $e) {
-      $this->fail('Valid order placement should not throw CapacityExceededException.');
-    }
   }
 
   /**

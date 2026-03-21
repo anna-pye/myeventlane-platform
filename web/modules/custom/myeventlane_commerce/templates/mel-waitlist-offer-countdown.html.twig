@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * Presentational panel: active waitlist purchase window (booking page).
+ */
+#}
+<div
+  class="mel-offer-countdown mel-offer-countdown--active"
+  role="status"
+  aria-live="polite"
+  data-offer-expires-at="{{ expires_timestamp }}"
+  data-offer-seconds-initial="{{ seconds_remaining }}"
+  data-expired-title="{{ 'This reserved offer has expired'|t|escape('html_attr') }}"
+  data-expired-body="{{ 'You can join the waitlist again if more places become available.'|t|escape('html_attr') }}"
+  data-expired-hint="{{ 'Refresh the page to see the latest ticket availability.'|t|escape('html_attr') }}"
+>
+  <div class="mel-offer-countdown__inner">
+    <p class="mel-offer-countdown__eyebrow">{{ status_label }}</p>
+    <h3 class="mel-offer-countdown__title">{{ 'Your ticket offer is reserved'|t }}</h3>
+    <p class="mel-offer-countdown__lede">{{ 'Complete your booking before it expires.'|t }}</p>
+
+    <div class="mel-offer-countdown__stats">
+      <div class="mel-offer-countdown__pill mel-offer-countdown__pill--timer">
+        <span class="mel-offer-countdown__pill-label">{{ 'Time remaining'|t }}</span>
+        <span class="mel-offer-countdown__timer" aria-label="{{ 'Time remaining to complete booking'|t }}">{{ timer_initial }}</span>
+      </div>
+      <div class="mel-offer-countdown__pill mel-offer-countdown__pill--qty">
+        <span class="mel-offer-countdown__pill-label">{{ 'Reserved'|t }}</span>
+        <span class="mel-offer-countdown__reserved">
+          {{ '@count × @tier'|t({'@count': reserved_quantity, '@tier': tier_title}) }}
+        </span>
+      </div>
+    </div>
+
+    <p class="mel-offer-countdown__helper">{{ helper_message }}</p>
+    <p class="mel-offer-countdown__warning">{{ 'When the timer ends, this reserved window closes.'|t }}</p>
+  </div>
+</div>

@@ -4,26 +4,24 @@ dependencies:
   config:
     - field.storage.node.field_ticket_types
     - node.type.event
-    - paragraphs.paragraphs_type.ticket_type_config
   module:
-    - entity_reference_revisions
-    - paragraphs
+    - mel_ticket
 id: node.event.field_ticket_types
 field_name: field_ticket_types
 entity_type: node
 bundle: event
 label: 'Ticket Types'
-description: 'Define ticket types for this event. Each ticket type will create a separate Commerce Product Variation. Only shown when Event Type is "Paid" or "Both".'
+description: 'Ticket definitions for this event (RSVP, paid via Commerce, or external link-out). Reusable types can be shared across events when not paid.'
 required: false
 translatable: false
 default_value: {  }
 default_value_callback: ''
 settings:
-  target_type: paragraph
-  handler: 'default:paragraph'
+  handler: 'default:mel_ticket_type'
   handler_settings:
-    target_bundles:
-      ticket_type_config: ticket_type_config
-    negate: 0
-field_type: entity_reference_revisions
-
+    target_bundles: null
+    sort:
+      field: title
+      direction: asc
+    auto_create: false
+field_type: entity_reference

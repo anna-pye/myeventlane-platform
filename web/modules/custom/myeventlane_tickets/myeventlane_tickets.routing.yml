@@ -164,6 +164,22 @@ myeventlane_tickets.event_tickets_access_codes_edit:
         bundle:
           - event
 
+entity.mel_access_code.delete_form:
+  path: '/vendor/events/{event}/tickets/access-codes/{mel_access_code}/delete'
+  defaults:
+    _entity_form: 'mel_access_code.delete'
+    _title: 'Delete access code'
+  requirements:
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+      mel_access_code:
+        type: entity:mel_access_code
+
 myeventlane_tickets.event_tickets_widgets:
   path: '/vendor/events/{event}/tickets/widgets'
   defaults:
@@ -220,11 +236,11 @@ entity.mel_purchase_surface.delete_form:
       mel_purchase_surface:
         type: entity:mel_purchase_surface
 
-myeventlane_tickets.add_ticket_modal:
-  path: '/vendor/events/{event}/tickets/types/add-modal'
+myeventlane_tickets.event_ticket_type_edit:
+  path: '/vendor/events/{event}/tickets/types/{mel_ticket_type}/edit'
   defaults:
-    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::addTicketModal'
-    _title: 'Add ticket type'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::editTicketType'
+    _title: 'Edit ticket type'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
@@ -233,6 +249,8 @@ myeventlane_tickets.add_ticket_modal:
         type: entity:node
         bundle:
           - event
+      mel_ticket_type:
+        type: entity:mel_ticket_type
 
 myeventlane_tickets.ticket_checkin:
   path: '/event/{event}/tickets/checkin'

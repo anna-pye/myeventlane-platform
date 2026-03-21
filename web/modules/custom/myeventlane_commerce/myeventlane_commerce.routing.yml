@@ -12,6 +12,20 @@ myeventlane_commerce.event_book:
       node:
         type: entity:node
 
+myeventlane_commerce.event_ticket_waitlist_claim:
+  path: '/event/{node}/book/waitlist/{token}'
+  defaults:
+    _controller: 'myeventlane_commerce.controller.ticket_waitlist_claim:claim'
+    _title: 'Waitlist offer'
+  requirements:
+    _permission: 'access content'
+    node: '\d+'
+    token: '.+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
 myeventlane_commerce.attendee_info.edit:
   path: '/cart/attendee-info/{order_item}'
   defaults:

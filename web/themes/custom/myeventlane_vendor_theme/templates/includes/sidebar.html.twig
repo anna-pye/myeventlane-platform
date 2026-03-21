@@ -29,7 +29,7 @@
     { key: 'payouts', label: 'Payouts'|t, icon: 'payouts', url: path('myeventlane_vendor.console.payouts'), is_active: page.active_section|default('dashboard') == 'payouts', is_disabled: false },
     { key: 'growth', label: 'Growth'|t, icon: 'growth', url: path('myeventlane_vendor.console.boost'), is_active: page.active_section|default('dashboard') == 'growth', is_disabled: false },
     { key: 'settings', label: 'Settings'|t, icon: 'settings', url: path('myeventlane_vendor.console.settings'), is_active: page.active_section|default('dashboard') == 'settings', is_disabled: false },
-    { key: 'help', label: 'Help'|t, icon: 'help', url: null, is_active: page.active_section|default('dashboard') == 'help', is_disabled: true }
+    { key: 'help', label: 'Help'|t, icon: 'help', url: path('myeventlane_help_centre.vendor_help'), is_active: page.active_section|default('dashboard') == 'help', is_disabled: false }
   ]) %}
 
   <ul class="mel-sidebar__nav" role="list">

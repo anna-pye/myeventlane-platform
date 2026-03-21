@@ -59,6 +59,45 @@ final class CapacityOrderInspector {
   }
 
   /**
+   * Per-event, per-variation quantities for ticket line items.
+   *
+   * @return array<int, array<int, int>>
+   *   Map of event_id => [commerce_product_variation_id => quantity].
+   */
+  public function extractEventVariationQuantities(OrderInterface $order): array {
+    $map = [];
+    foreach ($order->getItems() as $item) {
+      if ($this->isNonTicketItem($item)) {
+        continue;
+      }
+      if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+        continue;
+      }
+      if (!$item->hasField('purchased_entity') || $item->get('purchased_entity')->isEmpty()) {
+        continue;
+      }
+      $event_id = (int) $item->get('field_target_event')->target_id;
+      $purchased = $item->get('purchased_entity')->entity;
+      if ($purchased === NULL) {
+        continue;
+      }
+      $vid = (int) $purchased->id();
+      $qty = (int) $item->getQuantity();
+      if ($event_id < 1 || $vid < 1 || $qty < 1) {
+        continue;
+      }
+      if (!isset($map[$event_id])) {
+        $map[$event_id] = [];
+      }
+      if (!isset($map[$event_id][$vid])) {
+        $map[$event_id][$vid] = 0;
+      }
+      $map[$event_id][$vid] += $qty;
+    }
+    return $map;
+  }
+
+  /**
    * Checks if an order item is a non-ticket item (should be excluded).
    *
    * @param \Drupal\commerce_order\Entity\OrderItemInterface $item

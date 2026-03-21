@@ -53,6 +53,61 @@
     {% endif %}
   </div>
 
+  {# mel_ticket_type rollups (completed Commerce orders only; same service as ticket builder) #}
+  {% if ticket_tier_rollup.tier_row_count|default(0) > 0 %}
+    <div class="mel-card mel-mb-lg">
+      <div class="mel-card__header">
+        <div class="mel-card__title">{{ 'Ticket tiers snapshot'|t }}</div>
+        <div class="mel-card__subtitle mel-text--muted">{{ 'Based on completed orders — same figures as the ticket workspace.'|t }}</div>
+      </div>
+      <div class="mel-card__body">
+        <div class="mel-grid mel-grid--3 mel-mb-md">
+          <div class="mel-card mel-card--stat">
+            <div class="mel-stat">
+              <div class="mel-stat__label">{{ 'Tickets sold (tiers)'|t }}</div>
+              <div class="mel-stat__value">{{ ticket_tier_rollup.total_sold|default(0) }}</div>
+            </div>
+          </div>
+          <div class="mel-card mel-card--stat">
+            <div class="mel-stat">
+              <div class="mel-stat__label">{{ 'Remaining (capped tiers)'|t }}</div>
+              <div class="mel-stat__value">{% if ticket_tier_rollup.total_remaining is null %}—{% else %}{{ ticket_tier_rollup.total_remaining }}{% endif %}</div>
+            </div>
+          </div>
+          <div class="mel-card mel-card--stat">
+            <div class="mel-stat">
+              <div class="mel-stat__label">{{ 'Gross revenue (tiers)'|t }}</div>
+              <div class="mel-stat__value">
+                {% if ticket_tier_rollup.gross_revenue %}
+                  {{ ticket_tier_rollup.gross_revenue.currency_code }} {{ ticket_tier_rollup.gross_revenue.number }}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mel-stats mel-stats--horizontal mel-mb-sm">
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Active tiers'|t }}</div>
+            <div class="mel-stat__value">{{ ticket_tier_rollup.active_tier_count|default(0) }}</div>
+          </div>
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Sold out'|t }}</div>
+            <div class="mel-stat__value">{{ ticket_tier_rollup.sold_out_tier_count|default(0) }}</div>
+          </div>
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Hidden / access / team'|t }}</div>
+            <div class="mel-stat__value">{{ ticket_tier_rollup.restricted_tier_count|default(0) }}</div>
+          </div>
+        </div>
+        {% if ticket_tier_rollup.conversion_note %}
+          <p class="mel-text--muted" style="font-size: 0.875rem; margin: 0;">{{ ticket_tier_rollup.conversion_note }}</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
   {# Charts Section #}
   <div class="mel-grid mel-grid--2 mel-mb-lg">
     {# Sales Chart #}

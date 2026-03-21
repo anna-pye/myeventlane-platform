@@ -157,26 +157,6 @@ function _myeventlane_event_repair_event_wizard_display(EntityFormDisplay $displ
         'settings' => ['placeholder_url' => 'https://', 'placeholder_title' => ''],
       ],
       'field_collect_per_ticket' => ['type' => 'boolean_checkbox', 'weight' => 5, 'settings' => ['display_label' => TRUE]],
-      'field_ticket_types' => [
-        'type' => 'paragraphs',
-        'weight' => 10,
-        'settings' => [
-          'title' => 'Ticket Type',
-          'title_plural' => 'Ticket Types',
-          'edit_mode' => 'open',
-          'closed_mode' => 'summary',
-          'autocollapse' => 'none',
-          'closed_mode_threshold' => 0,
-          'add_mode' => 'dropdown',
-          'form_display_mode' => 'default',
-          'default_paragraph_type' => 'ticket_type_config',
-          'features' => [
-            'add_above' => '0',
-            'collapse_edit_all' => 'collapse_edit_all',
-            'duplicate' => 'duplicate',
-          ],
-        ],
-      ],
       'field_attendee_questions' => [
         'type' => 'paragraphs',
         'weight' => 20,

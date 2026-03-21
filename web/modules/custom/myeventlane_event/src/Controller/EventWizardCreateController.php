@@ -88,7 +88,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
     ]);
 
     $event = $this->getOrCreateDraftEvent();
-    $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event->id()]);
+    $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => (int) $event->id()]);
     return new RedirectResponse($url->toString());
   }
 
@@ -105,7 +105,7 @@ final class EventWizardCreateController extends VendorConsoleBaseController impl
       'form_id' => 'n/a',
       'canonical' => 1,
     ]);
-    $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $node->id()]);
+    $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => (int) $node->id()]);
     return new RedirectResponse($url->toString());
   }
 

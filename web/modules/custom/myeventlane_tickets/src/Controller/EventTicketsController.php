@@ -11,8 +11,11 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_tickets\Service\EventAccess;
+use Drupal\myeventlane_vendor\Form\EventTicketsWorkspaceForm;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -25,24 +28,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class EventTicketsController extends VendorEventTicketsBaseController implements ContainerInjectionInterface {
 
-  /**
-   * The entity type manager.
-   */
   protected EntityTypeManagerInterface $entityTypeManager;
 
-  /**
-   * The form builder.
-   */
   protected FormBuilderInterface $formBuilder;
 
-  /**
-   * The entity form builder.
-   */
   protected EntityFormBuilderInterface $entityFormBuilder;
 
-  /**
-   * Constructs the controller.
-   */
   public function __construct(
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
@@ -51,6 +42,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     EntityTypeManagerInterface $entityTypeManager,
     FormBuilderInterface $formBuilder,
     EntityFormBuilderInterface $entityFormBuilder,
+    private readonly TicketTierLifecycleService $ticketTierLifecycle,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger);
     $this->entityTypeManager = $entityTypeManager;
@@ -70,16 +62,12 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
       $container->get('entity.form_builder'),
+      $container->get('myeventlane_event.ticket_tier_lifecycle'),
     );
   }
 
   /**
-   * Asserts the current user can manage this event's tickets.
-   *
-   * Allows either: (a) manage own events tickets + owner/vendor membership, or
-   * (b) access vendor console + owner/vendor membership (same as vendor base).
-   *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   * {@inheritdoc}
    */
   protected function assertEventOwnership(NodeInterface $event): void {
     if ($this->eventAccess->canManageEventTickets($event)) {
@@ -89,27 +77,30 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   }
 
   /**
-   * Overview page for tickets workspace.
+   * Overview: canonical ticket tier workspace (mel_ticket_type, no variations).
    */
   public function overview(NodeInterface $event): array {
+    $this->assertEventOwnership($event);
+
+    $tickets_form = $this->formBuilder->getForm(EventTicketsWorkspaceForm::class, $event);
+
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-tickets-overview']],
     ];
 
-    $content['intro'] = [
-      '#type' => 'markup',
-      '#markup' => '<p>' . $this->t('Manage ticket types, groups, access codes, settings, and embedded widgets for this event.') . '</p>',
+    $content['tickets_workspace'] = $tickets_form;
+
+    $content['more_heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h3',
+      '#value' => $this->t('More ticket tools'),
+      '#attributes' => ['class' => ['mel-tickets-overview__more-title']],
     ];
 
     $content['links'] = [
       '#theme' => 'item_list',
       '#items' => [
-        [
-          '#type' => 'link',
-          '#title' => $this->t('Ticket types'),
-          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_types', ['event' => $event->id()]),
-        ],
         [
           '#type' => 'link',
           '#title' => $this->t('Ticket groups'),
@@ -153,133 +144,28 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   }
 
   /**
-   * Renders the add ticket modal form.
-   */
-  public function addTicketModal(NodeInterface $event): array {
-    $this->assertEventOwnership($event);
-
-    $form = $this->formBuilder->getForm('Drupal\myeventlane_tickets\Form\AddTicketModalForm', $event);
-
-    // The modal title is set in the form's header markup.
-    // Drupal's dialog will use the route title as fallback.
-    return $form;
-  }
-
-  /**
-   * Lists ticket types (Commerce variations) for the event.
+   * Ticket types tab: same mel_ticket_type workspace as overview.
    */
   public function typesList(NodeInterface $event): array {
     $this->assertEventOwnership($event);
+    $form = $this->formBuilder->getForm(EventTicketsWorkspaceForm::class, $event);
+    return $this->buildTicketsPage($event, $form, (string) $this->t('Ticket types'), 'types');
+  }
 
-    $content = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-tickets-types-list']],
-    ];
-
-    // Add "Add" button with AJAX modal.
-    $add_url = Url::fromRoute('myeventlane_tickets.add_ticket_modal', ['event' => $event->id()]);
-    $content['add_button'] = [
-      '#type' => 'link',
-      '#title' => $this->t('+ Add ticket type'),
-      '#url' => $add_url,
-      '#attributes' => [
-        'class' => ['use-ajax', 'mel-btn', 'mel-btn--primary'],
-        'data-dialog-type' => 'modal',
-        'data-dialog-options' => json_encode(['width' => 'medium', 'dialogClass' => 'mel-add-ticket-dialog']),
-      ],
-      '#weight' => -10,
-    ];
-
-    // Attach AJAX library.
-    $content['#attached']['library'][] = 'core/drupal.dialog.ajax';
-
-    // Ticket types in MEL are variations on the event's linked ticket product.
-    $product = NULL;
-    if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
-      $candidate = $event->get('field_product_target')->entity;
-      if ($candidate && $candidate->bundle() === 'ticket') {
-        $product = $candidate;
-      }
+  /**
+   * Entity edit form for a tier attached to this event (no Commerce variation UI).
+   */
+  public function editTicketType(NodeInterface $event, TicketTypeInterface $mel_ticket_type): array {
+    $this->assertEventOwnership($event);
+    if (!$this->ticketTierLifecycle->ticketBelongsToEvent($event, (int) $mel_ticket_type->id())) {
+      throw new NotFoundHttpException();
     }
-
-    $variations = $product ? $product->getVariations() : [];
-
-    if (empty($variations)) {
-      $content['empty'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-empty-state']],
-        'message' => [
-          '#markup' => '<p>' . $this->t('No ticket types have been created for this event yet.') . '</p>',
-        ],
-      ];
+    if ((int) $mel_ticket_type->get('vendor_id')->target_id !== (int) $this->currentUser->id()
+      && !$this->currentUser->hasPermission('administer mel_ticket_type entities')) {
+      throw new AccessDeniedHttpException();
     }
-    else {
-      // Build card grid.
-      $content['grid'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-ticket-types-grid']],
-      ];
-
-      foreach ($variations as $variation) {
-        $price = 'Free';
-        $stock = 'Unlimited';
-
-        $price_obj = $variation->getPrice();
-        if ($price_obj) {
-          $price_number = (float) $price_obj->getNumber();
-          if ($price_number > 0) {
-            $price = '$' . number_format($price_number, 2);
-          }
-        }
-
-        // Get stock if available.
-        if ($variation->hasField('field_stock') && !$variation->get('field_stock')->isEmpty()) {
-          $stock_value = (int) $variation->get('field_stock')->value;
-          $stock = $this->t('@count available', ['@count' => $stock_value]);
-        }
-
-        $card = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-type-card']],
-        ];
-
-        $card['name'] = [
-          '#type' => 'markup',
-          '#markup' => '<h3 class="mel-ticket-type-card__name">' . $this->t('@name', ['@name' => $variation->label()]) . '</h3>',
-        ];
-
-        $card['price'] = [
-          '#type' => 'markup',
-          '#markup' => '<div class="mel-ticket-type-card__price">' . $price . '</div>',
-        ];
-
-        $card['stock'] = [
-          '#type' => 'markup',
-          '#markup' => '<div class="mel-ticket-type-card__stock">' . $stock . '</div>',
-        ];
-
-        $card['actions'] = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-ticket-type-card__actions']],
-        ];
-
-        $card['actions']['edit'] = [
-          '#type' => 'link',
-          '#title' => $this->t('Edit'),
-          '#url' => $variation->toUrl('edit-form'),
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
-        ];
-
-        $card['actions']['duplicate'] = [
-          '#type' => 'markup',
-          '#markup' => '<span class="mel-btn mel-btn--secondary mel-btn--disabled">' . $this->t('Duplicate') . ' <small>(' . $this->t('Coming soon') . ')</small></span>',
-        ];
-
-        $content['grid'][] = $card;
-      }
-    }
-
-    return $this->buildTicketsPage($event, $content, (string) $this->t('Ticket types'), 'types');
+    $form = $this->entityFormBuilder->getForm($mel_ticket_type, 'edit');
+    return $this->buildTicketsPage($event, $form, (string) $this->t('Edit ticket type'), 'types');
   }
 
   /**

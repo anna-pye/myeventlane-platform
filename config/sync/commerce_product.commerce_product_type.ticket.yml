@@ -9,5 +9,5 @@ locked: false
 description: 'Ticket product for MyEventLane events (free RSVP or paid)'
 variationTypes:
   - ticket_variation
-multipleVariations: false
+multipleVariations: true
 injectVariationFields: true

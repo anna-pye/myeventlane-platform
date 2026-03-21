@@ -122,6 +122,8 @@ function _myeventlane_help_assistant_event_quality_panel_build($event_id, string
     'settings' => [
       'endpoint' => $endpoint,
       'csrfToken' => $csrf,
+      'helpActionCsrfToken' => \Drupal::csrfToken()->get('mel_help_action'),
+      'helpActionBaseUrl' => '/api/help-action/',
       'eventId' => $eid,
       'wizardStep' => $wizard_step,
     ],

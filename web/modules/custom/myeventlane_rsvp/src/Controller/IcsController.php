@@ -5,7 +5,9 @@ namespace Drupal\myeventlane_rsvp\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\myeventlane_rsvp\Service\IcsGenerator;
 use Drupal\node\NodeInterface;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for ICS calendar download.
@@ -32,7 +34,12 @@ final class IcsController extends ControllerBase {
    *   The ICS file response.
    */
   public function download(NodeInterface $node): Response {
-    $ics = $this->icsGenerator->generate($node);
+    try {
+      $ics = $this->icsGenerator->generate($node);
+    }
+    catch (InvalidArgumentException) {
+      throw new NotFoundHttpException();
+    }
 
     $filename = 'event-' . $node->id() . '.ics';
 

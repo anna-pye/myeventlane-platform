@@ -284,11 +284,25 @@
     }
   }
 
-  .mel-ticket-label {
+  .mel-ticket-label-cell {
     grid-area: label;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(1);
+    min-width: 0;
+  }
+
+  .mel-ticket-label {
     font-size: typography.mel-font-size(base);
     font-weight: typography.$mel-font-semibold;
     color: colors.$mel-color-text;
+    min-width: 0;
+  }
+
+  .mel-ticket-description {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-regular;
+    line-height: 1.45;
     min-width: 0;
   }
 
@@ -339,7 +353,7 @@
       gap: spacing.mel-space(2);
     }
 
-    .mel-ticket-label {
+    .mel-ticket-label-cell {
       grid-area: label;
     }
 

@@ -121,11 +121,14 @@ final class EventSuggestionController extends ControllerBase {
         'title' => (string) ($row['title'] ?? ''),
         'message' => (string) ($row['message'] ?? ''),
       ];
-      if (!empty($row['cta']) && is_array($row['cta'])) {
+      if (!empty($row['action']) && is_array($row['action'])) {
+        $item['action'] = $row['action'];
+      }
+      elseif (!empty($row['cta']) && is_array($row['cta'])) {
         $label = trim((string) ($row['cta']['label'] ?? ''));
         $url = trim((string) ($row['cta']['url'] ?? ''));
         if ($label !== '' && $url !== '') {
-          $item['cta'] = ['label' => $label, 'url' => $url];
+          $item['action'] = ['type' => 'link', 'label' => $label, 'url' => $url];
         }
       }
       if ($item['message'] !== '') {
@@ -150,11 +153,14 @@ final class EventSuggestionController extends ControllerBase {
             'title' => (string) ($row['title'] ?? ''),
             'message' => (string) ($row['message'] ?? ''),
           ];
-          if (!empty($row['cta']) && is_array($row['cta'])) {
+          if (!empty($row['action']) && is_array($row['action'])) {
+            $item['action'] = $row['action'];
+          }
+          elseif (!empty($row['cta']) && is_array($row['cta'])) {
             $label = trim((string) ($row['cta']['label'] ?? ''));
             $url = trim((string) ($row['cta']['url'] ?? ''));
             if ($label !== '' && $url !== '') {
-              $item['cta'] = ['label' => $label, 'url' => $url];
+              $item['action'] = ['type' => 'link', 'label' => $label, 'url' => $url];
             }
           }
           if ($item['message'] !== '') {

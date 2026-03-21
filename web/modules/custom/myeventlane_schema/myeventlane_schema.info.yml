@@ -6,6 +6,7 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - mel_ticket:mel_ticket
   - myeventlane_core:myeventlane_core
   - myeventlane_venue:myeventlane_venue
   - geofield:geofield

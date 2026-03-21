@@ -30,6 +30,7 @@ services:
       - '@current_user'
       - '@current_route_match'
       - '@request_stack'
+      - '@entity_type.manager'
       - '@?myeventlane_core.optional_service_resolver'
       - '@string_translation'
 
@@ -47,6 +48,19 @@ services:
 
   myeventlane_vendor.manage_event_navigation:
     class: Drupal\myeventlane_vendor\Service\ManageEventNavigation
+
+  myeventlane_vendor.ticket_builder:
+    class: Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder
+    arguments:
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_event.ticket_type_manager'
+      - '@myeventlane_commerce.ticket_status'
+      - '@myeventlane_commerce.ticket_tier_analytics'
+      - '@current_user'
+      - '@messenger'
+      - '@logger.factory'
+    calls:
+      - [setStringTranslation, ['@string_translation']]
 
   myeventlane_vendor.service.ticket_sales:
     class: Drupal\myeventlane_vendor\Service\TicketSalesService
@@ -171,7 +185,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_analytics:
     class: Drupal\myeventlane_vendor\Controller\VendorEventAnalyticsController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@?myeventlane_pro.active_resolver']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.ticket_tier_lifecycle', '@myeventlane_commerce.ticket_tier_analytics', '@?myeventlane_pro.active_resolver']
     tags:
       - { name: controller.service_arguments }
 

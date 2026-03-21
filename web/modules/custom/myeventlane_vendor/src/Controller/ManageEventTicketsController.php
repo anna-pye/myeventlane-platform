@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\myeventlane_vendor\Form\EventTicketsWorkspaceForm;
 use Drupal\node\NodeInterface;
 
 /**
@@ -21,8 +22,7 @@ final class ManageEventTicketsController extends ManageEventControllerBase {
    *   Render array.
    */
   public function tickets(NodeInterface $event): array {
-    // Get the ticket types form.
-    $form = $this->formBuilder()->getForm('Drupal\myeventlane_vendor\Form\EventTicketsForm', $event);
+    $form = $this->formBuilder()->getForm(EventTicketsWorkspaceForm::class, $event);
 
     $content = [
       '#type' => 'container',

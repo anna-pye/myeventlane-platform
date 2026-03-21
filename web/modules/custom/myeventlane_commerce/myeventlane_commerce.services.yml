@@ -56,3 +56,126 @@ services:
       - '@commerce_order.order_refresh'
     tags:
       - { name: event_subscriber }
+
+  myeventlane_commerce.ticket_variation_sold:
+    class: Drupal\myeventlane_commerce\Service\TicketVariationSoldService
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_commerce.ticket_booking_session:
+    class: Drupal\myeventlane_commerce\Service\TicketBookingSessionService
+    arguments:
+      - '@request_stack'
+      - '@session_manager'
+
+  myeventlane_commerce.ticket_access_code:
+    class: Drupal\myeventlane_commerce\Service\TicketAccessCodeService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@datetime.time'
+      - '@myeventlane_commerce.ticket_booking_session'
+
+  myeventlane_commerce.ticket_tier_access:
+    class: Drupal\myeventlane_commerce\Service\TicketTierAccessService
+
+  myeventlane_commerce.ticket_group_eligibility:
+    class: Drupal\myeventlane_commerce\Service\TicketGroupEligibilityService
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_commerce.ticket_capacity:
+    class: Drupal\myeventlane_commerce\Service\TicketCapacityService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@datetime.time'
+
+  myeventlane_commerce.ticket_tier_waitlist:
+    class: Drupal\myeventlane_commerce\Service\TicketTierWaitlistService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@datetime.time'
+      - '@logger.factory'
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@queue'
+      - '@myeventlane_commerce.ticket_capacity'
+      - '@lock'
+      - '@myeventlane_commerce.ticket_booking_session'
+      - '@string_translation'
+
+  myeventlane_commerce.ticket_tier_analytics:
+    class: Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService
+    arguments:
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@datetime.time'
+
+  myeventlane_commerce.ticket_status:
+    class: Drupal\myeventlane_commerce\Service\TicketStatusService
+    arguments:
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@datetime.time'
+
+  myeventlane_commerce.ticket_availability:
+    class: Drupal\myeventlane_commerce\Service\TicketAvailabilityService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_capacity.service'
+      - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_commerce.ticket_variation_sold'
+      - '@datetime.time'
+      - '@myeventlane_commerce.ticket_tier_access'
+      - '@myeventlane_commerce.ticket_booking_session'
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@current_user'
+      - '@myeventlane_commerce.ticket_access_code'
+      - '@myeventlane_commerce.ticket_group_eligibility'
+      - '@myeventlane_commerce.ticket_capacity'
+      - '@cache.data'
+      - '@current_route_match'
+      - '@request_stack'
+
+  myeventlane_commerce.ticket_waitlist_order_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\TicketWaitlistOrderSubscriber
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@logger.channel.myeventlane_commerce'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_commerce.controller.ticket_waitlist_claim:
+    class: Drupal\myeventlane_commerce\Controller\TicketWaitlistClaimController
+    arguments:
+      - '@myeventlane_commerce.ticket_tier_waitlist'
+      - '@myeventlane_commerce.ticket_booking_session'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_commerce.ticket_availability_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber
+    arguments:
+      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_capacity.order_inspector'
+      - '@entity_type.manager'
+      - '@lock'
+      - '@request_stack'
+      - '@string_translation'
+      - '@logger.channel.myeventlane_commerce'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_commerce.ticket_capacity_order_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\TicketCapacityOrderSubscriber
+    arguments:
+      - '@lock'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_capacity.order_inspector'
+      - '@entity_type.manager'
+      - '@request_stack'
+    tags:
+      - { name: event_subscriber }

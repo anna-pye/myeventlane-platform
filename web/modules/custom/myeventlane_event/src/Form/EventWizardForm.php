@@ -1172,26 +1172,7 @@ final class EventWizardForm extends FormBase {
       }
     }
 
-    // Build ticket types field (mel_ticket_type entities; paid tiers sync to Commerce).
-    if ($event->hasField('field_ticket_types')) {
-      $this->buildEntityWidgets($event, ['field_ticket_types'], $form, $form_state);
-      if (isset($form['wizard']['content']['field_ticket_types'])) {
-        $form['wizard']['content']['field_ticket_types']['#weight'] = 6;
-        $form['wizard']['content']['field_ticket_types']['#states'] = [
-          'visible' => [
-            ':input[name="' . $event_type_selector . '"]' => [
-              ['value' => 'paid'],
-              ['value' => 'both'],
-              ['value' => 'rsvp'],
-            ],
-          ],
-        ];
-        if (!isset($form['wizard']['content']['field_ticket_types']['#description'])) {
-          $form['wizard']['content']['field_ticket_types']['#description'] =
-            $this->t('Attach ticket definitions (RSVP, paid, or external). Paid types create Commerce variations when the event is saved.');
-        }
-      }
-    }
+    // Ticket tiers (mel_ticket_type) are managed on the vendor Tickets page — not on this form.
 
     // Add info about ticket types management (conditionally shown).
     $tickets_url = NULL;
@@ -1211,6 +1192,7 @@ final class EventWizardForm extends FormBase {
           ':input[name="' . $event_type_selector . '"]' => [
             ['value' => 'paid'],
             ['value' => 'both'],
+            ['value' => 'rsvp'],
           ],
         ],
       ],
@@ -1218,14 +1200,14 @@ final class EventWizardForm extends FormBase {
 
     if ($tickets_url && !$event->isNew()) {
       $form['wizard']['content']['_ticket_types_info']['message'] = [
-        '#markup' => '<p>' . $this->t('Configure ticket types, pricing, and availability on the <a href="@url">Tickets page</a>.', [
+        '#markup' => '<p>' . $this->t('Configure RSVP tiers, paid ticket types, pricing, and availability on the <a href="@url">Tickets page</a>.', [
           '@url' => $tickets_url->toString(),
         ]) . '</p>',
       ];
     }
     else {
       $form['wizard']['content']['_ticket_types_info']['message'] = [
-        '#markup' => '<p>' . $this->t('After publishing, you can configure ticket types, pricing, and availability on the Tickets page.') . '</p>',
+        '#markup' => '<p>' . $this->t('After publishing, configure RSVP and paid ticket types on the Tickets page.') . '</p>',
       ];
     }
 

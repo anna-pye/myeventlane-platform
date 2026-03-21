@@ -56,15 +56,19 @@ final class HelpCentreController extends ControllerBase {
     $currentRequest = $this->requestStack->getCurrentRequest();
     $queryValue = $currentRequest?->query->get('q');
     $searchValue = is_string($queryValue) ? trim($queryValue) : '';
+    $contextValue = $currentRequest?->query->get('context');
+    $isVendorContext = is_string($contextValue) && trim($contextValue) === 'vendor';
 
     $build = [
       '#theme' => 'help_centre_home',
+      '#context' => $isVendorContext ? 'vendor' : NULL,
       '#help_search' => [
         'action' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
         'value' => $searchValue,
         'placeholder' => $this->t('Search help articles...'),
       ],
       '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
+      '#vendors' => $isVendorContext ? $this->buildView('mel_help_vendor_help', 'block_vendors') : [],
       '#help_categories' => $this->loadHelpCategories(),
       '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
     ];
@@ -79,6 +83,7 @@ final class HelpCentreController extends ControllerBase {
     $cacheability->setCacheContexts([
       'url.path',
       'url.query_args:q',
+      'url.query_args:context',
       'languages:language_interface',
       'user.permissions',
     ]);
@@ -146,41 +151,28 @@ final class HelpCentreController extends ControllerBase {
    * Vendor Help Centre homepage: same layout as /help, scoped for vendors.
    */
   public function vendorHelp(): array {
-    $currentRequest = $this->requestStack->getCurrentRequest();
-    $queryValue = $currentRequest?->query->get('q');
-    $searchValue = is_string($queryValue) ? trim($queryValue) : '';
+    $redirectUrl = Url::fromRoute('myeventlane_help_centre.home', [], [
+      'query' => ['context' => 'vendor'],
+    ])->toString();
 
-    $build = [
-      '#theme' => 'help_centre_home',
-      '#context' => 'vendor',
-      '#help_search' => [
-        'action' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
-        'value' => $searchValue,
-        'placeholder' => $this->t('Search help articles...'),
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-help-redirect']],
+      'message' => [
+        '#markup' => '<p>' . $this->t('Redirecting to Help Centre...') . '</p>',
       ],
-      '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
-      '#vendors' => $this->buildView('mel_help_vendor_help', 'block_vendors'),
-      '#help_categories' => $this->loadHelpCategories(),
-      '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
+      '#attached' => [
+        'library' => ['myeventlane_help_centre/help_redirect'],
+        'drupalSettings' => [
+          'myeventlaneHelpCentre' => [
+            'redirectUrl' => $redirectUrl,
+          ],
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
     ];
-
-    $cacheability = new CacheableMetadata();
-    $cacheability->setCacheTags([
-      'node_list:help_article',
-      'node_list:faq',
-      'taxonomy_term_list',
-      'config:taxonomy.vocabulary.help_topic',
-      'config:taxonomy.vocabulary.help_audience',
-    ]);
-    $cacheability->setCacheContexts([
-      'url.path',
-      'url.query_args:q',
-      'languages:language_interface',
-      'user.permissions',
-    ]);
-    $cacheability->applyTo($build);
-
-    return $build;
   }
 
   /**

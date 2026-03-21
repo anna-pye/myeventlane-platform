@@ -32,6 +32,7 @@ dependencies:
     - entity_reference_revisions
     - image
     - link
+    - mel_ticket
     - paragraphs
     - path
     - text
@@ -205,23 +206,14 @@ content:
       placeholder: ''
     third_party_settings: {}
   field_ticket_types:
-    type: paragraphs
+    type: entity_reference_autocomplete
     weight: 12
     region: content
     settings:
-      title: 'Ticket Type'
-      title_plural: 'Ticket Types'
-      edit_mode: open
-      closed_mode: summary
-      autocollapse: none
-      closed_mode_threshold: 0
-      add_mode: dropdown
-      form_display_mode: default
-      default_paragraph_type: ticket_type_config
-      features:
-        add_above: '0'
-        collapse_edit_all: collapse_edit_all
-        duplicate: duplicate
+      match_operator: CONTAINS
+      match_limit: 20
+      size: 60
+      placeholder: ''
     third_party_settings: {}
   field_venue_name:
     type: string_textfield

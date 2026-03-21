@@ -7,3 +7,14 @@ ticket_matrix:
       css/ticket_matrix.css: {}
   dependencies:
     - core/drupal
+
+mel_waitlist_offer_countdown:
+  version: 1.x
+  js:
+    js/mel_waitlist_offer_countdown.js: {}
+  css:
+    theme:
+      css/mel_waitlist_offer_countdown.css: {}
+  dependencies:
+    - core/drupal
+    - core/once

@@ -323,3 +323,30 @@ function myeventlane_tickets_update_8005(): string {
   $schema->createTable('myeventlane_ticket_checkin_log', $table);
   return 'Created table myeventlane_ticket_checkin_log.';
 }
+
+/**
+ * Adds allowed_ticket_types to mel_access_code for tier-scoped unlock.
+ */
+function myeventlane_tickets_update_8006(): string {
+  if (!\Drupal::entityTypeManager()->hasDefinition('mel_access_code')) {
+    return 'mel_access_code not defined.';
+  }
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_access_code');
+  $fields = \Drupal\myeventlane_tickets\Entity\AccessCode::baseFieldDefinitions($entity_type);
+  if (!isset($fields['allowed_ticket_types'])) {
+    return 'allowed_ticket_types field definition missing.';
+  }
+  try {
+    $update_manager->installFieldStorageDefinition(
+      'allowed_ticket_types',
+      'mel_access_code',
+      'myeventlane_tickets',
+      $fields['allowed_ticket_types']
+    );
+    return 'Installed mel_access_code.allowed_ticket_types.';
+  }
+  catch (\Throwable $e) {
+    return 'allowed_ticket_types may already exist: ' . $e->getMessage();
+  }
+}

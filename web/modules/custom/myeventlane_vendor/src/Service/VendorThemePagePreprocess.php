@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -41,6 +42,7 @@ final class VendorThemePagePreprocess {
     private readonly AccountProxyInterface $currentUser,
     private readonly RouteMatchInterface $routeMatch,
     private readonly RequestStack $requestStack,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ?OptionalServiceResolver $optionalServiceResolver,
     TranslationInterface $stringTranslation,
   ) {
@@ -168,6 +170,11 @@ final class VendorThemePagePreprocess {
     $variables['page']['shell_page_title'] = $this->getShellPageTitle($route_name);
     $variables['page']['shell_page_subtitle'] = $this->getShellPageSubtitle($route_name);
     $variables['page']['shell_primary_action'] = $this->getShellPrimaryAction();
+    if ($this->isWizardRoute($route_name)) {
+      [$selected_event_card, $other_event_cards] = $this->buildWizardEventCards();
+      $variables['page']['wizard_selected_event'] = $selected_event_card;
+      $variables['page']['wizard_other_events'] = $other_event_cards;
+    }
 
     $variables['page']['logout_link'] = [
       '#type' => 'link',
@@ -279,6 +286,7 @@ final class VendorThemePagePreprocess {
       'myeventlane_event.wizard.success' => 'events',
       'myeventlane_vendor.console.event_overview' => 'events',
       'myeventlane_vendor.console.event_workspace' => 'events',
+      'myeventlane_vendor.console.event_editor' => 'events',
       'myeventlane_vendor.console.event_tickets' => 'events',
       'myeventlane_vendor.console.event_promotion' => 'events',
       'myeventlane_vendor.console.event_analytics' => 'events',
@@ -294,6 +302,7 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.audience' => 'audience',
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_vendor.console.messaging_brand' => 'settings',
+      'myeventlane_help_centre.vendor_help' => 'help',
       'myeventlane_vendor.dashboard' => 'dashboard',
       'myeventlane_vendor.console.dashboard' => 'dashboard',
     ];
@@ -367,7 +376,8 @@ final class VendorThemePagePreprocess {
         'key' => 'help',
         'label' => $this->t('Help'),
         'icon' => 'help',
-        'route' => NULL,
+        'route' => 'myeventlane_help_centre.vendor_help',
+        'path_fallback' => '/vendor/help',
       ],
     ];
 
@@ -381,7 +391,13 @@ final class VendorThemePagePreprocess {
           $url = Url::fromRoute((string) $item['route'])->toString();
         }
         catch (\Throwable) {
-          $is_disabled = TRUE;
+          if (!empty($item['path_fallback'])) {
+            $url = (string) $item['path_fallback'];
+            $is_disabled = FALSE;
+          }
+          else {
+            $is_disabled = TRUE;
+          }
         }
       }
       else {
@@ -407,17 +423,6 @@ final class VendorThemePagePreprocess {
    *   Child menu items for the events navigation item.
    */
   private function buildEventWizardSubmenu(?string $route_name): array {
-    $active_routes = [
-      'myeventlane_event.wizard.create',
-      'myeventlane_event.wizard.edit',
-      'myeventlane_event.wizard.basics',
-      'myeventlane_event.wizard.when_where',
-      'myeventlane_event.wizard.tickets',
-      'myeventlane_event.wizard.details',
-      'myeventlane_event.wizard.review',
-      'myeventlane_event.wizard.publish',
-    ];
-
     $event_id = $this->resolveCurrentEventId();
     $has_event_context = $event_id !== NULL;
     if (!$has_event_context) {
@@ -456,7 +461,9 @@ final class VendorThemePagePreprocess {
     foreach ($wizard_steps as $wizard_step) {
       $url = NULL;
       if ($has_event_context) {
-        $url = $this->safeRouteToString((string) $wizard_step['route'], ['node' => $event_id]);
+        $url = $this->safeRouteToString((string) $wizard_step['route'], [
+          'event' => $event_id,
+        ]);
       }
 
       $items[] = [
@@ -508,9 +515,9 @@ final class VendorThemePagePreprocess {
    * @return string|null
    *   Route URL string or NULL if route is unavailable.
    */
-  private function safeRouteToString(string $route_name, array $route_parameters = []): ?string {
+  private function safeRouteToString(string $route_name, array $route_parameters = [], array $options = []): ?string {
     try {
-      return Url::fromRoute($route_name, $route_parameters)->toString();
+      return Url::fromRoute($route_name, $route_parameters, $options)->toString();
     }
     catch (\Throwable) {
       return NULL;
@@ -571,6 +578,102 @@ final class VendorThemePagePreprocess {
     catch (\Throwable) {
       return NULL;
     }
+  }
+
+  /**
+   * Determines whether current route is an event wizard step route.
+   */
+  private function isWizardRoute(?string $route_name): bool {
+    return in_array((string) $route_name, [
+      'myeventlane_event.wizard.basics',
+      'myeventlane_event.wizard.when_where',
+      'myeventlane_event.wizard.tickets',
+      'myeventlane_event.wizard.details',
+      'myeventlane_event.wizard.review',
+      'myeventlane_event.wizard.publish',
+      'myeventlane_event.wizard.success',
+    ], TRUE);
+  }
+
+  /**
+   * Builds selected + other event cards for wizard pages.
+   *
+   * @return array{0: array<string, mixed>|null, 1: array<int, array<string, mixed>>}
+   *   Selected event card and list of other event cards.
+   */
+  private function buildWizardEventCards(): array {
+    $selected_id = $this->resolveCurrentEventId();
+    if (!$this->currentUser->isAuthenticated()) {
+      return [NULL, []];
+    }
+
+    $event_ids = $this->entityTypeManager->getStorage('node')
+      ->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('type', 'event')
+      ->condition('uid', (int) $this->currentUser->id())
+      ->sort('changed', 'DESC')
+      ->range(0, 24)
+      ->execute();
+    if ($event_ids === []) {
+      return [NULL, []];
+    }
+
+    $selected = NULL;
+    $others = [];
+    $events = $this->entityTypeManager->getStorage('node')->loadMultiple($event_ids);
+    foreach ($events as $event) {
+      if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+        continue;
+      }
+
+      $event_id = (int) $event->id();
+      $card = [
+        'id' => $event_id,
+        'title' => $event->label(),
+        'date' => $this->formatWizardEventDate($event),
+        'status' => $this->formatWizardEventStatus($event),
+        'url' => $this->safeRouteToString('myeventlane_event.wizard.basics', ['event' => $event_id]),
+      ];
+      if ($selected_id !== NULL && $event_id === $selected_id) {
+        $selected = $card;
+      }
+      else {
+        $others[] = $card;
+      }
+    }
+
+    return [$selected, $others];
+  }
+
+  /**
+   * Formats event date copy for wizard cards.
+   */
+  private function formatWizardEventDate(NodeInterface $event): string {
+    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+      $raw = (string) $event->get('field_event_start')->value;
+      $timestamp = strtotime($raw);
+      if ($timestamp !== FALSE) {
+        return date('D, j M Y - H:i', $timestamp);
+      }
+      return $raw;
+    }
+    return (string) $this->t('Date TBD');
+  }
+
+  /**
+   * Formats wizard card status label.
+   */
+  private function formatWizardEventStatus(NodeInterface $event): string {
+    if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()) {
+      $state = (string) $event->get('moderation_state')->value;
+      return match ($state) {
+        'published', 'live' => (string) $this->t('Published'),
+        'review', 'needs_review' => (string) $this->t('Review'),
+        default => (string) $this->t('Draft'),
+      };
+    }
+    return $event->isPublished() ? (string) $this->t('Published') : (string) $this->t('Draft');
   }
 
 }

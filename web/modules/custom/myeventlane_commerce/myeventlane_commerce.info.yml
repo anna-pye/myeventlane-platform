@@ -7,6 +7,7 @@ lifecycle: stable
 
 dependencies:
   - mel_ticket:mel_ticket
+  - myeventlane_messaging:myeventlane_messaging
   - myeventlane_core:myeventlane_core
   - myeventlane_rsvp:myeventlane_rsvp
   - myeventlane_schema:myeventlane_schema

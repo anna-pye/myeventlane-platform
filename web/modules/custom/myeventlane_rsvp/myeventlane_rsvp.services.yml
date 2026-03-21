@@ -39,7 +39,7 @@ services:
 
   myeventlane_rsvp.ics_generator:
     class: Drupal\myeventlane_rsvp\Service\IcsGenerator
-    arguments: ['@file_system']
+    arguments: ['@logger.channel.myeventlane_rsvp']
 
   myeventlane_rsvp.capacity:
     class: Drupal\myeventlane_rsvp\Service\RsvpCapacityService

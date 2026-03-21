@@ -23,6 +23,7 @@
 {% set promotion_save_url = event.promotion_save_url|default('') %}
 {% set settings_save_url = event.settings_save_url|default('') %}
 {% set publish_url = event.publish_url|default('') %}
+{% set wizard_url = event.wizard_url|default('') %}
 {% set is_studio_card = read_url is not empty and save_url is not empty %}
 
 {% if is_studio_card %}
@@ -42,6 +43,7 @@
   data-promotion-save-url="{{ promotion_save_url }}"
   data-settings-save-url="{{ settings_save_url }}"
   data-publish-url="{{ publish_url }}"
+  data-wizard-url="{{ wizard_url }}"
   data-preview-url="{{ preview_url }}"
   data-view-url="{{ view_url }}"
   data-tickets="{{ ticket_count }}"

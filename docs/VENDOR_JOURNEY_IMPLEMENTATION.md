@@ -21,7 +21,8 @@ A Humanitix-style vendor journey for creating and managing events has been imple
 ### New Forms
 - `web/modules/custom/myeventlane_vendor/src/Form/EventDesignForm.php` - Design settings form
 - `web/modules/custom/myeventlane_vendor/src/Form/EventContentForm.php` - Content editing form
-- `web/modules/custom/myeventlane_vendor/src/Form/EventTicketsForm.php` - Ticket types management form
+- `web/modules/custom/myeventlane_vendor/src/Form/EventTicketsWorkspaceForm.php` - Thin Form API root for the ticket card workspace (UI built by `EventTicketsBuilder`)
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardTicketsForm.php` - Wizard tickets step; same builder service
 - `web/modules/custom/myeventlane_vendor/src/Form/EventCheckoutQuestionsForm.php` - Checkout questions form
 
 ### Templates & Styling
