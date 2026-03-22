@@ -78,10 +78,10 @@ final class ProProductResolverTest extends KernelTestBase {
    * Resolver returns configured SKU when variation is active.
    */
   public function testResolverUsesConfiguredActiveSku(): void {
-    $this->ensureCatalogTypes('custom_pro_variation', 'custom_pro_product');
+    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
     $expected = $this->createVariation(
-      variationType: 'custom_pro_variation',
-      productType: 'custom_pro_product',
+      variationType: 'mel_pro_subscription_variation',
+      productType: 'mel_pro_subscription',
       sku: 'PRO-SKU-ACTIVE',
       active: TRUE,
     );
@@ -97,10 +97,10 @@ final class ProProductResolverTest extends KernelTestBase {
    * Resolver returns NULL when configured SKU maps to inactive variation.
    */
   public function testResolverReturnsNullForConfiguredInactiveSku(): void {
-    $this->ensureCatalogTypes('custom_pro_variation', 'custom_pro_product');
+    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
     $this->createVariation(
-      variationType: 'custom_pro_variation',
-      productType: 'custom_pro_product',
+      variationType: 'mel_pro_subscription_variation',
+      productType: 'mel_pro_subscription',
       sku: 'PRO-SKU-INACTIVE',
       active: FALSE,
     );
@@ -113,15 +113,34 @@ final class ProProductResolverTest extends KernelTestBase {
    * Resolver falls back to legacy type query when SKU is not configured.
    */
   public function testResolverFallsBackToLegacyVariationType(): void {
-    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription_product');
+    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
     $expected = $this->createVariation(
       variationType: 'mel_pro_subscription_variation',
-      productType: 'mel_pro_subscription_product',
+      productType: 'mel_pro_subscription',
       sku: 'PRO-SKU-FALLBACK',
       active: TRUE,
     );
 
     $resolver = $this->getResolver('');
+    $resolved = $resolver->findActiveVariation();
+
+    $this->assertInstanceOf(ProductVariationInterface::class, $resolved);
+    $this->assertSame((int) $expected->id(), (int) $resolved->id());
+  }
+
+  /**
+   * Wrong configured SKU still resolves a published Pro variation by type.
+   */
+  public function testResolverFallsBackWhenConfiguredSkuDoesNotMatch(): void {
+    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
+    $expected = $this->createVariation(
+      variationType: 'mel_pro_subscription_variation',
+      productType: 'mel_pro_subscription',
+      sku: 'PRO-SKU-ACTUAL',
+      active: TRUE,
+    );
+
+    $resolver = $this->getResolver('WRONG-SKU-FROM-CONFIG');
     $resolved = $resolver->findActiveVariation();
 
     $this->assertInstanceOf(ProductVariationInterface::class, $resolved);

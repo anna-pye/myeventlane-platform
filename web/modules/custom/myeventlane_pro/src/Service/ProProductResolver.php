@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_pro\Service;
 
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
@@ -32,39 +33,64 @@ final class ProProductResolver {
 
   /**
    * Finds the first active Pro subscription product variation.
+   *
+   * Resolution order:
+   * 1. If pro_variation_sku is set, load that SKU when it is a published
+   *    variation of bundle mel_pro_subscription_variation.
+   * 2. Otherwise, or if step 1 fails (stale/wrong SKU, wrong bundle, etc.),
+   *    load the first published variation of bundle mel_pro_subscription_variation.
    */
   public function findActiveVariation(): ?ProductVariationInterface {
     $configuredSku = $this->getConfiguredSku();
     if ($configuredSku !== '') {
-      $ids = $this->entityTypeManager->getStorage('commerce_product_variation')
-        ->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('sku', $configuredSku)
-        ->range(0, 1)
-        ->execute();
-
-      if ($ids !== []) {
-        $variation = $this->entityTypeManager
-          ->getStorage('commerce_product_variation')
-          ->load(reset($ids));
-        if ($variation instanceof ProductVariationInterface && $this->isVariationActive($variation)) {
-          return $variation;
-        }
+      $bySku = $this->loadVariationBySku($configuredSku);
+      if ($bySku instanceof ProductVariationInterface
+        && $bySku->bundle() === self::VARIATION_TYPE
+        && $this->isVariationActive($bySku)) {
+        return $bySku;
       }
+    }
 
-      // Explicit SKU configuration is authoritative.
+    return $this->findFirstPublishedByProVariationType();
+  }
+
+  /**
+   * Loads a product variation by exact SKU (any bundle, any publish state).
+   */
+  private function loadVariationBySku(string $sku): ?ProductVariationInterface {
+    $ids = $this->entityTypeManager->getStorage('commerce_product_variation')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('sku', $sku)
+      ->range(0, 1)
+      ->execute();
+
+    if ($ids === []) {
       return NULL;
     }
 
+    $variation = $this->entityTypeManager
+      ->getStorage('commerce_product_variation')
+      ->load(reset($ids));
+
+    return $variation instanceof ProductVariationInterface ? $variation : NULL;
+  }
+
+  /**
+   * Loads the first published variation of the Pro subscription variation type.
+   */
+  private function findFirstPublishedByProVariationType(): ?ProductVariationInterface {
+    $idKey = $this->entityTypeManager->getDefinition('commerce_product_variation')->getKey('id');
     $ids = $this->entityTypeManager->getStorage('commerce_product_variation')
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', self::VARIATION_TYPE)
       ->condition('status', 1)
+      ->sort($idKey, 'ASC')
       ->range(0, 1)
       ->execute();
 
-    if (empty($ids)) {
+    if ($ids === []) {
       return NULL;
     }
 
@@ -79,10 +105,13 @@ final class ProProductResolver {
    * Determines whether a variation is active/published.
    */
   private function isVariationActive(ProductVariationInterface $variation): bool {
-    if (!$variation->hasField('status')) {
-      return FALSE;
+    if ($variation instanceof EntityPublishedInterface) {
+      return $variation->isPublished();
     }
-    return (int) $variation->get('status')->value === 1;
+    if ($variation->hasField('status')) {
+      return (int) $variation->get('status')->value === 1;
+    }
+    return FALSE;
   }
 
   /**
