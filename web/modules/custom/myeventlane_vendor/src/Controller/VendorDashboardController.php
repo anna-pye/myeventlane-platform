@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
@@ -14,6 +15,10 @@ use Drupal\myeventlane_ai\Service\AiUsageTracker;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_growth\Service\GrowthInsightService;
+use Drupal\myeventlane_growth\Service\GrowthTrackingService;
+use Drupal\myeventlane_pro\Service\EventInsightService;
+use Drupal\myeventlane_vendor\Service\CategoryAudienceService;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
@@ -28,7 +33,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Vendor dashboard controller - Full functional control centre.
+ * Organiser dashboard controller - Full functional control centre.
+ *
+ * MEL LANGUAGE STANDARD: Use "Organiser" not "Vendor", "Attendee" not "Customer".
  */
 final class VendorDashboardController extends VendorConsoleBaseController {
 
@@ -85,9 +92,31 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected ?ConfigFactoryInterface $configFactory;
 
   /**
+   * Category audience service (for audience summary).
+   */
+  protected ?CategoryAudienceService $categoryAudienceService;
+
+  /**
    * Vendor metrics read model.
    */
   protected ?VendorMetricsReadModel $vendorMetricsReadModel;
+
+  /**
+   * Event insight service (optional, from myeventlane_pro).
+   */
+  protected ?EventInsightService $insightService;
+
+  /**
+   * Growth insight service (optional).
+   */
+  protected ?GrowthInsightService $growthInsight;
+
+  /**
+   * Growth tracking (optional).
+   */
+  protected ?GrowthTrackingService $growthTracking;
+
+  protected ?CsrfTokenGenerator $csrfToken;
 
   /**
    * Constructs the controller.
@@ -107,6 +136,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     EventStateResolverInterface $event_state_resolver,
     ?AiUsageTracker $ai_usage_tracker = NULL,
     ?ConfigFactoryInterface $config_factory = NULL,
+    ?CategoryAudienceService $category_audience_service = NULL,
+    ?EventInsightService $insight_service = NULL,
+    ?GrowthInsightService $growth_insight = NULL,
+    ?GrowthTrackingService $growth_tracking = NULL,
+    ?CsrfTokenGenerator $csrf_token = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->rsvpStats = $rsvp_stats;
@@ -120,6 +154,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->eventStateResolver = $event_state_resolver;
     $this->aiUsageTracker = $ai_usage_tracker;
     $this->configFactory = $config_factory;
+    $this->categoryAudienceService = $category_audience_service;
+    $this->insightService = $insight_service;
+    $this->growthInsight = $growth_insight;
+    $this->growthTracking = $growth_tracking;
+    $this->csrfToken = $csrf_token;
   }
 
   /**
@@ -141,6 +180,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_event_state.resolver'),
       $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
       $container->get('config.factory'),
+      $container->has('myeventlane_vendor.service.category_audience') ? $container->get('myeventlane_vendor.service.category_audience') : NULL,
+      $container->has('myeventlane_pro.event_insight') ? $container->get('myeventlane_pro.event_insight') : NULL,
+      $container->has('myeventlane_growth.insight') ? $container->get('myeventlane_growth.insight') : NULL,
+      $container->has('myeventlane_growth.tracking') ? $container->get('myeventlane_growth.tracking') : NULL,
+      $container->get('csrf_token'),
     );
   }
 
@@ -237,10 +281,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ];
     }
 
+    $audienceSummary = ['total_attendees' => 0, 'repeat_attendees' => 0];
+    if ($this->categoryAudienceService) {
+      $audienceSummary = $this->categoryAudienceService->getAudienceSummary($userId);
+    }
+
     $pageVars = [
       'vendor' => $vendor,
       'vendor_edit_url' => $vendorEditUrl,
       'ai_usage_panel' => $aiUsagePanel,
+      'audience_summary' => $audienceSummary,
       'kpis' => $kpis,
       'charts' => $charts,
       'events' => $events,
@@ -316,6 +366,60 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
       catch (\Throwable $e) {
         \Drupal::logger('myeventlane_vendor')->warning('Onboarding panel failed on dashboard: @m', ['@m' => $e->getMessage()]);
+      }
+    }
+
+    $pageVars['growth_cards'] = [];
+    if ($this->growthInsight && $this->growthTracking) {
+      $publishedIds = $this->getPublishedUserEvents($userId, $vendor);
+      $publishedCount = count($publishedIds);
+      $lastLoginTs = 0;
+      try {
+        $accountUser = $this->entityTypeManager->getStorage('user')->load($userId);
+        if ($accountUser instanceof UserInterface) {
+          $lastLoginTs = (int) ($accountUser->getLastLoginTime() ?? 0);
+        }
+      }
+      catch (\Throwable) {
+      }
+      $growthCtx = [
+        'uid' => $userId,
+        'account' => $this->currentUser,
+        'surface' => 'dashboard',
+        'events' => $events,
+        'audience_summary' => $audienceSummary,
+        'published_event_count' => $publishedCount,
+        'last_login_timestamp' => $lastLoginTs,
+      ];
+      try {
+        $growthCards = $this->growthInsight->buildInsights($growthCtx);
+        foreach ($growthCards as $card) {
+          if (!is_array($card)) {
+            continue;
+          }
+          $eid = isset($card['event_id']) ? (int) $card['event_id'] : NULL;
+          if ($eid !== NULL && $eid <= 0) {
+            $eid = NULL;
+          }
+          $this->growthTracking->recordImpression(
+            (string) ($card['key'] ?? ''),
+            $userId,
+            $eid,
+            'dashboard',
+            ['title' => (string) ($card['title'] ?? '')],
+          );
+        }
+        $pageVars['growth_cards'] = $growthCards;
+        if ($growthCards !== [] && $this->csrfToken) {
+          $pageVars['#attached']['library'][] = 'myeventlane_growth/dashboard_cards';
+          $pageVars['#attached']['drupalSettings']['melGrowth'] = [
+            'dismissUrl' => Url::fromRoute('myeventlane_growth.dismiss')->toString(TRUE)->getGeneratedUrl(),
+            'csrfToken' => $this->csrfToken->get('rest'),
+          ];
+        }
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_vendor')->warning('Growth cards failed on dashboard: @m', ['@m' => $e->getMessage()]);
       }
     }
 
@@ -903,6 +1007,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       // Get event date.
       $startDate = '';
       $startTimestamp = 0;
+      $endTimestamp = 0;
       if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
         $dateItem = $node->get('field_event_start');
         if ($dateItem->date) {
@@ -912,6 +1017,15 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         elseif (!empty($dateItem->value)) {
           $startDate = date('M j, Y', strtotime($dateItem->value));
           $startTimestamp = strtotime($dateItem->value);
+        }
+      }
+      if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+        $endItem = $node->get('field_event_end');
+        if ($endItem->date) {
+          $endTimestamp = $endItem->date->getTimestamp();
+        }
+        elseif (!empty($endItem->value)) {
+          $endTimestamp = strtotime($endItem->value);
         }
       }
 
@@ -986,6 +1100,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if ($pctFilled !== NULL) {
         $barWidth = min(100.0, $pctFilled);
       }
+      $percentSold = $barWidth !== NULL ? round($barWidth, 1) : 0;
+
+      // Post-event: event has ended (field_event_end < now).
+      $now = time();
+      $isEnded = $endTimestamp > 0 && $endTimestamp < $now;
 
       // STAGE B: Status badge. Sold out overrides; else Draft, Upcoming, Past.
       $statusBadge = 'draft';
@@ -1063,7 +1182,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         && !$node->get('field_is_series_template')->isEmpty()
         && (bool) $node->get('field_is_series_template')->value;
 
-      $events[] = [
+      $eventRow = [
         'id' => $eventId,
         'title' => $node->label(),
         'image' => $eventImageUrl,
@@ -1071,6 +1190,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'venue' => $venue,
         'date' => $startDate,
         'start_timestamp' => $startTimestamp,
+        'end_timestamp' => $endTimestamp,
+        'is_ended' => $isEnded,
+        'percent_sold' => $percentSold,
+        'attendees_url' => Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $eventId])->toString(),
+        'duplicate_url' => Url::fromRoute('myeventlane_event.duplicate', ['node' => $eventId])->toString(),
         'status' => $status,
         'status_label' => $statusLabel,
         'status_badge' => $statusBadge,
@@ -1099,6 +1223,25 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'waitlist_url' => '/vendor/event/' . $eventId . '/waitlist',
         'series_url' => $isSeriesTemplate ? Url::fromRoute('myeventlane_vendor.manage_event.series', ['event' => $eventId])->toString() : NULL,
       ];
+
+      if ($this->insightService) {
+        $insightData = [
+          'id' => $eventId,
+          'tickets_sold' => $ticketsSold,
+          'capacity' => $capacity,
+          'percent_sold' => $percentSold,
+          'is_published' => $node->isPublished(),
+          'boost_allowed' => $boost['allowed'],
+          'boost_url' => $boost['url'],
+          'boost_wizard_url' => $boostWizardUrl,
+        ];
+        $eventRow['insights'] = $this->insightService->buildInsights($insightData);
+      }
+      else {
+        $eventRow['insights'] = [];
+      }
+
+      $events[] = $eventRow;
     }
 
     // Sort by start date descending (newest first).

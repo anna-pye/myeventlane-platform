@@ -113,7 +113,26 @@ services:
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
     class: Drupal\myeventlane_vendor\Controller\VendorDashboardController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.rsvp_stats', '@entity_type.manager', '@myeventlane_vendor.service.boost_status', '@myeventlane_vendor.service.ticket_sales', '@myeventlane_vendor_analytics.vendor_kpi', '@?myeventlane_domain_events.read_model.vendor_metrics', '@?myeventlane_capacity.service', '@myeventlane_onboarding.manager', '@myeventlane_event_state.resolver']
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_vendor.service.rsvp_stats'
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.service.boost_status'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor_analytics.vendor_kpi'
+      - '@?myeventlane_domain_events.read_model.vendor_metrics'
+      - '@?myeventlane_capacity.service'
+      - '@myeventlane_onboarding.manager'
+      - '@myeventlane_event_state.resolver'
+      - '@?myeventlane_ai.usage_tracker'
+      - '@config.factory'
+      - '@?myeventlane_vendor.service.category_audience'
+      - '@?myeventlane_pro.event_insight'
+      - '@?myeventlane_growth.insight'
+      - '@?myeventlane_growth.tracking'
+      - '@csrf_token'
     tags:
       - { name: controller.service_arguments }
 
@@ -197,7 +216,14 @@ services:
 
   myeventlane_vendor.controller.vendor_event_attendees:
     class: Drupal\myeventlane_vendor\Controller\VendorEventAttendeesController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_event_attendees.manager', '@myeventlane_vendor.service.event_tabs', '@myeventlane_core.ticket_label_resolver']
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_core.ticket_label_resolver'
+      - '@?myeventlane_growth.tracking'
     tags:
       - { name: controller.service_arguments }
 

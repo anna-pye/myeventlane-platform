@@ -14,4 +14,44 @@ function myeventlane_automation_cron(): void {
   if (\Drupal::hasService('myeventlane_automation.scheduler')) {
     \Drupal::service('myeventlane_automation.scheduler')->scan();
   }
+  if (\Drupal::hasService('myeventlane_automation.organiser_scheduler')) {
+    \Drupal::service('myeventlane_automation.organiser_scheduler')->scan();
+  }
 }
+
+/**
+ * Implements hook_mail().
+ *
+ * Supports automation lifecycle email keys when delivery is enabled.
+ */
+function myeventlane_automation_mail($key, &$message, $params): void {
+  $prefix = 'automation_';
+  if (strpos($key, $prefix) !== 0) {
+    return;
+  }
+
+  $message['subject'] = (string) ($params['subject'] ?? '(no subject)');
+  $body = (string) ($params['body'] ?? '');
+  $message['body'] = [nl2br($body)];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ *
+ * Injects automation nudges and suggested actions. Pro gating applied in service.
+ */
+function myeventlane_automation_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_automation.dashboard')) {
+    return;
+  }
+
+  $events = $variables['events'] ?? $variables['dashboard_event_performance'] ?? [];
+  if (empty($events)) {
+    $variables['dashboard_automations'] = [];
+    return;
+  }
+
+  $dashboard = \Drupal::service('myeventlane_automation.dashboard');
+  $variables['dashboard_automations'] = $dashboard->getAutomationsForEvents($events);
+}
+

@@ -13,6 +13,7 @@ dependencies:
   - drupal:text
   - commerce_recurring:commerce_recurring
   - commerce_cart:commerce_cart
+  - commerce_payment:commerce_payment
   - state_machine:state_machine
   - advancedqueue:advancedqueue
   - myeventlane_messaging:myeventlane_messaging

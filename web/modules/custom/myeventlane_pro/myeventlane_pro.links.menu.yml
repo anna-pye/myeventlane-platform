@@ -5,6 +5,13 @@ myeventlane_pro.settings:
   parent: system.admin_config
   weight: 50
 
+myeventlane_pro.diagnostics:
+  title: 'Pro status diagnostics'
+  description: 'View and reconcile Pro entitlement state.'
+  route_name: myeventlane_pro.diagnostics
+  parent: system.admin_reports
+  weight: 15
+
 myeventlane_pro.vendor_comms:
   title: 'Pro communications'
   description: 'Customise Pro customer communication bodies.'

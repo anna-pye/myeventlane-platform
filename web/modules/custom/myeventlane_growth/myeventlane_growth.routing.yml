@@ -1,0 +1,31 @@
+myeventlane_growth.settings:
+  path: '/admin/config/myeventlane/growth'
+  defaults:
+    _form: '\Drupal\myeventlane_growth\Form\GrowthSettingsForm'
+    _title: 'Growth and revenue'
+  requirements:
+    _permission: 'administer myeventlane growth settings'
+
+myeventlane_growth.report:
+  path: '/admin/reports/myeventlane/growth'
+  defaults:
+    _controller: '\Drupal\myeventlane_growth\Controller\GrowthReportController::report'
+    _title: 'Growth insights report'
+  requirements:
+    _permission: 'view myeventlane growth report'
+
+myeventlane_growth.cta:
+  path: '/vendor/growth/cta'
+  defaults:
+    _controller: '\Drupal\myeventlane_growth\Controller\GrowthCtaController::redirectCta'
+  requirements:
+    _permission: 'access vendor console'
+    _user_is_logged_in: 'TRUE'
+
+myeventlane_growth.dismiss:
+  path: '/vendor/growth/dismiss'
+  defaults:
+    _controller: '\Drupal\myeventlane_growth\Controller\GrowthDismissController::dismiss'
+  methods: [POST]
+  requirements:
+    _permission: 'access vendor console'

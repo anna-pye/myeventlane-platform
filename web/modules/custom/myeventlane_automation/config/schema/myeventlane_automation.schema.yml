@@ -1,3 +1,63 @@
 # Schema for MyEventLane Automation module configuration.
-# This module uses the messaging module's config system for email templates.
-# No custom config objects are defined at this time.
+myeventlane_automation.settings:
+  type: config_object
+  label: 'Automation settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    dry_run:
+      type: boolean
+      label: 'Dry run'
+    rules:
+      type: mapping
+      label: 'Rules'
+      mapping:
+        low_sales_boost:
+          type: boolean
+        no_sales_yet:
+          type: boolean
+        nearly_sold_out:
+          type: boolean
+        event_ended_rerun:
+          type: boolean
+        attendee_reminder:
+          type: boolean
+        post_event_followup:
+          type: boolean
+        draft_reminder:
+          type: boolean
+        organiser_reminder:
+          type: boolean
+        auto_boost_candidate:
+          type: boolean
+    thresholds:
+      type: mapping
+      label: 'Thresholds'
+      mapping:
+        low_sales_percent:
+          type: integer
+        nearly_sold_out_percent:
+          type: integer
+        reminder_hours_before_event:
+          type: integer
+        post_event_followup_hours:
+          type: integer
+        draft_reminder_days:
+          type: integer
+        no_sales_min_hours_live:
+          type: integer
+        low_sales_min_hours_live:
+          type: integer
+    delivery:
+      type: mapping
+      label: 'Delivery'
+      mapping:
+        attendee_reminder:
+          type: boolean
+        organiser_reminder:
+          type: boolean
+        post_event_followup:
+          type: boolean
+        draft_reminder:
+          type: boolean

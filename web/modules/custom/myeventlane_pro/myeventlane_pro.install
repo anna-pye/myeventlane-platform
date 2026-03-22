@@ -202,6 +202,58 @@ function myeventlane_pro_schema(): array {
     ],
   ];
 
+  $schema['myeventlane_pro_cancel_request'] = [
+    'description' => 'Records Pro cancellation requests for admin review.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'User who requested cancellation.',
+      ],
+      'subscription_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Commerce subscription ID if known.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'pending, processed, declined.',
+      ],
+      'requested_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Timestamp when request was submitted.',
+      ],
+      'processed_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Timestamp when request was processed.',
+      ],
+      'notes' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Admin or system notes.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'status' => ['status'],
+      'requested_at' => ['requested_at'],
+    ],
+  ];
+
   $schema['myeventlane_pro_failed_payment_sequence'] = [
     'description' => 'Tracks Pro failed payment email sequence scheduling and sends.',
     'fields' => [
@@ -254,17 +306,7 @@ function myeventlane_pro_schema(): array {
  * Implements hook_install().
  */
 function myeventlane_pro_install(): void {
-  $role_id = 'pro_organiser';
-
-  if (!Role::load($role_id)) {
-    $role = Role::create([
-      'id' => $role_id,
-      'label' => 'Pro Organiser',
-    ]);
-    $role->save();
-
-    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role created.');
-  }
+  _myeventlane_pro_ensure_canonical_role();
 
   if (\Drupal::entityTypeManager()->hasDefinition('escalation')) {
     _myeventlane_pro_install_escalation_pro_field();
@@ -275,12 +317,10 @@ function myeventlane_pro_install(): void {
  * Implements hook_uninstall().
  */
 function myeventlane_pro_uninstall(): void {
-  $role_id = 'pro_organiser';
-  $role = Role::load($role_id);
-
+  $role = Role::load('mel_pro');
   if ($role) {
     $role->delete();
-    \Drupal::logger('myeventlane_pro')->notice('Pro Organiser role removed.');
+    \Drupal::logger('myeventlane_pro')->notice('MEL Pro role removed.');
   }
 }
 
@@ -809,21 +849,21 @@ function myeventlane_pro_update_10008(): void {
   $cf = \Drupal::configFactory();
   $templates = [
     'pro_subscription_payment_failed_day_0' => [
-      'subject' => 'Payment failed for your Pro subscription',
-      'preheader' => 'Update your card to keep Pro features active.',
-      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>We could not process your latest Pro subscription payment.</p><p>Please update your payment method now to keep Pro active without interruption.</p><p>You still have a grace period before access changes.</p>',
+      'subject' => 'Your MEL Pro payment needs attention',
+      'preheader' => 'Update your payment method during the grace period.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>We couldn’t process your latest payment.</p><p>You have a 7-day grace period to update your payment method.</p><p>Thanks,<br>MyEventLane</p>',
       'campaign' => 'pro_payment_failed_day_0',
     ],
     'pro_subscription_payment_failed_day_3' => [
-      'subject' => 'Reminder: your Pro payment is still due',
-      'preheader' => 'Please update your payment method to avoid suspension.',
-      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>This is a reminder that your Pro subscription payment is still outstanding.</p><p>Update your payment method as soon as possible to prevent service interruption.</p><p>We are still holding your Pro access during grace period.</p>',
+      'subject' => 'Reminder: update your payment details',
+      'preheader' => 'Your MEL Pro subscription needs an updated payment method.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your MEL Pro subscription is still active, but we need an updated payment method.</p><p>Please update your payment method to keep Pro access.</p>',
       'campaign' => 'pro_payment_failed_day_3',
     ],
     'pro_subscription_payment_failed_day_6' => [
-      'subject' => 'Final warning: Pro access will be suspended',
-      'preheader' => 'Your Pro grace period is ending soon.',
-      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro subscription payment is still unpaid.</p><p>This is the final warning before Pro access is suspended at the end of grace period.</p><p>Update your payment method immediately to prevent entitlement removal.</p>',
+      'subject' => 'Final notice: your MEL Pro access is ending',
+      'preheader' => 'Your Pro access will expire tomorrow if payment isn’t updated.',
+      'body_html' => '<p>Hi {{ first_name|default(\'there\') }},</p><p>Your Pro access will end soon if payment isn’t updated.</p><p>This is your final reminder before the grace period closes.</p>',
       'campaign' => 'pro_payment_failed_day_6',
     ],
   ];
@@ -1024,6 +1064,245 @@ function myeventlane_pro_update_10014(): void {
   \Drupal::logger('myeventlane_pro')->notice('Granted "@permission" permission to vendor role for Pro checkout.', [
     '@permission' => $permissionKey,
   ]);
+}
+
+/**
+ * Create MEL Pro role for Level 5 Pro Layer (role-based access).
+ */
+function myeventlane_pro_update_10015(): void {
+  $mel_pro_id = 'mel_pro';
+  if (Role::load($mel_pro_id)) {
+    return;
+  }
+
+  $role = Role::create([
+    'id' => $mel_pro_id,
+    'label' => 'MEL Pro',
+  ]);
+  $role->save();
+
+  \Drupal::logger('myeventlane_pro')->notice('MEL Pro role created (update_10015).');
+}
+
+/**
+ * Reconcile duplicate Pro roles into single canonical mel_pro role.
+ *
+ * Migrates users from pro_organiser, pro_organizer, pro_user into mel_pro,
+ * merges permissions, updates config, then deletes duplicate roles.
+ */
+function myeventlane_pro_update_10016(): TranslatableMarkup {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+  $canonical_role = 'mel_pro';
+  $duplicates = [
+    'pro_organiser',
+    'pro_organizer',
+    'pro_user',
+  ];
+
+  // Ensure canonical role exists.
+  $canonical = $role_storage->load($canonical_role);
+  if (!$canonical) {
+    $canonical = $role_storage->create([
+      'id' => $canonical_role,
+      'label' => 'MEL Pro',
+    ]);
+    $canonical->save();
+    \Drupal::logger('myeventlane_pro')->notice('Canonical MEL Pro role created (update_10016).');
+  }
+
+  $user_storage = \Drupal::entityTypeManager()->getStorage('user');
+
+  foreach ($duplicates as $dup_role) {
+    $role = $role_storage->load($dup_role);
+    if (!$role) {
+      continue;
+    }
+
+    // Merge permissions from duplicate into canonical.
+    foreach ($role->getPermissions() as $permission) {
+      if (!$canonical->hasPermission($permission)) {
+        $canonical->grantPermission($permission);
+      }
+    }
+    $canonical->save();
+
+    // Move users to mel_pro (active users only per spec; include blocked for safety).
+    $uids = \Drupal::entityQuery('user')
+      ->accessCheck(FALSE)
+      ->condition('roles', $dup_role)
+      ->execute();
+
+    $users = $user_storage->loadMultiple($uids);
+    foreach ($users as $user) {
+      if (!$user->hasRole($canonical_role)) {
+        $user->addRole($canonical_role);
+      }
+      $user->removeRole($dup_role);
+      $user->save();
+    }
+
+    $role->delete();
+    \Drupal::logger('myeventlane_pro')->notice('Merged duplicate role @role into MEL Pro.', [
+      '@role' => $dup_role,
+    ]);
+  }
+
+  // Migrate action configs from pro_organiser to mel_pro.
+  _myeventlane_pro_update_10016_migrate_action_configs();
+
+  return t('Merged duplicate Pro roles into MEL Pro.');
+}
+
+/**
+ * Migrates user add/remove role action configs from pro_organiser to mel_pro.
+ */
+function _myeventlane_pro_update_10016_migrate_action_configs(): void {
+  $config_factory = \Drupal::configFactory();
+
+  $add_action = $config_factory->getEditable('system.action.user_add_role_action.pro_organiser');
+  if (!$add_action->isNew()) {
+    $config_factory->getEditable('system.action.user_add_role_action.mel_pro')
+      ->setData([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'langcode' => $add_action->get('langcode'),
+        'status' => $add_action->get('status'),
+        'dependencies' => [
+          'config' => ['user.role.mel_pro'],
+          'module' => ['user'],
+        ],
+        'id' => 'user_add_role_action.mel_pro',
+        'label' => 'Add the MEL Pro role to the selected user(s)',
+        'type' => 'user',
+        'plugin' => 'user_add_role_action',
+        'configuration' => ['rid' => 'mel_pro'],
+      ])
+      ->save();
+    $add_action->delete();
+  }
+
+  $remove_action = $config_factory->getEditable('system.action.user_remove_role_action.pro_organiser');
+  if (!$remove_action->isNew()) {
+    $config_factory->getEditable('system.action.user_remove_role_action.mel_pro')
+      ->setData([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'langcode' => $remove_action->get('langcode'),
+        'status' => $remove_action->get('status'),
+        'dependencies' => [
+          'config' => ['user.role.mel_pro'],
+          'module' => ['user'],
+        ],
+        'id' => 'user_remove_role_action.mel_pro',
+        'label' => 'Remove the MEL Pro role from the selected user(s)',
+        'type' => 'user',
+        'plugin' => 'user_remove_role_action',
+        'configuration' => ['rid' => 'mel_pro'],
+      ])
+      ->save();
+    $remove_action->delete();
+  }
+}
+
+/**
+ * Create cancel request table and add Pro commercial settings.
+ */
+function myeventlane_pro_update_10017(): void {
+  $schema = Database::getConnection()->schema();
+  $table = 'myeventlane_pro_cancel_request';
+
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, [
+      'description' => 'Records Pro cancellation requests for admin review.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'subscription_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'pending',
+        ],
+        'requested_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'processed_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+        ],
+        'notes' => [
+          'type' => 'text',
+          'not null' => FALSE,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+        'status' => ['status'],
+        'requested_at' => ['requested_at'],
+      ],
+    ]);
+  }
+
+  $config = \Drupal::configFactory()->getEditable('myeventlane_pro.settings');
+  if ($config->get('grace_days') === NULL) {
+    $config->set('grace_days', 7);
+  }
+  if ($config->get('upgrade_cta_enabled') === NULL) {
+    $config->set('upgrade_cta_enabled', TRUE);
+  }
+  if ($config->get('cancel_request_enabled') === NULL) {
+    $config->set('cancel_request_enabled', TRUE);
+  }
+  if ($config->get('billing_support_url') === NULL) {
+    $config->set('billing_support_url', '');
+  }
+  if ($config->get('webhook_audit_enabled') === NULL) {
+    $config->set('webhook_audit_enabled', FALSE);
+  }
+  if ($config->get('subscription_webhook_secret') === NULL) {
+    $config->set('subscription_webhook_secret', '');
+  }
+  $config->save();
+}
+
+/**
+ * Add Stripe billing portal toggle for self-serve payment updates.
+ */
+function myeventlane_pro_update_10018(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_pro.settings');
+  if ($config->get('billing_portal_enabled') === NULL) {
+    $config->set('billing_portal_enabled', FALSE);
+    $config->save();
+  }
+}
+
+/**
+ * Ensures the canonical MEL Pro role exists.
+ *
+ * Called during module install and can be used to prevent duplication.
+ */
+function _myeventlane_pro_ensure_canonical_role(): void {
+  if (!Role::load('mel_pro')) {
+    Role::create([
+      'id' => 'mel_pro',
+      'label' => 'MEL Pro',
+    ])->save();
+    \Drupal::logger('myeventlane_pro')->notice('MEL Pro role created.');
+  }
 }
 
 /**

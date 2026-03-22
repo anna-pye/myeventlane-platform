@@ -245,6 +245,58 @@
     gap: $spacing-2;
   }
 
+  .mel-automation-stack {
+    display: grid;
+    gap: $spacing-3;
+    margin-bottom: $spacing-3;
+  }
+
+  .mel-automation-card {
+    border-radius: $radius-md;
+    border: 1px solid $border-color-light;
+    padding: $spacing-3 $spacing-4;
+    display: grid;
+    gap: $spacing-2;
+  }
+
+  .mel-automation-card__title {
+    margin: 0;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $ml-vendor-navy;
+  }
+
+  .mel-automation-card__meta {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  .mel-automation-card__actions {
+    margin-top: $spacing-1;
+  }
+
+  .mel-automation-card__pro-upsell {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-style: italic;
+  }
+
+  .mel-automation-card--warning {
+    background: #fff7e7;
+    border-color: #f7ddaa;
+  }
+
+  .mel-automation-card--success {
+    background: #ebfbf2;
+    border-color: #caeed9;
+  }
+
+  .mel-automation-card--info {
+    background: #eef6ff;
+    border-color: #c9e0ff;
+  }
+
   .mel-dashboard-alert-stack {
     display: grid;
     gap: $spacing-3;
@@ -279,6 +331,144 @@
   .mel-alert-box--success { background: #ebfbf2; border-color: #caeed9; }
   .mel-alert-box--warning { background: #fff7e7; border-color: #f7ddaa; }
   .mel-alert-box--error { background: #fff0ef; border-color: #f2c4c0; }
+
+  // Organiser analytics card (Part 1 — Growth Tools).
+  .mel-analytics-card {
+    display: grid;
+    gap: $spacing-2;
+  }
+
+  .mel-analytics-stat {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+
+    strong {
+      font-size: 1.25rem;
+      color: $ml-vendor-navy;
+    }
+
+    span {
+      font-size: $font-size-sm;
+      color: $text-secondary;
+    }
+  }
+
+  .mel-analytics-bar {
+    height: 6px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+
+    &__fill {
+      height: 100%;
+      background: #6e7ef2;
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+  }
+
+  // Post-event engagement block (Part 2 — Growth Tools).
+  .mel-post-event {
+    margin-bottom: $spacing-3;
+    padding: $spacing-3;
+    background: #f5f1ff;
+    border: 1px solid #e8e0f5;
+    border-radius: $radius-md;
+  }
+
+  .mel-post-event__title {
+    margin: 0 0 $spacing-2;
+    font-size: 1rem;
+    color: $ml-vendor-navy;
+  }
+
+  .mel-post-event__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
+
+  .mel-post-event--card {
+    grid-column: 1 / -1;
+  }
+
+  // Audience summary (Part 5 — Growth Tools).
+  .mel-audience-summary--compact {
+    display: flex;
+    gap: $spacing-4;
+    margin-bottom: $spacing-3;
+  }
+
+  .mel-audience-summary__stat {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+
+  .mel-audience-summary__value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $ml-vendor-navy;
+  }
+
+  .mel-audience-summary__label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  .mel-link--block {
+    display: block;
+    margin-top: $spacing-2;
+  }
+
+  // Event insights (MEL Pro Layer).
+  .mel-insights {
+    margin-top: $spacing-2;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-1;
+  }
+
+  .mel-insight {
+    font-size: 13px;
+    margin-top: 6px;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &--success {
+      color: #2ecc71;
+    }
+
+    &--warning {
+      color: #f39c12;
+    }
+
+    &--info {
+      color: #3498db;
+    }
+
+    &--upsell {
+      color: #9b59b6;
+    }
+  }
+
+  .mel-insight-cta {
+    margin-left: $spacing-2;
+    font-weight: $font-weight-semibold;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .mel-pro-lock {
+    opacity: 0.6;
+    font-size: 13px;
+  }
 }
 
 .mel-workspace-page {

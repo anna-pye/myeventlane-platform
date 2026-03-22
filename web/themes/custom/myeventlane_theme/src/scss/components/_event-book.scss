@@ -26,11 +26,17 @@
 
 .mel-booking-v2 .mel-booking-hero {
   position: relative;
-  height: 300px;
-  border-radius: radii.$mel-radius-lg;
+  min-height: 300px;
+  border-radius: radii.$mel-radius-lg + 4px;
   overflow: hidden;
-  margin-bottom: spacing.mel-space(4);
-  box-shadow: shadows.$mel-shadow-md;
+  margin-bottom: spacing.mel-space(3);
+  box-shadow:
+    shadows.$mel-shadow-md,
+    0 24px 48px rgba(41, 50, 65, 0.12);
+
+  @include breakpoints.mel-break(md) {
+    min-height: 340px;
+  }
 
   &--no-media {
     background: linear-gradient(
@@ -40,6 +46,12 @@
       colors.$mel-color-bg 100%
     );
   }
+}
+
+.mel-booking-v2 .mel-booking-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .mel-booking-v2 .mel-booking-hero__image {
@@ -52,6 +64,7 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transform: scale(1.01);
   }
 }
 
@@ -66,10 +79,10 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.62) 0%,
-    rgba(0, 0, 0, 0.22) 55%,
-    rgba(0, 0, 0, 0.08) 100%
+    118deg,
+    rgba(18, 22, 34, 0.55) 0%,
+    rgba(18, 22, 34, 0.38) 42%,
+    rgba(18, 22, 34, 0.72) 100%
   );
   display: flex;
   align-items: flex-end;
@@ -85,30 +98,128 @@
 }
 
 .mel-booking-v2 .mel-booking-hero__content {
-  max-width: 48rem;
+  max-width: 42rem;
+  position: relative;
+  z-index: 1;
+}
+
+.mel-booking-v2 .mel-booking-hero__eyebrow {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .mel-booking-v2 .mel-booking-hero__title {
-  margin: 0;
+  margin: 0 0 spacing.mel-space(3);
   color: colors.$mel-color-on-primary;
-  font-size: clamp(1.375rem, 2.5vw, 1.75rem);
-  font-weight: typography.$mel-font-bold;
+  font-size: clamp(1.5rem, 3.2vw, 2rem);
+  font-weight: typography.$mel-font-extrabold;
   line-height: typography.$mel-leading-snug;
   letter-spacing: typography.$mel-tracking-tight;
+  text-wrap: balance;
 }
 
-.mel-booking-v2 .mel-booking-hero__meta.mel-event-meta {
+.mel-booking-v2 .mel-booking-hero__meta {
   display: flex;
   flex-direction: column;
-  gap: spacing.mel-space(1);
-  margin-top: spacing.mel-space(2);
-  color: rgba(255, 255, 255, 0.88);
+  gap: spacing.mel-space(2);
+  margin: 0 0 spacing.mel-space(3);
+  color: rgba(255, 255, 255, 0.92);
   font-size: typography.mel-font-size(sm);
   line-height: 1.45;
 }
 
-.mel-booking-v2 .mel-booking-hero__meta-item {
+.mel-booking-v2 .mel-booking-hero__meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: spacing.mel-space(2) spacing.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+}
+
+.mel-booking-v2 .mel-booking-hero__meta-label {
   display: block;
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.mel-booking-v2 .mel-booking-hero__meta-value {
+  display: block;
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-booking-v2 .mel-booking-hero__host {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.mel-booking-v2 .mel-booking-hero__summary {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
+  max-width: 36rem;
+}
+
+// ---------------------------------------------------------------------------
+// Trust strip (static, accurate cues)
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-booking-trust-strip {
+  margin: 0 0 spacing.mel-space(5);
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  background: color.adjust(colors.$mel-color-bg, $lightness: 1%);
+  border: 1px solid colors.$mel-color-border;
+  box-shadow: 0 4px 20px rgba(41, 50, 65, 0.04);
+}
+
+.mel-booking-v2 .mel-booking-trust-strip__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2) spacing.mel-space(5);
+  justify-content: center;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-booking-v2 .mel-booking-trust-strip__item {
+  position: relative;
+  padding-left: spacing.mel-space(4);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.45em;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: color.adjust(colors.$mel-color-secondary, $lightness: 8%);
+    box-shadow: 0 0 0 2px rgba(colors.$mel-color-secondary, 0.25);
+  }
+}
+
+@include breakpoints.mel-break(sm, max) {
+  .mel-booking-v2 .mel-booking-trust-strip__list {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: spacing.mel-space(2);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -174,26 +285,57 @@
 
 .mel-booking-v2 .mel-booking-summary {
   background: linear-gradient(
-    160deg,
-    color.adjust(colors.$mel-color-surface, $lightness: 1%) 0%,
-    color.adjust(colors.$mel-color-bg, $lightness: 2%) 100%
+    165deg,
+    color.adjust(colors.$mel-color-surface, $lightness: 0.5%) 0%,
+    color.adjust(colors.$mel-color-bg, $lightness: 3%) 55%,
+    color.adjust(colors.$mel-color-surface, $lightness: 1%) 100%
   );
-  border: 1px solid colors.$mel-color-border;
-  border-radius: radii.$mel-radius-lg + 2px;
-  padding: spacing.mel-space(4);
-  box-shadow: 0 10px 36px rgba(41, 50, 65, 0.07);
+  border: 1px solid color.adjust(colors.$mel-color-border, $lightness: 4%);
+  border-radius: radii.$mel-radius-lg + 4px;
+  padding: 0;
+  box-shadow:
+    0 12px 40px rgba(41, 50, 65, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
+  overflow: hidden;
+}
+
+.mel-booking-v2 .mel-booking-summary__header {
+  padding: spacing.mel-space(4) spacing.mel-space(4) spacing.mel-space(2);
+  border-bottom: 1px solid rgba(colors.$mel-color-border, 0.65);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    transparent 100%
+  );
 }
 
 .mel-booking-v2 .mel-booking-summary__title {
-  margin: 0 0 spacing.mel-space(3);
-  font-size: typography.mel-font-size(md);
-  font-weight: typography.$mel-font-bold;
+  margin: 0 0 spacing.mel-space(1);
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-extrabold;
   color: colors.$mel-color-text;
   letter-spacing: typography.$mel-tracking-tight;
 }
 
+.mel-booking-v2 .mel-booking-summary__kicker {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.4;
+}
+
+.mel-booking-v2 .mel-booking-summary__body {
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  min-height: 5rem;
+}
+
+.mel-booking-v2 .mel-booking-summary__footer {
+  padding: spacing.mel-space(3) spacing.mel-space(4) spacing.mel-space(4);
+  border-top: 1px solid rgba(colors.$mel-color-border, 0.65);
+  background: color.adjust(colors.$mel-color-bg, $lightness: 0.5%);
+}
+
 .mel-booking-v2 .mel-booking-summary__empty {
-  padding: spacing.mel-space(3) 0;
+  padding: spacing.mel-space(2) 0 spacing.mel-space(3);
 }
 
 .mel-booking-v2 .mel-booking-summary__empty[hidden] {
@@ -258,11 +400,13 @@
   justify-content: space-between;
   align-items: baseline;
   gap: spacing.mel-space(2);
-  margin-top: spacing.mel-space(3);
-  padding-top: spacing.mel-space(3);
-  border-top: 1px solid colors.$mel-color-border;
-  font-size: typography.mel-font-size(base);
-  font-weight: typography.$mel-font-bold;
+  margin-top: spacing.mel-space(4);
+  padding: spacing.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid rgba(colors.$mel-color-primary, 0.16);
+  background: rgba(colors.$mel-color-primary, 0.05);
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-extrabold;
   color: colors.$mel-color-text;
 }
 
@@ -276,14 +420,15 @@
 }
 
 .mel-booking-v2 .mel-booking-summary__cta-note {
-  margin: spacing.mel-space(3) 0 0;
-  font-size: typography.mel-font-size(xs);
-  line-height: 1.45;
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  line-height: 1.5;
   color: colors.$mel-color-text-muted;
+  text-align: center;
 }
 
 @include breakpoints.mel-break(lg, max) {
-  .mel-booking-v2 .mel-booking-layout__aside .mel-booking-summary__cta-note {
+  .mel-booking-v2 .mel-booking-layout__aside .mel-booking-summary__footer {
     display: none;
   }
 }
@@ -291,14 +436,24 @@
 .mel-booking-v2 .mel-event-description-card {
   background: colors.$mel-color-surface;
   padding: spacing.mel-space(5);
-  border-radius: radii.$mel-radius-lg;
+  border-radius: radii.$mel-radius-lg + 2px;
   margin-bottom: spacing.mel-space(5);
   border: 1px solid colors.$mel-color-border;
-  box-shadow: 0 6px 24px rgba(41, 50, 65, 0.06);
+  box-shadow: 0 8px 28px rgba(41, 50, 65, 0.07);
   color: colors.$mel-color-text;
   font-size: typography.mel-font-size(base);
   line-height: 1.55;
+}
 
+.mel-booking-v2 .mel-event-description-card__title {
+  margin: 0 0 spacing.mel-space(3);
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  letter-spacing: typography.$mel-tracking-tight;
+}
+
+.mel-booking-v2 .mel-event-description-card__body {
   p {
     margin: 0 0 spacing.mel-space(2);
 
@@ -506,23 +661,25 @@
   .mel-ticket-row {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(5rem, 6.25rem);
-    grid-template-areas:
-      'label qty'
-      'price qty';
-    align-items: start;
-    gap: spacing.mel-space(1) spacing.mel-space(3);
-    padding: spacing.mel-space(3);
-    background: colors.$mel-color-bg;
-    border: 1px solid colors.$mel-color-border;
-    border-radius: radii.$mel-radius-lg;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    grid-template-columns: minmax(0, 1fr) minmax(6.5rem, 9.5rem);
+    grid-template-areas: 'main meta';
+    align-items: stretch;
+    gap: spacing.mel-space(3) spacing.mel-space(4);
+    padding: spacing.mel-space(4) spacing.mel-space(4);
+    background: linear-gradient(
+      145deg,
+      color.adjust(colors.$mel-color-surface, $lightness: 0%) 0%,
+      color.adjust(colors.$mel-color-bg, $lightness: 1%) 100%
+    );
+    border: 1px solid color.adjust(colors.$mel-color-border, $lightness: 2%);
+    border-radius: radii.$mel-radius-lg + 2px;
+    box-shadow: 0 4px 18px rgba(41, 50, 65, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
   }
 
   .mel-ticket-row:hover {
-    border-color: rgba(colors.$mel-color-primary, 0.42);
-    background: colors.$mel-color-surface;
-    box-shadow: 0 6px 20px rgba(108, 126, 242, 0.1);
+    border-color: rgba(colors.$mel-color-primary, 0.35);
+    box-shadow: 0 8px 28px rgba(108, 126, 242, 0.12);
   }
 
   .mel-ticket-row:focus-within {
@@ -530,13 +687,19 @@
     box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.14);
   }
 
-  .mel-ticket-row.is-selected,
+  .mel-ticket-row.mel-ticket-row--selected,
   .mel-ticket-row.has-quantity,
-  .mel-ticket-row[aria-selected='true'],
   .mel-ticket-row[data-selected='true'] {
     border-width: 2px;
-    border-color: colors.$mel-color-secondary;
-    background: color.adjust(colors.$mel-color-secondary, $lightness: 46%);
+    border-color: color.adjust(colors.$mel-color-secondary, $lightness: -6%);
+    background: linear-gradient(
+      150deg,
+      color.adjust(colors.$mel-color-secondary, $lightness: 44%) 0%,
+      color.adjust(colors.$mel-color-surface, $lightness: 0%) 100%
+    );
+    box-shadow:
+      0 10px 32px rgba(108, 126, 242, 0.18),
+      0 1px 0 rgba(255, 255, 255, 0.5) inset;
   }
 
   @supports selector(:has(*)) {
@@ -546,27 +709,65 @@
     }
   }
 
-  .mel-ticket-label-cell {
-    grid-area: label;
+  .mel-ticket-row__main.mel-ticket-label-cell {
+    grid-area: main;
     display: flex;
     flex-direction: column;
     gap: spacing.mel-space(1);
     min-width: 0;
   }
 
+  .mel-ticket-row:not(.mel-ticket-row--has-description) .mel-ticket-row__main {
+    justify-content: center;
+  }
+
+  .mel-ticket-row__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: spacing.mel-space(2);
+    min-width: 0;
+  }
+
+  .mel-ticket-row__selection-badge {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-bold;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: color.adjust(colors.$mel-color-secondary, $lightness: -32%);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(colors.$mel-color-secondary, 0.35);
+    border-radius: radii.$mel-radius-full;
+    line-height: 1.2;
+  }
+
+  .mel-ticket-row__selection-badge[hidden] {
+    display: none !important;
+  }
+
   .mel-ticket-label {
-    font-size: typography.mel-font-size(base);
-    font-weight: typography.$mel-font-semibold;
+    font-size: typography.mel-font-size(md);
+    font-weight: typography.$mel-font-bold;
     color: colors.$mel-color-text;
     min-width: 0;
+    line-height: typography.$mel-leading-snug;
   }
 
   .mel-ticket-description {
     font-size: typography.mel-font-size(sm);
     font-weight: typography.$mel-font-regular;
-    line-height: 1.5;
+    line-height: 1.55;
     min-width: 0;
     margin-top: spacing.mel-space(1);
+    color: colors.$mel-color-text-muted;
+  }
+
+  .mel-ticket-row__helper {
+    margin: spacing.mel-space(2) 0 0;
+    font-size: typography.mel-font-size(xs);
+    line-height: 1.45;
     color: colors.$mel-color-text-muted;
   }
 
@@ -586,26 +787,37 @@
     display: none;
   }
 
+  .mel-ticket-row__meta {
+    grid-area: meta;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: spacing.mel-space(3);
+    text-align: right;
+    min-width: 0;
+  }
+
   .mel-ticket-price {
-    grid-area: price;
-    margin-top: spacing.mel-space(1);
-    font-size: typography.mel-font-size(sm);
-    font-weight: typography.$mel-font-bold;
+    margin: 0;
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-extrabold;
     color: colors.$mel-color-primary;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: typography.$mel-tracking-tight;
   }
 
   .mel-ticket-quantity {
-    grid-area: qty;
-    align-self: center;
     width: 100%;
-    min-height: 44px;
-    padding: 0.55rem 0.75rem;
+    min-height: 48px;
+    padding: 0.6rem 0.75rem;
     text-align: center;
     border-radius: radii.$mel-radius-md;
-    border: 2px solid colors.$mel-color-border;
+    border: 2px solid color.adjust(colors.$mel-color-border, $lightness: -4%);
     background: colors.$mel-color-surface;
     font-weight: typography.$mel-font-semibold;
+    font-size: typography.mel-font-size(base);
     color: colors.$mel-color-text;
     position: relative;
     z-index: 2;
@@ -627,24 +839,27 @@
     .mel-ticket-row {
       grid-template-columns: 1fr;
       grid-template-areas:
-        'label'
-        'price'
-        'qty';
-      gap: spacing.mel-space(2);
+        'main'
+        'meta';
+      gap: spacing.mel-space(3);
     }
 
-    .mel-ticket-label-cell {
-      grid-area: label;
+    .mel-ticket-row__meta {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      gap: spacing.mel-space(3);
+      padding-top: spacing.mel-space(2);
+      border-top: 1px solid rgba(colors.$mel-color-border, 0.75);
     }
 
     .mel-ticket-price {
-      grid-area: price;
-      justify-self: start;
+      flex: 0 0 auto;
     }
 
     .mel-ticket-quantity {
-      grid-area: qty;
-      width: 100%;
+      max-width: 6.5rem;
     }
   }
 
@@ -716,6 +931,38 @@
     margin: 0 0 spacing.mel-space(3);
     font-size: typography.mel-font-size(sm);
     line-height: 1.45;
+  }
+
+  .mel-booking-reassurance {
+    list-style: none;
+    margin: 0 0 spacing.mel-space(4);
+    padding: spacing.mel-space(3);
+    border-radius: radii.$mel-radius-md;
+    background: rgba(colors.$mel-color-primary, 0.05);
+    border: 1px solid rgba(colors.$mel-color-primary, 0.1);
+  }
+
+  .mel-booking-reassurance__item {
+    position: relative;
+    margin: 0 0 spacing.mel-space(2);
+    padding-left: spacing.mel-space(4);
+    font-size: typography.mel-font-size(sm);
+    line-height: 1.45;
+    color: colors.$mel-color-text;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      top: 0.05em;
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-bold;
+      color: color.adjust(colors.$mel-color-secondary, $lightness: -12%);
+    }
   }
 
   .mel-booking__cta-reassurance {

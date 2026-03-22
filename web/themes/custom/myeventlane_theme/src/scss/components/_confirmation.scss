@@ -1,0 +1,777 @@
+// ==========================================================================
+// MEL Confirmation Page
+// ==========================================================================
+// Post-purchase success experience: rewarding, clear, branded, momentum-building.
+// Coral/purple accents, off-white/lavender backgrounds, card-based, mobile-first.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Layout
+// ---------------------------------------------------------------------------
+
+.mel-confirmation {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: spacing.mel-space(6) spacing.mel-space(4);
+  background: linear-gradient(180deg, color.adjust(colors.$mel-color-pastel-lavender, $alpha: -0.5) 0%, colors.$mel-color-bg 100%);
+  min-height: 60vh;
+
+  @include breakpoints.mel-break(md) {
+    padding: spacing.mel-space(10) spacing.mel-space(6);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hero
+// ---------------------------------------------------------------------------
+
+.mel-confirmation__hero {
+  text-align: center;
+  padding: spacing.mel-space(8) spacing.mel-space(4);
+  margin-bottom: spacing.mel-space(6);
+  background: linear-gradient(135deg, rgba(colors.$mel-color-primary, 0.08) 0%, rgba(colors.$mel-color-secondary, 0.06) 100%);
+  border-radius: radii.$mel-radius-xl;
+  box-shadow: 0 4px 24px rgba(108, 126, 242, 0.08);
+}
+
+.mel-confirmation__hero-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto spacing.mel-space(4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: colors.$mel-color-success;
+  background: colors.$mel-color-success-bg;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.mel-confirmation__hero-content {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.mel-confirmation__title {
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(2);
+  line-height: 1.2;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(3xl);
+  }
+}
+
+.mel-confirmation__subtitle {
+  font-size: typography.mel-font-size(base);
+  color: colors.$mel-color-text-muted;
+  margin: 0 0 spacing.mel-space(2);
+  line-height: 1.5;
+}
+
+.mel-confirmation__reference {
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin: 0;
+
+  strong {
+    color: colors.$mel-color-text;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main content
+// ---------------------------------------------------------------------------
+
+.mel-confirmation__main {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(6);
+}
+
+// ---------------------------------------------------------------------------
+// Event / summary card
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-card {
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: 0 2px 12px rgba(44, 62, 80, 0.06);
+  overflow: hidden;
+  border: 1px solid colors.$mel-color-border;
+}
+
+.mel-confirmation-card__media {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: colors.$mel-color-surface-alt;
+}
+
+.mel-confirmation-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mel-confirmation-card__body {
+  padding: spacing.mel-space(5);
+}
+
+.mel-confirmation-card__title {
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(3);
+  line-height: 1.3;
+
+  .mel-confirmation-card__date-badge + & {
+    margin-top: 0;
+  }
+}
+
+.mel-confirmation-card__date-badge {
+  display: inline-block;
+  padding: spacing.mel-space(1) spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(2);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-primary;
+  background: color.adjust(colors.$mel-color-primary, $alpha: -0.9);
+  border-radius: radii.$mel-radius-md;
+}
+
+.mel-confirmation-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(1);
+  margin-bottom: spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-confirmation-card__date,
+.mel-confirmation-card__time,
+.mel-confirmation-card__location {
+  display: block;
+}
+
+.mel-confirmation-card__tickets {
+  margin-bottom: spacing.mel-space(4);
+  padding-top: spacing.mel-space(3);
+  border-top: 1px solid colors.$mel-color-border;
+}
+
+.mel-confirmation-card__ticket-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: spacing.mel-space(2);
+  align-items: start;
+  padding: spacing.mel-space(2) 0;
+  font-size: typography.mel-font-size(sm);
+  border-bottom: 1px solid rgba(colors.$mel-color-border, 0.5);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.mel-confirmation-card__ticket-name {
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text;
+}
+
+.mel-confirmation-card__ticket-qty {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-confirmation-card__ticket-price {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-confirmation-card__attendees {
+  grid-column: 1 / -1;
+  margin: spacing.mel-space(1) 0 0;
+  padding-left: spacing.mel-space(4);
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-confirmation-card__reference {
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+  margin: 0;
+}
+
+.mel-confirmation-card__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: spacing.mel-space(3) 0 0;
+  margin-top: spacing.mel-space(3);
+  border-top: 2px solid colors.$mel-color-border;
+  font-size: typography.mel-font-size(lg);
+
+  span {
+    color: colors.$mel-color-text-muted;
+  }
+
+  strong {
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+  }
+}
+
+.mel-confirmation-card--donation {
+  background: color.adjust(colors.$mel-color-secondary, $alpha: -0.92);
+  border-color: rgba(colors.$mel-color-secondary, 0.2);
+}
+
+.mel-confirmation-card__donation-title {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-semibold;
+  margin: 0 0 spacing.mel-space(1);
+}
+
+.mel-confirmation-card__donation-amount {
+  font-size: typography.mel-font-size(xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-secondary;
+  margin: 0 0 spacing.mel-space(2);
+}
+
+.mel-confirmation-card__donation-note {
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+}
+
+.mel-confirmation-actions__primary {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+// ---------------------------------------------------------------------------
+// Calendar block (Level 2 - primary, frictionless)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-calendar {
+  margin-top: spacing.mel-space(4);
+
+  .mel-confirmation-calendar__title {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(2);
+  }
+}
+
+.mel-calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+.mel-calendar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: spacing.mel-space(2) spacing.mel-space(3);
+  min-height: 44px;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  background: #f4f4ff;
+  border-radius: radii.$mel-radius-md;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: #e8e6ff;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px colors.$mel-color-primary;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ticket access clarity
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-access {
+  font-size: typography.mel-font-size(sm);
+  margin-top: spacing.mel-space(3);
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0 0 spacing.mel-space(1);
+  }
+
+  .mel-link {
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.mel-confirmation-actions__calendar {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+}
+
+.mel-confirmation-actions__calendar-label {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-confirmation-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+.mel-confirmation-actions__secondary {
+  margin-top: spacing.mel-space(2);
+}
+
+.mel-confirmation-actions__guest-note {
+  padding: spacing.mel-space(4);
+  background: colors.$mel-color-surface-alt;
+  border-radius: radii.$mel-radius-md;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0 0 spacing.mel-space(2);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.mel-confirmation-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: spacing.mel-space(3) spacing.mel-space(5);
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-semibold;
+  text-decoration: none;
+  border-radius: radii.$mel-radius-lg;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  min-height: 48px;
+  cursor: pointer;
+  border: none;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px colors.$mel-color-primary;
+  }
+}
+
+.mel-confirmation-button--primary {
+  background: colors.$mel-color-primary;
+  color: colors.$mel-color-on-primary;
+
+  &:hover {
+    background: color.adjust(colors.$mel-color-primary, $lightness: -5%);
+    color: colors.$mel-color-on-primary;
+  }
+}
+
+.mel-confirmation-button--secondary {
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-text;
+  border: 2px solid colors.$mel-color-border;
+
+  &:hover {
+    background: colors.$mel-color-surface-alt;
+    border-color: colors.$mel-color-primary;
+    color: colors.$mel-color-primary;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Attendee journey (Level 2 - before the event)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-journey {
+  margin-top: spacing.mel-space(6);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-confirmation-journey__title {
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(2);
+}
+
+.mel-confirmation-journey__list {
+  margin: 0;
+  padding-left: spacing.mel-space(5);
+  list-style: none;
+
+  li {
+    position: relative;
+    margin-bottom: spacing.mel-space(1);
+    line-height: 1.5;
+
+    &::before {
+      content: '✔';
+      position: absolute;
+      left: calc(-1 * spacing.mel-space(5));
+      color: colors.$mel-color-success;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Next steps
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-next {
+  padding: spacing.mel-space(5);
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  border: 1px solid colors.$mel-color-border;
+}
+
+.mel-confirmation-next__title {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(3);
+}
+
+.mel-confirmation-next__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mel-confirmation-next__item {
+  position: relative;
+  padding-left: spacing.mel-space(5);
+  margin-bottom: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.5;
+
+  &::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: colors.$mel-color-success;
+    font-weight: bold;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Share (Level 2 - light, invite friends)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-share {
+  margin-top: spacing.mel-space(6);
+  padding: spacing.mel-space(5);
+  background: color.adjust(colors.$mel-color-pastel-lavender, $alpha: -0.7);
+  border-radius: radii.$mel-radius-lg;
+  border: 1px solid rgba(colors.$mel-color-primary, 0.15);
+}
+
+.mel-confirmation-share__title {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(3);
+}
+
+.mel-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+.mel-share-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: spacing.mel-space(2) spacing.mel-space(4);
+  min-height: 44px;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-text;
+  border: 2px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-md;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: colors.$mel-color-surface-alt;
+    border-color: colors.$mel-color-primary;
+    color: colors.$mel-color-primary;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px colors.$mel-color-primary;
+  }
+
+  &:disabled {
+    opacity: 0.8;
+    cursor: default;
+  }
+}
+
+.mel-share-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: spacing.mel-space(2) spacing.mel-space(4);
+  min-height: 44px;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  text-decoration: none;
+  color: colors.$mel-color-primary;
+  border: 2px solid transparent;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px colors.$mel-color-primary;
+  }
+}
+
+.mel-confirmation-share__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+// ---------------------------------------------------------------------------
+// Invite — bring a friend (Level 3 growth loop)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-invite {
+  margin-top: spacing.mel-space(4);
+
+  h3 {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(2);
+  }
+
+  p {
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    margin: 0 0 spacing.mel-space(2);
+  }
+}
+
+.mel-invite-actions {
+  margin-top: spacing.mel-space(2);
+}
+
+// ---------------------------------------------------------------------------
+// Event context — reinforce memory (Level 3)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-event-context {
+  margin-top: spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  strong {
+    color: colors.$mel-color-text;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Discover more events — retention driver (Level 3)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-discover {
+  margin-top: spacing.mel-space(6);
+  padding: spacing.mel-space(5);
+  background: colors.$mel-color-surface;
+  border-radius: radii.$mel-radius-lg;
+  border: 1px solid colors.$mel-color-border;
+
+  h3 {
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-semibold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(3);
+  }
+
+  .mel-confirmation-button {
+    display: inline-flex;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Emotional close (Level 3)
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-close {
+  text-align: center;
+  margin-top: spacing.mel-space(6);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+
+  p {
+    margin: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Support
+// ---------------------------------------------------------------------------
+
+.mel-confirmation-support {
+  padding: spacing.mel-space(4);
+  text-align: center;
+  font-size: typography.mel-font-size(sm);
+}
+
+.mel-confirmation-support__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: spacing.mel-space(3);
+  margin-bottom: spacing.mel-space(2);
+
+  a {
+    color: colors.$mel-color-primary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 2px solid colors.$mel-color-primary;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.mel-confirmation-support__note {
+  margin: 0;
+  color: colors.$mel-color-text-muted;
+}
+
+// ---------------------------------------------------------------------------
+// Mobile
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Mobile polish (Level 2)
+// ---------------------------------------------------------------------------
+
+@include breakpoints.mel-break(sm, max) {
+  .mel-confirmation__hero {
+    padding: spacing.mel-space(6) spacing.mel-space(3);
+  }
+
+  .mel-confirmation-card__body {
+    padding: spacing.mel-space(4);
+  }
+
+  .mel-confirmation-card__ticket-row {
+    grid-template-columns: 1fr auto;
+    gap: spacing.mel-space(1);
+
+    .mel-confirmation-card__ticket-price {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .mel-confirmation-card__ticket-qty {
+      grid-column: 1;
+      grid-row: 2;
+    }
+  }
+
+  .mel-calendar-actions {
+    flex-direction: column;
+
+    .mel-calendar-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .mel-share-actions {
+    flex-direction: column;
+
+    .mel-share-copy,
+    .mel-share-view {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .mel-confirmation-share__buttons,
+  .mel-confirmation-actions__buttons {
+    flex-direction: column;
+  }
+
+  .mel-confirmation-button {
+    width: 100%;
+    min-height: 44px;
+  }
+}

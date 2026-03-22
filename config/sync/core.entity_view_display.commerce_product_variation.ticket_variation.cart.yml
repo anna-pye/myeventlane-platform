@@ -6,6 +6,7 @@ dependencies:
     - commerce_product.commerce_product_variation_type.ticket_variation
     - core.entity_view_mode.commerce_product_variation.cart
     - field.field.commerce_product_variation.ticket_variation.field_event
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_description
 id: commerce_product_variation.ticket_variation.cart
 targetEntityType: commerce_product_variation
 bundle: ticket_variation
@@ -28,6 +29,7 @@ content:
     weight: 1
     region: content
 hidden:
+  field_ticket_description: true
   langcode: true
   list_price: true
   price: true

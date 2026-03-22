@@ -1,0 +1,59 @@
+services:
+  logger.channel.myeventlane_growth:
+    parent: logger.channel_base
+    arguments: ['myeventlane_growth']
+
+  myeventlane_growth.tracking:
+    class: Drupal\myeventlane_growth\Service\GrowthTrackingService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_growth'
+
+  myeventlane_growth.signals:
+    class: Drupal\myeventlane_growth\Service\GrowthOrganiserSignals
+    arguments:
+      - '@tempstore.private'
+
+  myeventlane_growth.insight:
+    class: Drupal\myeventlane_growth\Service\GrowthInsightService
+    arguments:
+      - '@config.factory'
+      - '@myeventlane_growth.tracking'
+      - '@myeventlane_growth.signals'
+      - '@myeventlane_pro.pro_access'
+      - '@myeventlane_pro.subscription_status'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_growth'
+
+  myeventlane_growth.pro_signal_subscriber:
+    class: Drupal\myeventlane_growth\EventSubscriber\GrowthProSignalSubscriber
+    arguments:
+      - '@myeventlane_growth.signals'
+      - '@myeventlane_growth.tracking'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_growth.vendor_route_subscriber:
+    class: Drupal\myeventlane_growth\EventSubscriber\GrowthVendorRouteSubscriber
+    arguments:
+      - '@myeventlane_growth.signals'
+      - '@current_user'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_growth.subscription_subscriber:
+    class: Drupal\myeventlane_growth\EventSubscriber\GrowthSubscriptionSubscriber
+    arguments:
+      - '@myeventlane_growth.tracking'
+      - '@myeventlane_pro.subscription_state_resolver'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_growth.commerce_subscriber:
+    class: Drupal\myeventlane_growth\EventSubscriber\GrowthCommerceSubscriber
+    arguments:
+      - '@myeventlane_growth.tracking'
+    tags:
+      - { name: event_subscriber }

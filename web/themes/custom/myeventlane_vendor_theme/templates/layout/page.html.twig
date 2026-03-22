@@ -49,6 +49,12 @@
       } only %}
     {% endif %}
 
+    {% if page.mel_pro_grace_banner is defined %}
+      {% include '@myeventlane_vendor_theme/includes/mel-pro-grace-banner.html.twig' with {
+        mel_pro_grace_banner: page.mel_pro_grace_banner
+      } only %}
+    {% endif %}
+
     <main class="mel-vendor-shell__content" role="main">
       {% if page.highlighted %}
         {{ page.highlighted }}

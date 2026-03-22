@@ -69,10 +69,10 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       'myeventlane_pro_recovery_attribution',
     ]);
 
-    if (!Role::load('pro_organiser')) {
+    if (!Role::load('mel_pro')) {
       Role::create([
-        'id' => 'pro_organiser',
-        'label' => 'Pro Organiser',
+        'id' => 'mel_pro',
+        'label' => 'MEL Pro',
       ])->save();
     }
 
@@ -95,7 +95,7 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       'name' => 'pro_vendor_send',
       'mail' => 'pro-send@example.com',
       'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
+      'roles' => ['authenticated', 'mel_pro'],
     ]);
     $owner->save();
 
@@ -135,7 +135,7 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       'name' => 'pro_vendor_recovery',
       'mail' => 'recovery@example.com',
       'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
+      'roles' => ['authenticated', 'mel_pro'],
     ]);
     $owner->save();
 
@@ -182,7 +182,7 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       'name' => 'pro_vendor_roi',
       'mail' => 'roi@example.com',
       'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
+      'roles' => ['authenticated', 'mel_pro'],
     ]);
     $owner->save();
 
@@ -234,7 +234,7 @@ final class AbandonedCartEngineKernelTest extends KernelTestBase {
       'name' => 'pro_vendor_terminal',
       'mail' => 'terminal@example.com',
       'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
+      'roles' => ['authenticated', 'mel_pro'],
     ]);
     $owner->save();
 

@@ -16,7 +16,7 @@
       </svg>
     </div>
     <h1 class="mel-pro-success__title">{{ "You're now a Pro Organiser."|t }}</h1>
-    <p class="mel-pro-success__subtitle">{{ 'Your Pro features are now active. Here is what you have unlocked:'|t }}</p>
+    <p class="mel-pro-success__subtitle">{{ 'Your Pro access is now active. Here is what you have unlocked:'|t }}</p>
   </div>
 
   {% if features %}
@@ -33,8 +33,19 @@
   {% endif %}
 
   <div class="mel-pro-success__actions">
-    <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Go to Dashboard'|t }}</a>
-    <a href="{{ path('myeventlane_pro.manage') }}" class="mel-btn mel-btn--secondary">{{ 'Manage Subscription'|t }}</a>
+    {% if actions is defined and actions %}
+      <a href="{{ actions.dashboard.url.toString() }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ actions.dashboard.title }}</a>
+      <a href="{{ actions.manage.url.toString() }}" class="mel-btn mel-btn--secondary">{{ actions.manage.title }}</a>
+      {% if actions.analytics is defined %}
+        <a href="{{ actions.analytics.url.toString() }}" class="mel-btn mel-btn--outline">{{ actions.analytics.title }}</a>
+      {% endif %}
+      {% if actions.branding is defined %}
+        <a href="{{ actions.branding.url.toString() }}" class="mel-btn mel-btn--outline">{{ actions.branding.title }}</a>
+      {% endif %}
+    {% else %}
+      <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn--cta mel-btn--lg">{{ 'Go to Dashboard'|t }}</a>
+      <a href="{{ path('myeventlane_pro.manage') }}" class="mel-btn mel-btn--secondary">{{ 'Manage Subscription'|t }}</a>
+    {% endif %}
   </div>
 
 </div>

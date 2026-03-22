@@ -7,3 +7,4 @@ abandoned_cart:
   enabled: true
   delay_wave_1: 7200
   delay_wave_2: 86400
+billing_portal_enabled: false

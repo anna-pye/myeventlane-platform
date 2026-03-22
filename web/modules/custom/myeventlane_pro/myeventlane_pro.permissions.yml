@@ -3,6 +3,11 @@ administer myeventlane pro settings:
   description: 'Manage MyEventLane Pro configuration.'
   restrict access: true
 
+access pro diagnostics:
+  title: 'Access Pro status diagnostics'
+  description: 'View and run Pro entitlement reconciliation diagnostics.'
+  restrict access: true
+
 view pro reporting:
   title: 'View Pro subscription reporting'
   description: 'Access Pro subscription metrics and vendor detail report.'

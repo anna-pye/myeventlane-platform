@@ -1,11 +1,10 @@
 enabled: true
-subject: "Final warning: Pro access will be suspended"
-preheader: "Your Pro grace period is ending soon."
+subject: "Final notice: your MEL Pro access is ending"
+preheader: "Your Pro access will expire tomorrow if payment isn’t updated."
 body_html: |
   <p>Hi {{ first_name|default('there') }},</p>
-  <p>Your Pro subscription payment is still unpaid.</p>
-  <p>This is the final warning before Pro access is suspended at the end of grace period.</p>
-  <p>Update your payment method immediately to prevent entitlement removal.</p>
+  <p>Your Pro access will end soon if payment isn’t updated.</p>
+  <p>This is your final reminder before the grace period closes.</p>
 utm:
   enable: true
   params:

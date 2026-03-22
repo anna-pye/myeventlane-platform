@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Template for the Pro subscription manage page.
+ * Template for the Pro subscription manage / billing page.
  *
  * Variables:
  * - subscription_status: Status label (e.g. "Active").
@@ -9,14 +9,28 @@
  * - next_billing_date: Formatted next billing date string or NULL.
  * - cancel_url: URL to the cancel confirmation form.
  * - roi_summary: ROI summary array or NULL.
+ * - pro_status: Billing status array from ProSubscriptionStatusService.
+ * - plan_label: Human-readable plan name.
+ * - billing_schedule_label: e.g. Monthly.
+ * - billing_portal_enabled: Whether Stripe portal is enabled in config.
+ * - billing_portal_url: Route URL to start portal redirect.
+ * - billing_support_url: Optional support link.
  */
 #}
+{% set status = pro_status|default({}) %}
+
 <div class="mel-pro-manage">
 
   <div class="mel-pro-manage__header">
     <span class="mel-pro-badge">PRO</span>
-    <h1 class="mel-pro-manage__title">{{ 'Pro Subscription'|t }}</h1>
+    <h1 class="mel-pro-manage__title">{{ 'Billing & subscription'|t }}</h1>
   </div>
+
+  {% if status.is_in_grace|default(false) %}
+    <div class="mel-pro-warning messages messages--warning">
+      {{ 'Your Pro features are at risk. Please update your payment method.'|t }}
+    </div>
+  {% endif %}
 
   {% if grace_days_remaining is not null %}
     <div class="messages messages--warning">
@@ -30,8 +44,23 @@
     </div>
   {% endif %}
 
+  <div class="mel-billing-status mel-billing-status--{{ status.state|default('inactive') }}">
+    <strong>{{ status.status_label|default('') }}</strong>
+    <p>{{ status.status_message|default('') }}</p>
+    {% if status.is_in_grace|default(false) and status.grace_expires_label %}
+      <div class="mel-billing-warning">
+        {{ 'Update your payment method before @date'|t({'@date': status.grace_expires_label}) }}
+      </div>
+    {% endif %}
+  </div>
+
   <div class="mel-pro-manage__card mel-card">
     <div class="mel-pro-manage__details">
+
+      <div class="mel-pro-manage__row">
+        <span class="mel-pro-manage__label">{{ 'Plan'|t }}</span>
+        <span class="mel-pro-manage__value">{{ plan_label|default('MEL Pro') }} — {{ billing_schedule_label|default('') }}</span>
+      </div>
 
       <div class="mel-pro-manage__row">
         <span class="mel-pro-manage__label">{{ 'Status'|t }}</span>
@@ -63,10 +92,19 @@
 
     </div>
 
-    <div class="mel-pro-manage__actions">
-      <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-btn mel-btn--secondary">{{ 'Back to Dashboard'|t }}</a>
+    <div class="mel-pro-manage__actions mel-billing-actions">
+      {% if billing_portal_enabled and billing_portal_url %}
+        <a href="{{ billing_portal_url }}" class="mel-button">{{ 'Manage payment method'|t }}</a>
+      {% else %}
+        <p class="mel-pro-manage__fallback">{{ 'Billing management online is not available yet. Contact support to update your payment method.'|t }}</p>
+        {% if billing_support_url %}
+          <a href="{{ billing_support_url }}" class="mel-button mel-button--secondary">{{ 'Contact support'|t }}</a>
+        {% endif %}
+      {% endif %}
+
+      <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-button mel-button--secondary">{{ 'Back to Dashboard'|t }}</a>
       {% if cancel_url %}
-        <a href="{{ cancel_url }}" class="mel-btn mel-btn--danger">{{ 'Cancel Subscription'|t }}</a>
+        <a href="{{ cancel_url }}" class="mel-button mel-button--secondary">{{ 'Cancel subscription'|t }}</a>
       {% endif %}
     </div>
   </div>

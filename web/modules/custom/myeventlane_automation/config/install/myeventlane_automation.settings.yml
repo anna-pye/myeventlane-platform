@@ -1,0 +1,34 @@
+# Automation layer settings (v1) – recommended defaults.
+# Dashboard nudges enabled; delivery off by default (safe).
+enabled: true
+dry_run: true
+
+# Per-rule enablement.
+rules:
+  low_sales_boost: true
+  no_sales_yet: true
+  nearly_sold_out: true
+  event_ended_rerun: true
+  attendee_reminder: false
+  post_event_followup: false
+  draft_reminder: true
+  organiser_reminder: true
+  auto_boost_candidate: false
+
+# Thresholds (tuned for best results).
+thresholds:
+  low_sales_percent: 15
+  nearly_sold_out_percent: 85
+  reminder_hours_before_event: 24
+  post_event_followup_hours: 48
+  draft_reminder_days: 3
+  no_sales_min_hours_live: 24
+  low_sales_min_hours_live: 48
+
+# Delivery enablement (attendee emails, organiser emails).
+# When false, only dashboard + logging.
+delivery:
+  attendee_reminder: false
+  organiser_reminder: false
+  post_event_followup: false
+  draft_reminder: false

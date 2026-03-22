@@ -14,3 +14,5 @@ dependencies:
   - drupal:commerce_checkout
   - drupal:commerce_order
   - drupal:commerce_payment
+  - drupal:commerce_price
+  - drupal:node

@@ -1,0 +1,10 @@
+# Admin automation settings.
+myeventlane_automation.settings:
+  path: '/admin/config/myeventlane/automation'
+  defaults:
+    _form: '\Drupal\myeventlane_automation\Form\AutomationSettingsForm'
+    _title: 'Automation settings'
+  requirements:
+    _permission: 'administer myeventlane'
+  options:
+    _admin_route: TRUE

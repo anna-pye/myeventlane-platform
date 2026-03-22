@@ -1,0 +1,54 @@
+myeventlane_growth.settings:
+  type: config_object
+  label: 'MyEventLane Growth settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    limits:
+      type: mapping
+      label: 'Limits'
+      mapping:
+        max_dashboard_cards:
+          type: integer
+          label: 'Maximum dashboard growth cards'
+    thresholds:
+      type: mapping
+      label: 'Thresholds'
+      mapping:
+        min_activity_for_pro_nudge:
+          type: integer
+        slow_sales_percent:
+          type: integer
+        traction_percent:
+          type: integer
+        repeat_events_for_pro_nudge:
+          type: integer
+        strong_event_min_filled:
+          type: integer
+        draft_idle_days:
+          type: integer
+        post_event_followup_days:
+          type: integer
+    cooldowns:
+      type: mapping
+      label: 'Cooldowns (days)'
+      mapping:
+        default_days:
+          type: integer
+        boost_days:
+          type: integer
+        pro_upgrade_days:
+          type: integer
+        retention_days:
+          type: integer
+    tracking:
+      type: mapping
+      label: 'Tracking'
+      mapping:
+        enabled:
+          type: boolean
+        impression_dedupe_hours:
+          type: integer
+        attribution_window_days:
+          type: integer

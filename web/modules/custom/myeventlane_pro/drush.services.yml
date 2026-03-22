@@ -1,0 +1,9 @@
+services:
+  myeventlane_pro.commands:
+    class: Drupal\myeventlane_pro\Commands\ProAdminCommands
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_pro.entitlement_reconciler'
+      - '@config.factory'
+    tags:
+      - { name: drush.command }

@@ -7,22 +7,25 @@
  * (TicketSelectionForm). Do not split into Twig-only access_code_form / add_to_cart.
  *
  * Variables: event_title, event_date, event_location, hero_url, event_image,
- * event_description, matrix_form, rsvp_form, event_mode, recommended_events, etc.
+ * event_description, event_summary_excerpt, mel_booking_host_label,
+ * matrix_form, rsvp_form, event_mode, recommended_events, etc.
  */
 #}
 <div class="mel-booking-v2 mel-booking mel-event-book" data-event-mode="{{ event_mode }}">
   <div class="mel-container">
-    {# HERO — emotion / anchor #}
+    {# HERO — event promise #}
     <div class="mel-booking-hero{% if (event_image is not defined or event_image is empty) and not hero_url %} mel-booking-hero--no-media{% endif %}">
-      {% if event_image is defined and event_image is not empty %}
-        <div class="mel-booking-hero__image">
-          {{ event_image }}
-        </div>
-      {% elseif hero_url %}
-        <div class="mel-booking-hero__image">
-          <img class="mel-booking-hero__img-fallback" src="{{ hero_url }}" alt="{{ event_title }}" width="1200" height="600" loading="eager" />
-        </div>
-      {% endif %}
+      <div class="mel-booking-hero__media">
+        {% if event_image is defined and event_image is not empty %}
+          <div class="mel-booking-hero__image">
+            {{ event_image }}
+          </div>
+        {% elseif hero_url %}
+          <div class="mel-booking-hero__image">
+            <img class="mel-booking-hero__img-fallback" src="{{ hero_url }}" alt="{{ event_title }}" width="1200" height="600" loading="eager" />
+          </div>
+        {% endif %}
+      </div>
 
       <div class="mel-booking-hero__overlay">
         <div class="mel-booking-hero__badge">
@@ -36,25 +39,53 @@
         </div>
 
         <div class="mel-booking-hero__content">
+          <p class="mel-booking-hero__eyebrow">{{ 'Book this event'|t }}</p>
           <h1 class="mel-booking-hero__title">{{ event_title }}</h1>
 
-          <div class="mel-event-meta mel-booking-hero__meta">
+          <div class="mel-booking-hero__meta mel-event-meta" role="group" aria-label="{{ 'When and where'|t }}">
             {% if event_date %}
-              <span class="mel-booking-hero__meta-item">{{ event_date }}</span>
+              <span class="mel-booking-hero__meta-block">
+                <span class="mel-booking-hero__meta-label">{{ 'When'|t }}</span>
+                <span class="mel-booking-hero__meta-value">{{ event_date }}</span>
+              </span>
             {% endif %}
             {% if event_location %}
-              <span class="mel-booking-hero__meta-item">{{ event_location }}</span>
+              <span class="mel-booking-hero__meta-block">
+                <span class="mel-booking-hero__meta-label">{{ 'Where'|t }}</span>
+                <span class="mel-booking-hero__meta-value">{{ event_location }}</span>
+              </span>
             {% endif %}
           </div>
+
+          {% if mel_booking_host_label %}
+            <p class="mel-booking-hero__host">
+              {{ 'Hosted by @name'|t({'@name': mel_booking_host_label}) }}
+            </p>
+          {% endif %}
+
+          {% if event_summary_excerpt %}
+            <p class="mel-booking-hero__summary">{{ event_summary_excerpt }}</p>
+          {% endif %}
         </div>
       </div>
+    </div>
+
+    <div class="mel-booking-trust-strip" role="presentation">
+      <ul class="mel-booking-trust-strip__list">
+        <li class="mel-booking-trust-strip__item">{{ 'Secure checkout'|t }}</li>
+        <li class="mel-booking-trust-strip__item">{{ 'Review before payment'|t }}</li>
+        <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
+      </ul>
     </div>
 
     {# CONTENT — context + decision #}
     <div class="mel-booking-container">
       {% if event_description is defined and event_description is not empty %}
         <div class="mel-event-description-card">
-          {{ event_description }}
+          <h3 class="mel-event-description-card__title" id="mel-event-book-about">{{ 'About this event'|t }}</h3>
+          <div class="mel-event-description-card__body" aria-labelledby="mel-event-book-about">
+            {{ event_description }}
+          </div>
         </div>
       {% endif %}
 
@@ -104,17 +135,24 @@
         {% if event_mode == 'paid' %}
           <aside class="mel-booking-layout__aside" aria-label="{{ 'Order summary'|t }}">
             <div class="mel-booking-summary" data-mel-booking-summary>
-              <h3 class="mel-booking-summary__title">{{ 'Your selection'|t }}</h3>
-              <div class="mel-booking-summary__empty" data-mel-summary-empty>
-                <p class="mel-booking-summary__empty-line">{{ 'Choose your tickets to see your total.'|t }}</p>
-                <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ 'You can review everything before checkout.'|t }}</p>
+              <header class="mel-booking-summary__header">
+                <h3 class="mel-booking-summary__title">{{ 'Your selection'|t }}</h3>
+                <p class="mel-booking-summary__kicker mel-text--muted">{{ 'Clear pricing before you pay.'|t }}</p>
+              </header>
+              <div class="mel-booking-summary__body">
+                <div class="mel-booking-summary__empty" data-mel-summary-empty>
+                  <p class="mel-booking-summary__empty-line">{{ 'Choose your tickets to see your total.'|t }}</p>
+                  <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ 'You can review everything before checkout.'|t }}</p>
+                </div>
+                <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
+                <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
+                  <span class="mel-booking-summary__subtotal-label">{{ 'Subtotal'|t }}</span>
+                  <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
+                </div>
               </div>
-              <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
-              <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
-                <span class="mel-booking-summary__subtotal-label">{{ 'Subtotal'|t }}</span>
-                <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
-              </div>
-              <p class="mel-booking-summary__cta-note">{{ 'Tickets are added to your cart first — secure checkout on the next step.'|t }}</p>
+              <footer class="mel-booking-summary__footer">
+                <p class="mel-booking-summary__cta-note">{{ 'Tickets are added to your cart first — secure checkout on the next step.'|t }}</p>
+              </footer>
             </div>
           </aside>
         {% endif %}

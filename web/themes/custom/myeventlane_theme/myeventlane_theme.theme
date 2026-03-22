@@ -3,9 +3,17 @@
 /**
  * @file
  * Theme hooks for MyEventLane.
+ *
+ * MEL LANGUAGE STANDARD:
+ * - Australian English
+ * - "Attendee" not "Customer"
+ * - "Organiser" not "Vendor"
+ * - Friendly, non-corporate tone
  */
 
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -19,10 +27,59 @@ use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\node\NodeInterface;
 
 /**
+ * Implements hook_preprocess().
+ *
+ * Applies MEL language standardisation (Australian English + terminology) to
+ * display text in template variables. Skips URLs, paths, and technical keys
+ * to avoid breaking links or machine names.
+ */
+function myeventlane_theme_preprocess(array &$variables, string $hook): void {
+  $active_theme = \Drupal::theme()->getActiveTheme()->getName();
+  if ($active_theme !== 'myeventlane_theme' && $active_theme !== 'myeventlane_vendor_theme') {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_core.language_style')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_core\Service\LanguageStyleService $service */
+  $service = \Drupal::service('myeventlane_core.language_style');
+  _myeventlane_theme_apply_language_style($variables, $service);
+}
+
+/**
+ * Recursively applies language style to display strings; skips URLs and tech keys.
+ *
+ * Skips render array properties (keys starting with #) to avoid corrupting
+ * #cache, #attached, #attributes, etc. e.g. "user.permissions" must not become
+ * "member.permissions" in cache contexts.
+ */
+function _myeventlane_theme_apply_language_style(array &$items, $service): void {
+  foreach ($items as $key => &$value) {
+    if (is_string($key) && str_starts_with($key, '#')) {
+      continue;
+    }
+    if (is_array($value)) {
+      _myeventlane_theme_apply_language_style($value, $service);
+    }
+    elseif (is_string($value) && !$service->shouldSkipKey($key) && !$service->looksLikeUrl($value)) {
+      $value = $service->replace($value);
+    }
+  }
+}
+
+/**
  * Implements hook_theme().
  */
 function myeventlane_theme_theme(array $existing, string $type, string $theme, string $path): array {
   return [
+    'mel_checkout_order_summary_grouped' => [
+      'variables' => [
+        'grouped_items' => [],
+        'order_total' => '',
+      ],
+      'template' => 'commerce/mel-checkout-order-summary-grouped',
+    ],
     'site_header' => [
       'variables' => [
         'branding' => [],
@@ -237,11 +294,11 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
   // Find and transform the Vendors menu item.
   foreach ($variables['items'] as $key => &$item) {
     $title = (string) ($item['title'] ?? '');
-    if (strtolower($title) === 'vendors') {
+      if (strtolower($title) === 'vendors' || strtolower($title) === 'organisers') {
       // Create child items for the dropdown.
       $item['below'] = [
-        'browse_vendors' => [
-          'title' => t('Browse Vendors'),
+        'browse_organisers' => [
+          'title' => t('Browse organisers'),
           'url' => Url::fromRoute('myeventlane_vendor.public_list'),
           'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
           'below' => [],
@@ -251,10 +308,10 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
         ],
       ];
 
-      // Show "Vendor Dashboard" for vendors, "Become a Vendor" for non-vendors.
+      // Show "Organiser dashboard" for organisers, "Become an organiser" for non-organisers.
       if ($is_vendor) {
-        $item['below']['vendor_dashboard'] = [
-          'title' => t('Vendor Dashboard'),
+        $item['below']['organiser_dashboard'] = [
+          'title' => t('Organiser dashboard'),
           'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
           'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
           'below' => [],
@@ -264,8 +321,8 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
         ];
       }
       else {
-        $item['below']['become_vendor'] = [
-          'title' => t('Become a Vendor'),
+        $item['below']['become_organiser'] = [
+          'title' => t('Become an organiser'),
           'url' => Url::fromRoute('myeventlane_vendor.onboard'),
           'attributes' => new Attribute(['class' => ['mel-nav-dropdown-link']]),
           'below' => [],
@@ -329,6 +386,9 @@ function myeventlane_theme_theme_suggestions_commerce_checkout_form(array $varia
   if ($step_id === 'complete') {
     $suggestions[] = 'commerce_checkout_form__complete';
   }
+  elseif ($step_id !== NULL) {
+    $suggestions[] = 'commerce_checkout_form__with_sidebar';
+  }
   return $suggestions;
 }
 
@@ -381,8 +441,161 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         }
       }
       $variables['order_items_attendees'] = $order_items_attendees;
+
+      // Event image URLs for confirmation cards (avoids Twig sandbox restriction on first()).
+      $file_url_generator = \Drupal::service('file_url_generator');
+      $mel_event_image_urls = [];
+      foreach ($order->getItems() as $item) {
+        if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+          continue;
+        }
+        $event = NULL;
+        if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+          $event = $item->get('field_target_event')->entity;
+        }
+        if (!$event) {
+          $pe = $item->getPurchasedEntity();
+          if ($pe && $pe->hasField('field_event') && !$pe->get('field_event')->isEmpty()) {
+            $event = $pe->get('field_event')->entity;
+          }
+        }
+        if (!$event && $item->getPurchasedEntity()) {
+          $product = $item->getPurchasedEntity()->getProduct();
+          if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
+            $event = $product->get('field_event')->entity;
+          }
+        }
+        if ($event && $event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
+          $event_id = (int) $event->id();
+          if (!isset($mel_event_image_urls[$event_id])) {
+            $files = $event->get('field_event_image')->referencedEntities();
+            $file = !empty($files) ? reset($files) : NULL;
+            if ($file) {
+              $mel_event_image_urls[$event_id] = $file_url_generator->generateAbsoluteString($file->getFileUri());
+            }
+          }
+        }
+      }
+      $variables['mel_event_image_urls'] = $mel_event_image_urls;
+
+      // Help centre URL for confirmation support block.
+      try {
+        $variables['mel_help_centre_url'] = Url::fromRoute('myeventlane_help_centre.public_index')->toString();
+      }
+      catch (RouteNotFoundException $e) {
+        $variables['mel_help_centre_url'] = '/help';
+      }
+
+      // Calendar links, event URL, logged-in for Level 2 confirmation UX.
+      $first_event = _myeventlane_theme_get_first_event_from_order($order);
+      $variables['mel_calendar_links'] = $first_event ? _myeventlane_theme_build_calendar_links($first_event) : [];
+      $variables['mel_event_url'] = $first_event
+        ? $first_event->toUrl('canonical', ['absolute' => TRUE])->toString()
+        : '';
+      $variables['mel_logged_in'] = \Drupal::currentUser()->isAuthenticated();
+
+      // Attach copy-link JS when share block is present.
+      if ($variables['mel_event_url']) {
+        $variables['#attached']['library'][] = 'myeventlane_theme/mel_confirmation';
+      }
     }
   }
+}
+
+/**
+ * Extracts the first event node from an order.
+ *
+ * @param \Drupal\commerce_order\Entity\OrderInterface $order
+ *   The order entity.
+ *
+ * @return \Drupal\node\NodeInterface|null
+ *   The first event node, or NULL.
+ */
+function _myeventlane_theme_get_first_event_from_order($order) {
+  foreach ($order->getItems() as $item) {
+    if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+      continue;
+    }
+    $event = NULL;
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      $event = $item->get('field_target_event')->entity;
+    }
+    if (!$event) {
+      $pe = $item->getPurchasedEntity();
+      if ($pe && $pe->hasField('field_event') && !$pe->get('field_event')->isEmpty()) {
+        $event = $pe->get('field_event')->entity;
+      }
+    }
+    if (!$event && $item->getPurchasedEntity()) {
+      $product = $item->getPurchasedEntity()->getProduct();
+      if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
+        $event = $product->get('field_event')->entity;
+      }
+    }
+    if ($event && $event instanceof NodeInterface && $event->bundle() === 'event') {
+      return $event;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Builds calendar links (Apple, Google, Outlook) for an event.
+ *
+ * Mirrors EventSerializer logic; uses existing ICS route for Apple.
+ *
+ * @param \Drupal\node\NodeInterface $event
+ *   The event node.
+ *
+ * @return array{apple?: string, google?: string, outlook?: string}
+ *   Calendar link URLs.
+ */
+function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
+  $links = [];
+
+  $ics_url = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()], ['absolute' => TRUE]);
+  $links['ics'] = $ics_url->toString();
+  $links['apple'] = $links['ics'];
+
+  if (!$event->hasField('field_event_start') || $event->get('field_event_start')->isEmpty()) {
+    return $links;
+  }
+
+  $title = rawurlencode($event->label());
+  $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
+  $end = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
+    ? gmdate('Ymd\THis\Z', strtotime($event->get('field_event_end')->value))
+    : $start;
+
+  $details = '';
+  if ($event->hasField('body') && !$event->get('body')->isEmpty()) {
+    $details = rawurlencode(strip_tags($event->get('body')->summary ?? $event->get('body')->value ?? ''));
+  }
+
+  $location = '';
+  if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
+    $address = $event->get('field_location')->first();
+    if ($address) {
+      $parts = array_filter([
+        $address->get('address_line1')->value ?? NULL,
+        $address->get('locality')->value ?? NULL,
+        $address->get('administrative_area')->value ?? NULL,
+        $address->get('postal_code')->value ?? NULL,
+      ]);
+      $location = rawurlencode(implode(', ', $parts));
+    }
+  }
+
+  $links['google'] = "https://calendar.google.com/calendar/render?action=TEMPLATE" .
+    "&text=$title&dates={$start}/{$end}&details=$details&location=$location";
+
+  $start_outlook = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));
+  $end_outlook = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
+    ? gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_end')->value))
+    : $start_outlook;
+  $links['outlook'] = "https://outlook.live.com/calendar/0/deeplink/compose?subject={$title}&startdt={$start_outlook}&enddt={$end_outlook}";
+
+  return $links;
 }
 
 /**
@@ -409,79 +622,6 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
     if ($route_name === 'entity.commerce_order.user_view') {
       $variables['attributes']['class'][] = 'mel-commerce-order-detail';
     }
-  }
-}
-
-/**
- * Implements hook_page_attachments().
- *
- * Theme-level attachments only (no inline <script>/<style> in Twig).
- */
-function myeventlane_theme_page_attachments(array &$page): void {
-  // Font: Inter via Google Fonts (CSS link tag).
-  // NOTE: This is intentionally attached as html_head, not inline CSS.
-  $page['#attached']['html_head'][] = [
-    [
-      '#tag' => 'link',
-      '#attributes' => [
-        'href' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-        'rel' => 'stylesheet',
-      ],
-    ],
-    'myeventlane_theme_inter_font',
-  ];
-
-  $route_name = \Drupal::routeMatch()->getRouteName();
-  $path = \Drupal::request()->getPathInfo();
-  $path = $path !== NULL ? trim($path, '/') : '';
-
-  // Attach auth_pages only on login, register, and password reset.
-  // Route-based (core and Gin Login) plus path fallback for aliases/custom routes.
-  $is_auth_route = in_array($route_name, ['user.login', 'user.register', 'user.pass'], TRUE);
-  $is_auth_path = str_starts_with($path, 'user/login') || str_starts_with($path, 'user/register') || str_starts_with($path, 'user/password');
-  if ($is_auth_route || $is_auth_path) {
-    $page['#attached']['library'][] = 'myeventlane_theme/auth_pages';
-  }
-
-  // Attach event full library on event canonical pages (defensive).
-  if ($route_name === 'entity.node.canonical') {
-    $node = \Drupal::routeMatch()->getParameter('node');
-    if ($node instanceof NodeInterface && $node->bundle() === 'event') {
-      $page['#attached']['library'][] = 'myeventlane_theme/myeventlane_event_full';
-    }
-  }
-
-  // Checkout only: ensure Stripe.js is available when Commerce Stripe is enabled.
-  // Single canonical path: commerce_stripe/stripe library. No duplicate script injection.
-  if (strpos((string) $route_name, 'commerce_checkout') === 0 && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
-    $page['#attached']['library'][] = 'commerce_stripe/stripe';
-  }
-
-  // Export category color map to JavaScript via drupalSettings.
-  if (\Drupal::hasService('myeventlane_shared.color_service')) {
-    try {
-      $color_service = \Drupal::service('myeventlane_shared.color_service');
-      $color_map = $color_service->getCategoryColors();
-      $page['#attached']['drupalSettings']['myeventlane'] = [
-        'categoryColors' => $color_map,
-      ];
-    }
-    catch (\Throwable $e) {
-      \Drupal::logger('myeventlane_theme')->warning('Could not load ColorService: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
-  }
-
-  // Attach MyEventLane toast library only on Commerce pages.
-  $route_for_commerce = \Drupal::routeMatch()->getRouteName() ?? '';
-  $path_for_commerce = \Drupal::request()->getPathInfo() ?? '';
-  $is_commerce =
-    str_starts_with((string) $route_for_commerce, 'commerce_') ||
-    str_starts_with($path_for_commerce, '/cart') ||
-    str_starts_with($path_for_commerce, '/checkout');
-  if ($is_commerce) {
-    $page['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
   }
 }
 
@@ -2089,6 +2229,8 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['matrix_form'] = $variables['matrix_form'] ?? [];
   $variables['event_image'] = [];
   $variables['event_description'] = [];
+  $variables['event_summary_excerpt'] = NULL;
+  $variables['mel_booking_host_label'] = NULL;
 
   $event = $variables['event'] ?? NULL;
   if (!$event instanceof NodeInterface) {
@@ -2107,8 +2249,20 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
         '#text' => $body->value,
         '#format' => $body->format ?: 'basic_html',
       ];
+      $plain = trim(PlainTextOutput::renderFromHtml((string) $body->value));
+      if ($plain !== '' && strlen($plain) > 260) {
+        $variables['event_summary_excerpt'] = Unicode::truncate($plain, 220, TRUE, TRUE);
+      }
     }
   }
+
+  if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+    $vendor = $event->get('field_event_vendor')->entity;
+    if ($vendor && $vendor->access('view')) {
+      $variables['mel_booking_host_label'] = $vendor->label();
+    }
+  }
+
 }
 
 /**
@@ -2120,6 +2274,10 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
  *
  * Adds conversion-layer metadata (data attributes, BEM hooks) for
  * mel_booking_summary.js. Does not change submit handlers or quantities.
+ *
+ * Restructures rows for premium layout only: title_row + selection badge,
+ * purchase_column (.mel-ticket-row__meta) wrapping price + quantity, group_hint
+ * moved under the main column.
  *
  * Per-tier scarcity copy is not rendered here: computing “only X left” correctly
  * requires the same waitlist-offer and capacity branches as checkout validation.
@@ -2212,23 +2370,6 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
   unset($label_cell);
 
   // Ticket matrix conversion metadata + row structure for JS/CSS.
-  $currency_code = 'AUD';
-  $product = $element['#product'] ?? NULL;
-  if ($product instanceof ProductInterface) {
-    foreach ($product->getVariations() as $variation_for_currency) {
-      if ($variation_for_currency->getPrice()) {
-        $currency_code = $variation_for_currency->getPrice()->getCurrencyCode();
-        break;
-      }
-    }
-  }
-
-  $locale = \Drupal::languageManager()->getCurrentLanguage()->getId();
-  if ($locale === 'en') {
-    $locale = 'en-AU';
-  }
-
-  $summary_enabled = FALSE;
   foreach (Element::children($element['tickets']) as $key) {
     if (!is_numeric($key)) {
       continue;
@@ -2243,7 +2384,6 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
     $price_number = '';
     if ($variation instanceof ProductVariationInterface && $variation->getPrice()) {
       $price_number = (string) $variation->getPrice()->getNumber();
-      $summary_enabled = TRUE;
     }
 
     $title_plain = '';
@@ -2260,33 +2400,94 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
       $row['#attributes']['data-ticket-price-number'] = $price_number;
     }
 
+    // Group sale / bundle hints: keep in the main column under the description.
+    if (isset($row['group_hint']) && is_array($row['group_hint']) && ($row['group_hint']['#access'] ?? TRUE) !== FALSE) {
+      $gh = $row['group_hint'];
+      unset($row['group_hint']);
+      $row['label_cell']['group_hint'] = $gh;
+      if (!isset($row['label_cell']['group_hint']['#attributes']['class']) || !is_array($row['label_cell']['group_hint']['#attributes']['class'])) {
+        $row['label_cell']['group_hint']['#attributes']['class'] = [];
+      }
+      $row['label_cell']['group_hint']['#attributes']['class'][] = 'mel-ticket-row__helper';
+      $row['label_cell']['group_hint']['#weight'] = 16;
+    }
+
+    // Title row + “Selected” badge (visibility toggled in mel_booking_summary.js).
+    if (isset($row['label_cell']['label']) && is_array($row['label_cell']['label'])) {
+      $label_el = $row['label_cell']['label'];
+      unset($row['label_cell']['label']);
+      if (!isset($label_el['#attributes']['class']) || !is_array($label_el['#attributes']['class'])) {
+        $label_el['#attributes']['class'] = [];
+      }
+      if (!in_array('mel-ticket-row__title', $label_el['#attributes']['class'], TRUE)) {
+        $label_el['#attributes']['class'][] = 'mel-ticket-row__title';
+      }
+      $label_el['#weight'] = 1;
+      $row['label_cell']['title_row'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-row__title-row']],
+        '#weight' => 2,
+        'label' => $label_el,
+        'selection_badge' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => (string) t('Selected'),
+          '#attributes' => [
+            'class' => ['mel-ticket-row__selection-badge'],
+            'data-mel-ticket-selection-badge' => '1',
+            'hidden' => 'hidden',
+          ],
+          '#weight' => 2,
+        ],
+      ];
+    }
+
+    if (isset($row['label_cell']['description']) && is_array($row['label_cell']['description'])) {
+      $row['label_cell']['description']['#weight'] = 8;
+    }
+
+    $has_desc = isset($row['label_cell']['description']) && is_array($row['label_cell']['description'])
+      && isset($row['label_cell']['description']['#markup'])
+      && trim(strip_tags((string) $row['label_cell']['description']['#markup'])) !== '';
+    if ($has_desc) {
+      $row['#attributes']['class'][] = 'mel-ticket-row--has-description';
+    }
+
     if (isset($row['label_cell']) && is_array($row['label_cell'])) {
+      if (!isset($row['label_cell']['#attributes']['class']) || !is_array($row['label_cell']['#attributes']['class'])) {
+        $row['label_cell']['#attributes']['class'] = [];
+      }
       $row['label_cell']['#attributes']['class'][] = 'mel-ticket-row__main';
       $row['label_cell']['#weight'] = 10;
-      if (isset($row['label_cell']['label']['#attributes']['class']) && is_array($row['label_cell']['label']['#attributes']['class'])) {
-        $row['label_cell']['label']['#attributes']['class'][] = 'mel-ticket-row__title';
-      }
-      else {
-        $row['label_cell']['label']['#attributes']['class'] = ['mel-ticket-row__title'];
+    }
+
+    if (isset($row['price']) && is_array($row['price'])) {
+      if (isset($row['price']['#attributes']['class']) && is_array($row['price']['#attributes']['class'])) {
+        $row['price']['#attributes']['class'][] = 'mel-ticket-row__price';
       }
     }
 
-    if (isset($row['price']['#attributes']['class']) && is_array($row['price']['#attributes']['class'])) {
-      $row['price']['#attributes']['class'][] = 'mel-ticket-row__price';
-      $row['price']['#weight'] = 11;
+    if (isset($row['price']) && isset($row['quantity'])) {
+      $price_el = $row['price'];
+      $qty_el = $row['quantity'];
+      unset($row['price'], $row['quantity']);
+      $price_el['#weight'] = 1;
+      if (!isset($qty_el['#attributes']['class']) || !is_array($qty_el['#attributes']['class'])) {
+        $qty_el['#attributes']['class'] = [];
+      }
+      if (!in_array('mel-ticket-row__qty', $qty_el['#attributes']['class'], TRUE)) {
+        $qty_el['#attributes']['class'][] = 'mel-ticket-row__qty';
+      }
+      $qty_el['#weight'] = 2;
+      $row['purchase_column'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-row__meta']],
+        '#weight' => 22,
+        'price' => $price_el,
+        'quantity' => $qty_el,
+      ];
     }
 
-    if (isset($row['group_hint']) && is_array($row['group_hint'])) {
-      $row['group_hint']['#weight'] = 12;
-      if (isset($row['group_hint']['#attributes']['class']) && is_array($row['group_hint']['#attributes']['class'])) {
-        $row['group_hint']['#attributes']['class'][] = 'mel-ticket-row__helper';
-      }
-      else {
-        $row['group_hint']['#attributes']['class'] = ['mel-ticket-row__helper'];
-      }
-    }
-
-    // Urgency / stock hooks: left column only; keeps quantity + price grid intact.
     if (isset($row['label_cell']) && is_array($row['label_cell']) && !isset($row['label_cell']['row_status'])) {
       $row['label_cell']['row_status'] = [
         '#type' => 'container',
@@ -2296,25 +2497,7 @@ function myeventlane_theme_preprocess_form__myeventlane_ticket_selection_form(ar
         '#weight' => 18,
       ];
     }
-
-    if (isset($row['quantity']['#attributes']) && is_array($row['quantity']['#attributes'])) {
-      $row['quantity']['#attributes']['class'][] = 'mel-ticket-row__qty';
-      $row['quantity']['#weight'] = 20;
-    }
   }
-
-  $variables['#attached']['library'][] = 'myeventlane_theme/mel_booking_summary';
-  $variables['#attached']['drupalSettings']['melBookingSummary'] = [
-    'enabled' => $summary_enabled,
-    'currencyCode' => $currency_code,
-    'locale' => $locale,
-    'strings' => [
-      'subtotal' => (string) t('Subtotal'),
-      'ticketCount' => (string) t('@count tickets'),
-      'noTicketsYet' => (string) t('No tickets selected'),
-      'ticketFallback' => (string) t('Ticket'),
-    ],
-  ];
 
   $variables['form'] = $variables['element'];
 }

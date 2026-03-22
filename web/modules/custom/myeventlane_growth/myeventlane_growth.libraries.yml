@@ -1,0 +1,16 @@
+dashboard_cards:
+  version: 1.x
+  css:
+    theme:
+      css/growth-dashboard.css: {}
+  js:
+    js/growth-dashboard.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+admin_report:
+  version: 1.x
+  css:
+    theme:
+      css/growth-report.css: {}

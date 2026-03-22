@@ -27,18 +27,38 @@ use Drupal\node\NodeInterface;
  */
 function myeventlane_pro_theme(): array {
   return [
+    'myeventlane_pro_message_attendees' => [
+      'variables' => [
+        'event' => NULL,
+        'form' => NULL,
+      ],
+      'template' => 'message-attendees',
+    ],
     'vendor_pro_overview' => [
       'variables' => [
         'is_pro' => FALSE,
         'pro_price' => '',
         'subscribe_form' => NULL,
         'manage_url' => NULL,
+        'pro_status' => [],
+        'status_card' => NULL,
       ],
       'template' => 'vendor-pro-overview',
+    ],
+    'mel_pro_status_card' => [
+      'variables' => [
+        'status' => [],
+        'manage_url' => NULL,
+        'cancel_url' => NULL,
+        'support_url' => NULL,
+        'upgrade_url' => NULL,
+      ],
+      'template' => 'mel-pro-status-card',
     ],
     'vendor_pro_success' => [
       'variables' => [
         'features' => [],
+        'actions' => [],
       ],
       'template' => 'vendor-pro-success',
     ],
@@ -51,6 +71,12 @@ function myeventlane_pro_theme(): array {
         'grace_days_remaining' => NULL,
         'cancel_url' => NULL,
         'roi_summary' => NULL,
+        'pro_status' => [],
+        'plan_label' => NULL,
+        'billing_schedule_label' => NULL,
+        'billing_portal_enabled' => FALSE,
+        'billing_portal_url' => NULL,
+        'billing_support_url' => NULL,
       ],
       'template' => 'vendor-pro-manage',
     ],
@@ -60,6 +86,13 @@ function myeventlane_pro_theme(): array {
         'rows' => [],
       ],
       'template' => 'admin-pro-report',
+    ],
+    'pro_diagnostics' => [
+      'variables' => [
+        'rows' => [],
+        'actions_form' => NULL,
+      ],
+      'template' => 'pro-diagnostics',
     ],
   ];
 }
@@ -143,6 +176,11 @@ function myeventlane_pro_preprocess_myeventlane_vendor_dashboard(array &$variabl
   $variables['is_pro'] = $isPro;
   $variables['mel_vendor_is_pro'] = $isPro;
   $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
+
+  if (\Drupal::hasService('myeventlane_pro.pro_access')) {
+    $variables['pro_access'] = \Drupal::service('myeventlane_pro.pro_access');
+    $variables['user'] = $currentUser;
+  }
 
   $showProPrompt = FALSE;
   if (!$isPro) {
@@ -260,6 +298,49 @@ function myeventlane_pro_preprocess_node(array &$variables): void {
   }
   $variables['#cache']['tags'][] = 'pro_subscription:' . (int) $store->id();
   $variables['#cache']['tags'][] = 'commerce_store:' . (int) $store->id();
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_audience.
+ *
+ * Injects Pro access and message attendees context.
+ */
+function myeventlane_pro_preprocess_myeventlane_vendor_audience(array &$variables): void {
+  if (!\Drupal::hasService('myeventlane_pro.pro_access')) {
+    return;
+  }
+
+  $variables['pro_access'] = \Drupal::service('myeventlane_pro.pro_access');
+  $variables['user'] = \Drupal::currentUser();
+
+  $userId = (int) \Drupal::currentUser()->id();
+  if ($userId <= 0) {
+    $variables['message_attendees_events'] = [];
+    return;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $query = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'event')
+    ->condition('uid', $userId)
+    ->condition('status', 1)
+    ->sort('field_event_start', 'DESC')
+    ->range(0, 10);
+  try {
+    $ids = $query->execute();
+  }
+  catch (\Throwable) {
+    $variables['message_attendees_events'] = [];
+    return;
+  }
+
+  $variables['message_attendees_events'] = [];
+  if (!empty($ids)) {
+    foreach ($storage->loadMultiple($ids) as $node) {
+      $variables['message_attendees_events'][] = ['id' => (int) $node->id(), 'title' => $node->label()];
+    }
+  }
 }
 
 /**
@@ -532,7 +613,7 @@ function myeventlane_pro_entity_base_field_info(EntityTypeInterface $entity_type
  * Implements hook_ENTITY_TYPE_presave() for escalation entities.
  *
  * Flags new escalations as Pro support when the submitting user holds the
- * pro_organiser role.
+ * mel_pro role.
  */
 function myeventlane_pro_escalation_presave(EntityInterface $escalation): void {
   if (!$escalation->hasField('field_is_pro_support')) {

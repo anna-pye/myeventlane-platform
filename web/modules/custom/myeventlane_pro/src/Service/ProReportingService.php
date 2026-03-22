@@ -16,7 +16,7 @@ use Drupal\user\UserInterface;
 final class ProReportingService {
 
   private const BILLING_SCHEDULE = 'mel_pro_monthly';
-  private const PRO_ROLE = 'pro_organiser';
+  private const PRO_ROLE = 'mel_pro';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const BATCH_SIZE = 50;
 

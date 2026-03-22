@@ -1,11 +1,11 @@
 enabled: true
-subject: "Payment failed for your Pro subscription"
-preheader: "Update your card to keep Pro features active."
+subject: "Your MEL Pro payment needs attention"
+preheader: "Update your payment method during the grace period."
 body_html: |
   <p>Hi {{ first_name|default('there') }},</p>
-  <p>We could not process your latest Pro subscription payment.</p>
-  <p>Please update your payment method now to keep Pro active without interruption.</p>
-  <p>You still have a grace period before access changes.</p>
+  <p>We couldn’t process your latest payment.</p>
+  <p>You have a 7-day grace period to update your payment method.</p>
+  <p>Thanks,<br>MyEventLane</p>
 utm:
   enable: true
   params:

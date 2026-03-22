@@ -1,6 +1,13 @@
 trial_days: 30
 pro_price: 49
 pro_variation_sku: ''
+grace_days: 7
+upgrade_cta_enabled: true
+cancel_request_enabled: true
+billing_support_url: ''
+billing_portal_enabled: false
+webhook_audit_enabled: false
+subscription_webhook_secret: ''
 abandoned_cart:
   enabled: true
   delay_wave_1: 7200

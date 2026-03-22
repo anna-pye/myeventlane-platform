@@ -1,0 +1,6 @@
+administer myeventlane growth settings:
+  title: 'Administer MyEventLane growth settings'
+  restrict access: true
+
+view myeventlane growth report:
+  title: 'View MyEventLane growth report'

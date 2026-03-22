@@ -4,6 +4,9 @@
  * @file
  * Creates default main menu links for MyEventLane.
  *
+ * MEL LANGUAGE STANDARD:
+ * - "Organiser" not "Vendor" in navigation
+ *
  * This file is included by hook_install() to create default menu structure.
  */
 
@@ -40,14 +43,14 @@ function _myeventlane_core_create_default_menu_links(): void {
   ]);
   $create_link->save();
 
-  // Create Vendors link.
-  $vendors_link = MenuLinkContent::create([
-    'title' => 'Vendors',
+  // Create Organisers link (MEL: "Organiser" not "Vendor").
+  $organisers_link = MenuLinkContent::create([
+    'title' => 'Organisers',
     'link' => ['uri' => 'internal:/vendors'],
     'menu_name' => 'main',
     'weight' => 2,
   ]);
-  $vendors_link->save();
+  $organisers_link->save();
 
   // Create Support link.
   $support_link = MenuLinkContent::create([

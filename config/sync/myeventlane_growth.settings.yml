@@ -1,0 +1,24 @@
+enabled: true
+
+limits:
+  max_dashboard_cards: 3
+
+thresholds:
+  min_activity_for_pro_nudge: 1
+  slow_sales_percent: 20
+  traction_percent: 70
+  repeat_events_for_pro_nudge: 2
+  strong_event_min_filled: 10
+  draft_idle_days: 21
+  post_event_followup_days: 14
+
+cooldowns:
+  default_days: 14
+  boost_days: 7
+  pro_upgrade_days: 21
+  retention_days: 10
+
+tracking:
+  enabled: true
+  impression_dedupe_hours: 24
+  attribution_window_days: 14

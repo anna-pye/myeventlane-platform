@@ -11,6 +11,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_growth\Service\GrowthTrackingService;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 
@@ -29,6 +30,7 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly ?GrowthTrackingService $growthTracking = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -38,6 +40,15 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
    */
   public function attendees(NodeInterface $event): array {
     $this->assertEventOwnership($event);
+    if ($this->growthTracking) {
+      $this->growthTracking->recordConversionForPrefixes(
+        (int) $this->currentUser->id(),
+        (int) $event->id(),
+        'attendee_review',
+        ['retention_'],
+        [],
+      );
+    }
     $tabs = $this->eventTabsService->getTabs($event, 'attendees');
 
     $attendees = $this->attendanceManager->getAttendeesForEvent((int) $event->id());

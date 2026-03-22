@@ -3,25 +3,41 @@
   Variables: attendees, summary, segments.
 #}
 
-{# Summary Cards #}
-<div class="mel-grid mel-grid--3 mel-mb-xl">
+{# Pro-gated: Message attendees #}
+{% if pro_access is defined and pro_access and user is defined and user %}
+  {% if pro_access.hasFeature(user, 'audience_messaging') %}
+    {% if message_attendees_events is defined and message_attendees_events|length > 0 %}
+      <div class="mel-audience-actions mel-mb-lg">
+        <a href="{{ path('myeventlane_vendor.message_attendees', { node: message_attendees_events.0.id }) }}" class="mel-btn mel-btn--secondary">
+          {{ 'Message attendees'|t }}
+        </a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="mel-pro-lock mel-mb-lg">
+      {{ 'Message attendees (Pro)'|t }}
+    </div>
+  {% endif %}
+{% endif %}
+
+{# Summary Cards — Part 4: Audience Building #}
+<div class="mel-audience-summary mel-grid mel-grid--3 mel-mb-xl">
   <div class="mel-card mel-card--stat">
     <div class="mel-stat">
-      <div class="mel-stat__value">{{ summary.total|default(0) }}</div>
-      <div class="mel-stat__label">{{ 'Total Attendees'|t }}</div>
+      <div class="mel-stat__value">{{ summary.total_attendees|default(summary.total)|default(0) }}</div>
+      <div class="mel-stat__label">{{ 'Attendees'|t }}</div>
+    </div>
+  </div>
+  <div class="mel-card mel-card--stat">
+    <div class="mel-stat">
+      <div class="mel-stat__value">{{ summary.repeat_attendees|default(0) }}</div>
+      <div class="mel-stat__label">{{ 'Returning'|t }}</div>
     </div>
   </div>
   <div class="mel-card mel-card--stat">
     <div class="mel-stat">
       <div class="mel-stat__value">{{ segments|length }}</div>
       <div class="mel-stat__label">{{ 'Event Categories'|t }}</div>
-    </div>
-  </div>
-  <div class="mel-card mel-card--stat">
-    <div class="mel-stat">
-      <div class="mel-stat__value">—</div>
-      <div class="mel-stat__label">{{ 'Repeat Attendees'|t }}</div>
-      <div class="mel-stat__note mel-text--muted">{{ 'Coming soon'|t }}</div>
     </div>
   </div>
 </div>

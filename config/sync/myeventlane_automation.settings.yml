@@ -1,0 +1,25 @@
+enabled: false
+dry_run: false
+rules:
+  low_sales_boost: false
+  no_sales_yet: false
+  nearly_sold_out: false
+  event_ended_rerun: false
+  attendee_reminder: false
+  post_event_followup: false
+  draft_reminder: false
+  organiser_reminder: false
+  auto_boost_candidate: false
+thresholds:
+  low_sales_percent: 0
+  nearly_sold_out_percent: 0
+  reminder_hours_before_event: 0
+  post_event_followup_hours: 0
+  draft_reminder_days: 0
+  no_sales_min_hours_live: 0
+  low_sales_min_hours_live: 0
+delivery:
+  attendee_reminder: false
+  organiser_reminder: false
+  post_event_followup: false
+  draft_reminder: false

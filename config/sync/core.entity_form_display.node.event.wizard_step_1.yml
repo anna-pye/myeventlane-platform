@@ -98,6 +98,12 @@ content:
     settings:
       include_locked: true
     third_party_settings: {  }
+  moderation_state:
+    type: moderation_state_default
+    weight: 100
+    region: content
+    settings: {  }
+    third_party_settings: {  }
   title:
     type: string_textfield
     weight: 0
@@ -113,6 +119,8 @@ hidden:
   field_accessibility_directions: true
   field_accessibility_entry: true
   field_accessibility_parking: true
+  field_age_policy: true
+  field_age_policy_note: true
   field_age_restriction: true
   field_attendee_questions: true
   field_cancel_reason: true
@@ -123,12 +131,15 @@ hidden:
   field_contact_phone: true
   field_event_capacity_total: true
   field_event_end: true
+  field_event_geo: true
   field_event_highlights: true
   field_event_intro: true
+  field_event_setup_complete: true
   field_event_start: true
   field_event_state: true
   field_event_state_override: true
   field_event_store: true
+  field_event_summary: true
   field_event_type: true
   field_event_vendor: true
   field_external_url: true
@@ -151,6 +162,7 @@ hidden:
   field_series_timezone: true
   field_tags: true
   field_ticket_types: true
+  field_venue: true
   field_venue_address: true
   field_venue_name: true
   field_waitlist_capacity: true

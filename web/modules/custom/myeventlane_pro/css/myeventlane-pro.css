@@ -27,6 +27,108 @@
   text-decoration: underline;
 }
 
+/* Pro status card */
+.mel-pro-status-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+  margin-bottom: 2rem;
+}
+
+.mel-pro-status-card--active {
+  border-left: 4px solid #10b981;
+}
+
+.mel-pro-status-card--grace {
+  border-left: 4px solid #f59e0b;
+}
+
+.mel-pro-status-card--manual {
+  border-left: 4px solid #8E7CFF;
+}
+
+.mel-pro-status-card--inactive {
+  border-left: 4px solid #94a3b8;
+}
+
+.mel-pro-status-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mel-pro-status-card__badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.mel-pro-status-card--active .mel-pro-status-card__badge {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.mel-pro-status-card--grace .mel-pro-status-card__badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mel-pro-status-card--manual .mel-pro-status-card__badge {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.mel-pro-status-card__plan {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.mel-pro-status-card__meta {
+  margin-bottom: 1rem;
+}
+
+.mel-pro-status-card__message {
+  margin: 0 0 0.5rem;
+  color: #444;
+  font-size: 1rem;
+}
+
+.mel-pro-status-card__billing {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.mel-pro-status-card__grace-warning {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.mel-pro-status-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mel-pro-overview__status-card {
+  margin-bottom: 2rem;
+}
+
+.mel-pro-overview__cta-intro {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #444;
+}
+
 /* Overview page */
 .mel-pro-overview {
   max-width: 960px;
@@ -323,6 +425,24 @@
   color: #fff;
 }
 
+/* Outline button */
+.mel-btn--outline {
+  background: transparent;
+  color: #8E7CFF;
+  border: 2px solid #8E7CFF;
+  padding: 0.625rem 1.25rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mel-btn--outline:hover {
+  background: #8E7CFF;
+  color: #fff;
+}
+
 /* Danger button */
 .mel-btn--danger {
   background: #dc3545;
@@ -396,4 +516,83 @@
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 3px;
+}
+
+/* Billing status panel (Level 8) */
+.mel-billing-status {
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.mel-billing-status--active {
+  background: #e9f9f0;
+}
+
+.mel-billing-status--grace {
+  background: #fff5e6;
+}
+
+.mel-billing-status--inactive {
+  background: #fdeaea;
+}
+
+.mel-billing-status p {
+  margin: 0.35rem 0 0;
+  color: #333;
+}
+
+.mel-billing-warning {
+  margin-top: 0.75rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.mel-billing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.mel-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: #6c3cff;
+  color: #fff;
+}
+
+.mel-button:hover {
+  filter: brightness(1.05);
+  color: #fff;
+}
+
+.mel-button--secondary {
+  background: #fff;
+  color: #1a1a2e;
+  border-color: #cbd5e1;
+}
+
+.mel-pro-warning {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.mel-pro-manage__fallback {
+  margin: 0 0 1rem;
+  color: #475569;
+  max-width: 40rem;
+}
+
+.mel-pro-status-card__billing-note {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
 }

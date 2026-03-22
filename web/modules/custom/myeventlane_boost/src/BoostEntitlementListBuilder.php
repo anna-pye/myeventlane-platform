@@ -41,7 +41,7 @@ final class BoostEntitlementListBuilder extends EntityListBuilder {
     $row['starts'] = !empty($entity->get('starts')->value) ? gmdate('Y-m-d H:i:s', (int) $entity->get('starts')->value) : '-';
     $row['ends'] = !empty($entity->get('ends')->value) ? gmdate('Y-m-d H:i:s', (int) $entity->get('ends')->value) : '-';
     $amount = $entity->get('amount_paid')->first();
-    if ($amount) {
+    if ($amount && !$amount->isEmpty()) {
       $amount_value = $amount->toPrice();
       $row['amount_paid'] = $amount_value->getNumber() . ' ' . $amount_value->getCurrencyCode();
     }

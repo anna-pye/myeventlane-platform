@@ -1,15 +1,15 @@
-# Admin structure menu link for vendor list.
+# Admin structure menu link for organiser (vendor) list.
 entity.myeventlane_vendor.collection:
-  title: 'Vendors'
-  description: 'Manage event organisers (vendors) on the platform.'
+  title: 'Organisers'
+  description: 'Manage event organisers on the platform.'
   parent: system.admin_structure
   route_name: entity.myeventlane_vendor.collection
   weight: 10
 
 # Link in MyEventLane admin section.
 myeventlane_vendor.admin_link:
-  title: 'Vendors'
-  description: 'Configure vendor entity settings and field display.'
+  title: 'Organiser settings'
+  description: 'Configure organiser entity settings and field display.'
   route_name: myeventlane_vendor.settings
   parent: myeventlane_core.config
   weight: 25

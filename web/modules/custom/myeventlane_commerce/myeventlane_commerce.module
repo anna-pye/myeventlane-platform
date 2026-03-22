@@ -13,6 +13,7 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
@@ -38,6 +39,62 @@ function &_myeventlane_commerce_get_qty_ref(array &$form) {
   }
   $null = NULL;
   return $null;
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Paid event book page: attach live order summary (theme library + settings).
+ * Theme *.module files are not loaded for themes in Drupal 11 (only
+ * THEMENAME.theme is), and theme extensions are not in hook discovery — so
+ * this cannot be implemented in myeventlane_theme.module.
+ */
+function myeventlane_commerce_page_attachments(array &$attachments): void {
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route !== 'myeventlane_commerce.event_book') {
+    return;
+  }
+  $node = \Drupal::routeMatch()->getParameter('node');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+    return;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
+    return;
+  }
+  $cta = \Drupal::service('myeventlane_event.cta_resolver')->getCtaType($node);
+  if ($cta !== EventCtaResolver::CTA_PAID) {
+    return;
+  }
+
+  $currency = 'AUD';
+  if ($node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+    $product = $node->get('field_product_target')->entity;
+    if ($product instanceof ProductInterface) {
+      foreach ($product->getVariations() as $variation) {
+        if ($variation->getPrice()) {
+          $currency = $variation->getPrice()->getCurrencyCode();
+          break;
+        }
+      }
+    }
+  }
+  $locale = \Drupal::languageManager()->getCurrentLanguage()->getId();
+  if ($locale === 'en') {
+    $locale = 'en-AU';
+  }
+
+  $attachments['#attached']['library'][] = 'myeventlane_theme/mel_booking_summary';
+  $attachments['#attached']['drupalSettings']['melBookingSummary'] = [
+    'enabled' => TRUE,
+    'currencyCode' => $currency,
+    'locale' => $locale,
+    'strings' => [
+      'subtotal' => (string) t('Subtotal'),
+      'ticketCount' => (string) t('@count tickets'),
+      'noTicketsYet' => (string) t('No tickets selected'),
+      'ticketFallback' => (string) t('Ticket'),
+    ],
+  ];
 }
 
 /* ========================================================================== */

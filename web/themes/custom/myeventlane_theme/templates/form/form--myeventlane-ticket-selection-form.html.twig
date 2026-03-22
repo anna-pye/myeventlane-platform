@@ -42,8 +42,13 @@
       </div>
       <h3 class="mel-booking__cta-heading" id="mel-booking-cta-heading">{{ 'Ready to continue?'|t }}</h3>
       <p class="mel-booking__cta-lead mel-text--muted">{{ 'Review your tickets, then add them to your cart.'|t }}</p>
+      <ul class="mel-booking-reassurance" aria-label="{{ 'Before you continue'|t }}">
+        <li class="mel-booking-reassurance__item">{{ 'You can review before payment.'|t }}</li>
+        <li class="mel-booking-reassurance__item">{{ 'Tickets are added to your cart first.'|t }}</li>
+        <li class="mel-booking-reassurance__item">{{ 'Secure checkout on the next step.'|t }}</li>
+      </ul>
       {{ form.actions }}
-      <p class="mel-booking__cta-reassurance">{{ 'You can review your order before payment. Secure checkout on the next step.'|t }}</p>
+      <p class="mel-booking__cta-reassurance mel-text--muted">{{ 'No charge until you complete checkout.'|t }}</p>
     </div>
   {% endif %}
 </form>

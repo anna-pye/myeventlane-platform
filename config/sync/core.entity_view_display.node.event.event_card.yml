@@ -80,6 +80,11 @@ content:
     third_party_settings: {  }
     weight: 4
     region: content
+  content_moderation_control:
+    settings: {  }
+    third_party_settings: {  }
+    weight: -20
+    region: content
   field_accessibility:
     type: entity_reference_label
     label: hidden
@@ -251,6 +256,8 @@ content:
     weight: 20
     region: content
 hidden:
+  field_age_policy: true
+  field_age_policy_note: true
   field_age_restriction: true
   field_attendee_questions: true
   field_cancel_reason: true
@@ -259,11 +266,14 @@ hidden:
   field_contact_email: true
   field_contact_phone: true
   field_event_capacity_total: true
+  field_event_geo: true
   field_event_highlights: true
   field_event_intro: true
+  field_event_setup_complete: true
   field_event_state: true
   field_event_state_override: true
   field_event_store: true
+  field_event_summary: true
   field_event_vendor: true
   field_is_series_template: true
   field_location_place_id: true
@@ -279,6 +289,7 @@ hidden:
   field_series_timezone: true
   field_tags: true
   field_ticket_types: true
+  field_venue: true
   field_venue_address: true
   langcode: true
   search_api_excerpt: true

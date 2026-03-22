@@ -53,10 +53,10 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     ]);
     $this->installConfig(['myeventlane_pro']);
 
-    if (!Role::load('pro_organiser')) {
+    if (!Role::load('mel_pro')) {
       Role::create([
-        'id' => 'pro_organiser',
-        'label' => 'Pro Organiser',
+        'id' => 'mel_pro',
+        'label' => 'MEL Pro',
       ])->save();
     }
   }
@@ -79,12 +79,8 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
       }
     });
 
-    $subscriber = new ProSubscriptionSubscriber(
-      $this->container->get('myeventlane_pro.entitlement_reconciler'),
-      $this->container->get('myeventlane_pro.subscription_state_resolver'),
-      $this->container->get('datetime.time'),
-      $this->container->get('logger.channel.myeventlane_pro'),
-    );
+    $subscriber = $this->container->get('myeventlane_pro.pro_subscription_subscriber');
+    $this->assertInstanceOf(ProSubscriptionSubscriber::class, $subscriber);
     $subscriber->onSubscriptionInsert(new SubscriptionEvent($subscription));
 
     $reloaded = User::load((int) $user->id());
@@ -105,7 +101,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
 
     $reloaded = User::load((int) $user->id());
     $this->assertNotNull($reloaded);
-    $this->assertTrue($reloaded->hasRole('pro_organiser'));
+    $this->assertTrue($reloaded->hasRole('mel_pro'));
   }
 
   /**
@@ -121,7 +117,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
 
     $reloaded = User::load((int) $user->id());
     $this->assertNotNull($reloaded);
-    $this->assertFalse($reloaded->hasRole('pro_organiser'));
+    $this->assertFalse($reloaded->hasRole('mel_pro'));
     $this->assertSame('', (string) $reloaded->get('field_pro_grace_expires')->value);
   }
 
@@ -223,7 +219,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
       'name' => $name,
       'mail' => $email,
       'status' => 1,
-      'roles' => ['authenticated', 'pro_organiser'],
+      'roles' => ['authenticated', 'mel_pro'],
       'field_pro_subscription_managed' => 1,
     ]);
     $user->save();

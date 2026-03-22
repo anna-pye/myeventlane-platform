@@ -58,7 +58,7 @@ final class ProBrandGate implements BrandResolverInterface {
   }
 
   /**
-   * Checks whether a vendor's owner holds the pro_organiser role.
+   * Checks whether a vendor's owner holds the mel_pro role (Pro active).
    */
   private function isProVendor(int $vendorId): bool {
     $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')

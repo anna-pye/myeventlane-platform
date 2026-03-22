@@ -10,3 +10,9 @@ dependencies:
   - myeventlane_attendee
   - myeventlane_event_attendees
   - node
+
+optional_dependencies:
+  - myeventlane_vendor
+  - myeventlane_boost
+  - myeventlane_pro
+  - myeventlane_capacity

@@ -4,7 +4,7 @@
  * Checkout Shell layout for Commerce checkout form.
  *
  * BEM: .mel-checkout, .mel-checkout__grid, .mel-checkout__main,
- * .mel-checkout__aside, .mel-checkout__actions
+ * .mel-checkout__summary (aside), .mel-checkout__actions
  *
  * - Two-column layout: main left, aside right (desktop)
  * - Actions directly beneath main column
@@ -26,7 +26,7 @@
 
   <div class="mel-checkout__grid">
     <div class="mel-checkout__main">
-      {% if mel_help_checkout_refund %}
+      {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
         <div class="mel-contextual-help mel-contextual-help--checkout">
           {{ mel_help_checkout_refund }}
         </div>
@@ -36,14 +36,13 @@
         <div class="mel-checkout__actions">
           {{ form.actions }}
         </div>
-        <p class="mel-checkout-security">{{ 'You\'ll have a chance to review everything before completing your order.'|t }}</p>
       {% endif %}
     </div>
 
     {% if form.sidebar is defined %}
       {% set sidebar_content = form.sidebar|render %}
       {% if sidebar_content|striptags|trim is not empty %}
-        <aside class="mel-checkout__aside">
+        <aside class="mel-checkout__aside mel-checkout__summary">
           {{ sidebar_content }}
         </aside>
       {% endif %}

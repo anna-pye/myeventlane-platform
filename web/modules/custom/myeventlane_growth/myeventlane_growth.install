@@ -1,0 +1,111 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for MyEventLane Growth.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_growth_schema(): array {
+  $schema['myeventlane_growth_events'] = [
+    'description' => 'Growth insight impressions, engagement, and conversions (organiser-scoped product optimisation).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Organiser user ID.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Related event node ID when applicable.',
+      ],
+      'insight_key' => [
+        'type' => 'varchar',
+        'length' => 191,
+        'not null' => TRUE,
+        'description' => 'Stable insight identifier.',
+      ],
+      'insight_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Insight category (upgrade, boost, recovery, etc.).',
+      ],
+      'surface' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'UI surface (dashboard, billing, etc.).',
+      ],
+      'shown_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when the insight was shown.',
+      ],
+      'clicked_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when the primary CTA was used.',
+      ],
+      'dismissed_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when dismissed.',
+      ],
+      'converted_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when a downstream conversion was recorded.',
+      ],
+      'conversion_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Conversion label (pro_upgrade, boost_purchase, etc.).',
+      ],
+      'payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Optional JSON context.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Row creation time.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid_insight_shown' => ['uid', 'insight_key', 'shown_at'],
+      'uid_surface' => ['uid', 'surface'],
+      'insight_key' => ['insight_key'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_growth_install(): void {
+  // Ensure config schema is importable; table created via hook_schema.
+}

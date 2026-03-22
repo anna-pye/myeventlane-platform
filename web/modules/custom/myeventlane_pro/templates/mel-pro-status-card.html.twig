@@ -1,0 +1,89 @@
+{#
+/**
+ * @file
+ * Pro subscription status card for vendor-facing pages.
+ *
+ * Variables:
+ * - status: ProSubscriptionStatusService output.
+ * - manage_url: URL to manage subscription.
+ * - cancel_url: URL to request cancellation.
+ * - support_url: URL for billing support.
+ * - upgrade_url: URL to upgrade (when not Pro).
+ */
+#}
+{% set status = status|default({}) %}
+{% set status_label = status.status_label|default('Inactive') %}
+{% set status_message = status.status_message|default('Upgrade to MEL Pro to unlock advanced organiser tools.') %}
+{% set is_pro = status.is_pro|default(false) %}
+{% set is_in_grace = status.is_in_grace|default(false) %}
+{% set is_manual_pro = status.is_manual_pro|default(false) %}
+
+{% set card_modifier = 'inactive' %}
+{% if is_pro %}
+  {% if is_in_grace %}
+    {% set card_modifier = 'grace' %}
+  {% elseif is_manual_pro %}
+    {% set card_modifier = 'manual' %}
+  {% else %}
+    {% set card_modifier = 'active' %}
+  {% endif %}
+{% endif %}
+
+<div class="mel-pro-status-card mel-pro-status-card--{{ card_modifier }}">
+
+  {% if is_pro %}
+    <div class="mel-billing-status mel-billing-status--{{ status.state|default('inactive') }}">
+      <strong>{{ status_label }}</strong>
+      <p>{{ status_message }}</p>
+      {% if is_in_grace and status.grace_expires_label|default('') %}
+        <div class="mel-billing-warning">
+          {{ 'Update your payment method before @date'|t({'@date': status.grace_expires_label}) }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mel-billing-actions">
+      {% if status.can_manage_billing|default(false) and manage_url %}
+        <a href="{{ manage_url }}" class="mel-button">{{ 'Manage billing'|t }}</a>
+      {% endif %}
+      {% if cancel_url %}
+        <a href="{{ cancel_url }}" class="mel-button mel-button--secondary">{{ 'Cancel subscription'|t }}</a>
+      {% endif %}
+    </div>
+
+    {% if status.billing_schedule %}
+      <p class="mel-pro-status-card__billing-note">{{ 'Plan'|t }}: {{ status.plan_label|default('MEL Pro') }} · {{ 'Billing'|t }}: {{ 'Monthly'|t }}</p>
+    {% endif %}
+
+    {% if is_in_grace %}
+      <div class="mel-pro-warning messages messages--warning">
+        {{ 'Your Pro features are at risk. Please update your payment method.'|t }}
+      </div>
+    {% endif %}
+
+    {% if support_url %}
+      <div class="mel-pro-status-card__actions">
+        <a href="{{ support_url }}" class="mel-btn mel-btn--outline">{{ 'Contact support'|t }}</a>
+      </div>
+    {% endif %}
+
+  {% else %}
+
+    <div class="mel-pro-status-card__header">
+      <span class="mel-pro-status-card__badge">{{ status_label }}</span>
+      <span class="mel-pro-status-card__plan">{{ status.plan_label|default('MEL Pro') }}</span>
+    </div>
+
+    <div class="mel-pro-status-card__meta">
+      <p class="mel-pro-status-card__message">{{ status_message }}</p>
+    </div>
+
+    <div class="mel-pro-status-card__actions">
+      {% if upgrade_url %}
+        <a href="{{ upgrade_url }}" class="mel-btn mel-btn--cta">{{ 'Upgrade to Pro'|t }}</a>
+      {% endif %}
+    </div>
+
+  {% endif %}
+
+</div>

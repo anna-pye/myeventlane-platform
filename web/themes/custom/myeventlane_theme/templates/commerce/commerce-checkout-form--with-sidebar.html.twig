@@ -4,13 +4,9 @@
  * Theme override for checkout form with sidebar.
  *
  * When step is 'complete' and order_entity is available, renders our custom
- * confirmation page. Otherwise uses the default Commerce layout.
- *
- * Available variables:
- * - form: The checkout form.
- * - order_entity: The order entity (from preprocess, complete step only).
- * - order_totals: Order totals (from preprocess, complete step only).
- * - order_items_attendees: Map of order item ID => attendee arrays (from preprocess).
+ * confirmation page. Otherwise uses compact MEL checkout layout:
+ * - Payment → Your details → Ticket holders → CTA (guided flow)
+ * - Sidebar: Grouped summary only (event-based)
  */
 #}
 {% if form['#step_id'] is defined and form['#step_id'] == 'complete' and order_entity %}
@@ -21,10 +17,15 @@
         order_entity: order_entity,
         order_totals: order_totals|default(null),
         order_items_attendees: order_items_attendees|default({}),
+        mel_event_image_urls: mel_event_image_urls|default({}),
+        mel_help_centre_url: mel_help_centre_url|default(null),
+        mel_calendar_links: mel_calendar_links|default({}),
+        mel_event_url: mel_event_url|default(''),
+        mel_logged_in: mel_logged_in|default(false),
       } %}
     </div>
     <div class="layout-region layout-region-checkout-secondary">
-      <h3>{% trans %}Order summary{% endtrans %}</h3>
+      <h3>{% trans %}Booking summary{% endtrans %}</h3>
       {{ form.sidebar }}
     </div>
     <div class="layout-region layout-region-checkout-footer">
@@ -32,17 +33,77 @@
     </div>
   </div>
 {% else %}
-  {# Default Commerce layout #}
-  <div class="layout-checkout-form clearfix">
-    <div class="layout-region layout-region-checkout-main">
-      {{ form|without('sidebar', 'actions') }}
-    </div>
-    <div class="layout-region layout-region-checkout-secondary">
-      <h3>{% trans %}Order summary{% endtrans %}</h3>
-      {{ form.sidebar }}
-    </div>
-    <div class="layout-region layout-region-checkout-footer">
-      {{ form.actions }}
-    </div>
+  {# Compact checkout flow: payment first, guided sections, grouped summary only #}
+  <div class="mel-checkout">
+    {% if title %}
+      <h1 class="mel-checkout__title">{{ title }}</h1>
+    {% endif %}
+
+    {% if form.progress %}
+      <div class="mel-checkout__progress">
+        {{ form.progress }}
+      </div>
+    {% endif %}
+
+    <div class="mel-checkout__main">
+        <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
+        {# Hidden form elements (required for submission) #}
+        {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
+
+        {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+          <div class="mel-contextual-help mel-contextual-help--checkout">
+            {{ mel_help_checkout_refund }}
+          </div>
+        {% endif %}
+
+        {# Payment section (first for trust + focus) #}
+        {% if form.payment_information is defined %}
+          <div class="mel-checkout-section mel-checkout-section--payment">
+            <h3 class="mel-checkout-heading">{{ 'Payment'|t }}</h3>
+            {{ form.payment_information }}
+          </div>
+        {% endif %}
+
+        {# Your details #}
+        {% if form.mel_buyer_details is defined or form.mel_donation is defined or form.mel_legal_consent is defined %}
+          <div class="mel-checkout-section mel-checkout-section--details">
+            <h3 class="mel-checkout-heading">{{ 'Your details'|t }}</h3>
+            {% if form.mel_buyer_details is defined %}{{ form.mel_buyer_details }}{% endif %}
+            {% if form.mel_donation is defined %}{{ form.mel_donation }}{% endif %}
+            {% if form.mel_legal_consent is defined %}{{ form.mel_legal_consent }}{% endif %}
+          </div>
+        {% endif %}
+
+        {# Ticket holders #}
+        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
+          <div class="mel-checkout-section mel-checkout-section--attendees">
+            <h3 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h3>
+            {{ form.ticket_holder_paragraph }}
+          </div>
+        {% endif %}
+
+        {# CTA: strong primary action + reassurance #}
+        {% if form.actions %}
+          <div class="mel-checkout-section mel-checkout-section--cta">
+            <div class="mel-checkout-cta">
+              {{ form.actions }}
+              <div class="mel-checkout-cta__note">{{ 'You won\'t be charged yet'|t }}</div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      {# Sidebar: grouped summary only — hide when empty #}
+      {% if form.sidebar is defined %}
+        {% set sidebar_content = form.sidebar|render %}
+        {% if sidebar_content|striptags|trim is not empty %}
+          <aside class="mel-checkout__summary">
+            {{ sidebar_content }}
+            {% if form.mel_checkout_confidence is defined %}
+              {{ form.mel_checkout_confidence }}
+            {% endif %}
+          </aside>
+        {% endif %}
+      {% endif %}
   </div>
 {% endif %}

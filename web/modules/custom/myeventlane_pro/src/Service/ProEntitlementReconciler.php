@@ -8,8 +8,10 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_pro\Event\ProGracePeriodClearedEvent;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Reconciles Pro Organiser role entitlements against subscription state.
@@ -22,7 +24,7 @@ use Drupal\user\UserInterface;
  */
 final class ProEntitlementReconciler {
 
-  private const PRO_ROLE = 'pro_organiser';
+  private const PRO_ROLE = 'mel_pro';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const GRACE_FIELD = 'field_pro_grace_expires';
   private const BILLING_SCHEDULE = 'mel_pro_monthly';
@@ -34,6 +36,7 @@ final class ProEntitlementReconciler {
     private readonly ProSubscriptionStateResolver $stateResolver,
     private readonly LoggerChannelInterface $logger,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    private readonly EventDispatcherInterface $eventDispatcher,
   ) {}
 
   /**
@@ -246,7 +249,25 @@ final class ProEntitlementReconciler {
 
     $user->set(self::GRACE_FIELD, NULL);
     $user->save();
+    $this->eventDispatcher->dispatch(new ProGracePeriodClearedEvent($user));
     return TRUE;
+  }
+
+  /**
+   * Extends an existing grace period by a number of seconds from the later of now or current expiry.
+   *
+   * @return bool
+   *   TRUE when the user was saved with a new expiry.
+   */
+  public function extendGracePeriodBySeconds(UserInterface $user, int $additionalSeconds): bool {
+    if ($additionalSeconds <= 0) {
+      return FALSE;
+    }
+
+    $now = $this->time->getRequestTime();
+    $current = (int) ($user->get(self::GRACE_FIELD)->value ?? 0);
+    $base = max($now, $current);
+    return $this->setGracePeriod($user, $base + $additionalSeconds);
   }
 
   /**
@@ -295,7 +316,7 @@ final class ProEntitlementReconciler {
   }
 
   /**
-   * Ensures user has pro_organiser and managed flag set.
+   * Ensures user has mel_pro and managed flag set.
    *
    * @return bool
    *   TRUE if user entity was changed and saved.
@@ -328,7 +349,7 @@ final class ProEntitlementReconciler {
   }
 
   /**
-   * Revokes pro_organiser only if subscription-managed.
+   * Revokes mel_pro only if subscription-managed.
    */
   private function revokeIfManaged(UserInterface $user): void {
     if (!$this->hasRequiredFields($user)) {

@@ -41,10 +41,15 @@ final class VendorAudienceController extends VendorConsoleBaseController {
     // Get category breakdown.
     $segments = $this->categoryAudienceService->getCategoryBreakdown();
 
+    // Audience summary: total unique attendees and repeat (Part 4 — Growth Tools).
+    $audienceSummary = $this->categoryAudienceService->getAudienceSummary($userId);
+
     // Build summary.
     $summary = [
       'total' => $totalCount,
       'event_categories' => count($segments),
+      'total_attendees' => $audienceSummary['total_attendees'],
+      'repeat_attendees' => $audienceSummary['repeat_attendees'],
     ];
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [

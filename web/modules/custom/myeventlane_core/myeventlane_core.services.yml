@@ -168,6 +168,9 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_core.language_style:
+    class: Drupal\myeventlane_core\Service\LanguageStyleService
+
   myeventlane_onboarding.manager:
     class: Drupal\myeventlane_core\Service\OnboardingManager
     arguments:

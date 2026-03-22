@@ -25,18 +25,34 @@ myeventlane_pro.success:
 myeventlane_pro.manage:
   path: '/vendor/pro/manage'
   defaults:
-    _controller: '\Drupal\myeventlane_pro\Controller\ProOverviewController::manage'
+    _controller: '\Drupal\myeventlane_pro\Controller\ProBillingController::manage'
     _title: 'Manage Pro Subscription'
   requirements:
     _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
 
-myeventlane_pro.cancel:
+myeventlane_pro.billing_portal:
+  path: '/vendor/pro/billing-portal'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProBillingController::portal'
+    _title: 'Update payment method'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
+myeventlane_pro.cancel_request:
   path: '/vendor/pro/cancel'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProCancelRequestForm'
+    _title: 'Request to cancel MEL Pro'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
+myeventlane_pro.cancel_confirm:
+  path: '/vendor/pro/cancel/confirm'
   defaults:
     _form: '\Drupal\myeventlane_pro\Form\ProCancelConfirmForm'
     _title: 'Cancel Pro Subscription'
   requirements:
-    _role: 'vendor'
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
 
 myeventlane_pro.branding:
   path: '/vendor/settings/branding'
@@ -55,6 +71,26 @@ myeventlane_pro.admin_report:
   requirements:
     _permission: 'view pro reporting'
 
+myeventlane_pro.diagnostics:
+  path: '/admin/reports/myeventlane/pro-status'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProDiagnosticsController::diagnostics'
+    _title: 'Pro status diagnostics'
+  requirements:
+    _permission: 'access pro diagnostics'
+
+myeventlane_pro.diagnostics_reconcile_user:
+  path: '/admin/reports/myeventlane/pro-status/reconcile/{uid}'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProDiagnosticsController::reconcileUser'
+  requirements:
+    _permission: 'access pro diagnostics'
+    uid: \d+
+  options:
+    parameters:
+      uid:
+        type: integer
+
 myeventlane_pro.settings:
   path: '/admin/config/myeventlane/pro'
   defaults:
@@ -62,6 +98,30 @@ myeventlane_pro.settings:
     _title: 'MyEventLane Pro settings'
   requirements:
     _permission: 'administer myeventlane pro settings'
+
+myeventlane_vendor.message_attendees:
+  path: '/vendor/events/{node}/message'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\MessageAttendeesController::message'
+    _title: 'Message attendees'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_pro.subscription_webhook:
+  path: '/stripe/webhook/subscription'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProSubscriptionWebhookController::handle'
+    _title: 'Stripe subscription webhook'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
 
 myeventlane_pro.vendor_comms:
   path: '/vendor/pro/settings/comms'

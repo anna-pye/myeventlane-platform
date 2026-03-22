@@ -115,6 +115,14 @@ vendor-studio:
     - core/drupal
     - core/once
 
+# Confirmation page: copy event link button.
+mel_confirmation:
+  js:
+    js/mel-confirmation-share.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Live order summary + mobile totals on /event/{nid}/book (paid ticket matrix only).
 mel_booking_summary:
   js:

@@ -1,0 +1,13 @@
+myeventlane_growth.settings:
+  title: 'Growth and revenue'
+  description: 'Thresholds and tracking for organiser growth insights.'
+  parent: myeventlane_core.config
+  route_name: myeventlane_growth.settings
+  weight: 55
+
+myeventlane_growth.report:
+  title: 'Growth insights'
+  description: 'Impressions, clicks, dismissals, and conversions for growth cards.'
+  parent: system.admin_reports
+  route_name: myeventlane_growth.report
+  weight: 55

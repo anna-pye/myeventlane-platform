@@ -8,10 +8,12 @@ use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\commerce_recurring\Event\RecurringEvents;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
 use Drupal\myeventlane_pro\Service\ProBoostProvisioner;
+use Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
@@ -26,8 +28,6 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  */
 final class ProSubscriptionSubscriber implements EventSubscriberInterface {
 
-  private const GRACE_SECONDS = 604800;
-
   public function __construct(
     private readonly ProEntitlementReconciler $reconciler,
     private readonly ProSubscriptionStateResolver $stateResolver,
@@ -35,6 +35,8 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     private readonly LoggerChannelInterface $logger,
     private readonly ProBoostProvisioner $proBoostProvisioner,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly ProSubscriptionLifecycleScheduler $lifecycleScheduler,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -89,8 +91,16 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     }
 
     if ($this->stateResolver->isPaymentFailure($subscription)) {
-      $graceExpiry = $this->time->getRequestTime() + self::GRACE_SECONDS;
+      $graceSeconds = $this->resolveGraceSeconds();
+      $graceExpiry = $this->time->getRequestTime() + $graceSeconds;
       $this->reconciler->setGracePeriod($user, $graceExpiry);
+
+      // Day-0 dunning only when *entering* failure, not on every save while still failed.
+      $wasAlreadyPaymentFailure = $subscription->original instanceof SubscriptionInterface
+        && $this->stateResolver->isPaymentFailure($subscription->original);
+      if (!$wasAlreadyPaymentFailure) {
+        $this->lifecycleScheduler->onPaymentFailedImmediate($subscription);
+      }
     }
 
     if ($this->stateResolver->isActive($subscription)) {
@@ -99,6 +109,14 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
 
     $this->reconciler->reconcileUser($user);
     $this->enqueueUserStoreBoostSync($user);
+  }
+
+  /**
+   * Grace period length in seconds from configuration.
+   */
+  private function resolveGraceSeconds(): int {
+    $days = (int) ($this->configFactory->get('myeventlane_pro.settings')->get('grace_days') ?? 7);
+    return max(1, $days) * 86400;
   }
 
   /**

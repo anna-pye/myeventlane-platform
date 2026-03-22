@@ -8,6 +8,9 @@
  * - pro_price: Formatted price string (e.g. "$49").
  * - subscribe_form: Form render array for upgrading (NULL if already Pro).
  * - manage_url: URL to manage subscription (NULL if not Pro).
+ * - cancel_url: URL to cancel flow when allowed (NULL otherwise).
+ * - pro_status: Full status array from ProSubscriptionStatusService.
+ * - status_card: Rendered status card (optional).
  */
 #}
 <div class="mel-pro-overview">
@@ -17,7 +20,11 @@
     <p class="mel-pro-overview__subtitle">{{ 'Everything you need to elevate your events with MyEventLane Pro.'|t }}</p>
   </div>
 
-  {% if is_pro %}
+  {% if status_card %}
+    <div class="mel-pro-overview__status-card">
+      {{ status_card }}
+    </div>
+  {% elseif is_pro %}
     <div class="mel-pro-overview__status mel-pro-overview__status--active">
       <span class="mel-pro-badge">PRO</span>
       <span class="mel-pro-overview__status-text">{{ 'You are a Pro Organiser'|t }}</span>
@@ -75,6 +82,7 @@
 
   {% if not is_pro and subscribe_form %}
     <div class="mel-pro-overview__cta">
+      <p class="mel-pro-overview__cta-intro">{{ 'Upgrade to MEL Pro to unlock advanced organiser tools.'|t }}</p>
       {{ subscribe_form }}
     </div>
   {% endif %}

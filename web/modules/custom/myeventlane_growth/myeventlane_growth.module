@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Growth insights and funnel tracking for MyEventLane organisers.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_growth_theme(): array {
+  return [
+    'mel_growth_report' => [
+      'variables' => [
+        'rows' => [],
+        'grace_impressions' => 0,
+        'billing_recovery_conversions' => 0,
+      ],
+      'template' => 'mel-growth-report',
+    ],
+  ];
+}

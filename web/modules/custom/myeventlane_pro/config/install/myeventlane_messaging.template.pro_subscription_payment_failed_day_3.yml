@@ -1,11 +1,10 @@
 enabled: true
-subject: "Reminder: your Pro payment is still due"
-preheader: "Please update your payment method to avoid suspension."
+subject: "Reminder: update your payment details"
+preheader: "Your MEL Pro subscription needs an updated payment method."
 body_html: |
   <p>Hi {{ first_name|default('there') }},</p>
-  <p>This is a reminder that your Pro subscription payment is still outstanding.</p>
-  <p>Update your payment method as soon as possible to prevent service interruption.</p>
-  <p>We are still holding your Pro access during grace period.</p>
+  <p>Your MEL Pro subscription is still active, but we need an updated payment method.</p>
+  <p>Please update your payment method to keep Pro access.</p>
 utm:
   enable: true
   params:

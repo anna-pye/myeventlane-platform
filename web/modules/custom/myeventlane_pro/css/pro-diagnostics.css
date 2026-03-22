@@ -1,0 +1,58 @@
+.pro-diagnostics {
+  max-width: 1200px;
+  margin: 2rem 0;
+}
+
+.pro-diagnostics__actions {
+  margin-bottom: 1.5rem;
+}
+
+.pro-diagnostics__actions .form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pro-diagnostics__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pro-diagnostics__table th,
+.pro-diagnostics__table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pro-diagnostics__table th {
+  background: #f9fafb;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.pro-diagnostics__row--drift {
+  background: #fef3c7;
+}
+
+.pro-diagnostics__badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pro-diagnostics__badge--ok {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pro-diagnostics__badge--drift {
+  background: #fef3c7;
+  color: #92400e;
+}

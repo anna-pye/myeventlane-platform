@@ -14,7 +14,7 @@ final class ProEntitlementManager {
   /**
    * The role granting Pro entitlement.
    */
-  private const PRO_ROLE = 'pro_organiser';
+  private const PRO_ROLE = 'mel_pro';
 
   /**
    * Determines whether the account is currently Pro.

@@ -5,13 +5,23 @@ dependencies:
   config:
     - commerce_product.commerce_product_variation_type.ticket_variation
     - field.field.commerce_product_variation.ticket_variation.field_event
+    - field.field.commerce_product_variation.ticket_variation.field_ticket_description
   module:
     - commerce_price
+    - text
 id: commerce_product_variation.ticket_variation.default
 targetEntityType: commerce_product_variation
 bundle: ticket_variation
 mode: default
 content:
+  field_ticket_description:
+    type: text_textarea
+    weight: -2
+    region: content
+    settings:
+      rows: 4
+      placeholder: ''
+    third_party_settings: {  }
   langcode:
     type: language_select
     weight: 2

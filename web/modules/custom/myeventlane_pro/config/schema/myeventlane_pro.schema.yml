@@ -11,6 +11,27 @@ myeventlane_pro.settings:
     pro_variation_sku:
       type: string
       label: 'Pro subscription variation SKU'
+    grace_days:
+      type: integer
+      label: 'Grace period days after payment failure'
+    upgrade_cta_enabled:
+      type: boolean
+      label: 'Show upgrade CTA to non-Pro organisers'
+    cancel_request_enabled:
+      type: boolean
+      label: 'Enable cancellation request flow'
+    billing_support_url:
+      type: string
+      label: 'Billing support URL'
+    billing_portal_enabled:
+      type: boolean
+      label: 'Enable Stripe Customer Billing Portal redirect'
+    webhook_audit_enabled:
+      type: boolean
+      label: 'Enable webhook audit logging'
+    subscription_webhook_secret:
+      type: string
+      label: 'Stripe subscription webhook signing secret (whsec_…).'
     abandoned_cart:
       type: mapping
       label: 'Abandoned cart'

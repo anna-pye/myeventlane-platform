@@ -98,10 +98,10 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
       'myeventlane_pro',
     ]);
 
-    if (!Role::load('pro_organiser')) {
+    if (!Role::load('mel_pro')) {
       Role::create([
-        'id' => 'pro_organiser',
-        'label' => 'Pro Organiser',
+        'id' => 'mel_pro',
+        'label' => 'MEL Pro',
       ])->save();
     }
 
@@ -226,7 +226,7 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
   private function createProUser(bool $withPro): User {
     $roles = ['authenticated'];
     if ($withPro) {
-      $roles[] = 'pro_organiser';
+      $roles[] = 'mel_pro';
     }
     $user = User::create([
       'name' => 'vendor_' . uniqid('', TRUE),
@@ -294,7 +294,7 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
   private function transitionStoreToInactivePro(Store $store): Store {
     $owner = $store->getOwner();
     if ($owner instanceof User) {
-      $owner->removeRole('pro_organiser');
+      $owner->removeRole('mel_pro');
       $owner->save();
       $this->deactivateVendorForOwner($owner);
       $this->deleteOwnerProSubscriptions($owner);

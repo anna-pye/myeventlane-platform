@@ -11,49 +11,52 @@
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
 
-// ---------------------------------------------------------------------------
-// Checkout Layout
-// ---------------------------------------------------------------------------
+// Checkout polish tokens (transition, shadow, border)
+$mel-checkout-transition: 160ms ease;
+$mel-checkout-shadow: 0 8px 24px rgba(44, 62, 80, 0.06);
+$mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
+
+/* =========================
+   MEL CHECKOUT — FINAL FIX
+========================= */
 
 .mel-checkout {
-  display: flex;
-  flex-direction: column;
-  gap: spacing.mel-space(4);
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  padding-top: 12px;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
-}
+  background: linear-gradient(180deg, #fef5ec 0%, #f9f8ff 100%);
 
-// Template wrapper: .mel-checkout__grid / __main / __aside / __actions
-.mel-checkout__grid,
-.mel-checkout__layout,
-.mel-checkout-layout {
-  display: grid;
-  gap: spacing.mel-space(2);
-
-  @include breakpoints.mel-break(lg) {
-    grid-template-columns: minmax(0, 1fr) 380px;
-    align-items: start;
-    gap: spacing.mel-space(3);
+  > .mel-checkout__title,
+  > .mel-checkout__progress {
+    grid-column: 1 / -1;
   }
 }
 
+/* Base template uses __grid wrapper; with-sidebar has __main/__summary as direct children */
+.mel-checkout:has(> .mel-checkout__grid) {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: unset;
+}
+
+.mel-checkout__grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* LEFT COLUMN FLOW */
 .mel-checkout__main,
 .mel-checkout-main {
   display: flex;
   flex-direction: column;
-  gap: spacing.mel-space(4);
+  gap: 10px;
   min-width: 0;
-}
-
-.mel-checkout__aside,
-.mel-checkout__sidebar,
-.mel-checkout-sidebar {
-  @include breakpoints.mel-break(lg) {
-    position: sticky;
-    top: spacing.mel-space(6);
-    align-self: start;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -61,7 +64,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-checkout-header {
-  margin-bottom: spacing.mel-space(5);
+  margin-bottom: 12px;
 }
 
 .mel-checkout-title,
@@ -77,7 +80,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-checkout__progress {
-  margin-bottom: spacing.mel-space(2);
+  margin-bottom: 8px;
 
   ol,
   ul {
@@ -130,7 +133,7 @@
 
 .mel-checkout {
   .messages {
-    margin-bottom: spacing.mel-space(4);
+    margin-bottom: 12px;
   }
 
   .messages--error,
@@ -168,8 +171,8 @@
 .mel-checkout-steps {
   display: flex;
   justify-content: space-between;
-  margin-bottom: spacing.mel-space(6);
-  padding: spacing.mel-space(4) 0;
+  margin-bottom: 12px;
+  padding: 8px 0;
   border-bottom: 1px solid colors.$mel-color-border;
   counter-reset: step;
 }
@@ -254,11 +257,7 @@
 // Checkout Panes
 // ---------------------------------------------------------------------------
 
-.mel-checkout-main {
-  display: flex;
-  flex-direction: column;
-  gap: spacing.mel-space(5);
-}
+// mel-checkout-main layout inherited from .mel-checkout__main above
 
 // When panes are rendered as top-level wrappers/fieldsets, give them a clear “section card” treatment.
 .mel-checkout__main > fieldset,
@@ -274,11 +273,10 @@
 .mel-checkout__main > .form-wrapper,
 .mel-checkout-main > fieldset,
 .mel-checkout-main > .form-wrapper {
-  background: colors.$mel-color-surface;
-  border: 1px solid colors.$mel-color-border;
-  border-radius: radii.$mel-radius-xl;
-  padding: spacing.mel-space(5);
-  box-shadow: shadows.$mel-shadow-sm;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
 .mel-checkout__main fieldset > legend,
@@ -289,10 +287,13 @@
 }
 
 .mel-checkout-pane {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-xl;
-  padding: spacing.mel-space(5);
-  box-shadow: shadows.$mel-shadow-sm;
+  background: rgba(255, 255, 255, 0.92);
+  border: $mel-checkout-border;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0;
+  box-shadow: $mel-checkout-shadow;
+  transition: box-shadow $mel-checkout-transition, border-color $mel-checkout-transition;
 
   // Ensure payment pane doesn't hide payment elements
   &.mel-checkout-pane--payment {
@@ -312,15 +313,15 @@
 }
 
 .mel-checkout-pane-title {
-  font-size: typography.mel-font-size(lg);
-  font-weight: typography.$mel-font-bold;
+  font-size: 14px;
+  font-weight: 600;
   color: colors.$mel-color-text;
-  margin: 0 0 spacing.mel-space(4) 0;
-  padding-bottom: spacing.mel-space(3);
+  margin: 0 0 8px 0;
+  padding-bottom: 6px;
   border-bottom: 1px solid colors.$mel-color-border;
   display: flex;
   align-items: center;
-  gap: spacing.mel-space(2);
+  gap: 8px;
 }
 
 .mel-checkout-pane-icon {
@@ -333,7 +334,7 @@
 
 .mel-checkout-contact {
   .mel-form-row {
-    margin-bottom: spacing.mel-space(4);
+    margin-bottom: 8px;
   }
 }
 
@@ -351,6 +352,64 @@
 // ---------------------------------------------------------------------------
 // Payment Methods
 // ---------------------------------------------------------------------------
+
+.mel-checkout-section--payment .payment-information,
+.mel-checkout-section--payment .payment-method,
+.mel-checkout .payment-information {
+  .form-radios {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+  }
+
+  .form-type-radio {
+    margin: 0;
+  }
+
+  .form-type-radio label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    min-height: 52px;
+    margin: 0;
+    cursor: pointer;
+    background: colors.$mel-color-bg;
+    border: 2px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-lg;
+    transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition;
+
+    &:hover {
+      border-color: colors.$mel-color-border-strong;
+      box-shadow: 0 2px 8px rgba(44, 62, 80, 0.04);
+    }
+  }
+
+  input[type="radio"]:checked + label,
+  .form-type-radio:has(input:checked) label {
+    border-color: colors.$mel-color-primary;
+    background: rgba(colors.$mel-color-primary, 0.06);
+    box-shadow: 0 0 0 1px rgba(colors.$mel-color-primary, 0.12);
+  }
+
+  input[type="radio"]:focus-visible + label {
+    @include colors.mel-focus-ring;
+  }
+}
+
+/* Stripe / payment details wrapper — clean inset surface */
+.mel-checkout-section--payment .commerce-payment-form__payment-details,
+.mel-checkout-section--payment [id*="stripe-payment-element"],
+.mel-checkout-section--payment .payment_information .form-item {
+  margin-top: spacing.mel-space(3);
+}
+
+.mel-checkout-section--payment .commerce-payment-form__payment-details {
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  background: rgba(colors.$mel-color-bg, 0.8);
+  border-radius: radii.$mel-radius-lg;
+  border: 1px solid colors.$mel-color-border;
+}
 
 .mel-payment-methods {
   display: flex;
@@ -371,21 +430,24 @@
 .mel-payment-method-label {
   display: flex;
   align-items: center;
-  gap: spacing.mel-space(3);
-  padding: spacing.mel-space(4);
+  gap: 12px;
+  padding: 14px 16px;
+  min-height: 52px;
   background: colors.$mel-color-bg;
   border: 2px solid colors.$mel-color-border;
   border-radius: radii.$mel-radius-lg;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition;
 
   &:hover {
     border-color: colors.$mel-color-border-strong;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.04);
   }
 
   input:checked + & {
-    border-color: colors.$mel-color-secondary;
-    background: color.adjust(colors.$mel-color-secondary, $lightness: 45%);
+    border-color: colors.$mel-color-primary;
+    background: rgba(colors.$mel-color-primary, 0.06);
+    box-shadow: 0 0 0 1px rgba(colors.$mel-color-primary, 0.12);
   }
 
   input:focus-visible + & {
@@ -423,14 +485,14 @@
 // ---------------------------------------------------------------------------
 
 .mel-card-fields {
-  margin-top: spacing.mel-space(4);
-  padding: spacing.mel-space(4);
+  margin-top: 10px;
+  padding: 10px 12px;
   background: colors.$mel-color-bg;
   border-radius: radii.$mel-radius-lg;
 }
 
 .mel-card-number-field {
-  margin-bottom: spacing.mel-space(4);
+  margin-bottom: 8px;
 }
 
 .mel-card-extra-fields {
@@ -463,12 +525,13 @@
   min-height: 44px !important;
   opacity: 1 !important;
   visibility: visible !important;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition !important;
 }
 
 .StripeElement--focus {
-  border-color: colors.$mel-color-secondary !important;
-  box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.15) !important;
+  border-color: colors.$mel-color-primary !important;
+  box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.14) !important;
+  background: colors.$mel-color-surface !important;
 }
 
 .StripeElement--invalid {
@@ -497,10 +560,10 @@
 .commerce-payment-form__payment-details {
   display: block !important;
   width: 100% !important;
-  margin-top: spacing.mel-space(4) !important;
+  margin-top: 10px !important;
 
   .form-item {
-    margin-bottom: spacing.mel-space(4) !important;
+    margin-bottom: 8px !important;
   }
 
   input,
@@ -604,19 +667,10 @@
 // ---------------------------------------------------------------------------
 
 .mel-checkout-order-summary {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-xl;
-  padding: spacing.mel-space(5);
-  box-shadow: shadows.$mel-shadow-md;
-}
-
-.mel-checkout-order-title {
-  font-size: typography.mel-font-size(lg);
-  font-weight: typography.$mel-font-bold;
-  color: colors.$mel-color-text;
-  margin: 0 0 spacing.mel-space(4) 0;
-  padding-bottom: spacing.mel-space(3);
-  border-bottom: 1px solid colors.$mel-color-border;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 // ---------------------------------------------------------------------------
@@ -624,15 +678,15 @@
 // ---------------------------------------------------------------------------
 
 .mel-checkout-order-items {
-  margin-bottom: spacing.mel-space(4);
-  padding-bottom: spacing.mel-space(4);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid colors.$mel-color-border;
 }
 
 .mel-checkout-order-item {
   display: flex;
-  gap: spacing.mel-space(3);
-  padding: spacing.mel-space(2) 0;
+  gap: 12px;
+  padding: 6px 0;
 }
 
 .mel-checkout-order-item-image {
@@ -682,13 +736,13 @@
 // ---------------------------------------------------------------------------
 
 .mel-checkout-totals {
-  margin-bottom: spacing.mel-space(4);
+  margin-bottom: 8px;
 }
 
 .mel-checkout-total-line {
   display: flex;
   justify-content: space-between;
-  padding: spacing.mel-space(2) 0;
+  padding: 4px 0;
   font-size: typography.mel-font-size(sm);
 }
 
@@ -704,8 +758,8 @@
 .mel-checkout-grand-total {
   display: flex;
   justify-content: space-between;
-  padding: spacing.mel-space(4) 0;
-  margin-top: spacing.mel-space(2);
+  padding: 8px 0;
+  margin-top: 8px;
   border-top: 2px solid colors.$mel-color-border-strong;
   font-size: typography.mel-font-size(lg);
   font-weight: typography.$mel-font-bold;
@@ -720,9 +774,9 @@
 .mel-checkout__actions {
   display: flex;
   flex-direction: column;
-  gap: spacing.mel-space(3);
-  margin-top: spacing.mel-space(4);
-  padding-top: spacing.mel-space(4);
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid colors.$mel-color-border;
 }
 
@@ -735,15 +789,26 @@
 .mel-checkout__actions [type='submit'].button--primary,
 .mel-checkout__actions .mel-btn-primary {
   min-height: 48px;
-  font-weight: typography.$mel-font-extrabold;
+  font-weight: typography.$mel-font-bold;
   letter-spacing: 0.01em;
-  box-shadow: shadows.$mel-shadow-sm;
-}
+  background: linear-gradient(135deg, colors.$mel-color-secondary 0%, colors.$mel-color-primary 100%) !important;
+  box-shadow: 0 4px 12px rgba(108, 126, 242, 0.25);
+  transition: transform $mel-checkout-transition, box-shadow $mel-checkout-transition;
 
-.mel-checkout__actions .button--primary:focus-visible,
-.mel-checkout__actions .mel-btn-primary:focus-visible {
-  outline: none;
-  box-shadow: colors.$mel-focus-ring;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(108, 126, 242, 0.32);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(108, 126, 242, 0.2);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.3);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -829,11 +894,455 @@
   flex-wrap: wrap;
 }
 
+/* ==========================================================================
+   CHECKOUT CARDS — Premium finish
+   ========================================================================== */
+
+.mel-checkout-section {
+  background: rgba(255, 255, 255, 0.92);
+  border: $mel-checkout-border;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 0;
+  box-shadow: $mel-checkout-shadow;
+  transition: box-shadow $mel-checkout-transition, border-color $mel-checkout-transition;
+
+  &:hover {
+    box-shadow: 0 10px 28px rgba(44, 62, 80, 0.08);
+  }
+}
+
+/* REMOVE OVER-STYLING FROM INNER SECTIONS */
+.mel-checkout-section--attendees,
+.mel-checkout-section--details {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+
+  &:hover {
+    box-shadow: none;
+  }
+}
+
+/* TYPOGRAPHY — Micro-hierarchy */
+.mel-checkout-heading {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  margin-bottom: 6px;
+  color: colors.$mel-color-text;
+  letter-spacing: 0.01em;
+}
+
+.mel-checkout h2,
+.mel-checkout h3 {
+  margin-bottom: 6px;
+}
+
+/* FORM COMPRESSION */
+.mel-checkout .form-item {
+  margin-bottom: 8px !important;
+}
+
+.mel-checkout .form-item label {
+  font-size: 12px;
+  font-weight: typography.$mel-font-medium;
+  margin-bottom: 3px;
+  color: colors.$mel-color-text;
+}
+
+/* INPUTS — Base sizing */
+.mel-checkout input:not([type="radio"]):not([type="checkbox"]),
+.mel-checkout select {
+  min-height: 44px;
+  height: auto;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: radii.$mel-radius-md;
+  border: 2px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+  transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition;
+
+  &:hover {
+    border-color: colors.$mel-color-border-strong;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: colors.$mel-color-primary;
+    box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.14);
+    background: colors.$mel-color-surface;
+  }
+}
+
+.mel-checkout textarea {
+  min-height: 88px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: radii.$mel-radius-md;
+  border: 2px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface;
+  transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition;
+
+  &:hover {
+    border-color: colors.$mel-color-border-strong;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: colors.$mel-color-primary;
+    box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.14);
+    background: colors.$mel-color-surface;
+  }
+}
+
+/* Form-text / form-email / form-select — Drupal classes */
+.mel-checkout .form-text,
+.mel-checkout .form-email,
+.mel-checkout .form-tel,
+.mel-checkout .form-select,
+.mel-checkout .form-number {
+  transition: border-color $mel-checkout-transition, box-shadow $mel-checkout-transition, background-color $mel-checkout-transition;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-color: colors.$mel-color-primary;
+    box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.14);
+    background: colors.$mel-color-surface;
+  }
+}
+
+.mel-checkout-section {
+  .form-item,
+  .field--type-string,
+  .field--type-address {
+    margin-bottom: 8px !important;
+  }
+
+  fieldset {
+    margin-bottom: 8px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    > legend {
+      margin-bottom: 6px;
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-semibold;
+      color: colors.$mel-color-text;
+    }
+  }
+
+  .form-wrapper {
+    margin-bottom: 8px !important;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
+/* SUMMARY PANEL — Premium companion card */
+.mel-checkout__summary,
+.mel-checkout__aside.mel-checkout__summary {
+  position: sticky;
+  top: 100px;
+  background: rgba(255, 255, 255, 0.92);
+  border: $mel-checkout-border;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: $mel-checkout-shadow;
+  transition: box-shadow $mel-checkout-transition, border-color $mel-checkout-transition;
+}
+
+/* SUMMARY CONTENT — Premium rhythm */
+.mel-checkout-order-title,
+.mel-summary-grouped .mel-checkout-order-title {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  margin: 0 0 spacing.mel-space(3) 0;
+  padding-bottom: spacing.mel-space(2);
+  border-bottom: 1px solid colors.$mel-color-border;
+  letter-spacing: 0.02em;
+}
+
+.mel-summary-grouped .mel-summary-event,
+.mel-summary-event {
+  margin-bottom: spacing.mel-space(4);
+  padding-bottom: spacing.mel-space(3);
+  border-bottom: 1px solid rgba(colors.$mel-color-border, 0.6);
+
+  &:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  h3 {
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(1) 0;
+  }
+}
+
+.mel-summary-grouped .mel-summary-item,
+.mel-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: typography.mel-font-size(sm);
+  margin-bottom: spacing.mel-space(1);
+  padding: spacing.mel-space(1) 0;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-summary-grouped .mel-summary-total,
+.mel-summary-total {
+  margin-top: spacing.mel-space(4);
+  padding-top: spacing.mel-space(3);
+  border-top: 2px solid colors.$mel-color-border-strong;
+
+  strong {
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-primary;
+  }
+}
+
+/* Coupon area in summary */
+.mel-checkout__summary .coupon-redemption,
+.mel-checkout__summary [data-drupal-selector*="coupon"] {
+  margin-top: spacing.mel-space(3);
+  padding-top: spacing.mel-space(3);
+  border-top: 1px solid colors.$mel-color-border;
+
+  input.form-text {
+    background: rgba(colors.$mel-color-bg, 0.9);
+    border-radius: radii.$mel-radius-md;
+  }
+}
+
+.mel-summary-grouped .mel-summary-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin-bottom: spacing.mel-space(2);
+
+  @include breakpoints.mel-break(sm) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: spacing.mel-space(2);
+  }
+}
+
+/* CTA — Premium primary action */
+.mel-checkout-cta {
+  margin-top: 8px;
+  text-align: center;
+
+  .button--primary,
+  [type='submit'].button--primary,
+  .mel-btn-primary,
+  button[type='submit'] {
+    width: 100%;
+    min-height: 48px;
+    height: auto;
+    padding: 14px 20px;
+    border-radius: radii.$mel-radius-md;
+    background: linear-gradient(135deg, colors.$mel-color-secondary 0%, colors.$mel-color-primary 100%);
+    color: colors.$mel-color-text-inverse !important;
+    font-size: typography.mel-font-size(base);
+    font-weight: typography.$mel-font-bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(108, 126, 242, 0.25);
+    transition: transform $mel-checkout-transition, box-shadow $mel-checkout-transition, background $mel-checkout-transition;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(108, 126, 242, 0.32);
+      background: linear-gradient(135deg, colors.$mel-color-secondary-hover 0%, colors.$mel-color-primary-hover 100%);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(108, 126, 242, 0.2);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(colors.$mel-color-primary, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }
+}
+
+.mel-checkout-cta__note {
+  margin-top: 8px;
+  font-size: typography.mel-font-size(xs);
+  color: colors.$mel-color-text-muted;
+  text-align: center;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+/* HELPER TEXT — Micro-hierarchy */
+.mel-checkout-helper {
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin-bottom: spacing.mel-space(2);
+  line-height: 1.4;
+}
+
+/* MOBILE — Touch-friendly, clean stacking */
+@media (max-width: 768px) {
+  .mel-checkout {
+    display: block;
+  }
+
+  .mel-checkout__grid {
+    display: block;
+  }
+
+  .mel-checkout__summary,
+  .mel-checkout__aside.mel-checkout__summary {
+    position: static;
+    margin-top: spacing.mel-space(4);
+    padding: spacing.mel-space(4);
+  }
+
+  .mel-checkout input:not([type="radio"]):not([type="checkbox"]),
+  .mel-checkout select,
+  .mel-checkout .form-text,
+  .mel-checkout .form-email,
+  .mel-checkout .form-select {
+    min-height: 44px;
+    padding: 12px 14px;
+  }
+
+  .mel-checkout-section--payment .form-type-radio label,
+  .mel-payment-method-label {
+    min-height: 48px;
+    padding: 14px 16px;
+  }
+
+  .mel-checkout__actions,
+  .mel-checkout-section--cta {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-top: spacing.mel-space(2);
+    padding-top: spacing.mel-space(3);
+    padding-bottom: calc(#{spacing.mel-space(2)} + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(
+      180deg,
+      rgba(colors.$mel-color-bg, 0) 0%,
+      rgba(colors.$mel-color-bg, 0.94) 35%,
+      colors.$mel-color-bg 100%
+    );
+    border-top: 1px solid colors.$mel-color-border;
+  }
+
+  .mel-checkout__actions .button--primary,
+  .mel-checkout__actions [type='submit'].button--primary,
+  .mel-checkout-cta .button--primary,
+  .mel-checkout-cta [type='submit'].button--primary {
+    min-height: 48px;
+    padding: 14px 20px;
+  }
+}
+
+.mel-checkout-confidence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f9f8ff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+
+  > div {
+    margin: 0;
+  }
+}
+
+.mel-checkout-reassurance {
+  margin-top: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.mel-checkout-next-steps {
+  margin-bottom: 8px;
+  font-size: 13px;
+
+  h4 {
+    font-weight: typography.$mel-font-semibold;
+    margin: 0 0 4px 0;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 4px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mel-checkout-step,
   .mel-checkout-pane,
+  .mel-checkout-section,
+  .mel-checkout__summary,
   .mel-payment-method-label,
-  .StripeElement {
+  .mel-checkout-section--payment .form-type-radio label,
+  .mel-checkout input,
+  .mel-checkout select,
+  .mel-checkout textarea,
+  .mel-checkout .form-text,
+  .mel-checkout .form-email,
+  .mel-checkout .form-select,
+  .StripeElement,
+  .mel-checkout-cta .button--primary,
+  .mel-checkout-cta [type='submit'].button--primary,
+  .mel-checkout__actions .button--primary,
+  .mel-checkout__actions [type='submit'].button--primary {
     transition: none !important;
+  }
+
+  .mel-checkout-cta .button--primary:hover,
+  .mel-checkout-cta [type='submit'].button--primary:hover,
+  .mel-checkout__actions .button--primary:hover,
+  .mel-checkout__actions [type='submit'].button--primary:hover {
+    transform: none !important;
   }
 }

@@ -149,6 +149,99 @@ final class CategoryAudienceService {
   }
 
   /**
+   * Gets audience summary: total attendees and repeat attendees.
+   *
+   * Uses event_attendee and rsvp_submission to count unique attendees.
+   * Repeat = attendees (by email) who appear in 2+ vendor events.
+   *
+   * @param int $userId
+   *   The vendor user ID.
+   *
+   * @return array{total_attendees: int, repeat_attendees: int}
+   *   Summary with total and repeat counts.
+   */
+  public function getAudienceSummary(int $userId): array {
+    $total = 0;
+    $repeat = 0;
+
+    try {
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $eventIds = $nodeStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', 'event')
+        ->condition('uid', $userId)
+        ->execute();
+
+      if (empty($eventIds)) {
+        return ['total_attendees' => 0, 'repeat_attendees' => 0];
+      }
+
+      $eventIds = array_values($eventIds);
+      $emailToEvents = [];
+
+      // event_attendee: email → set of event IDs.
+      if ($this->entityTypeManager->hasDefinition('event_attendee')) {
+        $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
+        $attendees = $attendeeStorage->loadByProperties(['event' => $eventIds]);
+        foreach ($attendees as $attendee) {
+          $email = $attendee->getEmail();
+          if ($email !== NULL && $email !== '') {
+            $email = strtolower(trim($email));
+            $eid = (int) ($attendee->get('event')->target_id ?? 0);
+            if ($eid > 0) {
+              $emailToEvents[$email] = $emailToEvents[$email] ?? [];
+              $emailToEvents[$email][$eid] = TRUE;
+            }
+          }
+        }
+      }
+
+      // rsvp_submission: include RSVPs not yet in event_attendee (best effort).
+      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+        $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
+        $eventRefField = 'event_id';
+        $rsvpIds = $rsvpStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition($eventRefField, $eventIds, 'IN')
+          ->condition('status', 'confirmed')
+          ->execute();
+        foreach ($rsvpStorage->loadMultiple($rsvpIds) as $rsvp) {
+          $email = NULL;
+          if ($rsvp->hasField('email') && !$rsvp->get('email')->isEmpty()) {
+            $email = $rsvp->get('email')->value;
+          }
+          elseif ($rsvp->hasField('attendee_email') && !$rsvp->get('attendee_email')->isEmpty()) {
+            $email = $rsvp->get('attendee_email')->value;
+          }
+          if ($email !== NULL && $email !== '') {
+            $email = strtolower(trim($email));
+            $eid = (int) ($rsvp->get($eventRefField)->target_id ?? 0);
+            if ($eid > 0) {
+              $emailToEvents[$email] = $emailToEvents[$email] ?? [];
+              $emailToEvents[$email][$eid] = TRUE;
+            }
+          }
+        }
+      }
+
+      $total = count($emailToEvents);
+      foreach ($emailToEvents as $events) {
+        if (count($events) >= 2) {
+          $repeat++;
+        }
+      }
+    }
+    catch (\Exception) {
+      // Return zeros on error.
+    }
+
+    return [
+      'total_attendees' => $total,
+      'repeat_attendees' => $repeat,
+    ];
+  }
+
+  /**
    * Gets attendees for the audience page.
    *
    * @param int $userId

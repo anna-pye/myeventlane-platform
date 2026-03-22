@@ -1,0 +1,64 @@
+{#
+/**
+ * @file
+ * Pro entitlement diagnostics page.
+ *
+ * Variables:
+ * - rows: Array of diagnostic row data.
+ * - actions_form: Form render array for reconcile actions.
+ */
+#}
+<div class="pro-diagnostics">
+
+  <h1>{{ 'Pro entitlement diagnostics'|t }}</h1>
+
+  {% if actions_form %}
+    <div class="pro-diagnostics__actions">
+      {{ actions_form }}
+    </div>
+  {% endif %}
+
+  <table class="pro-diagnostics__table">
+    <thead>
+      <tr>
+        <th>{{ 'User ID'|t }}</th>
+        <th>{{ 'Email'|t }}</th>
+        <th>{{ 'Role has mel_pro'|t }}</th>
+        <th>{{ 'field_pro_subscription_managed'|t }}</th>
+        <th>{{ 'Active subscription exists'|t }}</th>
+        <th>{{ 'Grace expiry'|t }}</th>
+        <th>{{ 'Vendor is_pro'|t }}</th>
+        <th>{{ 'Alignment'|t }}</th>
+        <th>{{ 'Actions'|t }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr class="pro-diagnostics__row {% if not row.aligned %}pro-diagnostics__row--drift{% endif %}">
+          <td>{{ row.uid }}</td>
+          <td>{{ row.email }}</td>
+          <td>{{ row.role_has_mel_pro ? 'Yes'|t : 'No'|t }}</td>
+          <td>{{ row.field_pro_subscription_managed ? 'Yes'|t : 'No'|t }}</td>
+          <td>{{ row.has_active_subscription ? 'Yes'|t : 'No'|t }}</td>
+          <td>{{ row.grace_expires ? row.grace_expires|date('Y-m-d H:i') : '-' }}</td>
+          <td>{{ row.vendor_is_pro ? 'Yes'|t : 'No'|t }}</td>
+          <td>
+            {% if row.aligned %}
+              <span class="pro-diagnostics__badge pro-diagnostics__badge--ok">{{ 'OK'|t }}</span>
+            {% else %}
+              <span class="pro-diagnostics__badge pro-diagnostics__badge--drift">{{ 'Drift detected'|t }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ path('myeventlane_pro.diagnostics_reconcile_user', { uid: row.uid }) }}" class="button button--small">{{ 'Reconcile now'|t }}</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="9">{{ 'No Pro users found.'|t }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>

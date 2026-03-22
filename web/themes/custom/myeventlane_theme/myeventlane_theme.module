@@ -2,97 +2,11 @@
 
 /**
  * @file
- * MyEventLane Theme - Module file for hook implementations.
- */
-
-/**
- * Implements hook_page_attachments().
+ * Intentionally empty placeholder.
  *
- * Ensures Stripe.js loads on checkout pages and exports category colors to JS.
- * Also ensures event page CSS loads on event node pages.
- * Loads Inter font from Google Fonts.
+ * Drupal 11 loads only THEMENAME.theme for theme extensions — not this file.
+ * Hook implementations here are not auto-loaded and are not included in hook
+ * discovery (only installed modules in core.extension are). Use
+ * THEMENAME.theme (preprocess / alter) or attach assets from a module, e.g.
+ * myeventlane_commerce_page_attachments() for the booking summary library.
  */
-function myeventlane_theme_page_attachments(array &$page) {
-  // Add Inter font from Google Fonts.
-  $page['#attached']['html_head'][] = [
-    [
-      '#tag' => 'link',
-      '#attributes' => [
-        'href' => 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
-        'rel' => 'stylesheet',
-      ],
-    ],
-    'inter_font',
-  ];
-
-  $route = \Drupal::routeMatch()->getRouteName();
-  
-  // Attach event full page CSS on event node canonical pages.
-  if ($route === 'entity.node.canonical') {
-    $node = \Drupal::routeMatch()->getParameter('node');
-    if ($node && $node->bundle() === 'event') {
-      if (!isset($page['#attached']['library'])) {
-        $page['#attached']['library'] = [];
-      }
-      if (!in_array('myeventlane_theme/myeventlane_event_full', $page['#attached']['library'], TRUE)) {
-        $page['#attached']['library'][] = 'myeventlane_theme/myeventlane_event_full';
-      }
-    }
-  }
-  
-  // Only on checkout pages.
-  $is_checkout_route = strpos($route, 'commerce_checkout') === 0;
-
-  if ($is_checkout_route && \Drupal::moduleHandler()->moduleExists('commerce_stripe')) {
-    // Ensure Stripe.js library is attached on checkout pages.
-    if (!isset($page['#attached']['library'])) {
-      $page['#attached']['library'] = [];
-    }
-    $libraries = &$page['#attached']['library'];
-    if (!in_array('commerce_stripe/stripe', $libraries)) {
-      $libraries[] = 'commerce_stripe/stripe';
-    }
-
-    // Also add via html_head as a direct fallback. This ensures it loads even if library system fails.
-    $stripe_config = \Drupal::config('commerce_stripe.settings');
-    $user_fraud_signals = $stripe_config->get('collect_user_fraud_signals') ?? TRUE;
-    $stripe_src = 'https://js.stripe.com/v3/';
-    if (!$user_fraud_signals) {
-      $stripe_src .= '?advancedFraudSignals=false';
-    }
-
-    $page['#attached']['html_head'][] = [
-      [
-        '#tag' => 'script',
-        '#attributes' => [
-          'src' => $stripe_src,
-          'id' => 'stripe-js-direct-injection',
-        ],
-      ],
-      'stripe_js_forced',
-      // Very high priority - load early.
-      -100,
-    ];
-  }
-
-  // Export category color map to JavaScript via drupalSettings.
-  if (\Drupal::hasService('myeventlane_shared.color_service')) {
-    try {
-      $color_service = \Drupal::service('myeventlane_shared.color_service');
-      $color_map = $color_service->getCategoryColors();
-
-      if (!isset($page['#attached']['drupalSettings'])) {
-        $page['#attached']['drupalSettings'] = [];
-      }
-      $page['#attached']['drupalSettings']['myeventlane'] = [
-        'categoryColors' => $color_map,
-      ];
-    }
-    catch (\Exception $e) {
-      // Silently fail if service is not available.
-      \Drupal::logger('myeventlane_theme')->warning('Could not load ColorService: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
-  }
-}

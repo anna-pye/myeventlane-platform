@@ -1,0 +1,12 @@
+name: 'MyEventLane Growth'
+type: module
+description: 'Deterministic growth insights, commercial nudges, and funnel tracking for organisers.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - myeventlane_pro:myeventlane_pro
+  - myeventlane_vendor:myeventlane_vendor
+  - drupal:user
+  - drupal:system

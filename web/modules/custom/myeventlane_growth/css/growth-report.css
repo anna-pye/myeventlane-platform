@@ -1,0 +1,25 @@
+/**
+ * @file
+ * Admin growth report layout.
+ */
+.mel-growth-report__intro {
+  max-width: 48rem;
+  margin-bottom: 1rem;
+}
+
+.mel-growth-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mel-growth-table th,
+.mel-growth-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.mel-growth-metric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

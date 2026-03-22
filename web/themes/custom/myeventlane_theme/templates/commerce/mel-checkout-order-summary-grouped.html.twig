@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * MEL grouped checkout sidebar: events → ticket lines → order total.
+ * Only render when there is content (avoids empty/duplicate UI block).
+ */
+#}
+{% if grouped_items is not empty %}
+<div class="mel-checkout-order-summary mel-summary-grouped">
+  <h2 class="mel-checkout-order-title">{{ 'Your tickets'|t }}</h2>
+
+  {% for event in grouped_items %}
+    <div class="mel-summary-event">
+      <h3>{{ event.title }}</h3>
+      {% if event.date or event.location %}
+        <div class="mel-summary-meta">
+          {% if event.date %}<span class="mel-summary-meta__date">{{ event.date }}</span>{% endif %}
+          {% if event.location %}<span class="mel-summary-meta__location">{{ event.location }}</span>{% endif %}
+        </div>
+      {% endif %}
+
+      {% for item in event.items %}
+        <div class="mel-summary-item">
+          <span class="mel-summary-item__label">{{ item.quantity }} × {{ item.ticket_type }}</span>
+          <span class="mel-summary-item__price">{{ item.total_price }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+
+  <div class="mel-summary-total">
+    <span>{{ 'Total'|t }}</span>
+    <strong>{{ order_total }}</strong>
+  </div>
+</div>
+{% endif %}

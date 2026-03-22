@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_pro\Service;
 
 use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -22,7 +23,6 @@ final class ProSubscriptionLifecycleScheduler {
   private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const BATCH_SIZE = 200;
   private const RENEWAL_REMINDER_WINDOW_SECONDS = 259200;
-  private const GRACE_SECONDS = 604800;
   private const STATUS_SCHEDULED = 'scheduled';
   private const STATUS_SENT = 'sent';
   private const STATUS_FAILED = 'failed';
@@ -38,6 +38,7 @@ final class ProSubscriptionLifecycleScheduler {
     private readonly ProEntitlementReconciler $reconciler,
     private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
     private readonly ProBoostProvisioner $proBoostProvisioner,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -82,6 +83,49 @@ final class ProSubscriptionLifecycleScheduler {
   }
 
   /**
+   * Handles day-0 dunning immediately when a subscription enters payment failure.
+   *
+   * Clears any prior sequence rows for the subscription, queues the day-0
+   * email, and records the row as sent (or scheduled if queueing fails).
+   */
+  public function onPaymentFailedImmediate(SubscriptionInterface $subscription): void {
+    if (!$this->stateResolver->isPaymentFailure($subscription)) {
+      return;
+    }
+
+    $subId = (int) $subscription->id();
+    $this->database->delete('myeventlane_pro_failed_payment_sequence')
+      ->condition('subscription_id', $subId)
+      ->execute();
+
+    $now = $this->time->getRequestTime();
+
+    $recipient = $this->resolveRecipientEmail($subscription);
+    if ($recipient === NULL) {
+      $this->logger->error('Pro dunning: no recipient email for subscription @id day-0 notice.', ['@id' => (string) $subId]);
+      $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SCHEDULED, NULL);
+      return;
+    }
+
+    $messageId = $this->messagingManager->queue('pro_subscription_payment_failed_day_0', $recipient, [
+      'first_name' => $this->resolveCustomerFirstName($subscription),
+      'subscription_id' => $subId,
+      'step' => 0,
+    ]);
+
+    if ($messageId === NULL) {
+      $this->logger->error('Pro dunning: messaging queue rejected day-0 email for subscription @id.', ['@id' => (string) $subId]);
+      $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SCHEDULED, NULL);
+      return;
+    }
+
+    $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SENT, $now);
+    $this->logger->notice('Pro dunning: subscription @id entered payment failure; day-0 organiser email queued.', [
+      '@id' => (string) $subId,
+    ]);
+  }
+
+  /**
    * Schedules renewal reminders for subscriptions renewing within 3 days.
    */
   private function scheduleRenewalReminders(): int {
@@ -111,11 +155,12 @@ final class ProSubscriptionLifecycleScheduler {
   }
 
   /**
-   * Schedules day-0/day-3/day-6 failed payment notifications.
+   * Schedules day-3 and day-6 failed payment notifications (day-0 is immediate).
    */
   private function scheduleFailedPaymentSequence(): int {
     $scheduled = 0;
     $now = $this->time->getRequestTime();
+    $graceSeconds = $this->getGraceSeconds();
 
     foreach ($this->loadProSubscriptions() as $subscription) {
       if (!$this->stateResolver->isPaymentFailure($subscription)) {
@@ -128,12 +173,18 @@ final class ProSubscriptionLifecycleScheduler {
       }
 
       $graceExpiry = $this->resolveGraceExpiry($customer);
-      $sequenceStart = $graceExpiry > 0 ? ($graceExpiry - self::GRACE_SECONDS) : $now;
+      $sequenceStart = $graceExpiry > 0 ? ($graceExpiry - $graceSeconds) : $now;
 
-      foreach ([0, 3, 6] as $step) {
+      foreach ([3, 6] as $step) {
         $scheduledAt = $sequenceStart + ($step * 86400);
         $scheduled += $this->insertFailedSequence((int) $subscription->id(), $step, $scheduledAt);
       }
+    }
+
+    if ($scheduled > 0) {
+      $this->logger->info('Pro dunning: scheduled @count follow-up failed-payment reminder rows (days 3 and 6).', [
+        '@count' => (string) $scheduled,
+      ]);
     }
 
     return $scheduled;
@@ -342,19 +393,54 @@ final class ProSubscriptionLifecycleScheduler {
    */
   private function insertFailedSequence(int $subscriptionId, int $step, int $scheduledAt): int {
     try {
-      $this->database->insert('myeventlane_pro_failed_payment_sequence')
-        ->fields([
-          'subscription_id' => $subscriptionId,
-          'step' => $step,
-          'scheduled_at' => $scheduledAt,
-          'status' => self::STATUS_SCHEDULED,
-        ])
-        ->execute();
+      $this->insertFailedSequenceWithStatus($subscriptionId, $step, $scheduledAt, self::STATUS_SCHEDULED, NULL);
       return 1;
     }
     catch (IntegrityConstraintViolationException) {
       return 0;
     }
+  }
+
+  /**
+   * Inserts a failed-payment sequence row with explicit status.
+   */
+  private function insertFailedSequenceWithStatus(int $subscriptionId, int $step, int $scheduledAt, string $status, ?int $sentAt): void {
+    $fields = [
+      'subscription_id' => $subscriptionId,
+      'step' => $step,
+      'scheduled_at' => $scheduledAt,
+      'status' => $status,
+    ];
+    if ($sentAt !== NULL) {
+      $fields['sent_at'] = $sentAt;
+    }
+
+    $this->database->insert('myeventlane_pro_failed_payment_sequence')
+      ->fields($fields)
+      ->execute();
+  }
+
+  /**
+   * Inserts a failed-payment row; logs and swallows duplicate-key races.
+   */
+  private function safeInsertFailedSequenceRow(int $subscriptionId, int $step, int $scheduledAt, string $status, ?int $sentAt): void {
+    try {
+      $this->insertFailedSequenceWithStatus($subscriptionId, $step, $scheduledAt, $status, $sentAt);
+    }
+    catch (IntegrityConstraintViolationException) {
+      $this->logger->warning('Pro dunning: could not insert failed-payment sequence row for subscription @s step @t (duplicate or constraint).', [
+        '@s' => (string) $subscriptionId,
+        '@t' => (string) $step,
+      ]);
+    }
+  }
+
+  /**
+   * Grace period length in seconds from Pro settings.
+   */
+  private function getGraceSeconds(): int {
+    $days = (int) ($this->configFactory->get('myeventlane_pro.settings')->get('grace_days') ?? 7);
+    return max(1, $days) * 86400;
   }
 
   /**

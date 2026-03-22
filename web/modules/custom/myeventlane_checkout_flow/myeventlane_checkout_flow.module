@@ -3,6 +3,12 @@
 /**
  * @file
  * Module hooks for MyEventLane Checkout Flow.
+ *
+ * MEL LANGUAGE STANDARD:
+ * - Australian English
+ * - "Attendee" not "Customer"
+ * - "Organiser" not "Vendor"
+ * - Friendly, non-corporate tone
  */
 
 declare(strict_types=1);
@@ -19,6 +25,11 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
   if ($step_id !== 'checkout') {
     return;
   }
+  // Force commerce-checkout-form--with-sidebar.html.twig for our guided layout.
+  $form['#theme'] = array_merge(
+    ['commerce_checkout_form__with_sidebar'],
+    (array) ($form['#theme'] ?? ['commerce_checkout_form'])
+  );
   // Add "Back to cart" link when there is no previous checkout step.
   if (isset($form['actions']['next'])) {
     $back_link = Link::fromTextAndUrl(
@@ -28,6 +39,10 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
     );
     $form['actions']['next']['#suffix'] = $back_link->toString();
   }
+
+  /** @var \Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher $attacher */
+  $attacher = \Drupal::service('myeventlane_checkout_flow.checkout_ux_attacher');
+  $attacher->attach($form);
 }
 
 /**

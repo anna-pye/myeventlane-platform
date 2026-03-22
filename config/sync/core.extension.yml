@@ -114,6 +114,7 @@ module:
   myeventlane_event_state: 0
   myeventlane_finance: 0
   myeventlane_front: 0
+  myeventlane_growth: 0
   myeventlane_help_assistant: 0
   myeventlane_help_centre: 0
   myeventlane_help_centre_ai: 0

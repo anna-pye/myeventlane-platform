@@ -15,6 +15,12 @@
   {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
     order_entity: order_entity,
     order_totals: order_totals|default(null),
+    order_items_attendees: order_items_attendees|default({}),
+    mel_event_image_urls: mel_event_image_urls|default({}),
+    mel_help_centre_url: mel_help_centre_url|default(null),
+    mel_calendar_links: mel_calendar_links|default({}),
+    mel_event_url: mel_event_url|default(''),
+    mel_logged_in: mel_logged_in|default(false),
   } %}
 {% else %}
   {# Fallback if order not available #}

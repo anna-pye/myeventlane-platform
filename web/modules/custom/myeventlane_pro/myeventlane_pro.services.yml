@@ -12,6 +12,7 @@ services:
       - '@myeventlane_pro.subscription_state_resolver'
       - '@logger.channel.myeventlane_pro'
       - '@cache_tags.invalidator'
+      - '@event_dispatcher'
 
   myeventlane_pro.active_resolver:
     class: Drupal\myeventlane_pro\Service\ProActiveResolver
@@ -27,6 +28,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_pro.active_resolver'
+      - '@event_dispatcher'
     tags:
       - { name: access_check, applies_to: _myeventlane_pro_access }
 
@@ -47,6 +49,7 @@ services:
       - '@myeventlane_pro.entitlement_reconciler'
       - '@myeventlane_pro.recovery_analytics'
       - '@myeventlane_pro.pro_boost_provisioner'
+      - '@config.factory'
 
   myeventlane_pro.pro_boost_provisioner:
     class: Drupal\myeventlane_pro\Service\ProBoostProvisioner
@@ -95,6 +98,8 @@ services:
       - '@logger.channel.myeventlane_pro'
       - '@myeventlane_pro.pro_boost_provisioner'
       - '@entity_type.manager'
+      - '@myeventlane_pro.subscription_lifecycle_scheduler'
+      - '@config.factory'
     tags:
       - { name: event_subscriber }
 
@@ -148,3 +153,37 @@ services:
       - '@current_user'
       - '@entity_type.manager'
       - '@myeventlane_pro.active_resolver'
+
+  myeventlane_pro.event_insight:
+    class: Drupal\myeventlane_pro\Service\EventInsightService
+
+  myeventlane_pro.subscription_status:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionStatusService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_pro.subscription_state_resolver'
+      - '@myeventlane_pro.active_resolver'
+      - '@config.factory'
+      - '@current_user'
+      - '@datetime.time'
+      - '@date.formatter'
+      - '@string_translation'
+
+  myeventlane_pro.message_builder:
+    class: Drupal\myeventlane_pro\Service\ProMessageBuilder
+    arguments:
+      - '@string_translation'
+
+  myeventlane_pro.billing_portal:
+    class: Drupal\myeventlane_pro\Service\ProBillingPortalService
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_pro'
+      - '@?myeventlane_core.stripe'
+
+  myeventlane_pro.pro_access:
+    class: Drupal\myeventlane_pro\Service\ProAccessService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_pro.subscription_status'

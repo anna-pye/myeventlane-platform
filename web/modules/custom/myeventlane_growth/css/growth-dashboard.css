@@ -1,0 +1,72 @@
+/**
+ * @file
+ * Organiser dashboard growth cards (distinct from analytics/automation panels).
+ */
+.mel-growth-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mel-growth-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.mel-growth-card--upgrade {
+  border-color: #c7d2fe;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.mel-growth-card--boost {
+  border-color: #fde68a;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.mel-growth-card--warning {
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+}
+
+.mel-growth-card--success {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.mel-growth-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.mel-growth-card__message {
+  margin: 0 0 0.75rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.mel-growth-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-growth-card__dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.mel-growth-card__dismiss:hover,
+.mel-growth-card__dismiss:focus-visible {
+  color: #0f172a;
+}

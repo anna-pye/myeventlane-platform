@@ -29,3 +29,40 @@ services:
       - '@queue'
       - '@entity_type.manager'
       - '@datetime.time'
+
+  myeventlane_automation.rule_service:
+    class: Drupal\myeventlane_automation\Service\AutomationRuleService
+    arguments:
+      - '@config.factory'
+      - '@logger.channel.myeventlane_automation'
+
+  myeventlane_automation.message_builder:
+    class: Drupal\myeventlane_automation\Service\AutomationMessageBuilder
+
+  myeventlane_automation.job_service:
+    class: Drupal\myeventlane_automation\Service\AutomationJobService
+    arguments:
+      - '@database'
+      - '@datetime.time'
+
+  myeventlane_automation.organiser_scheduler:
+    class: Drupal\myeventlane_automation\Service\OrganiserAutomationScheduler
+    arguments:
+      - '@config.factory'
+      - '@myeventlane_automation.rule_service'
+      - '@myeventlane_automation.job_service'
+      - '@entity_type.manager'
+      - '@queue'
+      - '@logger.channel.myeventlane_automation'
+      - '@?myeventlane_vendor.service.ticket_sales'
+      - '@?myeventlane_vendor.service.rsvp_stats'
+      - '@?myeventlane_vendor.service.boost_status'
+      - '@?myeventlane_capacity.service'
+
+  myeventlane_automation.dashboard:
+    class: Drupal\myeventlane_automation\Service\AutomationDashboardService
+    arguments:
+      - '@myeventlane_automation.rule_service'
+      - '@config.factory'
+      - '@current_user'
+      - '@?myeventlane_pro.pro_access'

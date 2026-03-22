@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Dashboard-wide banner when MEL Pro is in a payment grace period.
+ *
+ * Variables:
+ * - mel_pro_grace_banner: Array with keys message, manage_url.
+ */
+#}
+{% if mel_pro_grace_banner is defined and mel_pro_grace_banner.message %}
+  <div class="mel-global-warning" role="status">
+    <span class="mel-global-warning__text">{{ mel_pro_grace_banner.message }}</span>
+    {% if mel_pro_grace_banner.manage_url %}
+      <a href="{{ mel_pro_grace_banner.manage_url }}" class="mel-global-warning__link">{{ 'Manage billing'|t }}</a>
+    {% endif %}
+  </div>
+{% endif %}

@@ -1,4 +1,19 @@
 services:
+  myeventlane_checkout_flow.checkout_ux_attacher:
+    class: Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher
+    arguments:
+      - '@myeventlane_checkout_flow.checkout_grouped_summary_builder'
+      - '@current_route_match'
+      - '@logger.channel.myeventlane_checkout_flow'
+      - '@entity_type.manager'
+
+  myeventlane_checkout_flow.checkout_grouped_summary_builder:
+    class: Drupal\myeventlane_checkout_flow\Service\CheckoutGroupedSummaryBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@commerce_price.currency_formatter'
+      - '@date.formatter'
+
   myeventlane_checkout_flow.vendor_ownership_resolver:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
     arguments: ['@entity_type.manager']

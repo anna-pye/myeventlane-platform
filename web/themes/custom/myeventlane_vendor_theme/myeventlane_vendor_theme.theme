@@ -3,11 +3,52 @@
 /**
  * @file
  * Theme functions for MyEventLane Vendor Theme.
+ *
+ * MEL LANGUAGE STANDARD:
+ * - Australian English
+ * - "Attendee" not "Customer"
+ * - "Organiser" not "Vendor"
+ * - Friendly, non-corporate tone
  */
 
 declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_preprocess().
+ *
+ * Applies MEL language standardisation to vendor-facing display text.
+ */
+function myeventlane_vendor_theme_preprocess(array &$variables, string $hook): void {
+  if (!\Drupal::hasService('myeventlane_core.language_style')) {
+    return;
+  }
+  /** @var \Drupal\myeventlane_core\Service\LanguageStyleService $service */
+  $service = \Drupal::service('myeventlane_core.language_style');
+  _myeventlane_vendor_theme_apply_language_style($variables, $service);
+}
+
+/**
+ * Recursively applies language style; skips URLs and technical keys.
+ *
+ * Skips render array properties (keys starting with #) to avoid corrupting
+ * #cache, #attached, etc. e.g. "user.permissions" must not become
+ * "member.permissions" in cache contexts.
+ */
+function _myeventlane_vendor_theme_apply_language_style(array &$items, $service): void {
+  foreach ($items as $key => &$value) {
+    if (is_string($key) && str_starts_with($key, '#')) {
+      continue;
+    }
+    if (is_array($value)) {
+      _myeventlane_vendor_theme_apply_language_style($value, $service);
+    }
+    elseif (is_string($value) && !$service->shouldSkipKey($key) && !$service->looksLikeUrl($value)) {
+      $value = $service->replace($value);
+    }
+  }
+}
 
 /**
  * Implements hook_preprocess_page().
@@ -41,7 +82,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     // Check for vendor role.
     $roles = $current_user->getRoles();
     if (in_array('vendor', $roles)) {
-      $variables['page']['user_role'] = t('Vendor');
+      $variables['page']['user_role'] = t('Organiser');
     }
     elseif (in_array('administrator', $roles)) {
       $variables['page']['user_role'] = t('Administrator');
@@ -269,6 +310,23 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   $vendor_alert = _myeventlane_vendor_theme_get_vendor_alert($current_user);
   if ($vendor_alert !== NULL) {
     $variables['page']['vendor_alert'] = $vendor_alert;
+  }
+
+  // MEL Pro grace-period banner (failed payment recovery).
+  if (\Drupal::hasService('myeventlane_pro.subscription_status') && $current_user->isAuthenticated() && in_array('vendor', $current_user->getRoles(), TRUE)) {
+    $user_storage = \Drupal::entityTypeManager()->getStorage('user');
+    $account = $user_storage->load((int) $current_user->id());
+    if ($account instanceof \Drupal\user\UserInterface) {
+      /** @var \Drupal\myeventlane_pro\Service\ProSubscriptionStatusService $pro_status */
+      $pro_status = \Drupal::service('myeventlane_pro.subscription_status');
+      $status = $pro_status->getStatusForUser($account);
+      if (!empty($status['is_in_grace'])) {
+        $variables['page']['mel_pro_grace_banner'] = [
+          'message' => (string) t('Your MEL Pro access is in a grace period'),
+          'manage_url' => \Drupal\Core\Url::fromRoute('myeventlane_pro.manage')->toString(),
+        ];
+      }
+    }
   }
 }
 
@@ -654,6 +712,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'is_pro' => FALSE,
         'show_pro_prompt' => FALSE,
         'pro_upgrade_url' => NULL,
+        'growth_cards' => [],
       ],
       'template' => 'dashboard/dashboard',
     ],

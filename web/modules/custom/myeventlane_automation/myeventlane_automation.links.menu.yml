@@ -1,0 +1,7 @@
+# Admin config link.
+myeventlane_automation.settings:
+  title: 'Automation'
+  description: 'Configure organiser nudges, lifecycle messaging, and automation rules.'
+  route_name: myeventlane_automation.settings
+  parent: myeventlane_core.config
+  weight: 35

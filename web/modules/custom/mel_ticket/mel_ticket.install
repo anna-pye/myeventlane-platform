@@ -22,7 +22,7 @@ function mel_ticket_install(): void {
  * Grants ticket permissions to vendor-facing roles when present.
  */
 function mel_ticket_grant_default_role_permissions(): void {
-  foreach (['vendor', 'pro_organiser'] as $rid) {
+  foreach (['vendor', 'mel_pro'] as $rid) {
     $role = Role::load($rid);
     if (!$role) {
       continue;

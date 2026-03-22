@@ -145,5 +145,98 @@ function myeventlane_automation_schema(): array {
     ],
   ];
 
+  // Organiser automation jobs (nudges, lifecycle candidates).
+  $schema['myeventlane_automation_job'] = [
+    'description' => 'Tracks organiser automation jobs for idempotency and audit.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'automation_key' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Rule key: low_sales_boost, no_sales_yet, draft_reminder, etc.',
+      ],
+      'recipient_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => 'organiser or attendee.',
+      ],
+      'recipient_hash' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Hash of recipient identifier.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'pending, processed, skipped.',
+      ],
+      'scheduled_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when scheduled.',
+      ],
+      'processed_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when processed.',
+      ],
+      'payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON payload.',
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Additional metadata (skip reason, etc).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'event_key' => ['event_id', 'automation_key'],
+      'recipient_key' => ['recipient_hash', 'automation_key'],
+      'scheduled_at' => ['scheduled_at'],
+      'status' => ['status'],
+    ],
+  ];
+
   return $schema;
+}
+
+/**
+ * Create myeventlane_automation_job table for existing installs.
+ */
+function myeventlane_automation_update_10001(): string {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('myeventlane_automation_job')) {
+    $full_schema = myeventlane_automation_schema();
+    $schema->createTable('myeventlane_automation_job', $full_schema['myeventlane_automation_job']);
+  }
+  return (string) t('Organiser automation job table installed.');
 }

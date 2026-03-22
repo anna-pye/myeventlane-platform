@@ -1,4 +1,4 @@
-uuid: 3436e232-0f33-4c4c-bc55-eb0ed42f6f06
+uuid: a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d
 langcode: en
 status: true
 dependencies:
@@ -17,8 +17,8 @@ dependencies:
     - paragraphs
     - paragraphs_type_permissions
     - workflows
-id: pro_organiser
-label: 'Pro Organiser'
+id: mel_pro
+label: 'MEL Pro'
 weight: -6
 is_admin: false
 permissions:
@@ -32,13 +32,12 @@ permissions:
   - 'delete paragraph content attendee_extra_field'
   - 'delete paragraph content event_highlight'
   - 'edit own mel_ticket_type entities'
-  - 'reuse mel_ticket_type entities'
-  - 'view mel_ticket_type entities'
   - 'manage boost commerce_order_item'
   - 'manage checkout_donation commerce_order_item'
   - manage_refunds
   - 'purchase boost for events'
   - request_refunds
+  - 'reuse mel_ticket_type entities'
   - 'update own boost_upgrade commerce_product'
   - 'update paragraph content attendee_extra_field'
   - 'update paragraph content event_highlight'
@@ -46,6 +45,7 @@ permissions:
   - 'use editorial transition publish'
   - 'use vendor ai assistant'
   - 'view boost_upgrade commerce_product'
+  - 'view mel_ticket_type entities'
   - 'view paragraph content attendee_answer'
   - 'view paragraph content attendee_extra_field'
   - 'view paragraph content event_highlight'

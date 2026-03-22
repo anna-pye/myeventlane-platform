@@ -1,0 +1,14 @@
+uuid: c3d4e5f6-7a8b-4c9d-0e1f-2a3b4c5d6e7f
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.mel_pro
+  module:
+    - user
+id: user_remove_role_action.mel_pro
+label: 'Remove the MEL Pro role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: mel_pro

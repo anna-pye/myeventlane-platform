@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Admin report: growth insight aggregates.
+ */
+#}
+<div class="mel-growth-report">
+  <div class="mel-growth-metric mel-growth-report__summary" role="region" aria-label="{{ 'Recovery snapshot'|t }}">
+    <p><strong>{{ 'Grace warnings (impressions)'|t }}:</strong> {{ grace_impressions|default(0) }}</p>
+    <p><strong>{{ 'Billing-related conversions (rows)'|t }}:</strong> {{ billing_recovery_conversions|default(0) }}</p>
+  </div>
+  <p class="mel-growth-report__intro">{{ 'Counts are row-based (each impression is a row). Conversion rate uses impressions as the denominator.'|t }}</p>
+  <div class="mel-growth-report__table-wrap">
+    <table class="mel-growth-table">
+      <thead>
+        <tr>
+          <th>{{ 'Insight key'|t }}</th>
+          <th class="mel-growth-metric">{{ 'Impressions'|t }}</th>
+          <th class="mel-growth-metric">{{ 'Clicks'|t }}</th>
+          <th class="mel-growth-metric">{{ 'Dismissals'|t }}</th>
+          <th class="mel-growth-metric">{{ 'Conversions'|t }}</th>
+          <th class="mel-growth-metric">{{ 'Conversion %'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><code>{{ row.key }}</code></td>
+            <td class="mel-growth-metric">{{ row.impressions }}</td>
+            <td class="mel-growth-metric">{{ row.clicks }}</td>
+            <td class="mel-growth-metric">{{ row.dismissals }}</td>
+            <td class="mel-growth-metric">{{ row.conversions }}</td>
+            <td class="mel-growth-metric">{{ row.conversion_rate }}%</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6">{{ 'No growth events recorded yet.'|t }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
