@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_pro\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Routing\Access\AccessInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_pro\Event\ProFeatureAccessDeniedEvent;
@@ -22,7 +23,7 @@ final class ProAccessCheck implements AccessInterface {
     private readonly EventDispatcherInterface $eventDispatcher,
   ) {}
 
-  public function access(Route $route, AccountInterface $account): AccessResult {
+  public function access(Route $route, RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
 
     $user = $this->entityTypeManager
       ->getStorage('user')
@@ -38,7 +39,7 @@ final class ProAccessCheck implements AccessInterface {
         ->addCacheTags(['user:' . $user->id()]);
     }
 
-    $routeName = $route->getRouteName() ?? '';
+    $routeName = $route_match->getRouteName();
     if ($routeName !== '') {
       $this->eventDispatcher->dispatch(new ProFeatureAccessDeniedEvent($user, $routeName));
     }
