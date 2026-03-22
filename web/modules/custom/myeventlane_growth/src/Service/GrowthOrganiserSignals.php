@@ -8,6 +8,8 @@ use Drupal\Core\TempStore\PrivateTempStoreFactory;
 
 /**
  * Short-lived organiser signals (Pro gate attempts, cancel flow, billing recovery).
+ *
+ * Values use the private tempstore expiry from core (%tempstore.expire%, typically 7 days).
  */
 final class GrowthOrganiserSignals {
 
@@ -22,10 +24,10 @@ final class GrowthOrganiserSignals {
       return;
     }
     $store = $this->tempStoreFactory->get(self::COLLECTION);
-    $store->setWithExpire('pro_gate.' . $uid, [
+    $store->set('pro_gate.' . $uid, [
       'route' => $route_name,
       'at' => time(),
-    ], 86400 * 3);
+    ]);
   }
 
   /**
@@ -57,7 +59,7 @@ final class GrowthOrganiserSignals {
     if ($uid <= 0) {
       return;
     }
-    $this->tempStoreFactory->get(self::COLLECTION)->setWithExpire('cancel.' . $uid, ['at' => time()], 86400 * 3);
+    $this->tempStoreFactory->get(self::COLLECTION)->set('cancel.' . $uid, ['at' => time()]);
   }
 
   public function hasRecentCancelIntent(int $uid): bool {
@@ -72,7 +74,7 @@ final class GrowthOrganiserSignals {
     if ($uid <= 0) {
       return;
     }
-    $this->tempStoreFactory->get(self::COLLECTION)->setWithExpire('billing_ok.' . $uid, ['at' => time()], 86400 * 7);
+    $this->tempStoreFactory->get(self::COLLECTION)->set('billing_ok.' . $uid, ['at' => time()]);
   }
 
   /**
