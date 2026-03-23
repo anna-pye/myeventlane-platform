@@ -131,6 +131,25 @@ final class ProProductResolverTest extends KernelTestBase {
   /**
    * Wrong configured SKU still resolves a published Pro variation by type.
    */
+  public function testResolverResolvesSkuWithDifferentCasing(): void {
+    $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
+    $expected = $this->createVariation(
+      variationType: 'mel_pro_subscription_variation',
+      productType: 'mel_pro_subscription',
+      sku: 'MEL-PRO-UPPER',
+      active: TRUE,
+    );
+
+    $resolver = $this->getResolver('mel-pro-upper');
+    $resolved = $resolver->findActiveVariation();
+
+    $this->assertInstanceOf(ProductVariationInterface::class, $resolved);
+    $this->assertSame((int) $expected->id(), (int) $resolved->id());
+  }
+
+  /**
+   * Wrong configured SKU still resolves a published Pro variation by type.
+   */
   public function testResolverFallsBackWhenConfiguredSkuDoesNotMatch(): void {
     $this->ensureCatalogTypes('mel_pro_subscription_variation', 'mel_pro_subscription');
     $expected = $this->createVariation(

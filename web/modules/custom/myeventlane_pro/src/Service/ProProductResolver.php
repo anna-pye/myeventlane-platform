@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_pro\Service;
 
+use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
@@ -35,76 +36,101 @@ final class ProProductResolver {
    * Finds the first active Pro subscription product variation.
    *
    * Resolution order:
-   * 1. If pro_variation_sku is set, load that SKU when it is a published
-   *    variation of bundle mel_pro_subscription_variation.
-   * 2. Otherwise, or if step 1 fails (stale/wrong SKU, wrong bundle, etc.),
-   *    load the first published variation of bundle mel_pro_subscription_variation.
+   * 1. If pro_variation_sku is set, load that SKU (case-insensitive fallback)
+   *    when it is a sellable mel_pro_subscription_variation.
+   * 2. Otherwise, or if step 1 fails, load the first sellable variation of
+   *    bundle mel_pro_subscription_variation.
    */
   public function findActiveVariation(): ?ProductVariationInterface {
     $configuredSku = $this->getConfiguredSku();
     if ($configuredSku !== '') {
-      $bySku = $this->loadVariationBySku($configuredSku);
+      $bySku = $this->loadVariationBySkuCaseInsensitive($configuredSku);
       if ($bySku instanceof ProductVariationInterface
         && $bySku->bundle() === self::VARIATION_TYPE
-        && $this->isVariationActive($bySku)) {
+        && $this->isVariationSellable($bySku)) {
         return $bySku;
       }
     }
 
-    return $this->findFirstPublishedByProVariationType();
+    return $this->findFirstSellableByProVariationType();
   }
 
   /**
-   * Loads a product variation by exact SKU (any bundle, any publish state).
+   * Loads a variation by SKU, trying exact match then common case variants.
    */
-  private function loadVariationBySku(string $sku): ?ProductVariationInterface {
-    $ids = $this->entityTypeManager->getStorage('commerce_product_variation')
-      ->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('sku', $sku)
-      ->range(0, 1)
-      ->execute();
+  private function loadVariationBySkuCaseInsensitive(string $sku): ?ProductVariationInterface {
+    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
+    $candidates = array_values(array_unique(array_filter([
+      $sku,
+      strtoupper($sku),
+      strtolower($sku),
+    ])));
 
-    if ($ids === []) {
-      return NULL;
+    foreach ($candidates as $candidate) {
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('sku', $candidate)
+        ->range(0, 1)
+        ->execute();
+      if ($ids === []) {
+        continue;
+      }
+      $variation = $storage->load(reset($ids));
+      if ($variation instanceof ProductVariationInterface) {
+        return $variation;
+      }
     }
 
-    $variation = $this->entityTypeManager
-      ->getStorage('commerce_product_variation')
-      ->load(reset($ids));
-
-    return $variation instanceof ProductVariationInterface ? $variation : NULL;
+    return NULL;
   }
 
   /**
-   * Loads the first published variation of the Pro subscription variation type.
+   * Loads the first sellable variation of the Pro subscription variation type.
    */
-  private function findFirstPublishedByProVariationType(): ?ProductVariationInterface {
+  private function findFirstSellableByProVariationType(): ?ProductVariationInterface {
+    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
     $idKey = $this->entityTypeManager->getDefinition('commerce_product_variation')->getKey('id');
-    $ids = $this->entityTypeManager->getStorage('commerce_product_variation')
-      ->getQuery()
+    $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', self::VARIATION_TYPE)
       ->condition('status', 1)
       ->sort($idKey, 'ASC')
-      ->range(0, 1)
       ->execute();
 
-    if ($ids === []) {
-      return NULL;
+    foreach ($ids as $id) {
+      $variation = $storage->load($id);
+      if ($variation instanceof ProductVariationInterface && $this->isVariationSellable($variation)) {
+        return $variation;
+      }
     }
 
-    $variation = $this->entityTypeManager
-      ->getStorage('commerce_product_variation')
-      ->load(reset($ids));
-
-    return $variation instanceof ProductVariationInterface ? $variation : NULL;
+    return NULL;
   }
 
   /**
-   * Determines whether a variation is active/published.
+   * TRUE when the variation and its parent product are published/sellable.
    */
-  private function isVariationActive(ProductVariationInterface $variation): bool {
+  private function isVariationSellable(ProductVariationInterface $variation): bool {
+    if (!$this->isVariationPublished($variation)) {
+      return FALSE;
+    }
+    $product = $variation->getProduct();
+    if (!$product instanceof ProductInterface) {
+      return FALSE;
+    }
+    if ($product instanceof EntityPublishedInterface) {
+      return $product->isPublished();
+    }
+    if ($product->hasField('status')) {
+      return (int) $product->get('status')->value === 1;
+    }
+    return TRUE;
+  }
+
+  /**
+   * Determines whether a variation is published.
+   */
+  private function isVariationPublished(ProductVariationInterface $variation): bool {
     if ($variation instanceof EntityPublishedInterface) {
       return $variation->isPublished();
     }
