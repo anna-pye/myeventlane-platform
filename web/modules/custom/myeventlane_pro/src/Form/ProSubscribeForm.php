@@ -104,10 +104,10 @@ final class ProSubscribeForm extends FormBase {
 
     $variation = $this->productResolver->findActiveVariation();
     if (!$variation) {
-      $this->logger->error(
-        'No active Pro variation found. Configured SKU: @sku; expected type fallback: @type',
+      $this->logger->warning(
+        'No active Pro variation found (configure a published commerce variation of type @type or set pro_variation_sku). Configured SKU: @sku',
         [
-          '@sku' => $this->productResolver->getConfiguredSku(),
+          '@sku' => $this->productResolver->getConfiguredSku() ?: '(empty)',
           '@type' => 'mel_pro_subscription_variation',
         ],
       );

@@ -53,17 +53,9 @@ final class VendorStripeService {
     }
 
     $secret = $this->resolveStripeSecretKey();
-    if ($secret === '') {
-      $this->logger->warning('Stripe secret key not found in payment gateway. hasRecentPayout skipped for store @id.', [
-        '@id' => $store->id(),
-      ]);
-      return NULL;
-    }
-
-    if (!class_exists(StripeClient::class)) {
-      $this->logger->warning('Stripe SDK (stripe/stripe-php) not installed. hasRecentPayout skipped for store @id.', [
-        '@id' => $store->id(),
-      ]);
+    if ($secret === '' || !class_exists(StripeClient::class)) {
+      // Expected when gateway keys are not set (e.g. local) or SDK missing;
+      // vendor theme calls this on many pages — do not log per request.
       return NULL;
     }
 
