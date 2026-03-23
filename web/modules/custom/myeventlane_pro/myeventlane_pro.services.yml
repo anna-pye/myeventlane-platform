@@ -82,6 +82,14 @@ services:
       - '@entity_type.manager'
       - '@config.factory'
 
+  myeventlane_pro.catalog_ensurer:
+    class: Drupal\myeventlane_pro\Service\ProSubscriptionCatalogEnsurer
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@myeventlane_pro.product_resolver'
+      - '@logger.channel.myeventlane_pro'
+
   myeventlane_pro.reporting:
     class: Drupal\myeventlane_pro\Service\ProReportingService
     arguments:

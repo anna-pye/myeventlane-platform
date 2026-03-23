@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_pro\Commands;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
+use Drupal\myeventlane_pro\Service\ProSubscriptionCatalogEnsurer;
 use Drupal\user\UserInterface;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,6 +21,7 @@ final class ProAdminCommands extends DrushCommands {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ProEntitlementReconciler $reconciler,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly ProSubscriptionCatalogEnsurer $catalogEnsurer,
   ) {
     parent::__construct();
   }
@@ -32,6 +34,7 @@ final class ProAdminCommands extends DrushCommands {
       $container->get('entity_type.manager'),
       $container->get('myeventlane_pro.entitlement_reconciler'),
       $container->get('config.factory'),
+      $container->get('myeventlane_pro.catalog_ensurer'),
     );
   }
 
@@ -107,6 +110,22 @@ final class ProAdminCommands extends DrushCommands {
 
     $this->reconciler->reconcileUser($user);
     $this->logger()->notice('Reconciled user @uid.', ['@uid' => (string) $uid]);
+  }
+
+  /**
+   * Create the MEL Pro subscription product if none exists (staging / new env).
+   *
+   * @command mel:pro-ensure-catalog
+   * @usage drush mel:pro-ensure-catalog
+   *   Creates the default MEL Pro Commerce product and variation when missing.
+   */
+  public function ensureProCatalog(): void {
+    if ($this->catalogEnsurer->ensureDefaultCatalog()) {
+      $this->logger()->notice('MEL Pro catalog check complete. Run drush cr if you created new entities.');
+    }
+    else {
+      $this->logger()->error('MEL Pro catalog could not be ensured. Check watchdog and Commerce config.');
+    }
   }
 
 }
