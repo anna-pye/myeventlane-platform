@@ -225,6 +225,40 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Enforce login on the vendor domain for /vendor/* (and vendor routes).
+    // This MUST run even when force_redirects is FALSE; otherwise staging and
+    // similar configs skip the block below and anonymous users hit vendor routes
+    // as UID 0 → VendorConsoleAccess forbids before a login redirect can run.
+    $is_vendor_path_check = str_starts_with($path, '/vendor/');
+    $is_vendor_route_check = $route_name !== '' ? $this->isVendorRoute($route_name) : $is_vendor_path_check;
+    if ($is_vendor_domain && ($is_vendor_route_check || $is_vendor_path_check) && $this->currentUser->isAnonymous()) {
+      if (in_array($route_name, ['user.login', 'user.register'], TRUE) || str_starts_with($path, '/user/')) {
+        return;
+      }
+
+      try {
+        $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=' . urlencode($path), 'vendor');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
+          '@m' => $e->getMessage(),
+        ]);
+        return;
+      }
+      if ($request->getUri() === $login_url) {
+        return;
+      }
+      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
+        'uid' => $this->currentUser->id(),
+        'route' => $route_name,
+        'current_domain' => $request->getHost(),
+        'target_domain' => (string) parse_url($login_url, PHP_URL_HOST),
+        'redirect' => $login_url,
+      ]);
+      $event->setResponse(new TrustedRedirectResponse($login_url, 302));
+      return;
+    }
+
     // Check if redirects are enabled for other redirects.
     $config = $this->configFactory->get('myeventlane_core.domain_settings');
     if (!$config->get('force_redirects')) {
@@ -336,39 +370,6 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
         'redirect' => $public_url,
       ]);
       $event->setResponse(new TrustedRedirectResponse($public_url, 301));
-      return;
-    }
-
-    // Enforce vendor login on vendor domain for vendor routes.
-    // Check by path first, then by route name.
-    $is_vendor_path_check = str_starts_with($path, '/vendor/');
-    if ($is_vendor_domain && ($is_vendor_route || $is_vendor_path_check) && $this->currentUser->isAnonymous()) {
-      // Allow login/register pages.
-      if (in_array($route_name, ['user.login', 'user.register'], TRUE) || str_starts_with($path, '/user/')) {
-        return;
-      }
-
-      // Redirect to vendor login with destination parameter.
-      try {
-        $login_url = $this->domainDetector->buildDomainUrl('/user/login?destination=' . urlencode($path), 'vendor');
-      }
-      catch (\Throwable $e) {
-        $this->loggerFactory->get('vendor_domain_diagnostic')->error('Vendor domain redirect failed: @m', [
-          '@m' => $e->getMessage(),
-        ]);
-        return;
-      }
-      if ($request->getUri() === $login_url) {
-        return;
-      }
-      $this->loggerFactory->get('vendor_domain_diagnostic')->debug('Vendor domain redirect', [
-        'uid' => $this->currentUser->id(),
-        'route' => $route_name,
-        'current_domain' => $request->getHost(),
-        'target_domain' => (string) parse_url($login_url, PHP_URL_HOST),
-        'redirect' => $login_url,
-      ]);
-      $event->setResponse(new TrustedRedirectResponse($login_url, 302));
       return;
     }
 
