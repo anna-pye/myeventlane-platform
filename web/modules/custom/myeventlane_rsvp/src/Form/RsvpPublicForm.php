@@ -10,9 +10,11 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_donations\Service\RsvpDonationService;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
+use Drupal\myeventlane_legal\Service\RsvpLegalAlter;
 use Drupal\myeventlane_rsvp\Service\RsvpMailer;
 use Drupal\myeventlane_rsvp\Service\RsvpSubmissionManager;
 use Drupal\node\NodeInterface;
@@ -212,16 +214,16 @@ final class RsvpPublicForm extends FormBase {
 
     // Donation: rich section (toggle + preset) or simple number field.
     $donationAmount = 0.0;
-    $donationToggle = $form_state->getValue('donation_toggle');
+    $donationToggle = (bool) $form_state->getValue(['donation_section', 'donation_toggle']);
     if ($donationToggle && $this->moduleHandler->moduleExists('myeventlane_donations')) {
       $donationConfig = $this->config('myeventlane_donations.settings');
       $minAmount = (float) ($donationConfig->get('min_amount') ?? 1.00);
-      $preset = $form_state->getValue('donation_preset');
-      $customAmount = $form_state->getValue('donation_custom');
+      $preset = $form_state->getValue(['donation_section', 'donation_amounts', 'donation_preset']);
+      $customAmount = $form_state->getValue(['donation_section', 'donation_amounts', 'donation_custom']);
 
       if ($preset === 'custom') {
         if (empty($customAmount) || (float) $customAmount < $minAmount) {
-          $form_state->setErrorByName('donation_custom', $this->t('Please enter a donation amount of at least $@min.', [
+          $form_state->setErrorByName('donation_section][donation_amounts][donation_custom', $this->t('Please enter a donation amount of at least $@min.', [
             '@min' => number_format($minAmount, 2),
           ]));
         }
@@ -233,7 +235,7 @@ final class RsvpPublicForm extends FormBase {
         $donationAmount = (float) $preset;
       }
       else {
-        $form_state->setErrorByName('donation_preset', $this->t('Please select a donation amount.'));
+        $form_state->setErrorByName('donation_section][donation_amounts][donation_preset', $this->t('Please select a donation amount.'));
       }
       $donationAmount = number_format($donationAmount, 2, '.', '');
     }
@@ -294,6 +296,9 @@ final class RsvpPublicForm extends FormBase {
         ? (int) $event->get('field_capacity')->value
         : NULL;
 
+      $legalConsent = $form_state->get(RsvpLegalAlter::RSVP_CONSENT_FORM_STATE_KEY);
+      $legalConsent = is_array($legalConsent) ? $legalConsent : NULL;
+
       // IMPORTANT: submission manager now creates pending_payment when donation > 0.
       $submission = $this->submissionManager->submitOrUpdate($event, [
         'name' => $values['name'] ?? '',
@@ -302,7 +307,7 @@ final class RsvpPublicForm extends FormBase {
         'guests' => (int) ($values['guests'] ?? 1),
         // Store as canonical decimal string. Never use float for currency.
         'donation' => $donationAmount,
-      ], $capacity);
+      ], $capacity, $legalConsent);
 
       $submissionId = (int) $submission->id();
     }
@@ -496,7 +501,7 @@ final class RsvpPublicForm extends FormBase {
       $form['donation_section'] = [
         '#type' => 'details',
         '#title' => $this->t('Support this event (optional)'),
-        '#open' => FALSE,
+        '#open' => TRUE,
         '#attributes' => ['class' => ['mel-rsvp-donation-section']],
       ];
       $form['donation_section']['donation_intro'] = [
@@ -519,7 +524,7 @@ final class RsvpPublicForm extends FormBase {
         '#attributes' => ['class' => ['mel-donation-amounts']],
         '#states' => [
           'visible' => [
-            ':input[name="donation_toggle"]' => ['checked' => TRUE],
+            ':input[name="donation_section[donation_toggle]"]' => ['checked' => TRUE],
           ],
         ],
       ];
@@ -551,10 +556,10 @@ final class RsvpPublicForm extends FormBase {
         '#attributes' => ['class' => ['mel-donation-custom-input']],
         '#states' => [
           'visible' => [
-            ':input[name="donation_preset"]' => ['value' => 'custom'],
+            ':input[name="donation_section[donation_amounts][donation_preset]"]' => ['value' => 'custom'],
           ],
           'required' => [
-            ':input[name="donation_preset"]' => ['value' => 'custom'],
+            ':input[name="donation_section[donation_amounts][donation_preset]"]' => ['value' => 'custom'],
           ],
         ],
       ];
@@ -585,42 +590,7 @@ final class RsvpPublicForm extends FormBase {
    */
   protected function isVendorStripeConnected(NodeInterface $event): bool {
     try {
-      $vendorUid = (int) $event->getOwnerId();
-      if ($vendorUid === 0) {
-        return FALSE;
-      }
-
-      $store = NULL;
-
-      if ($this->moduleHandler->moduleExists('myeventlane_vendor')) {
-        $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
-        $vendors = $vendorStorage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('field_owner', $vendorUid)
-          ->range(0, 1)
-          ->execute();
-
-        if (!empty($vendors)) {
-          $vendor = $vendorStorage->load(reset($vendors));
-          if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-            $store = $vendor->get('field_vendor_store')->entity;
-          }
-        }
-      }
-
-      if (!$store) {
-        $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
-        $storeIds = $storeStorage->getQuery()
-          ->accessCheck(FALSE)
-          ->condition('uid', $vendorUid)
-          ->range(0, 1)
-          ->execute();
-
-        if (!empty($storeIds)) {
-          $store = $storeStorage->load(reset($storeIds));
-        }
-      }
-
+      $store = $this->resolveOrganiserCommerceStore($event);
       if (!$store) {
         return FALSE;
       }
@@ -637,6 +607,59 @@ final class RsvpPublicForm extends FormBase {
     catch (\Throwable) {
       return FALSE;
     }
+  }
+
+  /**
+   * Commerce store for the organiser (field_event_vendor if set, else author).
+   */
+  private function resolveOrganiserCommerceStore(NodeInterface $event): ?StoreInterface {
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $candidate = $vendor->get('field_vendor_store')->entity;
+        if ($candidate instanceof StoreInterface) {
+          return $candidate;
+        }
+      }
+    }
+
+    $vendorUid = (int) $event->getOwnerId();
+    if ($vendorUid === 0) {
+      return NULL;
+    }
+
+    $store = NULL;
+
+    if ($this->moduleHandler->moduleExists('myeventlane_vendor')) {
+      $vendorStorage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $vendors = $vendorStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('field_owner', $vendorUid)
+        ->range(0, 1)
+        ->execute();
+
+      if (!empty($vendors)) {
+        $vendorEntity = $vendorStorage->load(reset($vendors));
+        if ($vendorEntity && $vendorEntity->hasField('field_vendor_store') && !$vendorEntity->get('field_vendor_store')->isEmpty()) {
+          $store = $vendorEntity->get('field_vendor_store')->entity;
+        }
+      }
+    }
+
+    if (!$store) {
+      $storeStorage = $this->entityTypeManager->getStorage('commerce_store');
+      $storeIds = $storeStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $vendorUid)
+        ->range(0, 1)
+        ->execute();
+
+      if (!empty($storeIds)) {
+        $store = $storeStorage->load(reset($storeIds));
+      }
+    }
+
+    return $store instanceof StoreInterface ? $store : NULL;
   }
 
 }

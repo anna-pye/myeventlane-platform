@@ -16,10 +16,19 @@
 <div class="mel-donation-report">
   <div class="mel-donation-report__header">
     <h1>{{ 'Donation Reports'|t }}</h1>
-    <div class="mel-donation-report__actions">
-      <a href="{{ unattributed_url }}" class="mel-btn mel-btn-secondary">{{ 'Unattributed RSVP donations'|t }}</a>
-      <a href="{{ export_url }}" class="mel-btn mel-btn-primary">{{ 'Export CSV'|t }}</a>
-    </div>
+    {% if unattributed_url or export_url or mel_billing_url %}
+      <div class="mel-donation-report__actions">
+        {% if mel_billing_url %}
+          <a href="{{ mel_billing_url }}" class="mel-btn mel-btn-secondary">{{ 'MEL vendor % billing'|t }}</a>
+        {% endif %}
+        {% if unattributed_url %}
+          <a href="{{ unattributed_url }}" class="mel-btn mel-btn-secondary">{{ 'Unattributed RSVP donations'|t }}</a>
+        {% endif %}
+        {% if export_url %}
+          <a href="{{ export_url }}" class="mel-btn mel-btn-primary">{{ 'Export CSV'|t }}</a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   <div class="mel-donation-report__summary">
@@ -49,6 +58,39 @@
           <span class="mel-stat__value">{{ count_rsvp }}</span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="mel-donation-report__vendor-pct mel-mt-3">
+    <div class="mel-card">
+      <h2>{{ 'Vendor percentage pledges (ticket revenue, accrued)'|t }}</h2>
+      <p class="mel-text-muted">{{ 'Operational summary: optional organiser pledges toward MyEventLane from paid ticket sales. Amounts accrue as orders are paid; ticket refunds reduce accrued totals. This is separate from attendee donations and is not collected automatically in this phase.'|t }}</p>
+      {% if vendor_pct_pledge_rows is not empty %}
+        <table class="mel-table">
+          <thead>
+            <tr>
+              <th>{{ 'Event ID'|t }}</th>
+              <th>{{ 'Event'|t }}</th>
+              <th>{{ 'Pledge rate'|t }}</th>
+              <th>{{ 'Accrued amount'|t }}</th>
+              <th>{{ 'Orders with rows'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in vendor_pct_pledge_rows %}
+              <tr>
+                <td>{{ row.event_id }}</td>
+                <td>{{ row.title }}</td>
+                <td>{{ row.pledge_rate }}</td>
+                <td>{{ row.accrued }}</td>
+                <td>{{ row.orders }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="mel-table-empty">{{ 'No percentage pledge events found, or no accrual data yet.'|t }}</div>
+      {% endif %}
     </div>
   </div>
 

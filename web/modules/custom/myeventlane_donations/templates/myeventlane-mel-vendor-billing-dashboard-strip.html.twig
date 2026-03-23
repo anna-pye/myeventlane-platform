@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Compact strip on vendor dashboard for MEL % billing.
+ */
+#}
+{% if billing_url %}
+  <section class="mel-dashboard-section mel-mel-billing-dashboard-strip" aria-labelledby="mel-billing-strip-title">
+    <h2 id="mel-billing-strip-title" class="visually-hidden">{{ 'MEL contributions'|t }}</h2>
+    <div class="mel-panel-card">
+      <h3 class="mel-action-card__title">{{ 'MEL contributions'|t }}</h3>
+      <p class="mel-text--muted">
+        {{ 'Track percentage-based MyEventLane contributions, invoices, and payments.'|t }}
+      </p>
+      <a class="mel-btn mel-btn--secondary" href="{{ billing_url }}">{{ 'View billing'|t }}</a>
+    </div>
+  </section>
+{% endif %}

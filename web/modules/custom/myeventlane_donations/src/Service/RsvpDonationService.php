@@ -138,9 +138,32 @@ final class RsvpDonationService {
   }
 
   private function getVendorStore(NodeInterface $event): ?StoreInterface {
+    $store = $this->resolveOrganiserCommerceStore($event);
+    if (!$store) {
+      $this->logger()->warning('No Commerce store resolved for event @event_id (check field_event_vendor and organiser Stripe).', ['@event_id' => $event->id()]);
+    }
+    return $store;
+  }
+
+  /**
+   * Resolves the organiser's store: field_event_vendor first, then node author.
+   *
+   * Events are often authored by staff while field_event_vendor points at the
+   * real organiser; attendee donations must use that vendor's Connect account.
+   */
+  private function resolveOrganiserCommerceStore(NodeInterface $event): ?StoreInterface {
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $candidate = $vendor->get('field_vendor_store')->entity;
+        if ($candidate instanceof StoreInterface) {
+          return $candidate;
+        }
+      }
+    }
+
     $vendorUid = (int) $event->getOwnerId();
     if ($vendorUid === 0) {
-      $this->logger()->warning('Event @event_id has no owner (uid 0)', ['@event_id' => $event->id()]);
       return NULL;
     }
 
@@ -155,9 +178,9 @@ final class RsvpDonationService {
         ->execute();
 
       if (!empty($vendors)) {
-        $vendor = $vendorStorage->load(reset($vendors));
-        if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-          $store = $vendor->get('field_vendor_store')->entity;
+        $vendorEntity = $vendorStorage->load(reset($vendors));
+        if ($vendorEntity && $vendorEntity->hasField('field_vendor_store') && !$vendorEntity->get('field_vendor_store')->isEmpty()) {
+          $store = $vendorEntity->get('field_vendor_store')->entity;
         }
       }
     }

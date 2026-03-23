@@ -45,3 +45,44 @@
   padding: 3rem;
   color: #6b7280;
 }
+
+/* Donation reports pointer on Platform Reports overview */
+.mel-reporting-admin-overview__callout {
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #c4b5fd;
+  background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
+}
+
+.mel-reporting-admin-overview__callout-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.mel-reporting-admin-overview__callout-text {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 65ch;
+}
+
+.mel-reporting-admin-overview__callout-link {
+  margin: 0 0 0.75rem;
+}
+
+.mel-reporting-admin-overview__callout-path {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.mel-reporting-admin-overview__callout-path code {
+  font-size: 0.8125rem;
+  padding: 0.15rem 0.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+}

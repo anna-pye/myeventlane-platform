@@ -3,5 +3,6 @@ services:
     class: Drupal\myeventlane_donations\Commands\DonationCommands
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_donations.vendor_contribution_invoice'
     tags:
       - { name: drush.command }

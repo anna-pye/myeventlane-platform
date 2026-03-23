@@ -94,9 +94,9 @@
     }
   }
 
-  function updateWizardFrame(scope, eventData, selectedCard) {
-    const frame = scope.querySelector('[data-mel-wizard-frame]');
-    if (!frame) {
+  function updateWizardOpenLink(scope, eventData, selectedCard) {
+    const link = scope.querySelector('[data-mel-wizard-open]');
+    if (!link) {
       return;
     }
 
@@ -108,8 +108,8 @@
       wizardUrl = String(selectedCard.dataset.wizardUrl);
     }
 
-    if (wizardUrl !== '' && frame.getAttribute('src') !== wizardUrl) {
-      frame.setAttribute('src', wizardUrl);
+    if (wizardUrl !== '') {
+      link.setAttribute('href', wizardUrl);
     }
   }
 
@@ -755,7 +755,7 @@
     updateChecklist(scope, eventData.checklist || {});
     updateActions(scope, eventData);
     updateCardFromEvent(selectedCard, eventData);
-    updateWizardFrame(scope, eventData, selectedCard);
+    updateWizardOpenLink(scope, eventData, selectedCard);
     const ticketsInput = scope.querySelector('[data-mel-tickets-config]');
     const attendeesInput = scope.querySelector('[data-mel-attendees-config]');
     const promotionInput = scope.querySelector('[data-mel-promotion-config]');
@@ -1025,7 +1025,7 @@
 
         const initialId = scope.dataset.melSelectedEventId || '';
         const initialCard = Array.from(cards).find((card) => (card.dataset.eventId || '') === initialId);
-        updateWizardFrame(scope, null, initialCard || cards[0] || null);
+        updateWizardOpenLink(scope, null, initialCard || cards[0] || null);
         applyTabEndpoints(scope, collectCardEndpoints(initialCard || cards[0] || null));
         if (initialCard) {
           fetchEventData(scope, initialCard);

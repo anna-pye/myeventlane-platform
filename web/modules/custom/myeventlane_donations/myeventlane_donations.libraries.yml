@@ -7,6 +7,7 @@ donation-form:
   dependencies:
     - core/drupal
     - core/jquery
+    - core/once
 
 donation-platform:
   js:
@@ -28,6 +29,13 @@ donation-report:
   css:
     theme:
       css/donation-report.css: {}
+  dependencies:
+    - core/drupal
+
+mel-vendor-billing:
+  css:
+    theme:
+      css/mel-vendor-billing.css: {}
   dependencies:
     - core/drupal
 

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_donations\Commands;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\myeventlane_donations\Service\VendorContributionInvoiceService;
 use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,12 +18,10 @@ final class DonationCommands extends DrushCommands {
 
   /**
    * Constructs the commands.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly VendorContributionInvoiceService $vendorContributionInvoiceService,
   ) {
     parent::__construct();
   }
@@ -32,7 +31,8 @@ final class DonationCommands extends DrushCommands {
    */
   public static function create(ContainerInterface $container): self {
     return new self(
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('myeventlane_donations.vendor_contribution_invoice'),
     );
   }
 
@@ -134,6 +134,57 @@ final class DonationCommands extends DrushCommands {
       ->execute();
     $this->io()->writeln("\nTotal rsvp_donation items: " . $total);
 
+    return DrushCommands::EXIT_SUCCESS;
+  }
+
+  /**
+   * Generate MEL vendor contribution invoices from unbilled accrual rows.
+   */
+  #[CLI\Command(name: 'mel:vendor-mel-invoices-generate', aliases: ['mel-mel-inv-gen'])]
+  #[CLI\Option(name: 'vendor', description: 'Optional vendor entity ID filter')]
+  #[CLI\Option(name: 'since', description: 'Unix timestamp start (default: 30 days ago)')]
+  #[CLI\Option(name: 'until', description: 'Unix timestamp end (default: now)')]
+  #[CLI\Usage(name: 'drush mel:vendor-mel-invoices-generate', description: 'Group unbilled rows into invoices')]
+  public function generateMelVendorInvoices(array $options = ['vendor' => NULL, 'since' => NULL, 'until' => NULL]): int {
+    $this->io()->title('Generate MEL vendor contribution invoices');
+
+    $since = isset($options['since']) && is_numeric($options['since']) ? (int) $options['since'] : strtotime('-30 days midnight');
+    $until = isset($options['until']) && is_numeric($options['until']) ? (int) $options['until'] : time();
+    $vendor = NULL;
+    if (isset($options['vendor']) && $options['vendor'] !== NULL && $options['vendor'] !== '' && is_numeric($options['vendor'])) {
+      $v = (int) $options['vendor'];
+      $vendor = $v > 0 ? $v : NULL;
+    }
+
+    if ($until < $since) {
+      $this->io()->error('until must be >= since.');
+      return DrushCommands::EXIT_FAILURE;
+    }
+
+    try {
+      $created = $this->vendorContributionInvoiceService->generateInvoicesForWindow($vendor, $since, $until);
+    }
+    catch (\Throwable $e) {
+      $this->io()->error($e->getMessage());
+      return DrushCommands::EXIT_FAILURE;
+    }
+
+    if ($created === []) {
+      $this->io()->warning('No invoices created.');
+      return DrushCommands::EXIT_SUCCESS;
+    }
+
+    foreach ($created as $row) {
+      $this->io()->writeln(sprintf(
+        'Invoice #%d vendor=%d total=%s %s rows=%d',
+        (int) ($row['invoice_id'] ?? 0),
+        (int) ($row['vendor_id'] ?? 0),
+        number_format(((int) ($row['total_amount_cents'] ?? 0)) / 100, 2),
+        strtoupper((string) ($row['currency_code'] ?? '')),
+        count($row['contribution_row_ids'] ?? [])
+      ));
+    }
+    $this->io()->success(sprintf('Created %d invoice(s).', count($created)));
     return DrushCommands::EXIT_SUCCESS;
   }
 

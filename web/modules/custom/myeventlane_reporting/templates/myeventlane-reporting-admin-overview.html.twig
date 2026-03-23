@@ -5,10 +5,24 @@
  *
  * Variables:
  * - kpis: Array of platform KPI cards
+ * - donation_reports_nav: Optional { url, title, description } for donation analytics
  */
 #}
 <div class="mel-reporting-admin-overview">
   <h1>{{ 'Platform Reports'|t }}</h1>
+
+  {% if donation_reports_nav %}
+    <div class="mel-reporting-admin-overview__callout" role="region" aria-label="{{ 'Donation reporting'|t }}">
+      <h2 class="mel-reporting-admin-overview__callout-title">{{ donation_reports_nav.title }}</h2>
+      <p class="mel-reporting-admin-overview__callout-text">{{ donation_reports_nav.description }}</p>
+      <p class="mel-reporting-admin-overview__callout-link">
+        <a href="{{ donation_reports_nav.url }}" class="button button--primary">{{ 'Open donation reports'|t }}</a>
+      </p>
+      <p class="mel-reporting-admin-overview__callout-path">
+        {{ 'Path:'|t }} <code>/admin/reports/myeventlane/donations</code>
+      </p>
+    </div>
+  {% endif %}
 
   <div class="mel-grid mel-grid--4">
     {% for kpi in kpis %}

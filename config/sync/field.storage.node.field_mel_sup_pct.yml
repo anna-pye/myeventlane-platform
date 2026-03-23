@@ -1,0 +1,20 @@
+uuid: e4c0a2c3-9d5f-6e3a-b14c-2f3a4b5c6d7e
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_mel_sup_pct
+field_name: field_mel_sup_pct
+entity_type: node
+type: decimal
+settings:
+  precision: 5
+  scale: 2
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

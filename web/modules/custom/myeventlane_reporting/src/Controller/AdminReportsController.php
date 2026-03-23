@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_reporting\Controller;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
@@ -26,13 +28,11 @@ final class AdminReportsController extends ControllerBase {
    */
   private readonly AttendeeRepositoryResolver $repositoryResolver;
 
-  /**
-   * Constructs the controller.
-   */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     EventMetricsServiceInterface $metricsService,
     AttendeeRepositoryResolver $repositoryResolver,
+    private readonly AccessManagerInterface $accessManager,
   ) {
     // Set parent's protected property.
     $this->entityTypeManager = $entityTypeManager;
@@ -48,6 +48,7 @@ final class AdminReportsController extends ControllerBase {
       $container->get('entity_type.manager'),
       $container->get('myeventlane_metrics.service'),
       $container->get('myeventlane_attendee.repository_resolver'),
+      $container->get('access_manager'),
     );
   }
 
@@ -58,9 +59,27 @@ final class AdminReportsController extends ControllerBase {
     // Get platform-wide KPIs.
     $kpis = $this->buildPlatformKpis();
 
+    $donation_reports_nav = NULL;
+    if ($this->moduleHandler()->moduleExists('myeventlane_donations')) {
+      $access = $this->accessManager->checkNamedRoute(
+        'myeventlane_donations.admin_report',
+        [],
+        $this->currentUser(),
+        TRUE
+      );
+      if ($access->isAllowed()) {
+        $donation_reports_nav = [
+          'url' => Url::fromRoute('myeventlane_donations.admin_report')->toString(),
+          'title' => $this->t('Donation reports'),
+          'description' => $this->t('Platform contributions (vendors → MyEventLane) and RSVP donations with monthly breakdowns live on a separate page—not in the KPI grid above.'),
+        ];
+      }
+    }
+
     return [
       '#theme' => 'myeventlane_reporting_admin_overview',
       '#kpis' => $kpis,
+      '#donation_reports_nav' => $donation_reports_nav,
       '#attached' => [
         'library' => [
           'myeventlane_reporting/reporting',
@@ -68,6 +87,7 @@ final class AdminReportsController extends ControllerBase {
       ],
       '#cache' => [
         'tags' => ['node_list', 'commerce_order_list'],
+        'contexts' => ['user.permissions'],
         'max-age' => 300,
       ],
     ];

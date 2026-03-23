@@ -11,6 +11,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -55,6 +56,8 @@ final class RefundProcessor {
    *   The time service.
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock backend.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   *   The module handler.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -71,6 +74,7 @@ final class RefundProcessor {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly LockBackendInterface $lock,
+    private readonly ModuleHandlerInterface $moduleHandler,
   ) {}
 
   /**
@@ -646,6 +650,16 @@ final class RefundProcessor {
         '@requested_cents' => $requestedCents,
         '@refunded_cents' => $refundedCents,
         '@stripe_refund_ids' => implode(',', $stripeRefundIds),
+      ]);
+
+      $this->moduleHandler->invokeAll('myeventlane_refund_completed', [
+        $order,
+        $event,
+        $log + [
+          'status' => 'completed',
+          'completed' => $this->time->getRequestTime(),
+          'stripe_refund_id' => $primaryStripeRefundId,
+        ],
       ]);
 
       $log['stripe_refund_id'] = $primaryStripeRefundId;

@@ -1,0 +1,30 @@
+uuid: f5d1b3d4-ae60-7f4b-c25d-3a4b5c6d7e8f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_mel_sup_chk
+field_name: field_mel_sup_chk
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: none
+      label: None
+    -
+      value: pending
+      label: Pending
+    -
+      value: completed
+      label: Completed
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

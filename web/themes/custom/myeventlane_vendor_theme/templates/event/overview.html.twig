@@ -2,6 +2,44 @@
   Event overview pane.
   Variables: event, overview (sales/rsvps/audience/boost/tickets), charts, boost_help.
 #}
+{% if overview.mel_platform_support|default(null) %}
+  <div class="mel-card mel-card--subtle">
+    <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'MyEventLane support'|t }}</div>
+    </div>
+    <div class="mel-card__body">
+      {% set m = overview.mel_platform_support %}
+      {% if m.mode == 'none' %}
+        {# This is vendor → MyEventLane (field_mel_sup_*), not attendee RSVP donations. #}
+        <p>{{ 'You have not added an optional MyEventLane support pledge for this event (one-time or percentage of ticket revenue). That is the normal default.'|t }}</p>
+        <p class="mel-text-muted mel-mt-2">{{ 'Set this in the event editor under the Support MyEventLane step when you configure tickets. This card is not attendee donations — those are optional on the public RSVP page for guests.'|t }}</p>
+        {% if event %}
+          <p class="mel-mt-3">
+            <a class="mel-pill" href="{{ path('myeventlane_event.wizard.edit', {'node': event.id}) }}">{{ 'Open event wizard'|t }}</a>
+          </p>
+        {% endif %}
+      {% elseif m.mode == 'onetime' %}
+        <p>{{ 'One-time contribution: @amt AUD'|t({'@amt': m.amount|default('—')}) }}</p>
+        <p class="mel-text-muted">{{ 'Checkout status: @s'|t({'@s': m.checkout|default('none')}) }}</p>
+      {% elseif m.mode == 'percent' %}
+        <p>{{ 'Pledge a percentage of ticket revenue'|t }}</p>
+        <p>{{ 'Contribution rate:'|t }} {{ m.percent|default('—') }}%</p>
+        {% if overview.mel_pct_contribution|default(null) %}
+          {% set c = overview.mel_pct_contribution %}
+          <p>{{ 'Accrued so far:'|t }} {{ c.accrued_formatted|default('—') }}</p>
+          <p class="mel-text-muted">{{ 'Based on eligible paid ticket sales'|t }}</p>
+          <p class="mel-text-muted">{{ 'This is optional. Help support MyEventLane as your event sells. You can review this in your event summary.'|t }}</p>
+          {% if c.detail|default('') %}
+            <p class="mel-text-muted mel-mt-2">{{ c.detail }}</p>
+          {% endif %}
+        {% else %}
+          <p class="mel-text-muted">{{ 'Your contribution is based on paid ticket sales. This is optional.'|t }}</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
 <div class="mel-grid mel-grid--2">
   <div class="mel-card">
     <div class="mel-card__header">

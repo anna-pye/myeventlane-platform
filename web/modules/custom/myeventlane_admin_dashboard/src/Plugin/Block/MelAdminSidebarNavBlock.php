@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Plugin\Block;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -15,6 +16,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Admin sidebar contextual navigation for Platform Control Centre.
  *
+ * Uses the route access system so links match actual page access (including PCC
+ * + reporting alignment from PlatformControlReportingAccess).
+ *
  * @Block(
  *   id = "mel_admin_sidebar_nav",
  *   admin_label = @Translation("MEL Admin Sidebar Navigation"),
@@ -24,18 +28,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
-   * Nav items: route_name => [label, permission].
+   * Nav items: route_name => label (untranslated key for t()).
+   *
+   * @var array<string, string>
    */
   private const NAV_ITEMS = [
-    'myeventlane_admin_dashboard.platform_control' => ['Overview', 'access myeventlane platform control centre'],
-    'myeventlane_admin_dashboard.vendors' => ['Vendors', 'view myeventlane vendors'],
-    'myeventlane_reporting.admin.events' => ['Events', 'view admin reports'],
-    'myeventlane_reporting.admin.finance' => ['Finance', 'view admin reports'],
-    'myeventlane_admin_dashboard.payouts' => ['Payouts', 'view myeventlane payouts'],
-    'myeventlane_admin_dashboard.reports' => ['Reports', 'view myeventlane reports'],
-    'entity.escalation.collection' => ['Escalations', 'view myeventlane escalations'],
-    'myeventlane_support_console.dashboard' => ['Support', 'administer escalations'],
-    'myeventlane_admin_dashboard.platform_studio' => ['Platform', 'access myeventlane platform control centre'],
+    'myeventlane_admin_dashboard.platform_control' => 'Overview',
+    'myeventlane_admin_dashboard.vendors' => 'Vendors',
+    'myeventlane_reporting.admin.events' => 'Events',
+    'myeventlane_reporting.admin.finance' => 'Finance',
+    'myeventlane_admin_dashboard.payouts' => 'Payouts',
+    'myeventlane_admin_dashboard.reports' => 'Reports',
+    'entity.escalation.collection' => 'Escalations',
+    'myeventlane_support_console.dashboard' => 'Support',
+    'myeventlane_admin_dashboard.platform_studio' => 'Platform',
   ];
 
   /**
@@ -47,6 +53,7 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     $plugin_definition,
     protected RouteMatchInterface $routeMatch,
     protected AccountInterface $currentUser,
+    protected AccessManagerInterface $accessManager,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -61,6 +68,7 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
       $plugin_definition,
       $container->get('current_route_match'),
       $container->get('current_user'),
+      $container->get('access_manager'),
     );
   }
 
@@ -71,8 +79,9 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     $currentRoute = (string) $this->routeMatch->getRouteName();
     $links = [];
 
-    foreach (self::NAV_ITEMS as $route => [$label, $permission]) {
-      if (!$this->currentUser->hasPermission($permission)) {
+    foreach (self::NAV_ITEMS as $route => $label) {
+      $access = $this->accessManager->checkNamedRoute($route, [], $this->currentUser, TRUE);
+      if (!$access->isAllowed()) {
         continue;
       }
       try {

@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Form;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
@@ -34,6 +35,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     LoggerInterface $logger,
     TicketTypeManager $ticket_type_manager,
     EventTicketsBuilder $ticket_builder,
+    private readonly MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
@@ -53,6 +55,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       $container->get('logger.factory')->get('myeventlane_event'),
       $container->get('myeventlane_event.ticket_type_manager'),
       $container->get('myeventlane_vendor.ticket_builder'),
+      $container->get('myeventlane_event.mel_platform_support_wizard_form'),
     );
   }
 
@@ -86,6 +89,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->applyTicketTypeStates($form);
     $this->addCapacityWarning($form, $event);
+    $this->melPlatformSupportWizardForm->buildSection($form, $form_state, $event);
 
     $form['#title'] = $this->t('Create event: Tickets');
     $form['#event'] = $event;
@@ -171,6 +175,8 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
           );
         }
       }
+
+      $this->melPlatformSupportWizardForm->validate($form_state, $event, (string) $value);
     }
   }
 
@@ -190,6 +196,8 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $field_names = array_diff(array_keys($form_display->getComponents()), ['field_ticket_types']);
 
     $this->copyFormValuesToEvent($event, $form, $form_state, 'wizard_step_4');
+
+    $this->melPlatformSupportWizardForm->apply($event, $form_state);
 
     $event->set('field_ticket_types', $saved_ticket_types);
     $event->save();

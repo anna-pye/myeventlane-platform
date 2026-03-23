@@ -83,7 +83,9 @@ final class LegalConsentPane extends CheckoutPaneBase {
     $pane_form['consent_checkbox'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('I agree to the Terms of Service, Privacy Policy, and Refund Policy'),
-      '#required' => TRUE,
+      // Enforce consent in validatePaneForm(), not core #required (same pattern
+      // as RSVP: core "field is required" runs before pane validators).
+      '#required' => FALSE,
       '#default_value' => $consent_given,
       '#attributes' => [
         'class' => ['mel-consent-checkbox'],

@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Admin MEL vendor % billing overview.
+ */
+#}
+<div class="mel-mel-billing">
+  <p><a href="{{ donation_report_url }}">{{ '← Donation reports'|t }}</a></p>
+
+  <h2>{{ 'Accrued vs collected'|t }}</h2>
+  <ul>
+    <li>{{ 'Total unbilled accrual (minor units, all currencies combined)'|t }}: <strong>{{ overview.total_accrued_unbilled_cents|default(0) }}</strong> ({{ overview.total_accrued_cents_aud_display|default('—') }} display)</li>
+    <li>{{ 'Total collected (sum of paid_amount_cents on invoices)'|t }}: <strong>{{ overview.total_collected_cents|default(0) }}</strong> ({{ overview.total_collected_cents_aud_display|default('—') }} display)</li>
+  </ul>
+  <p class="messages messages--warning">{{ 'Display amounts use a simple major-unit format; mixed-currency sites should interpret totals carefully.'|t }}</p>
+
+  <h2>{{ 'Invoice counts'|t }}</h2>
+  <ul>
+    <li>{{ 'Issued (awaiting payment)'|t }}: {{ overview.invoices_issued|default(0) }}</li>
+    <li>{{ 'Paid in full'|t }}: {{ overview.invoices_paid|default(0) }}</li>
+    <li>{{ 'Partially paid'|t }}: {{ overview.invoices_partial|default(0) }}</li>
+    <li>{{ 'Overdue (due date set and past, balance remaining)'|t }}: {{ overview.invoices_overdue|default(0) }}</li>
+  </ul>
+
+  <h2>{{ 'Generate invoices'|t }}</h2>
+  {{ generate_form }}
+</div>

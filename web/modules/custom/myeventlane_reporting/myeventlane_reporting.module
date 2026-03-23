@@ -51,6 +51,7 @@ function myeventlane_reporting_theme($existing, $type, $theme, $path) {
     'myeventlane_reporting_admin_overview' => [
       'variables' => [
         'kpis' => [],
+        'donation_reports_nav' => NULL,
       ],
       'template' => 'myeventlane-reporting-admin-overview',
     ],

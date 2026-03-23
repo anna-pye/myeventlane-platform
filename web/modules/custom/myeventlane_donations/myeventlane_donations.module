@@ -5,10 +5,13 @@
  * Module file for MyEventLane Donations.
  */
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_theme().
@@ -31,6 +34,8 @@ function myeventlane_donations_theme(array $existing, string $type, string $them
         'count_rsvp' => 0,
         'export_url' => '',
         'unattributed_url' => '',
+        'mel_billing_url' => '',
+        'vendor_pct_pledge_rows' => [],
       ],
       'template' => 'myeventlane-donation-report',
     ],
@@ -42,6 +47,82 @@ function myeventlane_donations_theme(array $existing, string $type, string $them
         'average_donation' => 0,
       ],
       'template' => 'myeventlane-donation-vendor-list',
+    ],
+    'myeventlane_mel_vendor_billing' => [
+      'variables' => [
+        'summary' => [],
+        'invoices' => [],
+      ],
+      'template' => 'myeventlane-mel-vendor-billing',
+    ],
+    'myeventlane_mel_vendor_invoice' => [
+      'variables' => [
+        'invoice' => [],
+        'lines' => [],
+        'pay_url' => NULL,
+      ],
+      'template' => 'myeventlane-mel-vendor-invoice',
+    ],
+    'myeventlane_mel_billing_admin' => [
+      'variables' => [
+        'overview' => [],
+        'generate_form' => NULL,
+        'donation_report_url' => '',
+      ],
+      'template' => 'myeventlane-mel-billing-admin',
+    ],
+    'myeventlane_mel_vendor_billing_dashboard_strip' => [
+      'variables' => [
+        'summary' => [],
+        'billing_url' => '',
+      ],
+      'template' => 'myeventlane-mel-vendor-billing-dashboard-strip',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ */
+function myeventlane_donations_preprocess_myeventlane_vendor_dashboard(&$variables): void {
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_donations')) {
+    return;
+  }
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route !== 'myeventlane_vendor.console.dashboard') {
+    return;
+  }
+  $uid = (int) \Drupal::currentUser()->id();
+  if ($uid <= 0) {
+    return;
+  }
+  try {
+    /** @var \Drupal\myeventlane_donations\Service\VendorContributionInvoiceService $svc */
+    $svc = \Drupal::service('myeventlane_donations.vendor_contribution_invoice');
+  }
+  catch (\Throwable) {
+    return;
+  }
+  $vendorId = $svc->resolveVendorIdForUser($uid);
+  if ($vendorId === NULL) {
+    return;
+  }
+  $summary = $svc->getVendorDashboardSummary($vendorId);
+  try {
+    $billing_url = Url::fromRoute('myeventlane_donations.vendor_mel_billing')->toString();
+  }
+  catch (\Throwable) {
+    $billing_url = '';
+  }
+  if ($billing_url === '') {
+    return;
+  }
+  $variables['mel_contribution_billing_strip'] = [
+    '#theme' => 'myeventlane_mel_vendor_billing_dashboard_strip',
+    '#summary' => $summary,
+    '#billing_url' => $billing_url,
+    '#attached' => [
+      'library' => ['myeventlane_donations/mel-vendor-billing'],
     ],
   ];
 }
@@ -91,6 +172,23 @@ function myeventlane_donations_entity_access(EntityInterface $entity, $operation
 
   // For non-draft orders, let Commerce handle access normally.
   return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_myeventlane_refund_completed().
+ *
+ * Re-syncs MEL percentage pledge accruals after ticket refunds complete.
+ */
+function myeventlane_donations_myeventlane_refund_completed(OrderInterface $order, NodeInterface $event, array $log): void {
+  if (($log['status'] ?? '') !== 'completed') {
+    return;
+  }
+  $orderId = (int) ($log['order_id'] ?? 0);
+  $eventId = (int) ($log['event_id'] ?? 0);
+  if ($orderId < 1 || $eventId < 1) {
+    return;
+  }
+  \Drupal::service('myeventlane_donations.vendor_mel_pct_contribution')->recalculateForOrderAndEvent($orderId, $eventId);
 }
 
 /**

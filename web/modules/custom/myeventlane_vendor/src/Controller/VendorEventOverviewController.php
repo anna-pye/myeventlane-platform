@@ -12,6 +12,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
+use Drupal\myeventlane_donations\Service\VendorMelPctContributionService;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 
@@ -32,6 +33,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     private readonly EventCtaResolver $ctaResolver,
     private readonly BoostHelpContent $boostHelpContent,
     private readonly ?ProActiveResolver $proActiveResolver = NULL,
+    private readonly ?VendorMelPctContributionService $vendorMelPctContribution = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -43,6 +45,23 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
     $tabs = $this->eventTabsService->getTabs($event, 'overview');
     $overview = $this->metricsAggregator->getEventOverview($event);
+    if ($event->hasField('field_mel_sup_mode')) {
+      $mode = (string) ($event->get('field_mel_sup_mode')->value ?? 'none');
+      $checkout = (string) ($event->get('field_mel_sup_chk')->value ?? 'none');
+      $overview['mel_platform_support'] = [
+        'mode' => $mode,
+        'checkout' => $checkout,
+        'amount' => !$event->get('field_mel_sup_amt')->isEmpty()
+          ? (string) $event->get('field_mel_sup_amt')->value
+          : '',
+        'percent' => !$event->get('field_mel_sup_pct')->isEmpty()
+          ? (string) $event->get('field_mel_sup_pct')->value
+          : '',
+      ];
+      if ($this->vendorMelPctContribution && $mode === 'percent') {
+        $overview['mel_pct_contribution'] = $this->vendorMelPctContribution->getEventVendorSummary($event);
+      }
+    }
     $vendor = $this->getCurrentVendorOrNull();
     $vendorStore = ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty())
       ? $vendor->get('field_vendor_store')->entity

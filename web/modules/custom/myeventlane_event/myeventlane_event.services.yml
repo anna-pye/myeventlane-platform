@@ -4,6 +4,14 @@ services:
     arguments:
       - '@string_translation'
 
+  myeventlane_event.mel_platform_support_wizard_form:
+    class: Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper
+    arguments:
+      - '@module_handler'
+      - '@config.factory'
+      - '@myeventlane_donations.vendor_event_mel_support'
+      - '@string_translation'
+
   myeventlane_event.geo_resolver:
     class: Drupal\myeventlane_event\Service\EventGeoResolver
     public: true

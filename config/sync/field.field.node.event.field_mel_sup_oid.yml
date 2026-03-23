@@ -1,0 +1,23 @@
+uuid: fbd7b9d0-a4c6-df00-c8b3-90123456789a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_sup_oid
+    - node.type.event
+id: node.event.field_mel_sup_oid
+field_name: field_mel_sup_oid
+entity_type: node
+bundle: event
+label: 'MyEventLane platform donation order ID'
+description: 'Commerce order ID for the optional wizard platform donation (idempotency / duplicate prevention).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

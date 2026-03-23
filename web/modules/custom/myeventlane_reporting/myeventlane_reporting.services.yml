@@ -13,7 +13,7 @@ services:
 
   myeventlane_reporting.admin_reports:
     class: Drupal\myeventlane_reporting\Controller\AdminReportsController
-    arguments: ['@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver']
+    arguments: ['@entity_type.manager', '@myeventlane_metrics.service', '@myeventlane_attendee.repository_resolver', '@access_manager']
     tags:
       - { name: controller.service_arguments }
 

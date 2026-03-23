@@ -1,0 +1,49 @@
+/**
+ * @file
+ * MEL vendor contribution billing (Phase 3).
+ */
+
+.mel-mel-billing {
+  max-width: 960px;
+}
+
+.mel-mel-billing__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mel-mel-billing__kpi {
+  padding: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mel-mel-billing__kpi-label {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.mel-mel-billing__kpi-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.mel-mel-billing table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mel-mel-billing th,
+.mel-mel-billing td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+
+.mel-mel-billing__actions a {
+  margin-right: 0.75rem;
+}

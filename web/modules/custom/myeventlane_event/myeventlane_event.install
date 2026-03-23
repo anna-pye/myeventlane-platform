@@ -5,8 +5,9 @@
  * Install, update and uninstall functions for the MyEventLane Event module.
  */
 
-use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Creates field_location_place_id field on Event content type.
@@ -1056,6 +1057,76 @@ function myeventlane_event_update_11018(): void {
     \Drupal::logger('myeventlane_event')->info('Cleared field_event_image on node(s) with missing files: @nids', [
       '@nids' => implode(', ', array_unique($affected)),
     ]);
+  }
+}
+
+/**
+ * Removes legacy field_mel_platform_support_mode after rename to field_mel_sup_*.
+ *
+ * Partial config imports can leave the old field installed in the DB while sync
+ * uses the shorter machine names (≤32 chars). That triggers "needs to be
+ * uninstalled" on the status report until the old storage/instance are removed.
+ */
+function myeventlane_event_update_11019(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  $legacy = 'field_mel_platform_support_mode';
+
+  $instance = FieldConfig::loadByName('node', 'event', $legacy);
+  if ($instance) {
+    $instance->delete();
+    $logger->notice('Removed legacy field instance node.event.@f (superseded by field_mel_sup_mode).', ['@f' => $legacy]);
+  }
+
+  $storage = FieldStorageConfig::loadByName('node', $legacy);
+  if ($storage) {
+    $storage->delete();
+    $logger->notice('Removed legacy field storage node.@f.', ['@f' => $legacy]);
+  }
+}
+
+/**
+ * Syncs Drupal's last-installed field storage schema with active field config.
+ *
+ * Removing FieldStorageConfig entities (e.g. 11019) does not always update the
+ * entity definition update manager's "last installed" snapshot. That leaves
+ * Reports → Status warnings: legacy fields "need to be uninstalled" and
+ * migrated fields like field_ticket_types "need to be updated" until the
+ * schema listeners reconcile state.
+ */
+function myeventlane_event_update_11020(): void {
+  $logger = \Drupal::logger('myeventlane_event');
+  /** @var \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface $edm */
+  $edm = \Drupal::entityDefinitionUpdateManager();
+  /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager */
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+
+  try {
+    $legacy_name = 'field_mel_platform_support_mode';
+    $legacy_def = $edm->getFieldStorageDefinition($legacy_name, 'node');
+    if ($legacy_def) {
+      $edm->uninstallFieldStorageDefinition($legacy_def);
+      $logger->notice(
+        'Synced last-installed schema: uninstalled legacy field storage @field.',
+        ['@field' => $legacy_name]
+      );
+    }
+
+    $changes = $edm->getChangeList();
+    $ticket_change = $changes['node']['field_storage_definitions']['field_ticket_types'] ?? NULL;
+    if ($ticket_change === EntityDefinitionUpdateManagerInterface::DEFINITION_UPDATED) {
+      $defs = $entity_field_manager->getFieldStorageDefinitions('node');
+      if (isset($defs['field_ticket_types'])) {
+        $edm->updateFieldStorageDefinition($defs['field_ticket_types']);
+        $logger->notice('Synced last-installed schema: updated field storage field_ticket_types.');
+      }
+    }
+  }
+  catch (\Throwable $e) {
+    $logger->error(
+      'myeventlane_event_update_11020 failed: @message',
+      ['@message' => $e->getMessage()]
+    );
+    throw $e;
   }
 }
 

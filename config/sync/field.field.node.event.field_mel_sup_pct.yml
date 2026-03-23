@@ -1,0 +1,23 @@
+uuid: d9b5f7b8-e2a4-bd8f-a691-7e8f90123456
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_sup_pct
+    - node.type.event
+id: node.event.field_mel_sup_pct
+field_name: field_mel_sup_pct
+entity_type: node
+bundle: event
+label: 'MyEventLane ticket revenue pledge (%)'
+description: 'Stored only for future MEL billing tools. Not charged or applied in checkout in the current phase.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: 100.0
+  prefix: ''
+  suffix: '%'
+field_type: decimal

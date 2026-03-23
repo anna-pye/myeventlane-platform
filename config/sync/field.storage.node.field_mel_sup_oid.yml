@@ -1,0 +1,20 @@
+uuid: a6e2c4e5-bf71-8a5c-d36e-4b5c6d7e8f90
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_mel_sup_oid
+field_name: field_mel_sup_oid
+entity_type: node
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

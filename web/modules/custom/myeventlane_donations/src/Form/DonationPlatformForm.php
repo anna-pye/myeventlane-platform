@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_donations\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\myeventlane_donations\Service\PlatformDonationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -15,16 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class DonationPlatformForm extends FormBase {
 
-  /**
-   * Constructs a DonationPlatformForm.
-   *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   The config factory.
-   * @param \Drupal\myeventlane_donations\Service\PlatformDonationService $donationService
-   *   The platform donation service.
-   */
   public function __construct(
-    private readonly ConfigFactoryInterface $configFactory,
     private readonly PlatformDonationService $donationService,
   ) {}
 
@@ -32,10 +22,11 @@ final class DonationPlatformForm extends FormBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static(
-      $container->get('config.factory'),
+    $instance = new static(
       $container->get('myeventlane_donations.platform'),
     );
+    $instance->setConfigFactory($container->get('config.factory'));
+    return $instance;
   }
 
   /**
@@ -49,7 +40,7 @@ final class DonationPlatformForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->configFactory->get('myeventlane_donations.settings');
+    $config = $this->config('myeventlane_donations.settings');
 
     if (!$config->get('enable_platform_donations')) {
       $form['disabled'] = [
@@ -141,7 +132,7 @@ final class DonationPlatformForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    $config = $this->configFactory->get('myeventlane_donations.settings');
+    $config = $this->config('myeventlane_donations.settings');
     $minAmount = (float) ($config->get('min_amount') ?? 1.00);
 
     $selectedAmount = $form_state->getValue('selected_amount');

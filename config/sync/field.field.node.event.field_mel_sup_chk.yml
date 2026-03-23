@@ -1,0 +1,21 @@
+uuid: eac6a8c9-f3b5-ce90-b7a2-8f9012345678
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_sup_chk
+    - node.type.event
+id: node.event.field_mel_sup_chk
+field_name: field_mel_sup_chk
+entity_type: node
+bundle: event
+label: 'MyEventLane platform donation checkout status'
+description: 'Tracks optional vendor platform_donation checkout from event wizard (pending until payment completes).'
+required: false
+translatable: false
+default_value:
+  -
+    value: none
+default_value_callback: ''
+settings: {  }
+field_type: list_string

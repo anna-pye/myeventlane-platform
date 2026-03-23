@@ -16,6 +16,18 @@ use Symfony\Component\Routing\RouteCollection;
 final class RouteSubscriber extends RouteSubscriberBase {
 
   /**
+   * Reporting routes that should allow PCC users (not only "view admin reports").
+   *
+   * @var array<string>
+   */
+  private const REPORTING_ADMIN_ROUTE_NAMES = [
+    'myeventlane_reporting.admin.overview',
+    'myeventlane_reporting.admin.vendors',
+    'myeventlane_reporting.admin.events',
+    'myeventlane_reporting.admin.finance',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection): void {
@@ -29,6 +41,20 @@ final class RouteSubscriber extends RouteSubscriberBase {
       if ($r !== NULL) {
         $r->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
       }
+    }
+
+    foreach (self::REPORTING_ADMIN_ROUTE_NAMES as $name) {
+      $r = $collection->get($name);
+      if ($r === NULL) {
+        continue;
+      }
+      $requirements = $r->getRequirements();
+      unset($requirements['_permission']);
+      $r->setRequirements($requirements);
+      $r->setRequirement(
+        '_custom_access',
+        '\Drupal\myeventlane_admin_dashboard\Access\PlatformControlReportingAccess::accessAdminReportingConsole'
+      );
     }
     foreach (['entity.escalation.collection', 'entity.escalation.canonical', 'entity.escalation.add_form', 'entity.escalation.edit_form'] as $name) {
       $r = $collection->get($name);

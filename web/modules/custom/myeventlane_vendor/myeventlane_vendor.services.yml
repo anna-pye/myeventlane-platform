@@ -150,7 +150,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_overview:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOverviewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@?myeventlane_pro.active_resolver']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@?myeventlane_pro.active_resolver', '@?myeventlane_donations.vendor_mel_pct_contribution']
     tags:
       - { name: controller.service_arguments }
 

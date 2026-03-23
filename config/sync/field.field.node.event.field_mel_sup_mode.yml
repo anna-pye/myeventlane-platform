@@ -1,0 +1,21 @@
+uuid: e2f3a4b5-c6d7-4890-b123-c4d5e6f78902
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_sup_mode
+    - node.type.event
+id: node.event.field_mel_sup_mode
+field_name: field_mel_sup_mode
+entity_type: node
+bundle: event
+label: 'MyEventLane platform support mode'
+description: 'Vendor choice during event setup: optional one-time donation to MEL or stored percentage pledge (billing in a future phase).'
+required: false
+translatable: false
+default_value:
+  -
+    value: none
+default_value_callback: ''
+settings: {  }
+field_type: list_string

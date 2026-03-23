@@ -13,6 +13,48 @@ services:
     class: Drupal\myeventlane_donations\Service\PlatformDonationService
     arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@logger.factory']
 
+  myeventlane_donations.vendor_event_mel_support:
+    class: Drupal\myeventlane_donations\Service\VendorEventMelSupportService
+    arguments: ['@entity_type.manager', '@config.factory', '@myeventlane_donations.platform', '@logger.factory']
+
+  myeventlane_donations.vendor_mel_pct_contribution:
+    class: Drupal\myeventlane_donations\Service\VendorMelPctContributionService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@myeventlane_commerce.stripe_connect_payment'
+      - '@logger.factory'
+
+  myeventlane_donations.vendor_mel_pct_contribution_order_paid_subscriber:
+    class: Drupal\myeventlane_donations\EventSubscriber\VendorMelPctContributionOrderPaidSubscriber
+    arguments: ['@myeventlane_donations.vendor_mel_pct_contribution']
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_donations.vendor_wizard_platform_donation_subscriber:
+    class: Drupal\myeventlane_donations\EventSubscriber\VendorWizardPlatformDonationSubscriber
+    arguments: ['@entity_type.manager', '@myeventlane_donations.vendor_event_mel_support']
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_donations.vendor_contribution_invoice:
+    class: Drupal\myeventlane_donations\Service\VendorContributionInvoiceService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@myeventlane_donations.platform'
+      - '@logger.factory'
+
+  myeventlane_donations.mel_invoice_access:
+    class: Drupal\myeventlane_donations\Access\MelVendorInvoiceAccess
+    arguments: ['@myeventlane_donations.vendor_contribution_invoice']
+
+  myeventlane_donations.vendor_mel_invoice_payment_subscriber:
+    class: Drupal\myeventlane_donations\EventSubscriber\VendorMelInvoicePaymentSubscriber
+    arguments: ['@myeventlane_donations.vendor_contribution_invoice']
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_donations.rsvp:
     class: Drupal\myeventlane_donations\Service\RsvpDonationService
     arguments: ['@entity_type.manager', '@commerce_cart.cart_provider', '@commerce_cart.cart_manager', '@commerce_cart.cart_session', '@logger.factory', '@module_handler', '@current_user']
@@ -20,4 +62,3 @@ services:
   myeventlane_donations.donation_access:
     class: Drupal\myeventlane_donations\Access\DonationAccess
     arguments: ['@myeventlane_core.domain_detector']
-

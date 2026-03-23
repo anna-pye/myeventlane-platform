@@ -91,13 +91,23 @@
 
       <div class="mel-editor-status" data-mel-status></div>
       <div class="mel-studio-wizard-shell">
-        <iframe
-          title="{{ 'Event wizard editor'|t }}"
-          class="mel-studio-wizard-frame"
-          data-mel-wizard-frame
-          src="{{ active_event.wizard_url|default('') }}"
-          loading="lazy"
-        ></iframe>
+        {# Full-page wizard only: embedding the Drupal wizard in an iframe breaks UX, cookies, and scrolling. #}
+        <div class="mel-studio-wizard-launch">
+          <p class="mel-studio-wizard-launch__lead">
+            {{ 'The guided event wizard opens as a full page (not inside this screen).'|t }}
+          </p>
+          <a
+            class="mel-btn mel-btn-primary mel-studio-wizard-open"
+            data-mel-wizard-open
+            href="{{ active_event.wizard_url|default('#') }}"
+          >{{ 'Open event wizard'|t }}</a>
+          <p class="mel-text-muted mel-studio-wizard-launch__hint">
+            {{ 'Support MyEventLane (optional vendor contribution) is on the Tickets & Capacity step.'|t }}
+          </p>
+          <p class="mel-text-muted mel-studio-wizard-launch__hint">
+            {{ 'Use the browser back button or Vendor → Events to return here after saving a step.'|t }}
+          </p>
+        </div>
       </div>
 
       {% else %}

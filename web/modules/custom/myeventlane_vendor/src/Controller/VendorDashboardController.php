@@ -1681,7 +1681,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    *   Action card definitions.
    */
   private function buildDashboardActionCards(): array {
-    return [
+    $cards = [];
+    $mel_billing = $this->safeRouteUrl('myeventlane_donations.vendor_mel_billing');
+    if ($mel_billing) {
+      $cards[] = [
+        'title' => (string) $this->t('MEL contributions'),
+        'description' => (string) $this->t('View accruals, invoices, and pay your MyEventLane contribution balance.'),
+        'url' => $mel_billing,
+      ];
+    }
+    return array_merge($cards, [
       [
         'title' => (string) $this->t('Finish setup'),
         'description' => (string) $this->t('Complete your organiser profile and settings.'),
@@ -1702,7 +1711,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'description' => (string) $this->t('Review transfers and payout readiness.'),
         'url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
       ],
-    ];
+    ]);
   }
 
   /**

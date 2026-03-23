@@ -12,6 +12,8 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -22,6 +24,7 @@ use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
 use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
+use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_refunds\Service\RefundProcessor;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\node\NodeInterface;
@@ -167,12 +170,15 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->createMock(BuyerRefundEligibilityService::class),
       $this->createMock(RefundRequestStorage::class),
       $this->createMock(MessagingManager::class),
+      $this->createMock(StripeService::class),
+      $this->createMock(ConfigFactoryInterface::class),
       $loggerFactory,
       $this->createMock(QueueFactory::class),
       $this->createMock(AccountProxyInterface::class),
       $database,
       $this->container->get('datetime.time'),
       $lock,
+      $this->createMock(ModuleHandlerInterface::class),
     );
 
     $processor->processRefund($logId);
@@ -324,12 +330,15 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->createMock(BuyerRefundEligibilityService::class),
       $this->createMock(RefundRequestStorage::class),
       $this->createMock(MessagingManager::class),
+      $this->createMock(StripeService::class),
+      $this->createMock(ConfigFactoryInterface::class),
       $loggerFactory,
       $this->createMock(QueueFactory::class),
       $this->createMock(AccountProxyInterface::class),
       $database,
       $this->container->get('datetime.time'),
       $lock,
+      $this->createMock(ModuleHandlerInterface::class),
     );
 
     $processor->processRefund($logId);

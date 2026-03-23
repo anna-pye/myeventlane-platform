@@ -86,6 +86,10 @@
       {% endif %}
     </main>
 
+    {% if is_dashboard_route %}
+      {% include '@myeventlane_vendor_theme/includes/dashboard-mel-support-strip.html.twig' %}
+    {% endif %}
+
     <div class="mel-vendor-shell__footer">
       {% include '@myeventlane_theme/layout/footer-internal.html.twig' %}
     </div>

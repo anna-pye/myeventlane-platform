@@ -57,6 +57,10 @@
 
   <div class="mel-dashboard-layout">
     <div class="mel-dashboard-layout__main">
+      {% if mel_contribution_billing_strip is defined and mel_contribution_billing_strip %}
+        {{ mel_contribution_billing_strip }}
+      {% endif %}
+
       <section class="mel-dashboard-section" aria-labelledby="performance-title">
         {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
           title: 'Performance'|t,

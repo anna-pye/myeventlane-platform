@@ -1,0 +1,23 @@
+uuid: c8a4e6a7-d193-ac7e-f580-6d7e8f901234
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_sup_amt
+    - node.type.event
+id: node.event.field_mel_sup_amt
+field_name: field_mel_sup_amt
+entity_type: node
+bundle: event
+label: 'MyEventLane one-time support amount'
+description: 'Optional AUD amount for a vendor platform donation (Commerce checkout).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: $
+  suffix: ''
+field_type: decimal

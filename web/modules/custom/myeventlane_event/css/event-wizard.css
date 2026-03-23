@@ -254,3 +254,36 @@ form .mel-simple-tabs {
     margin-bottom: 8px;
   }
 }
+
+/* Support MyEventLane — vendor wizard (Tickets step + legacy wizard). */
+.mel-mel-support.mel-mel-support--callout {
+  margin-top: 2rem;
+  padding: 1.5rem 1.5rem 1.75rem;
+  border-radius: 16px;
+  border: 2px solid rgba(232, 121, 98, 0.55);
+  background: linear-gradient(145deg, rgba(255, 245, 242, 0.98) 0%, rgba(255, 255, 255, 0.97) 55%, rgba(250, 250, 252, 1) 100%);
+  box-shadow: 0 10px 32px rgba(41, 50, 65, 0.1);
+}
+
+.mel-mel-support.mel-mel-support--callout .mel-mel-support__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #1e293b;
+}
+
+.mel-mel-support.mel-mel-support--callout .mel-mel-support__intro {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.mel-mel-support.mel-mel-support--callout .form-item {
+  margin-bottom: 1rem;
+}
+
+.mel-mel-support.mel-mel-support--callout .form-radios .form-item {
+  margin-bottom: 0.5rem;
+}

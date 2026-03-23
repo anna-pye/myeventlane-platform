@@ -3,6 +3,9 @@ type: module
 description: 'Legal compliance: terms acceptance, privacy, cookie consent, and audit trail.'
 core_version_requirement: ^11
 package: MyEventLane
+# Run after most custom modules' hook_form_alter so nothing re-applies #required
+# to the RSVP legal checkbox after we strip it.
+weight: 100
 dependencies:
   - drupal:user
   - drupal:system

@@ -42,6 +42,7 @@ services:
       - '@database'
       - '@datetime.time'
       - '@lock'
+      - '@module_handler'
 
 
 

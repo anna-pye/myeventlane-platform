@@ -30,7 +30,7 @@ final class RsvpSubmissionManager {
     private readonly RequestStack $requestStack,
   ) {}
 
-  public function submitOrUpdate(NodeInterface $event, array $data, ?int $capacity = NULL): RsvpSubmissionInterface {
+  public function submitOrUpdate(NodeInterface $event, array $data, ?int $capacity = NULL, ?array $legalConsent = NULL): RsvpSubmissionInterface {
     $event_id = (int) $event->id();
     $uid = (int) $this->currentUser->id();
     $email = trim((string) ($data['email'] ?? ''));
@@ -66,6 +66,10 @@ final class RsvpSubmissionManager {
           $existing->set('status', 'confirmed');
         }
 
+        if ($legalConsent !== NULL) {
+          $existing->_myeventlaneLegalConsent = $legalConsent;
+        }
+
         $existing->save();
         if ($identifier !== NULL) {
           $this->flood->register('myeventlane_rsvp.submit', self::FLOOD_WINDOW, $identifier);
@@ -97,6 +101,9 @@ final class RsvpSubmissionManager {
 
       /** @var \Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface $submission */
       $submission = $storage->create($values);
+      if ($legalConsent !== NULL) {
+        $submission->_myeventlaneLegalConsent = $legalConsent;
+      }
       $submission->save();
 
       if ($identifier !== NULL) {

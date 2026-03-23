@@ -7,13 +7,15 @@ namespace Drupal\myeventlane_event\Form;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Event wizard step: Publish.
  *
- * Sets published state, saves, redirects to success.
+ * Sets published state, saves, redirects to success or optional MEL checkout.
  */
 final class EventWizardPublishForm extends EventWizardBaseForm {
 
@@ -22,15 +24,13 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    */
   protected LoggerInterface $logger;
 
-  /**
-   * Constructs the form.
-   */
   public function __construct(
     $entity_type_manager,
     $domain_detector,
     $current_user,
     RendererInterface $renderer,
     LoggerInterface $logger,
+    private readonly MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
@@ -46,6 +46,7 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
       $container->get('current_user'),
       $container->get('renderer'),
       $container->get('logger.factory')->get('myeventlane_event'),
+      $container->get('myeventlane_event.mel_platform_support_wizard_form'),
     );
   }
 
@@ -61,13 +62,6 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
-    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-      'route' => (string) $this->getRouteMatch()->getRouteName(),
-      'event_id' => (int) $event->id(),
-      'form_id' => $this->getFormId(),
-      'canonical' => 1,
-    ]);
 
     $form['#title'] = $this->t('Publish event');
     $form['#event'] = $event;
@@ -84,6 +78,14 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
       ]),
       '#weight' => 0,
     ];
+
+    $this->melPlatformSupportWizardForm->buildSection(
+      $form,
+      $form_state,
+      $event,
+      50,
+      'mel-mel-support-heading-publish',
+    );
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -108,6 +110,8 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
     $form['#prefix'] = $this->buildWizardPrefix($steps, 'publish', (string) $form['#title']);
     $form['#suffix'] = $this->buildWizardSuffix();
 
+    $form['#attached']['library'][] = 'core/drupal.states';
+
     return $form;
   }
 
@@ -116,6 +120,9 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
+    $event = $this->getEvent();
+    $event_type = (string) ($event->get('field_event_type')->value ?? 'rsvp');
+    $this->melPlatformSupportWizardForm->validate($form_state, $event, $event_type);
   }
 
   /**
@@ -123,6 +130,8 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEvent();
+
+    $this->melPlatformSupportWizardForm->apply($event, $form_state);
 
     $event->setPublished(TRUE);
     $event->save();
@@ -136,8 +145,20 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
       '@title' => $event->label(),
     ]));
 
-    $url = Url::fromRoute('myeventlane_event.wizard.success', ['event' => $event->id()]);
-    $form_state->setRedirectUrl($url);
+    $fresh = $this->entityTypeManager->getStorage('node')->load($event->id());
+    if ($fresh instanceof NodeInterface) {
+      $event = $fresh;
+    }
+
+    $vendor_uid = (int) $event->getOwnerId();
+    $checkout_url = $this->melPlatformSupportWizardForm->getPostPublishCheckoutUrl($event, $vendor_uid);
+    if ($checkout_url !== NULL) {
+      $this->messenger()->addStatus($this->t('Next, complete your optional contribution to MyEventLane (separate from ticket cart and attendee checkout).'));
+      $form_state->setRedirectUrl($checkout_url);
+      return;
+    }
+
+    $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event.wizard.success', ['event' => $event->id()]));
   }
 
 }

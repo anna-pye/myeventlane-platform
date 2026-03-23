@@ -3,65 +3,94 @@
  * @file
  * Theme override for RSVP booking form (event book page, $0 product).
  *
- * Uses element (exposed as form via preprocess). Falls back to children if
- * element structure unavailable.
+ * Use `element` (the form root render array from core). Do not expose the root
+ * as `form` and render `{{ form }}` inside <form> — that can re-invoke the form
+ * theme and nest <form> tags. Access children as element.KEY (same pattern as
+ * core’s available `element` in form preprocess).
+ *
+ * IMPORTANT: Legal consent is rendered BEFORE the optional donation section so
+ * POST field order matches a sane DOM order. When donation is enabled, many
+ * inputs (toggle, radios, amount) precede legal in the tree; if legal were
+ * rendered after donation, PHP max_input_vars could truncate later fields and
+ * drop legal_consent[] from $_POST while the user still saw checked boxes.
+ *
+ * Alter-added elements (help link, donation_unavailable) are printed explicitly
+ * or via |without() so they stay inside this single <form>.
  */
 #}
 <form{{ attributes }}>
-  {% if form is defined and form is iterable %}
-    {{ form.form_build_id }}
-    {{ form.form_token }}
-    {{ form.form_id }}
-    {{ form.event_id }}
-    {{ form.product_id }}
-    {{ form.variation_id }}
+  {% if element is defined and element is iterable %}
+    {{ element.form_build_id }}
+    {{ element.form_token }}
+    {{ element.form_id }}
+    {{ element.event_id }}
+    {{ element.product_id }}
+    {{ element.variation_id }}
+    {% if element.mel_help_rsvp_after is defined %}
+      {{ element.mel_help_rsvp_after }}
+    {% endif %}
 
     <div class="mel-rsvp-sidebar">
       <div class="mel-rsvp-card">
         <h3 class="mel-rsvp-title">{{ 'RSVP for this event'|t }}</h3>
+        {% if element.intro %}
+          <div class="mel-rsvp-intro">
+            {{ element.intro }}
+          </div>
+        {% endif %}
         <div class="mel-rsvp-section mel-rsvp-core">
-          {{ form.first_name }}
-          {{ form.last_name }}
-          {{ form.email }}
-          {{ form.phone }}
+          {{ element.first_name }}
+          {{ element.last_name }}
+          {{ element.email }}
+          {{ element.phone }}
         </div>
-        {% if form.accessibility_needs %}
+        {% if element.accessibility_needs %}
           <div class="mel-rsvp-section mel-rsvp-section--collapsed">
             <button type="button" class="mel-rsvp-toggle" data-target="accessibility" aria-expanded="false" aria-controls="mel-rsvp-accessibility">
               {{ 'Accessibility needs (optional)'|t }}
               <span class="mel-chevron" aria-hidden="true">+</span>
             </button>
             <div class="mel-rsvp-collapsible" id="mel-rsvp-accessibility">
-              {{ form.accessibility_needs }}
+              {{ element.accessibility_needs }}
             </div>
           </div>
-        {% endif %}
-        {% if form.donation_section %}
-          <div class="mel-rsvp-section mel-rsvp-section--collapsed">
-            <button type="button" class="mel-rsvp-toggle" data-target="support" aria-expanded="false" aria-controls="mel-rsvp-support">
-              {{ 'Support this event (optional)'|t }}
-              <span class="mel-chevron" aria-hidden="true">+</span>
-            </button>
-            <div class="mel-rsvp-collapsible" id="mel-rsvp-support">
-              {{ form.donation_section }}
-            </div>
-          </div>
-        {% endif %}
-        {% if form.donation_amount is defined %}
-          {{ form.donation_amount }}
         {% endif %}
         <hr class="mel-divider">
         <div class="mel-rsvp-legal">
           <p class="mel-legal-text">
             {{ 'We collect your name and email to process your RSVP. Read our Privacy Policy for details.'|t }}
           </p>
-          {% if form.legal_consent %}
-            {{ form.legal_consent }}
+          {% if element.legal_consent %}
+            {{ element.legal_consent }}
           {% endif %}
         </div>
+        {# Optional attendee → vendor donation: after legal so POST includes consent fields before many donation inputs. #}
+        {% if element.donation_section %}
+          <div class="mel-rsvp-section mel-rsvp-section--collapsed">
+            <button type="button" class="mel-rsvp-toggle" data-target="support" aria-expanded="true" aria-controls="mel-rsvp-support">
+              {{ 'Support this event (optional)'|t }}
+              <span class="mel-chevron" aria-hidden="true">–</span>
+            </button>
+            <div class="mel-rsvp-collapsible is-open" id="mel-rsvp-support">
+              {{ element.donation_section }}
+            </div>
+          </div>
+        {% endif %}
+        {% if element.donation_unavailable is defined %}
+          {{ element.donation_unavailable }}
+        {% endif %}
+        {% if element.donation_amount is defined %}
+          {{ element.donation_amount }}
+        {% endif %}
         <div class="mel-rsvp-submit">
-          {{ form.actions }}
+          {{ element.actions }}
         </div>
+        {# Any other alter-added elements; keeps them inside the single form. #}
+        {{ element|without(
+          'form_build_id', 'form_token', 'form_id', 'event_id', 'product_id', 'variation_id',
+          'mel_help_rsvp_after', 'intro', 'first_name', 'last_name', 'email', 'phone', 'accessibility_needs',
+          'legal_consent', 'donation_section', 'donation_unavailable', 'donation_amount', 'actions'
+        ) }}
       </div>
     </div>
   {% else %}

@@ -212,6 +212,54 @@ final class StripeConnectPaymentService {
   }
 
   /**
+   * Ticket revenue in cents for one event on this order (excludes donations, boost).
+   *
+   * Uses the same inclusion rules as calculateTicketRevenue(), scoped to
+   * field_target_event = $eventId. Used for vendor MEL percentage contribution
+   * accrual so the base matches Connect ticket revenue (not attendee donations).
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order.
+   * @param int $eventId
+   *   Event node ID.
+   *
+   * @return int
+   *   Ticket revenue in cents for that event line items.
+   */
+  public function calculateTicketRevenueCentsForEvent(OrderInterface $order, int $eventId): int {
+    if ($eventId <= 0) {
+      return 0;
+    }
+
+    $ticketAmount = 0;
+
+    foreach ($order->getItems() as $item) {
+      if ($this->isDonationItem($item)) {
+        continue;
+      }
+
+      if ($item->bundle() === 'boost') {
+        continue;
+      }
+
+      if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+        continue;
+      }
+
+      if ((int) $item->get('field_target_event')->target_id !== $eventId) {
+        continue;
+      }
+
+      $totalPrice = $item->getTotalPrice();
+      if ($totalPrice) {
+        $ticketAmount += (int) round($totalPrice->getNumber() * 100);
+      }
+    }
+
+    return $ticketAmount;
+  }
+
+  /**
    * Calculates donation revenue (for reference/logging).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order

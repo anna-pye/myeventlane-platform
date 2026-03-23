@@ -1,0 +1,30 @@
+uuid: f1a2b3c4-d5e6-4789-a012-b3c4d5e6f701
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_mel_sup_mode
+field_name: field_mel_sup_mode
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: none
+      label: 'No thanks'
+    -
+      value: onetime
+      label: 'One-time contribution'
+    -
+      value: percent
+      label: 'Percentage of ticket revenue (stored for future billing)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

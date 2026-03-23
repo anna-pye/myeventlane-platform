@@ -78,7 +78,7 @@ myeventlane_admin_dashboard.reports:
     _controller: 'myeventlane_admin_dashboard.reports_controller:overview'
     _title: 'Reports'
   requirements:
-    _permission: 'view myeventlane reports'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\PlatformControlReportingAccess::accessPlatformReportsTab'
   options:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control

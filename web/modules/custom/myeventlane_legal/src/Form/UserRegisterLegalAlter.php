@@ -48,7 +48,9 @@ final class UserRegisterLegalAlter {
     $form['legal_consent']['customer_terms_agreed'] = [
       '#type' => 'checkbox',
       '#title' => Markup::create(t('I agree to the') . ' ' . $termsLink),
-      '#required' => TRUE,
+      // Enforced in validateLegalConsent(), not core #required (checkbox + core
+      // required runs before #validate and yields "@title is required.").
+      '#required' => FALSE,
       '#default_value' => FALSE,
       '#attributes' => ['class' => ['mel-consent-terms'], 'aria-required' => 'true'],
     ];
@@ -56,7 +58,7 @@ final class UserRegisterLegalAlter {
     $form['legal_consent']['privacy_agreed'] = [
       '#type' => 'checkbox',
       '#title' => Markup::create(t('I have read the') . ' ' . $privacyLink),
-      '#required' => TRUE,
+      '#required' => FALSE,
       '#default_value' => FALSE,
       '#attributes' => ['class' => ['mel-consent-privacy'], 'aria-required' => 'true'],
     ];

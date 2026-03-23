@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Optional vendor → MyEventLane support CTA on the dashboard (above shell footer).
+ */
+#}
+<section class="mel-dashboard-mel-support" role="region" aria-labelledby="mel-dash-mel-support-title">
+  <div class="mel-dashboard-mel-support__inner">
+    <div class="mel-dashboard-mel-support__brand" aria-hidden="true">
+      <span class="mel-dashboard-mel-support__mark">MEL</span>
+    </div>
+    <div class="mel-dashboard-mel-support__copy">
+      <h2 class="mel-dashboard-mel-support__title" id="mel-dash-mel-support-title">{{ 'Support MyEventLane'|t }}</h2>
+      <p class="mel-dashboard-mel-support__text">
+        {{ 'Community tools stay affordable when organisers chip in. Add a one-time contribution anytime—it’s separate from ticket sales.'|t }}
+      </p>
+    </div>
+    <div class="mel-dashboard-mel-support__actions">
+      <a href="{{ path('myeventlane_donations.platform') }}" class="mel-btn mel-btn--primary mel-dashboard-mel-support__cta">
+        {{ 'Contribute to MyEventLane'|t }}
+      </a>
+      <p class="mel-dashboard-mel-support__hint">{{ 'You can also pledge when you publish an event.'|t }}</p>
+    </div>
+  </div>
+</section>

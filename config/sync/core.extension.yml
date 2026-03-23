@@ -119,7 +119,7 @@ module:
   myeventlane_help_centre: 0
   myeventlane_help_centre_ai: 0
   myeventlane_launch: 0
-  myeventlane_legal: 0
+  myeventlane_legal: 100
   myeventlane_location: 0
   myeventlane_messaging: 0
   myeventlane_metrics: 0

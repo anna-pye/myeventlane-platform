@@ -1,0 +1,83 @@
+{#
+/**
+ * @file
+ * Vendor MEL % billing overview.
+ */
+#}
+<div class="mel-mel-billing">
+  <h2 class="visually-hidden">{{ 'MEL contributions'|t }}</h2>
+
+  <div class="mel-mel-billing__kpis">
+    <div class="mel-mel-billing__kpi">
+      <div class="mel-mel-billing__kpi-label">{{ 'Unbilled accrual (by currency)'|t }}</div>
+      <div class="mel-mel-billing__kpi-value">
+        {% if summary.accrued_unbilled_by_currency is iterable and summary.accrued_unbilled_by_currency|length > 0 %}
+          {% for cur, cents in summary.accrued_unbilled_by_currency %}
+            <div>{{ (cents / 100)|number_format(2) }} {{ cur }}</div>
+          {% endfor %}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </div>
+    <div class="mel-mel-billing__kpi">
+      <div class="mel-mel-billing__kpi-label">{{ 'Outstanding on invoices'|t }}</div>
+      <div class="mel-mel-billing__kpi-value">
+        {% if summary.invoiced_outstanding_by_currency is iterable and summary.invoiced_outstanding_by_currency|length > 0 %}
+          {% for cur, cents in summary.invoiced_outstanding_by_currency %}
+            <div>{{ (cents / 100)|number_format(2) }} {{ cur }}</div>
+          {% endfor %}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </div>
+    <div class="mel-mel-billing__kpi">
+      <div class="mel-mel-billing__kpi-label">{{ 'Collected (invoice payments)'|t }}</div>
+      <div class="mel-mel-billing__kpi-value">
+        {% if summary.collected_by_currency is iterable and summary.collected_by_currency|length > 0 %}
+          {% for cur, cents in summary.collected_by_currency %}
+            <div>{{ (cents / 100)|number_format(2) }} {{ cur }}</div>
+          {% endfor %}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h3>{{ 'Invoices'|t }}</h3>
+  {% if invoices is iterable and invoices|length > 0 %}
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'ID'|t }}</th>
+          <th>{{ 'Amount'|t }}</th>
+          <th>{{ 'Paid'|t }}</th>
+          <th>{{ 'Status'|t }}</th>
+          <th>{{ 'Due'|t }}</th>
+          <th>{{ 'Actions'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+          <tr>
+            <td>{{ inv.id }}</td>
+            <td>{{ (inv.total_amount_cents / 100)|number_format(2) }} {{ inv.currency_code|upper }}</td>
+            <td>{{ (inv.paid_amount_cents / 100)|number_format(2) }}</td>
+            <td>{{ inv.status }}</td>
+            <td>{% if inv.due_date %}{{ inv.due_date|date('Y-m-d') }}{% else %}—{% endif %}</td>
+            <td class="mel-mel-billing__actions">
+              <a href="{{ path('myeventlane_donations.vendor_mel_invoice', {'invoice': inv.id}) }}">{{ 'View'|t }}</a>
+              {% if inv.status not in ['paid', 'void'] and inv.remaining_cents > 0 %}
+                <a href="{{ path('myeventlane_donations.vendor_mel_invoice_pay', {'invoice': inv.id}) }}">{{ 'Pay now'|t }}</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>{{ 'No invoices yet. Platform administrators generate invoices from accrued rows.'|t }}</p>
+  {% endif %}
+</div>

@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\myeventlane_donations\Service\DonationService;
+use Drupal\myeventlane_donations\Service\VendorMelPctContributionService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -24,12 +25,13 @@ final class DonationReportController extends ControllerBase {
    *   The donation service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager.
+   * @param \Drupal\myeventlane_donations\Service\VendorMelPctContributionService $vendorMelPctContributionService
+   *   Accrued vendor percentage pledge data for admin reporting.
    */
   public function __construct(
     private readonly DonationService $donationService,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly VendorMelPctContributionService $vendorMelPctContributionService,
   ) {}
 
   /**
@@ -39,6 +41,7 @@ final class DonationReportController extends ControllerBase {
     return new static(
       $container->get('myeventlane_donations.service'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_donations.vendor_mel_pct_contribution'),
     );
   }
 
@@ -60,6 +63,23 @@ final class DonationReportController extends ControllerBase {
     $countPlatform = array_sum(array_column($platformStats, 'count'));
     $countRsvp = array_sum(array_column($rsvpStats, 'count'));
 
+    $can_administer = $this->currentUser()->hasPermission('administer myeventlane donations');
+    $export_url = '';
+    $unattributed_url = '';
+    $mel_billing_url = '';
+    if ($can_administer) {
+      $export_url = Url::fromRoute('myeventlane_donations.admin_export')->toString();
+      $unattributed_url = Url::fromRoute('myeventlane_donations.unattributed')->toString();
+      try {
+        $mel_billing_url = Url::fromRoute('myeventlane_donations.admin_mel_billing')->toString();
+      }
+      catch (\Throwable) {
+        $mel_billing_url = '';
+      }
+    }
+
+    $vendorPctPledgeRows = $this->vendorMelPctContributionService->getAdminPledgeReportRows();
+
     $build = [
       '#theme' => 'myeventlane_donation_report',
       '#platform_stats' => $platformStats,
@@ -68,8 +88,10 @@ final class DonationReportController extends ControllerBase {
       '#total_rsvp' => $totalRsvp,
       '#count_platform' => $countPlatform,
       '#count_rsvp' => $countRsvp,
-      '#export_url' => Url::fromRoute('myeventlane_donations.admin_export')->toString(),
-      '#unattributed_url' => Url::fromRoute('myeventlane_donations.unattributed')->toString(),
+      '#export_url' => $export_url,
+      '#unattributed_url' => $unattributed_url,
+      '#mel_billing_url' => $mel_billing_url,
+      '#vendor_pct_pledge_rows' => $vendorPctPledgeRows,
       '#attached' => [
         'library' => [
           'myeventlane_donations/donation-report',
@@ -224,7 +246,7 @@ final class DonationReportController extends ControllerBase {
           'Platform',
           $donation['date'],
           number_format($donation['amount'], 2),
-          '',
+          $donation['event'] ?? '',
           $donation['vendor'],
           $donation['donor_name'],
           $donation['donor_email'],
@@ -387,9 +409,23 @@ final class DonationReportController extends ControllerBase {
         $orders = $orderStorage->loadMultiple($orderIds);
         foreach ($orders as $order) {
           $user = $order->getCustomer();
+          $event_title = '';
+          foreach ($order->getItems() as $oi) {
+            if ($oi->bundle() !== 'platform_donation') {
+              continue;
+            }
+            if ($oi->hasField('field_target_event') && !$oi->get('field_target_event')->isEmpty()) {
+              $ev = $oi->get('field_target_event')->entity;
+              if ($ev) {
+                $event_title = (string) $ev->label();
+                break;
+              }
+            }
+          }
           $donations[] = [
             'date' => $this->dateFormatter->format($order->getCreatedTime(), 'short'),
             'amount' => (float) ($order->getTotalPrice() ? $order->getTotalPrice()->getNumber() : 0),
+            'event' => $event_title,
             'vendor' => $user ? $user->getDisplayName() : 'Unknown',
             'donor_name' => $user ? $user->getDisplayName() : 'Unknown',
             'donor_email' => $user ? $user->getEmail() : '',

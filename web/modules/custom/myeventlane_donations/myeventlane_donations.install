@@ -10,6 +10,217 @@ use Drupal\commerce_order\Entity\OrderType;
 use Drupal\Core\Session\AccountInterface;
 
 /**
+ * Implements hook_schema().
+ */
+function myeventlane_donations_schema(): array {
+  $schema['mel_vendor_pct_contribution'] = [
+    'description' => 'Accrued optional vendor percentage pledges toward MyEventLane (per ticket order and event).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Commerce order ID (ticket order).',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Event node ID.',
+      ],
+      'vendor_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Vendor entity ID at accrual time.',
+      ],
+      'pct_rate' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 4,
+        'not null' => TRUE,
+        'description' => 'Pledge percent (e.g. 5.0000 for 5%).',
+      ],
+      'gross_base_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Ticket subtotal cents for this event on the order before refund attribution.',
+      ],
+      'net_ticket_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Net ticket cents after ticket refund attribution.',
+      ],
+      'amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Accrued contribution in minor units.',
+      ],
+      'currency_code' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+        'description' => 'ISO 4217 currency (lowercase).',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'accrued',
+        'description' => 'accrued or void.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Created timestamp.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Last change timestamp.',
+      ],
+      'invoice_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Vendor MEL contribution invoice (NULL until billed).',
+      ],
+      'billing_status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'unbilled',
+        'description' => 'unbilled, billed, or paid (Phase 3 settlement).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'order_event' => ['order_id', 'event_id'],
+    ],
+    'indexes' => [
+      'event_id' => ['event_id'],
+      'vendor_id' => ['vendor_id'],
+      'invoice_id' => ['invoice_id'],
+      'vendor_billing' => ['vendor_id', 'billing_status'],
+    ],
+  ];
+
+  $schema['mel_vendor_invoice'] = [
+    'description' => 'Vendor MEL percentage contribution invoices (accrual settlement).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'vendor_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'total_amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'currency_code' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'issued',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'due_date' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'paid_amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Sum of successful platform_donation payments.',
+      ],
+      'period_start' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'period_end' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'vendor_id' => ['vendor_id'],
+      'status' => ['status'],
+    ],
+  ];
+
+  $schema['mel_vendor_invoice_payment'] = [
+    'description' => 'Idempotent log of platform_donation orders applied to vendor MEL invoices.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'invoice_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'commerce_order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'amount_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'currency_code' => [
+        'type' => 'varchar',
+        'length' => 3,
+        'not null' => TRUE,
+        'default' => 'aud',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'commerce_order' => ['commerce_order_id'],
+    ],
+    'indexes' => [
+      'invoice_id' => ['invoice_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Creates Commerce order types and order item types for donations.
  */
 function myeventlane_donations_install(): void {
@@ -266,4 +477,57 @@ function myeventlane_donations_update_9002(): void {
   user_role_grant_permissions(AccountInterface::ANONYMOUS_ROLE, ['access checkout']);
 
   drupal_flush_all_caches();
+}
+
+/**
+ * Creates mel_vendor_pct_contribution table for percentage pledge accruals.
+ */
+function myeventlane_donations_update_9003(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('mel_vendor_pct_contribution')) {
+    $table = myeventlane_donations_schema()['mel_vendor_pct_contribution'];
+    $schema->createTable('mel_vendor_pct_contribution', $table);
+  }
+}
+
+/**
+ * Phase 3: vendor MEL % invoices, billing columns on accrual rows, payment log.
+ */
+function myeventlane_donations_update_9004(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_donations_schema();
+
+  if ($schema->tableExists('mel_vendor_pct_contribution')) {
+    if (!$schema->fieldExists('mel_vendor_pct_contribution', 'invoice_id')) {
+      $schema->addField('mel_vendor_pct_contribution', 'invoice_id', [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Vendor MEL contribution invoice (NULL until billed).',
+      ]);
+    }
+    if (!$schema->fieldExists('mel_vendor_pct_contribution', 'billing_status')) {
+      $schema->addField('mel_vendor_pct_contribution', 'billing_status', [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'unbilled',
+        'description' => 'unbilled, billed, or paid.',
+      ]);
+    }
+    $pct_spec = $full['mel_vendor_pct_contribution'];
+    if (!$schema->indexExists('mel_vendor_pct_contribution', 'invoice_id')) {
+      $schema->addIndex('mel_vendor_pct_contribution', 'invoice_id', ['invoice_id'], $pct_spec);
+    }
+    if (!$schema->indexExists('mel_vendor_pct_contribution', 'vendor_billing')) {
+      $schema->addIndex('mel_vendor_pct_contribution', 'vendor_billing', ['vendor_id', 'billing_status'], $pct_spec);
+    }
+  }
+
+  if (!$schema->tableExists('mel_vendor_invoice')) {
+    $schema->createTable('mel_vendor_invoice', $full['mel_vendor_invoice']);
+  }
+  if (!$schema->tableExists('mel_vendor_invoice_payment')) {
+    $schema->createTable('mel_vendor_invoice_payment', $full['mel_vendor_invoice_payment']);
+  }
 }

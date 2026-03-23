@@ -413,6 +413,7 @@ function myeventlane_commerce_commerce_checkout_pane_info_alter(array &$definiti
     $definitions['billing_information'] = [
       'id' => 'billing_information',
       'label' => new TranslatableMarkup('Billing information'),
+      'display_label' => new TranslatableMarkup('Billing information'),
       'default_step' => 'order_information',
       'wrapper_element' => 'fieldset',
       'class' => 'Drupal\\commerce_checkout\\Plugin\\Commerce\\CheckoutPane\\BillingInformation',

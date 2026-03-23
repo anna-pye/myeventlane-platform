@@ -61,7 +61,7 @@ myeventlane_donations.admin_report:
     _controller: '\Drupal\myeventlane_donations\Controller\DonationReportController::report'
     _title: 'Donation reports'
   requirements:
-    _permission: 'administer myeventlane donations'
+    _custom_access: '\Drupal\myeventlane_donations\Access\DonationReportAccess::accessReport'
   options:
     _admin_route: TRUE
 
@@ -82,6 +82,55 @@ myeventlane_donations.unattributed:
   defaults:
     _controller: '\Drupal\myeventlane_donations\Controller\DonationReportController::unattributed'
     _title: 'Unattributed RSVP donations'
+  requirements:
+    _permission: 'administer myeventlane donations'
+  options:
+    _admin_route: TRUE
+
+# Vendor: MEL % contribution accrual + invoices (Phase 3).
+myeventlane_donations.vendor_mel_billing:
+  path: '/vendor/billing/mel-contributions'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelContributionBillingController::overview'
+    _title: 'MEL contributions'
+  requirements:
+    _custom_access: 'myeventlane_donations.donation_access:vendorAccess'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_donations.vendor_mel_invoice:
+  path: '/vendor/billing/mel-contributions/{invoice}'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelContributionBillingController::invoiceView'
+    _title_callback: '\Drupal\myeventlane_donations\Controller\VendorMelContributionBillingController::invoiceTitle'
+  requirements:
+    _custom_access: 'myeventlane_donations.mel_invoice_access:accessInvoice'
+    invoice: \d+
+  options:
+    _maintenance_access: FALSE
+    parameters:
+      invoice:
+        type: integer
+
+myeventlane_donations.vendor_mel_invoice_pay:
+  path: '/vendor/billing/mel-contributions/{invoice}/pay'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelContributionBillingController::invoicePay'
+  requirements:
+    _custom_access: 'myeventlane_donations.mel_invoice_access:accessInvoice'
+    invoice: \d+
+  options:
+    _maintenance_access: FALSE
+    parameters:
+      invoice:
+        type: integer
+
+# Admin: MEL vendor % billing overview + manual invoice run.
+myeventlane_donations.admin_mel_billing:
+  path: '/admin/reports/myeventlane/mel-vendor-billing'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelBillingAdminController::overview'
+    _title: 'MEL vendor contribution billing'
   requirements:
     _permission: 'administer myeventlane donations'
   options:

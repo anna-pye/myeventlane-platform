@@ -21,6 +21,11 @@ dependencies:
     - field.field.node.event.field_event_setup_complete
     - field.field.node.event.field_featured
     - field.field.node.event.field_location
+    - field.field.node.event.field_mel_sup_amt
+    - field.field.node.event.field_mel_sup_chk
+    - field.field.node.event.field_mel_sup_mode
+    - field.field.node.event.field_mel_sup_oid
+    - field.field.node.event.field_mel_sup_pct
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
@@ -304,6 +309,11 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_sup_amt: true
+  field_mel_sup_chk: true
+  field_mel_sup_mode: true
+  field_mel_sup_oid: true
+  field_mel_sup_pct: true
   field_promo_expires: true
   field_promoted: true
   field_refund_policy: true

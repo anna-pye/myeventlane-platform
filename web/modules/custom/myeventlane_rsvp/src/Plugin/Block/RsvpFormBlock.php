@@ -59,6 +59,20 @@ final class RsvpFormBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
+    // The unified Commerce book page already embeds the RSVP flow (RsvpPublicForm
+    // or RsvpBookingForm). Rendering this block there duplicates field names such as
+    // legal_consent[customer_terms_agreed]. PHP merges duplicate keys in $_POST; the
+    // browser may submit the block's unchecked control last, wiping the main form's
+    // checked value and causing false "must agree" errors and an unchecked box on rebuild.
+    if ($this->routeMatch->getRouteName() === 'myeventlane_commerce.event_book') {
+      return [
+        '#markup' => '',
+        '#cache' => [
+          'contexts' => ['route'],
+        ],
+      ];
+    }
+
     $node = $this->routeMatch->getParameter('node');
     if ($node instanceof NodeInterface && $node->bundle() === 'event') {
       return $this->formBuilder->getForm(

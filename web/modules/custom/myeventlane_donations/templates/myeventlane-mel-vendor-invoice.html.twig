@@ -1,0 +1,47 @@
+{#
+/**
+ * @file
+ * Single MEL vendor invoice detail.
+ */
+#}
+<div class="mel-mel-billing">
+  <p><a href="{{ path('myeventlane_donations.vendor_mel_billing') }}">{{ '← Back to MEL contributions'|t }}</a></p>
+
+  <h2>{{ 'Invoice'|t }} #{{ invoice.id }}</h2>
+  <p>
+    {{ 'Total'|t }}: <strong>{{ (invoice.total_amount_cents / 100)|number_format(2) }} {{ invoice.currency_code|upper }}</strong><br>
+    {{ 'Paid'|t }}: {{ (invoice.paid_amount_cents / 100)|number_format(2) }}<br>
+    {{ 'Remaining'|t }}: {{ (invoice.remaining_cents / 100)|number_format(2) }}<br>
+    {{ 'Status'|t }}: {{ invoice.status }}
+  </p>
+
+  {% if invoice.status not in ['paid', 'void'] and invoice.remaining_cents > 0 %}
+    <p><a class="button button--primary" href="{{ pay_url }}">{{ 'Pay now'|t }}</a></p>
+  {% endif %}
+
+  <h3>{{ 'Accrual lines'|t }}</h3>
+  {% if lines is iterable and lines|length > 0 %}
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'Order'|t }}</th>
+          <th>{{ 'Event'|t }}</th>
+          <th>{{ 'Amount'|t }}</th>
+          <th>{{ 'Currency'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+          <tr>
+            <td>{{ line.order_id }}</td>
+            <td>{{ line.event_id }}</td>
+            <td>{{ (line.amount_cents / 100)|number_format(2) }}</td>
+            <td>{{ line.currency_code|upper }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>{{ 'No line detail found.'|t }}</p>
+  {% endif %}
+</div>

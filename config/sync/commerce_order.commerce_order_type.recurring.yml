@@ -6,8 +6,10 @@ dependencies:
     - commerce_recurring
 _core:
   default_config_hash: alBtcl93cZUqOuWKBA9ltV1C-XnMEvXgiagdjOkpj2Y
-label: Recurring
 id: recurring
+label: Recurring
+traits: {  }
+locked: true
 workflow: order_recurring
 showOrderEditLinks: null
 numberPattern: null
@@ -16,5 +18,3 @@ refresh_frequency: 300
 sendReceipt: false
 receiptBcc: ''
 receiptSubject: ''
-traits: {  }
-locked: true

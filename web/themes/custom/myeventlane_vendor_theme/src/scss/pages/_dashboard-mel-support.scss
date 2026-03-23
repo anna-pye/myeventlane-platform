@@ -1,0 +1,131 @@
+/**
+ * @file
+ * Dashboard footer strip — Support MyEventLane (MEL brand).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+.mel-dashboard-mel-support {
+  margin: $spacing-6 $spacing-4 $spacing-4;
+  padding: 0;
+
+  @include respond-to(md) {
+    margin: $spacing-8 $spacing-6 $spacing-5;
+  }
+}
+
+.mel-dashboard-mel-support__inner {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: $spacing-4;
+  align-items: center;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: $spacing-5 $spacing-5 $spacing-6;
+  border-radius: $radius-card;
+  border: 1px solid rgba($wizard-coral, 0.35);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 248, 245, 0.98) 42%, rgba(245, 241, 255, 0.55) 100%);
+  box-shadow:
+    0 12px 40px rgba(13, 21, 32, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+
+  @include respond-to(md) {
+    grid-template-columns: auto 1fr auto;
+    gap: $spacing-6;
+    padding: $spacing-6 $spacing-8;
+  }
+
+  // Soft MEL “ribbon” accent
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    border-radius: $radius-card 0 0 $radius-card;
+    background: linear-gradient(180deg, $wizard-coral 0%, #c084fc 55%, $ml-vendor-navy 100%);
+    opacity: 0.9;
+  }
+}
+
+.mel-dashboard-mel-support__brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+
+  @include respond-to(md) {
+    justify-content: flex-start;
+  }
+}
+
+.mel-dashboard-mel-support__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: 0 $spacing-2;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(145deg, $wizard-coral 0%, #e85a5a 40%, $ml-vendor-navy 180%);
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.35);
+}
+
+.mel-dashboard-mel-support__copy {
+  min-width: 0;
+}
+
+.mel-dashboard-mel-support__title {
+  margin: 0 0 $spacing-2;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: $ml-vendor-navy;
+}
+
+.mel-dashboard-mel-support__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: $ml-slate-600;
+  max-width: 52ch;
+}
+
+.mel-dashboard-mel-support__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $spacing-2;
+
+  @include respond-to(md) {
+    align-items: flex-end;
+    text-align: right;
+  }
+}
+
+.mel-dashboard-mel-support__cta {
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(255, 107, 107, 0.28);
+}
+
+.mel-dashboard-mel-support__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: $ml-slate-500;
+
+  @include respond-to(md) {
+    max-width: 16rem;
+  }
+}

@@ -1,18 +1,19 @@
 {#
 /**
  * @file
- * RSVP public form wrapper.
+ * RSVP public form wrapper (event book page when no $0 Commerce product).
  *
  * IMPORTANT:
- * - Render the form exactly once to avoid duplicate buttons.
- * - Styling and sticky CTA are handled via CSS/JS by targeting .form-actions.
+ * - Use {{ children }} for the form subtree. Do not render the full element as
+ *   "form" — that re-invokes the form theme and nests <form> tags, which breaks
+ *   browser submission and legal consent POST data.
+ * - Styling and sticky CTA use CSS/JS targeting .form-actions.
  *
- * Available variables:
- * - form: The form render array.
- * - attributes: Form attributes.
+ * Available variables (see system form.html.twig / FormPreprocess::preprocessForm):
+ * - attributes: Form element attributes.
+ * - children: Pre-rendered child elements of the form.
  */
 #}
-
 <form{{ attributes }}>
   <div class="mel-rsvp">
     <div class="mel-rsvp__shell">
@@ -23,7 +24,7 @@
 
       <div class="mel-rsvp__card">
         <div class="mel-rsvp__content">
-          {{ form }}
+          {{ children }}
         </div>
       </div>
 

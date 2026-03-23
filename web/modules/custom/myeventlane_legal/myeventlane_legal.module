@@ -23,26 +23,41 @@ function myeventlane_legal_form_alter(array &$form, FormStateInterface $form_sta
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter() for myeventlane_rsvp_public_form.
+ *
+ * Combined form alters merge hook_form_alter() and hook_form_FORM_ID_alter() per
+ * module. This second pass re-applies guarantees after any other module's
+ * generic hook_form_alter that might run later in the same combined list.
+ */
+function myeventlane_legal_form_myeventlane_rsvp_public_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  \Drupal::service('myeventlane_legal.rsvp_alter')->enforceLegalConsentNonCoreRequired($form);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for myeventlane_commerce_rsvp_booking_form.
+ *
+ * @see myeventlane_legal_form_myeventlane_rsvp_public_form_alter()
+ */
+function myeventlane_legal_form_myeventlane_commerce_rsvp_booking_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  \Drupal::service('myeventlane_legal.rsvp_alter')->enforceLegalConsentNonCoreRequired($form);
+}
+
+/**
  * Implements hook_entity_presave().
  *
- * Applies pending legal consent to new rsvp_submission entities.
+ * Applies runtime RSVP legal consent attached before save (see RsvpSubmissionManager).
  */
 function myeventlane_legal_entity_presave(\Drupal\Core\Entity\EntityInterface $entity): void {
-  if ($entity->getEntityTypeId() !== 'rsvp_submission' || !$entity->isNew()) {
+  if ($entity->getEntityTypeId() !== 'rsvp_submission') {
     return;
   }
-  $pending = \Drupal\myeventlane_legal\Service\RsvpLegalAlter::$pendingLegalConsent ?? NULL;
-  if ($pending === NULL) {
+  $consent = $entity->_myeventlaneLegalConsent ?? NULL;
+  if (empty($consent) || !is_array($consent)) {
     return;
   }
 
-  \Drupal\myeventlane_legal\Service\RsvpLegalConsentHelper::populateSubmission(
-    $entity,
-    $pending['legal'],
-    $pending['legal_settings'],
-    $pending['timestamp']
-  );
-  \Drupal\myeventlane_legal\Service\RsvpLegalAlter::$pendingLegalConsent = NULL;
+  \Drupal::service('myeventlane_legal.consent_helper')->applyConsentToEntity($entity, $consent);
+  $entity->_myeventlaneLegalConsent = NULL;
 }
 
 /**

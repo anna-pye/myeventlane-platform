@@ -3,13 +3,19 @@ services:
     class: Drupal\myeventlane_legal\Service\RsvpLegalAlter
     arguments:
       - '@myeventlane_legal.settings'
-      - '@datetime.time'
+      - '@request_stack'
 
   myeventlane_legal.registration_alter:
     class: Drupal\myeventlane_legal\Form\UserRegisterLegalAlter
     arguments:
       - '@myeventlane_legal.settings'
       - '@current_user'
+      - '@datetime.time'
+
+  myeventlane_legal.consent_helper:
+    class: Drupal\myeventlane_legal\Service\RsvpSubmissionConsentHelper
+    arguments:
+      - '@myeventlane_legal.settings'
       - '@datetime.time'
 
   myeventlane_legal.settings:
