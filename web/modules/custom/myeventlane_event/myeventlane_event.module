@@ -118,6 +118,16 @@ function myeventlane_event_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'event-wizard-success',
     ],
+    'mel_checkin_page' => [
+      'variables' => [
+        'event' => NULL,
+        'event_id' => NULL,
+        'validate_url' => NULL,
+        'search_url' => NULL,
+        'csrf_token' => NULL,
+      ],
+      'template' => 'mel-checkin-page',
+    ],
   ];
 }
 

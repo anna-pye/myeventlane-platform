@@ -27,3 +27,14 @@ wizard_fixes:
       css/wizard-fixes.css: {}
   dependencies:
     - core/drupal
+
+door_checkin:
+  css:
+    theme:
+      css/mel-door-checkin.css: {}
+  js:
+    js/mel-door-checkin.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

@@ -3,9 +3,11 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService
     arguments:
       - '@date.formatter'
+      - '@module_handler'
       - '@?myeventlane_vendor.service.ticket_sales'
       - '@?myeventlane_vendor.service.rsvp_stats'
       - '@?myeventlane_capacity.service'
+      - '@?myeventlane_event.stats'
 
   myeventlane_checkout_flow.checkout_ux_attacher:
     class: Drupal\myeventlane_checkout_flow\Service\CheckoutUxAttacher

@@ -47,6 +47,9 @@
 @use 'components/tooltips';
 @use 'components/forms' as form-components;
 @use 'components/kpi-cards';
+@use 'components/attendees-kpi-bar';
+@use 'components/attendees-event-card';
+@use 'components/mel-checkin';
 @use 'components/charts';
 @use 'components/badges';
 @use 'components/lists';

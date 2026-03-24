@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event\Service\EventStatsService;
 use Drupal\node\NodeInterface;
 
 /**
  * Batch stats service for the Attendees & Sales dashboard.
  *
- * Provides ticket counts, revenue, capacity, and KPIs for multiple events.
- * Uses TicketSalesService, RsvpStatsService, and EventCapacityService when
- * available. All optional to avoid hard dependencies.
+ * Uses EventStatsService when available (single-query Commerce + RSVP stats,
+ * cached). Falls back to TicketSalesService, RsvpStatsService, and
+ * EventCapacityService when the new service is unavailable.
  */
 final class AttendeeEventStatsService {
 
@@ -28,12 +30,18 @@ final class AttendeeEventStatsService {
    *   The RSVP stats service (optional).
    * @param \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface|null $capacityService
    *   The capacity service (optional).
+   * @param \Drupal\myeventlane_event\Service\EventStatsService|null $eventStats
+   *   Aggregated event stats (optional).
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
+   *   The module handler.
    */
   public function __construct(
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ?\Drupal\myeventlane_vendor\Service\TicketSalesService $ticketSales = NULL,
     private readonly ?\Drupal\myeventlane_vendor\Service\RsvpStatsService $rsvpStats = NULL,
     private readonly ?\Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacityService = NULL,
+    private readonly ?EventStatsService $eventStats = NULL,
   ) {}
 
   /**
@@ -63,53 +71,76 @@ final class AttendeeEventStatsService {
 
       $eventId = (int) $event->id();
 
-      // Sales summary (tickets sold, revenue).
       $ticketsSold = 0;
       $revenue = 0.0;
-      if ($this->ticketSales !== NULL) {
-        try {
-          $summary = $this->ticketSales->getSalesSummary($event);
-          $ticketsSold = (int) ($summary['tickets_sold'] ?? 0);
-          $revenue = (float) ($summary['gross_raw'] ?? 0.0);
-        }
-        catch (\Throwable $e) {
-          // Fallback to 0 on error.
-        }
-      }
-
-      // RSVPs.
       $rsvps = 0;
-      if ($this->rsvpStats !== NULL) {
+      $totalTickets = 0;
+      $soldPercentage = 0.0;
+      $attendees = 0;
+      $usedEventStats = FALSE;
+
+      if ($this->eventStats !== NULL) {
         try {
-          $rsvps = (int) $this->rsvpStats->getEventRsvpCount($eventId);
+          $stats = $this->eventStats->getEventStats($eventId);
+          $ticketsSold = (int) ($stats['tickets_sold'] ?? 0);
+          $revenue = (float) ($stats['revenue_total'] ?? 0.0);
+          $rsvps = (int) ($stats['rsvp_count'] ?? 0);
+          $totalTickets = (int) ($stats['tickets_total'] ?? 0);
+          $soldPercentage = (float) ($stats['sold_percentage'] ?? 0.0);
+          $attendees = (int) ($stats['attendees_count'] ?? ($ticketsSold + $rsvps));
+          $usedEventStats = TRUE;
         }
         catch (\Throwable $e) {
-          // Fallback to 0.
+          $usedEventStats = FALSE;
         }
       }
 
-      $attendees = $ticketsSold + $rsvps;
-
-      // Capacity and sold percentage.
-      $capacity = NULL;
-      if ($this->capacityService !== NULL) {
-        try {
-          $capacity = $this->capacityService->getCapacityTotal($event);
+      if (!$usedEventStats) {
+        // Sales summary (tickets sold, revenue).
+        if ($this->ticketSales !== NULL) {
+          try {
+            $summary = $this->ticketSales->getSalesSummary($event);
+            $ticketsSold = (int) ($summary['tickets_sold'] ?? 0);
+            $revenue = (float) ($summary['gross_raw'] ?? 0.0);
+          }
+          catch (\Throwable $e) {
+            // Fallback to 0 on error.
+          }
         }
-        catch (\Throwable $e) {
-          // Leave capacity null.
+
+        // RSVPs.
+        if ($this->rsvpStats !== NULL) {
+          try {
+            $rsvps = (int) $this->rsvpStats->getEventRsvpCount($eventId);
+          }
+          catch (\Throwable $e) {
+            // Fallback to 0.
+          }
         }
-      }
 
-      $totalTickets = $capacity ?? $ticketsSold;
-      if ($totalTickets <= 0) {
-        $totalTickets = max(1, $ticketsSold);
-      }
+        // Capacity and sold percentage.
+        $capacity = NULL;
+        if ($this->capacityService !== NULL) {
+          try {
+            $capacity = $this->capacityService->getCapacityTotal($event);
+          }
+          catch (\Throwable $e) {
+            // Leave capacity null.
+          }
+        }
 
-      $filled = $ticketsSold + $rsvps;
-      $soldPercentage = $totalTickets > 0
-        ? min(100.0, round(100.0 * $filled / $totalTickets, 1))
-        : 0.0;
+        $totalTickets = $capacity ?? $ticketsSold;
+        if ($totalTickets <= 0) {
+          $totalTickets = max(1, $ticketsSold + $rsvps);
+        }
+
+        $filled = $ticketsSold + $rsvps;
+        $soldPercentage = $totalTickets > 0
+          ? min(100.0, round(100.0 * $filled / $totalTickets, 1))
+          : 0.0;
+
+        $attendees = $ticketsSold + $rsvps;
+      }
 
       // Event date.
       $dateFormatted = '';
@@ -144,9 +175,22 @@ final class AttendeeEventStatsService {
       }
 
       // URLs via Drupal routes.
-      $checkinUrl = Url::fromRoute('myeventlane_checkout_flow.vendor_checkin', [
-        'node' => $eventId,
-      ])->toString();
+      $checkinUrl = '';
+      try {
+        $checkinUrl = Url::fromRoute('myeventlane_event.checkin_door', [
+          'event' => $eventId,
+        ])->toString();
+      }
+      catch (\Throwable $e) {
+        try {
+          $checkinUrl = Url::fromRoute('myeventlane_checkout_flow.vendor_checkin', [
+            'node' => $eventId,
+          ])->toString();
+        }
+        catch (\Throwable $e2) {
+          $checkinUrl = '';
+        }
+      }
 
       $attendeesUrl = Url::fromRoute('myeventlane_checkout_flow.vendor_event_attendees', [
         'node' => $eventId,
@@ -154,12 +198,12 @@ final class AttendeeEventStatsService {
 
       $exportUrl = '';
       try {
-        if (\Drupal::moduleHandler()->moduleExists('myeventlane_event_attendees')) {
+        if ($this->moduleHandler->moduleExists('myeventlane_event_attendees')) {
           $exportUrl = Url::fromRoute('myeventlane_event_attendees.vendor_export', [
             'node' => $eventId,
           ])->toString();
         }
-        elseif (\Drupal::moduleHandler()->moduleExists('myeventlane_views')) {
+        elseif ($this->moduleHandler->moduleExists('myeventlane_views')) {
           $exportUrl = Url::fromRoute('myeventlane_views.attendee_csv', [], [
             'query' => ['download_csv' => $eventId],
           ])->toString();

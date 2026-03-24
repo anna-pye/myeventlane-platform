@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * Door Mode check-in: scan or search, JSON validate (no full reload).
+ *
+ * @var \Drupal\node\NodeInterface|null event
+ * @var int event_id
+ * @var string validate_url
+ * @var string search_url
+ * @var string csrf_token
+ */
+#}
+<div class="mel-checkin" data-mel-door-checkin>
+  <header class="mel-checkin__header">
+    <h1 class="mel-checkin__title">{{ 'Check-in'|t }}</h1>
+    {% if event %}
+      <p class="mel-checkin__event-name">{{ event.label() }}</p>
+    {% endif %}
+  </header>
+
+  <label class="visually-hidden" for="checkin-input">{{ 'Scan or type name'|t }}</label>
+  <input
+    type="text"
+    id="checkin-input"
+    class="mel-checkin__input"
+    autocomplete="off"
+    autocapitalize="words"
+    enterkeyhint="search"
+    inputmode="search"
+    placeholder="{{ 'Scan QR or search name or email'|t }}"
+  />
+
+  <div id="checkin-result" class="mel-checkin__result" role="status" aria-live="polite"></div>
+
+  <ul id="checkin-candidates" class="mel-checkin__candidates" hidden></ul>
+</div>

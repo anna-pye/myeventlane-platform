@@ -147,6 +147,37 @@ myeventlane_event.duplicate:
           - event
 
 # Series instance generation (manual trigger).
+# Door Mode: fast mobile check-in (JSON validate + search).
+myeventlane_event.checkin_door:
+  path: '/event/{event}/checkin'
+  defaults:
+    _controller: '\Drupal\myeventlane_event\Controller\CheckinController::doorMode'
+    _title: 'Check-in'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event\Controller\CheckinController::checkAccess'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_event.checkin_validate:
+  path: '/event/{event}/checkin/validate'
+  defaults:
+    _controller: '\Drupal\myeventlane_event\Controller\CheckinController::validate'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event\Controller\CheckinController::checkAccess'
+    _method: 'GET|POST'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 myeventlane_event.generate_series_instances:
   path: '/vendor/event/{event}/series/generate'
   defaults:

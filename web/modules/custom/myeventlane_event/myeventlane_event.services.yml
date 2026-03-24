@@ -1,4 +1,15 @@
 services:
+  logger.channel.myeventlane_event:
+    parent: logger.channel_base
+    arguments: ['myeventlane_event']
+
+  myeventlane_event.stats:
+    class: Drupal\myeventlane_event\Service\EventStatsService
+    arguments:
+      - '@database'
+      - '@cache.default'
+      - '@logger.channel.myeventlane_event'
+
   myeventlane_event.wizard_review_summary_builder:
     class: Drupal\myeventlane_event\Service\WizardReviewSummaryBuilder
     arguments:
