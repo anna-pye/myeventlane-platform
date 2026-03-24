@@ -69,6 +69,13 @@ function myeventlane_checkout_flow_theme(array $existing, string $type, string $
       'variables' => [
         'title' => NULL,
         'events' => [],
+        'mel_cards' => [],
+        'mel_kpis' => [
+          'events' => 0,
+          'tickets_sold' => 0,
+          'revenue' => '0.00',
+          'upcoming' => 0,
+        ],
       ],
       'template' => 'myeventlane-vendor-attendees-dashboard',
     ],

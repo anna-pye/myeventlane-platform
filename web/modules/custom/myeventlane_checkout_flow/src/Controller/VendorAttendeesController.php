@@ -10,6 +10,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -27,11 +28,16 @@ final class VendorAttendeesController extends ControllerBase {
    *   The entity type manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   The current user.
+   * @param \Drupal\myeventlane_core\Service\TicketLabelResolver $ticketLabelResolver
+   *   The ticket label resolver.
+   * @param \Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService|null $attendeeStats
+   *   The attendee event stats service (optional).
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     AccountProxyInterface $currentUser,
     private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly ?AttendeeEventStatsService $attendeeStats = NULL,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -44,7 +50,9 @@ final class VendorAttendeesController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
-      $container->get('myeventlane_core.ticket_label_resolver')
+      $container->get('myeventlane_core.ticket_label_resolver'),
+      $container->has('myeventlane_checkout_flow.attendee_event_stats')
+        ? $container->get('myeventlane_checkout_flow.attendee_event_stats') : NULL
     );
   }
 
@@ -100,7 +108,21 @@ final class VendorAttendeesController extends ControllerBase {
     // Get events owned by this vendor.
     $events = $this->getVendorEvents($store);
     $eventData = [];
+    $melCards = [];
+    $melKpis = [
+      'events' => 0,
+      'tickets_sold' => 0,
+      'revenue' => '0.00',
+      'upcoming' => 0,
+    ];
 
+    if ($this->attendeeStats !== NULL && !empty($events)) {
+      $stats = $this->attendeeStats->buildStatsForEvents(array_values($events));
+      $melCards = $stats['cards'];
+      $melKpis = $stats['kpis'];
+    }
+
+    // Legacy eventData for fallback.
     foreach ($events as $event) {
       $stats = $this->calculateEventStats($event);
       $eventData[] = [
@@ -121,6 +143,8 @@ final class VendorAttendeesController extends ControllerBase {
       '#theme' => 'myeventlane_vendor_attendees_dashboard',
       '#title' => $this->t('Attendees & Sales'),
       '#events' => $eventData,
+      '#mel_cards' => $melCards,
+      '#mel_kpis' => $melKpis,
       '#cache' => [
         'contexts' => ['user'],
         'tags' => ['node_list:event'],

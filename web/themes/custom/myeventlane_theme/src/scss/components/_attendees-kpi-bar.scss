@@ -1,0 +1,75 @@
+/**
+ * @file
+ * Attendees dashboard KPI summary bar.
+ *
+ * Top-of-page metrics for Events, Tickets Sold, Revenue, Upcoming.
+ * Mobile-first, pastel design system.
+ */
+
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/breakpoints';
+
+// =============================================================================
+// KPI Bar
+// =============================================================================
+
+.mel-attendees-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: spacing.mel-space(3);
+  margin-bottom: spacing.mel-space(5);
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mel-attendees-kpi-bar__kpi {
+  background: colors.$mel-color-pastel-lavender;
+  border-radius: radii.$mel-radius-md;
+  padding: spacing.mel-space(4);
+  border: 1px solid rgba(108, 126, 242, 0.08);
+  transition: box-shadow 0.2s ease;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: 0 4px 12px rgba(108, 126, 242, 0.06);
+    }
+  }
+}
+
+.mel-attendees-kpi-bar__label {
+  display: block;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  margin-bottom: spacing.mel-space(1);
+}
+
+.mel-attendees-kpi-bar__value {
+  font-size: typography.mel-font-size(2xl);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+  line-height: typography.$mel-leading-tight;
+
+  @include breakpoints.mel-break(md) {
+    font-size: typography.mel-font-size(3xl);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Page wrapper spacing
+// -----------------------------------------------------------------------------
+
+.mel-attendees-event-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0; // Cards have margin-bottom
+}
+
+.mel-attendees-empty__body {
+  text-align: center;
+  padding: spacing.mel-space(6) spacing.mel-space(5) !important;
+}
