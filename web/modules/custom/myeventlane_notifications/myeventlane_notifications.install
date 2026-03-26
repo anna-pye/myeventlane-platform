@@ -65,32 +65,62 @@ function myeventlane_notifications_apply_delivery_schema(): void {
 
   if ($schema->fieldExists($table, 'recipient_uid_target_id') &&
     !$schema->indexExists($table, 'mel_notif_delivery_recipient')) {
-    $schema->addIndex($table, 'mel_notif_delivery_recipient', ['recipient_uid_target_id']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_recipient',
+      ['recipient_uid_target_id'],
+      _myeventlane_notifications_delivery_index_spec(['recipient_uid_target_id'], 'mel_notif_delivery_recipient')
+    );
   }
 
   if ($schema->fieldExists($table, 'notification_id_target_id') &&
     !$schema->indexExists($table, 'mel_notif_delivery_notification')) {
-    $schema->addIndex($table, 'mel_notif_delivery_notification', ['notification_id_target_id']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_notification',
+      ['notification_id_target_id'],
+      _myeventlane_notifications_delivery_index_spec(['notification_id_target_id'], 'mel_notif_delivery_notification')
+    );
   }
 
   if ($schema->fieldExists($table, 'status') &&
     !$schema->indexExists($table, 'mel_notif_delivery_status')) {
-    $schema->addIndex($table, 'mel_notif_delivery_status', ['status']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_status',
+      ['status'],
+      _myeventlane_notifications_delivery_index_spec(['status'], 'mel_notif_delivery_status')
+    );
   }
 
   if ($schema->fieldExists($table, 'delivered_at') &&
     !$schema->indexExists($table, 'mel_notif_delivery_delivered')) {
-    $schema->addIndex($table, 'mel_notif_delivery_delivered', ['delivered_at']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_delivered',
+      ['delivered_at'],
+      _myeventlane_notifications_delivery_index_spec(['delivered_at'], 'mel_notif_delivery_delivered')
+    );
   }
 
   if ($schema->fieldExists($table, 'read_at') &&
     !$schema->indexExists($table, 'mel_notif_delivery_read')) {
-    $schema->addIndex($table, 'mel_notif_delivery_read', ['read_at']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_read',
+      ['read_at'],
+      _myeventlane_notifications_delivery_index_spec(['read_at'], 'mel_notif_delivery_read')
+    );
   }
 
   if ($schema->fieldExists($table, 'suppressed') &&
     !$schema->indexExists($table, 'mel_notif_delivery_suppressed')) {
-    $schema->addIndex($table, 'mel_notif_delivery_suppressed', ['suppressed']);
+    $schema->addIndex(
+      $table,
+      'mel_notif_delivery_suppressed',
+      ['suppressed'],
+      _myeventlane_notifications_delivery_index_spec(['suppressed'], 'mel_notif_delivery_suppressed')
+    );
   }
 
   if ($schema->fieldExists($table, 'notification_id_target_id') &&
@@ -224,4 +254,55 @@ function myeventlane_notifications_update_11005(): string {
     return (string) t('MEL delivery analytics fields install failed (see log).');
   }
   return (string) t('Installed MEL delivery analytics fields (clicked_at, suppressed, grouped).');
+}
+
+/**
+ * Builds a table spec fragment for Schema::addIndex() on MySQL (Drupal 11).
+ *
+ * @param string[] $columns
+ *   Indexed column names in order.
+ * @param string $index_name
+ *   Index name (must match the $name argument to addIndex()).
+ */
+function _myeventlane_notifications_delivery_index_spec(array $columns, string $index_name): array {
+  $definitions = [
+    'recipient_uid_target_id' => [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ],
+    'notification_id_target_id' => [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ],
+    'status' => [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+    ],
+    'delivered_at' => [
+      'type' => 'int',
+      'not null' => FALSE,
+    ],
+    'read_at' => [
+      'type' => 'int',
+      'not null' => FALSE,
+    ],
+    'suppressed' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => FALSE,
+    ],
+  ];
+  $fields = [];
+  foreach ($columns as $column) {
+    $fields[$column] = $definitions[$column];
+  }
+  return [
+    'fields' => $fields,
+    'indexes' => [
+      $index_name => $columns,
+    ],
+  ];
 }
