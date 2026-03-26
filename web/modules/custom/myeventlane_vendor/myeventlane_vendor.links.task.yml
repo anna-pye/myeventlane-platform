@@ -18,3 +18,46 @@ entity.myeventlane_vendor.delete_form:
   route_name: entity.myeventlane_vendor.delete_form
   base_route: entity.myeventlane_vendor.canonical
   weight: 20
+
+# Vendor event workspace — primary tabs (base_route shared; Boost + Refund use plugins).
+myeventlane_vendor.event_workspace.overview:
+  title: 'Overview'
+  route_name: myeventlane_vendor.console.event_overview
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -20
+
+myeventlane_vendor.event_workspace.tickets:
+  title: 'Tickets'
+  route_name: myeventlane_vendor.console.event_tickets
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -15
+
+myeventlane_vendor.event_workspace.orders:
+  title: 'Orders'
+  route_name: myeventlane_vendor.console.event_orders
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -12
+
+myeventlane_vendor.event_workspace.attendees:
+  title: 'Attendees'
+  route_name: myeventlane_vendor.console.event_attendees
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -8
+
+myeventlane_vendor.event_workspace.rsvps:
+  title: 'RSVPs'
+  route_name: myeventlane_vendor.console.event_rsvps
+  base_route: myeventlane_vendor.console.event_overview
+  weight: -6
+
+myeventlane_vendor.event_workspace.analytics:
+  title: 'Analytics'
+  route_name: myeventlane_vendor.console.event_analytics
+  base_route: myeventlane_vendor.console.event_overview
+  weight: 10
+
+myeventlane_vendor.event_workspace.settings:
+  title: 'Settings'
+  route_name: myeventlane_vendor.console.event_settings
+  base_route: myeventlane_vendor.console.event_overview
+  weight: 30

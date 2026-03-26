@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Compact contextual help card sourced from help_article nodes.
+ *
+ * Variables:
+ * - title: Article title.
+ * - summary: Short plain summary/teaser.
+ * - url: Canonical article URL.
+ * - read_more_label: Primary CTA label.
+ * - secondary_url: Optional second link (article or assistant).
+ * - secondary_label: Label for secondary link.
+ * - context: Internal context key (for analytics / theming).
+ * - audience: Optional audience string from field_audience.
+ */
+#}
+<article class="mel-contextual-help-card" data-mel-contextual-help="{{ context|e('html_attr') }}"{% if audience %} data-mel-help-audience="{{ audience|e('html_attr') }}"{% endif %}>
+  <p class="mel-contextual-help-card__label">{{ 'Help'|t }}</p>
+  <h2 class="mel-contextual-help-card__title">{{ title }}</h2>
+  {% if summary %}
+    <p class="mel-contextual-help-card__summary">{{ summary }}</p>
+  {% endif %}
+  <div class="mel-contextual-help-card__actions">
+    <a href="{{ url }}" class="mel-contextual-help-card__cta">{{ read_more_label }}</a>
+    {% if secondary_url and secondary_label %}
+      <a href="{{ secondary_url }}" class="mel-contextual-help-card__secondary">{{ secondary_label }}</a>
+    {% endif %}
+  </div>
+</article>

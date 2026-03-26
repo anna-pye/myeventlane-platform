@@ -7,7 +7,7 @@
  * Skips mel-admin-layout__grid so mel-case-console controls its own columns.
  */
 #}
-<div class="mel-admin-layout">
+<div class="mel-admin-layout{{ mel_admin_pcc_layout ? ' mel-admin-layout--pcc' : '' }}">
   {% if pcc_utility_links is defined and pcc_utility_links %}
   <div class="mel-pcc-utility-bar" role="navigation" aria-label="{{ 'Quick links'|t }}">
     <a href="{{ pcc_utility_links.main_site_url }}" class="mel-pcc-utility-bar__link">{{ 'Main Site'|t }}</a>

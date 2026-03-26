@@ -18,3 +18,19 @@ services:
       - '@logger.factory'
       - '@current_user'
       - '@datetime.time'
+      - '@event_dispatcher'
+
+  myeventlane_help_centre.contextual_help:
+    class: Drupal\myeventlane_help_centre\Service\ContextualHelpMap
+    arguments:
+      - '@config.factory'
+
+  myeventlane_help_centre.contextual_help_resolver:
+    class: Drupal\myeventlane_help_centre\Service\ContextualHelpResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@current_user'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_help_centre'
+      - '@string_translation'

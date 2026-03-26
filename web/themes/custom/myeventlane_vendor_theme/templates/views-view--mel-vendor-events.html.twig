@@ -1,0 +1,46 @@
+{#
+/**
+ * @file
+ * Main template for mel_vendor_events view (embeds / blocks).
+ *
+ * @see template_preprocess_views_view()
+ */
+#}
+{%
+  set classes = [
+    dom_id ? 'js-view-dom-id-' ~ dom_id,
+    'view',
+    'view-mel-vendor-events',
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  {{ title_prefix }}
+  {% if title %}
+    {{ title }}
+  {% endif %}
+  {{ title_suffix }}
+
+  {% if header %}
+    <header>{{ header }}</header>
+  {% endif %}
+
+  {{ exposed }}
+  {{ attachment_before }}
+
+  {% if rows %}
+    <div class="mel-events-wrapper" data-view-container data-view="list">
+      {{ rows }}
+    </div>
+  {% elseif empty %}
+    {{ empty }}
+  {% endif %}
+
+  {{ pager }}
+  {{ attachment_after }}
+  {{ more }}
+
+  {% if footer %}
+    <footer>{{ footer }}</footer>
+  {% endif %}
+  {{ feed_icons }}
+</div>

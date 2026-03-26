@@ -1,0 +1,21 @@
+uuid: a7b8c9d0-e1f2-3456-0123-567890123456
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_internal_only
+    - node.type.staff_playbook
+id: node.staff_playbook.field_internal_only
+field_name: field_internal_only
+entity_type: node
+bundle: staff_playbook
+label: 'Internal only'
+description: 'Reserved for future policy flags; staff playbooks remain access-controlled by permissions.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 1
+default_value_callback: ''
+settings: {  }
+field_type: boolean

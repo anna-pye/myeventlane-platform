@@ -90,18 +90,29 @@ final class VendorRefundForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, ?OrderInterface $commerce_order = NULL, ?NodeInterface $node = NULL): array {
     $form_state->set('event_id', (int) $this->getRequest()->query->get('event', 0));
     $form_state->set('order_id', (int) $this->getRequest()->query->get('order', 0));
+    $order = $commerce_order;
+    $event = $node instanceof NodeInterface ? $node : NULL;
 
-    if (!$commerce_order) {
+    if (!$order) {
       $orderId = (int) $this->getRequest()->query->get('order', 0);
       if ($orderId > 0) {
         $loadedOrder = $this->entityTypeManager->getStorage('commerce_order')->load($orderId);
         if ($loadedOrder instanceof OrderInterface) {
-          $commerce_order = $loadedOrder;
+          $order = $loadedOrder;
         }
       }
     }
 
-    if (!$commerce_order) {
+    $eventId = (int) $this->getRequest()->query->get('event', $event?->id() ?? 0);
+    if ($eventId > 0 && !$event) {
+      $nodeStorage = $this->entityTypeManager->getStorage('node');
+      $loadedEvent = $nodeStorage->load($eventId);
+      if ($loadedEvent instanceof NodeInterface) {
+        $event = $loadedEvent;
+      }
+    }
+
+    if (!$order) {
       $form['error'] = [
         '#type' => 'markup',
         '#markup' => '<p>' . $this->t('Order parameter required.') . '</p>',
@@ -109,7 +120,6 @@ final class VendorRefundForm extends FormBase {
       return $form;
     }
 
-    $eventId = (int) $this->getRequest()->query->get('event', $node?->id() ?? 0);
     if (!$eventId) {
       $form['error'] = [
         '#type' => 'markup',
@@ -118,8 +128,6 @@ final class VendorRefundForm extends FormBase {
       return $form;
     }
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $event = $nodeStorage->load($eventId);
     if (!$event instanceof NodeInterface) {
       $form['error'] = [
         '#type' => 'markup',
@@ -128,13 +136,39 @@ final class VendorRefundForm extends FormBase {
       return $form;
     }
 
-    $form['#order'] = $commerce_order;
+    $form['#order'] = $order;
     $form['#event'] = $event;
 
+    $timelineRows = $this->refundProcessor->getRefundTimelineForOrder((int) $order->id());
+    $forEvent = array_values(array_filter(
+      array_values($timelineRows),
+      static function ($row) use ($eventId): bool {
+        return is_object($row) && isset($row->event_id) && (int) $row->event_id === $eventId;
+      }
+    ));
+    if ($forEvent !== []) {
+      $recent = array_slice($forEvent, -2);
+      $form['refund_history'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-refund-form-history']],
+        '#weight' => -20,
+        'intro' => [
+          '#type' => 'markup',
+          '#markup' => '<p class="mel-text--muted">' . $this->t('Recent refund activity for this order.') . '</p>',
+        ],
+        'timeline' => [
+          '#theme' => 'mel_refund_timeline',
+          '#items' => $recent,
+          '#variant' => 'compact',
+        ],
+      ];
+      $form['#attached']['library'] = array_merge($form['#attached']['library'] ?? [], ['myeventlane_refunds/mel_refund_ui']);
+    }
+
     // Calculate amounts.
-    $ticketSubtotalCents = $this->orderInspector->calculateTicketSubtotalCents($commerce_order, $eventId);
-    $donationTotalCents = $this->orderInspector->calculateDonationTotalCents($commerce_order);
-    $refundableCents = $this->orderInspector->calculateRefundableAmountCents($commerce_order);
+    $ticketSubtotalCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
+    $donationTotalCents = $this->orderInspector->calculateDonationTotalCents($order);
+    $refundableCents = $this->orderInspector->calculateRefundableAmountCents($order);
 
     $ticketSubtotal = $ticketSubtotalCents / 100;
     $donationTotal = $donationTotalCents / 100;
@@ -188,7 +222,7 @@ final class VendorRefundForm extends FormBase {
       ],
     ];
 
-    $partialAttendees = $this->orderInspector->getRefundableTicketAttendeeBreakdown($commerce_order, $eventId);
+    $partialAttendees = $this->orderInspector->getRefundableTicketAttendeeBreakdown($order, $eventId);
     $attendeeOptions = [];
     foreach ($partialAttendees as $attendeeId => $entry) {
       $attendee = $entry['attendee'];
@@ -219,11 +253,6 @@ final class VendorRefundForm extends FormBase {
         '#title' => $this->t('Select attendee(s) to refund'),
         '#options' => $attendeeOptions,
         '#description' => $this->t('Refund amount is automatically calculated from selected ticket attendee(s).'),
-        '#states' => [
-          'required' => [
-            ':input[name="refund_type"]' => ['value' => 'partial'],
-          ],
-        ],
       ];
 
       $form['partial_refund']['amount_preview'] = [
@@ -270,6 +299,7 @@ final class VendorRefundForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Refund Now'),
       '#button_type' => 'primary',
+      '#submit' => ['::submitForm'],
     ];
 
     $form['actions']['cancel'] = [
@@ -292,6 +322,7 @@ final class VendorRefundForm extends FormBase {
     if ($refundType === 'partial') {
       if ((bool) $form_state->getValue('include_donation')) {
         $form_state->setErrorByName('include_donation', $this->t('Donation inclusion is only supported for full refunds.'));
+        $this->messenger()->addError($this->t('Donation inclusion is only supported for full refunds.'));
       }
 
       $selectedValues = (array) $form_state->getValue(['partial_refund', 'attendee_ids'], []);
@@ -301,6 +332,7 @@ final class VendorRefundForm extends FormBase {
       $selectedAttendeeIds = array_values(array_filter(array_map('intval', $selectedValues)));
       if (empty($selectedAttendeeIds)) {
         $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Select at least one attendee for partial refund.'));
+        $this->messenger()->addError($this->t('Select at least one attendee for partial refund.'));
         return;
       }
 
@@ -313,17 +345,20 @@ final class VendorRefundForm extends FormBase {
       }
       catch (\InvalidArgumentException $e) {
         $form_state->setErrorByName('partial_refund][attendee_ids', $this->t($e->getMessage()));
+        $this->messenger()->addError($this->t($e->getMessage()));
         return;
       }
 
       if ($amountCents <= 0) {
         $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Selected attendees resolve to zero refund amount.'));
+        $this->messenger()->addError($this->t('Selected attendees resolve to zero refund amount.'));
       }
 
       $refundableCents = $this->orderInspector->calculateRefundableAmountCents($order);
       if ($amountCents > $refundableCents) {
         $refundable = $refundableCents / 100;
         $form_state->setErrorByName('partial_refund][attendee_ids', $this->t('Selected attendees exceed refundable amount ($@max).', ['@max' => number_format($refundable, 2)]));
+        $this->messenger()->addError($this->t('Selected attendees exceed refundable amount ($@max).', ['@max' => number_format($refundable, 2)]));
       }
 
       $form_state->set('partial_refund_amount_cents', $amountCents);
@@ -337,36 +372,63 @@ final class VendorRefundForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $order = $form['#order'];
     $event = $form['#event'];
-    $account = $this->currentUser();
-
     $refundType = $form_state->getValue('refund_type');
     $includeDonation = (bool) $form_state->getValue('include_donation');
-    $reason = $form_state->getValue('reason') ?? '';
+    $reason = trim((string) ($form_state->getValue('reason') ?? ''));
+    $eventId = (int) $event->id();
+    $amountCents = 0;
 
-    $refundScope = 'tickets_only';
-    if ($includeDonation) {
-      $refundScope = 'tickets_and_donation';
+    if ($refundType === 'partial') {
+      $amountCents = (int) $form_state->get('partial_refund_amount_cents');
+    }
+    else {
+      $amountCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
+      if ($includeDonation) {
+        $amountCents += $this->orderInspector->calculateDonationTotalCents($order);
+      }
     }
 
-    $refundPayload = [
-      'refund_type' => $refundType,
-      'refund_scope' => $refundScope,
-      'include_donation' => $includeDonation,
+    $totalPrice = $order->getTotalPrice();
+    $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
+    $payload = [
+      'amount_cents' => $amountCents,
+      'currency' => $currency,
+      'refund_type' => 'vendor',
+      'refund_scope' => 'order',
       'reason' => $reason,
     ];
 
-    if ($refundType === 'partial') {
-      $refundPayload['amount_cents'] = (int) $form_state->get('partial_refund_amount_cents');
-      $refundPayload['attendee_ids'] = (array) $form_state->get('partial_refund_attendee_ids');
-    }
-
     try {
-      $logId = $this->refundProcessor->requestRefund($order, $event, $account, $refundPayload);
-      $this->messenger()->addStatus($this->t('Refund request submitted successfully. Refund ID: @log_id', ['@log_id' => $logId]));
+      $logId = $this->refundProcessor->requestRefund(
+        $order,
+        $event,
+        $this->currentUser(),
+        $payload
+      );
+      $log = $this->refundProcessor->loadRefundLog($logId);
+      $status = (string) ($log['status'] ?? RefundProcessor::STATUS_PROCESSING);
+      switch ($status) {
+        case RefundProcessor::STATUS_COMPLETED:
+          $this->messenger()->addStatus($this->t('Refund complete — the money is on its way back now.'));
+          break;
+
+        case RefundProcessor::STATUS_PARTIAL:
+          $this->messenger()->addWarning($this->t('Refund in progress — this usually takes a few minutes.'));
+          break;
+
+        case RefundProcessor::STATUS_PENDING_CONFIRMATION:
+          $this->messenger()->addStatus($this->t('Refund in progress — this usually takes a few minutes.'));
+          break;
+
+        case RefundProcessor::STATUS_PROCESSING:
+        default:
+          $this->messenger()->addStatus($this->t('Refund in progress — this usually takes a few minutes.'));
+          break;
+      }
       $form_state->setRedirect('myeventlane_vendor.console.event_orders', ['event' => $event->id()]);
     }
-    catch (\Exception $e) {
-      $this->messenger()->addError($this->t('Failed to submit refund request: @message', ['@message' => $e->getMessage()]));
+    catch (\Throwable $e) {
+      $this->messenger()->addError($this->t('Refund failed — no money has been returned. You can retry safely.'));
       $this->getLogger('myeventlane_refunds')->error('Refund request failed: @message', [
         '@message' => $e->getMessage(),
       ]);

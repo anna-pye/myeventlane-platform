@@ -1,13 +1,19 @@
 {#
 /**
  * @file
- * Vendor MEL % billing overview.
+ * Vendor MEL % billing overview (Phase 3 + Phase 4 auto-billing).
  */
 #}
 <div class="mel-mel-billing">
-  <h2 class="visually-hidden">{{ 'MEL contributions'|t }}</h2>
+  <h1 class="mel-mel-billing__title">{{ 'MEL contributions'|t }} 💖</h1>
 
-  <div class="mel-mel-billing__kpis">
+  {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
+    <div class="mel-contextual-help mel-contextual-help--vendor-console mel-mb-3">
+      {{ mel_vendor_contextual_help }}
+    </div>
+  {% endif %}
+
+  <div class="mel-mel-billing__kpis mel-billing-card">
     <div class="mel-mel-billing__kpi">
       <div class="mel-mel-billing__kpi-label">{{ 'Unbilled accrual (by currency)'|t }}</div>
       <div class="mel-mel-billing__kpi-value">
@@ -46,7 +52,31 @@
     </div>
   </div>
 
-  <h3>{{ 'Invoices'|t }}</h3>
+  {# Auto-billing section #}
+  <section class="mel-mel-billing__auto mel-billing-card" aria-labelledby="mel-auto-billing-title">
+    <h2 id="mel-auto-billing-title" class="mel-mel-billing__section-title">{{ 'Automatic payments'|t }}</h2>
+    <p class="mel-mel-billing__section-desc">{{ 'Save time by automatically paying your MEL contributions. This is optional.'|t }}</p>
+
+    {% if billing_prefs|default({}).has_payment_method|default(false) %}
+      <div class="mel-mel-billing__auto-on">
+        <p class="mel-mel-billing__card-display">
+          {{ 'Card ending in ****'|t }} {{ billing_prefs|default({}).last4|default('****') }}
+        </p>
+        <div class="mel-mel-billing__auto-actions">
+          <a href="{{ save_payment_url }}" class="mel-btn mel-btn--secondary">{{ 'Update payment method'|t }}</a>
+          <a href="{{ remove_payment_url }}" class="mel-btn mel-btn--outline">{{ 'Remove payment method'|t }}</a>
+        </div>
+        <p class="mel-mel-billing__auto-status"><strong>{{ 'Automatic payments: ON'|t }}</strong></p>
+      </div>
+    {% else %}
+      <div class="mel-mel-billing__auto-off">
+        <a href="{{ save_payment_url }}" class="mel-btn mel-btn--primary mel-btn--coral">{{ 'Enable automatic payments'|t }}</a>
+        <p class="mel-mel-billing__consent-note">{{ 'By enabling, you authorise MyEventLane to charge your saved payment method for future invoices.'|t }}</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <h3 class="mel-mel-billing__invoices-title">{{ 'Invoices'|t }}</h3>
   {% if invoices is iterable and invoices|length > 0 %}
     <table>
       <thead>
@@ -65,12 +95,18 @@
             <td>{{ inv.id }}</td>
             <td>{{ (inv.total_amount_cents / 100)|number_format(2) }} {{ inv.currency_code|upper }}</td>
             <td>{{ (inv.paid_amount_cents / 100)|number_format(2) }}</td>
-            <td>{{ inv.status }}</td>
+            <td>
+              {% if inv.status == 'failed' %}
+                <span class="mel-mel-billing__status--failed">{{ 'Payment failed'|t }}</span>
+              {% else %}
+                {{ inv.status }}
+              {% endif %}
+            </td>
             <td>{% if inv.due_date %}{{ inv.due_date|date('Y-m-d') }}{% else %}—{% endif %}</td>
             <td class="mel-mel-billing__actions">
-              <a href="{{ path('myeventlane_donations.vendor_mel_invoice', {'invoice': inv.id}) }}">{{ 'View'|t }}</a>
+              <a href="{{ path('myeventlane_donations.vendor_mel_invoice', {'invoice': inv.id}) }}">{{ 'View details'|t }}</a>
               {% if inv.status not in ['paid', 'void'] and inv.remaining_cents > 0 %}
-                <a href="{{ path('myeventlane_donations.vendor_mel_invoice_pay', {'invoice': inv.id}) }}">{{ 'Pay now'|t }}</a>
+                <a href="{{ path('myeventlane_donations.vendor_mel_invoice_pay', {'invoice': inv.id}) }}" class="mel-btn mel-btn--primary">{{ 'Pay now'|t }}</a>
               {% endif %}
             </td>
           </tr>

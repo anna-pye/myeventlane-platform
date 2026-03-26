@@ -26,6 +26,11 @@
   margin-bottom: 1rem;
 }
 
+.pcc__header--actions-only {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .pcc__title {
   margin: 0;
   font-size: clamp(1.25rem, 2vw, 1.75rem);

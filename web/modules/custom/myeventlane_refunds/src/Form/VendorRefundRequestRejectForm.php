@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_refunds\Form;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -53,7 +54,7 @@ final class VendorRefundRequestRejectForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'myeventlane_refunds_vendor_reject_form';
+    return 'myeventlane_refunds_organiser_reject_form';
   }
 
   /**
@@ -87,21 +88,27 @@ final class VendorRefundRequestRejectForm extends FormBase {
 
     $form['#node'] = $node;
     $form['#refund_request'] = $req;
-
-    $amount = number_format($req['amount_cents'] / 100, 2);
-    $currency = strtoupper($req['currency']);
+    $form['#id'] = Html::getId($this->getFormId());
+    $form['#action'] = Url::fromRoute('myeventlane_refunds.vendor_refund_request_reject', [
+      'node' => (int) $event->id(),
+      'refund_request' => (int) $req['id'],
+    ])->toString();
+    $form['#attributes']['class'][] = Html::getClass($this->getFormId());
+    $form['#attributes']['data-drupal-selector'] = Html::getId($this->getFormId());
+    $form['#attributes']['method'] = 'post';
+    $form['form_id'] = [
+      '#type' => 'hidden',
+      '#value' => $this->getFormId(),
+    ];
+    $form_state->set('refund_request', $req);
 
     $form['info'] = [
-      '#type' => 'markup',
-      '#markup' => '<p>' . $this->t('Rejecting refund request for @amount. The buyer will be notified.', [
-        '@amount' => $currency . ' ' . $amount,
-      ]) . '</p>',
+      '#markup' => '<p>' . $this->t('This request will be declined. The buyer will receive your message.') . '</p>',
     ];
 
     $form['decision_reason'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Reason for rejection'),
-      '#description' => $this->t('This will be included in the email to the buyer.'),
+      '#title' => $this->t('Message to buyer'),
       '#required' => TRUE,
       '#rows' => 4,
     ];
@@ -112,16 +119,11 @@ final class VendorRefundRequestRejectForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Reject refund request'),
+      '#value' => $this->t('Decline request'),
       '#button_type' => 'primary',
-    ];
-
-    $nodeId = $node instanceof NodeInterface ? $node->id() : (is_numeric($node) ? $node : NULL);
-    $form['actions']['cancel'] = [
-      '#type' => 'link',
-      '#title' => $this->t('Cancel'),
-      '#url' => Url::fromRoute('myeventlane_refunds.vendor_refund_requests', ['node' => $nodeId ?? 0]),
-      '#attributes' => ['class' => ['button']],
+      '#attributes' => [
+        'class' => ['mel-force-submit'],
+      ],
     ];
 
     return $form;
@@ -130,17 +132,27 @@ final class VendorRefundRequestRejectForm extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $reason = trim((string) $form_state->getValue('decision_reason'));
+
+    if ($reason === '') {
+      $form_state->setErrorByName('decision_reason', $this->t('Add a short note so the buyer understands why this refund wasn’t approved.'));
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $req = $form['#refund_request'] ?? NULL;
+    $req = $form_state->get('refund_request') ?? $form['#refund_request'] ?? NULL;
+
     if (!$req) {
+      $this->getLogger('myeventlane_refunds')->error('Reject form: missing refund request.');
+      $this->messenger()->addError($this->t('Something went wrong. Please refresh and try again.'));
       return;
     }
 
     $reason = trim((string) $form_state->getValue('decision_reason'));
-    if ($reason === '') {
-      $form_state->setErrorByName('decision_reason', $this->t('Reason is required.'));
-      return;
-    }
 
     try {
       $this->refundProcessor->rejectBuyerRefundRequest(
@@ -148,16 +160,29 @@ final class VendorRefundRequestRejectForm extends FormBase {
         $this->currentUser(),
         $reason
       );
-      $this->messenger()->addStatus($this->t('Refund request rejected. The buyer has been notified.'));
+
+      $this->messenger()->addStatus(
+        $this->t('Refund request declined — the buyer has been notified with your message.')
+      );
     }
-    catch (\Exception $e) {
-      $this->messenger()->addError($this->t('Rejection failed: @message', ['@message' => $e->getMessage()]));
+    catch (\Throwable $e) {
+      $this->getLogger('myeventlane_refunds')->error('Reject failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+
+      $this->messenger()->addError(
+        $this->t('Couldn’t save this decision. No changes were made.')
+      );
+
       return;
     }
 
-    $node = $form['#node'];
-    $nodeId = $node instanceof NodeInterface ? $node->id() : (is_numeric($node) ? $node : NULL);
-    $form_state->setRedirect('myeventlane_refunds.vendor_refund_requests', ['node' => $nodeId ?? 0]);
+    $node = $form['#node'] ?? NULL;
+    $nodeId = $node ? $node->id() : 0;
+
+    $form_state->setRedirect('myeventlane_refunds.vendor_refund_requests', [
+      'node' => $nodeId,
+    ]);
   }
 
 }

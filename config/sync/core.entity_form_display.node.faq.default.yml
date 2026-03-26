@@ -4,10 +4,12 @@ status: true
 dependencies:
   config:
     - field.field.node.faq.body
+    - field.field.node.faq.field_audience
     - field.field.node.faq.field_help_audience
     - field.field.node.faq.field_help_category
     - node.type.faq
   module:
+    - options
     - path
     - text
 id: node.faq.default
@@ -28,6 +30,12 @@ content:
   created:
     type: datetime_timestamp
     weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_audience:
+    type: options_buttons
+    weight: 4
     region: content
     settings: {  }
     third_party_settings: {  }

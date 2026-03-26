@@ -9,8 +9,8 @@
 // FONT FAMILIES
 // ============================================================================
 
-// Primary font stack - Inter with system fallbacks
-$font-family-sans: 'Inter', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+// Primary font stack — rounded sans (Nunito first for MEL product surfaces)
+$font-family-sans: 'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 $font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
 
 // ============================================================================

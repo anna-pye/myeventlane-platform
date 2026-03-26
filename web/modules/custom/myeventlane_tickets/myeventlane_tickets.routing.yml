@@ -60,7 +60,7 @@ myeventlane_tickets.event_tickets_settings:
     _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::settings'
     _title: 'Ticket settings'
   requirements:
-    _permission: 'access vendor console'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
     parameters:
       event:

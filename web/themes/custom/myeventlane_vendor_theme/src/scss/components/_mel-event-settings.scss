@@ -1,0 +1,811 @@
+/**
+ * @file
+ * Event settings page — MEL vendor control centre.
+ *
+ * BEM: mel-event-settings-page, mel-settings-card, mel-status-summary,
+ * mel-quick-actions, mel-event-details, mel-danger-zone, mel-support-card.
+ */
+
+@use 'sass:color';
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+
+$radius-settings-card: 1.125rem; // 18px
+$shadow-settings-card: 0 1px 3px rgba(13, 21, 32, 0.06);
+
+// ============================================================================
+// PAGE SHELL
+// ============================================================================
+
+.mel-event-settings-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-event-settings-page__section {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-event-settings-page__header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $spacing-4;
+  margin-bottom: 8px;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $spacing-5;
+  }
+}
+
+.mel-event-settings-page__header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-event-settings-page__title {
+  margin: 0 0 8px;
+  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
+  font-weight: $font-weight-bold;
+  letter-spacing: -0.02em;
+  color: $ml-vendor-navy;
+  line-height: 1.2;
+}
+
+.mel-event-settings-page__meta-line {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.mel-event-settings-page__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+
+  @include respond-to(md) {
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+
+  .mel-btn {
+    min-height: 44px;
+    padding-inline: 16px;
+    border-radius: $radius-full;
+    font-weight: $font-weight-semibold;
+  }
+
+  .mel-btn--primary {
+    box-shadow: 0 2px 10px rgba($primary, 0.25);
+  }
+
+  .mel-btn--secondary {
+    background: rgba(#fdf2f8, 0.65);
+    border-color: rgba(#c084fc, 0.35);
+    color: $ml-vendor-navy;
+
+    &:hover {
+      background: rgba(#c084fc, 0.12);
+      border-color: rgba($ml-vendor-navy, 0.2);
+      color: $ml-vendor-navy;
+    }
+  }
+}
+
+// ============================================================================
+// TABS (MEL-styled, scrollable on small screens)
+// ============================================================================
+
+.mel-event-settings-page__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  margin: 0 0 24px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba($ml-vendor-navy, 0.12);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+}
+
+.mel-event-settings-page__tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px 12px;
+  margin-bottom: -13px;
+  font-size: $font-size-label;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, font-weight 0.15s ease;
+
+  &:hover {
+    color: $text-primary;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-radius: $radius-sm;
+    box-shadow: $shadow-focus;
+  }
+
+  &.is-active,
+  &[aria-current='page'] {
+    color: $ml-vendor-navy;
+    font-weight: $font-weight-semibold;
+    border-bottom-color: $primary;
+  }
+}
+
+// ============================================================================
+// META CHIPS (header + status)
+// ============================================================================
+
+.mel-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  background: rgba($ml-vendor-navy, 0.06);
+  border: 1px solid rgba($ml-vendor-navy, 0.08);
+  border-radius: $radius-full;
+  line-height: 1.3;
+
+  &--compact {
+    padding: 3px 8px;
+    font-size: 0.6875rem;
+  }
+
+  &--soft {
+    background: rgba(#c084fc, 0.12);
+    border-color: rgba(#c084fc, 0.22);
+    color: color.adjust($ml-vendor-navy, $lightness: -5%);
+  }
+
+  &--status {
+    font-weight: $font-weight-semibold;
+  }
+
+  &--published {
+    background: rgba(#22c55e, 0.12);
+    border-color: rgba(#22c55e, 0.28);
+    color: #166534;
+  }
+
+  &--draft {
+    background: rgba(#f59e0b, 0.14);
+    border-color: rgba(#f59e0b, 0.28);
+    color: #92400e;
+  }
+
+  &--unpublished {
+    background: rgba(#c084fc, 0.14);
+    border-color: rgba(#a78bfa, 0.35);
+    color: color.adjust(#6b21a8, $lightness: -8%);
+  }
+
+  &--cancelled {
+    background: rgba(#f43f5e, 0.12);
+    border-color: rgba(#f43f5e, 0.28);
+    color: #9f1239;
+  }
+}
+
+// ============================================================================
+// SETTINGS CARD (shared)
+// ============================================================================
+
+.mel-settings-card {
+  background-color: #fff;
+  border: 1px solid rgba($ml-vendor-navy, 0.08);
+  border-radius: $radius-settings-card;
+  box-shadow: $shadow-settings-card;
+}
+
+.mel-settings-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-4;
+  padding: 24px 24px 16px;
+
+  @include respond-down(md) {
+    padding: 18px 18px 14px;
+  }
+
+  .mel-settings-card__intro {
+    margin-top: 4px;
+  }
+
+  &--split {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+}
+
+.mel-settings-card__header-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 100%;
+
+  @include respond-down(md) {
+    justify-content: flex-start;
+  }
+}
+
+.mel-settings-card__title {
+  @include section-title;
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.mel-settings-card__body {
+  padding: 0 24px 24px;
+
+  @include respond-down(md) {
+    padding: 0 18px 18px;
+  }
+
+  .mel-settings-card__header + & {
+    padding-top: 0;
+  }
+}
+
+.mel-settings-card__intro {
+  margin: 0 0 $spacing-3;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.55;
+}
+
+.mel-settings-card__link {
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $primary;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+    border-radius: $radius-sm;
+  }
+}
+
+// ============================================================================
+// STATUS SUMMARY
+// ============================================================================
+
+.mel-status-summary {
+  display: grid;
+  gap: $spacing-5;
+
+  @include respond-to(md) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: $spacing-6;
+  }
+}
+
+.mel-status-summary__main {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-status-summary__help {
+  margin: 0;
+  font-size: $font-size-body;
+  color: $text-secondary;
+  line-height: 1.55;
+  max-width: 42ch;
+}
+
+.mel-status-summary__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+}
+
+.mel-status-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 8px 14px;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-full;
+  letter-spacing: 0.01em;
+
+  &--published {
+    background: rgba(#22c55e, 0.15);
+    color: #166534;
+  }
+
+  &--draft {
+    background: rgba(#f59e0b, 0.16);
+    color: #92400e;
+  }
+
+  &--unpublished {
+    background: rgba(#c084fc, 0.18);
+    color: #5b21b6;
+  }
+
+  &--cancelled {
+    background: rgba(#f43f5e, 0.12);
+    color: #9f1239;
+  }
+}
+
+// ============================================================================
+// QUICK ACTIONS
+// ============================================================================
+
+.mel-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mel-quick-actions__item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  border: 1px solid rgba($ml-vendor-navy, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(13, 21, 32, 0.04);
+  min-height: 44px;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    background: rgba(#c084fc, 0.06);
+    border-color: rgba($ml-vendor-navy, 0.18);
+    box-shadow: 0 4px 14px rgba(13, 21, 32, 0.07);
+    transform: translateY(-1px);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+.mel-quick-actions__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary;
+  background: rgba($wizard-coral, 0.1);
+  border-radius: 12px;
+
+  svg {
+    display: block;
+  }
+}
+
+.mel-quick-actions__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mel-quick-actions__title {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-body;
+  color: $text-primary;
+}
+
+.mel-quick-actions__description,
+.mel-quick-actions__desc {
+  font-size: 13px;
+  color: $text-secondary;
+  line-height: 1.45;
+}
+
+.mel-quick-actions__arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba($ml-vendor-navy, 0.35);
+
+  svg {
+    display: block;
+  }
+}
+
+// ============================================================================
+// EVENT DETAILS (definition list grid)
+// ============================================================================
+
+.mel-event-details {
+  display: grid;
+  gap: 16px;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 32px;
+  }
+}
+
+.mel-event-details__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mel-event-details__label {
+  font-size: 13px;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+}
+
+.mel-event-details__value {
+  font-size: 1rem;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+// ============================================================================
+// LEGACY: event info / public links (kept if referenced elsewhere)
+// ============================================================================
+
+.mel-event-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mel-event-info {
+  margin: 0;
+  display: grid;
+  gap: $spacing-4;
+}
+
+.mel-event-info__row {
+  display: grid;
+  gap: $spacing-2;
+
+  @include respond-to(md) {
+    grid-template-columns: 10rem 1fr;
+    align-items: baseline;
+  }
+}
+
+.mel-event-info__label {
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+}
+
+.mel-event-info__value {
+  margin: 0;
+  font-size: $font-size-body;
+  color: $text-primary;
+  line-height: 1.5;
+}
+
+.mel-event-links {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+.mel-event-links__row {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    align-items: center;
+    gap: $spacing-3;
+  }
+}
+
+.mel-event-links__label {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  flex-shrink: 0;
+}
+
+.mel-event-links__url {
+  font-size: $font-size-sm;
+  color: $primary;
+  word-break: break-all;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ============================================================================
+// DANGER ZONE
+// ============================================================================
+
+.mel-settings-card--danger {
+  background: linear-gradient(135deg, rgba(255, 245, 245, 0.85) 0%, rgba(255, 252, 252, 0.98) 100%);
+  border-color: rgba($danger, 0.28);
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.06);
+}
+
+.mel-danger-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mel-danger-zone__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  padding: 20px 0;
+
+  & + & {
+    border-top: 1px solid rgba($danger, 0.12);
+  }
+
+  @include respond-down(md) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.mel-danger-zone__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mel-danger-zone__title {
+  margin: 0 0 6px;
+  font-size: $font-size-body;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-danger-zone__text {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.mel-danger-zone__action {
+  flex-shrink: 0;
+}
+
+.mel-danger-zone__intro {
+  margin: 0 0 $spacing-5;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.55;
+}
+
+.mel-danger-zone__action-title {
+  display: block;
+  font-size: $font-size-body;
+  color: $text-primary;
+  margin-bottom: $spacing-1;
+}
+
+.mel-danger-zone__desc {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+// Ghost + danger combo (unpublish): transparent with red text
+.mel-btn--ghost.mel-btn--danger {
+  background-color: transparent;
+  color: $danger;
+  border-color: rgba($danger, 0.4);
+
+  &:hover {
+    background-color: rgba($danger, 0.08);
+    color: $wizard-coral-dark;
+    border-color: $danger;
+  }
+}
+
+.mel-danger-zone__btn {
+  flex-shrink: 0;
+  min-height: 44px;
+
+  &--delete {
+    background: linear-gradient(180deg, color.adjust($wizard-coral, $lightness: -4%) 0%, $danger 100%);
+    color: $text-inverse;
+    border-color: transparent;
+
+    &:hover {
+      filter: brightness(0.95);
+      color: $text-inverse;
+    }
+  }
+}
+
+// ============================================================================
+// SUPPORT CARD (MEL contribution panel)
+// ============================================================================
+
+.mel-support-card {
+  position: relative;
+  display: grid;
+  gap: $spacing-5;
+  align-items: center;
+  margin: 0;
+  padding: 24px;
+  overflow: hidden;
+
+  @include respond-to(md) {
+    grid-template-columns: auto 1fr auto;
+    gap: $spacing-6;
+    padding: 24px 28px;
+  }
+
+  border-radius: $radius-settings-card;
+  border: 1px solid rgba($wizard-coral, 0.35);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 248, 245, 0.98) 42%, rgba(245, 241, 255, 0.55) 100%);
+  box-shadow:
+    0 12px 40px rgba(13, 21, 32, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    border-radius: $radius-settings-card 0 0 $radius-settings-card;
+    background: linear-gradient(180deg, $wizard-coral 0%, #c084fc 55%, $ml-vendor-navy 100%);
+    opacity: 0.9;
+  }
+}
+
+.mel-support-card__brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  @include respond-to(md) {
+    justify-content: flex-start;
+  }
+}
+
+.mel-support-card__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: 0 $spacing-2;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  background: linear-gradient(145deg, $wizard-coral 0%, #e85a5a 40%, $ml-vendor-navy 180%);
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.35);
+}
+
+.mel-support-card__content {
+  min-width: 0;
+}
+
+.mel-support-card__title {
+  margin: 0 0 $spacing-2;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: $ml-vendor-navy;
+}
+
+.mel-support-card__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: $ml-slate-600;
+  max-width: 52ch;
+}
+
+.mel-support-card__action {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $spacing-2;
+
+  @include respond-to(md) {
+    align-items: flex-end;
+    min-width: 220px;
+  }
+}
+
+.mel-support-card__cta {
+  white-space: nowrap;
+  border-radius: $radius-full;
+  min-height: 46px;
+  padding-inline: 20px;
+  box-shadow: 0 4px 14px rgba(255, 107, 107, 0.28);
+}
+
+.mel-support-card__microcopy {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: $ml-slate-500;
+  text-align: right;
+
+  @include respond-down(md) {
+    text-align: left;
+  }
+}
+
+// ============================================================================
+// SPACING UTILITIES
+// ============================================================================
+
+.mel-mb-lg {
+  margin-bottom: $spacing-6;
+
+  @include respond-to(md) {
+    margin-bottom: $spacing-8;
+  }
+}

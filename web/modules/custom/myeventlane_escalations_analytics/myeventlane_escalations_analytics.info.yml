@@ -4,6 +4,7 @@ description: 'Derived analytics dashboards and vendor health scoring for the Esc
 package: 'MyEventLane'
 core_version_requirement: '^11'
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - myeventlane_escalations_sla:myeventlane_escalations_sla
   - myeventlane_vendor:myeventlane_vendor

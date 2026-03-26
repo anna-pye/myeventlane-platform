@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Unified support hub (/support): search, Help Assistant, optional contact.
+ */
+#}
+<div class="mel-support">
+  <div class="mel-support-hero">
+    <h1>{{ 'How can we help?'|t }}</h1>
+    <label class="visually-hidden" for="mel-support-input">{{ 'Ask a question'|t }}</label>
+    <input
+      id="mel-support-input"
+      type="search"
+      autocomplete="off"
+      placeholder="{{ 'Ask about tickets, refunds, payouts, or your event…'|t }}"
+    />
+  </div>
+
+  <div id="mel-support-ai" class="mel-support-ai mel-support-panel mel-support-panel--hidden" aria-live="polite"></div>
+
+  <div id="mel-support-results" class="mel-support-results mel-support-panel mel-support-panel--hidden"></div>
+
+  <div id="mel-support-contact" class="mel-support-contact mel-support-panel mel-support-panel--hidden">
+    <h2 class="mel-support-contact__title">{{ 'Still need to reach us?'|t }}</h2>
+    <p class="mel-support-contact__intro">{{ 'Send a message and our team will follow up.'|t }}</p>
+    {{ contact_form }}
+  </div>
+</div>

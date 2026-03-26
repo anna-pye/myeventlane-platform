@@ -157,14 +157,14 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
           $this->refundProcessor->requestRefund($order, $event, $vendor, $refundPayload);
           $refundedCount++;
         }
-        catch (\Exception $e) {
+        catch (\Throwable $e) {
           $this->logger->error('EventCancelRefundWorker: Failed to refund order @order_id: @message', [
             '@order_id' => $orderId,
             '@message' => $e->getMessage(),
           ]);
         }
       }
-      catch (\Exception $e) {
+      catch (\Throwable $e) {
         $this->logger->error('EventCancelRefundWorker: Error processing order item @item_id: @message', [
           '@item_id' => $item->id(),
           '@message' => $e->getMessage(),

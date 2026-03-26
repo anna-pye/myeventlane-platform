@@ -4,7 +4,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_capacity.service'
-      - '@myeventlane_attendee.repository_resolver'
+      - '@service_container'
       - '@cache.default'
       - '@datetime.time'
       - '@myeventlane_analytics.order_item_classifier'

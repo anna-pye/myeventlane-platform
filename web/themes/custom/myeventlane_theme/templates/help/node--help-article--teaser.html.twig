@@ -1,24 +1,27 @@
 {#
 /**
  * @file
- * Compact teaser for help articles (views, related block, listings).
- *
- * Avoids node--help-article.html.twig so titles/body scale for lists, not
- * full-page reader layout.
+ * Help article teaser — MEL card layout for search and listings.
  */
 #}
-<article{{ attributes.addClass('node', 'node--type-help-article', 'node--view-mode-teaser', 'mel-help-teaser') }}>
-  {{ title_prefix }}
-  <h3 class="mel-help-teaser__title">
-    <a href="{{ url }}" rel="bookmark">{{ label }}</a>
-  </h3>
-  {{ title_suffix }}
+<article{{ attributes.addClass('mel-help-card', 'node', 'node--type-help-article', 'node--view-mode-teaser') }}>
+  <div class="mel-help-card-content">
+    {{ title_prefix }}
+    <h3>{{ label }}</h3>
+    {{ title_suffix }}
 
-  <div class="mel-help-teaser__body">
-    {{ content|without('links') }}
+    {% if content.field_help_summary|render|trim is not empty %}
+      <div class="mel-help-card-summary">{{ content.field_help_summary }}</div>
+    {% endif %}
+
+    {% if content.field_help_article_type|render|trim is not empty %}
+      <div class="mel-help-meta">
+        <span class="mel-tag">{{ content.field_help_article_type }}</span>
+      </div>
+    {% endif %}
   </div>
 
-  <p class="mel-help-teaser__actions">
-    <a href="{{ url }}" class="mel-help-teaser__more">{{ 'Read more'|t }}<span class="visually-hidden"> — {{ label }}</span></a>
-  </p>
+  <div class="mel-help-card-actions">
+    <a href="{{ url }}" class="mel-link">{{ 'Read article'|t }}<span aria-hidden="true"> →</span><span class="visually-hidden"> — {{ label }}</span></a>
+  </div>
 </article>

@@ -1,0 +1,6 @@
+admin:
+  css:
+    theme:
+      css/mel-doc-opportunities-admin.css: {}
+  dependencies:
+    - myeventlane_help_centre/admin_docs

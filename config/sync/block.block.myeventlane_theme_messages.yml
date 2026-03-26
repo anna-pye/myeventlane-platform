@@ -1,0 +1,20 @@
+uuid: 8c4f1a2b-9e3d-4c7a-b1f6-2d8e5a0c9b4d
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - myeventlane_theme
+id: myeventlane_theme_messages
+theme: myeventlane_theme
+region: highlighted
+weight: -50
+provider: null
+plugin: system_messages_block
+settings:
+  id: system_messages_block
+  label: 'Status messages'
+  label_display: '0'
+  provider: system
+visibility: {  }

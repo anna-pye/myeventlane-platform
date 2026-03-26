@@ -4,6 +4,7 @@ description: 'Staff workload and capacity analytics dashboard for the Escalation
 package: 'MyEventLane'
 core_version_requirement: '^11'
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - drupal:comment
   - drupal:user

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_analytics\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\myeventlane_analytics\Phase7\Service\AdminRevenueQueryService;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -25,6 +26,7 @@ final class AdminRevenueDashboardController extends ControllerBase {
    */
   public function __construct(
     private readonly AdminRevenueQueryService $adminRevenueQuery,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -33,6 +35,7 @@ final class AdminRevenueDashboardController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_analytics.admin_revenue_query'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -57,7 +60,7 @@ final class AdminRevenueDashboardController extends ControllerBase {
 
     $revenue = $this->adminRevenueQuery->getPlatformRevenue($store_ids, $start, $end, $currency);
 
-    return [
+    $main = [
       '#theme' => 'admin_revenue_dashboard',
       '#ticket_net_cents' => $revenue['ticket_net_cents'],
       '#boost_net_cents' => $revenue['boost_net_cents'],
@@ -65,6 +68,12 @@ final class AdminRevenueDashboardController extends ControllerBase {
       '#currency' => $currency,
       '#range_days' => 30,
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Revenue (Admin only)'),
+      $this->t('Platform ticket and boost net (last 30 days).'),
+    );
   }
 
   /**

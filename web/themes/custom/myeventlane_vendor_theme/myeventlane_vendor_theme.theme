@@ -14,6 +14,9 @@
 declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_preprocess().
@@ -195,6 +198,16 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ]);
   }
 
+  // Safe inbox URL for sidebar fallbacks (avoid Twig path() when module/routes absent).
+  $variables['page']['vendor_notification_inbox_url'] = NULL;
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_notifications')) {
+    try {
+      $variables['page']['vendor_notification_inbox_url'] = \Drupal\Core\Url::fromRoute('myeventlane_notifications.inbox')->toString();
+    }
+    catch (\Throwable) {
+    }
+  }
+
   // Determine active section from route.
   $route_name = $route_match->getRouteName();
   $variables['page']['active_section'] = _myeventlane_vendor_theme_get_active_section($route_name);
@@ -232,7 +245,23 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
       '#url' => \Drupal\Core\Url::fromRoute('entity.user.canonical', ['user' => $current_user->id()]),
       '#attributes' => ['class' => ['user-menu__item']],
     ];
-    
+
+    if ($current_user->hasPermission('access myeventlane notifications')) {
+      try {
+        $notif_url = \Drupal\Core\Url::fromRoute('myeventlane_notifications.inbox');
+        if ($notif_url->access()) {
+          $user_menu_items[] = [
+            '#type' => 'link',
+            '#title' => t('Notifications'),
+            '#url' => $notif_url,
+            '#attributes' => ['class' => ['user-menu__item']],
+          ];
+        }
+      }
+      catch (\Throwable) {
+      }
+    }
+
     // Logout link.
     $user_menu_items[] = [
       '#type' => 'link',
@@ -311,6 +340,8 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   if ($vendor_alert !== NULL) {
     $variables['page']['vendor_alert'] = $vendor_alert;
   }
+
+  // MEL notification bell: built by myeventlane_notifications_preprocess_page().
 
   // MEL Pro grace-period banner (failed payment recovery).
   if (\Drupal::hasService('myeventlane_pro.subscription_status') && $current_user->isAuthenticated() && in_array('vendor', $current_user->getRoles(), TRUE)) {
@@ -480,6 +511,10 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
 
   if ($form_id === 'vendor_onboard_profile_form') {
     $suggestions[] = 'form__vendor_onboard_profile_form';
+  }
+
+  if ($form_id === 'myeventlane_vendor_events_bulk_actions_form') {
+    $suggestions[] = 'form__mel_vendor_events';
   }
 }
 
@@ -676,6 +711,31 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
       ],
       'template' => 'layout/console-page',
     ],
+    'mel_event_workspace' => [
+      'variables' => [
+        'event' => NULL,
+        'content' => NULL,
+        'tabs' => [],
+        'sidebar' => NULL,
+        'actions' => [],
+        'meta' => NULL,
+        'event_type_label' => NULL,
+        'event_date_label' => NULL,
+        'event_status' => NULL,
+        'event_status_badge_modifier' => NULL,
+        'header_actions' => [],
+        'insights' => NULL,
+        'header_stats' => NULL,
+        'header_meta_line' => NULL,
+      ],
+      'template' => 'mel-event/mel-event-workspace',
+    ],
+    'mel_workspace_ticket_sidebar' => [
+      'variables' => [
+        'ticket_tabs' => [],
+      ],
+      'template' => 'components/workspace/workspace-tickets-sidebar',
+    ],
     'myeventlane_vendor_dashboard' => [
       'variables' => [
         'is_admin' => FALSE,
@@ -740,6 +800,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'overview' => [],
         'charts' => [],
         'ticket_tier_rollup' => [],
+        'boost_page_url' => NULL,
+        'public_event_url' => NULL,
       ],
       'template' => 'event/analytics',
     ],
@@ -748,8 +810,19 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'event' => NULL,
         'overview' => [],
         'charts' => [],
+        'boost_help' => [],
+        'quick_actions' => [],
+        'performance_stats' => [],
+        'performance_empty' => FALSE,
+        'audience_rows' => [],
+        'audience_empty_copy' => [],
+        'boost_card' => [],
+        'support_card' => [],
+        'show_support_card' => FALSE,
+        'pro_upgrade_url' => NULL,
+        'refund_analytics' => NULL,
       ],
-      'template' => 'event/overview',
+      'template' => 'event/mel-event-overview-page',
     ],
     'myeventlane_vendor_event_orders' => [
       'variables' => [
@@ -769,6 +842,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'tickets' => [],
         'attendees' => [],
         'order_view_url' => '',
+        'refund_timeline' => NULL,
       ],
       'template' => 'event/order-view',
     ],
@@ -779,6 +853,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'summary' => [],
         'tabs' => [],
         'is_tickets_enabled' => TRUE,
+        'public_event_url' => NULL,
       ],
       'template' => 'event/attendees',
     ],
@@ -794,6 +869,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
       'variables' => [
         'campaigns' => [],
         'events' => [],
+        'no_store' => FALSE,
+        'boost_faq' => [],
       ],
       'template' => 'vendor/boost',
     ],
@@ -819,16 +896,442 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'summary' => [],
         'series' => [],
         'rsvps' => [],
+        'public_event_url' => NULL,
       ],
       'template' => 'event/rsvps',
     ],
-    'myeventlane_vendor_event_settings' => [
+    'myeventlane_vendor_event_settings_page' => [
       'variables' => [
+        'title' => NULL,
+        'tabs' => [],
+        'header_actions' => [],
         'event' => NULL,
+        'event_title' => NULL,
+        'header_meta_line' => NULL,
+        'status_card_header_chips' => [],
+        'event_type_label' => NULL,
+        'event_status_key' => NULL,
+        'event_status_label' => NULL,
+        'event_status_help' => NULL,
+        'created_label' => NULL,
+        'visibility_label' => NULL,
+        'edit_url' => NULL,
+        'quick_actions' => [],
+        'event_details' => [],
+        'is_published' => FALSE,
+        'unpublish_link' => NULL,
+        'unpublish_action' => NULL,
+        'publish_link' => NULL,
+        'publish_action' => NULL,
+        'delete_link' => NULL,
+        'delete_action' => NULL,
+        'support_cta' => NULL,
+        'show_support_card' => FALSE,
       ],
-      'template' => 'event/settings',
+      'template' => 'event/mel-event-settings-page',
     ],
   ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for mel_event_workspace.
+ */
+function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variables): void {
+  $event = $variables['event'] ?? NULL;
+  if (!$event instanceof NodeInterface) {
+    return;
+  }
+
+  if (
+    ($variables['insights'] ?? NULL) === NULL
+    && $event->bundle() === 'event'
+    && \Drupal::hasService('myeventlane_event.intelligence')
+  ) {
+    /** @var \Drupal\myeventlane_event\Service\EventIntelligenceService $intelligence */
+    $intelligence = \Drupal::service('myeventlane_event.intelligence');
+    $variables['insights'] = $intelligence->getInsights($event);
+  }
+  elseif (!isset($variables['insights'])) {
+    $variables['insights'] = [];
+  }
+
+  if (!empty($variables['header_actions']) && empty($variables['actions'])) {
+    $variables['actions'] = $variables['header_actions'];
+  }
+
+  if (isset($variables['actions']) && is_array($variables['actions'])) {
+    foreach ($variables['actions'] as &$action) {
+      if (!is_array($action)) {
+        continue;
+      }
+      if (empty($action['class']) && isset($action['style'])) {
+        $action['class'] = ($action['style'] === 'primary') ? 'mel-btn--cta' : 'mel-btn--secondary';
+      }
+    }
+    unset($action);
+  }
+
+  if (empty($variables['meta'])) {
+    $variables['meta'] = _myeventlane_vendor_theme_vendor_console_event_meta_line($event);
+  }
+
+  $parts = _myeventlane_vendor_theme_vendor_console_event_meta_parts($event);
+  if (empty($variables['event_type_label'])) {
+    $variables['event_type_label'] = $parts['type'];
+  }
+  if (!array_key_exists('event_date_label', $variables)) {
+    $variables['event_date_label'] = $parts['date'] !== '' ? $parts['date'] : NULL;
+  }
+
+  if (empty($variables['event_status'])) {
+    $variables['event_status'] = $event->isPublished() ? t('Published') : t('Draft');
+    if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()
+      && (string) $event->get('moderation_state')->value === 'review') {
+      $variables['event_status'] = t('In review');
+    }
+  }
+
+  if (empty($variables['event_status_badge_modifier'])) {
+    $variables['event_status_badge_modifier'] = 'mel-badge--draft';
+    if ($event->isPublished()) {
+      $variables['event_status_badge_modifier'] = 'mel-badge--live';
+    }
+    if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()
+      && (string) $event->get('moderation_state')->value === 'review') {
+      $variables['event_status_badge_modifier'] = 'mel-badge--warning';
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_event_settings_page.
+ */
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_page(array &$variables): void {
+  $event = $variables['event'] ?? NULL;
+  if (!$event instanceof NodeInterface) {
+    return;
+  }
+
+  $eid = (int) $event->id();
+  $date_formatter = \Drupal::service('date.formatter');
+
+  $variables['event_title'] = $event->label();
+  $variables['edit_url'] = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eid])->toString();
+  $variables['public_url'] = Url::fromRoute('entity.node.canonical', ['node' => $eid])->toString();
+  $variables['booking_url'] = Url::fromRoute('myeventlane_commerce.event_book', ['node' => $eid])->toString();
+
+  try {
+    $variables['boost_url'] = Url::fromRoute('myeventlane_boost.boost_page', ['node' => $eid])->toString();
+  }
+  catch (\Throwable) {
+    $variables['boost_url'] = '/event/' . $eid . '/boost';
+  }
+
+  $variables['event_type_label'] = t('RSVP');
+  if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+    $val = (string) $event->get('field_event_type')->value;
+    $variables['event_type_label'] = match ($val) {
+      'paid' => t('Ticketed'),
+      'both' => t('RSVP + Paid'),
+      'external' => t('External'),
+      default => t('RSVP'),
+    };
+  }
+
+  $variables['created_label'] = '';
+  if ($event->getCreatedTime()) {
+    $variables['created_label'] = $date_formatter->format($event->getCreatedTime(), 'custom', 'j M Y');
+  }
+
+  $moderation_state = NULL;
+  if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()) {
+    $moderation_state = (string) $event->get('moderation_state')->value;
+  }
+
+  $resolved_state = NULL;
+  if (\Drupal::hasService('myeventlane_event_state.resolver')) {
+    $resolved_state = \Drupal::service('myeventlane_event_state.resolver')->resolveState($event);
+  }
+
+  $is_cancelled = $resolved_state === 'cancelled';
+  $variables['is_published'] = $event->isPublished();
+
+  if ($is_cancelled) {
+    $variables['event_status_key'] = 'cancelled';
+    $variables['event_status_label'] = t('Cancelled');
+    $variables['event_status_help'] = t('This event has been cancelled.');
+  }
+  elseif ($moderation_state === 'archived') {
+    $variables['event_status_key'] = 'unpublished';
+    $variables['event_status_label'] = t('Unpublished');
+    $variables['event_status_help'] = t('This event is hidden from the public right now.');
+  }
+  elseif ($event->isPublished()) {
+    $variables['event_status_key'] = 'published';
+    $variables['event_status_label'] = t('Published');
+    $variables['event_status_help'] = t('Your event is live and visible to guests.');
+  }
+  else {
+    $variables['event_status_key'] = 'draft';
+    $variables['event_status_label'] = t('Draft');
+    $variables['event_status_help'] = t('Your event is saved, but guests can\'t see it yet.');
+  }
+
+  $variables['visibility_label'] = $event->isPublished()
+    ? t('Public page live')
+    : t('Not visible to guests');
+
+  $type_segment = (string) $variables['event_type_label'] . ' ' . t('event');
+  $header_meta_parts = [
+    $type_segment,
+    (string) $variables['event_status_label'],
+  ];
+  if ($variables['created_label'] !== '') {
+    $header_meta_parts[] = (string) t('Created @date', ['@date' => $variables['created_label']]);
+  }
+  $variables['header_meta_line'] = implode(' • ', $header_meta_parts);
+
+  $variables['status_card_header_chips'] = array_values(array_filter([
+    (string) $variables['event_type_label'],
+    $variables['created_label'] !== ''
+      ? (string) t('Created @date', ['@date' => $variables['created_label']])
+      : '',
+    (string) $variables['visibility_label'],
+  ]));
+
+  $variables['quick_actions'] = [
+    [
+      'title' => t('Edit event details'),
+      'description' => t('Update your title, schedule, tickets and content'),
+      'url' => $variables['edit_url'],
+      'external' => FALSE,
+      'icon' => _myeventlane_vendor_theme_event_settings_icon_markup('edit'),
+    ],
+    [
+      'title' => t('View public page'),
+      'description' => t('See what guests see before they book'),
+      'url' => $variables['public_url'],
+      'external' => TRUE,
+      'icon' => _myeventlane_vendor_theme_event_settings_icon_markup('eye'),
+    ],
+    [
+      'title' => t('View booking page'),
+      'description' => t('Check your RSVP or ticket flow'),
+      'url' => $variables['booking_url'],
+      'external' => TRUE,
+      'icon' => _myeventlane_vendor_theme_event_settings_icon_markup('ticket'),
+    ],
+    [
+      'title' => t('Boost this event'),
+      'description' => t('Reach more people and grow attendance'),
+      'url' => $variables['boost_url'],
+      'external' => FALSE,
+      'icon' => _myeventlane_vendor_theme_event_settings_icon_markup('boost'),
+    ],
+  ];
+
+  $details = [];
+  $details[] = [
+    'label' => t('Title'),
+    'value' => $event->label(),
+  ];
+
+  if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+    $start_item = $event->get('field_event_start')->first();
+    if ($start_item && isset($start_item->date)) {
+      $details[] = [
+        'label' => t('Date & time'),
+        'value' => $date_formatter->format($start_item->date->getTimestamp(), 'custom', 'l, F j, Y \a\t g:ia'),
+      ];
+    }
+  }
+
+  $details[] = [
+    'label' => t('Event type'),
+    'value' => (string) $variables['event_type_label'],
+  ];
+
+  $venue_value = _myeventlane_vendor_theme_event_settings_venue_label($event);
+  if ($venue_value !== '') {
+    $details[] = [
+      'label' => t('Venue / location'),
+      'value' => $venue_value,
+    ];
+  }
+
+  $details[] = [
+    'label' => t('Visibility'),
+    'value' => (string) $variables['visibility_label'],
+  ];
+
+  $variables['event_details'] = $details;
+
+  $unpublish_link = Link::fromTextAndUrl(
+    t('Unpublish'),
+    Url::fromRoute('myeventlane_vendor.console.event_unpublish', ['event' => $eid])
+  )->toRenderable();
+  $unpublish_link['#attributes']['class'][] = 'mel-btn';
+  $unpublish_link['#attributes']['class'][] = 'mel-btn--sm';
+  $unpublish_link['#attributes']['class'][] = 'mel-btn--ghost';
+  $unpublish_link['#attributes']['class'][] = 'mel-btn--danger';
+  $unpublish_link['#attributes']['class'][] = 'mel-danger-zone__btn';
+  $variables['unpublish_link'] = $unpublish_link;
+  $variables['unpublish_action'] = $unpublish_link;
+
+  $publish_link = Link::fromTextAndUrl(
+    t('Publish'),
+    Url::fromRoute('myeventlane_vendor.console.event_publish', ['event' => $eid])
+  )->toRenderable();
+  $publish_link['#attributes']['class'][] = 'mel-btn';
+  $publish_link['#attributes']['class'][] = 'mel-btn--sm';
+  $publish_link['#attributes']['class'][] = 'mel-btn--primary';
+  $publish_link['#attributes']['class'][] = 'mel-danger-zone__btn';
+  $variables['publish_link'] = $publish_link;
+  $variables['publish_action'] = $publish_link;
+
+  $delete_link = Link::fromTextAndUrl(
+    t('Delete'),
+    Url::fromRoute('entity.node.delete_form', ['node' => $eid])
+  )->toRenderable();
+  $delete_link['#attributes']['class'][] = 'mel-btn';
+  $delete_link['#attributes']['class'][] = 'mel-btn--sm';
+  $delete_link['#attributes']['class'][] = 'mel-btn--danger';
+  $delete_link['#attributes']['class'][] = 'mel-danger-zone__btn';
+  $delete_link['#attributes']['class'][] = 'mel-danger-zone__btn--delete';
+  $variables['delete_link'] = $delete_link;
+  $variables['delete_action'] = $delete_link;
+
+  $support_cta = Link::fromTextAndUrl(
+    t('Contribute to MyEventLane'),
+    Url::fromRoute('myeventlane_donations.platform')
+  )->toRenderable();
+  $support_cta['#attributes']['class'][] = 'mel-btn';
+  $support_cta['#attributes']['class'][] = 'mel-btn--primary';
+  $support_cta['#attributes']['class'][] = 'mel-support-card__cta';
+  $variables['support_cta'] = $support_cta;
+  $variables['show_support_card'] = TRUE;
+
+  $variables['#cache']['tags'] = $event->getCacheTags();
+  $variables['#cache']['contexts'] = $event->getCacheContexts();
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_console_page.
+ *
+ * Adds a consistent meta line (event type • status • date) for event workspace
+ * routes when the controller did not pass meta.
+ */
+function myeventlane_vendor_theme_preprocess_myeventlane_vendor_console_page(array &$variables): void {
+  if (!empty($variables['meta'])) {
+    return;
+  }
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $routes_with_meta = [
+    'myeventlane_vendor.console.event_overview',
+    'myeventlane_vendor.console.event_analytics',
+    'myeventlane_vendor.console.event_rsvps',
+    'myeventlane_vendor.console.event_attendees',
+  ];
+  if (!in_array($route_name, $routes_with_meta, TRUE)) {
+    return;
+  }
+  $event = \Drupal::routeMatch()->getParameter('event');
+  if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+    return;
+  }
+  $variables['meta'] = _myeventlane_vendor_theme_vendor_console_event_meta_line($event);
+}
+
+/**
+ * Returns structured meta parts for vendor event headers (type, status, date, line).
+ *
+ * @return array{type: string, status: string, date: string, line: string}
+ */
+function _myeventlane_vendor_theme_vendor_console_event_meta_parts(NodeInterface $event): array {
+  $date_formatter = \Drupal::service('date.formatter');
+
+  $type_label = (string) t('RSVP');
+  if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+    $val = (string) $event->get('field_event_type')->value;
+    $type_label = match ($val) {
+      'paid' => (string) t('Ticketed'),
+      'both' => (string) t('RSVP + Paid'),
+      'external' => (string) t('External'),
+      default => (string) t('RSVP'),
+    };
+  }
+
+  $status_label = $event->isPublished() ? (string) t('Published') : (string) t('Draft');
+  if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()
+    && (string) $event->get('moderation_state')->value === 'review') {
+    $status_label = (string) t('In review');
+  }
+
+  $date_part = '';
+  if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+    $start_item = $event->get('field_event_start')->first();
+    if ($start_item && isset($start_item->date)) {
+      $date_part = $date_formatter->format($start_item->date->getTimestamp(), 'custom', 'D, j M Y');
+    }
+  }
+  if ($date_part === '' && $event->getCreatedTime()) {
+    $date_part = $date_formatter->format($event->getCreatedTime(), 'custom', 'j M Y');
+  }
+
+  $line_parts = [$type_label, $status_label];
+  if ($date_part !== '') {
+    $line_parts[] = $date_part;
+  }
+
+  return [
+    'type' => $type_label,
+    'status' => $status_label,
+    'date' => $date_part,
+    'line' => implode(' • ', $line_parts),
+  ];
+}
+
+/**
+ * Builds the console header meta line for an event (type • status • date).
+ */
+function _myeventlane_vendor_theme_vendor_console_event_meta_line(NodeInterface $event): string {
+  return _myeventlane_vendor_theme_vendor_console_event_meta_parts($event)['line'];
+}
+
+/**
+ * Resolves venue / online label for event settings summary.
+ */
+function _myeventlane_vendor_theme_event_settings_venue_label(NodeInterface $event): string {
+  if ($event->hasField('field_event_venue') && !$event->get('field_event_venue')->isEmpty()) {
+    return trim((string) $event->get('field_event_venue')->value);
+  }
+  if ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()) {
+    return trim((string) $event->get('field_venue_name')->value);
+  }
+  if ($event->hasField('field_venue') && !$event->get('field_venue')->isEmpty()) {
+    $venue = $event->get('field_venue')->entity;
+    if ($venue && method_exists($venue, 'label')) {
+      return $venue->label();
+    }
+  }
+  if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+    && $event->get('field_event_type')->value === 'external') {
+    return (string) t('External booking');
+  }
+  return '';
+}
+
+/**
+ * Returns inline SVG icon markup for quick actions (no emoji).
+ */
+function _myeventlane_vendor_theme_event_settings_icon_markup(string $key): string {
+  $icons = [
+    'edit' => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    'eye' => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    'ticket' => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7a2 2 0 012-2h12a2 2 0 012 2v2h-2v4h2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2h2v-4H4V7z"/><path d="M9 11h6"/></svg>',
+    'boost' => '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>',
+  ];
+  return $icons[$key] ?? $icons['edit'];
 }
 
 /**
@@ -868,6 +1371,9 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.event_publish' => 'events',
     'myeventlane_vendor.console.event_orders' => 'orders',
     'myeventlane_vendor.console.event_order_view' => 'orders',
+    'myeventlane_refunds.vendor_refund_requests' => 'refund_requests',
+    'myeventlane_refunds.vendor_refund_request_approve' => 'refund_requests',
+    'myeventlane_refunds.vendor_refund_request_reject' => 'refund_requests',
     'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
     'myeventlane_vendor.console.event_attendees' => 'attendees',
     'myeventlane_vendor.console.event_rsvps' => 'attendees',
@@ -876,7 +1382,10 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_vendor.console.audience' => 'audience',
     'myeventlane_vendor.console.settings' => 'settings',
     'myeventlane_vendor.console.messaging_brand' => 'settings',
+    'myeventlane_notifications.inbox' => 'notifications',
+    'myeventlane_notifications.preferences' => 'notifications',
     'myeventlane_help_centre.vendor_help' => 'help',
+    'myeventlane_help_centre.home' => 'help',
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
@@ -908,6 +1417,12 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       'route' => 'myeventlane_vendor.console.dashboard',
     ],
     [
+      'key' => 'notifications',
+      'label' => t('Notifications'),
+      'icon' => 'notifications',
+      'route' => 'myeventlane_notifications.inbox',
+    ],
+    [
       'key' => 'events',
       'label' => t('Events'),
       'icon' => 'events',
@@ -918,6 +1433,12 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       'key' => 'orders',
       'label' => t('Orders'),
       'icon' => 'orders',
+      'route' => NULL,
+    ],
+    [
+      'key' => 'refund_requests',
+      'label' => t('Refund requests'),
+      'icon' => 'refunds',
       'route' => NULL,
     ],
     [
@@ -954,8 +1475,8 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       'key' => 'help',
       'label' => t('Help'),
       'icon' => 'help',
-      'route' => 'myeventlane_help_centre.vendor_help',
-      'path_fallback' => '/vendor/help',
+      'route' => 'myeventlane_help_centre.home',
+      'path_fallback' => '/help',
     ],
   ];
 
@@ -963,6 +1484,29 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
   foreach ($items as $item) {
     $url = NULL;
     $is_disabled = FALSE;
+
+    if ($item['key'] === 'refund_requests') {
+      if (!\Drupal::moduleHandler()->moduleExists('myeventlane_refunds')) {
+        continue;
+      }
+      if (!\Drupal::currentUser()->hasPermission('manage_refunds')) {
+        continue;
+      }
+      $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
+      if ($event_id === NULL) {
+        continue;
+      }
+      $url = _myeventlane_vendor_theme_safe_route_url('myeventlane_refunds.vendor_refund_requests', ['node' => $event_id]);
+      if ($url === NULL) {
+        continue;
+      }
+      $item['url'] = $url;
+      $item['is_disabled'] = FALSE;
+      $item['is_active'] = ($active_section === $item['key']);
+      $built[] = $item;
+      continue;
+    }
+
     if (!empty($item['route'])) {
       $url = _myeventlane_vendor_theme_safe_route_url((string) $item['route']);
       if ($url === NULL && !empty($item['path_fallback'])) {
@@ -1393,5 +1937,54 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
     'message' => t('View your payout schedule and balance in Payouts.'),
     'cta' => ['label' => t('View Payouts'), 'url' => '/vendor/payouts'],
   ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for form__mel_vendor_events.
+ */
+function myeventlane_vendor_theme_preprocess_form__mel_vendor_events(array &$variables): void {
+  $element = $variables['element'] ?? [];
+  $variables['create_event_url'] = $element['#create_event_url'] ?? '';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for node templates.
+ *
+ * Adds structured date parts for vendor_card view mode (date pill).
+ */
+function myeventlane_vendor_theme_preprocess_node(array &$variables): void {
+  if (($variables['view_mode'] ?? '') !== 'vendor_card') {
+    return;
+  }
+  /** @var \Drupal\node\NodeInterface $node */
+  $node = $variables['node'];
+  $variables['mel_event_start_parts'] = NULL;
+  $variables['mel_event_capacity'] = NULL;
+  if (!$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
+    // Still try capacity.
+  }
+  else {
+    $start = $node->get('field_event_start');
+    if (isset($start->date) && $start->date) {
+      $variables['mel_event_start_parts'] = [
+        'day' => $start->date->format('d'),
+        'month' => $start->date->format('M'),
+        'time' => $start->date->format('g:i A'),
+      ];
+    }
+  }
+  if ($node->hasField('field_event_capacity_total') && !$node->get('field_event_capacity_total')->isEmpty()) {
+    $cap = (int) $node->get('field_event_capacity_total')->value;
+    if ($cap > 0) {
+      $variables['mel_event_capacity'] = $cap;
+    }
+  }
+  if ($node->hasField('field_event_state') && !$node->get('field_event_state')->isEmpty()) {
+    $state = $node->get('field_event_state')->value;
+    $variables['mel_event_state_key'] = $state ? str_replace('_', '-', $state) : NULL;
+  }
+  else {
+    $variables['mel_event_state_key'] = NULL;
+  }
 }
 

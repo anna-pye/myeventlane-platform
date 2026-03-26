@@ -1,0 +1,6 @@
+myeventlane_help_improvement.opportunities:
+  title: 'Documentation opportunities'
+  description: 'Queue of documentation gaps from Help analytics and the assistant.'
+  route_name: myeventlane_help_improvement.opportunities
+  parent: myeventlane_core.config
+  weight: 42

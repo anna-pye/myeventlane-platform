@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_escalations_sla\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,6 +21,7 @@ final class EscalationSlaDashboardController extends ControllerBase {
   public function __construct(
     private readonly EscalationSlaBadgeResolver $badgeResolver,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -29,6 +31,7 @@ final class EscalationSlaDashboardController extends ControllerBase {
     return new self(
       $container->get('myeventlane_escalations_sla.badge_resolver'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -132,7 +135,11 @@ final class EscalationSlaDashboardController extends ControllerBase {
       '#attributes' => ['class' => ['admin-escalation-sla-dashboard']],
     ];
 
-    return $build;
+    return $this->adminShellBuilder->wrapStandard(
+      $build,
+      $this->t('Escalation SLA Dashboard'),
+      $this->t('Active escalations with SLA badges and due dates.'),
+    );
   }
 
   /**

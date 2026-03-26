@@ -1,0 +1,70 @@
+{#
+/**
+ * @file
+ * MEL Help Search view — search-first layout, card results, guided empty state.
+ */
+#}
+{{ attach_library('myeventlane_theme/help_search') }}
+{%
+  set classes = [
+    'view',
+    'view-' ~ id|clean_class,
+    'view-id-' ~ id,
+    'view-display-id-' ~ display_id,
+    'mel-help-search',
+    dom_id ? 'js-view-dom-id-' ~ dom_id,
+  ]
+%}
+<div{{ attributes.addClass(classes) }}>
+  {{ title_prefix }}
+  {{ title }}
+  {{ title_suffix }}
+
+  {% if header %}
+    <div class="view-header">
+      {{ header }}
+    </div>
+  {% endif %}
+
+  {{ exposed }}
+
+  {% if attachment_before %}
+    <div class="attachment attachment-before">
+      {{ attachment_before }}
+    </div>
+  {% endif %}
+
+  {% if rows %}
+    <div class="mel-help-results view-content">
+      {{ rows }}
+    </div>
+  {% else %}
+    <div class="mel-help-empty" role="status">
+      <h2 class="mel-help-empty__title">{{ 'No results found'|t }}</h2>
+      <p class="mel-help-empty__text">{{ 'Try a simpler search or explore common topics.'|t }}</p>
+      <div class="mel-chip-group">
+        <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Refunds' } }) }}">{{ 'Refunds'|t }}</a>
+        <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Tickets' } }) }}">{{ 'Tickets'|t }}</a>
+        <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Payouts' } }) }}">{{ 'Payouts'|t }}</a>
+      </div>
+    </div>
+  {% endif %}
+
+  {{ pager }}
+
+  {% if attachment_after %}
+    <div class="attachment attachment-after">
+      {{ attachment_after }}
+    </div>
+  {% endif %}
+
+  {{ more }}
+
+  {% if footer %}
+    <div class="view-footer">
+      {{ footer }}
+    </div>
+  {% endif %}
+
+  {{ feed_icons }}
+</div>

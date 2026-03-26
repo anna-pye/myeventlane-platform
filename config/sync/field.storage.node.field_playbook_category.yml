@@ -1,0 +1,30 @@
+uuid: b8c9d0e1-f2a3-4567-1234-678901234567
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_playbook_category
+field_name: field_playbook_category
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: procedure
+      label: Procedure
+    -
+      value: escalation
+      label: Escalation
+    -
+      value: communication
+      label: Communication
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

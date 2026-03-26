@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_internal_only
+field_name: field_internal_only
+entity_type: node
+type: boolean
+settings:
+  on_label: 'Internal only'
+  off_label: 'Not restricted'
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {}
+persist_with_no_fields: false
+custom_storage: false

@@ -7,6 +7,15 @@ myeventlane_escalations_portal.customer_support:
   requirements:
     _permission: 'view own escalation'
 
+# Public Help Centre “Contact support” path (same hub as /my/support).
+myeventlane_escalations_portal.customer_support_tickets:
+  path: '/support/tickets'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\CustomerEscalationController::list'
+    _title: 'My Support'
+  requirements:
+    _permission: 'view own escalation'
+
 myeventlane_escalations_portal.customer_list:
   path: '/my/support/escalations'
   defaults:

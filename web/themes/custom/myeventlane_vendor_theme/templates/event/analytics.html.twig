@@ -1,198 +1,190 @@
 {#
-  Event analytics template for MyEventLane Vendor Console.
-
-  Variables:
-  - event: The event node
-  - overview: Overview data (sales, rsvps, tickets, boost)
-  - charts: Chart data (sales, rsvps time series)
+/**
+ * Event analytics — MEL insight dashboard (vendor console).
+ *
+ * Variables: event, overview, charts, ticket_tier_rollup, boost_page_url, public_event_url
+ */
 #}
-<div class="mel-analytics">
-  {# KPI Summary Cards #}
-  <div class="mel-grid mel-grid--4 mel-mb-lg">
-    {# Total Revenue #}
-    <div class="mel-card mel-card--stat">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Total Revenue'|t }}</div>
-        <div class="mel-stat__value">{{ overview.sales.gross|default('$0.00') }}</div>
-      </div>
-    </div>
-    
-    {# Net Revenue #}
-    <div class="mel-card mel-card--stat">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Net Revenue'|t }}</div>
-        <div class="mel-stat__value">{{ overview.sales.net|default('$0.00') }}</div>
-      </div>
-    </div>
-    
-    {# Tickets Sold #}
-    <div class="mel-card mel-card--stat">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Tickets Sold'|t }}</div>
-        <div class="mel-stat__value">{{ overview.sales.tickets_sold|default(0) }}</div>
-      </div>
-    </div>
-    
-    {# RSVPs #}
-    <div class="mel-card mel-card--stat">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Total RSVPs'|t }}</div>
-        <div class="mel-stat__value">{{ overview.rsvps.total|default(0) }}</div>
-      </div>
-    </div>
+{% set sales = overview.sales|default({}) %}
+{% set rsvp_block = overview.rsvps|default({}) %}
+{% set attendees = overview.attendees|default({}) %}
+{% set boost = overview.boost|default({}) %}
+{% set boost_metrics = overview.boost_metrics|default({}) %}
+{% set has_sales_chart = charts.sales|default([])|length > 0 %}
+{% set has_rsvp_chart = charts.rsvps|default([])|length > 0 %}
+{% set att_total = attendees.total|default(0) %}
+{% set att_in = attendees.checked_in|default(0) %}
+{% set check_pct = att_total > 0 ? ((att_in / att_total) * 100)|round(1) : 0 %}
 
-    {# RSVP Donations (when any) #}
-    {% if overview.donations.count|default(0) > 0 %}
-    <div class="mel-card mel-card--stat">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'RSVP Donations'|t }}</div>
-        <div class="mel-stat__value">${{ overview.donations.total|default(0)|number_format(2) }}</div>
-        <div class="mel-stat__sublabel">{{ overview.donations.count }} {{ 'donation(s)'|t }}</div>
-      </div>
+<div class="mel-workspace-page mel-page mel-analytics">
+  <p class="mel-page__next" role="status">
+    {% trans %}Next: share your public link and keep an eye on ticket velocity — when you are ready, <strong>Boost</strong> can put your event in front of more people.{% endtrans %}
+  </p>
+
+  <div class="mel-kpi-row">
+    <div class="mel-kpi-card mel-kpi-card--sky">
+      <p class="mel-kpi-card__label">{{ 'Total revenue'|t }}</p>
+      <p class="mel-kpi-card__value">{{ sales.gross|default('$0.00') }}</p>
     </div>
-    {% endif %}
+    <div class="mel-kpi-card">
+      <p class="mel-kpi-card__label">{{ 'Net revenue'|t }}</p>
+      <p class="mel-kpi-card__value">{{ sales.net|default('$0.00') }}</p>
+    </div>
+    <div class="mel-kpi-card mel-kpi-card--mint">
+      <p class="mel-kpi-card__label">{{ 'Tickets sold'|t }}</p>
+      <p class="mel-kpi-card__value">{{ sales.tickets_sold|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card mel-kpi-card--peach">
+      <p class="mel-kpi-card__label">{{ 'RSVPs'|t }}</p>
+      <p class="mel-kpi-card__value">{{ rsvp_block.total_submissions|default(rsvp_block.count|default(0)) }}</p>
+      <p class="mel-kpi-card__hint">{{ 'All non-cancelled responses'|t }}</p>
+    </div>
   </div>
 
-  {# mel_ticket_type rollups (completed Commerce orders only; same service as ticket builder) #}
+  {% if overview.donations.count|default(0) > 0 %}
+    <div class="mel-kpi-row">
+      <div class="mel-kpi-card">
+        <p class="mel-kpi-card__label">{{ 'RSVP donations'|t }}</p>
+        <p class="mel-kpi-card__value">${{ overview.donations.total|default(0)|number_format(2) }}</p>
+        <p class="mel-kpi-card__hint">{{ '@count donation(s)'|t({'@count': overview.donations.count}) }}</p>
+      </div>
+    </div>
+  {% endif %}
+
   {% if ticket_tier_rollup.tier_row_count|default(0) > 0 %}
-    <div class="mel-card mel-mb-lg">
+    <div class="mel-card mel-card--soft">
       <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'Ticket tiers snapshot'|t }}</div>
-        <div class="mel-card__subtitle mel-text--muted">{{ 'Based on completed orders — same figures as the ticket workspace.'|t }}</div>
+        <div>
+          <h2 class="mel-card__title">{{ 'Ticket tiers snapshot'|t }}</h2>
+          <p class="mel-card__subtitle">{{ 'Based on completed orders — same figures as the ticket workspace.'|t }}</p>
+        </div>
       </div>
       <div class="mel-card__body">
-        <div class="mel-grid mel-grid--3 mel-mb-md">
-          <div class="mel-card mel-card--stat">
-            <div class="mel-stat">
-              <div class="mel-stat__label">{{ 'Tickets sold (tiers)'|t }}</div>
-              <div class="mel-stat__value">{{ ticket_tier_rollup.total_sold|default(0) }}</div>
-            </div>
+        <div class="mel-kpi-row">
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Tickets sold (tiers)'|t }}</p>
+            <p class="mel-kpi-card__value">{{ ticket_tier_rollup.total_sold|default(0) }}</p>
           </div>
-          <div class="mel-card mel-card--stat">
-            <div class="mel-stat">
-              <div class="mel-stat__label">{{ 'Remaining (capped tiers)'|t }}</div>
-              <div class="mel-stat__value">{% if ticket_tier_rollup.total_remaining is null %}—{% else %}{{ ticket_tier_rollup.total_remaining }}{% endif %}</div>
-            </div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Remaining (capped tiers)'|t }}</p>
+            <p class="mel-kpi-card__value">{% if ticket_tier_rollup.total_remaining is null %}—{% else %}{{ ticket_tier_rollup.total_remaining }}{% endif %}</p>
           </div>
-          <div class="mel-card mel-card--stat">
-            <div class="mel-stat">
-              <div class="mel-stat__label">{{ 'Gross revenue (tiers)'|t }}</div>
-              <div class="mel-stat__value">
-                {% if ticket_tier_rollup.gross_revenue %}
-                  {{ ticket_tier_rollup.gross_revenue.currency_code }} {{ ticket_tier_rollup.gross_revenue.number }}
-                {% else %}
-                  —
-                {% endif %}
-              </div>
-            </div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Gross revenue (tiers)'|t }}</p>
+            <p class="mel-kpi-card__value">
+              {% if ticket_tier_rollup.gross_revenue %}
+                {{ ticket_tier_rollup.gross_revenue.currency_code }} {{ ticket_tier_rollup.gross_revenue.number }}
+              {% else %}
+                —
+              {% endif %}
+            </p>
           </div>
-        </div>
-        <div class="mel-stats mel-stats--horizontal mel-mb-sm">
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Active tiers'|t }}</div>
-            <div class="mel-stat__value">{{ ticket_tier_rollup.active_tier_count|default(0) }}</div>
-          </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Sold out'|t }}</div>
-            <div class="mel-stat__value">{{ ticket_tier_rollup.sold_out_tier_count|default(0) }}</div>
-          </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Hidden / access / team'|t }}</div>
-            <div class="mel-stat__value">{{ ticket_tier_rollup.restricted_tier_count|default(0) }}</div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Active / sold out'|t }}</p>
+            <p class="mel-kpi-card__value">{{ ticket_tier_rollup.active_tier_count|default(0) }} / {{ ticket_tier_rollup.sold_out_tier_count|default(0) }}</p>
           </div>
         </div>
         {% if ticket_tier_rollup.conversion_note %}
-          <p class="mel-text--muted" style="font-size: 0.875rem; margin: 0;">{{ ticket_tier_rollup.conversion_note }}</p>
+          <p class="mel-text--muted mel-analytics__conversion-note">{{ ticket_tier_rollup.conversion_note }}</p>
         {% endif %}
       </div>
     </div>
   {% endif %}
 
-  {# Charts Section #}
-  <div class="mel-grid mel-grid--2 mel-mb-lg">
-    {# Sales Chart #}
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'Sales Over Time'|t }}</div>
-      </div>
-      <div class="mel-card__body">
-        <canvas data-chart-id="event-sales" height="200"></canvas>
-      </div>
-    </div>
-
-    {# RSVPs Chart #}
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'RSVPs Over Time'|t }}</div>
-      </div>
-      <div class="mel-card__body">
-        <canvas data-chart-id="event-rsvps" height="200"></canvas>
-      </div>
-    </div>
-  </div>
-
-  {# Ticket Breakdown #}
-  <div class="mel-card mel-mb-lg">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Ticket Breakdown'|t }}</div>
-    </div>
-    <div class="mel-card__body">
-      {% if overview.tickets|length > 0 %}
-        <div class="mel-table-responsive">
-          <table class="mel-table mel-table--striped">
-            <thead>
-              <tr>
-                <th>{{ 'Ticket Type'|t }}</th>
-                <th>{{ 'Price'|t }}</th>
-                <th>{{ 'Sold'|t }}</th>
-                <th>{{ 'Available'|t }}</th>
-                <th>{{ 'Revenue'|t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for ticket in overview.tickets %}
-                <tr>
-                  <td>{{ ticket.label }}</td>
-                  <td>{{ ticket.price|default('—') }}</td>
-                  <td>{{ ticket.sold }}</td>
-                  <td>{{ ticket.available }}</td>
-                  <td>{{ ticket.revenue }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <div class="mel-dashboard-grid-2">
+    <div class="mel-chart-card">
+      <h3 class="mel-chart-card__title">{{ 'Sales over time'|t }}</h3>
+      {% if has_sales_chart %}
+        <div class="mel-chart-card__canvas" data-mel-chart>
+          <canvas data-chart-id="event-sales" height="200"></canvas>
         </div>
       {% else %}
-        <div class="mel-empty">
-          <p>{{ 'No ticket sales data yet.'|t }}</p>
+        <div class="mel-empty-state mel-empty-state--chart">
+          <p class="mel-empty-state__title">{{ 'No data yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'Once bookings start, your sales will appear here.'|t }}</p>
+        </div>
+      {% endif %}
+    </div>
+    <div class="mel-chart-card">
+      <h3 class="mel-chart-card__title">{{ 'RSVPs over time'|t }}</h3>
+      {% if has_rsvp_chart %}
+        <div class="mel-chart-card__canvas" data-mel-chart>
+          <canvas data-chart-id="event-rsvps" height="200"></canvas>
+        </div>
+      {% else %}
+        <div class="mel-empty-state mel-empty-state--chart">
+          <p class="mel-empty-state__title">{{ 'No trend data yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'When RSVP activity is recorded day by day, a trend line will show here.'|t }}</p>
         </div>
       {% endif %}
     </div>
   </div>
 
-  {# RSVP Breakdown #}
-  <div class="mel-grid mel-grid--2 mel-mb-lg">
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <h2 class="mel-card__title">{{ 'Ticket breakdown'|t }}</h2>
+      <p class="mel-card__subtitle">{{ 'Sold vs remaining by ticket type'|t }}</p>
+    </div>
+    <div class="mel-card__body">
+      {% if overview.tickets|length > 0 %}
+        {% for ticket in overview.tickets %}
+          {% set sold = ticket.sold|default(0) %}
+          {% set avail = ticket.available %}
+          {% if avail is same as('Unlimited') %}
+            {% set pct = sold > 0 ? 100 : 0 %}
+          {% elseif avail is not same as('Unlimited') and avail is not null %}
+            {% set cap = sold + avail %}
+            {% set pct = cap > 0 ? (sold / cap * 100)|round(0) : 0 %}
+          {% else %}
+            {% set pct = 0 %}
+          {% endif %}
+          {% set barw = pct > 100 ? 100 : pct %}
+          {% set barw_int = barw < 0 ? 0 : (barw > 100 ? 100 : barw|round(0, 'floor')) %}
+          <div class="mel-ticket-breakdown-row">
+            <div class="mel-ticket-breakdown-row__top">
+              <span class="mel-ticket-breakdown-row__name">{{ ticket.label }}</span>
+              <span class="mel-ticket-breakdown-row__nums">{{ sold }} {{ 'sold'|t }}{% if avail is same as('Unlimited') %} · {{ 'Unlimited'|t }}{% elseif avail is not same as('Unlimited') and avail is not null %} · {{ avail }} {{ 'left'|t }}{% endif %} · {{ ticket.revenue|default('—') }}</span>
+            </div>
+            <div class="mel-ticket-breakdown-row__bar" aria-hidden="true">
+              <div class="mel-ticket-breakdown-row__bar-fill mel-ws-pct-{{ barw_int }}"></div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="mel-empty-state mel-empty-state--compact">
+          <p class="mel-empty-state__title">{{ 'No tickets sold yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'Completed ticket orders will be listed here with a quick sold vs remaining view.'|t }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mel-dashboard-grid-2">
     <div class="mel-card">
       <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'RSVP Status'|t }}</div>
+        <h2 class="mel-card__title">{{ 'RSVP snapshot'|t }}</h2>
       </div>
       <div class="mel-card__body">
-        <div class="mel-stats mel-stats--horizontal">
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Confirmed'|t }}</div>
-            <div class="mel-stat__value mel-text--success">{{ overview.rsvps.confirmed|default(0) }}</div>
+        <div class="mel-rsvp-summary-grid">
+          <div class="mel-rsvp-summary-grid__item">
+            <span class="mel-rsvp-summary-grid__value">{{ rsvp_block.confirmed|default(0) }}</span>
+            <span class="mel-rsvp-summary-grid__label">{{ 'Confirmed'|t }}</span>
           </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Pending'|t }}</div>
-            <div class="mel-stat__value mel-text--warning">{{ overview.rsvps.pending|default(0) }}</div>
+          <div class="mel-rsvp-summary-grid__item">
+            <span class="mel-rsvp-summary-grid__value">{{ rsvp_block.pending|default(0) }}</span>
+            <span class="mel-rsvp-summary-grid__label">{{ 'Pending'|t }}</span>
           </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Waitlisted'|t }}</div>
-            <div class="mel-stat__value mel-text--muted">{{ overview.rsvps.waitlisted|default(0) }}</div>
+          <div class="mel-rsvp-summary-grid__item">
+            <span class="mel-rsvp-summary-grid__value">{{ rsvp_block.waitlisted|default(0) }}</span>
+            <span class="mel-rsvp-summary-grid__label">{{ 'Waitlisted'|t }}</span>
           </div>
-          <div class="mel-stat">
-            <div class="mel-stat__label">{{ 'Cancelled'|t }}</div>
-            <div class="mel-stat__value mel-text--error">{{ overview.rsvps.cancelled|default(0) }}</div>
+          <div class="mel-rsvp-summary-grid__item">
+            <span class="mel-rsvp-summary-grid__value">{{ rsvp_block.cancelled|default(0) }}</span>
+            <span class="mel-rsvp-summary-grid__label">{{ 'Cancelled'|t }}</span>
+          </div>
+          <div class="mel-rsvp-summary-grid__item">
+            <span class="mel-rsvp-summary-grid__value">{{ rsvp_block.checkins|default(0) }}</span>
+            <span class="mel-rsvp-summary-grid__label">{{ 'RSVP check-ins'|t }}</span>
           </div>
         </div>
       </div>
@@ -200,51 +192,64 @@
 
     <div class="mel-card">
       <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'Check-in Rate'|t }}</div>
+        <h2 class="mel-card__title">{{ 'Check-in rate'|t }}</h2>
       </div>
       <div class="mel-card__body">
-        {% set total = overview.rsvps.total|default(0) %}
-        {% set checkins = overview.rsvps.checkins|default(0) %}
-        {% set rate = total > 0 ? ((checkins / total) * 100)|round(1) : 0 %}
-        <div class="mel-stat">
-          <div class="mel-stat__value mel-stat__value--xl">{{ rate }}%</div>
-          <div class="mel-stat__label">{{ checkins }} of {{ total }} {{ 'checked in'|t }}</div>
-        </div>
+        <p class="mel-analytics__checkin-rate">{{ check_pct }}%</p>
+        <p class="mel-analytics__checkin-meta">{{ att_in }} {{ 'of'|t }} {{ att_total }} {{ 'attendees checked in'|t }}</p>
       </div>
     </div>
   </div>
 
-  {# Boost Status #}
-  {% if overview.boost|length > 0 %}
-    <div class="mel-card">
-      <div class="mel-card__header">
-        <div class="mel-card__title">{{ 'Active Boost Campaigns'|t }}</div>
-      </div>
-      <div class="mel-card__body">
-        <div class="mel-list">
-          {% for boost in overview.boost %}
-            <div class="mel-list__item">
-              <div>{{ boost.label }}</div>
-              <div class="mel-badge mel-badge--{{ boost.status|lower }}">{{ boost.status }}</div>
-              {% if boost.ends %}
-                <div class="mel-text--muted">{{ 'Ends'|t }}: {{ boost.ends }}</div>
-              {% endif %}
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  {% endif %}
-
-  {# Daily Sales Table #}
   <div class="mel-card">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Daily Sales (Last 14 Days)'|t }}</div>
+      <h2 class="mel-card__title">{{ 'Boost performance'|t }}</h2>
+    </div>
+    <div class="mel-card__body">
+      {% if boost.active|default(false) %}
+        <div class="mel-kpi-row">
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Spend'|t }}</p>
+            <p class="mel-kpi-card__value">{{ boost_metrics.spend|default('$0.00') }}</p>
+          </div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Impressions'|t }}</p>
+            <p class="mel-kpi-card__value">{{ boost_metrics.impressions|default(0) }}</p>
+          </div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'Clicks'|t }}</p>
+            <p class="mel-kpi-card__value">{{ boost_metrics.clicks|default(0) }}</p>
+          </div>
+          <div class="mel-kpi-card">
+            <p class="mel-kpi-card__label">{{ 'CTR'|t }}</p>
+            <p class="mel-kpi-card__value">{% set ctr = boost_metrics.ctr|default(0) %}{{ (ctr * 100)|round(2) }}%</p>
+          </div>
+        </div>
+        {% if boost.expires %}
+          <p class="mel-text--muted mel-analytics__boost-footnote">{{ 'Campaign window data shown above is tied to your Boost purchase.'|t }}</p>
+        {% endif %}
+      {% else %}
+        <div class="mel-empty-state mel-empty-state--compact">
+          <p class="mel-empty-state__title">{{ 'No active campaigns'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'When you run a Boost, impressions and clicks will show here.'|t }}</p>
+          {% if boost_page_url %}
+            <div class="mel-action-group mel-analytics__empty-actions">
+              <a class="mel-btn mel-btn--cta mel-button mel-button--primary" href="{{ boost_page_url }}">{{ 'Boost your event'|t }}</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <h2 class="mel-card__title">{{ 'Daily sales (last 14 days)'|t }}</h2>
     </div>
     <div class="mel-card__body">
       {% if charts.sales|length > 0 %}
         <div class="mel-table-responsive">
-          <table class="mel-table mel-table--striped">
+          <table class="mel-table mel-table--dashboard mel-table--striped">
             <thead>
               <tr>
                 <th>{{ 'Date'|t }}</th>
@@ -264,9 +269,20 @@
           </table>
         </div>
       {% else %}
-        <div class="mel-empty">
-          <p>{{ 'No sales data available for the last 14 days.'|t }}</p>
+        <div class="mel-empty-state mel-empty-state--compact">
+          <p class="mel-empty-state__text">{{ 'No daily sales rows yet for this window.'|t }}</p>
         </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mel-support-card">
+    <h3 class="mel-support-card__title">{{ 'Need a hand?'|t }}</h3>
+    <p class="mel-support-card__text">{{ 'Visit the Help Centre for guides on tickets, RSVPs, and payouts.'|t }}</p>
+    <div class="mel-action-group">
+      <a class="mel-btn mel-btn--secondary mel-button mel-button--secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Open Help Centre'|t }}</a>
+      {% if public_event_url %}
+        <a class="mel-btn mel-btn--cta mel-button mel-button--primary" href="{{ public_event_url }}" target="_blank" rel="noopener noreferrer">{{ 'Share your event link'|t }}</a>
       {% endif %}
     </div>
   </div>

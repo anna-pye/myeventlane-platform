@@ -1,0 +1,638 @@
+/**
+ * @file
+ * MEL Event Workspace — unified product shell (tabs, header, content, sidebar).
+ *
+ * Scoped to .mel-workspace; uses MEL workspace tokens (warm surface, coral, purple).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+
+// -----------------------------------------------------------------------------
+// Shell — warm surface, max width, vertical rhythm
+// -----------------------------------------------------------------------------
+
+.mel-workspace {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: $layout-container-max;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-lg;
+  padding: $mel-spacing-md;
+  min-width: 0;
+
+  @include respond-to(md) {
+    padding: $mel-spacing-lg;
+    gap: $mel-spacing-lg;
+  }
+}
+
+.mel-workspace--surface {
+  background: $mel-ws-bg-warm;
+  border-radius: $radius-workspace-card;
+  border: 1px solid $mel-ws-border-soft;
+  box-shadow: $shadow-workspace-surface;
+}
+
+.mel-workspace__body {
+  display: block;
+  min-width: 0;
+}
+
+.mel-workspace__body--stacked {
+  width: 100%;
+}
+
+.mel-workspace__tab-bar {
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba($mel-ws-navy, 0.08);
+  margin-top: -$mel-spacing-sm;
+}
+
+.mel-tabs--horizontal {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: $spacing-2;
+  margin: 0;
+  padding: 4px 2px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mel-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: $spacing-2 $mel-spacing-md;
+    border-radius: $radius-full;
+    background: transparent;
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: $mel-ws-navy;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+    white-space: nowrap;
+    line-height: 1.35;
+    transition:
+      transform 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease;
+
+    &:hover:not(.mel-tab--disabled) {
+      text-decoration: none;
+      background: rgba($mel-ws-purple, 0.06);
+      border-color: rgba($mel-ws-purple, 0.12);
+    }
+
+    &.is-active {
+      background: $mel-ws-purple-tint;
+      border-color: $mel-ws-purple-border;
+      color: $mel-ws-purple;
+    }
+
+    &.mel-tab--disabled {
+      color: $text-muted;
+      cursor: not-allowed;
+      opacity: 0.72;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+    }
+  }
+}
+
+.mel-workspace__main-panel {
+  display: block;
+  min-width: 0;
+}
+
+.mel-workspace__main-panel--with-ticket-tools {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-6;
+  align-items: start;
+
+  @media (min-width: 768px) {
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+}
+
+.mel-workspace__content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+  min-width: 0;
+}
+
+.mel-workspace__sidebar--tickets {
+  position: static;
+  top: auto;
+
+  @media (min-width: 768px) {
+    position: sticky;
+    top: $spacing-6;
+  }
+}
+
+.mel-workspace-tickets-sidebar {
+  position: static;
+  top: auto;
+  padding: $spacing-4;
+  background: $bg-primary;
+  border-radius: $radius-workspace-card;
+  border: 1px solid $mel-ws-border-soft;
+  box-shadow: $shadow-workspace-surface;
+}
+
+.mel-workspace-tickets-sidebar__heading {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.mel-workspace-tickets-sidebar__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-workspace-tickets-sidebar__item + .mel-workspace-tickets-sidebar__item {
+  margin-top: $spacing-1;
+}
+
+.mel-workspace-tickets-sidebar__link {
+  display: block;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $radius-full;
+  text-decoration: none;
+  color: inherit;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    background: $gray-100;
+    text-decoration: none;
+  }
+
+  &.is-active {
+    background: $mel-ws-purple-tint;
+    color: $mel-ws-purple;
+    font-weight: $font-weight-semibold;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: $shadow-focus;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Header — control centre
+// -----------------------------------------------------------------------------
+
+.mel-workspace-header {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-xl;
+  padding: $mel-spacing-xl;
+  background: $bg-primary;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-header;
+  box-shadow: $shadow-workspace-header;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $mel-spacing-xl;
+  }
+}
+
+.mel-workspace-header__main {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.mel-workspace-header__identity {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-workspace-header__title {
+  margin: 0;
+  font-family: $font-family-sans;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: 1.1;
+  letter-spacing: $letter-spacing-tight;
+  color: $mel-ws-navy;
+}
+
+.mel-workspace-header__meta-line {
+  margin: 0;
+  color: rgba($mel-ws-navy, 0.72);
+  font-size: $font-size-sm;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.mel-workspace-header__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $mel-spacing-sm;
+}
+
+.mel-workspace-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+
+  .mel-btn {
+    min-height: 44px;
+    padding-inline: $spacing-4;
+    border-radius: $radius-full;
+    font-weight: $font-weight-semibold;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: $shadow-workspace-lift;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Primary nav — vertical pill tabs
+// -----------------------------------------------------------------------------
+
+.mel-tabs--vertical {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+  padding: 0;
+  margin: 0;
+  border: none;
+  width: 100%;
+}
+
+.mel-tabs--vertical .mel-tab {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: $spacing-2 $spacing-4;
+  border-radius: $radius-full;
+  background: $bg-primary;
+  border: 1px solid $mel-ws-border-soft;
+  text-decoration: none;
+  color: $mel-ws-navy;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  text-align: left;
+  line-height: 1.35;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease, color 0.18s ease;
+
+  &:hover:not(.mel-tab--disabled) {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: $shadow-workspace-lift;
+    border-color: rgba($mel-ws-purple, 0.15);
+  }
+
+  &.is-active {
+    background: $mel-ws-purple-tint;
+    border-color: $mel-ws-purple-border;
+    color: $mel-ws-purple;
+    font-weight: $font-weight-bold;
+  }
+
+  &.mel-tab--disabled {
+    color: $text-muted;
+    cursor: not-allowed;
+    opacity: 0.72;
+    background: $gray-50;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($mel-ws-purple, 0.28);
+  }
+}
+
+// Mobile: horizontal pill nav (stacks above main content).
+@include respond-down(md) {
+  .mel-workspace__primary-nav {
+    padding: $mel-spacing-sm 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .mel-workspace .mel-tabs--vertical {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: $mel-spacing-md;
+    padding: 4px 2px $mel-spacing-md;
+    margin: 0 (-$spacing-2);
+    padding-inline: $spacing-2;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .mel-workspace .mel-tabs--vertical .mel-tab {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: min-content;
+    justify-content: center;
+    padding-inline: $mel-spacing-lg;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tab content page wrapper — single rhythm inside .mel-workspace__content
+// -----------------------------------------------------------------------------
+
+.mel-workspace-page {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-workspace .mel-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mel-workspace .mel-page__next {
+  margin: 0;
+  padding: $spacing-4 $spacing-5;
+  font-size: $font-size-sm;
+  color: rgba($mel-ws-navy, 0.85);
+  line-height: 1.55;
+  max-width: none;
+  background: rgba(110, 126, 242, 0.08);
+  border: 1px solid $mel-ws-purple-border;
+  border-radius: $radius-lg;
+  border-left: 3px solid $mel-ws-purple;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+
+  strong {
+    color: $mel-ws-navy;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Section primitives (shared across workspace tabs)
+// -----------------------------------------------------------------------------
+
+.mel-workspace-page .mel-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+  margin-bottom: 0;
+}
+
+.mel-workspace-page .mel-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: $spacing-4;
+  margin-bottom: 0;
+
+  @include respond-to(md) {
+    align-items: flex-end;
+  }
+}
+
+.mel-workspace-page .mel-section__title {
+  margin: 0;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $mel-ws-navy;
+  line-height: 1.25;
+}
+
+.mel-workspace-page .mel-section__intro {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: rgba($mel-ws-navy, 0.72);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.mel-card-grid {
+  display: grid;
+  gap: $spacing-6;
+  grid-template-columns: 1fr;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Cards inside workspace — one language
+// -----------------------------------------------------------------------------
+
+.mel-workspace .mel-card {
+  border-radius: $radius-workspace-card;
+  border: 1px solid $mel-ws-border-soft;
+  box-shadow: $shadow-workspace-surface;
+  background: $bg-primary;
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+
+  &:not(.mel-card--static):hover {
+    box-shadow: $shadow-workspace-lift;
+    transform: translateY(-1px);
+  }
+}
+
+.mel-workspace .mel-card--static:hover {
+  transform: none;
+  box-shadow: $shadow-workspace-surface;
+}
+
+.mel-workspace .mel-card__header .mel-card__title {
+  color: $mel-ws-navy;
+}
+
+.mel-workspace .mel-card__subtitle,
+.mel-workspace .mel-card__intro {
+  color: rgba($mel-ws-navy, 0.72);
+}
+
+// -----------------------------------------------------------------------------
+// Action group — primary / secondary / ghost (wraps on small screens)
+// -----------------------------------------------------------------------------
+
+.mel-action-group,
+.mel-workspace .mel-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.mel-workspace-header__actions.mel-action-group {
+  justify-content: flex-end;
+}
+
+.mel-workspace .mel-action-group {
+  justify-content: flex-start;
+}
+
+.mel-workspace .mel-empty-state .mel-action-group {
+  justify-content: center;
+  margin-top: $mel-spacing-md;
+}
+
+.mel-workspace .mel-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $mel-spacing-md;
+  justify-content: flex-end;
+}
+
+// -----------------------------------------------------------------------------
+// Empty state — workspace tone
+// -----------------------------------------------------------------------------
+
+.mel-workspace .mel-empty-state {
+  padding: $spacing-10 $spacing-6;
+  border-radius: $radius-workspace-card;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed $mel-ws-border-soft;
+}
+
+.mel-workspace .mel-empty-state__title {
+  color: $mel-ws-navy;
+}
+
+.mel-workspace .mel-empty-state__text {
+  color: rgba($mel-ws-navy, 0.72);
+}
+
+// -----------------------------------------------------------------------------
+// Analytics helpers (dynamic bar width via CSS variable — no hardcoded px)
+// -----------------------------------------------------------------------------
+
+.mel-ticket-breakdown-row__bar-fill {
+  min-width: 0;
+  max-width: 100%;
+}
+.mel-analytics__conversion-note {
+  margin: $spacing-3 0 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.mel-analytics__checkin-rate {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-bold;
+  line-height: 1.1;
+  color: $mel-ws-navy;
+}
+
+.mel-analytics__checkin-meta {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-analytics__boost-footnote {
+  margin: $spacing-3 0 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.mel-analytics__empty-actions {
+  margin-top: $spacing-4;
+}
+
+.mel-chart-card__canvas--tall {
+  min-height: 200px;
+}
+
+@media (max-width: 767px) {
+  .mel-workspace-header__title {
+    font-size: $font-size-2xl;
+  }
+
+  .mel-workspace__body {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-workspace__primary-nav {
+    position: static;
+  }
+
+  .mel-workspace__main-panel--with-ticket-tools {
+    grid-template-columns: 1fr;
+  }
+}

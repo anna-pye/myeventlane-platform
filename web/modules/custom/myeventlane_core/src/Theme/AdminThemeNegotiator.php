@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Theme;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\Core\Theme\ThemeNegotiatorInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 
 /**
  * Theme negotiator for admin domain.
  *
- * Ensures Gin theme is used on admin domain for admin routes.
+ * Ensures Gin (or configured admin theme) is used on admin domain for admin
+ * routes. Platform Control Centre paths use myeventlane_admin when enabled so
+ * MEL layout (page.html.twig) renders consistently on the admin hostname.
  */
 final class AdminThemeNegotiator implements ThemeNegotiatorInterface {
 
-  /**
-   * Constructs an AdminThemeNegotiator object.
-   *
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
-   *   The domain detector service.
-   */
   public function __construct(
     private readonly DomainDetector $domainDetector,
+    private readonly ConfigFactoryInterface $configFactory,
+    private readonly ThemeHandlerInterface $themeHandler,
   ) {}
 
   /**
@@ -52,20 +52,23 @@ final class AdminThemeNegotiator implements ThemeNegotiatorInterface {
    * {@inheritdoc}
    */
   public function determineActiveTheme(RouteMatchInterface $route_match): ?string {
-    // Get the configured admin theme.
-    $admin_theme = \Drupal::config('system.theme')->get('admin');
+    $route = $route_match->getRouteObject();
+    $path = $route?->getPath() ?? '';
+    if ($path !== '' && str_starts_with($path, '/admin/myeventlane')) {
+      $theme_list = $this->themeHandler->listInfo();
+      if (isset($theme_list['myeventlane_admin']) && $theme_list['myeventlane_admin']->status) {
+        return 'myeventlane_admin';
+      }
+    }
 
-    // If admin theme is set and exists, use it.
+    $admin_theme = $this->configFactory->get('system.theme')->get('admin');
     if (!empty($admin_theme)) {
-      $theme_handler = \Drupal::service('theme_handler');
-      $theme_list = $theme_handler->listInfo();
-
+      $theme_list = $this->themeHandler->listInfo();
       if (isset($theme_list[$admin_theme]) && $theme_list[$admin_theme]->status) {
         return $admin_theme;
       }
     }
 
-    // Fallback: return NULL to use default theme negotiation.
     return NULL;
   }
 

@@ -1,0 +1,46 @@
+{#
+/**
+ * @file
+ * Compact event workspace header — title, status/date meta, actions, KPI stats.
+ *
+ * Variables: event, header_meta_line, header_stats, actions (same shape as workspace header).
+ */
+#}
+<div class="mel-event-header">
+  <div class="mel-event-header__top">
+    <div class="mel-event-title">
+      {% if event %}
+        <h1 class="mel-event-title__heading">{{ event.label }}</h1>
+      {% endif %}
+      {% if header_meta_line %}
+        <div class="mel-event-meta">{{ header_meta_line }}</div>
+      {% endif %}
+    </div>
+
+    {% if actions is not empty %}
+      <div class="mel-event-actions mel-action-group">
+        {% for action in actions %}
+          <a
+            class="mel-btn {{ action.class|default('mel-btn--cta') }}"
+            href="{{ action.url }}"
+            {% if action.external|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}
+          >{{ action.label }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if header_stats is not empty %}
+    <div class="mel-event-stats" role="group" aria-label="{{ 'Event snapshot'|t }}">
+      {% for stat in header_stats %}
+        <div class="mel-stat mel-stat--header">
+          <span class="mel-stat__value">{{ stat.value }}</span>
+          <span class="mel-stat__label">{{ stat.label }}</span>
+          {% if stat.meta|default('') %}
+            <span class="mel-stat__hint">{{ stat.meta }}</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

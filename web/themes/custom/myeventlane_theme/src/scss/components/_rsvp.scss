@@ -667,6 +667,31 @@
   }
 }
 
+// Legal consent version-diff notice (re-consent required).
+.myeventlane-legal-notice {
+  margin-bottom: spacing.mel-space(3);
+  padding: spacing.mel-space(3) spacing.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+  font-size: typography.mel-font-size(sm);
+  line-height: typography.$mel-leading-relaxed;
+
+  &.myeventlane-legal-notice--warning {
+    background: colors.$mel-color-warning-bg;
+    border: 1px solid rgba(colors.$mel-color-warning, 0.4);
+    color: color.adjust(colors.$mel-color-warning, $lightness: -25%);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.myeventlane-legal-version-diff {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 .mel-rsvp-submit {
   margin-top: spacing.mel-space(4);
 

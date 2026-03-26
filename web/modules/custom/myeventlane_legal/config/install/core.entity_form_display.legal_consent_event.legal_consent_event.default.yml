@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_legal
+    - user
+id: legal_consent_event.legal_consent_event.default
+targetEntityType: legal_consent_event
+bundle: legal_consent_event
+mode: default
+content: {  }
+hidden: {  }

@@ -13,6 +13,8 @@ use Drupal\myeventlane_escalations_capacity\Service\StaffActivityAggregator;
 use Drupal\myeventlane_escalations_policy\Service\VendorPolicyEvaluator;
 use Drupal\myeventlane_escalations_refunds\Repository\RefundsCorrelationRepository;
 use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,7 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Support Console dashboard for staff with administer escalations permission.
  *
  * Aggregates global signal, action queue, vendor risk, refund watch,
- * capacity snapshot, and quick links. Fails safely per panel.
+ * capacity snapshot, quick links, and internal knowledge (playbooks + staff help).
+ * Fails safely per panel.
  */
 final class SupportConsoleController extends ControllerBase {
 
@@ -43,6 +46,7 @@ final class SupportConsoleController extends ControllerBase {
     private readonly EscalationSlaBadgeResolver $badgeResolver,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly LoggerInterface $logger,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -58,6 +62,7 @@ final class SupportConsoleController extends ControllerBase {
       $container->get('myeventlane_escalations_sla.badge_resolver'),
       $container->get('date.formatter'),
       $container->get('logger.channel.myeventlane_support_console'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -68,20 +73,31 @@ final class SupportConsoleController extends ControllerBase {
     $panels = [
       'global_signal' => $this->buildGlobalSignal(),
       'action_queue' => $this->buildActionQueue(),
+      'internal_knowledge' => $this->buildInternalKnowledgePanel(),
       'vendor_risk' => $this->buildVendorRisk(),
       'refund_watch' => $this->buildRefundWatch(),
       'capacity_snapshot' => $this->buildCapacitySnapshot(),
       'quick_links' => $this->buildQuickLinks(),
     ];
 
-    return [
+    $main = [
       '#theme' => 'support_console_dashboard',
       '#panels' => $panels,
-      '#cache' => ['max-age' => 0],
+      '#cache' => [
+        'max-age' => 0,
+        'tags' => ['node_list:staff_playbook', 'node_list:help_article'],
+        'contexts' => ['user.permissions'],
+      ],
       '#attached' => [
         'library' => ['myeventlane_support_console/support_console'],
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Support Console'),
+      $this->t('Signals, queues, and quick links for customer support.'),
+    );
   }
 
   /**
@@ -148,6 +164,87 @@ final class SupportConsoleController extends ControllerBase {
       ]);
       return ['items' => []];
     }
+  }
+
+  /**
+   * Playbooks + staff help_article links (no duplicated body content).
+   */
+  private function buildInternalKnowledgePanel(): array {
+    $panel = [
+      'playbooks' => [],
+      'staff_articles' => [],
+      'actions' => [],
+    ];
+
+    try {
+      $nodeStorage = $this->entityTypeManager()->getStorage('node');
+      $playbookIds = $nodeStorage->getQuery()
+        ->condition('type', 'staff_playbook')
+        ->condition('status', 1)
+        ->sort('changed', 'DESC')
+        ->range(0, 5)
+        ->accessCheck(TRUE)
+        ->execute();
+
+      if ($playbookIds !== []) {
+        foreach ($nodeStorage->loadMultiple($playbookIds) as $node) {
+          if ($node instanceof NodeInterface) {
+            $panel['playbooks'][] = [
+              'title' => $node->label(),
+              'url' => $node->toUrl()->toString(),
+            ];
+          }
+        }
+      }
+
+      if ($this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
+        $helpIds = $nodeStorage->getQuery()
+          ->condition('type', 'help_article')
+          ->condition('status', 1)
+          ->condition('field_audience', 'staff')
+          ->sort('changed', 'DESC')
+          ->range(0, 5)
+          ->accessCheck(TRUE)
+          ->execute();
+
+        if ($helpIds !== []) {
+          foreach ($nodeStorage->loadMultiple($helpIds) as $node) {
+            if ($node instanceof NodeInterface) {
+              $panel['staff_articles'][] = [
+                'title' => $node->label(),
+                'url' => $node->toUrl()->toString(),
+              ];
+            }
+          }
+        }
+      }
+
+      $routes = [
+        'myeventlane_staff_playbooks.governance_dashboard' => $this->t('Governance dashboard'),
+        'view.mel_docs_register.page_register' => $this->t('Documentation register'),
+        'myeventlane_help_centre.docs_health' => $this->t('Help content health'),
+      ];
+      foreach ($routes as $route => $title) {
+        try {
+          $url = Url::fromRoute($route);
+          if ($url->access($this->currentUser())) {
+            $panel['actions'][] = [
+              'title' => (string) $title,
+              'url' => $url->toString(),
+            ];
+          }
+        }
+        catch (\Throwable) {
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Support console: internal_knowledge failed. @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return $panel;
   }
 
   /**

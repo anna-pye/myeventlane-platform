@@ -52,8 +52,20 @@ function myeventlane_donations_theme(array $existing, string $type, string $them
       'variables' => [
         'summary' => [],
         'invoices' => [],
+        'billing_prefs' => [],
+        'save_payment_url' => '',
+        'remove_payment_url' => '',
       ],
       'template' => 'myeventlane-mel-vendor-billing',
+    ],
+    'myeventlane_mel_save_payment_method' => [
+      'variables' => [
+        'client_secret' => '',
+        'publishable_key' => '',
+        'return_url' => '',
+        'billing_url' => '',
+      ],
+      'template' => 'myeventlane-mel-save-payment-method',
     ],
     'myeventlane_mel_vendor_invoice' => [
       'variables' => [

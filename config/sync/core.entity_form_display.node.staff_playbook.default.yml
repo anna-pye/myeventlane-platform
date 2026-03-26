@@ -4,13 +4,18 @@ status: true
 dependencies:
   config:
     - field.field.node.staff_playbook.body
+    - field.field.node.staff_playbook.field_ai_summary
     - field.field.node.staff_playbook.field_applicable_priority
+    - field.field.node.staff_playbook.field_internal_only
+    - field.field.node.staff_playbook.field_playbook_category
     - field.field.node.staff_playbook.field_playbook_type
+    - field.field.node.staff_playbook.field_playbook_urgency
     - field.field.node.staff_playbook.field_priority
     - field.field.node.staff_playbook.field_refund_involved
     - field.field.node.staff_playbook.field_related_escalation_type
     - node.type.staff_playbook
   module:
+    - options
     - path
     - text
 id: node.staff_playbook.default
@@ -34,15 +39,42 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_ai_summary:
+    type: text_textarea
+    weight: 8
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
   field_applicable_priority:
     type: options_select
     weight: 5
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_internal_only:
+    type: boolean_checkbox
+    weight: 7
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_playbook_category:
+    type: options_buttons
+    weight: 12
+    region: content
+    settings: {  }
+    third_party_settings: {  }
   field_playbook_type:
     type: options_select
     weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_playbook_urgency:
+    type: options_select
+    weight: 13
     region: content
     settings: {  }
     third_party_settings: {  }
@@ -73,22 +105,28 @@ content:
     settings:
       include_locked: true
     third_party_settings: {  }
+  moderation_state:
+    type: moderation_state_default
+    weight: 100
+    region: content
+    settings: {  }
+    third_party_settings: {  }
   path:
     type: path
-    weight: 10
+    weight: 14
     region: content
     settings: {  }
     third_party_settings: {  }
   status:
     type: boolean_checkbox
-    weight: 11
+    weight: 15
     region: content
     settings:
       display_label: true
     third_party_settings: {  }
   sticky:
     type: boolean_checkbox
-    weight: 7
+    weight: 16
     region: content
     settings:
       display_label: true
@@ -103,7 +141,7 @@ content:
     third_party_settings: {  }
   uid:
     type: entity_reference_autocomplete
-    weight: 8
+    weight: 17
     region: content
     settings:
       match_operator: CONTAINS

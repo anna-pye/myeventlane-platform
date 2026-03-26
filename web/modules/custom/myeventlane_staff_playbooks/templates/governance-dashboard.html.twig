@@ -1,18 +1,50 @@
 {#
-  Internal Governance dashboard. Admin-only. Lists staff help articles.
+  Internal Governance dashboard. Admin-only. Lists staff help articles and playbooks.
 #}
 <div class="governance-dashboard">
   <h1 class="governance-dashboard__title">{{ 'Internal Governance'|t }}</h1>
   <p class="governance-dashboard__intro">{{ 'Internal guides and policies for staff handling escalations and support.'|t }}</p>
 
-  <div class="governance-dashboard__quick-links">
-    {% if snippet_guide_url %}
-      <a href="{{ snippet_guide_url }}" class="governance-dashboard__quick-link">{{ 'Staff Communication Guide'|t }}</a>
-    {% endif %}
-    {% if playbooks_url %}
-      <a href="{{ playbooks_url }}" class="governance-dashboard__quick-link">{{ 'Playbook Writing Guide'|t }}</a>
-    {% endif %}
-  </div>
+  {% set ql = quick_links|default({}) %}
+  {% if ql.docs_register or ql.docs_health or ql.refund_playbook or ql.escalation_playbook or snippet_guide_url or playbooks_url %}
+    <div class="governance-dashboard__quick-links governance-dashboard__quick-links--grid">
+      {% if ql.docs_register %}
+        <a href="{{ ql.docs_register }}" class="governance-dashboard__quick-link">{{ 'Documentation register'|t }}</a>
+      {% endif %}
+      {% if ql.docs_health %}
+        <a href="{{ ql.docs_health }}" class="governance-dashboard__quick-link">{{ 'Help content health'|t }}</a>
+      {% endif %}
+      {% if ql.refund_playbook %}
+        <a href="{{ ql.refund_playbook.url }}" class="governance-dashboard__quick-link">{{ 'Refund playbook'|t }} — {{ ql.refund_playbook.title }}</a>
+      {% endif %}
+      {% if ql.escalation_playbook %}
+        <a href="{{ ql.escalation_playbook.url }}" class="governance-dashboard__quick-link">{{ 'Escalation guide'|t }} — {{ ql.escalation_playbook.title }}</a>
+      {% endif %}
+      {% if snippet_guide_url %}
+        <a href="{{ snippet_guide_url }}" class="governance-dashboard__quick-link">{{ 'Staff Communication Guide'|t }}</a>
+      {% endif %}
+      {% if playbooks_url %}
+        <a href="{{ playbooks_url }}" class="governance-dashboard__quick-link">{{ 'Create playbook'|t }}</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if playbook_groups is not empty %}
+    <div class="governance-dashboard__groups">
+      {% for group in playbook_groups %}
+        <section class="governance-dashboard__group">
+          <h2 class="governance-dashboard__group-title">{{ group.name }}</h2>
+          <ul class="governance-dashboard__articles">
+            {% for item in group.playbooks %}
+              <li>
+                <a href="{{ item.url }}" class="governance-dashboard__article-link">{{ item.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {% if groups is not empty %}
     <div class="governance-dashboard__groups">

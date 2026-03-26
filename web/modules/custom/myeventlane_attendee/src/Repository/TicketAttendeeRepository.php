@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_attendee\Attendee\AttendeeInterface;
 use Drupal\myeventlane_attendee\Attendee\TicketAttendee;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\node\NodeInterface;
 
 /**
@@ -23,6 +24,7 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly VendorAttendeePresentationService $vendorPresentation,
   ) {}
 
   /**
@@ -73,7 +75,13 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
 
       foreach ($attendees as $attendee) {
         if ($attendee instanceof EventAttendee) {
-          $result[] = new TicketAttendee($attendee);
+          $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+          $result[] = new TicketAttendee(
+            $attendee,
+            $vm['ticket_type'],
+            $vm['phone'],
+            $vm['custom_answers_display'],
+          );
         }
       }
 
@@ -104,7 +112,13 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
           && $attendee->getEventId() === $eventId
           && $attendee->getSource() === EventAttendee::SOURCE_TICKET
           && $attendee->getStatus() === EventAttendee::STATUS_CONFIRMED) {
-          return new TicketAttendee($attendee);
+          $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+          return new TicketAttendee(
+            $attendee,
+            $vm['ticket_type'],
+            $vm['phone'],
+            $vm['custom_answers_display'],
+          );
         }
         return NULL;
       }
@@ -122,7 +136,13 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
       if (!empty($ids)) {
         $attendee = $storage->load(reset($ids));
         if ($attendee instanceof EventAttendee) {
-          return new TicketAttendee($attendee);
+          $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+          return new TicketAttendee(
+            $attendee,
+            $vm['ticket_type'],
+            $vm['phone'],
+            $vm['custom_answers_display'],
+          );
         }
       }
 
@@ -139,7 +159,13 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
       if (!empty($ids)) {
         $attendee = $storage->load(reset($ids));
         if ($attendee instanceof EventAttendee) {
-          return new TicketAttendee($attendee);
+          $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+          return new TicketAttendee(
+            $attendee,
+            $vm['ticket_type'],
+            $vm['phone'],
+            $vm['custom_answers_display'],
+          );
         }
       }
     }

@@ -104,7 +104,12 @@ final class RsvpLegalValidationTest extends UnitTestCase {
     $requestStack = new RequestStack();
     $requestStack->push($request);
 
-    $alter = new RsvpLegalAlter($this->createMockSettings(), $requestStack);
+    $alter = new RsvpLegalAlter(
+      $this->createMockSettings(),
+      $this->createMockVersionDiff(),
+      $this->createMockCurrentUser(),
+      $requestStack
+    );
 
     $form = [
       'legal_consent' => RsvpLegalConsentHelper::buildFieldset($this->createMockSettings()),
@@ -121,6 +126,49 @@ final class RsvpLegalValidationTest extends UnitTestCase {
     $alter->validateRsvpLegal($form, $form_state);
 
     $this->assertFalse($form_state->hasAnyErrors());
+  }
+
+  /**
+   * Tests validation uses reconsent-specific message when requires_reconsent.
+   */
+  public function testValidationUsesReconsentMessageWhenRequired(): void {
+    $versionDiff = $this->createMock(\Drupal\myeventlane_legal\Service\ConsentVersionDiffService::class);
+    $versionDiff->method('getRsvpConsentStatus')->willReturn([
+      'has_prior_consent' => TRUE,
+      'requires_reconsent' => TRUE,
+      'terms_changed' => TRUE,
+      'privacy_changed' => FALSE,
+    ]);
+
+    $alter = new RsvpLegalAlter(
+      $this->createMockSettings(),
+      $versionDiff,
+      $this->createMockCurrentUser(),
+      $this->createMock(RequestStack::class)
+    );
+
+    $form = [
+      'legal_consent' => RsvpLegalConsentHelper::buildFieldset($this->createMockSettings()),
+      RsvpLegalAlter::LEGAL_STATUS_FORM_KEY => [
+        'requires_reconsent' => TRUE,
+        'terms_changed' => TRUE,
+        'privacy_changed' => FALSE,
+      ],
+    ];
+
+    $form_state = new FormState();
+    $form_state->setValues([
+      'legal_consent' => [
+        'customer_terms_agreed' => 0,
+        'marketing_opt_in' => 0,
+      ],
+    ]);
+
+    $alter->validateRsvpLegal($form, $form_state);
+
+    $this->assertTrue($form_state->hasAnyErrors());
+    $errors = $form_state->getErrors();
+    $this->assertStringContainsString('updated Terms of Service', reset($errors));
   }
 
   /**
@@ -150,8 +198,40 @@ final class RsvpLegalValidationTest extends UnitTestCase {
    * Creates RsvpLegalAlter with mocked dependencies.
    */
   private function createAlterService(): RsvpLegalAlter {
-    $requestStack = $this->createMock(RequestStack::class);
-    return new RsvpLegalAlter($this->createMockSettings(), $requestStack);
+    return new RsvpLegalAlter(
+      $this->createMockSettings(),
+      $this->createMockVersionDiff(),
+      $this->createMockCurrentUser(),
+      $this->createMock(RequestStack::class)
+    );
+  }
+
+  /**
+   * Creates a mock ConsentVersionDiffService (no prior consent).
+   */
+  private function createMockVersionDiff(): \Drupal\myeventlane_legal\Service\ConsentVersionDiffService {
+    $mock = $this->createMock(\Drupal\myeventlane_legal\Service\ConsentVersionDiffService::class);
+    $mock->method('getRsvpConsentStatus')->willReturn([
+      'has_prior_consent' => FALSE,
+      'requires_reconsent' => FALSE,
+      'current_terms_version' => '1',
+      'current_privacy_version' => '1',
+      'last_terms_version' => NULL,
+      'last_privacy_version' => NULL,
+      'terms_changed' => FALSE,
+      'privacy_changed' => FALSE,
+    ]);
+    return $mock;
+  }
+
+  /**
+   * Creates a mock AccountProxyInterface (anonymous).
+   */
+  private function createMockCurrentUser(): \Drupal\Core\Session\AccountProxyInterface {
+    $mock = $this->createMock(\Drupal\Core\Session\AccountProxyInterface::class);
+    $mock->method('isAuthenticated')->willReturn(FALSE);
+    $mock->method('id')->willReturn(0);
+    return $mock;
   }
 
   /**

@@ -875,6 +875,41 @@ function myeventlane_vendor_update_10017(): string {
 }
 
 /**
+ * Install billing preference base fields for MEL contribution auto-billing.
+ */
+function myeventlane_vendor_update_10018(): string {
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_vendor');
+  $base_field_definitions = Vendor::baseFieldDefinitions($entity_type);
+
+  $fields_to_install = ['auto_billing_enabled', 'stripe_customer_id', 'stripe_default_payment_method'];
+
+  foreach ($fields_to_install as $field_name) {
+    if (!isset($base_field_definitions[$field_name])) {
+      continue;
+    }
+    $field_storage = \Drupal::entityTypeManager()
+      ->getStorage('field_storage_config')
+      ->load('myeventlane_vendor.' . $field_name);
+
+    if (!$field_storage) {
+      $entity_definition_update_manager->installFieldStorageDefinition(
+        $field_name,
+        'myeventlane_vendor',
+        'myeventlane_vendor',
+        $base_field_definitions[$field_name]
+      );
+    }
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  return 'Installed billing preference base fields (auto_billing_enabled, stripe_customer_id, stripe_default_payment_method) on vendor entity.';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

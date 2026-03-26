@@ -1,0 +1,92 @@
+{#
+/**
+ * @file
+ * Personal contact message form (bundle machine name: personal).
+ *
+ * Same layout as form--contact-message-feedback-form.html.twig; duplicated
+ * because Drupal’s Twig loader does not load non–theme-hook partials via include.
+ *
+ * Variables: attributes, element (FormPreprocess::preprocessForm()).
+ * See form--contact-message-feedback-form.html.twig for `#children` / without().
+ */
+#}
+{{ attach_library('myeventlane_theme/contact_page') }}
+
+<div class="mel-contact-page">
+  <div class="mel-contact-hero">
+    <h1>{{ 'Contact support'|t }}</h1>
+    <p>{{ "We're here to help. Tell us what's going on and we'll guide you."|t }}</p>
+  </div>
+
+  <div class="mel-contact-layout">
+
+    <div class="mel-contact-form">
+      <form{{ attributes }}>
+        {{ element.form_build_id }}
+        {{ element.form_token }}
+        {{ element.form_id }}
+        {% if element.preview is defined %}
+          <div class="mel-contact-preview">
+            {{ element.preview }}
+          </div>
+        {% endif %}
+        {% if element.recipient is defined %}
+          <div class="mel-form-group mel-form-group--recipient">
+            {{ element.recipient }}
+          </div>
+        {% endif %}
+        <div class="mel-form-group">
+          {{ element.name }}
+        </div>
+        <div class="mel-form-group">
+          {{ element.mail }}
+        </div>
+        <div class="mel-form-group">
+          {{ element.subject }}
+        </div>
+        <div class="mel-form-group">
+          {{ element.message }}
+        </div>
+        <div class="mel-form-extra">
+          {{ element.copy }}
+        </div>
+        <div class="mel-form-actions">
+          {{ element.actions }}
+        </div>
+        {# Omit #children: it duplicates fields already printed above (core form pre-render). #}
+        {{ element|without('form_build_id', 'form_token', 'form_id', 'preview', 'recipient', 'name', 'mail', 'subject', 'message', 'copy', 'actions', '#children') }}
+      </form>
+    </div>
+
+    <aside class="mel-contact-side" aria-label="{{ 'Support tips and expectations'|t }}">
+
+      <div class="mel-help-card">
+        <strong>{{ 'Faster answers'|t }}</strong>
+        <ul>
+          <li>{{ 'Include your event name'|t }}</li>
+          <li>{{ 'Tell us what you expected'|t }}</li>
+          <li>{{ 'Add screenshots if possible'|t }}</li>
+        </ul>
+      </div>
+
+      <div class="mel-help-card soft">
+        <strong>{{ 'Common help'|t }}</strong>
+        <p class="mel-help-card__links">
+          <a href="/help">{{ 'Browse help centre'|t }} &rarr;</a>
+          <a href="/help/search">{{ 'Search help'|t }} &rarr;</a>
+        </p>
+      </div>
+
+      <div class="mel-help-card highlight">
+        <strong>{{ 'Response time'|t }}</strong>
+        <p>{{ 'Most messages are answered within 24 hours.'|t }}</p>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <footer class="mel-contact-footnote">
+    <p>{{ 'You will hear from a real person — we read every message and do not use bots for support.'|t }}</p>
+  </footer>
+</div>

@@ -18,6 +18,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -28,6 +29,12 @@ use Psr\Log\LoggerInterface;
  * Processes refund requests and executes refunds.
  */
 final class RefundProcessor {
+
+  public const STATUS_PROCESSING = 'processing';
+  public const STATUS_COMPLETED = 'completed';
+  public const STATUS_PARTIAL = 'partial';
+  public const STATUS_FAILED = 'failed';
+  public const STATUS_PENDING_CONFIRMATION = 'pending_confirmation';
 
   /**
    * Constructs RefundProcessor.
@@ -58,6 +65,8 @@ final class RefundProcessor {
    *   The lock backend.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
    *   The module handler.
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   *   The domain detector (for public-domain customer links).
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -75,6 +84,7 @@ final class RefundProcessor {
     private readonly TimeInterface $time,
     private readonly LockBackendInterface $lock,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   /**
@@ -176,7 +186,7 @@ final class RefundProcessor {
   /**
    * Approves a buyer refund request (vendor action).
    *
-   * Creates refund log, queues worker, sends emails. No Stripe call here.
+   * Creates refund log, runs Stripe refund (via requestRefund → processRefund), sends emails.
    *
    * @param int $requestId
    *   The refund request ID.
@@ -205,8 +215,6 @@ final class RefundProcessor {
       throw new \Exception('Access denied: vendor cannot approve this refund.');
     }
 
-    $this->refundRequestStorage->update($requestId, ['status' => RefundRequestStorage::STATUS_APPROVED]);
-
     $selectedAttendeeIds = $this->decodeAttendeeIds((string) ($req['attendee_ids_json'] ?? ''));
     $payload = [
       'refund_type' => !empty($selectedAttendeeIds) ? 'partial' : 'full',
@@ -221,9 +229,17 @@ final class RefundProcessor {
     }
 
     $logId = $this->requestRefund($order, $event, $vendor, $payload);
-    $this->refundRequestStorage->update($requestId, ['refund_log_id' => $logId]);
+    $this->refundRequestStorage->update($requestId, [
+      'status' => RefundRequestStorage::STATUS_APPROVED,
+      'refund_log_id' => $logId,
+    ]);
 
-    $ctx = $this->buildRefundEmailContext($order, $event, (int) $req['amount_cents'], $req['currency']);
+    $ctx = $this->buildRefundEmailContext(
+      $order,
+      $event,
+      (int) $req['amount_cents'],
+      (string) ($req['currency'] ?? 'aud')
+    );
     $buyerEmail = $order->getEmail() ?: $this->getUserEmail((int) $req['buyer_uid']);
     $vendorEmail = $this->getUserEmail((int) $vendor->id());
 
@@ -297,7 +313,7 @@ final class RefundProcessor {
   }
 
   /**
-   * Requests a refund (creates audit log and queues job).
+   * Requests a refund (creates audit log, enqueues worker, runs processing now).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -318,24 +334,47 @@ final class RefundProcessor {
    *
    * @throws \Exception
    *   If validation fails or log creation fails.
+   * @throws \RuntimeException
+   *   If the log is marked failed after processing.
    */
-  public function requestRefund(OrderInterface $order, NodeInterface $event, AccountInterface $account, array $refund_payload): int {
-    // Validate access.
+  public function requestRefund(OrderInterface $order, NodeInterface $event, AccountInterface $account, array $payload): int {
+    $logId = $this->createRefundLog($order, $event, $account, $payload);
+    $this->logger()->notice('Refund log created: @id', ['@id' => $logId]);
+    $this->requestRefundByLogId($logId);
+    return $logId;
+  }
+
+  /**
+   * Creates the refund log row without changing the public API.
+   */
+  private function createRefundLog(OrderInterface $order, NodeInterface $event, AccountInterface $account, array $payload): int {
+    $this->logger()->notice('requestRefund invoked: order_id=@order_id event_id=@event_id vendor_uid=@uid refund_type=@refund_type', [
+      '@order_id' => $order->id(),
+      '@event_id' => $event->id(),
+      '@uid' => $account->id(),
+      '@refund_type' => (string) ($payload['refund_type'] ?? ''),
+    ]);
+
     if (!$this->accessResolver->vendorCanRefundOrderForEvent($order, $event, $account)) {
       throw new \Exception('Access denied: vendor cannot refund this order.');
     }
 
-    // Validate order state.
     $orderState = $order->getState()->getId();
-    if (!in_array($orderState, ['completed', 'fulfilled', 'placed'], TRUE)) {
+    $refundableStates = [
+      'completed',
+      'fulfilled',
+      'placed',
+      'fulfillment',
+      'partially_refunded',
+    ];
+    if (!in_array($orderState, $refundableStates, TRUE)) {
       throw new \Exception('Order is not in a refundable state.');
     }
 
-    // Calculate refund amount.
-    $refundType = $refund_payload['refund_type'] ?? 'full';
-    $refundScope = $refund_payload['refund_scope'] ?? 'tickets_only';
-    $includeDonation = $refund_payload['include_donation'] ?? FALSE;
-    $selectedAttendeeIds = array_values(array_unique(array_map('intval', (array) ($refund_payload['attendee_ids'] ?? []))));
+    $refundType = $payload['refund_type'] ?? 'full';
+    $refundScope = $payload['refund_scope'] ?? 'tickets_only';
+    $includeDonation = $payload['include_donation'] ?? FALSE;
+    $selectedAttendeeIds = array_values(array_unique(array_map('intval', (array) ($payload['attendee_ids'] ?? []))));
     $selectedAttendeeIds = array_values(array_filter($selectedAttendeeIds, static fn(int $id): bool => $id > 0));
 
     $amountCents = 0;
@@ -357,8 +396,7 @@ final class RefundProcessor {
       }
     }
     else {
-      // Partial refund: use provided amount.
-      $amountCents = (int) ($refund_payload['amount_cents'] ?? 0);
+      $amountCents = (int) ($payload['amount_cents'] ?? 0);
       if ($includeDonation) {
         $donationRefunded = 1;
       }
@@ -371,15 +409,14 @@ final class RefundProcessor {
       throw new \Exception('Refund amount must be greater than zero.');
     }
 
-    // Check refundable amount.
     $refundableCents = $this->orderInspector->calculateRefundableAmountCents($order);
     if ($amountCents > $refundableCents) {
       throw new \Exception('Refund amount exceeds refundable amount.');
     }
 
-    // Get currency from order.
     $totalPrice = $order->getTotalPrice();
     $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
+    $now = $this->time->getRequestTime();
 
     $logFields = [
       'order_id' => $order->id(),
@@ -390,336 +427,733 @@ final class RefundProcessor {
       'amount_cents' => $amountCents,
       'currency' => strtolower($currency),
       'donation_refunded' => $donationRefunded,
-      'status' => 'pending',
-      'reason' => $refund_payload['reason'] ?? NULL,
-      'created' => $this->time->getRequestTime(),
+      'status' => self::STATUS_PROCESSING,
+      'reason' => $payload['reason'] ?? NULL,
+      'failure_reason' => NULL,
+      'retry_count' => 0,
+      'next_attempt_at' => NULL,
+      'retry_of' => NULL,
+      'actual_refunded_cents' => 0,
+      'created' => $now,
+      'updated' => $now,
       'attendee_ids_json' => !empty($selectedAttendeeIds) ? json_encode($selectedAttendeeIds, JSON_UNESCAPED_SLASHES) : NULL,
     ];
-    if (isset($refund_payload['refund_request_id'])) {
-      $logFields['refund_request_id'] = $refund_payload['refund_request_id'];
+    if (isset($payload['refund_request_id'])) {
+      $logFields['refund_request_id'] = $payload['refund_request_id'];
     }
-    $logId = $this->database->insert('myeventlane_refund_log')
+
+    $logId = (int) $this->database->insert('myeventlane_refund_log')
       ->fields($logFields)
       ->execute();
 
-    // Cast to int as database may return string.
-    $logId = (int) $logId;
-
-    $this->logger()->info('Refund requested: log_id=@log_id, order_id=@order_id, amount=@amount_cents cents', [
+    $this->logger()->notice('Vendor refund log created: log_id=@log_id order_id=@order_id amount_cents=@amount_cents.', [
       '@log_id' => $logId,
       '@order_id' => $order->id(),
       '@amount_cents' => $amountCents,
     ]);
 
-    // Queue refund job.
-    $queue = $this->queueFactory->get('vendor_refund_worker');
-    $queue->createItem(['log_id' => $logId]);
-
     return $logId;
   }
 
   /**
-   * Processes a refund (executes the refund via Commerce).
-   *
-   * @param int $log_id
-   *   The refund log ID.
-   *
-   * @throws \Exception
-   *   If processing fails.
+   * Attempts refund execution immediately, then falls back to queue.
    */
-  public function processRefund(int $log_id): void {
-    $lockName = 'myeventlane_refunds:process_refund:' . $log_id;
-    if (!$this->lock->acquire($lockName, 120.0)) {
-      $this->logger()->warning('Skipping refund log @log_id because another worker holds the processing lock.', [
-        '@log_id' => $log_id,
-      ]);
-      return;
-    }
+  public function requestRefundByLogId(int $logId): void {
+    $this->setRefundStatus($logId, self::STATUS_PROCESSING);
 
     try {
-      $log = $this->database->select('myeventlane_refund_log', 'r')
-        ->fields('r')
-        ->condition('id', $log_id)
-        ->execute()
-        ->fetchAssoc();
+      $result = $this->processRefund($logId);
 
-      if (!$log) {
-        throw new \Exception("Refund log ID $log_id not found.");
-      }
-
-      if ($log['status'] !== 'pending') {
-        $this->logger()->warning('Refund log @log_id is not pending (status: @status)', [
-          '@log_id' => $log_id,
-          '@status' => $log['status'],
-        ]);
-        return;
-      }
-
-      if (!empty($log['stripe_refund_id'])) {
-        $this->logger()->warning('Skipping refund log @log_id because stripe_refund_id is already set (@stripe_refund_id).', [
-          '@log_id' => $log_id,
-          '@stripe_refund_id' => $log['stripe_refund_id'],
-        ]);
-        return;
-      }
-
-      // Load order and event.
-      $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
-      $order = $orderStorage->load($log['order_id']);
-      if (!$order instanceof OrderInterface) {
-        $this->markRefundFailed($log_id, 'Order not found.');
-        return;
-      }
-
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $event = $nodeStorage->load($log['event_id']);
-      if (!$event instanceof NodeInterface) {
-        $this->markRefundFailed($log_id, 'Event not found.');
-        return;
-      }
-
-      // Re-validate access (in case ownership changed).
-      $vendor = $this->entityTypeManager->getStorage('user')->load($log['vendor_uid']);
-      if (!$vendor) {
-        $this->markRefundFailed($log_id, 'Vendor user not found.');
-        return;
-      }
-
-      if (!$this->accessResolver->vendorCanRefundOrderForEvent($order, $event, $vendor)) {
-        $this->markRefundFailed($log_id, 'Access denied: vendor cannot refund this order.');
-        return;
-      }
-
-      // Get payments for this order in deterministic order.
-      $paymentStorage = $this->entityTypeManager->getStorage('commerce_payment');
-      $paymentIds = $paymentStorage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('order_id', $order->id())
-        ->condition('state', ['completed', 'partially_refunded'], 'IN')
-        ->sort('payment_id', 'ASC')
-        ->execute();
-
-      if (empty($paymentIds)) {
-        $this->markRefundFailed($log_id, 'No completed payments found for order.');
-        return;
-      }
-
-      $payments = $paymentStorage->loadMultiple($paymentIds);
-      $requestedCents = (int) $log['amount_cents'];
-      $currency = strtoupper((string) $log['currency']);
-      $remainingCents = $requestedCents;
-      $refundedCents = 0;
-      $stripeRefundIds = [];
-      $unconfirmedPayments = [];
-      $confirmationWindowStart = $this->time->getRequestTime();
-
-      foreach ($payments as $payment) {
-        if (!$payment instanceof PaymentInterface || $remainingCents <= 0) {
-          continue;
-        }
-
-        $paymentState = $payment->getState()->getId();
-        if (!in_array($paymentState, ['completed', 'partially_refunded'], TRUE)) {
-          continue;
-        }
-
-        $paymentAmount = $payment->getAmount();
-        $refundedAmount = $payment->getRefundedAmount();
-        if (strtoupper($paymentAmount->getCurrencyCode()) !== $currency || strtoupper($refundedAmount->getCurrencyCode()) !== $currency) {
-          $this->logger()->error('Refund currency mismatch for log_id=@log_id payment_id=@payment_id log_currency=@log_currency payment_currency=@payment_currency.', [
-            '@log_id' => $log_id,
-            '@payment_id' => $payment->id(),
-            '@log_currency' => $currency,
-            '@payment_currency' => strtoupper($paymentAmount->getCurrencyCode()),
-          ]);
-          continue;
-        }
-
-        $paymentAmountCents = $this->priceToCents($paymentAmount);
-        $refundedAmountCents = $this->priceToCents($refundedAmount);
-        $availableCents = max(0, $paymentAmountCents - $refundedAmountCents);
-        if ($availableCents <= 0) {
-          continue;
-        }
-
-        $refundCentsForPayment = min($remainingCents, $availableCents);
-        $refundAmount = new Price($this->centsToDecimalString($refundCentsForPayment), $currency);
-
-        $gateway = $payment->getPaymentGateway();
-        if (!$gateway) {
-          $this->logger()->error('Refund gateway missing for log_id=@log_id payment_id=@payment_id requested_cents=@requested_cents.', [
-            '@log_id' => $log_id,
-            '@payment_id' => $payment->id(),
-            '@requested_cents' => $refundCentsForPayment,
-          ]);
-          continue;
-        }
-
-        $plugin = $gateway->getPlugin();
-        $pluginId = method_exists($plugin, 'getPluginId') ? (string) $plugin->getPluginId() : get_class($plugin);
-        if (!method_exists($plugin, 'refundPayment')) {
-          $this->logger()->error('Refund plugin does not support refundPayment for log_id=@log_id payment_id=@payment_id plugin_id=@plugin_id.', [
-            '@log_id' => $log_id,
-            '@payment_id' => $payment->id(),
-            '@plugin_id' => $pluginId,
-          ]);
-          continue;
-        }
-
-        try {
-          $plugin->refundPayment($payment, $refundAmount);
-          $remainingCents -= $refundCentsForPayment;
-          $refundedCents += $refundCentsForPayment;
-
-          $stripeRefundId = $this->confirmStripeRefundId($payment, $refundCentsForPayment, strtolower($currency), $confirmationWindowStart);
-          if ($stripeRefundId !== NULL) {
-            $stripeRefundIds[] = $stripeRefundId;
-          }
-          else {
-            $unconfirmedPayments[] = [
-              'payment_id' => (int) $payment->id(),
-              'remote_id' => (string) ($payment->getRemoteId() ?? ''),
-              'refund_cents' => $refundCentsForPayment,
-            ];
-          }
-
-          $this->logger()->info('Refunded payment slice for log_id=@log_id payment_id=@payment_id plugin_id=@plugin_id requested_cents=@requested_cents refunded_cents=@refunded_cents remaining_cents=@remaining_cents.', [
-            '@log_id' => $log_id,
-            '@payment_id' => $payment->id(),
-            '@plugin_id' => $pluginId,
-            '@requested_cents' => $refundCentsForPayment,
-            '@refunded_cents' => $refundCentsForPayment,
-            '@remaining_cents' => max(0, $remainingCents),
-          ]);
-        }
-        catch (\Exception $e) {
-          $this->logger()->error('Refund failed for log_id=@log_id payment_id=@payment_id plugin_id=@plugin_id requested_cents=@requested_cents refunded_cents=@refunded_cents: @message', [
-            '@log_id' => $log_id,
-            '@payment_id' => $payment->id(),
-            '@plugin_id' => $pluginId,
-            '@requested_cents' => $refundCentsForPayment,
-            '@refunded_cents' => 0,
-            '@message' => $e->getMessage(),
-          ]);
-          continue;
-        }
-      }
-
-      if ($remainingCents > 0) {
-        $this->markRefundFailed(
-          $log_id,
-          sprintf(
-            'Failed to process full refund. requested_cents=%d, refunded_cents=%d, remaining_cents=%d',
-            $requestedCents,
-            $refundedCents,
-            $remainingCents
-          )
-        );
-        return;
-      }
-
-      if (!empty($unconfirmedPayments)) {
-        $this->markRefundFailed(
-          $log_id,
-          sprintf(
-            'Stripe confirmation missing for one or more refund slices. unconfirmed=%s',
-            json_encode($unconfirmedPayments, JSON_UNESCAPED_SLASHES)
-          ),
-          $log,
-          $order,
-          $event
-        );
-        return;
-      }
-
-      // Mark refund as completed.
-      $stripeRefundIds = array_values(array_unique(array_filter($stripeRefundIds)));
-      $primaryStripeRefundId = $stripeRefundIds[0] ?? NULL;
-      $this->database->update('myeventlane_refund_log')
-        ->fields([
-          'status' => 'completed',
-          'completed' => $this->time->getRequestTime(),
-          'stripe_refund_id' => $primaryStripeRefundId,
-        ])
-        ->condition('id', $log_id)
-        ->execute();
-
-      $this->logger()->info('Refund completed: log_id=@log_id, order_id=@order_id, requested_cents=@requested_cents, refunded_cents=@refunded_cents, stripe_refund_ids=@stripe_refund_ids', [
-        '@log_id' => $log_id,
-        '@order_id' => $order->id(),
-        '@requested_cents' => $requestedCents,
-        '@refunded_cents' => $refundedCents,
-        '@stripe_refund_ids' => implode(',', $stripeRefundIds),
-      ]);
-
-      $this->moduleHandler->invokeAll('myeventlane_refund_completed', [
-        $order,
-        $event,
-        $log + [
-          'status' => 'completed',
-          'completed' => $this->time->getRequestTime(),
-          'stripe_refund_id' => $primaryStripeRefundId,
-        ],
-      ]);
-
-      $log['stripe_refund_id'] = $primaryStripeRefundId;
-      $ticketsCancelled = $this->cancelRefundedTicketAttendees($order, $event, $log);
-
-      // Queue notifications to buyer, vendor, and admin.
-      $customerEmail = $order->getEmail();
-      if ($customerEmail) {
-        $this->queueRefundCompletionEmails($order, $event, $log, $customerEmail, $ticketsCancelled);
-      }
-      else {
-        $this->queueRefundCompletionEmails($order, $event, $log, '', $ticketsCancelled);
+      if ($result !== self::STATUS_COMPLETED) {
+        $this->enqueueRefund($logId);
       }
     }
-    finally {
-      $this->lock->release($lockName);
+    catch (\Throwable $e) {
+      $this->markRefundFailed($logId, $e->getMessage());
+
+      throw new \RuntimeException(
+        'Refund failed — no money has been returned. You can retry safely.'
+      );
     }
   }
 
   /**
-   * Marks a refund as failed.
-   *
-   * @param int $log_id
-   *   The refund log ID.
-   * @param string $error_message
-   *   The error message.
+   * Enqueues a queue retry for the refund log.
    */
-  private function markRefundFailed(
-    int $log_id,
-    string $error_message,
-    ?array $log = NULL,
-    ?OrderInterface $order = NULL,
-    ?NodeInterface $event = NULL
-  ): void {
-    $this->database->update('myeventlane_refund_log')
-      ->fields([
-        'status' => 'failed',
-        'error_message' => $error_message,
-        'completed' => $this->time->getRequestTime(),
-      ])
-      ->condition('id', $log_id)
+  private function enqueueRefund(int $logId): void {
+    $this->queueFactory->get('vendor_refund_worker')->createItem([
+      'refund_log_id' => $logId,
+    ]);
+  }
+
+  /**
+   * Loads a refund log by ID.
+   */
+  public function loadRefundLog(int $logId): ?array {
+    $row = $this->database->select('myeventlane_refund_log', 'r')
+      ->fields('r')
+      ->condition('id', $logId)
+      ->execute()
+      ->fetchAssoc();
+
+    return $row ?: NULL;
+  }
+
+  /**
+   * Loads the newest refund log for an order, optionally scoped to an event.
+   */
+  public function getLatestRefundForOrder(int $orderId, ?int $eventId = NULL): ?array {
+    $query = $this->database->select('myeventlane_refund_log', 'r')
+      ->fields('r')
+      ->condition('order_id', $orderId)
+      ->range(0, 1)
+      ->orderBy('created', 'DESC')
+      ->orderBy('id', 'DESC');
+
+    if ($eventId !== NULL) {
+      $query->condition('event_id', $eventId);
+    }
+
+    $row = $query->execute()->fetchAssoc();
+
+    return $row ?: NULL;
+  }
+
+  /**
+   * Aggregates refund log status counts for an event.
+   */
+  public function getEventRefundStats(int $eventId): array {
+    $query = $this->database->select('myeventlane_refund_log', 'r');
+    $query->fields('r', ['status']);
+    $query->addExpression('COUNT(*)', 'refund_count');
+    $query->condition('event_id', $eventId);
+    $query->groupBy('status');
+
+    $results = $query->execute()->fetchAllAssoc('status');
+    $breakdown = [];
+    $total = 0;
+    $failed = 0;
+    $pending = 0;
+
+    foreach ($results as $status => $row) {
+      $count = (int) ($row->refund_count ?? 0);
+      $breakdown[$status] = $count;
+      $total += $count;
+
+      if ($status === self::STATUS_FAILED) {
+        $failed += $count;
+      }
+
+      if (in_array($status, [self::STATUS_PROCESSING, self::STATUS_PENDING_CONFIRMATION], TRUE)) {
+        $pending += $count;
+      }
+    }
+
+    return [
+      'total' => $total,
+      'failed' => $failed,
+      'pending' => $pending,
+      'breakdown' => $breakdown,
+    ];
+  }
+
+  /**
+   * Returns refund log rows for an order, oldest first.
+   *
+   * @return array<int, \stdClass>
+   *   Rows keyed by refund log ID.
+   */
+  public function getRefundTimelineForOrder(int $orderId): array {
+    if (!$this->database->schema()->tableExists('myeventlane_refund_log')) {
+      return [];
+    }
+
+    return $this->database->select('myeventlane_refund_log', 'r')
+      ->fields('r')
+      ->condition('order_id', $orderId)
+      ->orderBy('created', 'ASC')
+      ->execute()
+      ->fetchAllAssoc('id');
+  }
+
+  /**
+   * Whether a refund log row is eligible for a vendor retry.
+   *
+   * @param array<string, mixed> $log
+   *   Refund log row (e.g. from loadRefundLog()).
+   */
+  public function canRetry(array $log): bool {
+    return ($log['status'] ?? '') === self::STATUS_FAILED;
+  }
+
+  /**
+   * Short, vendor-facing hints derived from event refund log stats.
+   *
+   * @return string[]
+   *   Non-translated English strings for presentation layer to wrap.
+   */
+  public function getRefundInsights(int $eventId): array {
+    $stats = $this->getEventRefundStats($eventId);
+    $insights = [];
+
+    if (($stats['failed'] ?? 0) > 0) {
+      $insights[] = 'Some refunds are failing — check payment setup.';
+    }
+    if (($stats['pending'] ?? 0) > 3) {
+      $insights[] = 'Multiple refunds are still processing.';
+    }
+    if (($stats['total'] ?? 0) === 0) {
+      $insights[] = 'No refunds yet — your event is performing well.';
+    }
+
+    return $insights;
+  }
+
+  /**
+   * Loads refundable payments for the refund log in deterministic order.
+   */
+  private function loadRefundablePayments(array $log): array {
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) $log['order_id']);
+    if (!$order instanceof OrderInterface) {
+      throw new \RuntimeException('Order not found.');
+    }
+
+    $event = $this->entityTypeManager->getStorage('node')->load((int) $log['event_id']);
+    if (!$event instanceof NodeInterface) {
+      throw new \RuntimeException('Event not found.');
+    }
+
+    $vendor = $this->entityTypeManager->getStorage('user')->load((int) $log['vendor_uid']);
+    if (!$vendor instanceof AccountInterface) {
+      throw new \RuntimeException('Vendor user not found.');
+    }
+
+    if (!$this->accessResolver->vendorCanRefundOrderForEvent($order, $event, $vendor)) {
+      throw new \RuntimeException('Access denied: vendor cannot refund this order.');
+    }
+
+    $paymentStorage = $this->entityTypeManager->getStorage('commerce_payment');
+    $paymentIds = $paymentStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', $order->id())
+      ->condition('state', ['completed', 'partially_refunded'], 'IN')
+      ->sort('payment_id', 'ASC')
       ->execute();
 
-    $this->logger()->error('Refund failed: log_id=@log_id, error=@error', [
-      '@log_id' => $log_id,
-      '@error' => $error_message,
+    if (empty($paymentIds)) {
+      return [];
+    }
+
+    $currency = strtoupper((string) ($log['currency'] ?? 'AUD'));
+    $payments = [];
+    foreach ($paymentStorage->loadMultiple($paymentIds) as $payment) {
+      if (!$payment instanceof PaymentInterface) {
+        continue;
+      }
+
+      $amount = $payment->getAmount();
+      $refundedAmount = $payment->getRefundedAmount();
+      if (strtoupper($amount->getCurrencyCode()) !== $currency || strtoupper($refundedAmount->getCurrencyCode()) !== $currency) {
+        continue;
+      }
+
+      $payments[] = $payment;
+    }
+
+    return $payments;
+  }
+
+  /**
+   * Processes a refund with locking and idempotent guards.
+   */
+  public function processRefund(int $logId): string {
+    $lock_id = "refund_process_$logId";
+
+    if (!$this->lock->acquire($lock_id, 30)) {
+      return self::STATUS_PROCESSING;
+    }
+
+    try {
+      $log = $this->loadRefundLog($logId);
+
+      if (!$log) {
+        throw new \RuntimeException('Refund log not found');
+      }
+
+      if (!empty($log['stripe_refund_id'])) {
+        return self::STATUS_COMPLETED;
+      }
+
+      $currentStatus = (string) ($log['status'] ?? '');
+      $retryableStatuses = [
+        self::STATUS_PROCESSING,
+        self::STATUS_PARTIAL,
+        self::STATUS_PENDING_CONFIRMATION,
+      ];
+      if (!in_array($currentStatus, $retryableStatuses, TRUE)) {
+        if ($currentStatus !== '') {
+          return $currentStatus;
+        }
+
+        $this->logger()->warning('Skipping refund processing for log @log_id because the status is missing.', [
+          '@log_id' => $logId,
+        ]);
+        return self::STATUS_FAILED;
+      }
+
+      $requestedAmount = (int) ($log['amount_cents'] ?? 0);
+      $previouslyRefunded = max(0, (int) ($log['actual_refunded_cents'] ?? 0));
+      $remaining = max(0, $requestedAmount - $previouslyRefunded);
+      $payments = $this->loadRefundablePayments($log);
+
+      if (empty($payments)) {
+        throw new \RuntimeException('No refundable payments found.');
+      }
+
+      $refunded = $previouslyRefunded;
+      $unconfirmed = $remaining === 0 && empty($log['stripe_refund_id']) && $previouslyRefunded > 0;
+      $finalRefundId = '';
+
+      foreach ($payments as $payment) {
+        if ($remaining <= 0) {
+          break;
+        }
+
+        $available = $this->getPaymentAvailableBalance($payment);
+        if ($available <= 0) {
+          continue;
+        }
+
+        $amount = min($remaining, $available);
+
+        try {
+          $refundId = $this->refundPayment($payment, $amount);
+
+          if ($refundId !== '') {
+            $finalRefundId = $refundId;
+          }
+
+          $refunded += $amount;
+          $remaining -= $amount;
+
+          if (!$this->isPaymentConfirmed($payment)) {
+            $unconfirmed = TRUE;
+          }
+        }
+        catch (\Throwable $e) {
+          $this->logger()->error('Refund slice failed for log @log_id on payment @payment_id: @message', [
+            '@log_id' => $logId,
+            '@payment_id' => (int) $payment->id(),
+            '@message' => $e->getMessage(),
+          ]);
+          $this->markRefundFailed($logId, $e->getMessage());
+          return self::STATUS_FAILED;
+        }
+      }
+
+      if ($refunded === 0) {
+        $this->markRefundFailed($logId, 'No funds refunded.');
+        return self::STATUS_FAILED;
+      }
+
+      if ($remaining === 0 && empty($log['stripe_refund_id'])) {
+        foreach ($payments as $payment) {
+          if (!$payment instanceof PaymentInterface) {
+            continue;
+          }
+          $confirmedRefundId = $this->lookupAnyConfirmedRefundId($payment);
+          if ($confirmedRefundId !== NULL) {
+            $finalRefundId = $confirmedRefundId;
+            $unconfirmed = FALSE;
+            break;
+          }
+        }
+      }
+
+      $this->setRefundAmount($logId, $refunded);
+
+      if ($remaining > 0) {
+        $this->setRefundStatus($logId, self::STATUS_PARTIAL);
+        return self::STATUS_PARTIAL;
+      }
+
+      if ($finalRefundId !== '') {
+        $this->saveStripeRefundId($logId, $finalRefundId);
+      }
+
+      if ($unconfirmed) {
+        $this->setRefundStatus($logId, self::STATUS_PENDING_CONFIRMATION);
+        return self::STATUS_PENDING_CONFIRMATION;
+      }
+
+      $this->setRefundStatus($logId, self::STATUS_COMPLETED);
+      $this->finalizeCompletedRefund($logId);
+      return self::STATUS_COMPLETED;
+    }
+    finally {
+      $this->lock->release($lock_id);
+    }
+  }
+
+  /**
+   * Marks a refund as failed and preserves legacy fields.
+   */
+  public function markRefundFailed(int $logId, string $reason): void {
+    $now = time();
+    $this->database->update('myeventlane_refund_log')
+      ->fields([
+        'status' => self::STATUS_FAILED,
+        'failure_reason' => $reason,
+        'error_message' => $reason,
+        'updated' => $now,
+        'completed' => $now,
+      ])
+      ->condition('id', $logId)
+      ->execute();
+
+    $this->logger()->error('Refund FAILED @id: @reason', [
+      '@id' => $logId,
+      '@reason' => $reason,
     ]);
 
-    $logData = $log;
-    if ($logData === NULL) {
-      $logData = $this->database->select('myeventlane_refund_log', 'r')
-        ->fields('r')
-        ->condition('id', $log_id)
-        ->execute()
-        ->fetchAssoc() ?: NULL;
+    $this->notifyVendor($logId, self::STATUS_FAILED);
+
+    $log = $this->loadRefundLog($logId);
+    if ($log === NULL) {
+      return;
     }
 
-    if ($logData !== NULL) {
-      $this->queueRefundFailureEmails($order, $event, $logData, $error_message);
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) ($log['order_id'] ?? 0));
+    $event = $this->entityTypeManager->getStorage('node')->load((int) ($log['event_id'] ?? 0));
+    $this->queueRefundFailureEmails(
+      $order instanceof OrderInterface ? $order : NULL,
+      $event instanceof NodeInterface ? $event : NULL,
+      $log,
+      $reason
+    );
+  }
+
+  /**
+   * Updates refund status while preserving legacy timestamps.
+   */
+  private function setRefundStatus(int $logId, string $status): void {
+    $fields = [
+      'status' => $status,
+      'updated' => time(),
+    ];
+
+    if ($status === self::STATUS_COMPLETED) {
+      $fields['completed'] = time();
     }
+
+    $this->database->update('myeventlane_refund_log')
+      ->fields($fields)
+      ->condition('id', $logId)
+      ->execute();
+
+    $this->notifyVendor($logId, $status);
+  }
+
+  /**
+   * Vendor-facing notification hook for refund status changes (log today; mail/SMS later).
+   */
+  private function notifyVendor(int $logId, string $status): void {
+    $log = $this->loadRefundLog($logId);
+    if ($log === NULL) {
+      $this->logger()->warning('Refund notification skipped: log @id not found.', [
+        '@id' => $logId,
+      ]);
+      return;
+    }
+
+    $vendorUid = (int) ($log['vendor_uid'] ?? 0);
+    $account = $vendorUid > 0
+      ? $this->entityTypeManager->getStorage('user')->load($vendorUid)
+      : NULL;
+    $vendorName = $account instanceof AccountInterface ? $account->getAccountName() : 'unknown';
+
+    $this->logger()->notice('Refund notification: status=@status log=@id order=@order event=@event vendor_uid=@uid (@name)', [
+      '@status' => $status,
+      '@id' => (string) $logId,
+      '@order' => (string) ($log['order_id'] ?? ''),
+      '@event' => (string) ($log['event_id'] ?? ''),
+      '@uid' => (string) $vendorUid,
+      '@name' => $vendorName,
+    ]);
+  }
+
+  /**
+   * Saves the Stripe refund ID when available.
+   */
+  private function saveStripeRefundId(int $logId, string $refundId): void {
+    $this->database->update('myeventlane_refund_log')
+      ->fields([
+        'stripe_refund_id' => $refundId,
+        'updated' => time(),
+      ])
+      ->condition('id', $logId)
+      ->execute();
+  }
+
+  /**
+   * Stores the actual refunded amount in cents.
+   */
+  private function setRefundAmount(int $logId, int $amount): void {
+    $this->database->update('myeventlane_refund_log')
+      ->fields([
+        'actual_refunded_cents' => $amount,
+        'updated' => time(),
+      ])
+      ->condition('id', $logId)
+      ->execute();
+  }
+
+  /**
+   * Schedules the next retry attempt with fixed backoff.
+   */
+  public function scheduleRetry(int $logId, int $retryCount): void {
+    $delays = [60, 300, 900, 3600, 21600];
+
+    if ($retryCount >= count($delays)) {
+      $this->markRefundFailed($logId, 'Max retries reached');
+      return;
+    }
+
+    $next = time() + $delays[$retryCount];
+
+    $this->database->update('myeventlane_refund_log')
+      ->fields([
+        'retry_count' => $retryCount + 1,
+        'next_attempt_at' => $next,
+        'updated' => time(),
+      ])
+      ->condition('id', $logId)
+      ->execute();
+  }
+
+  /**
+   * Creates a new retry log and re-runs processing against it.
+   */
+  public function retryRefund(int $failedLogId): int {
+    $failed = $this->loadRefundLog($failedLogId);
+    if ($failed === NULL || (string) ($failed['status'] ?? '') !== self::STATUS_FAILED) {
+      throw new \RuntimeException('Only failed refunds can be retried.');
+    }
+
+    $newLogId = (int) $this->database->insert('myeventlane_refund_log')
+      ->fields([
+        'order_id' => $failed['order_id'],
+        'event_id' => $failed['event_id'],
+        'vendor_uid' => $failed['vendor_uid'],
+        'refund_type' => $failed['refund_type'],
+        'refund_scope' => $failed['refund_scope'],
+        'amount_cents' => $failed['amount_cents'],
+        'currency' => $failed['currency'],
+        'donation_refunded' => $failed['donation_refunded'],
+        'status' => self::STATUS_PROCESSING,
+        'reason' => $failed['reason'] ?? NULL,
+        'failure_reason' => NULL,
+        'retry_count' => 0,
+        'next_attempt_at' => NULL,
+        'retry_of' => $failed['id'],
+        'refund_request_id' => $failed['refund_request_id'] ?? NULL,
+        'attendee_ids_json' => $failed['attendee_ids_json'] ?? NULL,
+        'actual_refunded_cents' => 0,
+        'created' => time(),
+        'updated' => time(),
+      ])
+      ->execute();
+
+    $this->requestRefundByLogId($newLogId);
+
+    return $newLogId;
+  }
+
+  /**
+   * Finalizes completion side effects once the refund becomes completed.
+   */
+  private function finalizeCompletedRefund(int $logId): void {
+    $log = $this->loadRefundLog($logId);
+    if ($log === NULL) {
+      return;
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) ($log['order_id'] ?? 0));
+    $event = $this->entityTypeManager->getStorage('node')->load((int) ($log['event_id'] ?? 0));
+    if (!$order instanceof OrderInterface || !$event instanceof NodeInterface) {
+      return;
+    }
+
+    $this->moduleHandler->invokeAll('myeventlane_refund_completed', [
+      $order,
+      $event,
+      $log,
+    ]);
+
+    $ticketsCancelled = $this->cancelRefundedTicketAttendees($order, $event, $log);
+    $customerEmail = $order->getEmail() ?: '';
+    $this->queueRefundCompletionEmails($order, $event, $log, $customerEmail, $ticketsCancelled);
+  }
+
+  /**
+   * Computes the currently refundable balance for a payment.
+   */
+  private function getPaymentAvailableBalance(PaymentInterface $payment): int {
+    if (method_exists($payment, 'getBalance')) {
+      $balance = $payment->getBalance();
+      if ($balance instanceof Price) {
+        return max(0, $this->priceToCents($balance));
+      }
+
+      if (is_numeric($balance)) {
+        return max(0, (int) $balance);
+      }
+
+      $this->logger()->warning('Unexpected payment balance type for payment @payment_id: @type. Falling back to amount minus refunded.', [
+        '@payment_id' => (int) $payment->id(),
+        '@type' => get_debug_type($balance),
+      ]);
+    }
+
+    return max(0, $this->priceToCents($payment->getAmount()) - $this->priceToCents($payment->getRefundedAmount()));
+  }
+
+  /**
+   * Executes the payment gateway refund and verifies the refund actually landed.
+   */
+  private function refundPayment(PaymentInterface $payment, int $amount): string {
+    $paymentId = (int) $payment->id();
+    $gateway = $payment->getPaymentGateway();
+    if (!$gateway) {
+      throw new \RuntimeException(sprintf('Payment gateway missing for payment %d.', $paymentId));
+    }
+
+    $plugin = $gateway->getPlugin();
+    if (!method_exists($plugin, 'refundPayment')) {
+      throw new \RuntimeException(sprintf('Payment gateway plugin does not support refunds for payment %d.', $paymentId));
+    }
+
+    $currency = strtolower($payment->getAmount()->getCurrencyCode());
+    $windowStart = $this->time->getRequestTime();
+    $beforeAvailable = $this->getPaymentAvailableBalance($payment);
+    $beforeRefunded = $this->priceToCents($payment->getRefundedAmount());
+
+    $this->logger()->notice('Attempting refund slice for payment @payment_id: amount_cents=@amount currency=@currency available_before=@available refunded_before=@refunded', [
+      '@payment_id' => $paymentId,
+      '@amount' => $amount,
+      '@currency' => $currency,
+      '@available' => $beforeAvailable,
+      '@refunded' => $beforeRefunded,
+    ]);
+
+    $plugin->refundPayment(
+      $payment,
+      new Price($this->centsToDecimalString($amount), $payment->getAmount()->getCurrencyCode())
+    );
+
+    $paymentStorage = $this->entityTypeManager->getStorage('commerce_payment');
+    $paymentStorage->resetCache([$paymentId]);
+    $reloadedPayment = $paymentStorage->load($paymentId);
+
+    if (!$reloadedPayment instanceof PaymentInterface) {
+      throw new \RuntimeException(sprintf('Refund verification failed: payment %d could not be reloaded.', $paymentId));
+    }
+
+    $afterAvailable = $this->getPaymentAvailableBalance($reloadedPayment);
+    $afterRefunded = $this->priceToCents($reloadedPayment->getRefundedAmount());
+    $balanceChanged = $afterAvailable < $beforeAvailable || $afterRefunded > $beforeRefunded;
+    $refundId = $this->confirmStripeRefundId(
+      $reloadedPayment,
+      $amount,
+      $currency,
+      $windowStart
+    );
+
+    // Important: do not hard-fail here just because verification is delayed.
+    // Let the processor treat this as pending confirmation.
+    if (!$balanceChanged && $refundId === NULL) {
+      $this->logger()->warning('Refund not yet confirmed for payment @payment_id: no balance change and no Stripe refund ID yet.', [
+        '@payment_id' => $paymentId,
+      ]);
+      return '';
+    }
+
+    if (!$balanceChanged && $refundId !== NULL) {
+      $this->logger()->warning('Refund verified by Stripe but payment state did not change for payment @payment_id. refund_id=@refund_id', [
+        '@payment_id' => $paymentId,
+        '@refund_id' => $refundId,
+      ]);
+    }
+
+    if ($balanceChanged) {
+      $this->logger()->notice('Refund slice verified for payment @payment_id: amount_cents=@amount available_after=@available refunded_after=@refunded', [
+        '@payment_id' => $paymentId,
+        '@amount' => $amount,
+        '@available' => $afterAvailable,
+        '@refunded' => $afterRefunded,
+      ]);
+    }
+
+    if ($refundId === NULL) {
+      $this->logger()->warning('Refund verified without Stripe refund ID for payment @payment_id.', [
+        '@payment_id' => $paymentId,
+      ]);
+      return '';
+    }
+
+    return $refundId;
+  }
+
+  /**
+   * Determines whether a payment appears confirmed as refunded.
+   */
+  private function isPaymentConfirmed(PaymentInterface $payment): bool {
+    $state = $payment->getState()->getId();
+    if (in_array($state, ['partially_refunded', 'refunded'], TRUE)) {
+      return TRUE;
+    }
+
+    if (!$payment->getRefundedAmount()->isZero()) {
+      return TRUE;
+    }
+
+    return $this->lookupAnyConfirmedRefundId($payment) !== NULL;
+  }
+
+  /**
+   * Looks for any succeeded Stripe refund attached to the payment.
+   */
+  private function lookupAnyConfirmedRefundId(PaymentInterface $payment): ?string {
+    $remoteId = (string) ($payment->getRemoteId() ?? '');
+    if ($remoteId === '') {
+      return NULL;
+    }
+
+    try {
+      $client = $this->stripeService->getPlatformClient();
+      $params = ['limit' => 10];
+      if (str_starts_with($remoteId, 'pi_')) {
+        $params['payment_intent'] = $remoteId;
+      }
+      else {
+        $params['charge'] = $remoteId;
+      }
+
+      $refunds = $client->refunds->all($params);
+      foreach ($refunds->data as $refund) {
+        if ((string) ($refund->status ?? '') === 'succeeded' && !empty($refund->id)) {
+          return (string) $refund->id;
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger()->warning('Stripe refund lookup failed for payment @payment_id: @message', [
+        '@payment_id' => (int) $payment->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return NULL;
   }
 
   /**
@@ -1012,10 +1446,26 @@ final class RefundProcessor {
       'order_number' => $order->getOrderNumber() ?: '#' . $order->id(),
       'refunded_amount' => $currencyUpper . ' ' . $amount,
       'donation_refunded' => $donationRefunded,
-      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-        'commerce_order' => $order->id(),
-      ], ['absolute' => TRUE])->toString(),
+      'my_tickets_url' => $this->buildPublicMyTicketsUrl($order->id()),
     ];
+  }
+
+  /**
+   * Builds the My Tickets order URL on the public domain for customer emails.
+   *
+   * @param int|string $orderId
+   *   Commerce order ID (entity IDs may be string or int).
+   */
+  private function buildPublicMyTicketsUrl(int|string $orderId): string {
+    $orderId = (int) $orderId;
+    try {
+      return $this->domainDetector->buildDomainUrl('/my-tickets/order/' . $orderId, 'public');
+    }
+    catch (\Exception $e) {
+      return Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+        'commerce_order' => $orderId,
+      ], ['absolute' => TRUE])->toString();
+    }
   }
 
   /**
@@ -1051,9 +1501,7 @@ final class RefundProcessor {
       'refunded_amount' => $currencyUpper . ' ' . $amount,
       'error_message' => $errorMessage,
       'stripe_refund_id' => (string) ($log['stripe_refund_id'] ?? ''),
-      'my_tickets_url' => $order
-        ? Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString()
-        : '',
+      'my_tickets_url' => $order ? $this->buildPublicMyTicketsUrl($order->id()) : '',
     ];
   }
 

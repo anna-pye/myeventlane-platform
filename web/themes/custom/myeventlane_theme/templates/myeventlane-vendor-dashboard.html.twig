@@ -30,7 +30,11 @@
   </aside>
 
   <main class="vendor-workspace__workspace">
-    {% if mel_help_vendor_dashboard %}
+    {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
+      <div class="mel-contextual-help mel-contextual-help--vendor-dashboard mel-contextual-help--vendor-dashboard-card">
+        {{ mel_vendor_contextual_help }}
+      </div>
+    {% elseif mel_help_vendor_dashboard %}
       <div class="mel-contextual-help mel-contextual-help--vendor-dashboard">
         {{ mel_help_vendor_dashboard }}
       </div>

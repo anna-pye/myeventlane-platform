@@ -1,0 +1,10 @@
+user_experience:
+  css:
+    theme:
+      css/mel-notifications-ui.css: {}
+  js:
+    js/mel-notifications-ui.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

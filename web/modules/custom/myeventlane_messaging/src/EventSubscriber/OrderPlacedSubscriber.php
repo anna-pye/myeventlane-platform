@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
@@ -40,7 +41,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\myeventlane_core\Service\TicketLabelResolver $ticketLabelResolver
+   * @param \Drupal\myeventlane_core\Service\TicketLabelResolver|null $ticketLabelResolver
    *   The ticket label resolver.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file URL generator.
@@ -48,6 +49,8 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    *   The messaging manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   *   The domain detector (for public-domain customer links).
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -55,6 +58,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   /**
@@ -317,21 +321,26 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
     $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
 
-    // Build ticket download URL.
-    $tickets_url = NULL;
-    try {
-      $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-        'commerce_order' => $orderId,
-      ], [
-        'absolute' => TRUE,
-        'fragment' => 'tickets',
-      ])->toString(TRUE)->getGeneratedUrl();
-    }
-    catch (\Exception $e) {
-      // Fallback to order URL if route doesn't exist.
-      $this->logger->warning('Could not generate tickets URL: @message', [
-        '@message' => $e->getMessage(),
-      ]);
+    // Build ticket download URL and order URL on public domain (customer-facing).
+    $order_detail_path = '/my-tickets/order/' . $orderId;
+    $order_url = $this->buildPublicUrl($order_detail_path);
+    $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
+    if (!$order_url) {
+      try {
+        $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+          'commerce_order' => $orderId,
+        ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+        $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+          'commerce_order' => $orderId,
+        ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Could not generate order/tickets URL: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        $order_url = NULL;
+        $tickets_url = NULL;
+      }
     }
 
     // Build email context.
@@ -340,11 +349,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       'order_number' => $order->label(),
       'order_id' => $orderId,
       // Customer-facing "My Tickets" order detail (not admin order view).
-      'order_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-        'commerce_order' => $orderId,
-      ], [
-        'absolute' => TRUE,
-      ])->toString(TRUE)->getGeneratedUrl(),
+      'order_url' => $order_url,
       'order_email' => $mail,
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
@@ -681,6 +686,30 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     }
 
     return $attachments;
+  }
+
+  /**
+   * Builds an absolute URL on the public domain for customer-facing links.
+   *
+   * Ensures email links point to the public site (e.g. myeventlane.ddev.site)
+   * rather than inheriting the organiser/vendor subdomain from the request.
+   *
+   * @param string $path
+   *   Internal path (e.g. '/my-tickets/order/123').
+   *
+   * @return string|null
+   *   Full URL or NULL if domain config is unavailable.
+   */
+  private function buildPublicUrl(string $path): ?string {
+    try {
+      return $this->domainDetector->buildDomainUrl($path, 'public');
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Could not build public domain URL: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
   /**

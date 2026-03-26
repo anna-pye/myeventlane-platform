@@ -4,5 +4,6 @@ description: 'Automated weekly policy evaluation for vendors with sustained at-r
 package: 'MyEventLane'
 core_version_requirement: '^11'
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - myeventlane_escalations_analytics:myeventlane_escalations_analytics

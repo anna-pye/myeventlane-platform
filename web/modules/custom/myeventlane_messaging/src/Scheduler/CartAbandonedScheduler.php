@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Psr\Log\LoggerInterface;
 
@@ -27,6 +28,7 @@ final class CartAbandonedScheduler {
     private readonly QueueFactory $queue,
     private readonly StateInterface $state,
     private readonly MessagingManager $messaging,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   /**
@@ -65,9 +67,8 @@ final class CartAbandonedScheduler {
         continue;
       }
 
-      $url = Url::fromRoute('commerce_cart.page', [], ['absolute' => TRUE])
-        ->toString(TRUE)
-        ->getGeneratedUrl();
+      $cart_path = Url::fromRoute('commerce_cart.page', [], ['absolute' => FALSE])->toString();
+      $url = $this->buildPublicUrl($cart_path) ?? Url::fromRoute('commerce_cart.page', [], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
 
       $this->messaging->queue('cart_abandoned', $mail, [
         'first_name' => $order->getCustomer() ? $order->getCustomer()->getDisplayName() : 'there',
@@ -79,6 +80,18 @@ final class CartAbandonedScheduler {
     }
 
     $this->logger->info('CartAbandonedScheduler: queued @n messages.', ['@n' => $count]);
+  }
+
+  /**
+   * Builds an absolute URL on the public domain for customer-facing links.
+   */
+  private function buildPublicUrl(string $path): ?string {
+    try {
+      return $this->domainDetector->buildDomainUrl($path, 'public');
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
   }
 
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_help_assistant\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 use Drupal\path_alias\AliasManager;
 use Drupal\search_api\IndexInterface;
@@ -18,6 +19,7 @@ final class HelpRetriever {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AliasManager $aliasManager,
+    private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -58,11 +60,12 @@ final class HelpRetriever {
    *   Structured result rows.
    */
   private function executeQuery(IndexInterface $index, string $question, int $limit): array {
+    $fetchCap = max(24, $limit * 6);
     $query = $index->query();
     $query->keys($question);
     $query->addCondition('type', 'help_article');
     $query->addCondition('status', 1);
-    $query->range(0, $limit);
+    $query->range(0, $fetchCap);
     $query->sort('search_api_relevance', 'DESC');
 
     // Prioritise title + summary + body + keywords, per MEL retrieval rules.
@@ -72,6 +75,16 @@ final class HelpRetriever {
       'body',
       'field_help_keywords',
     ]);
+
+    // Canonical list field: public / vendor only (never staff playbooks or staff audience).
+    $allowedAudiences = $this->allowedAudienceValuesForCurrentUser();
+    if ($allowedAudiences !== [] && array_key_exists('field_audience', $index->getFields())) {
+      $group = $query->createConditionGroup('OR');
+      foreach ($allowedAudiences as $audience) {
+        $group->addCondition('field_audience', $audience);
+      }
+      $query->addConditionGroup($group);
+    }
 
     $results = [];
     foreach ($query->execute()->getResultItems() as $resultItem) {
@@ -85,10 +98,85 @@ final class HelpRetriever {
         continue;
       }
 
+      if (!$this->isNodeRetrievableForAssistant($node)) {
+        continue;
+      }
+
       $results[] = $this->buildResultItem($node, (float) $resultItem->getScore());
+      if (count($results) >= $limit) {
+        break;
+      }
     }
 
     return $results;
+  }
+
+  /**
+   * Allowed field_audience values for Search API pre-filtering.
+   *
+   * Anonymous: public only. Authenticated: public + vendor. Staff-facing
+   * help_article content tagged staff is never returned here.
+   *
+   * @return list<string>
+   */
+  private function allowedAudienceValuesForCurrentUser(): array {
+    $account = $this->currentUser;
+    if ($account->isAuthenticated()) {
+      return ['public', 'vendor'];
+    }
+    return ['public'];
+  }
+
+  /**
+   * Final safety: node access, AI allow-list, documentation status, audience.
+   */
+  private function isNodeRetrievableForAssistant(NodeInterface $node): bool {
+    if (!$node->isPublished()) {
+      return FALSE;
+    }
+    if (!$node->access('view', $this->currentUser)) {
+      return FALSE;
+    }
+    if (!$node->hasField('field_help_ai_allowed') || $node->get('field_help_ai_allowed')->isEmpty()
+      || !(bool) $node->get('field_help_ai_allowed')->value) {
+      return FALSE;
+    }
+    if ($node->hasField('field_help_status') && !$node->get('field_help_status')->isEmpty()) {
+      $status = (string) $node->get('field_help_status')->value;
+      if (!in_array($status, ['published', 'approved'], TRUE)) {
+        return FALSE;
+      }
+    }
+    if (!$this->nodeAudienceAllowedForAssistant($node)) {
+      return FALSE;
+    }
+    return TRUE;
+  }
+
+  /**
+   * Requires canonical field_audience: only public/vendor, no staff tagging.
+   */
+  private function nodeAudienceAllowedForAssistant(NodeInterface $node): bool {
+    if (!$node->hasField('field_audience') || $node->get('field_audience')->isEmpty()) {
+      return FALSE;
+    }
+    foreach ($node->get('field_audience') as $item) {
+      $value = (string) $item->value;
+      if ($value === 'staff') {
+        return FALSE;
+      }
+      if (!in_array($value, ['public', 'vendor'], TRUE)) {
+        return FALSE;
+      }
+    }
+    $allowed = $this->allowedAudienceValuesForCurrentUser();
+    foreach ($node->get('field_audience') as $item) {
+      $value = (string) $item->value;
+      if (in_array($value, $allowed, TRUE)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
@@ -113,6 +201,8 @@ final class HelpRetriever {
       $url = $node->toUrl()->toString();
     }
 
+    [$ctaLabel, $ctaUrl] = $this->extractCta($node);
+
     return [
       'nid' => $nid,
       'title' => $node->label(),
@@ -120,7 +210,33 @@ final class HelpRetriever {
       'summary' => $this->extractSummaryText($node),
       'content' => $this->buildExcerpt($node),
       'score' => $score,
+      'cta_label' => $ctaLabel,
+      'cta_url' => $ctaUrl,
     ];
+  }
+
+  /**
+   * @return array{0: string, 1: string}
+   *   CTA label and relative URL for grounded action buttons.
+   */
+  private function extractCta(NodeInterface $node): array {
+    $label = '';
+    $url = '';
+    if ($node->hasField('field_help_cta_label') && !$node->get('field_help_cta_label')->isEmpty()) {
+      $label = trim((string) $node->get('field_help_cta_label')->value);
+    }
+    if ($node->hasField('field_help_cta_link') && !$node->get('field_help_cta_link')->isEmpty()) {
+      $link = $node->get('field_help_cta_link')->first();
+      if ($link && method_exists($link, 'getUrl')) {
+        try {
+          $url = $link->getUrl()->setAbsolute(FALSE)->toString();
+        }
+        catch (\Throwable) {
+          $url = '';
+        }
+      }
+    }
+    return [$label, $url];
   }
 
   /**

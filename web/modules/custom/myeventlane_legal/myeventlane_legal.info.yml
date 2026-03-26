@@ -9,4 +9,5 @@ weight: 100
 dependencies:
   - drupal:user
   - drupal:system
+  - drupal:views
   - myeventlane_core

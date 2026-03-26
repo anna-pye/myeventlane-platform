@@ -112,7 +112,6 @@ final class HelpAssistantQueryForm extends FormBase {
       }
     }
 
-    $form['#attached']['library'][] = 'myeventlane_help_assistant/assistant';
     return $form;
   }
 
@@ -131,7 +130,7 @@ final class HelpAssistantQueryForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $question = trim((string) $form_state->getValue('question'));
-    $result = $this->assistantService->answerQuestion($question);
+    $result = $this->assistantService->answerQuestion($question, []);
     $form_state->set('assistant_result', $result);
     $form_state->setRebuild();
   }

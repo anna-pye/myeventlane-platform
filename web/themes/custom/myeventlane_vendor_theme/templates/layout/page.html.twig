@@ -7,7 +7,8 @@
 
 {% set sidebar = include('@myeventlane_vendor_theme/includes/sidebar.html.twig', { page: page }, with_context = false) %}
 {% set is_dashboard_route = page.active_section|default('') == 'dashboard' %}
-<div class="mel-sidebar-overlay" data-sidebar-overlay></div>
+{# Hidden overlay must not block clicks. #}
+<div class="mel-sidebar-overlay" data-sidebar-overlay style="pointer-events:none;"></div>
 
 <div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
   <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
@@ -35,6 +36,11 @@
       </div>
 
       <div class="mel-shell-header__actions">
+        {% if page.mel_notification_bell %}
+          <div class="mel-shell-header__notifications">
+            {{ page.mel_notification_bell }}
+          </div>
+        {% endif %}
         {% if page.shell_primary_action %}
           <a href="{{ page.shell_primary_action.url }}" class="mel-btn mel-btn--primary">
             {{ page.shell_primary_action.label }}

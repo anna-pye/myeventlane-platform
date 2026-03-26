@@ -159,6 +159,13 @@ function myeventlane_help_centre_views_data(): array {
       'label' => t('User'),
     ],
   ];
+  $data['myeventlane_help_analytics']['context_audience'] = [
+    'title' => t('Context audience'),
+    'help' => t('Help search audience filter when recorded (public, vendor, staff).'),
+    'field' => ['id' => 'standard'],
+    'filter' => ['id' => 'string'],
+    'sort' => ['id' => 'standard'],
+  ];
 
   return $data;
 }

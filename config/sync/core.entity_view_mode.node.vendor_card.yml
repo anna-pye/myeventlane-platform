@@ -1,0 +1,11 @@
+uuid: 11b640b2-78b6-4337-a1c3-bfb57da525ef
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.vendor_card
+label: 'Vendor Card'
+description: null
+targetEntityType: node
+cache: true

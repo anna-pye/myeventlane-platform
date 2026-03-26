@@ -312,8 +312,11 @@ abstract class EventWizardBaseForm extends FormBase {
       }
     }
 
-    // field_location (address).
-    if ($event->hasField('field_location') && $event->get('field_location')->isEmpty()) {
+    // field_location (address): always attempt fallback from form state on this
+    // step. applyLocationFromFormState only calls set() when it finds submitted
+    // address deltas; skipping when the entity was non-empty prevented edits to
+    // an existing venue/address from persisting if extractFormValues missed them.
+    if ($event->hasField('field_location')) {
       $this->applyLocationFromFormState($event, $form_state);
     }
   }
@@ -465,7 +468,7 @@ abstract class EventWizardBaseForm extends FormBase {
   }
 
   /**
-   * Applies location value from form state when entity field is still empty.
+   * Applies location value from form state when the submitted value has address data.
    *
    * Handles both top-level (field_location[0][address]) and widget-wrapped
    * (field_location[widget][0][address]) form state structures.

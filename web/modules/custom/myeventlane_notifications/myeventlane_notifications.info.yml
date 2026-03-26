@@ -1,0 +1,14 @@
+name: 'MyEventLane Notifications'
+type: module
+description: 'Platform notification system: queued delivery, per-user records, and in-app toasts.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable
+
+dependencies:
+  - drupal:user
+  - drupal:node
+  - drupal:text
+  - drupal:options
+  - drupal:serialization
+  - commerce_order:commerce_order

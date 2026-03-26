@@ -27,8 +27,33 @@
     </div>
   {% endif %}
 
+  {% if page and (content.field_audience or content.field_help_ai_allowed or content.field_help_status) %}
+    <div class="mel-help-node__facts" aria-label="{{ 'Article details'|t }}">
+      {% if content.field_audience %}
+        <div class="mel-help-node__fact">{{ content.field_audience }}</div>
+      {% endif %}
+      {% if content.field_help_ai_allowed %}
+        <div class="mel-help-node__fact">{{ content.field_help_ai_allowed }}</div>
+      {% endif %}
+      {% if content.field_help_status %}
+        <div class="mel-help-node__fact">{{ content.field_help_status }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div{{ content_attributes.addClass('mel-help-node__content') }}>
-    {{ content|without('links', 'field_help_summary', 'field_last_reviewed', 'field_help_cta_label', 'field_help_cta_link', 'field_related_help_articles') }}
+    {{ content|without(
+      'links',
+      'field_help_summary',
+      'field_last_reviewed',
+      'field_help_cta_label',
+      'field_help_cta_link',
+      'field_related_help_articles',
+      'field_audience',
+      'field_help_ai_allowed',
+      'field_help_status',
+      'search_api_excerpt'
+    ) }}
   </div>
 
   {% if page and mel_help_cta %}
@@ -64,7 +89,7 @@
       <p class="mel-help-feedback__status" aria-live="polite"></p>
       <p class="mel-help-feedback__no-hint" hidden>
         {{ 'Tell us what is missing.'|t }}
-        <a href="/contact">{{ 'Contact support'|t }}</a>
+        <a href="{{ mel_contact_support_url|default('/support/tickets') }}">{{ 'Contact support'|t }}</a>
       </p>
     </section>
   {% endif %}

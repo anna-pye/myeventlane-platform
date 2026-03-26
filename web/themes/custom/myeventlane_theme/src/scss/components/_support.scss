@@ -6,6 +6,211 @@
  * Shares structure with vendor theme _support.scss.
  */
 
+@use '../tokens/spacing' as space-tokens;
+
+// ============================================================================
+// UNIFIED SUPPORT HUB (/support)
+// ============================================================================
+
+.mel-support {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: space-tokens.mel-space(4) space-tokens.mel-space(2);
+}
+
+.mel-support-hero {
+  background: linear-gradient(135deg, #fff, #fef5ec);
+  padding: space-tokens.mel-space(4);
+  border-radius: 12px;
+  margin-bottom: space-tokens.mel-space(4);
+  border: 1px solid #f0e6dc;
+
+  h1 {
+    margin: 0 0 space-tokens.mel-space(2);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  input[type='search'] {
+    width: 100%;
+    padding: space-tokens.mel-space(2) space-tokens.mel-space(3);
+    border-radius: 999px;
+    border: 1px solid #e0dcd4;
+    font-size: 1rem;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: 2px solid #4f46e5;
+      outline-offset: 2px;
+    }
+  }
+}
+
+.mel-support-panel--hidden {
+  display: none !important;
+}
+
+.mel-support-ai,
+.mel-support-results,
+.mel-support-contact {
+  margin-top: space-tokens.mel-space(4);
+}
+
+.mel-support-ai {
+  padding: space-tokens.mel-space(4);
+  border-radius: 12px;
+  border: 1px solid #e8e4dc;
+  background: #fff;
+}
+
+.mel-support-ai__loading {
+  margin: 0;
+  color: #555;
+}
+
+.mel-support-ai__context {
+  font-size: 0.875rem;
+  color: #555;
+  margin-bottom: space-tokens.mel-space(2);
+}
+
+.mel-support-ai__answer p {
+  margin: 0 0 space-tokens.mel-space(2);
+  line-height: 1.55;
+}
+
+.mel-support-ai__steps {
+  margin-top: space-tokens.mel-space(2);
+
+  ol {
+    margin: space-tokens.mel-space(1) 0 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.mel-support-ai__actions {
+  margin-top: space-tokens.mel-space(3);
+}
+
+.mel-support-ai__action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space-tokens.mel-space(2);
+  margin-top: space-tokens.mel-space(1);
+}
+
+.mel-support-ai__button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #4f46e5;
+  background: #4f46e5;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+
+  &:hover,
+  &:focus {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #fff;
+  }
+}
+
+.mel-support-ai__sources {
+  margin-top: space-tokens.mel-space(3);
+  font-size: 0.9375rem;
+
+  ul {
+    margin: space-tokens.mel-space(1) 0 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.mel-support-ai__followups {
+  margin-top: space-tokens.mel-space(3);
+}
+
+.mel-support-ai__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: space-tokens.mel-space(1);
+}
+
+.mel-support-ai__chip {
+  border: 1px solid #ccc;
+  background: #fafafa;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    border-color: #4f46e5;
+  }
+}
+
+.mel-support-ai__confidence {
+  margin: space-tokens.mel-space(3) 0 0;
+  font-size: 0.8125rem;
+  color: #666;
+}
+
+.mel-support-ai__confidence--high {
+  color: #1b5e20;
+}
+
+.mel-support-ai__confidence--medium {
+  color: #6d4c41;
+}
+
+.mel-support-ai__confidence--low {
+  color: #c62828;
+}
+
+.mel-support-ai__message {
+  margin: space-tokens.mel-space(2) 0 0;
+  font-size: 0.9375rem;
+  color: #444;
+}
+
+.mel-support-results {
+  padding: space-tokens.mel-space(2) 0;
+}
+
+.mel-support-result a {
+  display: block;
+  padding: 0.5rem 0;
+  text-decoration: underline;
+}
+
+.mel-support-results__empty {
+  margin: 0;
+  color: #666;
+  font-size: 0.9375rem;
+}
+
+.mel-support-contact {
+  padding: space-tokens.mel-space(4);
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.mel-support-contact__title {
+  margin: 0 0 space-tokens.mel-space(1);
+  font-size: 1.125rem;
+}
+
+.mel-support-contact__intro {
+  margin: 0 0 space-tokens.mel-space(3);
+  color: #555;
+  font-size: 0.9375rem;
+}
+
 // ============================================================================
 // SUPPORT PAGE LAYOUT
 // ============================================================================

@@ -5,6 +5,8 @@
  * Subtle shadows for depth and hierarchy.
  */
 
+@use 'colors' as *;
+
 // ============================================================================
 // SHADOW SCALE
 // ============================================================================
@@ -37,4 +39,9 @@ $shadow-header: 0 1px 3px rgba(0, 0, 0, 0.08);
 $shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.15);
 $shadow-focus-danger: 0 0 0 3px rgba(255, 138, 138, 0.25);
 $shadow-focus-success: 0 0 0 3px rgba(92, 201, 139, 0.25);
+
+// MEL event workspace — soft, airy depth
+$shadow-workspace-surface: 0 8px 24px $mel-ws-shadow-soft;
+$shadow-workspace-header: 0 10px 30px rgba(0, 0, 0, 0.04);
+$shadow-workspace-lift: 0 6px 18px rgba(0, 0, 0, 0.05);
 

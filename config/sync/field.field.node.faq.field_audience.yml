@@ -1,0 +1,21 @@
+uuid: e5f6a7b8-c9d0-1234-ef01-345678901234
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_audience
+    - node.type.faq
+  module:
+    - options
+id: node.faq.field_audience
+field_name: field_audience
+entity_type: node
+bundle: faq
+label: Audience
+description: 'Canonical visibility: public, vendor, and/or staff (same as help_article).'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -12,7 +12,11 @@
  */
 #}
 <div class="mel-dashboard-wrapper mel-dashboard-wrapper--vendor">
-  {% if mel_help_vendor_dashboard %}
+  {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
+    <div class="mel-contextual-help mel-contextual-help--vendor-dashboard mel-contextual-help--vendor-dashboard-card">
+      {{ mel_vendor_contextual_help }}
+    </div>
+  {% elseif mel_help_vendor_dashboard %}
     <div class="mel-contextual-help mel-contextual-help--vendor-dashboard">
       {{ mel_help_vendor_dashboard }}
     </div>
@@ -21,7 +25,7 @@
   <h1 class="mel-dashboard-title">{{ 'Vendor Dashboard'|t }}</h1>
 
   <p class="mel-dashboard-meta">
-    <a href="/vendor/help">{{ 'Help'|t }}</a>
+    <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help'|t }}</a>
   </p>
 
   {% if mel_vendor_is_pro %}

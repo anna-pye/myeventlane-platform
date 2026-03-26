@@ -1,0 +1,167 @@
+/**
+ * @file
+ * MEL Intelligence Layer — scoring, guidance cards, and structured insights.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+
+/* ============================================================================
+   Intelligence wrapper
+   ============================================================================ */
+
+.mel-intelligence {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================================
+   Score card
+   ============================================================================ */
+
+.mel-score-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: $bg-primary;
+  border: 1px solid rgba(44, 62, 80, 0.08);
+}
+
+.mel-score-card__value {
+  font-weight: 700;
+  color: #6e7ef2;
+}
+
+.mel-score-card__label {
+  font-size: $font-size-sm;
+  color: rgba(44, 62, 80, 0.7);
+}
+
+/* ============================================================================
+   Guidance blocks (primary, secondary, upsell)
+   ============================================================================ */
+
+.mel-guidance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: $bg-primary;
+  border: 1px solid rgba(44, 62, 80, 0.08);
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.mel-guidance__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mel-guidance strong {
+  font-size: 0.95rem;
+  color: $mel-ws-navy;
+}
+
+.mel-guidance p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(44, 62, 80, 0.7);
+}
+
+.mel-guidance--primary {
+  border-left: 4px solid #f26d5b;
+  background: rgba(242, 109, 91, 0.05);
+}
+
+.mel-guidance--upsell {
+  border-left: 4px solid #6e7ef2;
+}
+
+.mel-guidance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ============================================================================
+   Legacy insight cards (backward compatibility)
+   ============================================================================ */
+
+.mel-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.mel-insight {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: $radius-xl;
+  background: $bg-primary;
+  border: 1px solid $mel-ws-border-soft;
+  box-shadow: $shadow-workspace-lift;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.mel-insight__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mel-insight strong {
+  font-size: 0.95rem;
+  color: $mel-ws-navy;
+}
+
+.mel-insight p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(44, 62, 80, 0.7);
+}
+
+.mel-insights-empty {
+  margin-bottom: 1rem;
+  padding: 12px 0;
+}
+
+.mel-insights-empty p {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: rgba(44, 62, 80, 0.65);
+}
+
+/* Variants */
+.mel-insight--improve {
+  border-left: 4px solid #f5c04c;
+}
+
+.mel-insight--growth {
+  border-left: 4px solid #6e7ef2;
+}
+
+.mel-insight--success {
+  border-left: 4px solid #2ecc71;
+}

@@ -13,6 +13,7 @@ regions:
   mobile_nav: 'Mobile Navigation'
   hero: 'Hero'
   pre_content: 'Pre-content'
+  highlighted: Highlighted
   content: Content
   below_content: 'Below content'
   home_featured: 'Home: Featured events'

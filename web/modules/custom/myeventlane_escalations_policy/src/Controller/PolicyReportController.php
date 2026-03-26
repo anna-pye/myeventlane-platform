@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_escalations_policy\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_escalations_policy\Service\VendorRiskStreakStore;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,6 +18,7 @@ final class PolicyReportController extends ControllerBase {
   public function __construct(
     private readonly VendorRiskStreakStore $streakStore,
     private readonly StateInterface $state,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -26,6 +28,7 @@ final class PolicyReportController extends ControllerBase {
     return new self(
       $container->get('myeventlane_escalations_policy.streak_store'),
       $container->get('state'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -93,7 +96,11 @@ final class PolicyReportController extends ControllerBase {
       '#attributes' => ['class' => ['admin-escalation-policy-report']],
     ];
 
-    return $build;
+    return $this->adminShellBuilder->wrapStandard(
+      $build,
+      $this->t('Escalation policy report'),
+      $this->t('Vendor risk streaks and weekly policy evaluation history.'),
+    );
   }
 
 }

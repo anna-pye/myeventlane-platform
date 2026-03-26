@@ -1,0 +1,83 @@
+myeventlane_notifications.admin:
+  path: '/admin/myeventlane/notifications'
+  defaults:
+    _form: '\Drupal\myeventlane_notifications\Form\AdminNotificationForm'
+    _title: 'MyEventLane notifications'
+  requirements:
+    _permission: 'administer myeventlane notifications'
+
+myeventlane_notifications.inbox:
+  path: '/my-notifications'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\UserInboxController::page'
+    _title: 'Notifications'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+
+myeventlane_notifications.preferences:
+  path: '/my-notifications/settings'
+  defaults:
+    _form: '\Drupal\myeventlane_notifications\Form\NotificationPreferencesForm'
+    _title: 'Notification settings'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+
+myeventlane_notifications.action_go:
+  path: '/myeventlane/notifications/go/{delivery}'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::actionGo'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+    delivery: \d+
+
+myeventlane_notifications.unread:
+  path: '/myeventlane/notifications/unread'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::unread'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+
+myeventlane_notifications.unread_count:
+  path: '/myeventlane/notifications/count'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::unreadCount'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+
+myeventlane_notifications.preview:
+  path: '/myeventlane/notifications/preview'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::preview'
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+
+myeventlane_notifications.mark_read:
+  path: '/myeventlane/notifications/read/{delivery}'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::markRead'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+    _csrf_request_header_token: 'TRUE'
+    delivery: \d+
+
+myeventlane_notifications.mark_all_read:
+  path: '/myeventlane/notifications/read-all'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\NotificationController::markAllRead'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access myeventlane notifications'
+    _csrf_request_header_token: 'TRUE'

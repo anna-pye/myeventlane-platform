@@ -10,6 +10,13 @@ services:
       - '@cache.default'
       - '@logger.channel.myeventlane_event'
 
+  myeventlane_event.intelligence:
+    class: Drupal\myeventlane_event\Service\EventIntelligenceService
+    arguments:
+      - '@string_translation'
+      - '@myeventlane_event.stats'
+      - '@myeventlane_event.event_mode_manager'
+
   myeventlane_event.wizard_review_summary_builder:
     class: Drupal\myeventlane_event\Service\WizardReviewSummaryBuilder
     arguments:

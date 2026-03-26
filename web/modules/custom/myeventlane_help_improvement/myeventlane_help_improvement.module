@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Help improvement loop: opportunity queue and cron aggregation.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_cron().
+ */
+function myeventlane_help_improvement_cron(): void {
+  try {
+    \Drupal::service('myeventlane_help_improvement.aggregation')->runScheduledAggregation();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_help_improvement')->error('Cron aggregation failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+}

@@ -10,6 +10,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -30,9 +31,10 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
     MessengerInterface $messenger,
+    VendorEventTabsService $eventTabsService,
     EntityTypeManagerInterface $entityTypeManager,
   ) {
-    parent::__construct($domainDetector, $currentUser, $messenger);
+    parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
   }
 
@@ -44,6 +46,7 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
+      $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('entity_type.manager'),
     );
   }
@@ -145,7 +148,6 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     return $this->buildTicketsPage(
       $event,
       $build,
-      (string) $this->t('Embedded widgets'),
       'widgets',
       $header_actions
     );

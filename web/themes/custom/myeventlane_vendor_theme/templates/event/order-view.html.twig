@@ -1,6 +1,6 @@
 {#
   Order detail (Humanitix-style). Read-only.
-  Variables: event, order_number, back_url, purchaser, payment, tickets, attendees, order_view_url.
+  Variables: event, order_number, back_url, purchaser, payment, tickets, attendees, order_view_url, refund_timeline.
 #}
 <div class="mel-order-view">
   {# 1. Back link #}
@@ -53,6 +53,14 @@
     </div>
   </div>
 
+  {% if refund_timeline %}
+    <div class="mel-card mel-order-view__card mel-order-view__refunds" aria-label="{{ 'Refunds'|t }}">
+      <div class="mel-card__body">
+        {{ refund_timeline }}
+      </div>
+    </div>
+  {% endif %}
+
   {# 5. Tickets summary card #}
   <div class="mel-card mel-order-view__card">
     <div class="mel-card__header">
@@ -93,18 +101,27 @@
           <div class="mel-card mel-order-view__attendee-card">
             <div class="mel-card__body">
               <dl class="mel-order-view__dl">
-                <dt>{{ 'First name'|t }}</dt>
-                <dd>{{ a.first_name }}</dd>
-                <dt>{{ 'Last name'|t }}</dt>
-                <dd>{{ a.last_name }}</dd>
+                <dt>{{ 'Name'|t }}</dt>
+                <dd>{{ a.full_name|default(((a.first_name|default('')) ~ ' ' ~ (a.last_name|default('')))|trim) }}</dd>
                 <dt>{{ 'Email'|t }}</dt>
                 <dd>{{ a.email }}</dd>
+                <dt>{{ 'Phone'|t }}</dt>
+                <dd>{{ a.phone|default('—') }}</dd>
+                <dt>{{ 'Ticket code'|t }}</dt>
+                <dd>{% if a.ticket_code %}{{ a.ticket_code }}{% else %}—{% endif %}</dd>
                 <dt>{{ 'Product variation'|t }}</dt>
                 <dd>{{ a.ticket_type }}</dd>
-                {% for q in a.custom_questions %}
-                  <dt>{{ q.label }}</dt>
-                  <dd>{{ q.value }}</dd>
-                {% endfor %}
+                {% if a.custom_answers is defined %}
+                  {% for row in a.custom_answers %}
+                    <dt>{{ row.label }}</dt>
+                    <dd>{{ row.value }}</dd>
+                  {% endfor %}
+                {% else %}
+                  {% for q in a.custom_questions|default([]) %}
+                    <dt>{{ q.label }}</dt>
+                    <dd>{{ q.value }}</dd>
+                  {% endfor %}
+                {% endif %}
               </dl>
               <p class="mel-order-view__link-back">
                 <a href="{{ a.order_view_url }}" class="mel-link">{{ 'View order'|t }}</a>

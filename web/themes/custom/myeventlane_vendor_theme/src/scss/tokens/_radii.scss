@@ -20,9 +20,17 @@ $radius-full: 9999px;   // Pill shape
 // ============================================================================
 
 $radius-card: $radius-lg;
+// MEL workspace cards / header (20px+ soft product feel)
+$radius-workspace-card: 1.25rem;
+$radius-workspace-header: 1.25rem;
 $radius-button: $radius-md;
 $radius-input: $radius-md;
 $radius-badge: $radius-full;
 $radius-avatar: $radius-full;
 $radius-tab: $radius-md;
+
+// MEL workspace — soft product radii (12 / 16 / pill)
+$mel-radius-sm: 0.75rem;                // 12px
+$mel-radius-md: 1rem;                   // 16px
+$mel-radius-pill: 999px;
 

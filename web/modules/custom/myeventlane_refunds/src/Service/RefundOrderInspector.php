@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\node\NodeInterface;
 
@@ -30,9 +31,12 @@ final class RefundOrderInspector {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   The refunds logger channel.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly LoggerChannelInterface $logger,
   ) {}
 
   /**
@@ -115,37 +119,69 @@ final class RefundOrderInspector {
    *   Attendees keyed by attendee ID.
    */
   public function loadRefundableTicketAttendeesForOrderEvent(OrderInterface $order, int $event_nid): array {
-    $eventItemIds = [];
+    $this->logger->notice('Refund attendee load start: order=@order event=@event', [
+      '@order' => (int) $order->id(),
+      '@event' => $event_nid,
+    ]);
+
+    $eventItems = [];
+    $expectedTicketUnits = 0;
     foreach ($this->extractItemsForEvent($order, $event_nid) as $item) {
       if ($this->isTicketItem($item)) {
-        $eventItemIds[] = (int) $item->id();
+        $eventItems[(int) $item->id()] = $item;
+        $expectedTicketUnits += max(0, (int) $item->getQuantity());
       }
     }
-    $eventItemIds = array_values(array_unique(array_filter($eventItemIds)));
+    $eventItemIds = array_keys($eventItems);
     if (empty($eventItemIds)) {
+      $this->logger->notice('Refund attendee load summary: order=@order event=@event total_before_filter=@total returned=[] expected_units=0', [
+        '@order' => (int) $order->id(),
+        '@event' => $event_nid,
+        '@total' => 0,
+      ]);
       return [];
     }
 
-    $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
-    $attendeeIds = $attendeeStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('event', $event_nid)
-      ->condition('source', EventAttendee::SOURCE_TICKET)
-      ->condition('order_item', $eventItemIds, 'IN')
-      ->condition('status', EventAttendee::STATUS_CANCELLED, '<>')
-      ->sort('id', 'ASC')
-      ->execute();
-    if (empty($attendeeIds)) {
+    $candidateAttendees = $this->loadTicketAttendeesForOrderItems($event_nid, $eventItemIds, FALSE);
+    $attendees = $this->loadTicketAttendeesForOrderItems($event_nid, $eventItemIds, TRUE);
+
+    $this->logger->notice('Refund attendee load summary: order=@order event=@event total_before_filter=@total returned=@returned expected_units=@expected', [
+      '@order' => (int) $order->id(),
+      '@event' => $event_nid,
+      '@total' => count($candidateAttendees),
+      '@returned' => json_encode(array_keys($attendees), JSON_UNESCAPED_SLASHES),
+      '@expected' => $expectedTicketUnits,
+    ]);
+
+    if (empty($attendees)) {
       return [];
     }
 
-    $loaded = $attendeeStorage->loadMultiple($attendeeIds);
-    $attendees = [];
-    foreach ($loaded as $attendee) {
-      if ($attendee instanceof EventAttendee) {
-        $attendees[(int) $attendee->id()] = $attendee;
+    foreach ($attendees as $attendeeId => $attendee) {
+      $orderItemId = (int) ($attendee->get('order_item')->target_id ?? 0);
+      $linkedOrderId = 0;
+      if ($orderItemId > 0 && isset($eventItems[$orderItemId]) && method_exists($eventItems[$orderItemId], 'getOrderId')) {
+        $linkedOrderId = (int) $eventItems[$orderItemId]->getOrderId();
       }
+      $linkedEventId = (int) ($attendee->get('event')->target_id ?? 0);
+
+      $this->logger->notice('Refund attendee candidate: attendee=@attendee email=@email ticket=@ticket order_item=@order_item order=@order event=@event', [
+        '@attendee' => $attendeeId,
+        '@email' => method_exists($attendee, 'getEmail') ? (string) $attendee->getEmail() : '',
+        '@ticket' => method_exists($attendee, 'getTicketCode') ? (string) ($attendee->getTicketCode() ?? '') : '',
+        '@order_item' => $orderItemId,
+        '@order' => $linkedOrderId,
+        '@event' => $linkedEventId,
+      ]);
     }
+
+    $this->logger->notice('Refund attendee state: order=@order event=@event expected_units=@expected active_refundable=@actual cancelled_or_refunded=@diff', [
+      '@order' => (int) $order->id(),
+      '@event' => $event_nid,
+      '@expected' => $expectedTicketUnits,
+      '@actual' => count($attendees),
+      '@diff' => $expectedTicketUnits - count($attendees),
+    ]);
 
     return $attendees;
   }
@@ -168,8 +204,8 @@ final class RefundOrderInspector {
    *   - display_name: resolved attendee name
    */
   public function getRefundableTicketAttendeeBreakdown(OrderInterface $order, int $event_nid): array {
-    $attendeesById = $this->loadRefundableTicketAttendeesForOrderEvent($order, $event_nid);
-    if (empty($attendeesById)) {
+    $refundableAttendeesById = $this->loadRefundableTicketAttendeesForOrderEvent($order, $event_nid);
+    if (empty($refundableAttendeesById)) {
       return [];
     }
 
@@ -183,18 +219,20 @@ final class RefundOrderInspector {
       return [];
     }
 
-    $attendeesByOrderItem = [];
-    foreach ($attendeesById as $attendeeId => $attendee) {
+    $allAttendeesById = $this->loadTicketAttendeesForOrderItems($event_nid, array_keys($orderItemsById), FALSE);
+    $allAttendeesByOrderItem = [];
+    foreach ($allAttendeesById as $attendeeId => $attendee) {
       $orderItemId = (int) $attendee->get('order_item')->target_id;
       if ($orderItemId <= 0 || !isset($orderItemsById[$orderItemId])) {
         continue;
       }
-      $attendeesByOrderItem[$orderItemId][] = $attendeeId;
+      $allAttendeesByOrderItem[$orderItemId][] = $attendeeId;
     }
 
+    $refundableLookup = array_fill_keys(array_keys($refundableAttendeesById), TRUE);
     $breakdown = [];
     foreach ($orderItemsById as $orderItemId => $orderItem) {
-      $lineAttendeeIds = $attendeesByOrderItem[$orderItemId] ?? [];
+      $lineAttendeeIds = $allAttendeesByOrderItem[$orderItemId] ?? [];
       if (empty($lineAttendeeIds)) {
         continue;
       }
@@ -206,7 +244,7 @@ final class RefundOrderInspector {
       }
 
       $lineTotalCents = $this->priceToCents($lineTotal);
-      $lineQty = count($lineAttendeeIds);
+      $lineQty = max(count($lineAttendeeIds), max(0, (int) $orderItem->getQuantity()));
       if ($lineQty <= 0) {
         continue;
       }
@@ -215,12 +253,16 @@ final class RefundOrderInspector {
       $remainder = $lineTotalCents % $lineQty;
       $holderNames = $this->getOrderItemHolderNames($orderItem);
       foreach ($lineAttendeeIds as $index => $attendeeId) {
-        $storedName = trim((string) $attendeesById[$attendeeId]->getName());
+        if (!isset($refundableLookup[$attendeeId])) {
+          continue;
+        }
+
+        $storedName = trim((string) $refundableAttendeesById[$attendeeId]->getName());
         $resolvedName = $storedName !== ''
           ? $storedName
           : (string) ($holderNames[$index] ?? '');
         $breakdown[$attendeeId] = [
-          'attendee' => $attendeesById[$attendeeId],
+          'attendee' => $refundableAttendeesById[$attendeeId],
           'amount_cents' => $baseUnit + ($index < $remainder ? 1 : 0),
           'display_name' => $resolvedName,
         ];
@@ -451,6 +493,53 @@ final class RefundOrderInspector {
     }
 
     return $cents;
+  }
+
+  /**
+   * Loads ticket attendees for event-linked order items.
+   *
+   * @param int $event_nid
+   *   The event node ID.
+   * @param int[] $eventItemIds
+   *   Order item IDs linked to the event.
+   * @param bool $excludeCancelled
+   *   TRUE to exclude cancelled attendees.
+   *
+   * @return \Drupal\myeventlane_event_attendees\Entity\EventAttendee[]
+   *   Attendees keyed by attendee ID.
+   */
+  private function loadTicketAttendeesForOrderItems(int $event_nid, array $eventItemIds, bool $excludeCancelled): array {
+    $eventItemIds = array_values(array_unique(array_filter(array_map('intval', $eventItemIds))));
+    if ($event_nid <= 0 || empty($eventItemIds)) {
+      return [];
+    }
+
+    $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
+    $query = $attendeeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $event_nid)
+      ->condition('source', EventAttendee::SOURCE_TICKET)
+      ->condition('order_item', $eventItemIds, 'IN')
+      ->sort('id', 'ASC');
+
+    if ($excludeCancelled) {
+      $query->condition('status', EventAttendee::STATUS_CANCELLED, '<>');
+    }
+
+    $attendeeIds = $query->execute();
+    if (empty($attendeeIds)) {
+      return [];
+    }
+
+    $loaded = $attendeeStorage->loadMultiple($attendeeIds);
+    $attendees = [];
+    foreach ($loaded as $attendee) {
+      if ($attendee instanceof EventAttendee) {
+        $attendees[(int) $attendee->id()] = $attendee;
+      }
+    }
+
+    return $attendees;
   }
 
   /**

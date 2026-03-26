@@ -3,6 +3,8 @@ services:
     class: Drupal\myeventlane_legal\Service\RsvpLegalAlter
     arguments:
       - '@myeventlane_legal.settings'
+      - '@myeventlane_legal.version_diff'
+      - '@current_user'
       - '@request_stack'
 
   myeventlane_legal.registration_alter:
@@ -17,6 +19,17 @@ services:
     arguments:
       - '@myeventlane_legal.settings'
       - '@datetime.time'
+      - '@myeventlane_legal.consent_audit'
+
+  myeventlane_legal.consent_audit:
+    class: Drupal\myeventlane_legal\Service\ConsentAuditService
+    arguments:
+      - '@entity_type.manager'
+      - '@current_user'
+      - '@request_stack'
+      - '@datetime.time'
+      - '@myeventlane_legal.settings'
+      - '@logger.factory'
 
   myeventlane_legal.settings:
     class: Drupal\myeventlane_legal\Service\LegalSettingsService
@@ -24,6 +37,13 @@ services:
       - '@config.factory'
       - '@logger.factory'
       - '@datetime.time'
+
+  myeventlane_legal.version_diff:
+    class: Drupal\myeventlane_legal\Service\ConsentVersionDiffService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_legal.settings'
+      - '@current_user'
 
   myeventlane_legal.gatekeeper:
     class: Drupal\myeventlane_legal\Service\LegalGatekeeper

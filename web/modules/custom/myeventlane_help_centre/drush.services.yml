@@ -1,0 +1,7 @@
+services:
+  myeventlane_help_centre.commands.repair_node_field_tables:
+    class: Drupal\myeventlane_help_centre\Commands\RepairNodeFieldTablesCommands
+    arguments:
+      - '@entity.definition_update_manager'
+    tags:
+      - { name: drush.command }

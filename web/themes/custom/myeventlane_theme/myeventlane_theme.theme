@@ -86,6 +86,7 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
         'primary_menu' => [],
         'organiser_context' => [],
         'cart' => [],
+        'notification_bell' => [],
         'user_menu' => [],
         'mobile_drawer' => [],
         'is_checkout' => FALSE,
@@ -189,6 +190,8 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
   catch (\Exception $e) {
     $variables['cart'] = [];
   }
+
+  // Notification bell: built by myeventlane_notifications_preprocess_site_header().
 
   // User menu.
   try {
@@ -478,9 +481,9 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
       }
       $variables['mel_event_image_urls'] = $mel_event_image_urls;
 
-      // Help centre URL for confirmation support block.
+      // Help centre URL for confirmation support block (canonical hub only).
       try {
-        $variables['mel_help_centre_url'] = Url::fromRoute('myeventlane_help_centre.public_index')->toString();
+        $variables['mel_help_centre_url'] = Url::fromRoute('myeventlane_help_centre.home')->toString();
       }
       catch (RouteNotFoundException $e) {
         $variables['mel_help_centre_url'] = '/help';
@@ -922,6 +925,30 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   $variables['mel_hero_desktop_url'] = $hero_desktop_url;
   $variables['mel_hero_mobile_url'] = $hero_mobile_url;
   $variables['mel_category_slug'] = $category_slug;
+
+  // Status messages: when Highlighted has no blocks (config not imported, etc.),
+  // page.highlighted is empty and users see no success/errors (e.g. /contact).
+  // Build the same system block programmatically as a fallback only in that case.
+  $page_render = $variables['page'] ?? [];
+  $highlighted = $page_render['highlighted'] ?? [];
+  $highlighted_has_blocks = is_array($highlighted) && count(Element::children($highlighted)) > 0;
+  if (!$highlighted_has_blocks) {
+    try {
+      $block_manager = \Drupal::service('plugin.manager.block');
+      $messages_block = $block_manager->createInstance('system_messages_block', []);
+      if ($messages_block->access(\Drupal::currentUser())) {
+        $messages_build = $messages_block->build();
+        if (!empty($messages_build)) {
+          $variables['mel_fallback_messages'] = $messages_build;
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->error('Fallback status messages could not be built: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
 }
 
 /**
@@ -1626,6 +1653,37 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
 }
 
 /**
+ * Implements hook_preprocess_views_exposed_form().
+ *
+ * Supplies the hero title for the MEL Help Search exposed form layout.
+ */
+function myeventlane_theme_preprocess_views_exposed_form(array &$variables): void {
+  $form = $variables['form'];
+  $expected_id = Html::cleanCssIdentifier('views_exposed_form-mel_help_search-block_search');
+  if (($form['#id'] ?? '') === $expected_id) {
+    $variables['mel_help_search_page_title'] = _myeventlane_theme_mel_help_search_page_title();
+  }
+}
+
+/**
+ * Returns the main heading for the mel_help_search view (search vs category).
+ */
+function _myeventlane_theme_mel_help_search_page_title(): string {
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match->getRouteName();
+  if ($route_name === 'myeventlane_help_centre.search') {
+    return (string) t('Search help');
+  }
+  if ($route_name === 'myeventlane_help_centre.category_index') {
+    $category = $route_match->getParameter('category');
+    if ($category instanceof TermInterface) {
+      return $category->label();
+    }
+  }
+  return (string) t('Help');
+}
+
+/**
  * Helper function to get category slug from taxonomy term.
  *
  * @param \Drupal\taxonomy\TermInterface|null $term
@@ -1924,6 +1982,44 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
   if (strpos($form_id, 'myeventlane_vendor') === 0) {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--vendor';
+  }
+
+  // Contact module (entity message forms on /contact): MEL buttons + message UX.
+  if (str_starts_with($form_id, 'contact_message_')) {
+    if (isset($form['message']) && is_array($form['message'])) {
+      if (!isset($form['message']['#attributes']) || !is_array($form['message']['#attributes'])) {
+        $form['message']['#attributes'] = [];
+      }
+      $attrs = &$form['message']['#attributes'];
+      if (!isset($attrs['class'])) {
+        $attrs['class'] = [];
+      }
+      elseif (!is_array($attrs['class'])) {
+        $attrs['class'] = [$attrs['class']];
+      }
+      $attrs['class'][] = 'mel-textarea';
+      if (empty($attrs['placeholder'])) {
+        $attrs['placeholder'] = (string) t('Include your event name, what you expected, and any error text or screenshots if relevant…');
+      }
+    }
+    foreach (['submit' => ['mel-btn', 'mel-btn-primary', 'mel-btn--contact-coral'], 'preview' => ['mel-btn', 'mel-btn-secondary', 'mel-btn--contact-preview']] as $key => $classes) {
+      if (!isset($form['actions'][$key]) || !is_array($form['actions'][$key])) {
+        continue;
+      }
+      $el = &$form['actions'][$key];
+      if (!isset($el['#attributes']) || !is_array($el['#attributes'])) {
+        $el['#attributes'] = [];
+      }
+      if (!isset($el['#attributes']['class'])) {
+        $el['#attributes']['class'] = [];
+      }
+      elseif (!is_array($el['#attributes']['class'])) {
+        $el['#attributes']['class'] = [$el['#attributes']['class']];
+      }
+      foreach ($classes as $class) {
+        $el['#attributes']['class'][] = $class;
+      }
+    }
   }
 }
 

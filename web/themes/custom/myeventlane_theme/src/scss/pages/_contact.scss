@@ -1,0 +1,308 @@
+// ==========================================================================
+// Contact / support page (Contact module)
+// ==========================================================================
+// Pastel-forward layout: hero, two-column form + guidance, MEL buttons.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+.mel-contact-page {
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-block: spacing.mel-space(6);
+  padding-inline: spacing.mel-space(4);
+
+  @include breakpoints.mel-break(md) {
+    padding-block: spacing.mel-space(8);
+  }
+}
+
+/* HERO — MEL pastel depth */
+.mel-contact-hero {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(242, 109, 91, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(110, 126, 242, 0.12), transparent 40%),
+    colors.$mel-color-surface;
+  padding: spacing.mel-space(6);
+  border-radius: radii.$mel-radius-lg;
+  margin-bottom: spacing.mel-space(6);
+  box-shadow: 0 12px 30px rgba(41, 50, 65, 0.08), 0 2px 8px rgba(41, 50, 65, 0.04);
+  border: 1px solid rgba(41, 50, 65, 0.06);
+
+  h1 {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0;
+    line-height: typography.$mel-leading-tight;
+    letter-spacing: typography.$mel-tracking-tight;
+  }
+
+  p {
+    color: colors.$mel-color-text-muted;
+    margin: spacing.mel-space(3) 0 0;
+    font-size: typography.mel-font-size(md);
+    line-height: typography.$mel-leading-relaxed;
+    max-width: 42rem;
+  }
+}
+
+/* LAYOUT */
+.mel-contact-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: spacing.mel-space(6);
+  align-items: start;
+
+  @include breakpoints.mel-break(md) {
+    grid-template-columns: 2fr 1fr;
+    gap: spacing.mel-space(7);
+  }
+}
+
+/* PREVIEW (when enabled) */
+.mel-contact-preview {
+  margin-bottom: 0;
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-md;
+  background: colors.$mel-color-grey-light;
+  border: 1px solid colors.$mel-color-border;
+}
+
+/* FORM COLUMN */
+.mel-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(5);
+  background: colors.$mel-color-surface;
+  padding: spacing.mel-space(6);
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-glass;
+  border: 1px solid rgba(41, 50, 65, 0.08);
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(5);
+  }
+
+  .mel-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(1);
+    margin-bottom: 0;
+
+    .form-item {
+      margin-bottom: 0;
+    }
+  }
+
+  .mel-form-extra {
+    margin-bottom: 0;
+
+    .form-item {
+      margin-bottom: 0;
+    }
+  }
+
+  .form-textarea-wrapper textarea,
+  textarea.form-textarea,
+  textarea.mel-textarea {
+    min-height: 160px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  textarea.mel-textarea::placeholder {
+    color: colors.$mel-color-text-muted;
+    opacity: 1;
+  }
+}
+
+/* ACTIONS — MEL button system (classes from myeventlane_theme_form_alter) */
+.mel-form-actions {
+  margin-top: spacing.mel-space(1);
+
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: spacing.mel-space(3);
+    margin: 0;
+    padding: 0;
+  }
+
+  .mel-btn {
+    padding: 14px 28px;
+    border-radius: radii.$mel-radius-pill;
+    min-height: 0;
+    white-space: normal;
+    text-align: center;
+    line-height: typography.$mel-leading-snug;
+  }
+
+  /* Coral CTA: scoped so global .mel-btn-primary (lavender) stays unchanged elsewhere. */
+  .mel-btn--contact-coral {
+    background: linear-gradient(135deg, colors.$mel-color-secondary 0%, color.adjust(colors.$mel-color-secondary, $lightness: 6%) 100%);
+    color: colors.$mel-color-on-primary;
+    border: none;
+    box-shadow: 0 6px 18px rgba(242, 109, 91, 0.25);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(242, 109, 91, 0.3);
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  /* Preview: soft lavender surface */
+  .mel-btn--contact-preview {
+    background: #eef1ff;
+    color: colors.$mel-color-primary;
+    border: 1px solid rgba(108, 126, 242, 0.2);
+
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: color.adjust(#eef1ff, $lightness: -2%);
+        border-color: rgba(108, 126, 242, 0.35);
+      }
+    }
+  }
+}
+
+/* SIDE PANEL */
+.mel-contact-side {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(4);
+
+  @include breakpoints.mel-break(md) {
+    position: sticky;
+    top: 100px;
+  }
+}
+
+/* CARDS */
+.mel-help-card {
+  background: colors.$mel-color-surface;
+  padding: spacing.mel-space(5);
+  border-radius: radii.$mel-radius-md;
+  box-shadow: shadows.$mel-shadow-glass;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: shadows.$mel-shadow-glass-hover;
+    }
+  }
+
+  strong {
+    display: block;
+    font-size: typography.mel-font-size(lg);
+    color: colors.$mel-color-text;
+    margin-bottom: spacing.mel-space(2);
+  }
+
+  p {
+    margin: spacing.mel-space(2) 0 0;
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(sm);
+    line-height: typography.$mel-leading-relaxed;
+  }
+
+  ul {
+    margin: spacing.mel-space(2) 0 0;
+    padding-left: 1.15rem;
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(sm);
+    line-height: typography.$mel-leading-relaxed;
+  }
+
+  li + li {
+    margin-top: spacing.mel-space(1);
+  }
+}
+
+.mel-help-card__links {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+  margin-top: spacing.mel-space(3) !important;
+
+  a {
+    color: colors.$mel-color-primary;
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    &:focus-visible {
+      border-radius: radii.$mel-radius-sm;
+      outline: colors.$mel-focus-ring-width solid colors.$mel-focus-ring-color;
+      outline-offset: colors.$mel-focus-ring-offset;
+    }
+  }
+}
+
+.mel-help-card.soft {
+  background: colors.$mel-color-grey-light;
+  border-color: rgba(0, 0, 0, 0.04);
+}
+
+.mel-help-card.highlight {
+  background: linear-gradient(
+    135deg,
+    colors.$mel-color-surface 0%,
+    colors.$mel-color-pastel-pink 55%,
+    colors.$mel-color-pastel-lavender 100%
+  );
+  border-color: rgba(108, 126, 242, 0.12);
+}
+
+/* TRUST FOOTNOTE */
+.mel-contact-footnote {
+  margin-top: spacing.mel-space(7);
+  padding-top: spacing.mel-space(5);
+  border-top: 1px solid colors.$mel-color-border;
+
+  p {
+    margin: 0;
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    line-height: typography.$mel-leading-relaxed;
+    max-width: 40rem;
+  }
+}
+
+/* MOBILE */
+@include breakpoints.mel-break(md, max) {
+  .mel-contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-contact-side {
+    position: static;
+  }
+
+  .mel-contact-page .mel-form-actions .mel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

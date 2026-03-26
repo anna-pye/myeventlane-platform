@@ -157,6 +157,9 @@
   }
 }
 
+// Contact /support CTA: coral gradient is scoped in pages/_contact.scss as
+// .mel-btn--contact-coral so global .mel-btn-primary stays lavender.
+
 // Secondary (Outline) - Secondary actions
 .mel-btn-secondary {
   background-color: transparent;

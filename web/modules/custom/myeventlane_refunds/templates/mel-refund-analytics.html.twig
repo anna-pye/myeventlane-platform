@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Refund analytics summary card.
+ *
+ * Variables:
+ * - data: Aggregated refund stats for an event.
+ */
+#}
+<section class="mel-refund-analytics-card" aria-label="{{ 'Refund activity'|t }}">
+  <div class="mel-refund-analytics-card__header">
+    <div>
+      <h2 class="mel-refund-analytics-card__title">{{ 'Refund activity'|t }}</h2>
+      <p class="mel-refund-analytics-card__intro">{{ 'Track refund volume, pending work, and failures for this event.'|t }}</p>
+    </div>
+  </div>
+
+  <div class="mel-refund-metrics">
+    <div class="mel-refund-metrics__item">
+      <span class="mel-refund-metrics__label">{{ 'Total refunds'|t }}</span>
+      <strong class="mel-refund-metrics__value">{{ data.total|default(0) }}</strong>
+    </div>
+    <div class="mel-refund-metrics__item">
+      <span class="mel-refund-metrics__label">{{ 'Pending'|t }}</span>
+      <strong class="mel-refund-metrics__value">{{ data.pending|default(0) }}</strong>
+    </div>
+    <div class="mel-refund-metrics__item">
+      <span class="mel-refund-metrics__label">{{ 'Failed'|t }}</span>
+      <strong class="mel-refund-metrics__value">{{ data.failed|default(0) }}</strong>
+    </div>
+  </div>
+
+  {% if data.insights|default([])|length > 0 %}
+    <div class="mel-refund-analytics-card__insights" aria-label="{{ 'Refund insights'|t }}">
+      <p class="mel-insights-title">{{ 'Insights'|t }}</p>
+      {% for insight in data.insights %}
+        <div class="mel-insight">{{ insight|t }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>

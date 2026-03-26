@@ -1,0 +1,79 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_legal
+    - user
+id: legal_consent_event.legal_consent_event.default
+targetEntityType: legal_consent_event
+bundle: legal_consent_event
+mode: default
+content:
+  email:
+    type: string
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  source:
+    type: string
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  terms_version:
+    type: string
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  privacy_version:
+    type: string
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  accepted:
+    type: boolean
+    label: inline
+    settings:
+      format: yes-no
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  accepted_at:
+    type: timestamp
+    label: inline
+    settings:
+      date_format: medium
+      time_format: medium
+      custom_date_format: ''
+      custom_time_format: ''
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  ip_address:
+    type: string
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 6
+    region: content
+  user_id:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 7
+    region: content
+hidden:
+  refund_version: true
+  source_entity_type: true
+  source_entity_id: true
+  user_agent: true
+  session_id: true

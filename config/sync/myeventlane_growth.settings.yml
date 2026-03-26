@@ -1,6 +1,6 @@
 enabled: true
 limits:
-  max_dashboard_cards: 3
+  max_dashboard_cards: 2
 thresholds:
   min_activity_for_pro_nudge: 1
   slow_sales_percent: 20

@@ -1,0 +1,142 @@
+/**
+ * @file
+ * Refund timeline, analytics insights, and order-list refund UX.
+ */
+
+.mel-refund-timeline {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.mel-refund-timeline--compact {
+  padding: 16px;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.mel-refund-timeline__title {
+  margin: 0 0 16px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.mel-refund-timeline--compact .mel-refund-timeline__title {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.mel-refund-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mel-refund-item:last-child {
+  margin-bottom: 0;
+}
+
+.mel-refund-timeline--compact .mel-refund-item {
+  margin-bottom: 8px;
+}
+
+.mel-time {
+  flex: 0 0 80px;
+  font-size: 12px;
+  color: #888;
+}
+
+.mel-body {
+  flex: 1;
+  font-size: 14px;
+}
+
+.mel-refund-timeline__status {
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+.mel-error {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #b42318;
+  line-height: 1.4;
+}
+
+.mel-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.mel-status--completed .mel-refund-timeline__status {
+  color: #067647;
+}
+
+.mel-status--processing .mel-refund-timeline__status,
+.mel-status--pending_confirmation .mel-refund-timeline__status {
+  color: #b54708;
+}
+
+.mel-status--failed .mel-refund-timeline__status {
+  color: #b42318;
+}
+
+.mel-status--partial .mel-refund-timeline__status {
+  color: #6941c6;
+}
+
+.mel-refund-analytics-card__insights {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.mel-insights-title {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.mel-insight {
+  font-size: 0.875rem;
+  color: #555;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #f6f7f9;
+  border-radius: 10px;
+  line-height: 1.45;
+}
+
+.mel-insight:last-child {
+  margin-bottom: 0;
+}
+
+.mel-refund-error-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #444;
+}
+
+.mel-refund-error-box strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #b42318;
+}
+
+.mel-refund-retry-help {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.mel-refund-form-history {
+  margin-bottom: 1rem;
+}

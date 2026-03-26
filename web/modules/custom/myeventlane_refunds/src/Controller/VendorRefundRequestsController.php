@@ -6,13 +6,12 @@ namespace Drupal\myeventlane_refunds\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Lists buyer-initiated refund requests for vendor approval.
@@ -24,14 +23,11 @@ final class VendorRefundRequestsController extends ControllerBase {
    *
    * @param \Drupal\myeventlane_refunds\Service\RefundRequestStorage $refundRequestStorage
    *   The refund request storage.
-   * @param \Drupal\myeventlane_refunds\Service\RefundAccessResolver $accessResolver
-   *   The access resolver.
    * @param \Drupal\myeventlane_vendor\Service\VendorEventTabsService $eventTabsService
    *   The event tabs service.
    */
   public function __construct(
     private readonly RefundRequestStorage $refundRequestStorage,
-    private readonly RefundAccessResolver $accessResolver,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly DateFormatterInterface $dateFormatter,
   ) {}
@@ -42,7 +38,6 @@ final class VendorRefundRequestsController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_refunds.refund_request_storage'),
-      $container->get('myeventlane_refunds.access_resolver'),
       $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('date.formatter'),
     );
@@ -58,9 +53,8 @@ final class VendorRefundRequestsController extends ControllerBase {
    *   Render array.
    */
   public function list(NodeInterface $node): array {
-    if (!$this->accessResolver->vendorCanManageEvent($node, $this->currentUser())) {
-      throw new AccessDeniedHttpException('You do not have access to view refund requests for this event.');
-    }
+    // Access (manage event + ticketed-only) is enforced by route _custom_access
+    // myeventlane_refunds.vendor_refund_request_access:access.
 
     $requests = $this->refundRequestStorage->loadPendingByEvent((int) $node->id());
     $orderIds = array_values(array_unique(array_map(static fn (array $req): int => (int) $req['order_id'], $requests)));
@@ -78,26 +72,29 @@ final class VendorRefundRequestsController extends ControllerBase {
       $amount = number_format($req['amount_cents'] / 100, 2);
       $currency = strtoupper($req['currency']);
 
+      $approveUrl = Url::fromRoute('myeventlane_refunds.vendor_refund_request_approve', [
+        'node' => $node->id(),
+        'refund_request' => $req['id'],
+      ]);
+      $rejectUrl = Url::fromRoute('myeventlane_refunds.vendor_refund_request_reject', [
+        'node' => $node->id(),
+        'refund_request' => $req['id'],
+      ]);
+      $approveLink = Link::fromTextAndUrl(
+        $this->t('Approve'),
+        $approveUrl
+      )->toRenderable();
+      $approveLink['#attributes'] = ['class' => ['button', 'button--small']];
+      $rejectLink = Link::fromTextAndUrl(
+        $this->t('Reject'),
+        $rejectUrl
+      )->toRenderable();
+      $rejectLink['#attributes'] = ['class' => ['button', 'button--small']];
       $actions = [
         '#type' => 'container',
-        'approve' => [
-          '#type' => 'link',
-          '#title' => $this->t('Approve'),
-          '#url' => Url::fromRoute('myeventlane_refunds.vendor_refund_request_approve', [
-            'node' => $node->id(),
-            'refund_request' => $req['id'],
-          ]),
-          '#attributes' => ['class' => ['button', 'button--small']],
-        ],
-        'reject' => [
-          '#type' => 'link',
-          '#title' => $this->t('Reject'),
-          '#url' => Url::fromRoute('myeventlane_refunds.vendor_refund_request_reject', [
-            'node' => $node->id(),
-            'refund_request' => $req['id'],
-          ]),
-          '#attributes' => ['class' => ['button', 'button--small']],
-        ],
+        '#attributes' => ['class' => ['mel-action-group']],
+        'approve' => $approveLink,
+        'reject' => $rejectLink,
       ];
 
       $createdTs = is_numeric($req['created']) ? (int) $req['created'] : (int) strtotime((string) $req['created']);
@@ -131,6 +128,7 @@ final class VendorRefundRequestsController extends ControllerBase {
     else {
       $body['table'] = [
         '#type' => 'table',
+        '#responsive' => FALSE,
         '#header' => [
           $this->t('ID'),
           $this->t('Order'),
@@ -146,10 +144,13 @@ final class VendorRefundRequestsController extends ControllerBase {
     $tabs = $this->eventTabsService->getTabs($node, 'refund_requests');
 
     return [
-      '#theme' => 'myeventlane_vendor_console_page',
-      '#title' => $node->label() . ' — Refund requests',
+      '#theme' => 'mel_event_workspace',
+      '#event' => $node,
       '#tabs' => $tabs,
-      '#body' => $body,
+      '#actions' => [],
+      '#meta' => NULL,
+      '#sidebar' => NULL,
+      '#content' => $body,
       '#attached' => [
         'library' => ['myeventlane_vendor_theme/global-styling'],
       ],

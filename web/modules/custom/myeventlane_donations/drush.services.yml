@@ -4,5 +4,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_donations.vendor_contribution_invoice'
+      - '@myeventlane_donations.vendor_auto_billing'
     tags:
       - { name: drush.command }

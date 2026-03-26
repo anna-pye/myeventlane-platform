@@ -330,6 +330,12 @@
       </section>
     </div>
 
+    {% if mel_contextual_help_checkout_confirmation is defined and mel_contextual_help_checkout_confirmation %}
+      <div class="mel-confirmation-help mel-contextual-help mel-contextual-help--checkout-confirmation">
+        {{ mel_contextual_help_checkout_confirmation }}
+      </div>
+    {% endif %}
+
     {# 10. Support / reassurance footer #}
     <footer class="mel-confirmation-support">
       <div class="mel-confirmation-support__links">

@@ -1,0 +1,459 @@
+/**
+ * @file
+ * Shared MEL vendor event workspace: Analytics, RSVPs, Attendees.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+// -----------------------------------------------------------------------------
+// Page shell — max width, vertical rhythm
+// -----------------------------------------------------------------------------
+
+.mel-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mel-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+}
+
+.mel-page__next {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  max-width: 42rem;
+  line-height: 1.5;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// KPI row — pastel cards (spec + responsive)
+// -----------------------------------------------------------------------------
+
+.mel-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mel-kpi-card {
+  background: #f8f7ff;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(110, 99, 200, 0.12);
+  min-width: 0;
+
+  &--mint {
+    background: #f0fdf9;
+    border-color: rgba(16, 185, 129, 0.15);
+  }
+
+  &--peach {
+    background: #fff8f4;
+    border-color: rgba(245, 158, 11, 0.18);
+  }
+
+  &--sky {
+    background: #f3f8ff;
+    border-color: rgba(37, 99, 235, 0.12);
+  }
+
+  &__label {
+    font-size: 12px;
+    color: #7a7a9d;
+    margin: 0 0 6px;
+    font-weight: $font-weight-medium;
+  }
+
+  &__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2d2d4d;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    margin: 6px 0 0;
+    font-size: 11px;
+    color: #9a9ab8;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Cards
+// -----------------------------------------------------------------------------
+
+.mel-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eee7f5;
+  padding: 20px;
+
+  &--soft {
+    background: #faf9ff;
+  }
+}
+
+.mel-card__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-1;
+  margin-bottom: 16px;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.mel-card__title {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-card__subtitle {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-card__body {
+  padding: 0;
+}
+
+// -----------------------------------------------------------------------------
+// Chart cards
+// -----------------------------------------------------------------------------
+
+.mel-chart-card {
+  background: #faf9ff;
+  border-radius: 16px;
+  border: 1px solid #eee7f5;
+  padding: 16px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+
+  &__title {
+    margin: 0 0 8px;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__canvas {
+    flex: 1;
+    position: relative;
+    min-height: 180px;
+
+    canvas {
+      max-height: 220px;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Tables (MEL dashboard)
+// -----------------------------------------------------------------------------
+
+.mel-table--dashboard {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $font-size-sm;
+
+  thead th {
+    text-align: left;
+    font-weight: $font-weight-semibold;
+    color: #7a7a9d;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    padding: 12px 14px;
+    background: #f8f7ff;
+    border-bottom: 1px solid #eee7f5;
+
+    &:first-child {
+      border-radius: 10px 0 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 10px 0 0;
+    }
+  }
+
+  tbody td {
+    padding: 14px;
+    border-bottom: 1px solid #f0eef8;
+    vertical-align: middle;
+  }
+
+  tbody tr:nth-child(even) td {
+    background: rgba(248, 247, 255, 0.45);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// RSVP summary grid (horizontal stats)
+// -----------------------------------------------------------------------------
+
+.mel-rsvp-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 12px;
+}
+
+.mel-rsvp-summary-grid__item {
+  text-align: center;
+  padding: 12px 8px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eee7f5;
+}
+
+.mel-rsvp-summary-grid__value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d2d4d;
+}
+
+.mel-rsvp-summary-grid__label {
+  display: block;
+  font-size: 11px;
+  color: #7a7a9d;
+  margin-top: 4px;
+}
+
+// -----------------------------------------------------------------------------
+// Avatar cell
+// -----------------------------------------------------------------------------
+
+.mel-cell-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mel-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c4b5fd, #a5b4fc);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mel-cell-user__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mel-cell-user__name {
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-cell-user__email {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  word-break: break-word;
+}
+
+// -----------------------------------------------------------------------------
+// Ticket breakdown bars
+// -----------------------------------------------------------------------------
+
+.mel-ticket-breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0eef8;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.mel-ticket-breakdown-row__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.mel-ticket-breakdown-row__name {
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+}
+
+.mel-ticket-breakdown-row__nums {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  white-space: nowrap;
+}
+
+.mel-ticket-breakdown-row__bar {
+  height: 8px;
+  background: #ede9f7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mel-ticket-breakdown-row__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b87ff, #6c7ef2);
+  min-width: 0;
+}
+
+// -----------------------------------------------------------------------------
+// Empty state (dashboard)
+// -----------------------------------------------------------------------------
+
+.mel-empty-state {
+  text-align: center;
+  padding: 40px 24px;
+  color: #8a8ab0;
+
+  &--chart {
+    padding: 32px 20px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    opacity: 0.45;
+    color: #a09fc4;
+  }
+
+  &__title {
+    margin: 0 0 8px;
+    font-weight: $font-weight-semibold;
+    color: #5c5c7a;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: $font-size-sm;
+    line-height: 1.5;
+    max-width: 320px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Layout helpers
+// -----------------------------------------------------------------------------
+
+.mel-dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mel-dashboard-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .mel-btn {
+    @media (max-width: 767px) {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+.mel-rsvp-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .mel-input {
+    width: 100%;
+
+    @include respond-to(md) {
+      max-width: 280px;
+    }
+  }
+}
+
+.mel-support-card {
+  background: linear-gradient(135deg, #faf9ff 0%, #fff 100%);
+  border: 1px solid #eee7f5;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__title {
+    margin: 0;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+}

@@ -91,6 +91,13 @@
   border-color: rgba(242, 109, 91, 0.65);
 }
 
+/* Success / status (e.g. contact form “message sent”) — was unstyled vs .warning/.error */
+.mel-banner--status {
+  background: #e8f7ef;
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #14532d;
+}
+
 .mel-banner__text {
   font-size: 14px;
   line-height: 1.35;

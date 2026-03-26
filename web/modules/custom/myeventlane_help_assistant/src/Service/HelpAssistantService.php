@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_help_assistant\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\myeventlane_ai\Service\AiManager;
 use Drupal\myeventlane_ai\Value\PromptDefinition;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
@@ -15,6 +16,8 @@ use Psr\Log\LoggerInterface;
  * Orchestrates retrieval-first Help Assistant responses.
  */
 final class HelpAssistantService {
+
+  use StringTranslationTrait;
 
   /**
    * Common words ignored when checking answer tokens against retrieval text.
@@ -46,24 +49,26 @@ final class HelpAssistantService {
   /**
    * Answers a Help Assistant question using grounded MEL sources only.
    *
+   * @param array<string, mixed> $context
+   *   Workspace context from HelpContextResolver (surface, optional event, vendor).
+   *
    * @return array<string, mixed>
    *   Assistant payload.
    */
-  public function answerQuestion(string $question): array {
+  public function answerQuestion(string $question, array $context = []): array {
     $config = $this->configFactory->get('myeventlane_help_assistant.settings');
     $question = $this->sanitiseQuestion($question);
-    $supportUrl = trim((string) ($config->get('support_url') ?? '/contact/support'));
+    $supportUrl = trim((string) ($config->get('support_url') ?? '/support/tickets'));
 
     if (!(bool) $config->get('enabled')) {
-      return [
+      return $this->withStructuredFields([
         'status' => 'disabled',
         'answer' => 'Sorry, the Help Assistant is unavailable right now.',
         'confidence' => 'low',
-        'articles' => [],
         'escalation_recommended' => TRUE,
         'message' => $this->buildEscalationText($supportUrl),
         'hide_chat_expectations' => FALSE,
-      ];
+      ], [], [], [], []);
     }
 
     $maxRetrieved = (int) ($config->get('max_retrieved_articles') ?? 5);
@@ -76,29 +81,28 @@ final class HelpAssistantService {
 
     if ($results === []) {
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, 0, 'low');
-      return $this->buildFallbackPayload([], 'low', $supportUrl);
+      return $this->buildFallbackPayload([], 'low', $supportUrl, TRUE);
     }
 
     if ($retrievalConfidence === 'low') {
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low');
-      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl);
+      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl, FALSE);
     }
 
     $aiConfig = $this->configFactory->get('myeventlane_ai.settings');
     if (!(bool) $aiConfig->get('enabled')) {
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low');
-      return [
+      return $this->withStructuredFields([
         'status' => 'ai_disabled',
         'answer' => 'AI help is currently unavailable. You can still browse help articles below.',
-        'articles' => $articleLinks,
         'confidence' => 'low',
         'escalation_recommended' => FALSE,
         'message' => '',
         'hide_chat_expectations' => TRUE,
-      ];
+      ], $articleLinks, [], [], []);
     }
 
-    $prompt = $this->buildPromptDefinition($question, $results, $supportUrl, $retrievalConfidence);
+    $prompt = $this->buildPromptDefinition($question, $results, $supportUrl, $retrievalConfidence, $context);
     $uid = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;
     $scopeId = 'help_assistant:' . substr(hash('sha256', mb_strtolower($question)), 0, 20);
     $maxTokens = (int) ($aiConfig->get('openai.max_tokens') ?? 600);
@@ -124,14 +128,14 @@ final class HelpAssistantService {
         '@error' => (string) $aiResult->error,
       ]);
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low', $aiDurationMs);
-      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl);
+      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl, FALSE);
     }
 
     $decoded = $this->decodeStructuredResult($aiResult->json, $aiResult->raw);
     if ($decoded === NULL) {
       $this->logger->error('Help Assistant AI response was not valid JSON.');
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low', $aiDurationMs);
-      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl);
+      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl, FALSE);
     }
 
     $answer = trim((string) ($decoded['answer'] ?? ''));
@@ -139,29 +143,50 @@ final class HelpAssistantService {
     $finalConfidence = $this->mergeConfidence($retrievalConfidence, $modelConfidence);
     if ($answer === '' || $finalConfidence === 'low') {
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low', $aiDurationMs);
-      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl);
+      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl, FALSE);
     }
 
     $answer = $this->enforceGrounding($answer, $articleLinks, $results);
     if ($answer === '') {
       $this->logger->notice('Help Assistant answer failed grounding enforcement.');
       $this->helpAnalyticsService->logAiEvent('ai_low_confidence', $question, $resultCount, 'low', $aiDurationMs);
-      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl);
+      return $this->buildFallbackPayload($articleLinks, 'low', $supportUrl, FALSE);
     }
 
     $finalLinks = $this->groundedArticleLinks($decoded['articles'] ?? NULL, $articleLinks);
-    $payload = [
+    $steps = $this->sanitiseSteps($decoded['steps'] ?? NULL);
+    $actions = $this->groundedActions($decoded['actions'] ?? NULL, $results, $supportUrl);
+    $followups = $this->sanitiseFollowups($decoded['followups'] ?? NULL);
+
+    $payload = $this->withStructuredFields([
       'status' => 'ok',
       'answer' => $answer,
-      'articles' => $finalLinks,
       'confidence' => $finalConfidence,
       'escalation_recommended' => FALSE,
       'message' => '',
       'hide_chat_expectations' => FALSE,
       'retrieval_tier' => $retrievalConfidence,
-    ];
+    ], $finalLinks, $steps, $actions, $followups);
 
     $this->helpAnalyticsService->logAiEvent('ai_success', $question, $resultCount, $finalConfidence, $aiDurationMs);
+    return $payload;
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   * @param array<int, array<string, string>> $sources
+   * @param list<string> $steps
+   * @param array<int, array<string, string>> $actions
+   * @param list<string> $followups
+   *
+   * @return array<string, mixed>
+   */
+  private function withStructuredFields(array $payload, array $sources, array $steps, array $actions, array $followups): array {
+    $payload['sources'] = $sources;
+    $payload['articles'] = $sources;
+    $payload['steps'] = $steps;
+    $payload['actions'] = $actions;
+    $payload['followups'] = $followups;
     return $payload;
   }
 
@@ -170,14 +195,18 @@ final class HelpAssistantService {
    *
    * @param array<int, array<string, mixed>> $results
    *   Retrieved grounded help articles.
+   * @param array<string, mixed> $context
+   *   Workspace context for tone and framing (no user ids sent to the model).
    */
-  private function buildPromptDefinition(string $question, array $results, string $supportUrl, string $retrievalConfidence): PromptDefinition {
+  private function buildPromptDefinition(string $question, array $results, string $supportUrl, string $retrievalConfidence, array $context = []): PromptDefinition {
     $articles = [];
     foreach ($results as $result) {
       $articles[] = [
         'title' => (string) ($result['title'] ?? ''),
         'summary' => (string) ($result['summary'] ?? ''),
         'url' => (string) ($result['url'] ?? ''),
+        'cta_label' => (string) ($result['cta_label'] ?? ''),
+        'cta_url' => (string) ($result['cta_url'] ?? ''),
         'content' => (string) ($result['content'] ?? ''),
       ];
     }
@@ -197,27 +226,67 @@ final class HelpAssistantService {
       'Only answer using the provided help content.',
       'Do not invent MyEventLane features or behaviour.',
       'If unsure, explicitly say you do not know from the Help Centre.',
+      'When workspace context is provided, personalise tone (e.g. your event, your dashboard) but do not state facts that are not supported by the articles.',
       'Do not include URLs in the answer text; article links are provided separately.',
-      'Use friendly, clear Australian English.',
-      'Return strict JSON with keys: answer, articles, confidence.',
+      'Use friendly, clear Australian English that feels guided and human.',
+      'Return strict JSON with keys: answer, articles, confidence, steps, actions, followups.',
       'confidence must be one of: high, medium, low.',
+      'articles must list relevant help articles with title and url copied exactly from the provided articles.',
+      'steps is an optional array of short actionable strings (or empty array).',
+      'actions is an optional array of objects {label, url} where url must be copied exactly from an article url or cta_url (internal paths only).',
+      'followups is an optional array of short natural follow-up questions the user might ask next (or empty array).',
       trim($caution),
     ]);
+
+    $workspaceJson = json_encode($this->sanitiseContextForPrompt($context), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($workspaceJson)) {
+      $workspaceJson = '{}';
+    }
 
     $userMessage = implode("\n\n", [
       'User question:',
       $question,
+      'Workspace context (verified server-side; may be empty):',
+      $workspaceJson,
       'Help articles:',
       $structuredContext,
       'Instructions:',
       '- Answer using only the articles.',
       '- If answer is unclear, say so and set confidence to low.',
-      '- List relevant articles in the JSON articles array with title and url from the articles only.',
-      '- If confidence is low, mention support URL: ' . $supportUrl,
+      '- Prefer concrete next steps in steps[] when the articles support them.',
+      '- Use actions[] only when a cta_url or article url gives a clear next click.',
+      '- If confidence is low, invite the user to contact support without putting URLs in the answer text.',
     ]);
 
-    $hash = hash('sha256', 'help_assistant.answer|v2|' . $systemMessage . '|' . $userMessage);
-    return new PromptDefinition('help_assistant.answer', 'v2', $systemMessage, $userMessage, $hash);
+    $hash = hash('sha256', 'help_assistant.answer|v4|' . $systemMessage . '|' . $userMessage);
+    return new PromptDefinition('help_assistant.answer', 'v4', $systemMessage, $userMessage, $hash);
+  }
+
+  /**
+   * Strips identifiers from context before sending to the model.
+   *
+   * @param array<string, mixed> $context
+   *
+   * @return array<string, mixed>
+   */
+  private function sanitiseContextForPrompt(array $context): array {
+    $out = [
+      'surface' => (string) ($context['surface'] ?? 'unknown'),
+      'event' => NULL,
+      'vendor_label' => NULL,
+    ];
+    if (!empty($context['event']) && is_array($context['event'])) {
+      $ev = $context['event'];
+      $out['event'] = [
+        'title' => (string) ($ev['title'] ?? ''),
+        'status' => (string) ($ev['status'] ?? ''),
+        'event_type' => (string) ($ev['event_type'] ?? ''),
+      ];
+    }
+    if (!empty($context['vendor']['label'])) {
+      $out['vendor_label'] = (string) $context['vendor']['label'];
+    }
+    return $out;
   }
 
   /**
@@ -459,18 +528,161 @@ final class HelpAssistantService {
   }
 
   /**
+   * @param array<int, array<string, mixed>> $results
+   *
+   * @return array<string, true>
+   */
+  private function collectAllowedActionTargets(array $results, string $supportUrl): array {
+    $allowed = [];
+    foreach ($results as $row) {
+      foreach (['url', 'cta_url'] as $key) {
+        $raw = trim((string) ($row[$key] ?? ''));
+        if ($raw === '') {
+          continue;
+        }
+        $allowed[$raw] = TRUE;
+        $path = $this->normaliseInternalPath($raw);
+        if ($path !== '') {
+          $allowed[$path] = TRUE;
+        }
+      }
+    }
+    $supportRaw = trim($supportUrl);
+    if ($supportRaw !== '') {
+      $allowed[$supportRaw] = TRUE;
+      $p = $this->normaliseInternalPath($supportRaw);
+      if ($p !== '') {
+        $allowed[$p] = TRUE;
+      }
+    }
+    return $allowed;
+  }
+
+  private function normaliseInternalPath(string $url): string {
+    $url = trim($url);
+    if ($url === '') {
+      return '';
+    }
+    if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+      $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
+      return $path;
+    }
+    if (!str_starts_with($url, '/')) {
+      return '/' . ltrim($url, '/');
+    }
+    return $url;
+  }
+
+  private function isSafeRelativeActionPath(string $path): bool {
+    if ($path === '' || !str_starts_with($path, '/')) {
+      return FALSE;
+    }
+    if (preg_match('#//#u', $path) || preg_match('/[\s<>"`]/u', $path)) {
+      return FALSE;
+    }
+    return !str_contains(strtolower($path), 'javascript:');
+  }
+
+  /**
+   * @return array<int, array<string, string>>
+   */
+  private function groundedActions(mixed $actions, array $results, string $supportUrl): array {
+    $allowed = $this->collectAllowedActionTargets($results, $supportUrl);
+    if (!is_array($actions)) {
+      return [];
+    }
+    $out = [];
+    foreach ($actions as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $label = trim(strip_tags((string) ($row['label'] ?? '')));
+      $rawUrl = trim((string) ($row['url'] ?? ''));
+      if ($label === '' || $rawUrl === '') {
+        continue;
+      }
+      $path = $this->normaliseInternalPath($rawUrl);
+      if ($path === '' || !$this->isSafeRelativeActionPath($path)) {
+        continue;
+      }
+      if (!isset($allowed[$rawUrl]) && !isset($allowed[$path])) {
+        continue;
+      }
+      $out[] = [
+        'label' => mb_substr($label, 0, 120),
+        'url' => $path,
+      ];
+      if (count($out) >= 4) {
+        break;
+      }
+    }
+    return $out;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function sanitiseSteps(mixed $steps): array {
+    if (!is_array($steps)) {
+      return [];
+    }
+    $out = [];
+    foreach ($steps as $step) {
+      $s = trim(strip_tags((string) $step));
+      if ($s === '') {
+        continue;
+      }
+      $out[] = mb_substr($s, 0, 400);
+      if (count($out) >= 8) {
+        break;
+      }
+    }
+    return $out;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function sanitiseFollowups(mixed $followups): array {
+    if (!is_array($followups)) {
+      return [];
+    }
+    $out = [];
+    foreach ($followups as $q) {
+      $s = trim(strip_tags((string) $q));
+      if ($s === '' || mb_strlen($s) < 8) {
+        continue;
+      }
+      $out[] = mb_substr($s, 0, 200);
+      if (count($out) >= 4) {
+        break;
+      }
+    }
+    return $out;
+  }
+
+  /**
    * @param array<int, array<string, string>> $articles
    */
-  private function buildFallbackPayload(array $articles, string $confidence, string $supportUrl): array {
-    return [
+  private function buildFallbackPayload(array $articles, string $confidence, string $supportUrl, bool $empty_retrieval = FALSE): array {
+    if ($empty_retrieval) {
+      $answer = (string) $this->t('We couldn’t find a perfect answer in the Help Centre yet. Try rephrasing your question or open one of the guides below when they appear.');
+    }
+    elseif ($articles === []) {
+      $answer = (string) $this->t('We couldn’t find a perfect answer yet. Try contacting support with your event or booking details.');
+    }
+    else {
+      $answer = (string) $this->t('We couldn’t find a perfect answer — here are some helpful guides from the Help Centre.');
+    }
+
+    return $this->withStructuredFields([
       'status' => 'fallback',
-      'answer' => 'I couldn\'t find a clear answer yet. Try one of these articles or contact support.',
-      'articles' => $articles,
+      'answer' => $answer,
       'confidence' => $confidence,
       'escalation_recommended' => TRUE,
       'message' => $this->buildEscalationText($supportUrl),
       'hide_chat_expectations' => FALSE,
-    ];
+    ], $articles, [], [], []);
   }
 
   private function buildEscalationText(string $supportUrl): string {

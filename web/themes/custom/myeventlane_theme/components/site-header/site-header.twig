@@ -7,6 +7,7 @@
  * - primary_menu
  * - organiser_context
  * - cart
+ * - notification_bell
  * - user_menu
  * - mobile_drawer (rendered component)
  *
@@ -45,6 +46,12 @@
       <div class="site-header__cart">
         {{ cart }}
       </div>
+
+      {% if notification_bell %}
+        <div class="site-header__notifications">
+          {{ notification_bell }}
+        </div>
+      {% endif %}
 
       <div class="site-header__user">
         {{ user_menu }}

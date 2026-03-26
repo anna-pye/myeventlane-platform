@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
@@ -92,17 +93,41 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
       ],
     ];
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Analytics',
+    $boost_page_url = NULL;
+    try {
+      $boost_page_url = Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event->id()])->toString();
+    }
+    catch (\Throwable) {
+      $boost_page_url = NULL;
+    }
+
+    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'body' => [
+      'actions' => [
+        [
+          'label' => (string) $this->t('View orders'),
+          'url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $event->id()])->toString(),
+          'class' => 'mel-btn--secondary',
+        ],
+      ],
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
         '#theme' => 'myeventlane_vendor_event_analytics',
         '#event' => $event,
         '#charts' => $charts,
         '#overview' => $overview,
         '#ticket_tier_rollup' => $ticket_tier_rollup,
+        '#boost_page_url' => $boost_page_url,
+        '#public_event_url' => $public_event_url,
       ],
       '#attached' => [
+        'library' => [
+          'myeventlane_vendor_theme/analytics',
+        ],
         'drupalSettings' => [
           'vendorCharts' => $chart_data,
         ],

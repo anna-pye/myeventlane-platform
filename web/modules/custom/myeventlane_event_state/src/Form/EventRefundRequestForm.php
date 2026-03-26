@@ -167,7 +167,7 @@ final class EventRefundRequestForm extends FormBase {
         ]);
         $success++;
       }
-      catch (\Exception $e) {
+      catch (\Throwable $e) {
         $failed++;
         $this->eventLogger()->error(
           'Failed to queue refund for event @event_id order @order_id: @message',

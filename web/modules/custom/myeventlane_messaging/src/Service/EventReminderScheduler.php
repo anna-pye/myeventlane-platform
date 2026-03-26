@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -39,6 +40,8 @@ final class EventReminderScheduler {
    *   The date formatter.
    * @param \Drupal\myeventlane_rsvp\Service\IcsGenerator|null $icsGenerator
    *   Optional ICS generator for calendar attachments.
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   *   The domain detector (for public-domain customer links).
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -48,6 +51,7 @@ final class EventReminderScheduler {
     private readonly MessagingManager $messagingManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly ?object $icsGenerator = NULL,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {}
 
   /**
@@ -194,15 +198,24 @@ final class EventReminderScheduler {
    * Builds serializable template context (no entities).
    */
   private function buildContext(OrderInterface $order, NodeInterface $event, string $timeframe): array {
+    $event_url = $this->buildPublicUrl($event->toUrl('canonical', ['absolute' => FALSE])->toString());
+    $my_tickets_url = $this->buildPublicUrl('/my-tickets/order/' . $order->id());
+    if (!$event_url) {
+      $event_url = $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+    }
+    if (!$my_tickets_url) {
+      $my_tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+        'commerce_order' => $order->id(),
+      ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+    }
+
     $context = [
       'order_id' => (int) $order->id(),
       'event_id' => (int) $event->id(),
       'order_number' => $order->getOrderNumber(),
       'event_title' => $event->label(),
-      'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
-      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-        'commerce_order' => $order->id(),
-      ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
+      'event_url' => $event_url,
+      'my_tickets_url' => $my_tickets_url,
       'timeframe' => $timeframe,
     ];
 
@@ -242,6 +255,27 @@ final class EventReminderScheduler {
     $context['attendee_count'] = count($attendeeNames);
 
     return $context;
+  }
+
+  /**
+   * Builds an absolute URL on the public domain for customer-facing links.
+   *
+   * @param string $path
+   *   Internal path (e.g. '/my-tickets/order/123' or '/node/1').
+   *
+   * @return string|null
+   *   Full URL or NULL if domain config is unavailable.
+   */
+  private function buildPublicUrl(string $path): ?string {
+    if (!$this->domainDetector) {
+      return NULL;
+    }
+    try {
+      return $this->domainDetector->buildDomainUrl($path, 'public');
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
   }
 
   /**

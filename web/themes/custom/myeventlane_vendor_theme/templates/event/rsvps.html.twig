@@ -1,111 +1,172 @@
 {#
-  Event RSVPs view.
-  Variables: event, summary, series, rsvps.
+/**
+ * Event RSVPs — people dashboard (vendor console).
+ *
+ * Variables: event, summary, series, rsvps, public_event_url
+ */
 #}
-<div class="mel-grid mel-grid--2 mel-mb-lg">
-  <div class="mel-card">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'RSVP summary'|t }}</div>
+<div class="mel-workspace-page mel-page mel-rsvps">
+  <p class="mel-page__next" role="status">
+    {% trans %}Next: invite people who should be there — share your public link and use <strong>Check-in</strong> on the door.{% endtrans %}
+  </p>
+
+  <div class="mel-kpi-row">
+    <div class="mel-kpi-card mel-kpi-card--sky">
+      <p class="mel-kpi-card__label">{{ 'Total RSVPs'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.total_submissions|default(summary.total|default(0)) }}</p>
+      <p class="mel-kpi-card__hint">{{ 'Non-cancelled'|t }}</p>
     </div>
-    <div class="mel-stats">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Total'|t }}</div>
-        <div class="mel-stat__value">{{ summary.total|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Confirmed'|t }}</div>
-        <div class="mel-stat__value">{{ summary.confirmed|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Pending'|t }}</div>
-        <div class="mel-stat__value">{{ summary.pending|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Waitlisted'|t }}</div>
-        <div class="mel-stat__value">{{ summary.waitlisted|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Cancelled'|t }}</div>
-        <div class="mel-stat__value">{{ summary.cancelled|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Check-ins'|t }}</div>
-        <div class="mel-stat__value">{{ summary.checkins|default(0) }}</div>
-      </div>
+    <div class="mel-kpi-card mel-kpi-card--mint">
+      <p class="mel-kpi-card__label">{{ 'Confirmed'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.confirmed|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card">
+      <p class="mel-kpi-card__label">{{ 'Pending'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.pending|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card mel-kpi-card--peach">
+      <p class="mel-kpi-card__label">{{ 'Waitlisted'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.waitlisted|default(0) }}</p>
     </div>
   </div>
 
   <div class="mel-card">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'RSVP Trend'|t }}</div>
+      <div>
+        <h2 class="mel-card__title">{{ 'RSVP summary'|t }}</h2>
+        <p class="mel-card__subtitle">{{ 'At-a-glance status counts'|t }}</p>
+      </div>
     </div>
     <div class="mel-card__body">
-      <canvas data-chart-id="event-rsvps" height="150"></canvas>
+      <div class="mel-rsvp-summary-grid">
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.total_submissions|default(summary.total|default(0)) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Total'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.confirmed|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Confirmed'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.pending|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Pending'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.waitlisted|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Waitlisted'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.cancelled|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Cancelled'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.checkins|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Check-ins'|t }}</span>
+        </div>
+        <div class="mel-rsvp-summary-grid__item">
+          <span class="mel-rsvp-summary-grid__value">{{ summary.recent|default(0) }}</span>
+          <span class="mel-rsvp-summary-grid__label">{{ 'Last 7 days'|t }}</span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-{# RSVP List #}
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'All RSVPs'|t }}</div>
-    {% if rsvps|length > 0 %}
-      <div class="mel-search mel-search--inline">
-        <label class="visually-hidden" for="rsvp-search">{{ 'Search RSVPs'|t }}</label>
-        <input
-          type="search"
-          class="mel-input mel-input--sm"
-          placeholder="{{ 'Search…'|t }}"
-          id="rsvp-search"
-          data-mel-table-search
-          data-mel-table-search-rows=".rsvp-row"
-        >
-      </div>
-    {% endif %}
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <h2 class="mel-card__title">{{ 'RSVP trend'|t }}</h2>
+    </div>
+    <div class="mel-card__body">
+      {% if series|length > 0 %}
+        <div class="mel-chart-card__canvas mel-chart-card__canvas--tall" data-mel-chart>
+          <canvas data-chart-id="event-rsvps" height="180"></canvas>
+        </div>
+      {% else %}
+        <div class="mel-empty-state mel-empty-state--chart">
+          <p class="mel-empty-state__title">{{ 'No trend data yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'When daily RSVP totals are available, a chart will appear here.'|t }}</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
-  
-  {% if rsvps|length > 0 %}
-    <div class="mel-table-responsive">
-      <table class="mel-table mel-table--striped" id="rsvp-table">
-        <thead>
-          <tr>
-            <th>{{ 'Name'|t }}</th>
-            <th>{{ 'Email'|t }}</th>
-            <th>{{ 'Guests'|t }}</th>
-            <th>{{ 'Status'|t }}</th>
-            <th>{{ 'Date'|t }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for rsvp in rsvps %}
-            <tr class="rsvp-row">
-              <td>{{ rsvp.name|default('—') }}</td>
-              <td>
-                {% if rsvp.email %}
-                  <a href="mailto:{{ rsvp.email }}">{{ rsvp.email }}</a>
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-              <td>{{ rsvp.guests|default(0) }}</td>
-              <td>
-                <span class="mel-badge mel-badge--{{ rsvp.status|lower|default('pending') }}">
-                  {{ rsvp.status|default('Pending') }}
-                </span>
-              </td>
-              <td>{{ rsvp.created|default('—') }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <h2 class="mel-card__title">{{ 'All RSVPs'|t }}</h2>
+      {% if rsvps|length > 0 %}
+        <div class="mel-rsvp-toolbar">
+          <label class="visually-hidden" for="rsvp-search">{{ 'Search RSVPs'|t }}</label>
+          <input
+            type="search"
+            class="mel-input mel-input--sm"
+            placeholder="{{ 'Search by name or email'|t }}"
+            id="rsvp-search"
+            data-mel-table-search
+            data-mel-table-search-rows=".rsvp-row"
+          >
+        </div>
+      {% endif %}
     </div>
-  {% else %}
-    <div class="mel-empty">
-      <div class="mel-empty__icon">📋</div>
-      <div class="mel-empty__title">{{ 'No RSVPs yet'|t }}</div>
-      <div class="mel-empty__description">
-        {{ 'RSVPs will appear here when people sign up for your event.'|t }}
-      </div>
+    <div class="mel-card__body">
+      {% if rsvps|length > 0 %}
+        <div class="mel-table-responsive">
+          <table class="mel-table mel-table--dashboard mel-table--striped" id="rsvp-table">
+            <thead>
+              <tr>
+                <th>{{ 'Guest'|t }}</th>
+                <th>{{ 'Guests'|t }}</th>
+                <th>{{ 'Status'|t }}</th>
+                <th>{{ 'Date'|t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rsvp in rsvps %}
+                {% set initial = (rsvp.name|default('?')|trim|slice(0, 1))|upper %}
+                <tr class="rsvp-row">
+                  <td>
+                    <div class="mel-cell-user">
+                      <span class="mel-avatar" aria-hidden="true">{{ initial }}</span>
+                      <div class="mel-cell-user__text">
+                        <span class="mel-cell-user__name">{{ rsvp.name|default('—') }}</span>
+                        {% if rsvp.email %}
+                          <a class="mel-cell-user__email" href="mailto:{{ rsvp.email }}">{{ rsvp.email }}</a>
+                        {% else %}
+                          <span class="mel-cell-user__email">—</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ rsvp.guests|default(0) }}</td>
+                  <td>
+                    <span class="mel-badge mel-badge--{{ rsvp.status|lower|default('pending') }}">
+                      {{ rsvp.status|default('Pending') }}
+                    </span>
+                  </td>
+                  <td>{{ rsvp.created|default('—') }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="mel-empty-state">
+          <svg class="mel-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M9 12h6M9 16h6M7 4h10a2 2 0 012 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 012-2z"/>
+          </svg>
+          <p class="mel-empty-state__title">{{ 'No RSVPs yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'Share your event to start collecting responses.'|t }}</p>
+          {% if public_event_url %}
+            <div class="mel-dashboard-actions">
+              <a class="mel-btn mel-btn--primary" href="{{ public_event_url }}" target="_blank" rel="noopener noreferrer">{{ 'View event page'|t }}</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
-  {% endif %}
+  </div>
+
+  <div class="mel-support-card">
+    <h3 class="mel-support-card__title">{{ 'Questions about RSVPs?'|t }}</h3>
+    <p class="mel-support-card__text">{{ 'Export a CSV for offline review or door lists.'|t }}</p>
+    <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+  </div>
 </div>

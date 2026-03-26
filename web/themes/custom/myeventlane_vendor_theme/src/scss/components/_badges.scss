@@ -59,6 +59,13 @@
   background: $danger-light;
 }
 
+// Alias for templates using "error" (matches danger).
+.mel-badge--error {
+  color: $danger;
+  background: $danger-light;
+  font-weight: $font-weight-semibold;
+}
+
 // Info
 .mel-badge--info {
   color: $info;
@@ -79,10 +86,32 @@
 }
 
 // Boost / Active promotion
-.mel-badge--boost {
+.mel-badge--boost,
+.mel-badge--boosted {
   color: #d97706;
   background: #fef3c7;
   font-weight: $font-weight-semibold;
+}
+
+// Live / on-sale event (workspace)
+.mel-badge--live {
+  color: $success;
+  background: $success-light;
+  font-weight: $font-weight-semibold;
+}
+
+// Unpublished / archived visibility
+.mel-badge--unpublished {
+  color: #5b21b6;
+  background: rgba(196, 181, 253, 0.28);
+  font-weight: $font-weight-semibold;
+}
+
+// Muted / low emphasis
+.mel-badge--muted {
+  color: $text-muted;
+  background: $bg-tertiary;
+  font-weight: $font-weight-medium;
 }
 
 // Series template (recurring events)

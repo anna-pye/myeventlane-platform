@@ -11,3 +11,13 @@ help_redirect:
   dependencies:
     - core/drupal
     - core/drupalSettings
+
+admin_docs:
+  css:
+    theme:
+      css/admin-docs.css: {}
+
+contextual_help_card:
+  css:
+    theme:
+      css/contextual-help-card.css: {}

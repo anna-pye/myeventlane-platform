@@ -13,6 +13,7 @@ use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\node\NodeInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Centralized event metrics service.
@@ -26,8 +27,10 @@ final class EventMetricsService implements EventMetricsServiceInterface {
    *   The entity type manager.
    * @param \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacityService
    *   The capacity service.
-   * @param \Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver $repositoryResolver
-   *   The attendee repository resolver.
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
+   *   The service container; used to resolve the attendee repository resolver on
+   *   demand to avoid a circular dependency (metrics → resolver → ticket
+   *   repository → vendor stack ↔ metrics).
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache backend.
    * @param \Drupal\Component\Datetime\TimeInterface $time
@@ -38,7 +41,7 @@ final class EventMetricsService implements EventMetricsServiceInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventCapacityServiceInterface $capacityService,
-    private readonly AttendeeRepositoryResolver $repositoryResolver,
+    private readonly ContainerInterface $container,
     private readonly CacheBackendInterface $cache,
     private readonly TimeInterface $time,
     private readonly OrderItemClassifier $orderItemClassifier,
@@ -61,7 +64,7 @@ final class EventMetricsService implements EventMetricsServiceInterface {
       return $cached->data;
     }
 
-    $repository = $this->repositoryResolver->getRepository($event);
+    $repository = $this->attendeeRepositoryResolver()->getRepository($event);
     $count = $repository->countByEvent($event);
 
     $this->cache->set($cacheKey, $count, $this->time->getRequestTime() + 300, $this->getCacheTags($event));
@@ -78,7 +81,7 @@ final class EventMetricsService implements EventMetricsServiceInterface {
       return $cached->data;
     }
 
-    $repository = $this->repositoryResolver->getRepository($event);
+    $repository = $this->attendeeRepositoryResolver()->getRepository($event);
     $count = $repository->countCheckedIn($event);
 
     $this->cache->set($cacheKey, $count, $this->time->getRequestTime() + 300, $this->getCacheTags($event));
@@ -308,6 +311,20 @@ final class EventMetricsService implements EventMetricsServiceInterface {
   /**
    * Gets cache key for an event metric.
    */
+  /**
+   * Resolves the attendee repository resolver when attendee metrics are needed.
+   */
+  private function attendeeRepositoryResolver(): AttendeeRepositoryResolver {
+    if (!$this->container->has('myeventlane_attendee.repository_resolver')) {
+      throw new \RuntimeException('Required service myeventlane_attendee.repository_resolver is not registered.');
+    }
+    $resolver = $this->container->get('myeventlane_attendee.repository_resolver');
+    if (!$resolver instanceof AttendeeRepositoryResolver) {
+      throw new \RuntimeException('Service myeventlane_attendee.repository_resolver must be an instance of AttendeeRepositoryResolver.');
+    }
+    return $resolver;
+  }
+
   private function getCacheKey(NodeInterface $event, string $metric): string {
     return $this->getCacheKeyById((int) $event->id(), $metric);
   }

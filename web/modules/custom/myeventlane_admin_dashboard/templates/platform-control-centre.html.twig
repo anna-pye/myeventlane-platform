@@ -5,11 +5,8 @@
  */
 #}
 <div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Admin control centre'|t }}">
-  <header class="pcc__header">
-    <div>
-      <h1 class="pcc__title">{{ 'Admin Control Centre'|t }}</h1>
-      <p class="pcc__subtitle">{{ 'Monitor platform health, vendors, finance, and support in one view.'|t }}</p>
-    </div>
+  {# Page title and subtitle come from myeventlane_studio_layout (shell); avoid duplicate h1 here. #}
+  <header class="pcc__header pcc__header--actions-only">
     <div class="pcc__action-bar">
       <a href="{{ export_url }}" class="pcc__action-link pcc__action-link--primary">{{ 'Download financial CSV'|t }}</a>
       <a href="{{ path('entity.escalation.collection') }}" class="pcc__action-link">{{ 'Open escalations'|t }}</a>

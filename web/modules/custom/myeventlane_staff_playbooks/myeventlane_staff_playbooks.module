@@ -60,6 +60,8 @@ function myeventlane_staff_playbooks_theme(array $existing, string $type, string
     'governance_dashboard' => [
       'variables' => [
         'groups' => [],
+        'playbook_groups' => [],
+        'quick_links' => [],
         'snippet_guide_url' => NULL,
         'playbooks_url' => NULL,
       ],

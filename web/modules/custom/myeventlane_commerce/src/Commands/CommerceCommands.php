@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_commerce\Commands;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\OrderProcessorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_commerce\EventSubscriber\OrderCompletedSubscriber;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -29,20 +30,29 @@ final class CommerceCommands extends DrushCommands {
   private OrderProcessorInterface $platformFeeProcessor;
 
   /**
+   * Order completion subscriber (attendee repair / extra_data sync).
+   */
+  private OrderCompletedSubscriber $orderCompletedSubscriber;
+
+  /**
    * Constructs the commands.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
    * @param \Drupal\commerce_order\OrderProcessorInterface $platformFeeProcessor
    *   The platform fee order processor.
+   * @param \Drupal\myeventlane_commerce\EventSubscriber\OrderCompletedSubscriber $orderCompletedSubscriber
+   *   Recreates attendees and syncs holder answers into event_attendee.extra_data.
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     OrderProcessorInterface $platformFeeProcessor,
+    OrderCompletedSubscriber $orderCompletedSubscriber,
   ) {
     parent::__construct();
     $this->entityTypeManager = $entityTypeManager;
     $this->platformFeeProcessor = $platformFeeProcessor;
+    $this->orderCompletedSubscriber = $orderCompletedSubscriber;
   }
 
   /**
@@ -99,6 +109,40 @@ final class CommerceCommands extends DrushCommands {
       'Backfill complete: @added order(s) updated, @skipped already had the fee or had no ticket subtotal.',
       ['@added' => $added, '@skipped' => $skipped]
     );
+  }
+
+  /**
+   * Re-runs ticket attendee processing for a completed order (backfill extra_data).
+   *
+   * Use when holder paragraphs have answers but event_attendee.extra_data is empty,
+   * e.g. after deploying attendee question fields or OrderCompletedSubscriber fixes.
+   *
+   * @param string|int $order_id
+   *   Commerce order ID.
+   *
+   * @command mel:repair-order-attendees
+   * @usage ddev drush mel:repair-order-attendees 420
+   *   Sync attendees and extra_data for order 420.
+   */
+  public function repairOrderAttendees($order_id): void {
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load($order_id);
+    if (!$order instanceof OrderInterface) {
+      $this->logger()->error('Order @id not found.', ['@id' => (string) $order_id]);
+      return;
+    }
+
+    $state = $order->getState()->getId();
+    if ($state !== 'completed') {
+      $this->logger()->warning(
+        'Order @id is in state @state (expected completed). Running repair anyway may skip or behave unexpectedly.',
+        ['@id' => (string) $order->id(), '@state' => $state]
+      );
+    }
+
+    $this->orderCompletedSubscriber->repairOrderAttendees($order);
+    $this->logger()->success('Repaired ticket attendees for order @id (see logs for sync lines).', [
+      '@id' => (string) $order->id(),
+    ]);
   }
 
   /**

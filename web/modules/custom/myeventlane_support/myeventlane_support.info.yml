@@ -1,0 +1,10 @@
+name: 'MyEventLane Support'
+type: module
+description: 'Unified /support hub: search, Help Assistant, and contact escalation.'
+package: 'MyEventLane'
+core_version_requirement: ^11
+dependencies:
+  - drupal:contact
+  - drupal:views
+  - myeventlane_help_assistant:myeventlane_help_assistant
+  - myeventlane_help_centre:myeventlane_help_centre

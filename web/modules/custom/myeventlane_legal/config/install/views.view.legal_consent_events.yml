@@ -1,0 +1,221 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_legal
+    - user
+id: legal_consent_events
+label: 'Legal Consent Events'
+module: myeventlane_legal
+description: 'Immutable consent audit trail (RSVP, checkout, registration).'
+tag: ''
+base_table: legal_consent_event
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Master
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Legal Consent Events'
+      access:
+        type: perm
+        options:
+          perm: 'view legal consent events'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      pager:
+        type: full
+        options:
+          items_per_page: 50
+          offset: 0
+      style:
+        type: table
+        options:
+          columns:
+            id: id
+            email: email
+            source: source
+            terms_version: terms_version
+            privacy_version: privacy_version
+            accepted_at: accepted_at
+            ip_address: ip_address
+          default: accepted_at
+          info:
+            id:
+              sortable: true
+              align: ''
+              empty_column: false
+            email:
+              sortable: true
+              align: ''
+              empty_column: false
+            source:
+              sortable: true
+              align: ''
+              empty_column: false
+            terms_version:
+              sortable: true
+              align: ''
+              empty_column: false
+            privacy_version:
+              sortable: true
+              align: ''
+              empty_column: false
+            accepted_at:
+              sortable: true
+              align: ''
+              empty_column: false
+            ip_address:
+              sortable: false
+              align: ''
+              empty_column: false
+      row:
+        type: fields
+        options: {  }
+      fields:
+        id:
+          id: id
+          table: legal_consent_event
+          field: id
+          label: 'ID'
+          plugin_id: numeric
+        email:
+          id: email
+          table: legal_consent_event
+          field: email
+          label: Email
+          plugin_id: string
+        source:
+          id: source
+          table: legal_consent_event
+          field: source
+          label: Source
+          plugin_id: string
+        terms_version:
+          id: terms_version
+          table: legal_consent_event
+          field: terms_version
+          label: 'Terms version'
+          plugin_id: string
+        privacy_version:
+          id: privacy_version
+          table: legal_consent_event
+          field: privacy_version
+          label: 'Privacy version'
+          plugin_id: string
+        accepted_at:
+          id: accepted_at
+          table: legal_consent_event
+          field: accepted_at
+          label: 'Accepted at'
+          plugin_id: date
+          settings:
+            date_format: medium
+            custom_date_format: ''
+            timezone: ''
+        ip_address:
+          id: ip_address
+          table: legal_consent_event
+          field: ip_address
+          label: 'IP address'
+          plugin_id: string
+      filters:
+        email:
+          id: email
+          table: legal_consent_event
+          field: email
+          plugin_id: string
+          operator: contains
+          value: ''
+          group: 1
+          exposed: true
+          expose:
+            operator_id: email_op
+            label: Email
+            description: ''
+            use_operator: false
+            operator: contains
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: email
+            required: false
+            remember: false
+            placeholder: ''
+        source:
+          id: source
+          table: legal_consent_event
+          field: source
+          plugin_id: string
+          value: ''
+          group: 1
+          exposed: true
+          expose:
+            operator_id: source_op
+            label: Source
+            description: ''
+            use_operator: false
+            operator: '='
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: source
+            required: false
+            remember: false
+            is_remember: false
+        accepted_at:
+          id: accepted_at
+          table: legal_consent_event
+          field: accepted_at
+          plugin_id: date
+          operator: '>='
+          value:
+            type: date
+            value: ''
+            min: ''
+            max: ''
+          group: 1
+          exposed: true
+          expose:
+            operator_id: accepted_at_op
+            label: 'From date'
+            description: ''
+            use_operator: false
+            operator: '>='
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: accepted_at
+            required: false
+            remember: false
+      sorts:
+        accepted_at:
+          id: accepted_at
+          table: legal_consent_event
+          field: accepted_at
+          order: DESC
+          plugin_id: date
+      display_extenders: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      path: admin/content/legal-consent-events
+      menu:
+        type: tab
+        title: 'Legal consent events'
+        menu_name: admin
+        weight: 100
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - url
+        - url.query_args
+        - user.permissions
+      tags: {  }

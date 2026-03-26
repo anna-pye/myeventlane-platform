@@ -18,16 +18,47 @@ function myeventlane_help_assistant_theme(array $existing, string $type, string 
     'myeventlane_help_assistant_page' => [
       'variables' => [
         'endpoint' => '/help/assistant',
+        'starter_questions' => [],
+        'support_url' => '/support/tickets',
       ],
       'template' => 'help-assistant-page',
     ],
     'myeventlane_help_assistant_block' => [
       'variables' => [
         'endpoint' => '/help/assistant',
+        'starter_questions' => [],
+        'support_url' => '/support/tickets',
       ],
       'template' => 'help-assistant-block',
     ],
+    'myeventlane_help_response' => [
+      'variables' => [
+        'answer' => NULL,
+        'steps' => [],
+        'actions' => [],
+        'sources' => [],
+        'followups' => [],
+        'context_display' => [],
+      ],
+      'template' => 'help-response',
+    ],
   ];
+}
+
+/**
+ * Returns page context for drupalSettings when the resolver service is registered.
+ *
+ * After deploying updated services.yml, run a cache rebuild so the container
+ * includes myeventlane_help_assistant.context_resolver.
+ *
+ * @return array<string, mixed>
+ */
+function _myeventlane_help_assistant_page_context(): array {
+  if (!\Drupal::hasService('myeventlane_help_assistant.context_resolver')) {
+    return [];
+  }
+  $resolver = \Drupal::service('myeventlane_help_assistant.context_resolver');
+  return $resolver->exportClientEchoPayload($resolver->resolve(NULL));
 }
 
 /**
@@ -39,25 +70,79 @@ function myeventlane_help_assistant_preprocess_help_centre_home(array &$variable
     return;
   }
 
+  $starters = _myeventlane_help_assistant_starter_list($config);
+  $page_context = _myeventlane_help_assistant_page_context();
+
   $variables['help_assistant'] = [
     '#theme' => 'myeventlane_help_assistant_block',
     '#endpoint' => '/help/assistant',
+    '#starter_questions' => $starters,
+    '#support_url' => _myeventlane_help_assistant_support_ticket_path(),
     '#attached' => [
-      'library' => [
-        'myeventlane_help_assistant/assistant',
-      ],
       'drupalSettings' => [
         'myeventlaneHelpAssistant' => [
           'endpoint' => '/help/assistant',
+          'starters' => $starters,
+          'pageContext' => $page_context,
         ],
       ],
     ],
     '#cache' => [
       'max-age' => 0,
       'tags' => ['config:myeventlane_help_assistant.settings'],
-      'contexts' => ['user.permissions'],
+      'contexts' => ['user.permissions', 'route'],
     ],
   ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_help_assistant_page.
+ */
+function myeventlane_help_assistant_preprocess_myeventlane_help_assistant_page(array &$variables): void {
+  $config = \Drupal::config('myeventlane_help_assistant.settings');
+  $variables['starter_questions'] = _myeventlane_help_assistant_starter_list($config);
+  $variables['support_url'] = _myeventlane_help_assistant_support_ticket_path();
+  if (!isset($variables['#attached'])) {
+    $variables['#attached'] = [];
+  }
+  $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant']['starters'] = $variables['starter_questions'];
+  $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant']['pageContext'] =
+    _myeventlane_help_assistant_page_context();
+}
+
+/**
+ * Returns the path to the customer support tickets UI when available.
+ */
+function _myeventlane_help_assistant_support_ticket_path(): string {
+  try {
+    return \Drupal\Core\Url::fromRoute('myeventlane_escalations_portal.customer_support_tickets')->toString();
+  }
+  catch (\Throwable $e) {
+    try {
+      return \Drupal\Core\Url::fromRoute('myeventlane_escalations_portal.customer_support')->toString();
+    }
+    catch (\Throwable) {
+      return '/support/tickets';
+    }
+  }
+}
+
+/**
+ * @return list<string>
+ */
+function _myeventlane_help_assistant_starter_list(\Drupal\Core\Config\ImmutableConfig $config): array {
+  $raw = $config->get('starter_questions');
+  if (!is_array($raw)) {
+    return [];
+  }
+  $out = [];
+  foreach ($raw as $q) {
+    $q = trim((string) $q);
+    if ($q !== '') {
+      $out[] = $q;
+    }
+  }
+  return array_slice($out, 0, 8);
 }
 
 /**

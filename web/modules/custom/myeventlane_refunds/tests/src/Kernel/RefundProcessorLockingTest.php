@@ -20,6 +20,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
@@ -66,11 +67,17 @@ final class RefundProcessorLockingTest extends KernelTestBase {
           'donation_refunded' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
           'stripe_refund_id' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
           'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+          'failure_reason' => ['type' => 'text', 'not null' => FALSE],
           'reason' => ['type' => 'text', 'not null' => FALSE],
           'created' => ['type' => 'int', 'not null' => TRUE],
+          'updated' => ['type' => 'int', 'not null' => FALSE],
           'completed' => ['type' => 'int', 'not null' => FALSE],
           'error_message' => ['type' => 'text', 'not null' => FALSE],
           'refund_request_id' => ['type' => 'int', 'not null' => FALSE],
+          'retry_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+          'next_attempt_at' => ['type' => 'int', 'not null' => FALSE],
+          'retry_of' => ['type' => 'int', 'not null' => FALSE],
+          'actual_refunded_cents' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
         ],
         'primary key' => ['id'],
       ]);
@@ -85,8 +92,9 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       'amount_cents' => 1000,
       'currency' => 'aud',
       'donation_refunded' => 0,
-      'status' => 'pending',
+      'status' => RefundProcessor::STATUS_PROCESSING,
       'created' => 123456,
+      'updated' => 123456,
     ])->execute();
 
     $orderState = new class {
@@ -179,6 +187,7 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->container->get('datetime.time'),
       $lock,
       $this->createMock(ModuleHandlerInterface::class),
+      $this->createMock(DomainDetector::class),
     );
 
     $processor->processRefund($logId);
@@ -214,11 +223,17 @@ final class RefundProcessorLockingTest extends KernelTestBase {
           'donation_refunded' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
           'stripe_refund_id' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
           'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+          'failure_reason' => ['type' => 'text', 'not null' => FALSE],
           'reason' => ['type' => 'text', 'not null' => FALSE],
           'created' => ['type' => 'int', 'not null' => TRUE],
+          'updated' => ['type' => 'int', 'not null' => FALSE],
           'completed' => ['type' => 'int', 'not null' => FALSE],
           'error_message' => ['type' => 'text', 'not null' => FALSE],
           'refund_request_id' => ['type' => 'int', 'not null' => FALSE],
+          'retry_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+          'next_attempt_at' => ['type' => 'int', 'not null' => FALSE],
+          'retry_of' => ['type' => 'int', 'not null' => FALSE],
+          'actual_refunded_cents' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
         ],
         'primary key' => ['id'],
       ]);
@@ -233,8 +248,9 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       'amount_cents' => 1000,
       'currency' => 'aud',
       'donation_refunded' => 0,
-      'status' => 'pending',
+      'status' => RefundProcessor::STATUS_PROCESSING,
       'created' => 123456,
+      'updated' => 123456,
     ])->execute();
 
     $orderState = new class {
@@ -339,6 +355,7 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->container->get('datetime.time'),
       $lock,
       $this->createMock(ModuleHandlerInterface::class),
+      $this->createMock(DomainDetector::class),
     );
 
     $processor->processRefund($logId);

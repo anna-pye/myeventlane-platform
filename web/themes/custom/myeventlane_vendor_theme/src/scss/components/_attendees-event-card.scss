@@ -1,0 +1,130 @@
+/**
+ * @file
+ * Attendees dashboard event card component.
+ *
+ * Styles the event cards on Vendor workspace → Attendees & Sales.
+ * Uses vendor theme tokens for consistency.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+.mel-attendees-event-card {
+  background: $ml-vendor-card;
+  border-radius: $radius-xl;
+  padding: $spacing-5;
+  margin-bottom: $spacing-6;
+  border: 1px solid $ml-vendor-border;
+  box-shadow: 0 2px 8px rgba(13, 21, 32, 0.04);
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(13, 21, 32, 0.08);
+  }
+}
+
+.mel-attendees-event-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-3;
+  margin-bottom: $spacing-3;
+}
+
+.mel-attendees-event-card__title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  margin: 0 0 $spacing-1;
+  line-height: $line-height-tight;
+}
+
+.mel-attendees-event-card__date {
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.mel-attendees-event-card__status {
+  flex-shrink: 0;
+  padding: $spacing-1 $spacing-3;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+
+  &--selling-fast {
+    background: $success-light;
+    color: $success;
+  }
+
+  &--low {
+    background: $warning-light;
+    color: $warning;
+  }
+}
+
+.mel-attendees-event-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-4;
+  margin-top: $spacing-4;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mel-attendees-event-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+}
+
+.mel-attendees-event-card__metric-label {
+  font-size: $font-size-xs;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-attendees-event-card__metric-value {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+}
+
+.mel-attendees-event-card__progress {
+  margin-top: $spacing-4;
+}
+
+.mel-attendees-event-card__progress-bar {
+  height: 6px;
+  background: $ml-slate-100;
+  border-radius: $radius-full;
+  overflow: hidden;
+}
+
+.mel-attendees-event-card__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $primary-light, $primary);
+  border-radius: $radius-full;
+  transition: width 0.4s ease;
+}
+
+.mel-attendees-event-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+  margin-top: $spacing-5;
+
+  @include respond-down(md) {
+    flex-direction: column;
+
+    .mel-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

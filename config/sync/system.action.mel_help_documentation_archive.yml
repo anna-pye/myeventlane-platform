@@ -1,0 +1,12 @@
+uuid: 7b3e1d09-0a2c-4d5e-8b7a-6c5d4e3f2b10
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - node
+id: mel_help_documentation_archive
+label: 'MEL: Archive documentation'
+type: node
+plugin: mel_help_documentation_archive
+configuration: {  }

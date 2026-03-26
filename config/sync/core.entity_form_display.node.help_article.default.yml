@@ -1,0 +1,149 @@
+uuid: 96a60156-c541-4a54-866a-99c144f90cd0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.help_article.body
+    - field.field.node.help_article.field_audience
+    - field.field.node.help_article.field_content_owner
+    - field.field.node.help_article.field_featured_help
+    - field.field.node.help_article.field_help_ai_allowed
+    - field.field.node.help_article.field_help_article_type
+    - field.field.node.help_article.field_help_audience
+    - field.field.node.help_article.field_help_category
+    - field.field.node.help_article.field_help_cta_label
+    - field.field.node.help_article.field_help_cta_link
+    - field.field.node.help_article.field_help_keywords
+    - field.field.node.help_article.field_help_status
+    - field.field.node.help_article.field_help_summary
+    - field.field.node.help_article.field_help_topic
+    - field.field.node.help_article.field_last_reviewed
+    - field.field.node.help_article.field_last_updated
+    - field.field.node.help_article.field_priority
+    - field.field.node.help_article.field_related_articles
+    - field.field.node.help_article.field_related_help_articles
+    - node.type.help_article
+    - workflows.workflow.editorial
+  module:
+    - commerce
+    - content_moderation
+    - path
+    - text
+id: node.help_article.default
+targetEntityType: node
+bundle: help_article
+mode: default
+content:
+  body:
+    type: text_textarea_with_summary
+    weight: 2
+    region: content
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+      show_summary: false
+    third_party_settings: {  }
+  field_help_article_type:
+    type: entity_reference_autocomplete
+    weight: 3
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_help_category:
+    type: entity_reference_autocomplete
+    weight: 5
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_help_summary:
+    type: string_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 5
+      placeholder: ''
+    third_party_settings: {  }
+  field_help_topic:
+    type: entity_reference_autocomplete
+    weight: 7
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_related_articles:
+    type: entity_reference_autocomplete
+    weight: 6
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  field_related_help_articles:
+    type: commerce_entity_select
+    weight: 4
+    region: content
+    settings:
+      hide_single_entity: true
+      autocomplete_threshold: 7
+      autocomplete_size: 60
+      autocomplete_placeholder: ''
+    third_party_settings: {  }
+  moderation_state:
+    type: moderation_state_default
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 9
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    weight: 8
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_audience: true
+  field_content_owner: true
+  field_featured_help: true
+  field_help_ai_allowed: true
+  field_help_audience: true
+  field_help_cta_label: true
+  field_help_cta_link: true
+  field_help_keywords: true
+  field_help_status: true
+  field_last_reviewed: true
+  field_last_updated: true
+  field_priority: true
+  langcode: true
+  promote: true
+  sticky: true
+  uid: true

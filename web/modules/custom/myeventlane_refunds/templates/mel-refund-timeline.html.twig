@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Refund log timeline (myeventlane_refund_log).
+ *
+ * Variables:
+ * - items: Rows from the refund log (objects), oldest first.
+ * - variant: 'default' | 'compact'
+ */
+#}
+<div class="mel-refund-timeline{% if variant == 'compact' %} mel-refund-timeline--compact{% endif %}">
+  <h3 class="mel-refund-timeline__title">{{ 'Refund history'|t }}</h3>
+
+  {% if items is empty %}
+    <p class="mel-text--muted">{{ 'No refund activity recorded for this order yet.'|t }}</p>
+  {% else %}
+    {% for item in items %}
+      <div class="mel-refund-item mel-status--{{ item.status|default('') }}">
+        <div class="mel-time">
+          {{ item.created|date('d M H:i') }}
+        </div>
+
+        <div class="mel-body">
+          <strong class="mel-refund-timeline__status">{{ item.status|default('')|replace({'_': ' '}) }}</strong>
+
+          {% if item.failure_reason %}
+            <div class="mel-error">{{ item.failure_reason }}</div>
+          {% endif %}
+
+          {% if item.retry_of %}
+            <div class="mel-meta">{{ 'Retry of #@id'|t({'@id': item.retry_of}) }}</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

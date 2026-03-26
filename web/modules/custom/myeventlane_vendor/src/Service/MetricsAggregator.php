@@ -135,6 +135,12 @@ final class MetricsAggregator {
         'sales' => [],
         'rsvps' => [
           'count' => 0,
+          'total_submissions' => 0,
+          'confirmed' => 0,
+          'pending' => 0,
+          'waitlisted' => 0,
+          'cancelled' => 0,
+          'checkins' => 0,
         ],
         'audience' => [],
         'boost' => [
@@ -184,6 +190,20 @@ final class MetricsAggregator {
     }
     catch (\Exception $e) {
       $rsvpSummary = ['count' => 0];
+    }
+
+    try {
+      $rsvpBreakdown = $this->rsvpStatsService->getRsvpStatusBreakdownForEvent($event_id);
+    }
+    catch (\Exception $e) {
+      $rsvpBreakdown = [
+        'total_non_cancelled' => 0,
+        'confirmed' => 0,
+        'pending' => 0,
+        'waitlisted' => 0,
+        'cancelled' => 0,
+        'checkins' => 0,
+      ];
     }
 
     // Orchestrate call to BoostStatusService for boost status.
@@ -259,7 +279,9 @@ final class MetricsAggregator {
         'currency' => $revenue->getCurrencyCode(),
       ] : NULL,
       'sales' => $salesSummary,
-      'rsvps' => $rsvpSummary,
+      'rsvps' => array_merge($rsvpSummary, $rsvpBreakdown, [
+        'total_submissions' => $rsvpBreakdown['total_non_cancelled'] ?? 0,
+      ]),
       'audience' => $audience,
       'boost' => $boost,
       'boost_metrics' => $boostMetrics,

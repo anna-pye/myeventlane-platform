@@ -12,10 +12,12 @@ use Drupal\myeventlane_core\Security\SensitiveDataScrubber;
 use Psr\Log\LoggerInterface;
 use Stripe\Account;
 use Stripe\AccountLink;
-use Stripe\StripeClient;
+use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 use Stripe\LoginLink;
 use Stripe\PaymentIntent;
+use Stripe\SetupIntent;
+use Stripe\StripeClient;
 
 /**
  * Service for Stripe operations including Connect and platform payments.
@@ -551,6 +553,177 @@ final class StripeService {
   public function calculateApplicationFee(int $amount, float $feePercentage = 0.03, int $fixedFeeCents = 30): int {
     $percentageFee = (int) round($amount * $feePercentage);
     return $percentageFee + $fixedFeeCents;
+  }
+
+  /**
+   * Creates a Stripe Customer for platform billing (e.g. vendor MEL contributions).
+   *
+   * Reuse for auto-billing: one Customer per vendor, attached payment methods.
+   *
+   * @param string $email
+   *   Customer email (e.g. vendor owner).
+   * @param string|null $name
+   *   Optional customer name.
+   *
+   * @return \Stripe\Customer
+   *   The created Customer.
+   *
+   * @throws \Stripe\Exception\ApiErrorException
+   */
+  public function createCustomer(string $email, ?string $name = NULL): Customer {
+    $client = $this->getPlatformClient();
+
+    try {
+      $params = ['email' => $email];
+      if ($name !== NULL && trim($name) !== '') {
+        $params['name'] = trim($name);
+      }
+
+      $customer = $client->customers->create($params);
+
+      $this->safeLog('info', 'Created Stripe Customer @id for @email', [
+        '@id' => $customer->id,
+        '@email' => $email,
+      ]);
+
+      return $customer;
+    }
+    catch (ApiErrorException $e) {
+      $this->safeLog('error', 'Failed to create Stripe Customer: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  /**
+   * Creates a SetupIntent to collect and save a payment method for a customer.
+   *
+   * Used for MEL contribution auto-billing: vendor saves card for future invoices.
+   * Frontend uses stripe.confirmSetup() with the client secret.
+   *
+   * @param string $customerId
+   *   Stripe Customer ID (cus_xxx).
+   * @param array $metadata
+   *   Optional metadata (e.g. vendor_id, user_id).
+   *
+   * @return \Stripe\SetupIntent
+   *
+   * @throws \Stripe\Exception\ApiErrorException
+   */
+  public function createSetupIntent(string $customerId, array $metadata = []): SetupIntent {
+    $client = $this->getPlatformClient();
+
+    try {
+      $params = [
+        'customer' => $customerId,
+        'usage' => 'off_session',
+        'metadata' => $metadata,
+      ];
+
+      $setupIntent = $client->setupIntents->create($params);
+
+      $this->safeLog('info', 'Created SetupIntent @id for customer @customer', [
+        '@id' => $setupIntent->id,
+        '@customer' => $customerId,
+      ]);
+
+      return $setupIntent;
+    }
+    catch (ApiErrorException $e) {
+      $this->safeLog('error', 'Failed to create SetupIntent: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  /**
+   * Creates and confirms a PaymentIntent for off-session charge (e.g. MEL invoice).
+   *
+   * Uses saved payment method. MUST only be called when vendor has explicitly
+   * opted in to auto-billing and saved a payment method.
+   *
+   * @param int $amountCents
+   *   Amount in cents (e.g. 10000 for $100.00).
+   * @param string $currency
+   *   Currency code (e.g. 'aud').
+   * @param string $customerId
+   *   Stripe Customer ID (cus_xxx).
+   * @param string $paymentMethodId
+   *   Stripe PaymentMethod ID (pm_xxx).
+   * @param array $metadata
+   *   Metadata (e.g. mel_vendor_invoice_id, vendor_id).
+   *
+   * @return \Stripe\PaymentIntent
+   *
+   * @throws \Stripe\Exception\ApiErrorException
+   */
+  public function createPaymentIntentOffSession(
+    int $amountCents,
+    string $currency,
+    string $customerId,
+    string $paymentMethodId,
+    array $metadata = [],
+  ): PaymentIntent {
+    $client = $this->getPlatformClient();
+
+    try {
+      $params = [
+        'amount' => $amountCents,
+        'currency' => strtolower($currency),
+        'customer' => $customerId,
+        'payment_method' => $paymentMethodId,
+        'off_session' => TRUE,
+        'confirm' => TRUE,
+        'metadata' => $metadata,
+      ];
+
+      $paymentIntent = $client->paymentIntents->create($params);
+
+      $this->safeLog('info', 'Created off-session PaymentIntent @id: @amount @currency customer @customer', [
+        '@id' => $paymentIntent->id,
+        '@amount' => $amountCents,
+        '@currency' => $currency,
+        '@customer' => $customerId,
+      ]);
+
+      return $paymentIntent;
+    }
+    catch (ApiErrorException $e) {
+      $this->safeLog('error', 'Off-session PaymentIntent failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  /**
+   * Retrieves the last4 (last 4 digits) of a card for display.
+   *
+   * @param string $paymentMethodId
+   *   Stripe PaymentMethod ID (pm_xxx).
+   *
+   * @return string|null
+   *   Last 4 digits (e.g. '4242') or NULL if not retrievable.
+   */
+  public function getPaymentMethodLast4(string $paymentMethodId): ?string {
+    $client = $this->getPlatformClient();
+
+    try {
+      $pm = $client->paymentMethods->retrieve($paymentMethodId);
+      if (isset($pm->card->last4)) {
+        return (string) $pm->card->last4;
+      }
+    }
+    catch (ApiErrorException $e) {
+      $this->safeLog('warning', 'Could not retrieve PaymentMethod @id for last4: @message', [
+        '@id' => $paymentMethodId,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return NULL;
   }
 
 }

@@ -12,6 +12,9 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
+use Drupal\myeventlane_refunds\Service\RefundProcessor;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
@@ -43,6 +46,8 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
    *   The date formatter.
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection (for myeventlane_refund_log).
+   * @param \Drupal\myeventlane_refunds\Service\RefundProcessor|null $refundProcessor
+   *   Refund processor (optional when refunds module is unavailable).
    */
   public function __construct(
     DomainDetector $domain_detector,
@@ -53,6 +58,8 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
     private readonly Connection $database,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly VendorAttendeePresentationService $vendorPresentation,
+    private readonly ?RefundProcessor $refundProcessor = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -97,10 +104,33 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
     $tickets = $this->buildTicketsSummary($order, $eventId);
     $attendees = $this->buildAttendeesList($order, $eventId, $orderViewUrl);
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Order ' . $orderNumber,
+    $refundTimeline = NULL;
+    if ($this->refundProcessor) {
+      $timelineItems = [];
+      $timelineRows = $this->refundProcessor->getRefundTimelineForOrder((int) $order->id());
+      foreach ($timelineRows as $row) {
+        if (is_object($row) && isset($row->event_id) && (int) $row->event_id === $eventId) {
+          $timelineItems[] = $row;
+        }
+      }
+
+      $refundTimeline = [
+        '#theme' => 'mel_refund_timeline',
+        '#items' => $timelineItems,
+        '#variant' => 'default',
+        '#attached' => [
+          'library' => ['myeventlane_refunds/mel_refund_ui'],
+        ],
+      ];
+    }
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'body' => [
+      'actions' => [],
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
         '#theme' => 'myeventlane_vendor_event_order_view',
         '#event' => $event,
         '#order_number' => $orderNumber,
@@ -116,6 +146,7 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
         '#tickets' => $tickets,
         '#attendees' => $attendees,
         '#order_view_url' => $orderViewUrl,
+        '#refund_timeline' => $refundTimeline,
       ],
     ]);
   }
@@ -367,35 +398,115 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
   }
 
   /**
-   * Builds attendees from field_ticket_holder (one attendee per paragraph).
+   * Builds attendees for vendor order detail from canonical event_attendee rows.
+   *
+   * Falls back to holder paragraphs only when no ticket attendees exist yet
+   * for that order item (logged as TEMP_DEBUG vendor_parity).
    *
    * @return array
-   *   List of: first_name, last_name, email, ticket_type (product variation
-   *   label, e.g. Full price, Concession), custom_questions, order_view_url.
+   *   Rows: full_name, email, phone, ticket_type, ticket_code, source,
+   *   custom_answers, custom_answers_display, order_view_url.
    */
   private function buildAttendeesList(OrderInterface $order, int $eventId, string $orderViewUrl): array {
     $list = [];
+    $pairTotal = 0;
+    $canonicalRows = 0;
+    $snapshotRows = 0;
     foreach ($this->collectEventOrderItems($order, $eventId) as $item) {
-      if (!$item->hasField('field_ticket_holder') || $item->get('field_ticket_holder')->isEmpty()) {
+      $oiid = (int) $item->id();
+      if ($oiid <= 0) {
         continue;
       }
-      $ticketType = $this->ticketLabelResolver->getTicketLabel($item);
-      foreach ($item->get('field_ticket_holder')->referencedEntities() as $holder) {
-        if (!$holder instanceof EntityInterface) {
-          continue;
+      $ids = $this->entityTypeManager->getStorage('event_attendee')->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', $eventId)
+        ->condition('order_item', $oiid)
+        ->condition('source', EventAttendee::SOURCE_TICKET)
+        ->sort('id', 'ASC')
+        ->execute();
+
+      if (!empty($ids)) {
+        $loaded = array_values($this->entityTypeManager->getStorage('event_attendee')->loadMultiple($ids));
+        foreach ($loaded as $attendee) {
+          if (!$attendee instanceof EventAttendee) {
+            continue;
+          }
+          $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+          $pairTotal += count($vm['custom_answers']);
+          $list[] = array_merge($vm, ['order_view_url' => $orderViewUrl]);
+          $canonicalRows++;
         }
-        $custom = $this->collectCustomQuestions($holder);
-        $list[] = [
-          'first_name' => $holder->hasField('field_first_name') ? ($holder->get('field_first_name')->value ?? '') : '',
-          'last_name' => $holder->hasField('field_last_name') ? ($holder->get('field_last_name')->value ?? '') : '',
-          'email' => $holder->hasField('field_email') ? ($holder->get('field_email')->value ?? '') : '',
-          'ticket_type' => $ticketType,
-          'custom_questions' => $custom,
-          'order_view_url' => $orderViewUrl,
-        ];
+        continue;
+      }
+
+      $this->getLogger('myeventlane_vendor')->notice(
+        'TEMP_DEBUG vendor_parity: order_detail fallback=holder_paragraphs order_item_id=@oi event_id=@eid',
+        ['@oi' => (string) $oiid, '@eid' => (string) $eventId, 'order_item_id' => $oiid, 'event_id' => $eventId]
+      );
+      foreach ($this->buildHolderSnapshotRowsForOrderItem($item, $orderViewUrl) as $row) {
+        $pairTotal += count($row['custom_answers']);
+        $list[] = $row;
+        $snapshotRows++;
       }
     }
+
+    $normSource = $snapshotRows > 0
+      ? ($canonicalRows > 0 ? 'mixed:event_attendee+holder_paragraph_snapshot' : 'holder_paragraph_snapshot')
+      : 'event_attendee';
+    $this->vendorPresentation->logVendorParityBatch(
+      'vendor_order_detail',
+      $eventId,
+      count($list),
+      $pairTotal,
+      $normSource,
+      $canonicalRows,
+      $snapshotRows,
+    );
     return $list;
+  }
+
+  /**
+   * Checkout snapshot rows when event_attendee ticket rows are missing.
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function buildHolderSnapshotRowsForOrderItem(OrderItemInterface $item, string $orderViewUrl): array {
+    $out = [];
+    if (!$item->hasField('field_ticket_holder') || $item->get('field_ticket_holder')->isEmpty()) {
+      return $out;
+    }
+    $ticketType = $this->ticketLabelResolver->getTicketLabel($item);
+    foreach ($item->get('field_ticket_holder')->referencedEntities() as $holder) {
+      if (!$holder instanceof EntityInterface) {
+        continue;
+      }
+      $fn = $holder->hasField('field_first_name') ? (string) ($holder->get('field_first_name')->value ?? '') : '';
+      $ln = $holder->hasField('field_last_name') ? (string) ($holder->get('field_last_name')->value ?? '') : '';
+      $email = $holder->hasField('field_email') ? (string) ($holder->get('field_email')->value ?? '') : '';
+      $phone = $holder->hasField('field_phone') ? (string) ($holder->get('field_phone')->value ?? '') : '';
+      $rawPairs = $this->collectCustomQuestions($holder);
+      $customAnswers = [];
+      foreach ($rawPairs as $idx => $pair) {
+        $customAnswers[] = [
+          'key' => 'holder_question_' . $idx,
+          'label' => (string) ($pair['label'] ?? ''),
+          'value' => (string) ($pair['value'] ?? ''),
+        ];
+      }
+      $display = $this->vendorPresentation->customAnswersListToCsvString($customAnswers);
+      $out[] = [
+        'full_name' => trim($fn . ' ' . $ln),
+        'email' => $email,
+        'phone' => $phone,
+        'ticket_type' => $ticketType,
+        'ticket_code' => '',
+        'source' => EventAttendee::SOURCE_TICKET,
+        'custom_answers' => $customAnswers,
+        'custom_answers_display' => $display,
+        'order_view_url' => $orderViewUrl,
+      ];
+    }
+    return $out;
   }
 
   /**

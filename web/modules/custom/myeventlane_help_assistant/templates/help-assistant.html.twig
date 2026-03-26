@@ -1,0 +1,76 @@
+{#
+/**
+ * @file
+ * Help Assistant shell (block + full page).
+ *
+ * Variables:
+ * - endpoint: JSON ask endpoint URL.
+ * - starter_questions: Suggested question strings.
+ * - support_url: Path to contact / tickets.
+ * - question_input_id: Unique textarea id (block vs page).
+ * - wrapper_modifier: "block" or "page" for layout hooks.
+ */
+#}
+<div class="mel-help-assistant mel-help-assistant--{{ wrapper_modifier }} js-mel-help-assistant" data-endpoint="{{ endpoint }}">
+  <div class="mel-help-card">
+    {# Header #}
+    <div class="mel-help-header">
+      <h2 class="mel-help-header__title">{{ 'How can I help you?'|t }}</h2>
+      <p class="mel-help-header__lede mel-help-assistant__intro">{{ "I'll answer using MyEventLane help content and guide you to the next step."|t }}</p>
+    </div>
+
+    {# Suggested Questions #}
+    {% if starter_questions is not empty %}
+      <div class="mel-help-suggestions" role="group" aria-label="{{ 'Suggested questions'|t }}">
+        <span class="mel-help-suggestions__label">{{ 'Try one of these:'|t }}</span>
+
+        <div class="mel-chip-group">
+          {% for suggestion in starter_questions %}
+            <button type="button" class="mel-chip js-mel-help-starter" data-question="{{ suggestion|e('html_attr') }}">
+              {{ suggestion }}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <form class="mel-help-assistant__form js-mel-help-assistant-form" novalidate>
+      {# Input #}
+      <div class="mel-help-input">
+        <label class="visually-hidden" for="{{ question_input_id }}">{{ 'Your question'|t }}</label>
+        <textarea
+          id="{{ question_input_id }}"
+          class="js-mel-help-assistant-question"
+          name="question"
+          maxlength="500"
+          rows="5"
+          placeholder="{{ 'Ask anything about your event, tickets, or payouts…'|t }}"
+          required
+        ></textarea>
+      </div>
+
+      {# CTA #}
+      <div class="mel-help-actions">
+        <button type="submit" class="mel-button-primary js-mel-help-assistant-submit">
+          {{ 'Get answer'|t }}
+        </button>
+      </div>
+    </form>
+
+    {# Response Area #}
+    <div class="mel-help-response js-mel-help-assistant-response" id="mel-help-response" hidden></div>
+  </div>
+
+  {# Secondary support card #}
+  <div class="mel-help-escalation">
+    <div class="mel-escalation-card">
+      <div class="mel-escalation-content">
+        <strong>{{ 'Still stuck?'|t }}</strong>
+        <p>{{ 'Our support team can help you directly.'|t }}</p>
+      </div>
+      <a href="{{ support_url }}" class="mel-button-secondary">
+        {{ 'Contact support'|t }}
+      </a>
+    </div>
+  </div>
+</div>

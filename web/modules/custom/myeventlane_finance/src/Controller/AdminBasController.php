@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_finance\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\myeventlane_finance\Service\BasCsvExportService;
 use Drupal\myeventlane_finance\Service\BasPdfExportService;
 use Drupal\myeventlane_finance\Service\BasReportService;
@@ -26,6 +27,7 @@ final class AdminBasController extends ControllerBase {
     private readonly BasReportService $basReportService,
     private readonly BasCsvExportService $basCsvExportService,
     private readonly BasPdfExportService $basPdfExportService,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -36,6 +38,7 @@ final class AdminBasController extends ControllerBase {
       $container->get('myeventlane_finance.bas_report'),
       $container->get('myeventlane_finance.bas_csv_export'),
       $container->get('myeventlane_finance.bas_pdf_export'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -69,7 +72,7 @@ final class AdminBasController extends ControllerBase {
     // Get BAS summary.
     $summary = $this->basReportService->getAdminBasSummary($dateRange);
 
-    return [
+    $main = [
       '#theme' => 'admin_bas_page',
       '#summary' => $summary,
       '#start_date' => $startDate,
@@ -83,6 +86,12 @@ final class AdminBasController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('BAS summary'),
+      $this->t('Business activity statement style totals for the selected period.'),
+    );
   }
 
   /**

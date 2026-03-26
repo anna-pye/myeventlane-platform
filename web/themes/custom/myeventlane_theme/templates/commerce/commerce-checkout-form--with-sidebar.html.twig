@@ -22,6 +22,7 @@
         mel_calendar_links: mel_calendar_links|default({}),
         mel_event_url: mel_event_url|default(''),
         mel_logged_in: mel_logged_in|default(false),
+        mel_contextual_help_checkout_confirmation: mel_contextual_help_checkout_confirmation|default(null),
       } %}
     </div>
     <div class="layout-region layout-region-checkout-secondary">
@@ -50,9 +51,23 @@
         {# Hidden form elements (required for submission) #}
         {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
 
-        {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+        {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
+          {# Card is rendered in the summary column when possible. #}
+        {% elseif mel_help_checkout_refund is defined and mel_help_checkout_refund %}
           <div class="mel-contextual-help mel-contextual-help--checkout">
             {{ mel_help_checkout_refund }}
+          </div>
+        {% endif %}
+        {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
+          {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
+            <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-guide">
+              {{ mel_help_checkout_guide }}
+            </div>
+          {% endif %}
+        {% endif %}
+        {% if mel_help_checkout_assistant is defined and mel_help_checkout_assistant %}
+          <div class="mel-checkout-help-assistant">
+            {{ mel_help_checkout_assistant }}
           </div>
         {% endif %}
 
@@ -96,8 +111,13 @@
       {# Sidebar: grouped summary only — hide when empty #}
       {% if form.sidebar is defined %}
         {% set sidebar_content = form.sidebar|render %}
-        {% if sidebar_content|striptags|trim is not empty %}
+        {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) %}
           <aside class="mel-checkout__summary">
+            {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
+              <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
+                {{ mel_contextual_help_checkout }}
+              </div>
+            {% endif %}
             {{ sidebar_content }}
             {% if form.mel_checkout_confidence is defined %}
               {{ form.mel_checkout_confidence }}

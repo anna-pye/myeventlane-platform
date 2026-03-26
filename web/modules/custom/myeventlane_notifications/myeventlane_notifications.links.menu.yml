@@ -1,0 +1,6 @@
+myeventlane_notifications.admin:
+  title: 'MEL notifications'
+  description: 'Create and schedule platform notifications.'
+  parent: system.admin_config
+  route_name: myeventlane_notifications.admin
+  weight: 40

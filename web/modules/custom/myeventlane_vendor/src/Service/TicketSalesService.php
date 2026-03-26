@@ -52,13 +52,14 @@ final class TicketSalesService {
    * @return array
    *   Sales summary with keys: gross, net, fees (formatted strings),
    *   gross_raw, net_raw (floats), currency, tickets_sold (int),
-   *   tickets_available (int|string), conversion (float).
+   *   tickets_available (int|string), conversion (float), orders_count (int).
    */
   public function getSalesSummary(NodeInterface $event): array {
     $eventId = (int) $event->id();
     $grossCents = 0;
     $ticketsSold = 0;
     $currency = 'AUD';
+    $completedOrderCache = [];
 
     try {
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
@@ -66,7 +67,6 @@ final class TicketSalesService {
         'field_target_event' => $eventId,
       ]);
       $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
-      $completedOrderCache = [];
 
       foreach ($orderItems as $item) {
         if (!$item instanceof OrderItemInterface) {
@@ -136,6 +136,13 @@ final class TicketSalesService {
       $conversion = $ticketsSold / (int) $ticketsAvailable;
     }
 
+    $ordersCount = 0;
+    foreach ($completedOrderCache as $completed) {
+      if ($completed) {
+        $ordersCount++;
+      }
+    }
+
     return [
       'gross' => $this->formatMoney($grossCents, $currency),
       'refunded' => $this->formatMoney($refundedTicketCents, $currency),
@@ -155,6 +162,7 @@ final class TicketSalesService {
       'tickets_sold' => $ticketsSold,
       'tickets_available' => $ticketsAvailable,
       'conversion' => $conversion,
+      'orders_count' => $ordersCount,
     ];
   }
 

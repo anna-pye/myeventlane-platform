@@ -4,10 +4,12 @@ description: 'Vendor refunds, cancellations, and customer recovery for MyEventLa
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
+  - myeventlane_core:myeventlane_core
   - commerce_order
   - commerce_payment
   - commerce_price
   - myeventlane_checkout_flow:myeventlane_checkout_flow
+  - myeventlane_event:myeventlane_event
   - myeventlane_messaging:myeventlane_messaging
   - myeventlane_vendor_comms:myeventlane_vendor_comms
   - myeventlane_vendor:myeventlane_vendor

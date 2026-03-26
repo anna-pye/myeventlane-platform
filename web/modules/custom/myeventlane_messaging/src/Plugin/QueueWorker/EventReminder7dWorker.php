@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_messaging\Service\EventReminderScheduler;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_rsvp\Service\IcsGenerator;
@@ -55,6 +56,8 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
    *   The transliteration service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter.
+   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
+   *   The domain detector (for public-domain customer links).
    */
   public function __construct(
     array $configuration,
@@ -67,6 +70,7 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     private readonly LoggerInterface $logger,
     private readonly TransliterationInterface $transliteration,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly DomainDetector $domainDetector,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -86,6 +90,7 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
       $container->get('logger.factory')->get('myeventlane_messaging'),
       $container->get('transliteration'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_core.domain_detector'),
     );
   }
 
@@ -238,13 +243,22 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
    *   Email context array.
    */
   private function buildEmailContext($order, $event, string $timeframe): array {
+    $event_url = $this->buildPublicUrl($event->toUrl('canonical', ['absolute' => FALSE])->toString());
+    $my_tickets_url = $this->buildPublicUrl('/my-tickets/order/' . $order->id());
+    if (!$event_url) {
+      $event_url = $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+    }
+    if (!$my_tickets_url) {
+      $my_tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+    }
+
     $context = [
       'order' => $order,
       'order_number' => $order->getOrderNumber(),
       'event' => $event,
       'event_title' => $event->label(),
-      'event_url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
-      'my_tickets_url' => Url::fromRoute('myeventlane_checkout_flow.order_detail', ['commerce_order' => $order->id()], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl(),
+      'event_url' => $event_url,
+      'my_tickets_url' => $my_tickets_url,
       'timeframe' => $timeframe,
     ];
 
@@ -286,6 +300,18 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     $context['attendee_count'] = count($attendeeNames);
 
     return $context;
+  }
+
+  /**
+   * Builds an absolute URL on the public domain for customer-facing links.
+   */
+  private function buildPublicUrl(string $path): ?string {
+    try {
+      return $this->domainDetector->buildDomainUrl($path, 'public');
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
   }
 
 }

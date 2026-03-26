@@ -21,7 +21,6 @@ final class HelpAssistantRouteTest extends BrowserTestBase {
     'taxonomy',
     'text',
     'path_alias',
-    'myeventlane_help_centre',
     'myeventlane_help_assistant',
   ];
 
@@ -31,16 +30,19 @@ final class HelpAssistantRouteTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests Help Assistant page rendering for authorised users.
+   * Tests /help/assistant redirects to the canonical /help hub when Help Centre is present.
    */
-  public function testAssistantRouteRenders(): void {
-    $user = $this->drupalCreateUser(['access myeventlane help assistant']);
+  public function testAssistantRouteRedirectsToHelpHub(): void {
+    $user = $this->drupalCreateUser([
+      'access content',
+      'access myeventlane help assistant',
+    ]);
     $this->drupalLogin($user);
 
     $this->drupalGet('/help/assistant');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('Help Assistant');
-    $this->assertSession()->fieldExists('question');
+    $this->assertSession()->addressEquals('/help');
+    $this->assertSession()->pageTextContains('MyEventLane Help Centre');
   }
 
 }

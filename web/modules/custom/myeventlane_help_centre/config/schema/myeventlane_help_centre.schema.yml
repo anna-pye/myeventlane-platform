@@ -1,0 +1,21 @@
+myeventlane_help_centre.contextual_help.link:
+  type: mapping
+  label: 'Contextual help link'
+  mapping:
+    text:
+      type: label
+      label: 'Link label'
+    path:
+      type: string
+      label: 'Internal path'
+
+myeventlane_help_centre.contextual_help:
+  type: config_object
+  label: 'MyEventLane contextual help map'
+  mapping:
+    links:
+      type: mapping
+      label: 'Context keys'
+      mapping:
+        '*':
+          type: myeventlane_help_centre.contextual_help.link

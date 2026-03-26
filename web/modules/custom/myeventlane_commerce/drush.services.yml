@@ -4,5 +4,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_commerce.platform_fee_order_processor'
+      - '@myeventlane_commerce.order_completed_subscriber'
     tags:
       - { name: drush.command }

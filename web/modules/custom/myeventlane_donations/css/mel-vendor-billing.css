@@ -1,10 +1,74 @@
 /**
  * @file
- * MEL vendor contribution billing (Phase 3).
+ * MEL vendor contribution billing (Phase 3 + Phase 4).
  */
+
+.mel-billing-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
 
 .mel-mel-billing {
   max-width: 960px;
+}
+
+.mel-mel-billing__title {
+  margin-bottom: 1rem;
+}
+
+.mel-mel-billing__section-title {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.mel-mel-billing__section-desc {
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.mel-mel-billing__auto {
+  margin: 1.5rem 0;
+}
+
+.mel-mel-billing__auto-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.mel-mel-billing__auto-status {
+  margin-top: 0.75rem;
+}
+
+.mel-mel-billing__consent-note {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.75rem;
+}
+
+.mel-mel-billing__status--failed {
+  color: #c00;
+}
+
+.mel-mel-save-payment {
+  max-width: 480px;
+}
+
+.mel-mel-save-payment__element {
+  margin: 1rem 0;
+  min-height: 24px;
+}
+
+.mel-mel-save-payment__errors {
+  color: #c00;
+  margin-bottom: 0.5rem;
+}
+
+.mel-mel-save-payment__desc,
+.mel-mel-save-payment__consent {
+  color: #555;
 }
 
 .mel-mel-billing__kpis {

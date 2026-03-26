@@ -1,0 +1,14 @@
+view documentation opportunities:
+  title: 'View documentation opportunities'
+  description: 'Review the documentation improvement queue and opportunity detail.'
+  restrict access: TRUE
+
+administer documentation opportunities:
+  title: 'Administer documentation opportunities'
+  description: 'Update opportunity status, link existing articles, add notes, and resolve items.'
+  restrict access: TRUE
+
+generate ai help drafts:
+  title: 'Generate AI help drafts (human-in-the-loop)'
+  description: 'Create unpublished, AI-assisted help_article drafts from opportunities. Does not publish content.'
+  restrict access: TRUE

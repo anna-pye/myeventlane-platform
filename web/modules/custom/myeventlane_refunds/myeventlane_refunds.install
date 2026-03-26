@@ -78,8 +78,13 @@ function myeventlane_refunds_schema(): array {
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
-        'default' => 'pending',
-        'description' => 'Status: pending, completed, or failed.',
+        'default' => 'processing',
+        'description' => 'Status: processing, completed, partial, failed, or pending_confirmation.',
+      ],
+      'failure_reason' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Why the refund failed, if known.',
       ],
       'reason' => [
         'type' => 'text',
@@ -90,6 +95,11 @@ function myeventlane_refunds_schema(): array {
         'type' => 'int',
         'not null' => TRUE,
         'description' => 'Unix timestamp when refund was requested.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when refund status was last updated.',
       ],
       'completed' => [
         'type' => 'int',
@@ -107,6 +117,29 @@ function myeventlane_refunds_schema(): array {
         'not null' => FALSE,
         'description' => 'Refund request ID when created from vendor approval.',
       ],
+      'retry_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'How many automatic retry attempts have been scheduled.',
+      ],
+      'next_attempt_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when the next retry should run.',
+      ],
+      'retry_of' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Parent refund log ID when this row is a retry attempt.',
+      ],
+      'actual_refunded_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Actual refunded amount in cents confirmed by processing.',
+      ],
       'attendee_ids_json' => [
         'type' => 'text',
         'size' => 'big',
@@ -120,6 +153,9 @@ function myeventlane_refunds_schema(): array {
       'event_id' => ['event_id'],
       'vendor_uid' => ['vendor_uid'],
       'status' => ['status'],
+      'idx_refund_status_event' => ['event_id', 'status'],
+      'idx_retry_schedule' => ['next_attempt_at'],
+      'idx_retry_of' => ['retry_of'],
     ],
   ];
 
@@ -619,5 +655,119 @@ function myeventlane_refunds_update_9008(): void {
       'not null' => FALSE,
       'description' => 'JSON array of attendee IDs requested by buyer for partial ticket refund.',
     ]);
+  }
+}
+
+/**
+ * Adds deterministic refund processing columns and backfills status state.
+ */
+function myeventlane_refunds_update_9009(): void {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->tableExists('myeventlane_refund_log')) {
+    return;
+  }
+
+  $fields = [
+    'failure_reason' => [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'Why the refund failed, if known.',
+    ],
+    'updated' => [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Unix timestamp when refund status was last updated.',
+    ],
+    'retry_count' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'How many automatic retry attempts have been scheduled.',
+    ],
+    'next_attempt_at' => [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Unix timestamp when the next retry should run.',
+    ],
+    'retry_of' => [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'description' => 'Parent refund log ID when this row is a retry attempt.',
+    ],
+    'actual_refunded_cents' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Actual refunded amount in cents confirmed by processing.',
+    ],
+  ];
+
+  foreach ($fields as $field_name => $spec) {
+    if (!$schema->fieldExists('myeventlane_refund_log', $field_name)) {
+      $schema->addField('myeventlane_refund_log', $field_name, $spec);
+    }
+  }
+
+  $time = time();
+  $rows = $database->select('myeventlane_refund_log', 'r')
+    ->fields('r', ['id', 'completed', 'error_message', 'failure_reason', 'updated'])
+    ->execute()
+    ->fetchAllAssoc('id');
+
+  foreach ($rows as $id => $row) {
+    $status = !empty($row->completed)
+      ? 'completed'
+      : (!empty($row->error_message) ? 'failed' : 'processing');
+
+    $fields_to_update = [
+      'status' => $status,
+    ];
+
+    if (empty($row->failure_reason) && !empty($row->error_message)) {
+      $fields_to_update['failure_reason'] = $row->error_message;
+    }
+
+    if (empty($row->updated)) {
+      $fields_to_update['updated'] = $time;
+    }
+
+    $database->update('myeventlane_refund_log')
+      ->fields($fields_to_update)
+      ->condition('id', (int) $id)
+      ->execute();
+  }
+}
+
+/**
+ * Adds retry and status indexes for deterministic refund processing.
+ */
+function myeventlane_refunds_update_9010(): void {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->tableExists('myeventlane_refund_log')) {
+    return;
+  }
+
+  $indexes = [
+    'idx_refund_status_event' => ['event_id', 'status'],
+    'idx_retry_schedule' => ['next_attempt_at'],
+    'idx_retry_of' => ['retry_of'],
+  ];
+
+  foreach ($indexes as $name => $fields) {
+    if ($schema->indexExists('myeventlane_refund_log', $name)) {
+      continue;
+    }
+
+    try {
+      $schema->addIndex('myeventlane_refund_log', $name, $fields, []);
+    }
+    catch (\Throwable) {
+      // Ignore if the index already exists with a different database name.
+    }
   }
 }

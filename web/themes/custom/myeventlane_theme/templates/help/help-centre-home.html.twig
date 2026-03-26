@@ -6,19 +6,23 @@
  * Available variables:
  * - context: Optional string; when 'vendor', copy and sections target vendors.
  * - help_search: Search form metadata (action, value, placeholder).
- * - help_assistant: Optional render array (AI assistant block).
+ * - help_assistant: Optional render array (Help Assistant block).
  * - featured_articles: Featured articles view render array.
  * - vendors: Vendor help view render array (vendor context).
- * - help_categories: List of topic terms with name, url, article_count.
  * - faq_listing: FAQ view render array.
+ * - ia_sections: Structured sections (Discover / Book / Manage / Policies).
+ * - help_assistant_page_url: URL to Help Assistant anchor on /help (if enabled).
  */
 #}
 {% set is_vendor_context = context == 'vendor' %}
+{% if not is_vendor_context %}
+<div class="mel-help-page mel-help-page--hub">
+{% endif %}
 {% if is_vendor_context %}
 <div class="mel-help-page mel-help-page--embedded">
 {% endif %}
 <section class="mel-help-home{% if is_vendor_context %} mel-help-home--vendor{% endif %}">
-  <header class="mel-help-home__hero">
+  <header class="mel-help-home__hero mel-help-home__hero--search-first">
     <p class="mel-help-home__eyebrow">{{ 'MyEventLane Help Centre'|t }}</p>
     {% if is_vendor_context %}
       <h1 class="mel-help-home__title">{{ 'Vendor help'|t }}</h1>
@@ -26,7 +30,7 @@
       <h1 class="mel-help-home__title">{{ 'What do you need help with today?'|t }}</h1>
     {% endif %}
 
-    <form action="{{ help_search.action }}" method="get" class="mel-help-home__search" role="search">
+    <form action="{{ help_search.action }}" method="get" class="mel-help-home__search mel-help-home__search--hero" role="search">
       <label class="visually-hidden" for="mel-help-search">{{ 'Search help articles'|t }}</label>
       <input
         id="mel-help-search"
@@ -49,11 +53,43 @@
   {% endif %}
 
   {% if help_assistant is defined and help_assistant %}
-    <section class="mel-help-home__section" aria-labelledby="mel-help-assistant-title">
+    <section id="mel-help-assistant" class="mel-help-home__section mel-help-home__section--assistant" aria-labelledby="mel-help-assistant-title">
       <div class="mel-help-home__section-head">
-        <h2 id="mel-help-assistant-title">{{ 'Ask the AI Help Assistant'|t }}</h2>
+        <h2 id="mel-help-assistant-title">{{ 'Help Assistant'|t }}</h2>
+        <p class="mel-help-home__section-lead">{{ 'Answers from our Help Centre articles — with links you can open with confidence.'|t }}</p>
       </div>
-      {{ help_assistant }}
+      <div class="mel-help-home__assistant-shell">
+        {{ help_assistant }}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if not is_vendor_context and ia_sections is defined and ia_sections is not empty %}
+    <section class="mel-help-home__section" aria-labelledby="mel-help-ia-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-help-ia-title">{{ 'Find your way'|t }}</h2>
+        <p class="mel-help-home__section-lead">{{ 'Pick a lane: discover content, book tickets, manage events, or read policies.'|t }}</p>
+      </div>
+      <div class="mel-help-home__ia-grid">
+        {% for section in ia_sections %}
+          <article class="mel-help-home__ia-block" data-ia="{{ section.id }}">
+            <h3 class="mel-help-home__ia-title">{{ section.title }}</h3>
+            {% if section.description %}
+              <p class="mel-help-home__ia-desc">{{ section.description }}</p>
+            {% endif %}
+            <div class="mel-help-home__grid mel-help-home__grid--categories mel-help-home__grid--tight">
+              {% for card in section.cards %}
+                <article class="mel-help-home__card mel-help-home__card--compact">
+                  <h4 class="mel-help-home__card-title"><a href="{{ card.url }}">{{ card.title }}</a></h4>
+                  {% if card.excerpt %}
+                    <p class="mel-help-home__card-excerpt">{{ card.excerpt }}</p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
     </section>
   {% endif %}
 
@@ -103,32 +139,6 @@
     </section>
   {% endif %}
 
-  <section class="mel-help-home__section" aria-labelledby="mel-help-categories-title">
-    <div class="mel-help-home__section-head">
-      <h2 id="mel-help-categories-title">{{ 'Browse by topic'|t }}</h2>
-    </div>
-    {% if help_categories is empty %}
-      <p class="mel-help-home__empty">{{ 'No help categories are available yet.'|t }}</p>
-    {% else %}
-      <div class="mel-help-home__grid mel-help-home__grid--categories">
-        {% for category in help_categories %}
-          <article class="mel-help-home__card mel-help-home__card--category">
-            <h3 class="mel-help-home__card-title">
-              <a href="{{ category.url }}">{{ category.name }}</a>
-            </h3>
-            <p class="mel-help-home__card-meta">
-              {% if category.article_count == 1 %}
-                {{ '1 article'|t }}
-              {% else %}
-                {{ '@count articles'|t({'@count': category.article_count}) }}
-              {% endif %}
-            </p>
-          </article>
-        {% endfor %}
-      </div>
-    {% endif %}
-  </section>
-
   <section class="mel-help-home__section" aria-labelledby="mel-faq-list-title">
     <div class="mel-help-home__section-head">
       <h2 id="mel-faq-list-title">{{ 'Frequently asked questions'|t }}</h2>
@@ -160,18 +170,25 @@
     </div>
   </section>
 
-  <section class="mel-help-home__section" aria-labelledby="mel-help-support-title">
+  <section class="mel-help-home__section mel-help-home__section--support-final" aria-labelledby="mel-help-support-title">
     <div class="mel-help-home__section-head">
-      <h2 id="mel-help-support-title">{{ 'Still need a hand?'|t }}</h2>
+      <h2 id="mel-help-support-title">{{ 'Still need help?'|t }}</h2>
     </div>
-    <article class="mel-help-home__card">
-      <p class="mel-help-home__card-excerpt">{{ 'If you could not find the right answer, contact support and include your event or booking details so we can help faster.'|t }}</p>
+    <article class="mel-help-home__card mel-help-home__card--support">
+      <p class="mel-help-home__card-excerpt">{{ 'If you could not find the right answer, try the Help Assistant or contact support with your event or booking details so we can help faster.'|t }}</p>
       <p class="mel-help-home__card-link-wrap">
-        <a href="/contact" class="mel-help-home__card-link">{{ 'Contact support'|t }} &rarr;</a>
+        {% if help_assistant_page_url is defined and help_assistant_page_url %}
+          <a href="{{ help_assistant_page_url }}" class="mel-help-home__card-link">{{ 'Open Help Assistant'|t }}</a>
+          <span class="mel-help-home__card-link-sep" aria-hidden="true"> · </span>
+        {% endif %}
+        <a href="{{ contact_support_url|default('/support/tickets') }}" class="mel-help-home__card-link">{{ 'Contact support'|t }} &rarr;</a>
       </p>
     </article>
   </section>
 </section>
 {% if is_vendor_context %}
+</div>
+{% endif %}
+{% if not is_vendor_context %}
 </div>
 {% endif %}

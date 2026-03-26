@@ -8,6 +8,7 @@ use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_admin_dashboard\Service\PayoutBatchWorkflowService;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,6 +23,7 @@ final class PayoutBatchUiController extends ControllerBase {
   public function __construct(
     protected PayoutBatchWorkflowService $workflow,
     protected CsrfTokenGenerator $csrfToken,
+    protected MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -31,6 +33,7 @@ final class PayoutBatchUiController extends ControllerBase {
     return new static(
       $container->get('myeventlane_admin_dashboard.payout_batch_workflow'),
       $container->get('csrf_token'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -81,7 +84,7 @@ final class PayoutBatchUiController extends ControllerBase {
       ];
     }
 
-    return [
+    $main = [
       '#theme' => 'payout_batch_list',
       '#batches' => $batches,
       '#user_labels' => $userLabels,
@@ -96,6 +99,12 @@ final class PayoutBatchUiController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Payout batches'),
+      $this->t('Create, submit, approve, and execute payout batches.'),
+    );
   }
 
   /**
@@ -131,7 +140,7 @@ final class PayoutBatchUiController extends ControllerBase {
     $account = $this->currentUser();
     $csrfToken = $this->csrfToken->get('payout_batch_' . $batch_id);
 
-    return [
+    $main = [
       '#theme' => 'payout_batch_view',
       '#batch' => $batch,
       '#items' => $items,
@@ -151,6 +160,12 @@ final class PayoutBatchUiController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->viewTitle($batch_id),
+      '',
+    );
   }
 
   /**

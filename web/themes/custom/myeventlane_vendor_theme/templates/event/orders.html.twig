@@ -4,13 +4,19 @@
   purchaser_name, purchaser_email, ticket_count, net_sales, fees, total,
   status, view_link).
 #}
+{% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
+  <div class="mel-contextual-help mel-contextual-help--vendor-console">
+    {{ mel_vendor_contextual_help }}
+  </div>
+{% endif %}
+
 <div class="mel-card">
   <div class="mel-card__header">
     <div class="mel-card__title">{{ 'Orders'|t }}</div>
   </div>
 
   {% if orders|length > 0 %}
-    <div class="mel-table mel-table--striped mel-table--cols-10">
+    <div class="mel-table mel-table--striped mel-table--cols-11">
       <div class="mel-table__head">
         <div>{{ 'Order ID'|t }}</div>
         <div>{{ 'Order date'|t }}</div>
@@ -21,6 +27,7 @@
         <div>{{ 'Fees'|t }}</div>
         <div>{{ 'Total'|t }}</div>
         <div>{{ 'Status'|t }}</div>
+        <div>{{ 'Refund'|t }}</div>
         <div>{{ 'View'|t }}</div>
       </div>
       <div class="mel-table__body">
@@ -36,6 +43,27 @@
             <div data-label="{{ 'Total'|t }}">{{ row.total }}</div>
             <div data-label="{{ 'Status'|t }}">
               <span class="mel-badge mel-badge--{{ row.status|lower }}">{{ row.status }}</span>
+            </div>
+            <div data-label="{{ 'Refund'|t }}">
+              {% if row.refund_status %}
+                {{ row.refund_status }}
+              {% else %}
+                <span>{{ 'Not available'|t }}</span>
+              {% endif %}
+              {% if row.refund.status == 'failed' %}
+                {% if row.refund.failure_reason %}
+                  <div class="mel-refund-error-box">
+                    <strong>{{ 'Refund failed'|t }}</strong>
+                    <p>{{ row.refund.failure_reason }}</p>
+                  </div>
+                {% endif %}
+                {% if row.refund.retry_url %}
+                  <div class="mel-inline-actions">
+                    <a href="{{ row.refund.retry_url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'Retry refund'|t }}</a>
+                  </div>
+                  <p class="mel-refund-retry-help">{{ 'MEL will try again safely. No duplicate refunds will be issued.'|t }}</p>
+                {% endif %}
+              {% endif %}
             </div>
             <div data-label="{{ 'View'|t }}">
               <a href="{{ row.view_link.url }}" class="mel-link">{{ row.view_link.label }}</a>
@@ -55,6 +83,7 @@
             <div data-label="{{ 'Fees'|t }}">{{ totals.fees }}</div>
             <div class="mel-text--bold" data-label="{{ 'Total'|t }}">{{ totals.total }}</div>
             <div data-label="{{ 'Status'|t }}"></div>
+            <div data-label="{{ 'Refund'|t }}"></div>
             <div data-label="{{ 'View'|t }}"></div>
           </div>
         </div>

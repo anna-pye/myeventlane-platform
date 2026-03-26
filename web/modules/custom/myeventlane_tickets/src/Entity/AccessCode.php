@@ -274,6 +274,20 @@ final class AccessCode extends ContentEntityBase implements EntityChangedInterfa
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Adds the event route parameter for link templates that include {event}.
+   */
+  protected function urlRouteParameters($rel): array {
+    $params = parent::urlRouteParameters($rel);
+    $event_id = $this->getEventId();
+    if ($event_id !== NULL) {
+      $params['event'] = $event_id;
+    }
+    return $params;
+  }
+
+  /**
    * Gets the access code string.
    */
   public function getCode(): string {

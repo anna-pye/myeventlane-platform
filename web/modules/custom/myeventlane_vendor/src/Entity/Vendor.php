@@ -253,6 +253,33 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', FALSE);
 
+    // Billing preferences: optional auto-billing for MEL contribution invoices.
+    // Default OFF — vendor must explicitly opt in. NEVER auto-charge without this.
+    $fields['auto_billing_enabled'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Auto-billing enabled'))
+      ->setDescription(new TranslatableMarkup('Automatically pay MEL contribution invoices using a saved payment method.'))
+      ->setDefaultValue(0)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    // Stripe customer ID for platform payments (MEL contributions). PCI: we never store card details.
+    $fields['stripe_customer_id'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Stripe customer ID'))
+      ->setDescription(new TranslatableMarkup('Stripe customer ID for platform auto-billing.'))
+      ->setRequired(FALSE)
+      ->setSettings(['max_length' => 255])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    // Default payment method ID (pm_xxx) for off-session charges.
+    $fields['stripe_default_payment_method'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Stripe default payment method'))
+      ->setDescription(new TranslatableMarkup('Stripe payment method ID for auto-billing.'))
+      ->setRequired(FALSE)
+      ->setSettings(['max_length' => 255])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     return $fields;
   }
 
@@ -337,6 +364,47 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
       return FALSE;
     }
     return (bool) $this->get('ai_enabled')->value;
+  }
+
+  /**
+   * Whether auto-billing for MEL invoices is enabled.
+   *
+   * @return bool
+   *   TRUE if auto-billing is enabled.
+   */
+  public function isAutoBillingEnabled(): bool {
+    if (!$this->hasField('auto_billing_enabled') || $this->get('auto_billing_enabled')->isEmpty()) {
+      return FALSE;
+    }
+    return (bool) $this->get('auto_billing_enabled')->value;
+  }
+
+  /**
+   * Gets the Stripe customer ID for platform billing.
+   *
+   * @return string|null
+   *   The Stripe customer ID (cus_xxx), or NULL if not set.
+   */
+  public function getStripeCustomerId(): ?string {
+    if (!$this->hasField('stripe_customer_id') || $this->get('stripe_customer_id')->isEmpty()) {
+      return NULL;
+    }
+    $v = trim((string) $this->get('stripe_customer_id')->value);
+    return $v !== '' ? $v : NULL;
+  }
+
+  /**
+   * Gets the Stripe default payment method ID.
+   *
+   * @return string|null
+   *   The payment method ID (pm_xxx), or NULL if not set.
+   */
+  public function getStripeDefaultPaymentMethod(): ?string {
+    if (!$this->hasField('stripe_default_payment_method') || $this->get('stripe_default_payment_method')->isEmpty()) {
+      return NULL;
+    }
+    $v = trim((string) $this->get('stripe_default_payment_method')->value);
+    return $v !== '' ? $v : NULL;
   }
 
 }

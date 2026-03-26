@@ -43,9 +43,20 @@ final class AccountLinksService {
    *   Array of nav links with title, url, and active flag.
    */
   public function buildLinks(string $active = 'dashboard'): array {
-    $supportUrl = $this->moduleHandler->moduleExists('mel_support')
-      ? Url::fromRoute('mel_support.customer_tickets')->toString()
-      : '/support';
+    $supportUrl = '/support/tickets';
+    if ($this->moduleHandler->moduleExists('myeventlane_escalations_portal')) {
+      try {
+        $supportUrl = Url::fromRoute('myeventlane_escalations_portal.customer_support_tickets')->toString();
+      }
+      catch (\Throwable) {
+        try {
+          $supportUrl = Url::fromRoute('myeventlane_escalations_portal.customer_support')->toString();
+        }
+        catch (\Throwable) {
+          // Keep /support/tickets fallback.
+        }
+      }
+    }
 
     return [
       [

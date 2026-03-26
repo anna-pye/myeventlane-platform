@@ -15,6 +15,7 @@ final class RsvpSubmissionConsentHelper {
   public function __construct(
     private readonly LegalSettingsService $settings,
     private readonly TimeInterface $time,
+    private readonly ConsentAuditService $consentAudit,
   ) {}
 
   /**
@@ -67,6 +68,40 @@ final class RsvpSubmissionConsentHelper {
       $entity->set('field_marketing_opt_in', $marketing);
       if ($marketing && $entity->hasField('field_marketing_opt_in_at')) {
         $entity->set('field_marketing_opt_in_at', $now);
+      }
+    }
+
+    if ($termsAccepted && $privacyAccepted) {
+      try {
+        $email = $entity->hasField('email') && !$entity->get('email')->isEmpty()
+          ? (string) $entity->get('email')->value
+          : NULL;
+        if ($email) {
+          $eventId = NULL;
+          if ($entity->hasField('event_id') && !$entity->get('event_id')->isEmpty()) {
+            $ref = $entity->get('event_id')->first();
+            $eventId = $ref && $ref->target_id ? (int) $ref->target_id : NULL;
+          }
+
+          $context = [
+            'email' => $email,
+            'source' => 'rsvp',
+            'entity_type' => 'rsvp_submission',
+            'entity_id' => $entity->id() ?: NULL,
+            'event_id' => $eventId,
+            'terms_version' => $currentTermsVersion,
+            'privacy_version' => $currentPrivacyVersion,
+          ];
+
+          if ($this->consentAudit->shouldRecordRsvpConsent($context)) {
+            $this->consentAudit->record($context);
+          }
+        }
+      }
+      catch (\Throwable $e) {
+        $this->settings->getLogger()->error('Consent audit write failed: @message', [
+          '@message' => $e->getMessage(),
+        ]);
       }
     }
   }

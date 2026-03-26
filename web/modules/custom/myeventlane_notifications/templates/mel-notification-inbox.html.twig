@@ -1,0 +1,94 @@
+{#
+/**
+ * @file
+ * Full notifications inbox (filters, grouped list, empty state).
+ */
+#}
+<div class="mel-notif-inbox mel-container">
+  <header class="mel-notif-inbox__header">
+    <div class="mel-notif-inbox__header-row">
+      <div>
+        <h1 class="mel-notif-inbox__title">{{ 'Notifications'|t }}</h1>
+        <p class="mel-notif-inbox__lede">{{ 'Tickets, events, reminders, and platform updates in one calm place.'|t }}</p>
+      </div>
+      {% if settings_url %}
+        <a href="{{ settings_url }}" class="mel-notif-inbox__settings">{{ 'Notification settings'|t }}</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <nav class="mel-notif-inbox__filters" aria-label="{{ 'Filter notifications'|t }}">
+    {% for link in filter_links %}
+      <a href="{{ link.url }}"
+         class="mel-notif-inbox__chip{% if link.active %} is-active{% endif %}"
+         {% if link.active %}aria-current="page"{% endif %}>
+        {{ link.label }}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if not empty and mark_all_form %}
+    <div class="mel-notif-inbox__toolbar">
+      {{ mark_all_form }}
+    </div>
+  {% endif %}
+
+  {% if empty %}
+    <div class="mel-notif-inbox__empty" role="status">
+      <div class="mel-notif-inbox__empty-icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" focusable="false">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+        </svg>
+      </div>
+      <h2 class="mel-notif-inbox__empty-title">{{ 'Nothing new here — and that’s okay.'|t }}</h2>
+      <p class="mel-notif-inbox__empty-copy">
+        {{ 'We’ll keep ticket confirmations and important updates respectful. Browse what’s on or jump to your tickets when you’re ready.'|t }}
+      </p>
+      <div class="mel-notif-inbox__empty-actions">
+        <a class="mel-notif-inbox__empty-btn" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+        <a class="mel-notif-inbox__empty-btn mel-notif-inbox__empty-btn--ghost" href="{{ path('myeventlane_checkout_flow.my_tickets') }}">{{ 'My tickets'|t }}</a>
+      </div>
+    </div>
+  {% else %}
+    <div class="mel-notif-inbox__groups">
+      {% for group in groups %}
+        <section class="mel-notif-inbox__day">
+          <h2 class="mel-notif-inbox__day-label">{{ group.label }}</h2>
+          <ul class="mel-notif-inbox__list">
+            {% for item in group.items %}
+              {% set row = item.row %}
+              <li class="mel-notif-inbox__item{% if row.is_unread %} is-unread{% endif %}">
+                <div class="mel-notif-inbox__accent mel-notif-inbox__accent--{{ row.icon }}" aria-hidden="true"></div>
+                <div class="mel-notif-inbox__body">
+                  <div class="mel-notif-inbox__row-title">{{ row.title }}</div>
+                  {% if row.is_group_summary %}
+                    <div class="mel-notif-inbox__preview">{{ row.group_summary_label }}</div>
+                  {% else %}
+                    <div class="mel-notif-inbox__preview">{{ row.message_preview }}</div>
+                  {% endif %}
+                  {% if row.action %}
+                    <a href="{{ row.action.url }}" class="mel-notif-inbox__action">{{ row.action.label }}</a>
+                  {% endif %}
+                </div>
+                <div class="mel-notif-inbox__meta">
+                  {% if row.is_unread %}
+                    {{ item.mark_read_form }}
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+
+    {% if pager_info.has_more %}
+      {% set next_page = pager_info.page + 1 %}
+      <nav class="mel-notif-inbox__pager" aria-label="{{ 'Pagination'|t }}">
+        <a href="{{ path('myeventlane_notifications.inbox', {}, {'query': {'filter': filter, 'page': next_page}}) }}" class="mel-notif-inbox__pager-link">
+          {{ 'Older'|t }}
+        </a>
+      </nav>
+    {% endif %}
+  {% endif %}
+</div>

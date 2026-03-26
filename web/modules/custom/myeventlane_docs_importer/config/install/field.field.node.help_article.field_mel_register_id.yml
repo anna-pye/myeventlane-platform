@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_register_id
+    - node.type.help_article
+id: node.help_article.field_mel_register_id
+field_name: field_mel_register_id
+entity_type: node
+bundle: help_article
+label: 'MEL register ID'
+description: 'External documentation ID from the MEL register (for example H001, V002). Used by the docs importer for idempotent updates.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.paragraph.attendee_extra_field.field_attendee_extra_field
     - field.field.paragraph.attendee_extra_field.field_question_help
     - field.field.paragraph.attendee_extra_field.field_question_label
     - field.field.paragraph.attendee_extra_field.field_question_machine_name
@@ -10,9 +11,6 @@ dependencies:
     - field.field.paragraph.attendee_extra_field.field_question_required
     - field.field.paragraph.attendee_extra_field.field_question_type
     - paragraphs.paragraphs_type.attendee_extra_field
-  module:
-    - options
-    - text
 id: paragraph.attendee_extra_field.default
 targetEntityType: paragraph
 bundle: attendee_extra_field
@@ -65,4 +63,5 @@ content:
     third_party_settings: {  }
 hidden:
   created: true
+  field_attendee_extra_field: true
   status: true

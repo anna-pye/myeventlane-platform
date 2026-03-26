@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,6 +34,7 @@ final class AdminReportsController extends ControllerBase {
     EventMetricsServiceInterface $metricsService,
     AttendeeRepositoryResolver $repositoryResolver,
     private readonly AccessManagerInterface $accessManager,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {
     // Set parent's protected property.
     $this->entityTypeManager = $entityTypeManager;
@@ -49,6 +51,7 @@ final class AdminReportsController extends ControllerBase {
       $container->get('myeventlane_metrics.service'),
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('access_manager'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -76,7 +79,7 @@ final class AdminReportsController extends ControllerBase {
       }
     }
 
-    return [
+    $main = [
       '#theme' => 'myeventlane_reporting_admin_overview',
       '#kpis' => $kpis,
       '#donation_reports_nav' => $donation_reports_nav,
@@ -91,6 +94,12 @@ final class AdminReportsController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Platform Reports'),
+      $this->t('Cross-vendor KPIs and deep-dive report entry points.'),
+    );
   }
 
   /**
@@ -100,7 +109,7 @@ final class AdminReportsController extends ControllerBase {
     // Get vendor-level aggregations.
     $vendorStats = $this->getVendorStats();
 
-    return [
+    $main = [
       '#theme' => 'myeventlane_reporting_admin_vendors',
       '#vendor_stats' => $vendorStats,
       '#attached' => [
@@ -113,6 +122,12 @@ final class AdminReportsController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Vendor Reports'),
+      $this->t('Vendor-level performance and activity.'),
+    );
   }
 
   /**
@@ -122,7 +137,7 @@ final class AdminReportsController extends ControllerBase {
     // Get top events.
     $topEvents = $this->getTopEvents();
 
-    return [
+    $main = [
       '#theme' => 'myeventlane_reporting_admin_events',
       '#top_events' => $topEvents,
       '#attached' => [
@@ -135,6 +150,12 @@ final class AdminReportsController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Event Reports'),
+      $this->t('Top events and attendance-oriented signals.'),
+    );
   }
 
   /**
@@ -144,7 +165,7 @@ final class AdminReportsController extends ControllerBase {
     // Get finance metrics.
     $financeKpis = $this->buildFinanceKpis();
 
-    return [
+    $main = [
       '#theme' => 'myeventlane_reporting_admin_finance',
       '#kpis' => $financeKpis,
       '#attached' => [
@@ -157,6 +178,12 @@ final class AdminReportsController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Finance Reports'),
+      $this->t('Order and revenue-oriented finance metrics.'),
+    );
   }
 
   /**

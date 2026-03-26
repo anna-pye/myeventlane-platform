@@ -1,3 +1,11 @@
 administer myeventlane legal:
   title: 'Administer MyEventLane legal settings'
   description: 'Configure legal policy versions and URLs.'
+
+view legal consent events:
+  title: 'View legal consent events'
+  description: 'View the immutable consent audit trail.'
+
+administer legal consent events:
+  title: 'Administer legal consent events'
+  description: 'Access the legal consent event admin view and manage access.'

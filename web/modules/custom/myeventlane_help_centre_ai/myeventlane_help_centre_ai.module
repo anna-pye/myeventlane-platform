@@ -19,12 +19,15 @@ function myeventlane_help_centre_ai_preprocess_help_centre_index(array &$variabl
     return;
   }
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_help_assistant')) {
-    try {
-      $variables['ask_url'] = Url::fromRoute('myeventlane_help_assistant.page')->toString();
-      return;
-    }
-    catch (\Throwable) {
+    $settings = \Drupal::config('myeventlane_help_assistant.settings');
+    if ((bool) $settings->get('enabled')) {
+      try {
+        $variables['ask_url'] = Url::fromRoute('myeventlane_help_centre.home', [], ['fragment' => 'mel-help-assistant'])->toString();
+        return;
+      }
+      catch (\Throwable) {
+      }
     }
   }
-  $variables['ask_url'] = '/help/assistant';
+  $variables['ask_url'] = '/help';
 }

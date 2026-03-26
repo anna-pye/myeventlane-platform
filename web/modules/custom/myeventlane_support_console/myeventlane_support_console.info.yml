@@ -4,7 +4,9 @@ description: 'Default landing page for staff with administer escalations permiss
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
+  - drupal:node
   - drupal:user
+  - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - myeventlane_escalations_capacity:myeventlane_escalations_capacity
   - myeventlane_escalations_analytics:myeventlane_escalations_analytics

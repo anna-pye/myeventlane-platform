@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_admin_dashboard\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_admin_dashboard\Service\PlatformMetricsService;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -20,6 +21,7 @@ final class FinancialController extends ControllerBase {
    */
   public function __construct(
     protected PlatformMetricsService $metricsService,
+    protected MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -28,6 +30,7 @@ final class FinancialController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('myeventlane_admin_dashboard.metrics'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -46,7 +49,7 @@ final class FinancialController extends ControllerBase {
 
     $currentRoute = 'myeventlane_admin_dashboard.financials';
 
-    return [
+    $main = [
       '#theme' => 'platform_control_centre_financials',
       '#kpis' => $kpis,
       '#series' => $series,
@@ -77,6 +80,12 @@ final class FinancialController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Financials'),
+      $this->t('Revenue, payouts context, and export entry points.'),
+    );
   }
 
   /**

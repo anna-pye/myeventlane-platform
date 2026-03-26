@@ -1,0 +1,12 @@
+/**
+ * @file
+ * Percent width utilities for dynamic progress bars (no inline styles).
+ *
+ * Use: mel-ws-pct-0 … mel-ws-pct-100 on bar fill elements.
+ */
+
+@for $i from 0 through 100 {
+  .mel-ws-pct-#{$i} {
+    width: #{$i}#{'%'};
+  }
+}

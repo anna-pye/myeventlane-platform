@@ -10,6 +10,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_refunds\Service\RefundProcessor;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
@@ -58,6 +59,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorEventTabsService $eventTabsService,
+    private readonly ?RefundProcessor $refundProcessor = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -76,15 +78,23 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     $tabs = $this->eventTabsService->getTabs($event, 'orders');
     $data = $this->getOrdersForEvent($event);
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Orders',
+    $content = [
+      '#theme' => 'myeventlane_vendor_event_orders',
+      '#event' => $event,
+      '#orders' => $data['rows'],
+      '#totals' => $data['totals'],
+    ];
+    if ($this->refundProcessor) {
+      $content['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
+    }
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'body' => [
-        '#theme' => 'myeventlane_vendor_event_orders',
-        '#event' => $event,
-        '#orders' => $data['rows'],
-        '#totals' => $data['totals'],
-      ],
+      'actions' => [],
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => $content,
     ]);
   }
 
@@ -486,6 +496,16 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'label' => $this->t('View'),
     ];
 
+    $refundLog = $this->refundProcessor?->getLatestRefundForOrder((int) $order->id(), $eventId);
+    $refundStatus = (string) ($refundLog['status'] ?? 'none');
+    $refundId = isset($refundLog['id']) ? (int) $refundLog['id'] : 0;
+    $refundRetryUrl = NULL;
+    if ($refundStatus === RefundProcessor::STATUS_FAILED && $refundId > 0) {
+      $refundRetryUrl = Url::fromRoute('myeventlane_refunds.retry', [
+        'log' => $refundId,
+      ])->toString();
+    }
+
     return [
       'order_id' => $order->id(),
       'order_number' => $orderNumber,
@@ -497,6 +517,16 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'fees' => $this->formatPrice($feesForEvent, $currency),
       'total' => $this->formatPrice($totalNumber, $currency),
       'status' => $paymentRefundState ?? $order->getState()->getId(),
+      'refund_status' => $this->refundProcessor ? [
+        '#theme' => 'refund_status_badge',
+        '#status' => $refundStatus,
+      ] : NULL,
+      'refund' => [
+        'id' => $refundId > 0 ? $refundId : NULL,
+        'status' => $refundStatus,
+        'retry_url' => $refundRetryUrl,
+        'failure_reason' => (string) ($refundLog['failure_reason'] ?? ''),
+      ],
       'view_link' => $viewLink,
       'raw_ticket_count' => $ticketCount,
       'raw_net_sales' => $netSalesNumber,

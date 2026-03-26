@@ -1,0 +1,342 @@
+/**
+ * @file
+ * Vendor events list (/vendor/events): toolbar, list/grid toggle, event cards.
+ * Premium MEL design: spacious cards, real grid, calm layout.
+ */
+
+@use '../tokens/colors' as c;
+@use '../tokens/radii' as r;
+@use '../tokens/spacing' as sp;
+@use '../tokens/shadows' as sh;
+@use '../tokens/breakpoints' as bp;
+
+// -----------------------------------------------------------------------------
+// Toolbar
+// -----------------------------------------------------------------------------
+
+.mel-events-toolbar--page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: sp.$spacing-4;
+  margin-bottom: sp.$spacing-6;
+}
+
+.mel-events-toolbar__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: c.$ml-vendor-text-dark;
+}
+
+.mel-events-toolbar__right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: sp.$spacing-2;
+}
+
+// -----------------------------------------------------------------------------
+// Wrapper & grid system (Phase 1, 5)
+// -----------------------------------------------------------------------------
+
+.mel-events-wrapper {
+  max-width: 1200px;
+  padding: 24px;
+}
+
+.mel-events-wrapper[data-view='grid'] .mel-events-bulk-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+.mel-events-wrapper[data-view='list'] .mel-events-bulk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// -----------------------------------------------------------------------------
+// Row: checkbox + card (Phase 6 — restyle checkbox, not clutter)
+// -----------------------------------------------------------------------------
+
+.mel-vendor-event-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  position: relative;
+
+  // Checkbox: compact, aligned to card
+  .form-checkbox {
+    margin: 0;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 16px; // Align with card body
+  }
+
+  > .form-item {
+    flex-shrink: 0;
+  }
+
+  .mel-card {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// In grid mode, overlay checkbox on card top-left for cleaner look
+.mel-events-wrapper[data-view='grid'] .mel-vendor-event-row {
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+
+  .form-item {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+    margin: 0;
+  }
+
+  .form-checkbox {
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// View toggle
+// -----------------------------------------------------------------------------
+
+.mel-view-toggle {
+  display: inline-flex;
+  background: rgba(110, 126, 242, 0.08);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid rgba(110, 126, 242, 0.12);
+
+  button {
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: c.$ml-vendor-slate;
+    transition: all 0.15s ease;
+
+    &.is-active {
+      background: #fff;
+      box-shadow: sh.$shadow-sm;
+      color: c.$mel-ws-purple;
+    }
+
+    &:focus-visible {
+      outline: 2px solid c.$mel-ws-purple;
+      outline-offset: 2px;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Card — premium design (Phase 3)
+// -----------------------------------------------------------------------------
+
+.mel-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.mel-card__image {
+  height: 160px;
+  background: #eee;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.mel-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, c.$mel-ws-purple-tint 0%, rgba(110, 126, 242, 0.08) 100%);
+}
+
+.mel-card__body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.mel-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mel-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: c.$mel-ws-coral;
+    }
+  }
+}
+
+.mel-status {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: c.$mel-ws-purple;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+
+  &--live {
+    background: c.$success-light;
+    color: c.$success;
+  }
+
+  &--draft {
+    background: c.$gray-200;
+    color: c.$gray-600;
+  }
+
+  &--scheduled {
+    background: rgba(14, 165, 233, 0.12);
+    color: c.$info;
+  }
+
+  &--sold-out {
+    background: c.$mel-ws-bg-warm;
+    color: c.$wizard-coral;
+  }
+
+  &--ended {
+    background: c.$gray-100;
+    color: c.$gray-500;
+  }
+
+  &--cancelled {
+    background: rgba(255, 138, 138, 0.15);
+    color: c.$danger;
+  }
+
+  &--archived {
+    background: c.$gray-100;
+    color: c.$gray-500;
+  }
+}
+
+.mel-card__meta {
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+
+  .mel-card__meta-date:not(:last-child)::after {
+    content: ' · ';
+    opacity: 0.6;
+  }
+
+  .field__item {
+    display: inline;
+  }
+}
+
+.mel-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+// -----------------------------------------------------------------------------
+// List mode override (Phase 4)
+// -----------------------------------------------------------------------------
+
+.mel-events-wrapper[data-view='list'] .mel-card {
+  flex-direction: row;
+  align-items: stretch;
+
+  .mel-card__image {
+    width: 120px;
+    min-width: 120px;
+    height: 80px;
+    flex-shrink: 0;
+  }
+
+  .mel-card__body {
+    flex: 1;
+    min-width: 0;
+    padding: 16px 24px;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Empty state
+// -----------------------------------------------------------------------------
+
+.mel-empty--solo {
+  padding: sp.$spacing-8;
+  text-align: center;
+  border-radius: 16px;
+  background: #fafafa;
+  border: 1px dashed rgba(0, 0, 0, 0.08);
+  max-width: 1200px;
+}
+
+.mel-empty--events-inner,
+.mel-empty--view {
+  .mel-empty__title {
+    margin: 0 0 sp.$spacing-3;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: c.$ml-vendor-text-dark;
+  }
+
+  .mel-empty__text {
+    margin: 0 0 sp.$spacing-4;
+    color: c.$ml-vendor-slate;
+    font-size: 0.9375rem;
+  }
+}

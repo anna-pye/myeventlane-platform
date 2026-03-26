@@ -309,3 +309,27 @@ a.button {
   @extend .mel-btn--danger;
 }
 
+// -----------------------------------------------------------------------------
+// Semantic aliases — MEL product workspace (mirrors .mel-btn*)
+// -----------------------------------------------------------------------------
+
+.mel-button {
+  @extend .mel-btn;
+}
+
+.mel-button--primary {
+  @extend .mel-btn--cta;
+}
+
+.mel-button--secondary {
+  @extend .mel-btn--secondary;
+}
+
+.mel-button--ghost {
+  @extend .mel-btn--ghost;
+}
+
+.mel-button--danger {
+  @extend .mel-btn--danger;
+}
+

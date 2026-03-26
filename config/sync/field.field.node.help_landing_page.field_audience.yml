@@ -1,0 +1,21 @@
+uuid: f3a4b5c6-d7e8-9012-fabc-def012345678
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_audience
+    - node.type.help_landing_page
+  module:
+    - options
+id: node.help_landing_page.field_audience
+field_name: field_audience
+entity_type: node
+bundle: help_landing_page
+label: Audience
+description: 'Canonical visibility for landing pages (public | vendor | staff).'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

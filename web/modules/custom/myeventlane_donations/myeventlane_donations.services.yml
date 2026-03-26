@@ -62,3 +62,17 @@ services:
   myeventlane_donations.donation_access:
     class: Drupal\myeventlane_donations\Access\DonationAccess
     arguments: ['@myeventlane_core.domain_detector']
+
+  myeventlane_donations.vendor_auto_billing:
+    class: Drupal\myeventlane_donations\Service\VendorAutoBillingService
+    arguments:
+      - '@myeventlane_donations.vendor_contribution_invoice'
+      - '@myeventlane_core.stripe'
+      - '@logger.factory'
+      - '@entity_type.manager'
+
+  myeventlane_donations.vendor_billing_preferences:
+    class: Drupal\myeventlane_donations\Service\VendorBillingPreferencesService
+    arguments:
+      - '@myeventlane_core.stripe'
+      - '@entity_type.manager'

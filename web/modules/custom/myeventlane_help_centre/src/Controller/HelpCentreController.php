@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_help_centre\Controller;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
@@ -14,6 +13,7 @@ use Drupal\taxonomy\TermInterface;
 use Drupal\views\Views;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -22,7 +22,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 final class HelpCentreController extends ControllerBase {
 
   public function __construct(
-    private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly EntityTypeManagerInterface $entityTypeManagerService,
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
@@ -34,7 +33,6 @@ final class HelpCentreController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('entity_field.manager'),
       $container->get('entity_type.manager'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_help_centre'),
@@ -43,10 +41,10 @@ final class HelpCentreController extends ControllerBase {
   }
 
   /**
-   * Renders the Help Centre homepage.
+   * Redirects legacy /help/index to the canonical help hub.
    */
-  public function publicIndex(): array {
-    return $this->homepage();
+  public function publicIndex(): RedirectResponse {
+    return $this->redirect('myeventlane_help_centre.home', [], [], 301);
   }
 
   /**
@@ -69,15 +67,16 @@ final class HelpCentreController extends ControllerBase {
       ],
       '#featured_articles' => $this->buildView('mel_help_featured_articles', 'block_featured'),
       '#vendors' => $isVendorContext ? $this->buildView('mel_help_vendor_help', 'block_vendors') : [],
-      '#help_categories' => $this->loadHelpCategories(),
       '#faq_listing' => $this->buildView('mel_help_faq', 'block_faq'),
+      '#ia_sections' => $isVendorContext ? [] : $this->buildHelpCentreIaSections(),
+      '#help_assistant_page_url' => $this->getHelpAssistantPageUrl(),
+      '#contact_support_url' => $this->getContactSupportUrl(),
     ];
 
     $cacheability = new CacheableMetadata();
     $cacheability->setCacheTags([
       'node_list:help_article',
       'node_list:faq',
-      'taxonomy_term_list',
       'config:taxonomy.vocabulary.help_topic',
     ]);
     $cacheability->setCacheContexts([
@@ -87,6 +86,9 @@ final class HelpCentreController extends ControllerBase {
       'languages:language_interface',
       'user.permissions',
     ]);
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+      $cacheability->addCacheTags(['config:myeventlane_help_assistant.settings']);
+    }
     $cacheability->applyTo($build);
 
     return $build;
@@ -142,37 +144,19 @@ final class HelpCentreController extends ControllerBase {
     $query = trim((string) ($request?->query->get('q') ?? ''));
     if ($query !== '') {
       $resultCount = $this->countSearchResults($request?->query->all() ?? []);
-      $this->analyticsService->logSearch($query, $resultCount);
+      $audienceRaw = $request?->query->get('audience');
+      $audience = is_string($audienceRaw) ? trim($audienceRaw) : NULL;
+      $allowedAudience = in_array($audience, ['public', 'vendor', 'staff'], TRUE) ? $audience : NULL;
+      $this->analyticsService->logSearch($query, $resultCount, $allowedAudience);
     }
     return $this->buildViewPage((string) $this->t('Search help'), 'mel_help_search', 'block_search');
   }
 
   /**
-   * Vendor Help Centre homepage: same layout as /help, scoped for vendors.
+   * Legacy /vendor/help route: redirect to the canonical Help Centre hub.
    */
-  public function vendorHelp(): array {
-    $redirectUrl = Url::fromRoute('myeventlane_help_centre.home', [], [
-      'query' => ['context' => 'vendor'],
-    ])->toString();
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-help-redirect']],
-      'message' => [
-        '#markup' => '<p>' . $this->t('Redirecting to Help Centre...') . '</p>',
-      ],
-      '#attached' => [
-        'library' => ['myeventlane_help_centre/help_redirect'],
-        'drupalSettings' => [
-          'myeventlaneHelpCentre' => [
-            'redirectUrl' => $redirectUrl,
-          ],
-        ],
-      ],
-      '#cache' => [
-        'max-age' => 0,
-      ],
-    ];
+  public function vendorHelp(): RedirectResponse {
+    return $this->redirect('myeventlane_help_centre.home', [], [], 301);
   }
 
   /**
@@ -228,21 +212,109 @@ final class HelpCentreController extends ControllerBase {
     return $build;
   }
 
+  /**
+   * Structured Help Centre IA for the public homepage (Discover / Book / Manage / Policies).
+   *
+   * @return list<array<string, mixed>>
+   */
+  private function buildHelpCentreIaSections(): array {
+    return [
+      [
+        'id' => 'discover',
+        'title' => (string) $this->t('Discover'),
+        'description' => (string) $this->t('Search, featured guides, and FAQs to get oriented quickly.'),
+        'cards' => [
+          [
+            'title' => (string) $this->t('Search help'),
+            'url' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
+            'excerpt' => (string) $this->t('Jump straight into articles and answers across the Help Centre.'),
+          ],
+          [
+            'title' => (string) $this->t('Help Assistant'),
+            'url' => Url::fromRoute('myeventlane_help_centre.home', [], ['fragment' => 'mel-help-assistant'])->toString(),
+            'excerpt' => (string) $this->t('Ask a question and get answers grounded in our Help Centre articles.'),
+          ],
+        ],
+      ],
+      [
+        'id' => 'book',
+        'title' => (string) $this->t('Book'),
+        'description' => (string) $this->t('Tickets, RSVPs, checkout, and attendee questions.'),
+        'cards' => [
+          [
+            'title' => (string) $this->t('Attendee help'),
+            'url' => Url::fromRoute('myeventlane_help_centre.attendees_index')->toString(),
+            'excerpt' => (string) $this->t('Ticketing, refunds, RSVPs, and event-day access.'),
+          ],
+        ],
+      ],
+      [
+        'id' => 'manage',
+        'title' => (string) $this->t('Manage'),
+        'description' => (string) $this->t('Run events, vendor tools, and organiser workflows.'),
+        'cards' => [
+          [
+            'title' => (string) $this->t('Organiser help'),
+            'url' => Url::fromRoute('myeventlane_help_centre.organisers_index')->toString(),
+            'excerpt' => (string) $this->t('Setup, ticketing, payouts, and day-of operations.'),
+          ],
+          [
+            'title' => (string) $this->t('Vendor help'),
+            'url' => Url::fromRoute('myeventlane_help_centre.vendors_index')->toString(),
+            'excerpt' => (string) $this->t('Vendor profile, applications, and organiser console basics.'),
+          ],
+        ],
+      ],
+      [
+        'id' => 'policies',
+        'title' => (string) $this->t('Policies'),
+        'description' => (string) $this->t('Trust, safety, refunds, and platform rules.'),
+        'cards' => [
+          [
+            'title' => (string) $this->t('Policies and trust'),
+            'url' => Url::fromRoute('myeventlane_help_centre.policies_index')->toString(),
+            'excerpt' => (string) $this->t('Refund policy, community expectations, and privacy highlights.'),
+          ],
+        ],
+      ],
+    ];
+  }
+
   private function buildViewPage(string $heading, string $viewId, string $displayId, bool $isVendor = FALSE, array $arguments = []): array {
+    $assistantUrl = $this->getHelpAssistantPageUrl();
+
+    $support_markup = '<section class="mel-help-support-panel"><h2>' . $this->t('Still need help?') . '</h2><p>' . $this->t('If you still need a hand, contact support and include your booking or event details.') . '</p>';
+    if ($assistantUrl !== '') {
+      $support_markup .= '<p><a class="mel-help-support-panel__link" href="' . htmlspecialchars($assistantUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">' . $this->t('Open the Help Assistant') . '</a></p>';
+    }
+    $contact_support_href = htmlspecialchars($this->getContactSupportUrl(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $support_markup .= '<p><a class="mel-help-support-panel__link" href="' . $contact_support_href . '">' . $this->t('Contact support') . '</a></p></section>';
+
     $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['help-centre-page']],
-      'heading' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h1',
-        '#value' => $heading,
-        '#attributes' => ['class' => ['help-centre-page__title']],
-      ],
       'listing' => $this->buildView($viewId, $displayId, $arguments),
       'support' => [
-        '#markup' => '<section class="mel-help-support-panel"><h2>' . $this->t('Still need help?') . '</h2><p>' . $this->t('If you still need a hand, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="/contact">' . $this->t('Contact support') . '</a></p></section>',
+        '#markup' => $support_markup,
+        '#cache' => [
+          'contexts' => ['user.permissions'],
+          'tags' => $assistantUrl !== '' ? ['config:myeventlane_help_assistant.settings'] : [],
+        ],
       ],
     ];
+
+    // The MEL Help Search view renders its own page title inside the exposed form
+    // hero (search + filters). Other listing pages keep the controller heading.
+    if ($viewId !== 'mel_help_search') {
+      $build = array_merge([
+        'heading' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h1',
+          '#value' => $heading,
+          '#attributes' => ['class' => ['help-centre-page__title']],
+        ],
+      ], $build);
+    }
 
     if ($isVendor) {
       $build['#attributes']['class'][] = 'help-centre-page--vendor';
@@ -267,59 +339,6 @@ final class HelpCentreController extends ControllerBase {
   }
 
   /**
-   * Loads Help Topic terms and article counts for the homepage.
-   */
-  private function loadHelpCategories(): array {
-    try {
-      $vocabularyId = $this->vocabularyExists('help_topic') ? 'help_topic' : 'help_categories';
-      $storageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions('node');
-      $topicFieldName = isset($storageDefinitions['field_help_topic']) ? 'field_help_topic' : 'field_help_category';
-      $termStorage = $this->entityTypeManagerService->getStorage('taxonomy_term');
-      $terms = $termStorage->loadByProperties(['vid' => $vocabularyId]);
-      if (empty($terms)) {
-        return [];
-      }
-
-      usort($terms, static fn (TermInterface $a, TermInterface $b): int => strnatcasecmp($a->label(), $b->label()));
-
-      $nodeStorage = $this->entityTypeManagerService->getStorage('node');
-      $categories = [];
-      foreach ($terms as $term) {
-        $articleCount = (int) $nodeStorage->getQuery()
-          ->condition('type', 'help_article')
-          ->condition('status', 1)
-          ->condition($topicFieldName . '.target_id', (int) $term->id())
-          ->accessCheck(TRUE)
-          ->count()
-          ->execute();
-
-        $categories[] = [
-          'name' => $term->label(),
-          'url' => Url::fromRoute('myeventlane_help_centre.search', [], [
-            'query' => ['topic' => (int) $term->id()],
-          ])->toString(),
-          'article_count' => $articleCount,
-        ];
-      }
-
-      return $categories;
-    }
-    catch (\Exception $exception) {
-      $this->logger->error('Failed to load help categories: @message', [
-        '@message' => $exception->getMessage(),
-      ]);
-      return [];
-    }
-  }
-
-  /**
-   * Returns TRUE when the taxonomy vocabulary exists.
-   */
-  private function vocabularyExists(string $vocabularyId): bool {
-    return $this->entityTypeManagerService->getStorage('taxonomy_vocabulary')->load($vocabularyId) !== NULL;
-  }
-
-  /**
    * Executes the search view for analytics result counts.
    *
    * @param array<string, mixed> $query
@@ -334,6 +353,36 @@ final class HelpCentreController extends ControllerBase {
     $view->setExposedInput($query);
     $view->execute();
     return count($view->result);
+  }
+
+  /**
+   * Returns the customer support tickets URL (Help Centre “Contact support”).
+   */
+  private function getContactSupportUrl(): string {
+    return \_myeventlane_help_centre_contact_support_url();
+  }
+
+  /**
+   * Returns the in-hub Help Assistant anchor URL on /help when the feature is enabled.
+   */
+  private function getHelpAssistantPageUrl(): string {
+    if (!$this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+      return '';
+    }
+    $settings = $this->config('myeventlane_help_assistant.settings');
+    if (!(bool) $settings->get('enabled')) {
+      return '';
+    }
+    try {
+      $url = Url::fromRoute('myeventlane_help_centre.home', [], ['fragment' => 'mel-help-assistant']);
+      if (!$url->access($this->currentUser())) {
+        return '';
+      }
+      return $url->toString();
+    }
+    catch (\Throwable) {
+      return '';
+    }
   }
 
 }

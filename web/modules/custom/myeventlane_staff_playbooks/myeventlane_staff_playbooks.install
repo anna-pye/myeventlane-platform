@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+use Drupal\field\Entity\FieldStorageConfig;
+
 /**
  * Migrate field_playbook_sort_order to field_priority.
  *
@@ -158,4 +160,103 @@ function myeventlane_staff_playbooks_update_10003(): string {
   $logger->notice('Removed field_playbook_sort_order from staff_playbook displays.');
 
   return 'Cleaned field_playbook_sort_order from form/view displays.';
+}
+
+/**
+ * Import extended staff_playbook field config when missing (from module install).
+ *
+ * Canonical copies live in config/sync for full-site exports; this update helps
+ * environments that run database updates before configuration import.
+ */
+function myeventlane_staff_playbooks_update_10004(): string {
+  $extension_path = \Drupal::service('extension.path.resolver')->getPath('module', 'myeventlane_staff_playbooks');
+  $config_factory = \Drupal::configFactory();
+  $configs = [
+    'field.storage.node.field_internal_only',
+    'field.field.node.staff_playbook.field_internal_only',
+    'field.storage.node.field_playbook_category',
+    'field.field.node.staff_playbook.field_playbook_category',
+    'field.storage.node.field_playbook_urgency',
+    'field.field.node.staff_playbook.field_playbook_urgency',
+    'field.storage.node.field_ai_summary',
+    'field.field.node.staff_playbook.field_ai_summary',
+  ];
+  $imported = 0;
+  foreach ($configs as $config_name) {
+    if (!$config_factory->get($config_name)->isNew()) {
+      continue;
+    }
+    $file = $extension_path . '/config/install/' . $config_name . '.yml';
+    if (!is_readable($file)) {
+      continue;
+    }
+    $raw = file_get_contents($file);
+    if ($raw === FALSE) {
+      continue;
+    }
+    $data = \Drupal\Component\Serialization\Yaml::decode($raw);
+    if (!is_array($data)) {
+      continue;
+    }
+    $config_factory->getEditable($config_name)->setData($data)->save();
+    $imported++;
+  }
+
+  return $imported > 0
+    ? sprintf('Imported %d staff_playbook field config file(s) from module install.', $imported)
+    : 'Staff playbook extended fields already present; no config import from module was needed.';
+}
+
+/**
+ * Create dedicated field SQL tables when config exists but schema was never installed.
+ *
+ * Config import alone can leave FieldStorageConfig entities without matching
+ * node__field_* tables, which breaks Views and node loads.
+ */
+function myeventlane_staff_playbooks_update_10005(): string {
+  $connection = \Drupal::database();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $logger = \Drupal::logger('myeventlane_staff_playbooks');
+
+  $field_names = [
+    'field_internal_only',
+    'field_playbook_category',
+    'field_playbook_urgency',
+    'field_ai_summary',
+  ];
+  $repaired = [];
+
+  foreach ($field_names as $field_name) {
+    $data_table = 'node__' . $field_name;
+    if ($connection->schema()->tableExists($data_table)) {
+      continue;
+    }
+
+    $storage = FieldStorageConfig::load('node.' . $field_name);
+    if (!$storage instanceof FieldStorageConfig) {
+      $logger->warning('Skipping field schema repair for @field: FieldStorageConfig not found.', ['@field' => $field_name]);
+      continue;
+    }
+
+    try {
+      $update_manager->installFieldStorageDefinition(
+        $storage->getName(),
+        $storage->getTargetEntityTypeId(),
+        $storage->getProvider(),
+        $storage,
+      );
+      $repaired[] = $field_name;
+    }
+    catch (\Throwable $e) {
+      $logger->error('Failed to install database schema for @field: @message', [
+        '@field' => $field_name,
+        '@message' => $e->getMessage(),
+      ]);
+      throw $e;
+    }
+  }
+
+  return $repaired !== []
+    ? sprintf('Created missing SQL tables for field storage(s): %s.', implode(', ', $repaired))
+    : 'Staff playbook field data tables already present; no schema repair needed.';
 }

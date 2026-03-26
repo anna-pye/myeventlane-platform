@@ -16,6 +16,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_tickets\Service\EventAccess;
 use Drupal\myeventlane_vendor\Form\EventTicketsWorkspaceForm;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -24,7 +25,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * Controller for Tickets workspace pages.
  *
- * All methods render inside the vendor console with tickets sub-navigation.
+ * All methods render inside the vendor event workspace with tickets sub-navigation.
  */
 final class EventTicketsController extends VendorEventTicketsBaseController implements ContainerInjectionInterface {
 
@@ -38,13 +39,14 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     DomainDetector $domainDetector,
     AccountProxyInterface $currentUser,
     MessengerInterface $messenger,
+    VendorEventTabsService $eventTabsService,
     private readonly EventAccess $eventAccess,
     EntityTypeManagerInterface $entityTypeManager,
     FormBuilderInterface $formBuilder,
     EntityFormBuilderInterface $entityFormBuilder,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
   ) {
-    parent::__construct($domainDetector, $currentUser, $messenger);
+    parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
     $this->entityFormBuilder = $entityFormBuilder;
@@ -58,6 +60,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
+      $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('myeventlane_tickets.event_access'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
@@ -140,7 +143,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       '#attributes' => ['class' => ['mel-tickets-overview-links']],
     ];
 
-    return $this->buildTicketsPage($event, $content, (string) $this->t('Tickets'), 'overview');
+    return $this->buildTicketsPage($event, $content, 'overview');
   }
 
   /**
@@ -149,7 +152,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   public function typesList(NodeInterface $event): array {
     $this->assertEventOwnership($event);
     $form = $this->formBuilder->getForm(EventTicketsWorkspaceForm::class, $event);
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Ticket types'), 'types');
+    return $this->buildTicketsPage($event, $form, 'types');
   }
 
   /**
@@ -165,7 +168,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       throw new AccessDeniedHttpException();
     }
     $form = $this->entityFormBuilder->getForm($mel_ticket_type, 'edit');
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Edit ticket type'), 'types');
+    return $this->buildTicketsPage($event, $form, 'types');
   }
 
   /**
@@ -184,7 +187,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $form = $this->entityFormBuilder->getForm($settings, 'default');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Ticket settings'), 'settings');
+    return $this->buildTicketsPage($event, $form, 'settings');
   }
 
   /**
@@ -197,7 +200,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->entityFormBuilder->getForm($entity, 'add');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Add ticket group'), 'groups');
+    return $this->buildTicketsPage($event, $form, 'groups');
   }
 
   /**
@@ -215,7 +218,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $form = $this->entityFormBuilder->getForm($entity, 'default');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Edit ticket group'), 'groups');
+    return $this->buildTicketsPage($event, $form, 'groups');
   }
 
   /**
@@ -228,7 +231,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->entityFormBuilder->getForm($entity, 'add');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Add access code'), 'access_codes');
+    return $this->buildTicketsPage($event, $form, 'access_codes');
   }
 
   /**
@@ -246,7 +249,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $form = $this->entityFormBuilder->getForm($entity, 'default');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Edit access code'), 'access_codes');
+    return $this->buildTicketsPage($event, $form, 'access_codes');
   }
 
   /**
@@ -259,7 +262,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->entityFormBuilder->getForm($entity, 'add');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Add widget'), 'widgets');
+    return $this->buildTicketsPage($event, $form, 'widgets');
   }
 
   /**
@@ -277,7 +280,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $form = $this->entityFormBuilder->getForm($entity, 'default');
 
-    return $this->buildTicketsPage($event, $form, (string) $this->t('Edit widget'), 'widgets');
+    return $this->buildTicketsPage($event, $form, 'widgets');
   }
 
 }

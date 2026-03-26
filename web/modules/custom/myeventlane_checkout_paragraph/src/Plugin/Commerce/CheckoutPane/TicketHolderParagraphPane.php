@@ -160,9 +160,17 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       ? $holder->get('field_attendee_questions')->referencedEntities()
       : $templates;
     foreach ($question_sources as $q_index => $question) {
-      $label = $question->get('field_question_label')->value ?? 'Extra Question';
-      $type = $question->get('field_question_type')->value ?? 'text';
-      $required = (bool) ($question->get('field_question_required')->value ?? FALSE);
+      $label = $question->hasField('field_question_label')
+        ? (string) ($question->get('field_question_label')->value ?? '')
+        : '';
+      if ($label === '') {
+        $label = 'Extra Question';
+      }
+      $type = $question->hasField('field_question_type')
+        ? (string) ($question->get('field_question_type')->value ?? 'text')
+        : 'text';
+      $required = $question->hasField('field_question_required')
+        && (bool) ($question->get('field_question_required')->value ?? FALSE);
       $field_name = "extra_{$itemIndex}_{$delta}_{$q_index}";
 
       // Normalize: always read from field_attendee_extra_field.
@@ -172,10 +180,12 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       }
 
       $options = [];
-      foreach ($question->get('field_question_options')->getValue() ?? [] as $item) {
-        $opt = trim($item['value'] ?? '');
-        if ($opt !== '') {
-          $options[$opt] = $opt;
+      if ($question->hasField('field_question_options')) {
+        foreach ($question->get('field_question_options')->getValue() ?? [] as $item) {
+          $opt = trim($item['value'] ?? '');
+          if ($opt !== '') {
+            $options[$opt] = $opt;
+          }
         }
       }
 
@@ -298,12 +308,17 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
   private function saveTicketHolders(OrderItemInterface $order_item, array $ticket_values, int $itemIndex): void {
     $quantity = (int) $order_item->getQuantity();
     $holders = $order_item->get('field_ticket_holder')->referencedEntities();
+    $createdParagraphIds = [];
+    $templates = $this->getExtraQuestionTemplates($order_item);
 
     // Ensure enough holder paragraphs exist.
     if (count($holders) < $quantity) {
-      $templates = $this->getExtraQuestionTemplates($order_item);
       for ($i = count($holders); $i < $quantity; $i++) {
-        $holders[] = $this->createHolderWithQuestions($templates);
+        $newHolder = $this->createHolderWithQuestions($templates);
+        $holders[] = $newHolder;
+        if ($newHolder instanceof ParagraphInterface && !$newHolder->isNew()) {
+          $createdParagraphIds[] = (int) $newHolder->id();
+        }
       }
       $order_item->set('field_ticket_holder', $holders);
     }
@@ -325,9 +340,14 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         $paragraph->set('field_phone', $entry['field_phone'] ?? '');
       }
 
+      $clonedTemplateCount = $this->ensureHolderHasQuestionParagraphs($paragraph, $templates);
+      $answersSaved = 0;
+      $questionChildCount = 0;
+
       // Save extra questions - normalize to field_attendee_extra_field.
       if ($paragraph->hasField('field_attendee_questions')) {
         $children = $paragraph->get('field_attendee_questions')->referencedEntities();
+        $questionChildCount = count($children);
         foreach ($children as $q_index => $child) {
           $field_key = "extra_{$itemIndex}_{$delta}_{$q_index}";
           $value = $entry[$field_key] ?? NULL;
@@ -337,6 +357,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
             $normalized_value = is_array($value) ? json_encode($value) : (string) $value;
             $child->set('field_attendee_extra_field', $normalized_value);
             $child->save();
+            $answersSaved++;
           }
         }
       }
@@ -348,7 +369,39 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       // Verify the paragraph is still referenced by this order item.
       $order_item->save();
       $this->verifyParagraphAttachment($paragraph, $order_item);
+
+      $holderPid = $paragraph->id() !== NULL ? (string) $paragraph->id() : 'new';
+      $this->logger->notice(
+        'TEMP_DEBUG attendee_questions: order_item=@oi holder_delta=@d holder_pid=@hp templates_cloned_this_save=@tc answers_saved=@as question_children=@qc',
+        [
+          '@oi' => $order_item->id() !== NULL ? (string) $order_item->id() : 'new',
+          '@d' => (string) $delta,
+          '@hp' => $holderPid,
+          '@tc' => (string) $clonedTemplateCount,
+          '@as' => (string) $answersSaved,
+          '@qc' => (string) $questionChildCount,
+        ]
+      );
     }
+
+    $paragraphIds = [];
+    foreach ($holders as $holderParagraph) {
+      if ($holderParagraph instanceof ParagraphInterface && !$holderParagraph->isNew()) {
+        $paragraphIds[] = (int) $holderParagraph->id();
+      }
+    }
+
+    // TEMP_DEBUG: remove after multi-holder verification on staging/production.
+    $this->logger->notice(
+      'TEMP_DEBUG saveTicketHolders: order_item=@item qty_expected=@qty paragraph_count=@count paragraph_ids=@ids created_paragraph_ids=@created',
+      [
+        '@item' => $order_item->id() !== NULL ? (string) $order_item->id() : 'new',
+        '@qty' => (string) $quantity,
+        '@count' => (string) count($paragraphIds),
+        '@ids' => $paragraphIds !== [] ? implode(',', $paragraphIds) : 'none',
+        '@created' => $createdParagraphIds !== [] ? implode(',', $createdParagraphIds) : 'none',
+      ]
+    );
 
     $this->logger->info('Saved @count ticket holder(s) for order item @id.', [
       '@count' => count($holders),
@@ -408,7 +461,51 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     }
 
     $holder->save();
+    $this->logger->notice(
+      'TEMP_DEBUG attendee_questions: new_holder created cloned_template_count=@n holder_pid=@hp',
+      [
+        '@n' => (string) count($clones),
+        '@hp' => $holder->id() !== NULL ? (string) $holder->id() : 'new',
+      ]
+    );
     return $holder;
+  }
+
+  /**
+   * Clones event question templates onto a holder when the field was empty.
+   *
+   * @param \Drupal\paragraphs\ParagraphInterface $holder
+   *   Holder paragraph (attendee_answer).
+   * @param \Drupal\paragraphs\ParagraphInterface[] $templates
+   *   Template paragraphs from the event.
+   *
+   * @return int
+   *   Number of template paragraphs cloned in this call.
+   */
+  private function ensureHolderHasQuestionParagraphs(ParagraphInterface $holder, array $templates): int {
+    if (!$holder->hasField('field_attendee_questions') || $templates === []) {
+      return 0;
+    }
+    if (!$holder->get('field_attendee_questions')->isEmpty()) {
+      return 0;
+    }
+    $clones = [];
+    foreach ($templates as $template) {
+      if (!$template instanceof ParagraphInterface) {
+        continue;
+      }
+      $clone = $template->createDuplicate();
+      if ($clone->hasField('field_attendee_extra_field')) {
+        $clone->set('field_attendee_extra_field', NULL);
+      }
+      $clone->save();
+      $clones[] = $clone;
+    }
+    if ($clones === []) {
+      return 0;
+    }
+    $holder->set('field_attendee_questions', $clones);
+    return count($clones);
   }
 
   /**

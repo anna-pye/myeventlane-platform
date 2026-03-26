@@ -1,0 +1,166 @@
+{#
+/**
+ * @file
+ * Event settings — tab body only (shell is mel_event_workspace).
+ *
+ * Variables are prepared in myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_page().
+ */
+#}
+<div class="mel-workspace-page mel-event-settings-page">
+  <section class="mel-section mel-settings-card mel-settings-card--status mel-event-settings-page__section" aria-labelledby="mel-event-status-heading">
+    <div class="mel-settings-card__header mel-settings-card__header--split">
+      <h2 class="mel-settings-card__title" id="mel-event-status-heading">{{ 'Event status'|t }}</h2>
+      {% if status_card_header_chips %}
+        <div class="mel-settings-card__header-chips">
+          {% for chip in status_card_header_chips %}
+            <span class="mel-meta-chip mel-meta-chip--compact">{{ chip }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mel-settings-card__body mel-status-summary">
+      <div class="mel-status-summary__main">
+        {% if event_status_label %}
+          <span class="mel-badge mel-badge--{{ event_status_key }}">
+            {{ event_status_label }}
+          </span>
+        {% endif %}
+
+        {% if event_status_help %}
+          <p class="mel-status-summary__help">{{ event_status_help }}</p>
+        {% endif %}
+      </div>
+
+      <div class="mel-status-summary__meta">
+        {% if event_type_label %}
+          <span class="mel-meta-chip">{{ event_type_label }}</span>
+        {% endif %}
+        {% if created_label %}
+          <span class="mel-meta-chip">{{ 'Created @date'|t({'@date': created_label}) }}</span>
+        {% endif %}
+        {% if visibility_label %}
+          <span class="mel-meta-chip">{{ visibility_label }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mel-section mel-settings-card mel-settings-card--actions mel-event-settings-page__section" aria-labelledby="mel-quick-actions-heading">
+    <div class="mel-settings-card__header">
+      <div>
+        <h2 class="mel-settings-card__title" id="mel-quick-actions-heading">{{ 'Quick actions'|t }}</h2>
+        <p class="mel-settings-card__intro">{{ 'Manage the most important parts of this event.'|t }}</p>
+      </div>
+    </div>
+
+    <div class="mel-settings-card__body">
+      <div class="mel-quick-actions">
+        {% for action in quick_actions %}
+          <a href="{{ action.url }}" class="mel-quick-actions__item"{% if action.external %} target="_blank" rel="noopener noreferrer"{% endif %}>
+            <span class="mel-quick-actions__icon" aria-hidden="true">
+              {{ action.icon|raw }}
+            </span>
+
+            <span class="mel-quick-actions__content">
+              <span class="mel-quick-actions__title">{{ action.title }}</span>
+              {% if action.description %}
+                <span class="mel-quick-actions__description">{{ action.description }}</span>
+              {% endif %}
+            </span>
+
+            <span class="mel-quick-actions__arrow" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mel-section mel-settings-card mel-settings-card--details mel-event-settings-page__section" aria-labelledby="mel-event-details-heading">
+    <div class="mel-settings-card__header">
+      <h2 class="mel-settings-card__title" id="mel-event-details-heading">{{ 'Event details'|t }}</h2>
+
+      {% if edit_url %}
+        <a href="{{ edit_url }}" class="mel-settings-card__link">{{ 'Edit'|t }}</a>
+      {% endif %}
+    </div>
+
+    <div class="mel-settings-card__body">
+      <div class="mel-event-details">
+        {% for item in event_details %}
+          <div class="mel-event-details__item">
+            <div class="mel-event-details__label">{{ item.label }}</div>
+            <div class="mel-event-details__value">{{ item.value }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="mel-section mel-settings-card mel-settings-card--danger mel-event-settings-page__section" aria-labelledby="mel-danger-zone-heading">
+    <div class="mel-settings-card__header">
+      <div>
+        <h2 class="mel-settings-card__title" id="mel-danger-zone-heading">{{ 'Danger zone'|t }}</h2>
+        <p class="mel-settings-card__intro">{{ 'Be careful with these actions. Some changes can’t be undone.'|t }}</p>
+      </div>
+    </div>
+
+    <div class="mel-settings-card__body">
+      <div class="mel-danger-zone">
+        {% if is_published %}
+          <div class="mel-danger-zone__row">
+            <div class="mel-danger-zone__content">
+              <h3 class="mel-danger-zone__title">{{ 'Unpublish event'|t }}</h3>
+              <p class="mel-danger-zone__text">{{ 'Hide this event from the public. You can publish it again later.'|t }}</p>
+            </div>
+            <div class="mel-danger-zone__action">
+              {{ unpublish_action }}
+            </div>
+          </div>
+        {% else %}
+          <div class="mel-danger-zone__row">
+            <div class="mel-danger-zone__content">
+              <h3 class="mel-danger-zone__title">{{ 'Publish event'|t }}</h3>
+              <p class="mel-danger-zone__text">{{ 'Make this event visible to the public.'|t }}</p>
+            </div>
+            <div class="mel-danger-zone__action">
+              {{ publish_action }}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="mel-danger-zone__row mel-danger-zone__row--delete">
+          <div class="mel-danger-zone__content">
+            <h3 class="mel-danger-zone__title">{{ 'Delete event'|t }}</h3>
+            <p class="mel-danger-zone__text">{{ 'Permanently remove this event and associated data.'|t }}</p>
+          </div>
+          <div class="mel-danger-zone__action">
+            {{ delete_action }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if show_support_card and support_cta %}
+    <section class="mel-section mel-support-card mel-event-settings-page__section" aria-labelledby="mel-support-heading">
+      <div class="mel-support-card__brand" aria-hidden="true">
+        <span class="mel-support-card__mark">{{ 'MEL'|t }}</span>
+      </div>
+
+      <div class="mel-support-card__content">
+        <h2 class="mel-support-card__title" id="mel-support-heading">{{ 'Support MyEventLane'|t }}</h2>
+        <p class="mel-support-card__text">
+          {{ 'Help keep community event tools affordable. Add a one-time contribution anytime — separate from ticket sales.'|t }}
+        </p>
+      </div>
+
+      <div class="mel-support-card__action">
+        {{ support_cta }}
+        <p class="mel-support-card__microcopy">{{ 'You can also pledge support when publishing an event.'|t }}</p>
+      </div>
+    </section>
+  {% endif %}
+</div>

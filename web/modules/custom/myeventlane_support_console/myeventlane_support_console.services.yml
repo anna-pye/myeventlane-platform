@@ -10,6 +10,7 @@ services:
       - '@myeventlane_escalations_sla.badge_resolver'
       - '@date.formatter'
       - '@logger.channel.myeventlane_support_console'
+      - '@myeventlane_core.mel_admin_shell_builder'
 
   myeventlane_support_console.redirect_subscriber:
     class: Drupal\myeventlane_support_console\EventSubscriber\SupportConsoleRedirectSubscriber

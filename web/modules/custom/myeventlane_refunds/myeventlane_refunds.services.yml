@@ -1,7 +1,11 @@
 services:
+  logger.channel.myeventlane_refunds:
+    parent: logger.channel_base
+    arguments: ['myeventlane_refunds']
+
   myeventlane_refunds.order_inspector:
     class: Drupal\myeventlane_refunds\Service\RefundOrderInspector
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager', '@logger.channel.myeventlane_refunds']
 
   myeventlane_refunds.buyer_eligibility:
     class: Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService
@@ -17,6 +21,19 @@ services:
       - '@myeventlane_refunds.buyer_eligibility'
       - '@request_stack'
       - '@entity_type.manager'
+
+  myeventlane_refunds.vendor_refund_request_access:
+    class: Drupal\myeventlane_refunds\Access\VendorRefundRequestAccessCheck
+    arguments:
+      - '@myeventlane_refunds.access_resolver'
+      - '@myeventlane_event.event_mode_manager'
+
+  myeventlane_refunds.retry_access:
+    class: Drupal\myeventlane_refunds\Access\RetryRefundAccessCheck
+    arguments:
+      - '@myeventlane_refunds.processor'
+      - '@entity_type.manager'
+      - '@myeventlane_refunds.access_resolver'
 
   myeventlane_refunds.access_resolver:
     class: Drupal\myeventlane_refunds\Service\RefundAccessResolver
@@ -43,10 +60,4 @@ services:
       - '@datetime.time'
       - '@lock'
       - '@module_handler'
-
-
-
-
-
-
-
+      - '@myeventlane_core.domain_detector'

@@ -1,0 +1,227 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MyEventLane notifications.
+ */
+
+declare(strict_types=1);
+
+use Drupal\myeventlane_notifications\NotificationPrefsFieldDefinition;
+use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function myeventlane_notifications_install(): void {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  if ($update_manager->getFieldStorageDefinition(NotificationPreferenceService::FIELD_NAME, 'user') === NULL) {
+    $update_manager->installFieldStorageDefinition(
+      NotificationPreferenceService::FIELD_NAME,
+      'user',
+      'myeventlane_notifications',
+      NotificationPrefsFieldDefinition::storage()
+    );
+  }
+
+  $map = [
+    'access myeventlane notifications' => ['authenticated'],
+    'administer myeventlane notifications' => ['administrator'],
+    'administer mel notifications entities' => ['administrator'],
+  ];
+
+  foreach ($map as $permission => $roles) {
+    foreach ($roles as $role_id) {
+      $role = Role::load($role_id);
+      if ($role instanceof Role && !$role->hasPermission($permission)) {
+        $role->grantPermission($permission);
+        $role->save();
+      }
+    }
+  }
+
+  myeventlane_notifications_apply_delivery_schema();
+}
+
+/**
+ * Adds delivery uniqueness and indexes for production safety.
+ */
+function myeventlane_notifications_update_11001(): string {
+  myeventlane_notifications_apply_delivery_schema();
+  return (string) t('Applied MEL notification delivery DB constraints and indexes.');
+}
+
+/**
+ * Ensures unique (notification, recipient) and supporting indexes on delivery table.
+ */
+function myeventlane_notifications_apply_delivery_schema(): void {
+  $db = \Drupal::database();
+  $schema = $db->schema();
+  $table = 'mel_notification_delivery';
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+
+  if ($schema->fieldExists($table, 'recipient_uid_target_id') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_recipient')) {
+    $schema->addIndex($table, 'mel_notif_delivery_recipient', ['recipient_uid_target_id']);
+  }
+
+  if ($schema->fieldExists($table, 'notification_id_target_id') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_notification')) {
+    $schema->addIndex($table, 'mel_notif_delivery_notification', ['notification_id_target_id']);
+  }
+
+  if ($schema->fieldExists($table, 'status') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_status')) {
+    $schema->addIndex($table, 'mel_notif_delivery_status', ['status']);
+  }
+
+  if ($schema->fieldExists($table, 'delivered_at') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_delivered')) {
+    $schema->addIndex($table, 'mel_notif_delivery_delivered', ['delivered_at']);
+  }
+
+  if ($schema->fieldExists($table, 'read_at') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_read')) {
+    $schema->addIndex($table, 'mel_notif_delivery_read', ['read_at']);
+  }
+
+  if ($schema->fieldExists($table, 'suppressed') &&
+    !$schema->indexExists($table, 'mel_notif_delivery_suppressed')) {
+    $schema->addIndex($table, 'mel_notif_delivery_suppressed', ['suppressed']);
+  }
+
+  if ($schema->fieldExists($table, 'notification_id_target_id') &&
+    $schema->fieldExists($table, 'recipient_uid_target_id')) {
+    $has_unique = method_exists($schema, 'uniqueKeyExists') && $schema->uniqueKeyExists($table, 'mel_notif_delivery_user');
+    if (!$has_unique) {
+      try {
+        $schema->addUniqueKey($table, 'mel_notif_delivery_user', [
+          'notification_id_target_id',
+          'recipient_uid_target_id',
+        ]);
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_notifications')->notice(
+          'Delivery unique key not added (may already exist): @message',
+          ['@message' => $e->getMessage()]
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Refreshes mel_notification status field storage for new lifecycle states.
+ */
+function myeventlane_notifications_update_11002(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $entity_type = \Drupal::entityTypeManager()->getDefinition('mel_notification');
+    $fields = \Drupal\myeventlane_notifications\Entity\MelNotification::baseFieldDefinitions($entity_type);
+    $update_manager->updateFieldDefinition('mel_notification', 'status', $fields['status']);
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('Status field definition update skipped: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL notification status field update skipped (see log).');
+  }
+  return (string) t('Updated MEL notification status field definition.');
+}
+
+/**
+ * Phase 2: action fields, delivery surface, reminder notification type.
+ */
+function myeventlane_notifications_update_11003(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $notif_entity = \Drupal::entityTypeManager()->getDefinition('mel_notification');
+    $delivery_entity = \Drupal::entityTypeManager()->getDefinition('mel_notification_delivery');
+    $notif_fields = \Drupal\myeventlane_notifications\Entity\MelNotification::baseFieldDefinitions($notif_entity);
+    $delivery_fields = \Drupal\myeventlane_notifications\Entity\MelNotificationDelivery::baseFieldDefinitions($delivery_entity);
+
+    $update_manager->updateFieldStorageDefinition($notif_fields['type']);
+
+    foreach (['action_label', 'action_uri', 'action_context'] as $field_name) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        'mel_notification',
+        'myeventlane_notifications',
+        $notif_fields[$field_name]
+      );
+    }
+
+    $update_manager->installFieldStorageDefinition(
+      'surface',
+      'mel_notification_delivery',
+      'myeventlane_notifications',
+      $delivery_fields['surface']
+    );
+
+    myeventlane_notifications_apply_delivery_schema();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('Phase 2 notification schema update failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL notification Phase 2 field update failed (see log).');
+  }
+  return (string) t('Installed MEL notification bell/inbox fields (actions, surface, reminder type).');
+}
+
+/**
+ * User JSON field for notification preferences.
+ */
+function myeventlane_notifications_update_11004(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    if ($update_manager->getFieldStorageDefinition(NotificationPreferenceService::FIELD_NAME, 'user') !== NULL) {
+      return (string) t('MEL user notification preferences field already installed.');
+    }
+    $update_manager->installFieldStorageDefinition(
+      NotificationPreferenceService::FIELD_NAME,
+      'user',
+      'myeventlane_notifications',
+      NotificationPrefsFieldDefinition::storage()
+    );
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('User prefs field install failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL user notification preferences field install failed (see log).');
+  }
+  return (string) t('Installed MEL user notification preferences field.');
+}
+
+/**
+ * Delivery analytics / preference flags: clicked_at, suppressed, grouped.
+ */
+function myeventlane_notifications_update_11005(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $delivery_entity = \Drupal::entityTypeManager()->getDefinition('mel_notification_delivery');
+    $delivery_fields = \Drupal\myeventlane_notifications\Entity\MelNotificationDelivery::baseFieldDefinitions($delivery_entity);
+    foreach (['clicked_at', 'suppressed', 'grouped'] as $field_name) {
+      if ($update_manager->getFieldStorageDefinition($field_name, 'mel_notification_delivery') === NULL) {
+        $update_manager->installFieldStorageDefinition(
+          $field_name,
+          'mel_notification_delivery',
+          'myeventlane_notifications',
+          $delivery_fields[$field_name]
+        );
+      }
+    }
+    myeventlane_notifications_apply_delivery_schema();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('Delivery analytics field install failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL delivery analytics fields install failed (see log).');
+  }
+  return (string) t('Installed MEL delivery analytics fields (clicked_at, suppressed, grouped).');
+}

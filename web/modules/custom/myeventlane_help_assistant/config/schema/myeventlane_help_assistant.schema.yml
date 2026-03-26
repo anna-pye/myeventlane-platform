@@ -23,3 +23,9 @@ myeventlane_help_assistant.settings:
     event_suggestions_ai:
       type: boolean
       label: 'Use optional AI for event wizard suggestions (rule-first; AI fills remaining slots when enabled)'
+    starter_questions:
+      type: sequence
+      label: 'Suggested starter questions'
+      sequence:
+        type: string
+        label: 'Question'

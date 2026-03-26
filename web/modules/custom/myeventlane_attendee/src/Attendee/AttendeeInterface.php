@@ -96,10 +96,13 @@ interface AttendeeInterface {
    *   Associative array suitable for CSV export with keys:
    *   - name (string)
    *   - email (string)
+   *   - phone (string)
    *   - ticket_type (string|null)
    *   - checked_in (bool)
    *   - checked_in_at (string|null, ISO 8601)
    *   - source (string: 'rsvp' or 'ticket')
+   *   - ticket_code (string, optional; ticket source)
+   *   - custom_answers (string; human-readable "Label: value" pairs for exports)
    */
   public function toExportRow(): array;
 

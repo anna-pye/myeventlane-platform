@@ -1,0 +1,63 @@
+uuid: c4e8f1a2-9b0d-4e7c-a3f5-2d8e6c1b0a94
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.help_article.body
+    - field.field.node.help_article.field_audience
+    - field.field.node.help_article.field_content_owner
+    - field.field.node.help_article.field_featured_help
+    - field.field.node.help_article.field_help_ai_allowed
+    - field.field.node.help_article.field_help_article_type
+    - field.field.node.help_article.field_help_audience
+    - field.field.node.help_article.field_help_category
+    - field.field.node.help_article.field_help_cta_label
+    - field.field.node.help_article.field_help_cta_link
+    - field.field.node.help_article.field_help_keywords
+    - field.field.node.help_article.field_help_status
+    - field.field.node.help_article.field_help_summary
+    - field.field.node.help_article.field_help_topic
+    - field.field.node.help_article.field_last_reviewed
+    - field.field.node.help_article.field_last_updated
+    - field.field.node.help_article.field_priority
+    - field.field.node.help_article.field_related_articles
+    - field.field.node.help_article.field_related_help_articles
+    - node.type.help_article
+  module:
+    - user
+id: node.help_article.teaser
+targetEntityType: node
+bundle: help_article
+mode: teaser
+content:
+  field_help_summary:
+    type: basic_string
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+hidden:
+  body: true
+  content_moderation_control: true
+  field_audience: true
+  field_content_owner: true
+  field_featured_help: true
+  field_help_ai_allowed: true
+  field_help_article_type: true
+  field_help_audience: true
+  field_help_category: true
+  field_help_cta_label: true
+  field_help_cta_link: true
+  field_help_keywords: true
+  field_help_status: true
+  field_help_topic: true
+  field_last_reviewed: true
+  field_last_updated: true
+  field_priority: true
+  field_related_articles: true
+  field_related_help_articles: true
+  langcode: true
+  links: true
+  search_api_excerpt: true

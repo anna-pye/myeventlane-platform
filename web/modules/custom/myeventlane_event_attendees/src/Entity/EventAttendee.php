@@ -422,6 +422,26 @@ class EventAttendee extends ContentEntityBase implements EntityChangedInterface,
   }
 
   /**
+   * Returns the extra_data map as one associative array.
+   *
+   * Map fields store keys on the field item; the list's ->value property is not
+   * used. Always use this helper (or the field item's getValue()) for reads.
+   *
+   * @return array<string, mixed>
+   */
+  public function getExtraDataMap(): array {
+    if (!$this->hasField('extra_data') || $this->get('extra_data')->isEmpty()) {
+      return [];
+    }
+    $item = $this->get('extra_data')->first();
+    if ($item === NULL) {
+      return [];
+    }
+    $map = $item->getValue();
+    return is_array($map) ? $map : [];
+  }
+
+  /**
    * Checks if the attendee is checked in.
    */
   public function isCheckedIn(): bool {

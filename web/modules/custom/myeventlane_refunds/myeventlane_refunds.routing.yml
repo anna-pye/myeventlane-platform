@@ -21,6 +21,7 @@ myeventlane_refunds.vendor_refund_requests:
   requirements:
     _permission: 'manage_refunds'
     _entity_access: 'node.view'
+    _custom_access: 'myeventlane_refunds.vendor_refund_request_access:access'
     node: \d+
   options:
     parameters:
@@ -35,7 +36,8 @@ myeventlane_refunds.vendor_refund_request_approve:
     _title: 'Approve Refund Request'
   requirements:
     _permission: 'manage_refunds'
-    _entity_access: 'node.update'
+    _entity_access: 'node.view'
+    _custom_access: 'myeventlane_refunds.vendor_refund_request_access:access'
     node: \d+
     refund_request: \d+
   options:
@@ -51,7 +53,8 @@ myeventlane_refunds.vendor_refund_request_reject:
     _title: 'Reject Refund Request'
   requirements:
     _permission: 'manage_refunds'
-    _entity_access: 'node.update'
+    _entity_access: 'node.view'
+    _custom_access: 'myeventlane_refunds.vendor_refund_request_access:access'
     node: \d+
     refund_request: \d+
   options:
@@ -88,9 +91,12 @@ myeventlane_refunds.vendor_cancel_event:
       node:
         type: entity:node
 
-
-
-
-
-
-
+myeventlane_refunds.retry:
+  path: '/vendor/refund/{log}/retry'
+  defaults:
+    _controller: '\Drupal\myeventlane_refunds\Controller\RetryController::retry'
+    _title: 'Retry Refund'
+  requirements:
+    _permission: 'manage_refunds'
+    _custom_access: 'myeventlane_refunds.retry_access:access'
+    log: \d+

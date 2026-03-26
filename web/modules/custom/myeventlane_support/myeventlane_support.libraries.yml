@@ -1,0 +1,7 @@
+support:
+  js:
+    js/support.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

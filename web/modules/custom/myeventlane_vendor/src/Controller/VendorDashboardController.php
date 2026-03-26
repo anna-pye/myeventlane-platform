@@ -352,14 +352,22 @@ final class VendorDashboardController extends VendorConsoleBaseController {
             $pageVars['next_onboarding_route'] = $next_route ?: 'myeventlane_vendor.onboard.profile';
           }
           if ($show_panel) {
-            $next_route = $pageVars['next_onboarding_route'] ?? $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
-            $resume_url = $next_route
-              ? Url::fromRoute($next_route)->toString()
-              : Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+            $stage = $state->getStage();
+            $stage_labels = [
+              'probe' => $this->t('Get started'),
+              'present' => $this->t('Profile'),
+              'listen' => $this->t('Payments'),
+              'ask' => $this->t('First event'),
+              'invite' => $this->t('Boost'),
+              'complete' => $this->t('Complete'),
+            ];
+            $next = $this->onboardingManager->getNextActionForAuthenticatedVendor($state);
             $pageVars['onboarding_panel'] = [
-              '#theme' => 'vendor_dashboard_onboarding_panel',
-              '#onboarding_incomplete' => TRUE,
-              '#resume_url' => $resume_url,
+              '#theme' => 'myeventlane_vendor_onboarding_panel',
+              '#stage_label' => $stage_labels[$stage] ?? $stage,
+              '#flags' => $state->getFlags(),
+              '#next_action' => $next,
+              '#vendor' => $vendor,
             ];
           }
         }

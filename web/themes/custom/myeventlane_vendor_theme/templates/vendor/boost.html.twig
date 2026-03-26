@@ -205,16 +205,14 @@
   </div>
 </div>
 
-{% if boost_faq is defined %}
+{% if boost_faq is defined and boost_faq is not empty %}
   <div class="mel-card">
     <div class="mel-card__header">
       <div class="mel-card__title">{{ 'Boost FAQs'|t }}</div>
     </div>
     <div class="mel-card__body">
-      {{ {
-        '#theme': 'boost_faq',
-        '#faqs': boost_faq
-      } }}
+      {# Include FAQ partial with plain data — do not build a render array in Twig (breaks Element::children). #}
+      {% include '@myeventlane_boost/boost-faq.html.twig' with { faqs: boost_faq } only %}
     </div>
   </div>
 {% endif %}

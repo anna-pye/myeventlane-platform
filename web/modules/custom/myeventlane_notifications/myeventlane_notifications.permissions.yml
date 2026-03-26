@@ -1,0 +1,11 @@
+access myeventlane notifications:
+  title: 'Access MyEventLane in-app notifications API'
+  description: 'Fetch unread notifications and mark items as read (toast / notification centre).'
+
+administer myeventlane notifications:
+  title: 'Administer MyEventLane notifications'
+  description: 'Create broadcasts and scheduled platform notifications.'
+
+administer mel notifications entities:
+  title: 'Administer notification entities'
+  description: 'Low-level access to MEL notification storage (internal).'

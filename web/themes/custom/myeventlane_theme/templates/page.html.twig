@@ -39,6 +39,20 @@
   {% endif %}
 
   <main id="main-content" class="mel-main" role="main">
+    {# Status messages: Highlighted region, or preprocess fallback if no block placed. #}
+    {% if page.highlighted %}
+      <div class="mel-region-highlighted" role="region" aria-label="{{ 'Status messages'|t }}">
+        <div class="mel-container">
+          {{ page.highlighted }}
+        </div>
+      </div>
+    {% elseif mel_fallback_messages is defined %}
+      <div class="mel-region-highlighted mel-region-highlighted--fallback" role="region" aria-label="{{ 'Status messages'|t }}">
+        <div class="mel-container">
+          {{ mel_fallback_messages }}
+        </div>
+      </div>
+    {% endif %}
     {% block content %}
       {{ page.content }}
     {% endblock %}

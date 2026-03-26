@@ -85,24 +85,41 @@ final class VendorEventRsvpController extends VendorConsoleBaseController {
       ],
     ];
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — RSVPs',
+    $header_actions = [
+      [
+        'label' => (string) $this->t('Check-in'),
+        'url' => Url::fromRoute('myeventlane_rsvp.checkin_list', ['event' => $event->id()])->toString(),
+        'class' => 'mel-btn--primary',
+      ],
+    ];
+    if (count($rsvpList) > 0) {
+      $header_actions[] = [
+        'label' => (string) $this->t('Export CSV'),
+        'url' => Url::fromRoute('myeventlane_rsvp.export_csv', ['event' => $event->id()])->toString(),
+        'class' => 'mel-btn--secondary',
+      ];
+    }
+
+    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'header_actions' => count($rsvpList) > 0 ? [
-        [
-          'label' => 'Export CSV',
-          'url' => Url::fromRoute('myeventlane_rsvp.export_csv', ['event' => $event->id()])->toString(),
-          'class' => 'mel-btn--secondary',
-        ],
-      ] : [],
-      'body' => [
+      'actions' => $header_actions,
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
         '#theme' => 'myeventlane_vendor_event_rsvps',
         '#event' => $event,
         '#summary' => $summary,
         '#series' => $series,
         '#rsvps' => $rsvpList,
+        '#public_event_url' => $public_event_url,
       ],
       '#attached' => [
+        'library' => [
+          'myeventlane_vendor_theme/analytics',
+        ],
         'drupalSettings' => [
           'vendorCharts' => $chart_data,
         ],

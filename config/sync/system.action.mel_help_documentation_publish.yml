@@ -1,0 +1,12 @@
+uuid: 8c4f2a10-1b3d-4e5f-9a8b-7c6d5e4f3a21
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_help_centre
+    - node
+id: mel_help_documentation_publish
+label: 'MEL: Publish documentation'
+type: node
+plugin: mel_help_documentation_publish
+configuration: {  }

@@ -1,0 +1,106 @@
+/**
+ * @file
+ * Contextual help card (MEL pastel, mobile-first). Complements .mel-help-link.
+ */
+
+.mel-contextual-help-card {
+  --mel-chc-bg: color-mix(in srgb, var(--mel-color-secondary, #8b7cf6) 10%, #fff);
+  --mel-chc-border: color-mix(in srgb, var(--mel-color-secondary, #8b7cf6) 22%, transparent);
+  --mel-chc-shadow: 0 6px 20px rgba(44, 62, 80, 0.07);
+
+  max-width: 100%;
+  padding: 0.85rem 1rem;
+  margin: 0 0 1rem;
+  border-radius: var(--mel-radius-lg, 0.75rem);
+  background: var(--mel-chc-bg);
+  border: 1px solid var(--mel-chc-border);
+  box-shadow: var(--mel-chc-shadow);
+}
+
+.mel-contextual-help-card__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mel-color-text-muted, #5c6478);
+  margin: 0 0 0.35rem;
+}
+
+.mel-contextual-help-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--mel-color-text-primary, #1a1a2e);
+  margin: 0 0 0.4rem;
+}
+
+.mel-contextual-help-card__summary {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--mel-color-text-primary, #293241);
+  margin: 0 0 0.75rem;
+  opacity: 0.92;
+}
+
+.mel-contextual-help-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.mel-contextual-help-card__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--mel-radius-full, 999px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: color-mix(in srgb, var(--mel-color-primary, #4f46e5) 92%, #fff);
+  color: #fff;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease, transform 0.12s ease;
+}
+
+.mel-contextual-help-card__cta:hover,
+.mel-contextual-help-card__cta:focus-visible {
+  filter: brightness(1.05);
+  text-decoration: none;
+  color: #fff;
+}
+
+.mel-contextual-help-card__cta:focus-visible {
+  outline: 2px solid var(--mel-color-primary, #4f46e5);
+  outline-offset: 2px;
+}
+
+.mel-contextual-help-card__secondary {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--mel-color-primary, #4f46e5);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.mel-contextual-help-card__secondary:hover,
+.mel-contextual-help-card__secondary:focus-visible {
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+@media (max-width: 47.99rem) {
+  .mel-contextual-help-card {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .mel-contextual-help-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-contextual-help-card__cta {
+    width: 100%;
+    text-align: center;
+  }
+}

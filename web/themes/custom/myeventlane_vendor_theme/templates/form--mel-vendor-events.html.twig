@@ -1,0 +1,42 @@
+{#
+/**
+ * @file
+ * Vendor events list form: toolbar, bulk bar, card list/grid.
+ *
+ * Variables:
+ * - element: The form render array.
+ * - children: Full rendered children (avoid; we render explicit parts).
+ * - create_event_url: Absolute path for create event CTA.
+ */
+#}
+<form{{ attributes.addClass('mel-vendor-events-form') }}>
+  {{ element.form_build_id }}
+  {{ element.form_token }}
+  {{ element.form_id }}
+
+  <div class="mel-events-toolbar mel-events-toolbar--page">
+    <div class="mel-events-toolbar__left">
+      <h2 class="mel-events-toolbar__title">{{ 'Your events'|t }}</h2>
+    </div>
+    <div class="mel-events-toolbar__right">
+      <div class="mel-view-toggle" data-view-toggle>
+        <button type="button" class="is-active" data-view="list">{{ 'List'|t }}</button>
+        <button type="button" data-view="grid">{{ 'Grid'|t }}</button>
+      </div>
+      <a href="{{ create_event_url }}" class="mel-btn mel-btn--primary">{{ '+ Create event'|t }}</a>
+    </div>
+  </div>
+
+  {% if element.fatal is defined %}
+    {{ element.fatal }}
+  {% elseif element.empty_state is defined %}
+    <div class="mel-empty mel-empty--events mel-empty--solo">
+      {{ element.empty_state }}
+    </div>
+  {% else %}
+    {{ element.bulk_actions }}
+    <div class="mel-events-wrapper" data-view-container data-view="list">
+      {{ element.events_wrapper }}
+    </div>
+  {% endif %}
+</form>

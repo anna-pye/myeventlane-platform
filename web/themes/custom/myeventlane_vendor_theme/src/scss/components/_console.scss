@@ -32,9 +32,21 @@
   gap: $spacing-4;
 }
 
+.mel-console__header-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .mel-console__title {
   @include page-title;
   margin: 0;
+}
+
+.mel-console__meta {
+  margin: $spacing-1 0 0 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.4;
 }
 
 .mel-console__actions {

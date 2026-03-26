@@ -26,9 +26,28 @@
 
   <div class="mel-checkout__grid">
     <div class="mel-checkout__main">
-      {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+      {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
+        {# Prefer card in aside when sidebar exists; otherwise show here. #}
+        {% if form.sidebar is not defined %}
+          <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
+            {{ mel_contextual_help_checkout }}
+          </div>
+        {% endif %}
+      {% elseif mel_help_checkout_refund is defined and mel_help_checkout_refund %}
         <div class="mel-contextual-help mel-contextual-help--checkout">
           {{ mel_help_checkout_refund }}
+        </div>
+      {% endif %}
+      {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
+        {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
+          <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-guide">
+            {{ mel_help_checkout_guide }}
+          </div>
+        {% endif %}
+      {% endif %}
+      {% if mel_help_checkout_assistant is defined and mel_help_checkout_assistant %}
+        <div class="mel-checkout-help-assistant">
+          {{ mel_help_checkout_assistant }}
         </div>
       {% endif %}
       {{ form|without('progress', 'sidebar', 'actions') }}
@@ -41,8 +60,13 @@
 
     {% if form.sidebar is defined %}
       {% set sidebar_content = form.sidebar|render %}
-      {% if sidebar_content|striptags|trim is not empty %}
+      {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) %}
         <aside class="mel-checkout__aside mel-checkout__summary">
+          {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
+            <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
+              {{ mel_contextual_help_checkout }}
+            </div>
+          {% endif %}
           {{ sidebar_content }}
         </aside>
       {% endif %}

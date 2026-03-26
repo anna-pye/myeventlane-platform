@@ -20,6 +20,9 @@ final class TicketAttendee implements AttendeeInterface {
    */
   public function __construct(
     private readonly EventAttendee $attendee,
+    private readonly string $resolvedTicketTypeLabel = '',
+    private readonly string $resolvedPhone = '',
+    private readonly string $resolvedCustomAnswersCsv = '',
   ) {
     // Ensure this is a ticket source.
     if ($attendee->getSource() !== EventAttendee::SOURCE_TICKET) {
@@ -63,9 +66,7 @@ final class TicketAttendee implements AttendeeInterface {
    * {@inheritdoc}
    */
   public function getTicketLabel(): ?string {
-    // @todo Extract ticket type from order item / product variation.
-    // For now, return NULL as we don't have direct access to the order item.
-    return NULL;
+    return $this->resolvedTicketTypeLabel !== '' ? $this->resolvedTicketTypeLabel : NULL;
   }
 
   /**
@@ -119,15 +120,43 @@ final class TicketAttendee implements AttendeeInterface {
    */
   public function toExportRow(): array {
     $checkedInAt = $this->getCheckedInAt();
+    $custom = $this->resolvedCustomAnswersCsv !== ''
+      ? $this->resolvedCustomAnswersCsv
+      : self::formatExtraDataForCsv($this->attendee);
     return [
       'name' => $this->getDisplayName(),
       'email' => $this->getEmail(),
-      'ticket_type' => $this->getTicketLabel(),
+      'phone' => $this->resolvedPhone,
+      'ticket_type' => $this->resolvedTicketTypeLabel !== '' ? $this->resolvedTicketTypeLabel : NULL,
       'checked_in' => $this->isCheckedIn(),
       'checked_in_at' => $checkedInAt?->format('c'),
       'source' => 'ticket',
       'ticket_code' => $this->attendee->getTicketCode(),
+      'custom_answers' => $custom,
     ];
+  }
+
+  /**
+   * Flattens event_attendee.extra_data for CSV (aligned with vendor list wording).
+   */
+  private static function formatExtraDataForCsv(EventAttendee $attendee): string {
+    if (!$attendee->hasField('extra_data') || $attendee->get('extra_data')->isEmpty()) {
+      return '';
+    }
+    $map = $attendee->getExtraDataMap();
+    if ($map === []) {
+      return '';
+    }
+    $parts = [];
+    foreach ($map as $key => $item) {
+      if (is_array($item) && isset($item['label'], $item['value'])) {
+        $parts[] = trim((string) $item['label']) . ': ' . trim((string) $item['value']);
+      }
+      else {
+        $parts[] = (string) $key . ': ' . trim((string) $item);
+      }
+    }
+    return implode('; ', array_filter($parts, static fn ($p) => $p !== ''));
   }
 
   /**

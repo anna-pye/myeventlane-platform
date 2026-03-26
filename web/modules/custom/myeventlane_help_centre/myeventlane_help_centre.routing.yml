@@ -125,3 +125,13 @@ myeventlane_help_centre.help_insights_dashboard:
     _title: 'MEL Help Insights'
   requirements:
     _permission: 'view mel help insights'
+
+myeventlane_help_centre.docs_health:
+  path: '/admin/myeventlane/docs/health'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpInsightsController::contentHealth'
+    _title: 'Help content health'
+  requirements:
+    _permission: 'view mel help insights'
+  options:
+    _admin_route: TRUE

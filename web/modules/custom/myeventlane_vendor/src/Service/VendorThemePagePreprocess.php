@@ -303,6 +303,8 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_vendor.console.messaging_brand' => 'settings',
       'myeventlane_help_centre.vendor_help' => 'help',
+      'myeventlane_help_centre.home' => 'help',
+      'myeventlane_help_centre.vendors_index' => 'help',
       'myeventlane_vendor.dashboard' => 'dashboard',
       'myeventlane_vendor.console.dashboard' => 'dashboard',
     ];
@@ -376,8 +378,8 @@ final class VendorThemePagePreprocess {
         'key' => 'help',
         'label' => $this->t('Help'),
         'icon' => 'help',
-        'route' => 'myeventlane_help_centre.vendor_help',
-        'path_fallback' => '/vendor/help',
+        'route' => 'myeventlane_help_centre.home',
+        'path_fallback' => '/help',
       ],
     ];
 

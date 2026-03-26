@@ -1,0 +1,19 @@
+uuid: f0d7b1a4-5e6f-7a8b-1c2d-3e4f5a6b7c8d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_attendee_extra_field
+    - paragraphs.paragraphs_type.attendee_extra_field
+id: paragraph.attendee_extra_field.field_attendee_extra_field
+field_name: field_attendee_extra_field
+entity_type: paragraph
+bundle: attendee_extra_field
+label: 'Answer'
+description: 'Response captured at checkout or RSVP. Hidden on event question templates; populated on per-holder clones.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

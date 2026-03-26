@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_help_centre_ai\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -29,21 +28,17 @@ final class HelpCentreAiController extends ControllerBase {
   }
 
   /**
-   * Redirects /help/ask to /help/assistant (single AI entry point).
+   * Redirects /help/ask to the canonical /help hub (Help Assistant block).
    */
   public function ask(): RedirectResponse {
     $this->helpCentreAiLogger->warning('Deprecated AI endpoint used: /help/ask');
 
+    $target = '/help';
     if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
-      try {
-        $target = Url::fromRoute('myeventlane_help_assistant.page')->toString();
+      $settings = $this->config('myeventlane_help_assistant.settings');
+      if ((bool) $settings->get('enabled')) {
+        $target = '/help#mel-help-assistant';
       }
-      catch (\Throwable) {
-        $target = '/help';
-      }
-    }
-    else {
-      $target = '/help';
     }
 
     return new RedirectResponse($target, 302);

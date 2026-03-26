@@ -57,15 +57,19 @@
   }
 }
 
+// Mobile sidebar overlay: full-screen layer behind open sidebar.
+// Hidden state MUST use pointer-events: none so clicks pass through to main content.
+// Otherwise the invisible overlay intercepts all pointer events site-wide.
 .mel-sidebar-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.25s ease-in-out, visibility 0.25s ease-in-out;
   z-index: 39;
-  
+
   &.is-visible {
     opacity: 1;
     visibility: visible;

@@ -12,6 +12,10 @@ use Drupal\taxonomy\TermInterface;
 
 /**
  * Seeds Help Centre landing pages and baseline help articles.
+ *
+ * TODO: Replace hardcoded baseline article bodies with config-driven import
+ * (e.g. default_content or install YAML) so editorial copy is not tied to
+ * PHP releases.
  */
 final class HelpContentSeeder {
 
@@ -348,19 +352,54 @@ final class HelpContentSeeder {
   }
 
   private function setAudienceField(NodeInterface $node, array $names): void {
-    if (!$node->hasField('field_help_audience') || $names === []) {
+    if ($names === []) {
       return;
     }
-    $values = [];
-    foreach ($names as $name) {
-      $term = $this->loadTermByName('help_audience', $name);
-      if ($term instanceof TermInterface) {
-        $values[] = ['target_id' => (int) $term->id()];
+
+    // Deprecated: taxonomy field_help_audience — kept in sync for backward
+    // compatibility; canonical audience is field_audience (list: public,
+    // vendor, staff).
+    if ($node->hasField('field_help_audience')) {
+      $values = [];
+      foreach ($names as $name) {
+        $term = $this->loadTermByName('help_audience', $name);
+        if ($term instanceof TermInterface) {
+          $values[] = ['target_id' => (int) $term->id()];
+        }
+      }
+      if ($values !== []) {
+        $node->set('field_help_audience', $values);
       }
     }
-    if ($values !== []) {
-      $node->set('field_help_audience', $values);
+
+    if ($node->hasField('field_audience')) {
+      $canonical = [];
+      foreach ($names as $name) {
+        $mapped = $this->mapSeedAudienceNameToCanonical($name);
+        if ($mapped !== NULL) {
+          $canonical[$mapped] = $mapped;
+        }
+      }
+      if ($canonical !== []) {
+        $node->set('field_audience', array_map(
+          static fn(string $v): array => ['value' => $v],
+          array_values($canonical),
+        ));
+      }
     }
+  }
+
+  /**
+   * Maps seeded taxonomy audience labels to field_audience values.
+   */
+  private function mapSeedAudienceNameToCanonical(string $name): ?string {
+    $key = mb_strtolower(trim($name));
+    return match ($key) {
+      'vendors', 'vendor' => 'vendor',
+      'admin', 'staff' => 'staff',
+      'attendees', 'attendee', 'organisers', 'organizers', 'general', 'public' => 'public',
+      default => NULL,
+    };
   }
 
   private function setTermFieldByName(NodeInterface $node, string $fieldName, string $vocabularyId, string $termName): void {

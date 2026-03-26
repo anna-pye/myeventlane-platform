@@ -1,0 +1,90 @@
+services:
+  logger.channel.myeventlane_notifications:
+    parent: logger.channel_base
+    arguments: ['myeventlane_notifications']
+
+  myeventlane_notifications.audience_resolver:
+    class: Drupal\myeventlane_notifications\Service\AudienceResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_notifications'
+
+  myeventlane_notifications.notification_manager:
+    class: Drupal\myeventlane_notifications\Service\NotificationManager
+    arguments:
+      - '@entity_type.manager'
+      - '@queue'
+      - '@myeventlane_notifications.audience_resolver'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_notifications'
+      - '@cache.default'
+      - '@state'
+      - '@lock'
+
+  myeventlane_notifications.bell_presenter:
+    class: Drupal\myeventlane_notifications\Service\NotificationBellPresenter
+    arguments:
+      - '@current_user'
+      - '@url_generator'
+
+  myeventlane_notifications.user_inbox:
+    class: Drupal\myeventlane_notifications\Service\NotificationUserInboxService
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+
+  myeventlane_notifications.view_builder:
+    class: Drupal\myeventlane_notifications\Service\NotificationViewBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@url_generator'
+
+  myeventlane_notifications.preference:
+    class: Drupal\myeventlane_notifications\Service\NotificationPreferenceService
+    arguments:
+      - '@logger.channel.myeventlane_notifications'
+
+  myeventlane_notifications.analytics:
+    class: Drupal\myeventlane_notifications\Service\NotificationAnalyticsService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_notifications'
+
+  myeventlane_notifications.decision_engine:
+    class: Drupal\myeventlane_notifications\Service\NotificationDecisionEngine
+    arguments:
+      - '@cache.default'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_notifications'
+      - '@entity_type.manager'
+      - '@myeventlane_notifications.preference'
+
+  myeventlane_notifications.realtime_publisher:
+    class: Drupal\myeventlane_notifications\Realtime\NullNotificationRealtimePublisher
+    arguments:
+      - '@logger.channel.myeventlane_notifications'
+
+  myeventlane_notifications.realtime_payload:
+    class: Drupal\myeventlane_notifications\Service\NotificationRealtimePayloadBuilder
+    arguments:
+      - '@myeventlane_notifications.user_inbox'
+      - '@myeventlane_notifications.view_builder'
+
+  myeventlane_notifications.trigger:
+    class: Drupal\myeventlane_notifications\Service\PlatformNotificationTriggerService
+    arguments:
+      - '@myeventlane_notifications.notification_manager'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_notifications'
+      - '@myeventlane_notifications.audience_resolver'
+      - '@string_translation'
+      - '@state'
+
+  myeventlane_notifications.subscriber.commerce:
+    class: Drupal\myeventlane_notifications\EventSubscriber\NotificationSubscriber
+    arguments:
+      - '@myeventlane_notifications.trigger'
+    tags:
+      - { name: event_subscriber }

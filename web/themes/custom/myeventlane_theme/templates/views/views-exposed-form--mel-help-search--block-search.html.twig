@@ -1,0 +1,50 @@
+{#
+/**
+ * @file
+ * Exposed form for MEL Help Search — hero search field + compact filter pills.
+ */
+#}
+{% if q is not empty %}
+  {{ q }}
+{% endif %}
+
+<div class="mel-help-search-exposed">
+  <div class="mel-help-search-hero">
+    <h1 class="mel-help-search__title">{{ mel_help_search_page_title|default('Help'|t) }}</h1>
+    <div class="mel-search-box">
+      {{ form.q }}
+    </div>
+  </div>
+
+  <div class="mel-help-filters" role="group" aria-label="{{ 'Filter results'|t }}">
+    <div class="mel-filter-pill">
+      {{ form.audience }}
+    </div>
+    <div class="mel-filter-pill">
+      {{ form.topic }}
+    </div>
+    <div class="mel-filter-pill">
+      {{ form.article_type }}
+    </div>
+    <div class="mel-filter-apply">
+      {{ form.actions }}
+    </div>
+  </div>
+
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+
+  <div class="visually-hidden">
+    {{ form|without(
+      'q',
+      'audience',
+      'topic',
+      'article_type',
+      'actions',
+      'form_build_id',
+      'form_token',
+      'form_id'
+    ) }}
+  </div>
+</div>

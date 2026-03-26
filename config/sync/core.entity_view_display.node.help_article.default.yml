@@ -7,12 +7,14 @@ dependencies:
     - field.field.node.help_article.field_audience
     - field.field.node.help_article.field_content_owner
     - field.field.node.help_article.field_featured_help
+    - field.field.node.help_article.field_help_ai_allowed
     - field.field.node.help_article.field_help_article_type
     - field.field.node.help_article.field_help_audience
     - field.field.node.help_article.field_help_category
     - field.field.node.help_article.field_help_cta_label
     - field.field.node.help_article.field_help_cta_link
     - field.field.node.help_article.field_help_keywords
+    - field.field.node.help_article.field_help_status
     - field.field.node.help_article.field_help_summary
     - field.field.node.help_article.field_help_topic
     - field.field.node.help_article.field_last_reviewed
@@ -22,22 +24,13 @@ dependencies:
     - field.field.node.help_article.field_related_help_articles
     - node.type.help_article
   module:
+    - text
     - user
 id: node.help_article.default
 targetEntityType: node
 bundle: help_article
 mode: default
 content:
-  links:
-    settings: {  }
-    third_party_settings: {  }
-    weight: 100
-    region: content
-  search_api_excerpt:
-    settings: {  }
-    third_party_settings: {  }
-    weight: 101
-    region: content
   body:
     type: text_default
     label: hidden
@@ -45,21 +38,54 @@ content:
     third_party_settings: {  }
     weight: 0
     region: content
+  field_help_article_type:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_help_category:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_related_articles:
+    type: entity_reference_label
+    label: visually_hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  field_related_help_articles:
+    type: entity_reference_label
+    label: visually_hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 3
+    region: content
 hidden:
+  content_moderation_control: true
   field_audience: true
   field_content_owner: true
   field_featured_help: true
-  field_help_article_type: true
+  field_help_ai_allowed: true
   field_help_audience: true
-  field_help_category: true
   field_help_cta_label: true
   field_help_cta_link: true
   field_help_keywords: true
+  field_help_status: true
   field_help_summary: true
   field_help_topic: true
   field_last_reviewed: true
   field_last_updated: true
   field_priority: true
-  field_related_articles: true
-  field_related_help_articles: true
   langcode: true
+  links: true
+  search_api_excerpt: true

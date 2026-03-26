@@ -125,6 +125,26 @@ myeventlane_donations.vendor_mel_invoice_pay:
       invoice:
         type: integer
 
+myeventlane_donations.vendor_mel_save_payment_method:
+  path: '/vendor/billing/mel-contributions/payment-method'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelSavePaymentMethodController::savePaymentMethod'
+    _title: 'Save payment method'
+  requirements:
+    _custom_access: 'myeventlane_donations.donation_access:vendorAccess'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_donations.vendor_mel_remove_payment_method:
+  path: '/vendor/billing/mel-contributions/payment-method/remove'
+  defaults:
+    _controller: '\Drupal\myeventlane_donations\Controller\VendorMelSavePaymentMethodController::removePaymentMethod'
+    _title: 'Remove payment method'
+  requirements:
+    _custom_access: 'myeventlane_donations.donation_access:vendorAccess'
+  options:
+    _maintenance_access: FALSE
+
 # Admin: MEL vendor % billing overview + manual invoice run.
 myeventlane_donations.admin_mel_billing:
   path: '/admin/reports/myeventlane/mel-vendor-billing'

@@ -1,0 +1,392 @@
+/**
+ * @file
+ * Help Assistant — MEL vendor workspace (pastel, guided support shell).
+ */
+
+@use 'sass:color' as sass-color;
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+
+.mel-help-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+}
+
+/* Main card */
+.mel-help-card {
+  background: $bg-primary;
+  border-radius: $mel-radius-md;
+  padding: $spacing-6;
+  box-shadow: 0 10px 30px $mel-ws-shadow-soft;
+  border: 1px solid $mel-ws-border-soft;
+}
+
+/* Header */
+.mel-help-header {
+  margin-bottom: $spacing-5;
+
+  .mel-help-header__title {
+    margin: 0;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $mel-ws-navy;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-help-header__lede {
+    color: $text-muted;
+    margin: $spacing-2 0 0;
+    font-size: $font-size-sm;
+    line-height: $line-height-relaxed;
+  }
+}
+
+/* Suggestions */
+.mel-help-suggestions {
+  margin-bottom: $spacing-5;
+
+  .mel-help-suggestions__label {
+    display: block;
+    font-size: $font-size-sm;
+    color: $text-muted;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.mel-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+  margin-top: $spacing-2;
+}
+
+.mel-chip {
+  background: $mel-ws-purple-tint;
+  color: $mel-ws-purple;
+  border: 1px solid $mel-ws-purple-border;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $mel-radius-pill;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  font-family: inherit;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+
+  &:hover {
+    background: $mel-ws-purple;
+    color: $text-inverse;
+    border-color: $mel-ws-purple;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-ws-purple;
+    outline-offset: 2px;
+  }
+}
+
+/* Input */
+.mel-help-input textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  border-radius: $mel-radius-sm;
+  border: 1px solid $border-color-light;
+  padding: $spacing-3 $spacing-4;
+  font-size: $font-size-body;
+  font-family: inherit;
+  line-height: $line-height-normal;
+  resize: vertical;
+  background: $input-bg;
+  color: $input-text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: $input-placeholder;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $mel-ws-purple;
+    box-shadow: 0 0 0 3px $mel-ws-purple-tint;
+  }
+}
+
+/* CTA */
+.mel-help-actions {
+  margin-top: $spacing-3;
+
+  .mel-button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: $mel-ws-coral;
+    color: $text-inverse;
+    padding: $spacing-3 $spacing-5;
+    border-radius: $mel-radius-pill;
+    border: none;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-label;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+
+    &:hover:not(:disabled) {
+      opacity: 0.92;
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $mel-ws-coral;
+      outline-offset: 2px;
+    }
+  }
+}
+
+/* Response */
+.mel-help-response {
+  margin-top: $spacing-5;
+  padding: $spacing-4;
+  border-radius: $mel-radius-md;
+  background: $gray-100;
+  border: 1px solid $border-color-light;
+
+  &[hidden] {
+    display: none !important;
+  }
+
+  .mel-help-assistant__answer-block {
+    margin: 0 0 $spacing-3;
+  }
+
+  .mel-help-assistant__answer {
+    margin: 0;
+    font-size: $font-size-body;
+    line-height: $line-height-relaxed;
+    color: $text-primary;
+  }
+
+  .mel-help-assistant__loading {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-sm;
+  }
+
+  .mel-help-assistant__confidence {
+    margin: 0 0 $spacing-2;
+    font-size: $font-size-xs;
+  }
+
+  .mel-help-assistant__confidence-label {
+    font-weight: $font-weight-semibold;
+  }
+
+  .mel-help-assistant__confidence--high .mel-help-assistant__confidence-label {
+    color: $success;
+  }
+
+  .mel-help-assistant__confidence--medium .mel-help-assistant__confidence-label {
+    color: $warning;
+  }
+
+  .mel-help-assistant__confidence--low .mel-help-assistant__confidence-label {
+    color: $text-muted;
+  }
+
+  .mel-help-assistant__sources {
+    margin-top: $spacing-4;
+  }
+
+  .mel-help-assistant__sources-title {
+    margin: 0 0 $spacing-2;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: $mel-ws-navy;
+  }
+
+  .mel-help-assistant__sources-list {
+    margin: 0;
+    padding-left: $spacing-5;
+  }
+
+  .mel-help-assistant__sources-list a {
+    color: $mel-ws-purple;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: sass-color.adjust($mel-ws-purple, $lightness: -8%);
+    }
+  }
+
+  .mel-help-assistant__message {
+    margin: $spacing-3 0 0;
+    font-size: $font-size-sm;
+    color: $text-secondary;
+  }
+
+  .mel-help-assistant__message--fallback {
+    color: $text-muted;
+  }
+}
+
+/* Browse-only (AI off / articles-only) */
+.mel-help-assistant--browse-only {
+  .mel-help-suggestions,
+  .mel-help-input,
+  .mel-help-actions {
+    display: none !important;
+  }
+}
+
+/* Escalation card */
+.mel-help-escalation {
+  margin-top: 0;
+}
+
+.mel-escalation-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-4;
+  background: linear-gradient(135deg, $bg-primary 0%, #fff7f5 100%);
+  border-radius: $mel-radius-md;
+  padding: $spacing-4 $spacing-5;
+  box-shadow: 0 8px 20px $mel-ws-shadow-soft;
+  border: 1px solid $mel-ws-border-soft;
+}
+
+.mel-escalation-content {
+  flex: 1 1 12rem;
+
+  strong {
+    display: block;
+    font-size: $font-size-label;
+    color: $mel-ws-navy;
+    margin-bottom: $spacing-1;
+  }
+
+  p {
+    margin: 0;
+    font-size: $font-size-sm;
+    color: $text-muted;
+    line-height: $line-height-normal;
+  }
+}
+
+.mel-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $mel-ws-purple;
+  color: $text-inverse;
+  padding: $spacing-2 $spacing-5;
+  border-radius: $mel-radius-pill;
+  text-decoration: none;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  white-space: nowrap;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+
+  &:hover {
+    opacity: 0.92;
+    color: $text-inverse;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-ws-purple;
+    outline-offset: 2px;
+  }
+}
+
+/* Structured MEL AI response (answer / steps / actions / sources / follow-ups) */
+.mel-ai-response {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+}
+
+.mel-ai-answer {
+  font-size: $font-size-body;
+  line-height: $line-height-relaxed;
+  color: $text-primary;
+
+  p {
+    margin: 0;
+  }
+}
+
+.mel-ai-steps {
+  background: $bg-primary;
+  padding: $spacing-4;
+  border-radius: $mel-radius-sm;
+  border: 1px solid $border-color-light;
+
+  ol {
+    margin: $spacing-2 0 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.mel-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
+
+.mel-ai-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $mel-ws-coral;
+  color: $text-inverse;
+  padding: $spacing-2 $spacing-5;
+  border-radius: $mel-radius-pill;
+  text-decoration: none;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+
+  &:hover {
+    opacity: 0.92;
+    color: $text-inverse;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $mel-ws-coral;
+    outline-offset: 2px;
+  }
+}
+
+.mel-ai-sources {
+  font-size: $font-size-sm;
+  color: $text-muted;
+
+  ul {
+    margin: $spacing-2 0 0;
+    padding-left: $spacing-5;
+  }
+
+  a {
+    color: $mel-ws-purple;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: sass-color.adjust($mel-ws-purple, $lightness: -8%);
+    }
+  }
+}
+
+.mel-ai-followups {
+  .mel-chip-group {
+    margin-top: $spacing-2;
+  }
+}

@@ -90,8 +90,17 @@ services:
     class: Drupal\myeventlane_core\Theme\AdminThemeNegotiator
     arguments:
       - '@myeventlane_core.domain_detector'
+      - '@config.factory'
+      - '@theme_handler'
     tags:
       - { name: theme_negotiator, priority: 2100 }
+
+  myeventlane_core.mel_admin_shell_builder:
+    class: Drupal\myeventlane_core\Service\MelAdminShellBuilder
+    arguments:
+      - '@plugin.manager.block'
+      - '@logger.channel.myeventlane_core'
+      - '@string_translation'
 
   myeventlane_core.admin_domain_redirect_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\AdminDomainRedirectSubscriber

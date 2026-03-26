@@ -4,6 +4,7 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
+    - field.storage.node.field_audience
     - node.type.faq
     - node.type.help_article
   module:
@@ -59,23 +60,7 @@ display:
           field: title
           plugin_id: standard
           order: ASC
-      arguments:
-        field_help_audience_target_id:
-          id: field_help_audience_target_id
-          table: node__field_help_audience
-          field: field_help_audience_target_id
-          plugin_id: numeric
-          default_action: default
-          default_argument_type: fixed
-          default_argument_options:
-            argument: ''
-          summary_options:
-            base_path: ''
-            count: true
-          validate:
-            type: none
-          break_phrase: false
-          not: false
+      arguments: {  }
       filters:
         status:
           id: status
@@ -108,7 +93,6 @@ display:
       max-age: -1
       contexts:
         - 'languages:language_interface'
-        - url
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -123,7 +107,6 @@ display:
       max-age: -1
       contexts:
         - 'languages:language_interface'
-        - url
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }

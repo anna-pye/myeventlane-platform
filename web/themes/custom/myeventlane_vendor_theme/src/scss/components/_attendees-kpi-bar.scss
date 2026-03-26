@@ -1,0 +1,64 @@
+/**
+ * @file
+ * Attendees dashboard KPI summary bar.
+ *
+ * Top-of-page metrics for Events, Tickets Sold, Revenue, Upcoming.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+.mel-attendees-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-4;
+  margin-bottom: $spacing-8;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.mel-attendees-kpi-bar__kpi {
+  background: $ml-slate-50;
+  border-radius: $radius-lg;
+  padding: $spacing-5;
+  border: 1px solid $border-color-light;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(13, 21, 32, 0.06);
+  }
+}
+
+.mel-attendees-kpi-bar__label {
+  display: block;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  margin-bottom: $spacing-2;
+}
+
+.mel-attendees-kpi-bar__value {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  line-height: $line-height-tight;
+
+  @include respond-to(md) {
+    font-size: $font-size-3xl;
+  }
+}
+
+.mel-attendees-event-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mel-attendees-empty__body {
+  text-align: center;
+  padding: $spacing-12 $spacing-8 !important;
+}

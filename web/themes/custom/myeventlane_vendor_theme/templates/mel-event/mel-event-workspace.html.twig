@@ -1,0 +1,97 @@
+{#
+/**
+ * @file
+ * MEL Event Workspace — compact header (overview), horizontal tabs, main content.
+ *
+ * Tab labels/URLs mirror myeventlane_vendor.links.task.yml + Boost/Refund plugins.
+ * insights: { score, primary, secondary, upsell } from EventIntelligenceService.
+ */
+#}
+<div class="mel-workspace mel-workspace--surface{% if sidebar %} mel-workspace--with-ticket-tools{% endif %}">
+  {% if header_stats is not empty %}
+    {% include '@myeventlane_vendor_theme/mel-event/mel-event-header.html.twig' %}
+  {% else %}
+    {% include '@myeventlane_vendor_theme/components/workspace/workspace-header.html.twig' %}
+  {% endif %}
+
+  {% if tabs %}
+    <div class="mel-workspace__tab-bar">
+      <nav class="mel-tabs mel-tabs--horizontal" role="tablist" aria-label="{{ 'Event sections'|t }}">
+        {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' %}
+      </nav>
+    </div>
+  {% endif %}
+
+  <div class="mel-workspace__body mel-workspace__body--stacked{% if sidebar %} mel-workspace__body--with-ticket-sidebar{% endif %}">
+    <div class="mel-workspace__main-panel{% if sidebar %} mel-workspace__main-panel--with-ticket-tools{% endif %}">
+      {% if sidebar %}
+        <aside class="mel-workspace__sidebar mel-workspace__sidebar--tickets" aria-label="{{ 'Ticket tools'|t }}">
+          {{ sidebar }}
+        </aside>
+      {% endif %}
+
+      <main class="mel-workspace__content">
+        {% if insights is not empty and insights is iterable %}
+          <div class="mel-intelligence" role="region" aria-label="{{ 'Event guidance'|t }}">
+            {% if insights.score is defined %}
+              <div class="mel-score-card">
+                <span class="mel-score-card__value">{{ insights.score }}%</span>
+                <span class="mel-score-card__label">{{ 'Event quality'|t }}</span>
+              </div>
+            {% endif %}
+
+            {% if insights.primary is not empty %}
+              <div class="mel-guidance mel-guidance--primary">
+                {% set item = insights.primary[0] %}
+                <div class="mel-guidance__content">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.description }}</p>
+                </div>
+                <a href="{{ item.url }}" class="mel-button mel-button--primary">
+                  {{ item.cta }}
+                </a>
+              </div>
+            {% endif %}
+
+            {% if insights.secondary is not empty %}
+              <div class="mel-guidance-list">
+                {% for item in insights.secondary %}
+                  <div class="mel-guidance">
+                    <div class="mel-guidance__content">
+                      <strong>{{ item.title }}</strong>
+                      <p>{{ item.description }}</p>
+                    </div>
+                    <a href="{{ item.url }}" class="mel-button mel-button--secondary">{{ item.cta }}</a>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            {% if insights.upsell is not empty %}
+              <div class="mel-guidance mel-guidance--upsell">
+                {% set item = insights.upsell[0] %}
+                <div class="mel-guidance__content">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.description }}</p>
+                </div>
+                <a href="{{ item.url }}" class="mel-button">{{ item.cta }}</a>
+              </div>
+            {% endif %}
+
+            {% if insights.primary is empty and insights.secondary is empty and insights.upsell is empty %}
+              <div class="mel-insights-empty">
+                <p>{{ "Your event is looking good. We'll let you know if anything needs attention."|t }}</p>
+              </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="mel-insights-empty">
+            <p>{{ "Your event is looking good. We'll let you know if anything needs attention."|t }}</p>
+          </div>
+        {% endif %}
+
+        {{ content }}
+      </main>
+    </div>
+  </div>
+</div>

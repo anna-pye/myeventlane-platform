@@ -66,7 +66,7 @@ final class MyEventLaneAdminThemeNegotiator implements ThemeNegotiatorInterface 
    * {@inheritdoc}
    */
   public function determineActiveTheme(RouteMatchInterface $route_match): ?string {
-    return 'myeventlane_admin_theme';
+    return 'myeventlane_admin';
   }
 
 }

@@ -1,0 +1,24 @@
+uuid: a3b4c5d6-e7f8-9012-6789-123456789012
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_ai_summary
+    - filter.format.basic_html
+    - node.type.staff_playbook
+  module:
+    - text
+id: node.staff_playbook.field_ai_summary
+field_name: field_ai_summary
+entity_type: node
+bundle: staff_playbook
+label: 'AI summary'
+description: 'Auto-generated structured summary. Internal only.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats:
+    - basic_html
+field_type: text_long

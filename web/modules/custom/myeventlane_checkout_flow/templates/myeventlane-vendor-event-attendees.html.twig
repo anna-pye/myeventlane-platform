@@ -18,6 +18,12 @@
     </a>
     <h1 class="mel-page-title">{{ title }}</h1>
 
+    {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
+      <div class="mel-contextual-help mel-contextual-help--vendor-console">
+        {{ mel_vendor_contextual_help }}
+      </div>
+    {% endif %}
+
     {# Event Info #}
     <div class="mel-event-info mel-mt-3">
       <h2 class="mel-event-title">

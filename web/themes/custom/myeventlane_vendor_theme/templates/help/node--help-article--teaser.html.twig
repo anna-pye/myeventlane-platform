@@ -11,8 +11,14 @@
   </h3>
   {{ title_suffix }}
 
+  {% if content.field_help_summary %}
+    <div class="mel-help-teaser__summary">
+      {{ content.field_help_summary }}
+    </div>
+  {% endif %}
+
   <div class="mel-help-teaser__body">
-    {{ content|without('links') }}
+    {{ content|without('links', 'field_help_summary') }}
   </div>
 
   <p class="mel-help-teaser__actions">

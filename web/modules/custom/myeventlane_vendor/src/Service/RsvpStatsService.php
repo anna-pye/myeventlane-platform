@@ -163,9 +163,16 @@ final class RsvpStatsService {
       return [
         'total' => 0,
         'recent' => 0,
+        'total_submissions' => 0,
+        'confirmed' => 0,
+        'pending' => 0,
+        'waitlisted' => 0,
+        'cancelled' => 0,
+        'checkins' => 0,
       ];
     }
 
+    // Legacy: total = confirmed-only count (used by vendor dashboard cards).
     $total = $this->getEventRsvpCount($event_nid);
     $recent = 0;
 
@@ -201,10 +208,94 @@ final class RsvpStatsService {
       // Return 0 for recent on error.
     }
 
+    $breakdown = $this->getRsvpStatusBreakdownForEvent($event_nid);
+
     return [
       'total' => $total,
       'recent' => $recent,
+      'total_submissions' => $breakdown['total_non_cancelled'],
+      'confirmed' => $breakdown['confirmed'],
+      'pending' => $breakdown['pending'],
+      'waitlisted' => $breakdown['waitlisted'],
+      'cancelled' => $breakdown['cancelled'],
+      'checkins' => $breakdown['checkins'],
     ];
+  }
+
+  /**
+   * Counts RSVP submissions by status for vendor dashboards and analytics.
+   *
+   * @param int $event_nid
+   *   Event node ID.
+   *
+   * @return array{
+   *   total_non_cancelled: int,
+   *   confirmed: int,
+   *   pending: int,
+   *   waitlisted: int,
+   *   cancelled: int,
+   *   checkins: int
+   * }
+   */
+  public function getRsvpStatusBreakdownForEvent(int $event_nid): array {
+    $defaults = [
+      'total_non_cancelled' => 0,
+      'confirmed' => 0,
+      'pending' => 0,
+      'waitlisted' => 0,
+      'cancelled' => 0,
+      'checkins' => 0,
+    ];
+
+    if ($event_nid <= 0) {
+      return $defaults;
+    }
+
+    if (!$this->entityTypeManager->hasDefinition('rsvp_submission')) {
+      return $defaults;
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('rsvp_submission');
+      foreach (['confirmed', 'pending', 'waitlist', 'cancelled'] as $status) {
+        $count = (int) $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $event_nid)
+          ->condition('status', $status)
+          ->count()
+          ->execute();
+        if ($status === 'waitlist') {
+          $defaults['waitlisted'] = $count;
+        }
+        else {
+          $defaults[$status] = $count;
+        }
+      }
+
+      $defaults['total_non_cancelled'] = (int) $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event_id', $event_nid)
+        ->condition('status', 'cancelled', '<>')
+        ->count()
+        ->execute();
+
+      try {
+        $defaults['checkins'] = (int) $storage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $event_nid)
+          ->condition('checked_in', 1)
+          ->count()
+          ->execute();
+      }
+      catch (\Exception) {
+        $defaults['checkins'] = 0;
+      }
+    }
+    catch (\Exception) {
+      return $defaults;
+    }
+
+    return $defaults;
   }
 
   /**

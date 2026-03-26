@@ -4,8 +4,12 @@ status: true
 dependencies:
   config:
     - field.field.node.staff_playbook.body
+    - field.field.node.staff_playbook.field_ai_summary
     - field.field.node.staff_playbook.field_applicable_priority
+    - field.field.node.staff_playbook.field_internal_only
+    - field.field.node.staff_playbook.field_playbook_category
     - field.field.node.staff_playbook.field_playbook_type
+    - field.field.node.staff_playbook.field_playbook_urgency
     - field.field.node.staff_playbook.field_priority
     - field.field.node.staff_playbook.field_refund_involved
     - field.field.node.staff_playbook.field_related_escalation_type
@@ -26,6 +30,13 @@ content:
     third_party_settings: {  }
     weight: 2
     region: content
+  field_ai_summary:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 7
+    region: content
   field_applicable_priority:
     type: list_default
     label: above
@@ -33,12 +44,36 @@ content:
     third_party_settings: {  }
     weight: 1
     region: content
+  field_internal_only:
+    type: boolean
+    label: inline
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 6
+    region: content
+  field_playbook_category:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 8
+    region: content
   field_playbook_type:
     type: list_default
     label: above
     settings: {  }
     third_party_settings: {  }
     weight: 0
+    region: content
+  field_playbook_urgency:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 9
     region: content
   field_priority:
     type: number_integer
@@ -69,7 +104,7 @@ content:
   links:
     settings: {  }
     third_party_settings: {  }
-    weight: 6
+    weight: 10
     region: content
   search_api_excerpt:
     settings: {  }

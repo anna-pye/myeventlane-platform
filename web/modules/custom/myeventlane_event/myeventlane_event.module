@@ -9,10 +9,12 @@ declare(strict_types=1);
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
+use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
+use Drupal\Core\Render\Element;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\taxonomy\TermInterface;
@@ -298,11 +300,127 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
 }
 
 /**
+ * Detects the Event quality / suggestions panel root key (top-level only).
+ *
+ * @param array $form
+ *   The complete form array.
+ *
+ * @return string|null
+ *   The element key, or NULL.
+ */
+function _myeventlane_event_detect_event_quality_form_key(array $form): ?string {
+  if (isset($form['mel_ai_suggestions']) && is_array($form['mel_ai_suggestions'])) {
+    return 'mel_ai_suggestions';
+  }
+  foreach (Element::children($form) as $key) {
+    $element = $form[$key];
+    if (!is_array($element)) {
+      continue;
+    }
+    $classes = $element['#attributes']['class'] ?? [];
+    if (is_array($classes)) {
+      foreach (['mel-ai-panel', 'mel-event-quality-score'] as $class) {
+        if (in_array($class, $classes, TRUE)) {
+          return $key;
+        }
+      }
+    }
+    if (isset($element['#title']) && (string) $element['#title'] === 'Event quality score') {
+      return $key;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Detects the Venue block root key (top-level only).
+ *
+ * @param array $form
+ *   The complete form array.
+ *
+ * @return string|null
+ *   The element key, or NULL.
+ */
+function _myeventlane_event_detect_venue_form_key(array $form): ?string {
+  if (isset($form['venue_section']) && is_array($form['venue_section'])) {
+    return 'venue_section';
+  }
+  foreach (Element::children($form) as $key) {
+    $element = $form[$key];
+    if (!is_array($element)) {
+      continue;
+    }
+    $classes = $element['#attributes']['class'] ?? [];
+    if (is_array($classes) && in_array('mel-venue-section', $classes, TRUE)) {
+      return $key;
+    }
+    if (isset($element['#title']) && strtolower((string) $element['#title']) === 'venue') {
+      return $key;
+    }
+    if ($key === 'field_venue' || $key === 'venue') {
+      return $key;
+    }
+  }
+  return NULL;
+}
+
+/**
+ * #after_build: place Event quality panel before the Venue block using #weight only.
+ *
+ * Runs after all hook_form_*_alter implementations so optional modules can add
+ * mel_ai_suggestions / venue_section first (Drupal 11 merges form alters).
+ */
+function myeventlane_event_form_after_build_reorder_quality_venue(array $form, FormStateInterface $form_state): array {
+  $build_info = $form_state->getBuildInfo();
+  $form_id = (string) ($build_info['form_id'] ?? '');
+  if ($form_id === '') {
+    $form_object = $form_state->getFormObject();
+    if ($form_object instanceof FormInterface) {
+      $form_id = $form_object->getFormId();
+    }
+  }
+  if (!in_array($form_id, ['event_wizard_when_where_form', 'node_event_form', 'node_event_edit_form'], TRUE)) {
+    return $form;
+  }
+
+  $quality_key = _myeventlane_event_detect_event_quality_form_key($form);
+  $venue_key = _myeventlane_event_detect_venue_form_key($form);
+
+  if (!$quality_key || !$venue_key || $quality_key === $venue_key) {
+    \Drupal::logger('myeventlane_event')->debug('Venue reorder skipped for @form_id: quality=@q venue=@v', [
+      '@form_id' => $form_id,
+      '@q' => $quality_key ?? 'missing',
+      '@v' => $venue_key ?? 'missing',
+    ]);
+    return $form;
+  }
+
+  $q_weight = $form[$quality_key]['#weight'] ?? 0;
+  $v_weight = $form[$venue_key]['#weight'] ?? 0;
+
+  // Lower #weight renders earlier; ensure quality is strictly before venue.
+  if ($v_weight <= $q_weight) {
+    $form[$quality_key]['#weight'] = $v_weight - 1;
+    $form[$venue_key]['#weight'] = $v_weight;
+  }
+
+  return $form;
+}
+
+/**
  * Implements hook_form_alter().
  */
 function myeventlane_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   // Ticket type paragraph conditional logic.
   TicketTypeFormAlter::alterForm($form, $form_state);
+
+  // Event quality panel vs Venue: fix order after every module's form alters.
+  if (in_array($form_id, ['event_wizard_when_where_form', 'node_event_form', 'node_event_edit_form'], TRUE)) {
+    $form['#after_build'] = $form['#after_build'] ?? [];
+    if (!in_array('myeventlane_event_form_after_build_reorder_quality_venue', $form['#after_build'], TRUE)) {
+      $form['#after_build'][] = 'myeventlane_event_form_after_build_reorder_quality_venue';
+    }
+  }
 
   // Ensure field_multiple_value_form elements have #attributes (prevents
   // FieldPreprocess warnings in wizard step forms).

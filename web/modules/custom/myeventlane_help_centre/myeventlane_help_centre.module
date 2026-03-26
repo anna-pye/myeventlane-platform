@@ -7,9 +7,15 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use Drupal\myeventlane_help_centre\Service\ContextualHelpResolver;
 use Drupal\node\NodeInterface;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\ViewExecutable;
 
 /**
  * Implements hook_theme().
@@ -25,8 +31,10 @@ function myeventlane_help_centre_theme(): array {
         'context' => NULL,
         'featured_articles' => [],
         'vendors' => [],
-        'help_categories' => [],
         'faq_listing' => [],
+        'ia_sections' => [],
+        'help_assistant_page_url' => '/help#mel-help-assistant',
+        'contact_support_url' => '/support/tickets',
       ],
       'template' => 'help-centre-home',
       // Template ships with myeventlane_theme (see help_link pattern).
@@ -56,48 +64,77 @@ function myeventlane_help_centre_theme(): array {
       'template' => 'components/help-link',
       'path' => $theme_path . '/templates',
     ],
+    'contextual_help_card' => [
+      'variables' => [
+        'title' => '',
+        'summary' => '',
+        'url' => '',
+        'read_more_label' => '',
+        'secondary_url' => NULL,
+        'secondary_label' => NULL,
+        'context' => '',
+        'audience' => '',
+      ],
+      'template' => 'components/contextual-help-card',
+      'path' => $theme_path . '/templates',
+    ],
   ];
+}
+
+/**
+ * Implements hook_action_info_alter().
+ *
+ * Ensures bulk documentation actions are registered when attribute discovery
+ * or cached plugin definitions omit them (avoids PluginNotFoundException for
+ * configured system.action entities).
+ */
+function myeventlane_help_centre_action_info_alter(array &$definitions): void {
+  if (!isset($definitions['mel_help_documentation_publish'])) {
+    $definitions['mel_help_documentation_publish'] = [
+      'id' => 'mel_help_documentation_publish',
+      'label' => new TranslatableMarkup('MEL: Publish documentation'),
+      'type' => 'node',
+      'class' => 'Drupal\myeventlane_help_centre\Plugin\Action\HelpArticleDocumentationPublishAction',
+      'provider' => 'myeventlane_help_centre',
+    ];
+  }
+  if (!isset($definitions['mel_help_documentation_archive'])) {
+    $definitions['mel_help_documentation_archive'] = [
+      'id' => 'mel_help_documentation_archive',
+      'label' => new TranslatableMarkup('MEL: Archive documentation'),
+      'type' => 'node',
+      'class' => 'Drupal\myeventlane_help_centre\Plugin\Action\HelpArticleDocumentationArchiveAction',
+      'provider' => 'myeventlane_help_centre',
+    ];
+  }
+}
+
+/**
+ * Returns the contextual help resolver service.
+ */
+function _myeventlane_help_centre_resolver(): ContextualHelpResolver {
+  return \Drupal::service('myeventlane_help_centre.contextual_help_resolver');
 }
 
 /**
  * Returns contextual help URLs keyed by integration point.
  *
- * Paths align with HelpContentSeeder article aliases (see HelpContentSeeder.php).
+ * Values are stored in config (myeventlane_help_centre.contextual_help) and may
+ * be overridden per environment.
  *
  * @return array<string, array{text: string, url: string}>
  *   Map of context keys to label and internal path.
  */
 function myeventlane_help_centre_get_context_map(): array {
-  return [
-    'event_create' => [
-      'text' => (string) t('Need help creating your event?'),
-      'url' => '/help/organisers/how-to-create-an-event',
-    ],
-    'ticket_types' => [
-      'text' => (string) t('Not sure how ticket types work?'),
-      'url' => '/help/organisers/understanding-ticket-types',
-    ],
-    'rsvp_vs_paid' => [
-      'text' => (string) t('What’s the difference between RSVP and paid events?'),
-      'url' => '/help/organisers/choosing-rsvp-or-paid-tickets',
-    ],
-    'refunds_checkout' => [
-      'text' => (string) t('How do refunds work?'),
-      'url' => '/help/attendees/how-to-request-a-refund',
-    ],
-    'vendor_dashboard' => [
-      'text' => (string) t('Need help using your dashboard?'),
-      'url' => '/help/vendors/vendor-dashboard-overview',
-    ],
-    'rsvp_after_submit' => [
-      'text' => (string) t('What happens after you RSVP?'),
-      'url' => '/help/attendees/how-to-rsvp-to-a-free-event',
-    ],
-    'managing_dashboard' => [
-      'text' => (string) t('Managing your event dashboard'),
-      'url' => '/help/organisers/managing-your-event-dashboard',
-    ],
-  ];
+  $rows = \Drupal::service('myeventlane_help_centre.contextual_help')->getMap();
+  $out = [];
+  foreach ($rows as $key => $row) {
+    $out[$key] = [
+      'text' => $row['text'],
+      'url' => $row['path'],
+    ];
+  }
+  return $out;
 }
 
 /**
@@ -107,8 +144,14 @@ function myeventlane_help_centre_get_context_map(): array {
  *   The text and path, or NULL if unknown.
  */
 function myeventlane_help_centre_get_link(string $key): ?array {
-  $map = myeventlane_help_centre_get_context_map();
-  return $map[$key] ?? NULL;
+  $row = \Drupal::service('myeventlane_help_centre.contextual_help')->getLink($key);
+  if ($row === NULL) {
+    return NULL;
+  }
+  return [
+    'text' => $row['text'],
+    'url' => $row['path'],
+  ];
 }
 
 /**
@@ -132,6 +175,122 @@ function myeventlane_help_link(string $text, string $url): array {
     '#text' => $text,
     '#url' => $url_object->toString(),
   ];
+}
+
+/**
+ * Resolves canonical Help Centre hub URL for secondary links.
+ */
+function _myeventlane_help_centre_vendor_help_url(): string {
+  try {
+    return Url::fromRoute('myeventlane_help_centre.home')->toString();
+  }
+  catch (\Throwable) {
+    return '/help';
+  }
+}
+
+/**
+ * Resolves customer support tickets URL for Help Centre links.
+ */
+function _myeventlane_help_centre_contact_support_url(): string {
+  try {
+    return Url::fromRoute('myeventlane_escalations_portal.customer_support_tickets')->toString();
+  }
+  catch (\Throwable) {
+    try {
+      return Url::fromRoute('myeventlane_escalations_portal.customer_support')->toString();
+    }
+    catch (\Throwable) {
+      return '/support/tickets';
+    }
+  }
+}
+
+/**
+ * Implements hook_node_access().
+ *
+ * Enforces canonical field_audience on help_article and faq bundles.
+ *
+ * - public: visible to all (subject to other grants).
+ * - vendor without public: authenticated users only.
+ * - staff: users with administer escalations only.
+ *
+ * field_help_audience (taxonomy) is deprecated; access uses field_audience only.
+ */
+function myeventlane_help_centre_node_access(NodeInterface $node, string $op, AccountInterface $account): AccessResult {
+  if ($op !== 'view' || !in_array($node->bundle(), ['help_article', 'faq'], TRUE)) {
+    return AccessResult::neutral();
+  }
+
+  if ($account->hasPermission('bypass node access')) {
+    return AccessResult::allowed()->cachePerPermissions();
+  }
+
+  if (!$node->hasField('field_audience')) {
+    return AccessResult::neutral();
+  }
+
+  if ($node->get('field_audience')->isEmpty()) {
+    return AccessResult::neutral();
+  }
+
+  $values = [];
+  foreach ($node->get('field_audience') as $item) {
+    $v = (string) $item->value;
+    if ($v !== '') {
+      $values[] = $v;
+    }
+  }
+
+  $result = AccessResult::neutral();
+  if (in_array('staff', $values, TRUE)) {
+    $result = $account->hasPermission('administer escalations')
+      ? AccessResult::allowed()
+      : AccessResult::forbidden();
+    return $result->cachePerPermissions()->addCacheableDependency($node);
+  }
+
+  if (in_array('vendor', $values, TRUE) && !in_array('public', $values, TRUE)) {
+    if (!$account->isAuthenticated()) {
+      return AccessResult::forbidden()
+        ->cachePerUser()
+        ->addCacheableDependency($node);
+    }
+  }
+
+  return AccessResult::neutral()->addCacheableDependency($node);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function myeventlane_help_centre_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $wizard_map = [
+    'event_wizard_basics_form' => 'event_wizard_basics',
+    'event_wizard_when_where_form' => 'event_wizard_when_where',
+    'event_wizard_details_form' => 'event_wizard_details',
+    'event_wizard_tickets_form' => 'event_wizard_tickets',
+    'event_wizard_publish_form' => 'event_wizard_publish',
+    'event_wizard_review_form' => 'event_wizard_review',
+  ];
+  if (isset($wizard_map[$form_id]) && \Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
+    $card = _myeventlane_help_centre_resolver()->buildCard($wizard_map[$form_id], [
+      'show_assistant_secondary' => TRUE,
+    ]);
+    if ($card !== []) {
+      $form['mel_contextual_help_card'] = $card;
+      $form['mel_contextual_help_card']['#weight'] = -30;
+    }
+    return;
+  }
+
+  if ($form_id === 'myeventlane_refunds_vendor_refund_form') {
+    $card = _myeventlane_help_centre_resolver()->buildCard('refunds_help', []);
+    if ($card !== []) {
+      $form['mel_contextual_help_card'] = $card;
+      $form['mel_contextual_help_card']['#weight'] = -80;
+    }
+  }
 }
 
 /**
@@ -192,6 +351,19 @@ function myeventlane_help_centre_form_myeventlane_ticket_selection_form_alter(ar
     return;
   }
 
+  $card = _myeventlane_help_centre_resolver()->buildCard('checkout_booking', []);
+  if ($card !== []) {
+    $form['mel_help_ticket_matrix'] = [
+      '#type' => 'container',
+      '#weight' => -8,
+      '#attributes' => [
+        'class' => ['mel-contextual-help', 'mel-contextual-help--ticket-matrix'],
+      ],
+      'card' => $card,
+    ];
+    return;
+  }
+
   $item = myeventlane_help_centre_get_link('ticket_types');
   if (!$item) {
     return;
@@ -238,24 +410,207 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
     return;
   }
 
-  $item = myeventlane_help_centre_get_link('refunds_checkout');
-  if (!$item) {
-    return;
+  $step_id = $variables['form']['#step_id'] ?? NULL;
+  $resolver = _myeventlane_help_centre_resolver();
+
+  if ($step_id === 'complete') {
+    $confirm = $resolver->buildCard('checkout_confirmation', []);
+    if ($confirm !== []) {
+      $variables['mel_contextual_help_checkout_confirmation'] = $confirm;
+    }
+  }
+  else {
+    $checkout = $resolver->buildCard('checkout_booking', []);
+    if ($checkout !== []) {
+      $variables['mel_contextual_help_checkout'] = $checkout;
+    }
   }
 
-  $variables['mel_help_checkout_refund'] = myeventlane_help_link($item['text'], $item['url']);
+  $has_inline_card = !empty($variables['mel_contextual_help_checkout'] ?? []);
+  if (!$has_inline_card) {
+    $item = myeventlane_help_centre_get_link('refunds_checkout');
+    if ($item) {
+      $variables['mel_help_checkout_refund'] = myeventlane_help_link($item['text'], $item['url']);
+    }
+
+    $guide = myeventlane_help_centre_get_link('checkout');
+    if ($guide) {
+      $variables['mel_help_checkout_guide'] = myeventlane_help_link($guide['text'], $guide['url']);
+    }
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_help_assistant')) {
+    try {
+      $url = Url::fromRoute('myeventlane_help_assistant.page');
+      if ($url->access(\Drupal::currentUser())) {
+        $variables['mel_help_checkout_assistant'] = [
+          '#type' => 'link',
+          '#title' => t('Need help? Open the Help Assistant'),
+          '#url' => $url,
+          '#attributes' => ['class' => ['mel-checkout-help-assistant-link']],
+        ];
+      }
+    }
+    catch (\Throwable) {
+    }
+  }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ */
+function myeventlane_help_centre_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  if ($view->id() !== 'mel_help_related_articles' || $view->current_display !== 'block_related') {
+    return;
+  }
+  $nid = (int) ($view->args[0] ?? 0);
+  if ($nid < 1) {
+    return;
+  }
+  if (!method_exists($query, 'addWhere')) {
+    return;
+  }
+  $query->addWhere(0, 'node_field_data.nid', $nid, '<>');
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function myeventlane_help_centre_views_pre_render(\Drupal\views\ViewExecutable $view): void {
+  if ($view->id() !== 'mel_docs_register') {
+    return;
+  }
+  if (!in_array($view->current_display, ['page_register', 'page_review'], TRUE)) {
+    return;
+  }
+  $view->element['#attached']['library'][] = 'myeventlane_help_centre/admin_docs';
+}
+
+/**
+ * Implements hook_preprocess_views_view_field().
+ */
+function myeventlane_help_centre_preprocess_views_view_field(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof \Drupal\views\ViewExecutable) {
+    return;
+  }
+  if ($view->id() !== 'mel_docs_register' || $view->current_display !== 'page_review') {
+    return;
+  }
+  $field = $variables['field'] ?? NULL;
+  if (!$field || ($field->options['id'] ?? '') !== 'field_last_reviewed') {
+    return;
+  }
+  $row = $variables['row'] ?? NULL;
+  if (!$row instanceof \Drupal\views\ResultRow) {
+    return;
+  }
+  $node = $row->_entity ?? NULL;
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'help_article') {
+    return;
+  }
+  $cutoff = strtotime('-180 days', (int) \Drupal::time()->getRequestTime());
+  $overdue = TRUE;
+  if ($node->hasField('field_last_reviewed') && !$node->get('field_last_reviewed')->isEmpty()) {
+    $date = $node->get('field_last_reviewed')->date;
+    if ($date) {
+      $overdue = $date->getTimestamp() < $cutoff;
+    }
+  }
+  if ($overdue) {
+    $variables['output'] .= ' <span class="mel-docs-overdue-pill">' . t('Review due') . '</span>';
+  }
 }
 
 /**
  * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
  */
 function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
-  $item = myeventlane_help_centre_get_link('vendor_dashboard');
-  if (!$item) {
+  $vendor_url = _myeventlane_help_centre_vendor_help_url();
+  $card = _myeventlane_help_centre_resolver()->buildCard('vendor_dashboard_overview', [
+    'override_secondary_url' => $vendor_url,
+    'override_secondary_label' => (string) t('Browse vendor help'),
+  ]);
+  if ($card !== []) {
+    $variables['mel_vendor_contextual_help'] = $card;
     return;
   }
 
-  $variables['mel_help_vendor_dashboard'] = myeventlane_help_link($item['text'], $item['url']);
+  $item = myeventlane_help_centre_get_link('vendor_dashboard');
+  if ($item) {
+    $variables['mel_help_vendor_dashboard'] = myeventlane_help_link($item['text'], $item['url']);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_attendees_dashboard.
+ */
+function myeventlane_help_centre_preprocess_myeventlane_vendor_attendees_dashboard(array &$variables): void {
+  $vendor_url = _myeventlane_help_centre_vendor_help_url();
+  $card = _myeventlane_help_centre_resolver()->buildCard('vendor_dashboard_attendees', [
+    'override_secondary_url' => $vendor_url,
+    'override_secondary_label' => (string) t('Browse vendor help'),
+  ]);
+  if ($card !== []) {
+    $variables['mel_vendor_contextual_help'] = $card;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_event_attendees.
+ */
+function myeventlane_help_centre_preprocess_myeventlane_vendor_event_attendees(array &$variables): void {
+  $vendor_url = _myeventlane_help_centre_vendor_help_url();
+  $card = _myeventlane_help_centre_resolver()->buildCard('vendor_dashboard_attendees', [
+    'override_secondary_url' => $vendor_url,
+    'override_secondary_label' => (string) t('Browse vendor help'),
+  ]);
+  if ($card !== []) {
+    $variables['mel_vendor_contextual_help'] = $card;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_event_orders.
+ */
+function myeventlane_help_centre_preprocess_myeventlane_vendor_event_orders(array &$variables): void {
+  $vendor_url = _myeventlane_help_centre_vendor_help_url();
+  $card = _myeventlane_help_centre_resolver()->buildCard('vendor_dashboard_orders', [
+    'override_secondary_url' => $vendor_url,
+    'override_secondary_label' => (string) t('Browse vendor help'),
+  ]);
+  if ($card !== []) {
+    $variables['mel_vendor_contextual_help'] = $card;
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_mel_vendor_billing.
+ */
+function myeventlane_help_centre_preprocess_myeventlane_mel_vendor_billing(array &$variables): void {
+  $vendor_url = _myeventlane_help_centre_vendor_help_url();
+  $card = _myeventlane_help_centre_resolver()->buildCard('vendor_dashboard_payout', [
+    'override_secondary_url' => $vendor_url,
+    'override_secondary_label' => (string) t('Browse vendor help'),
+  ]);
+  if ($card !== []) {
+    $variables['mel_vendor_contextual_help'] = $card;
+  }
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function myeventlane_help_centre_preprocess_html(array &$variables): void {
+  $route = \Drupal::routeMatch();
+  if ($route->getRouteName() !== 'entity.node.canonical') {
+    return;
+  }
+  $node = $route->getParameter('node');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'help_article') {
+    return;
+  }
+  $variables['attributes']['class'][] = 'mel-page--help-article';
 }
 
 /**
@@ -285,8 +640,10 @@ function myeventlane_help_centre_preprocess_node(array &$variables): void {
     '#display_id' => 'block_related',
     '#arguments' => [(int) $node->id()],
   ];
+  $variables['mel_contact_support_url'] = _myeventlane_help_centre_contact_support_url();
+  $contact_support_href = htmlspecialchars($variables['mel_contact_support_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $variables['mel_help_support_panel'] = [
-    '#markup' => '<section class="mel-help-support-panel"><h2>' . t('Still need help?') . '</h2><p>' . t('If this article did not resolve it, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="/contact">' . t('Contact support') . '</a></p></section>',
+    '#markup' => '<section class="mel-help-support-panel"><h2>' . t('Still need help?') . '</h2><p>' . t('If this article did not resolve it, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="' . $contact_support_href . '">' . t('Contact support') . '</a></p></section>',
   ];
   $variables['mel_help_cta'] = NULL;
   if ($node->hasField('field_help_cta_label') && !$node->get('field_help_cta_label')->isEmpty() && $node->hasField('field_help_cta_link') && !$node->get('field_help_cta_link')->isEmpty()) {

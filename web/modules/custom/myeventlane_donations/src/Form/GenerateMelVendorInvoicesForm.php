@@ -6,16 +6,20 @@ namespace Drupal\myeventlane_donations\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_donations\Service\VendorAutoBillingService;
 use Drupal\myeventlane_donations\Service\VendorContributionInvoiceService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Manual invoice generation (Phase 3): group unbilled accruals by vendor/currency.
+ *
+ * Phase 4: After generation, attempts auto-billing for vendors who have opted in.
  */
 final class GenerateMelVendorInvoicesForm extends FormBase {
 
   public function __construct(
     private readonly VendorContributionInvoiceService $invoiceService,
+    private readonly VendorAutoBillingService $autoBillingService,
   ) {}
 
   /**
@@ -24,6 +28,7 @@ final class GenerateMelVendorInvoicesForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_donations.vendor_contribution_invoice'),
+      $container->get('myeventlane_donations.vendor_auto_billing'),
     );
   }
 
@@ -112,6 +117,15 @@ final class GenerateMelVendorInvoicesForm extends FormBase {
     }
 
     $this->messenger()->addStatus($this->t('Created @count invoice(s).', ['@count' => (string) count($created)]));
+
+    $autoResult = $this->autoBillingService->processAutoBillingForInvoices($created);
+    if ($autoResult['attempted'] > 0) {
+      $this->messenger()->addStatus($this->t('Auto-billing: @attempted attempted, @succeeded succeeded, @failed failed.', [
+        '@attempted' => (string) $autoResult['attempted'],
+        '@succeeded' => (string) $autoResult['succeeded'],
+        '@failed' => (string) $autoResult['failed'],
+      ]));
+    }
     foreach ($created as $row) {
       $this->messenger()->addStatus($this->t('Invoice #@id — vendor @v, @amt @cur', [
         '@id' => (string) ($row['invoice_id'] ?? ''),

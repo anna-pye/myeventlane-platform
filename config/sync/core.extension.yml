@@ -118,11 +118,12 @@ module:
   myeventlane_help_assistant: 0
   myeventlane_help_centre: 0
   myeventlane_help_centre_ai: 0
+  myeventlane_help_improvement: 0
   myeventlane_launch: 0
-  myeventlane_legal: 100
   myeventlane_location: 0
   myeventlane_messaging: 0
   myeventlane_metrics: 0
+  myeventlane_notifications: 0
   myeventlane_page_visuals: 0
   myeventlane_privacy: 0
   myeventlane_pro: 0
@@ -138,6 +139,7 @@ module:
   myeventlane_staff_playbooks_ai: 0
   myeventlane_stripe: 0
   myeventlane_summary: 0
+  myeventlane_support: 0
   myeventlane_support_console: 0
   myeventlane_theme_settings: 0
   myeventlane_tickets: 0
@@ -186,6 +188,7 @@ module:
   pathauto: 1
   views: 10
   paragraphs: 11
+  myeventlane_legal: 100
   standard: 1000
 theme:
   olivero: 0

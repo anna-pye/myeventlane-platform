@@ -63,7 +63,7 @@ final class PageVisualForm extends EntityForm {
     'view.events_calendar.page_calendar' => 'Calendar (/calendar)',
     'myeventlane_vendor.organisers' => 'Organisers (/organisers)',
     'myeventlane_vendor.public_list' => 'Vendors (/vendor)',
-    'mel_support.customer_tickets' => 'Support tickets (/support/tickets)',
+    'myeventlane_escalations_portal.customer_support_tickets' => 'Support tickets (/support/tickets)',
     'entity.taxonomy_term.canonical' => 'Taxonomy term (generic)',
     'default' => 'Global default (fallback)',
   ];
@@ -79,7 +79,7 @@ final class PageVisualForm extends EntityForm {
     'view.events_calendar.page_calendar' => '/calendar',
     'myeventlane_vendor.organisers' => '/organisers',
     'myeventlane_vendor.public_list' => '/vendor',
-    'mel_support.customer_tickets' => '/support/tickets',
+    'myeventlane_escalations_portal.customer_support_tickets' => '/support/tickets',
     'entity.taxonomy_term.canonical' => '/taxonomy/term/%',
     'default' => '(fallback)',
   ];

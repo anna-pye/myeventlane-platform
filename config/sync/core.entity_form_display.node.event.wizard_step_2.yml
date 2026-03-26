@@ -10,6 +10,8 @@ dependencies:
     - field.field.node.event.field_accessibility_directions
     - field.field.node.event.field_accessibility_entry
     - field.field.node.event.field_accessibility_parking
+    - field.field.node.event.field_age_policy
+    - field.field.node.event.field_age_policy_note
     - field.field.node.event.field_age_restriction
     - field.field.node.event.field_attendee_questions
     - field.field.node.event.field_cancel_reason
@@ -21,13 +23,16 @@ dependencies:
     - field.field.node.event.field_contact_phone
     - field.field.node.event.field_event_capacity_total
     - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_geo
     - field.field.node.event.field_event_highlights
     - field.field.node.event.field_event_image
     - field.field.node.event.field_event_intro
+    - field.field.node.event.field_event_setup_complete
     - field.field.node.event.field_event_start
     - field.field.node.event.field_event_state
     - field.field.node.event.field_event_state_override
     - field.field.node.event.field_event_store
+    - field.field.node.event.field_event_summary
     - field.field.node.event.field_event_type
     - field.field.node.event.field_event_vendor
     - field.field.node.event.field_external_url
@@ -37,6 +42,11 @@ dependencies:
     - field.field.node.event.field_location_latitude
     - field.field.node.event.field_location_longitude
     - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_mel_sup_amt
+    - field.field.node.event.field_mel_sup_chk
+    - field.field.node.event.field_mel_sup_mode
+    - field.field.node.event.field_mel_sup_oid
+    - field.field.node.event.field_mel_sup_pct
     - field.field.node.event.field_product_target
     - field.field.node.event.field_promo_expires
     - field.field.node.event.field_promoted
@@ -50,11 +60,14 @@ dependencies:
     - field.field.node.event.field_series_timezone
     - field.field.node.event.field_tags
     - field.field.node.event.field_ticket_types
+    - field.field.node.event.field_venue
     - field.field.node.event.field_venue_address
     - field.field.node.event.field_venue_name
     - field.field.node.event.field_waitlist_capacity
     - node.type.event
+    - workflows.workflow.editorial
   module:
+    - content_moderation
     - datetime
     - myeventlane_location
 id: node.event.wizard_step_2
@@ -64,26 +77,26 @@ mode: wizard_step_2
 content:
   field_event_end:
     type: datetime_default
-    weight: 10
+    weight: 3
     region: content
     settings: {  }
     third_party_settings: {  }
   field_event_start:
     type: datetime_default
-    weight: 0
+    weight: 1
     region: content
     settings: {  }
     third_party_settings: {  }
   field_location:
     type: myeventlane_location_address_autocomplete
-    weight: 20
+    weight: 4
     region: content
     settings:
       wrapper_type: fieldset
     third_party_settings: {  }
   field_venue_name:
     type: string_textfield
-    weight: 30
+    weight: 0
     region: content
     settings:
       size: 60
@@ -98,7 +111,7 @@ content:
     third_party_settings: {  }
   moderation_state:
     type: moderation_state_default
-    weight: 100
+    weight: 5
     region: content
     settings: {  }
     third_party_settings: {  }
@@ -139,6 +152,11 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_sup_amt: true
+  field_mel_sup_chk: true
+  field_mel_sup_mode: true
+  field_mel_sup_oid: true
+  field_mel_sup_pct: true
   field_product_target: true
   field_promo_expires: true
   field_promoted: true

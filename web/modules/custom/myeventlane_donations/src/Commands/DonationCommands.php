@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_donations\Commands;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\myeventlane_donations\Service\VendorAutoBillingService;
 use Drupal\myeventlane_donations\Service\VendorContributionInvoiceService;
 use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
@@ -22,6 +23,7 @@ final class DonationCommands extends DrushCommands {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly VendorContributionInvoiceService $vendorContributionInvoiceService,
+    private readonly VendorAutoBillingService $vendorAutoBillingService,
   ) {
     parent::__construct();
   }
@@ -33,6 +35,7 @@ final class DonationCommands extends DrushCommands {
     return new self(
       $container->get('entity_type.manager'),
       $container->get('myeventlane_donations.vendor_contribution_invoice'),
+      $container->get('myeventlane_donations.vendor_auto_billing'),
     );
   }
 
@@ -184,6 +187,12 @@ final class DonationCommands extends DrushCommands {
         count($row['contribution_row_ids'] ?? [])
       ));
     }
+
+    $autoResult = $this->vendorAutoBillingService->processAutoBillingForInvoices($created);
+    if ($autoResult['attempted'] > 0) {
+      $this->io()->writeln(sprintf('Auto-billing: attempted=%d succeeded=%d failed=%d', $autoResult['attempted'], $autoResult['succeeded'], $autoResult['failed']));
+    }
+
     $this->io()->success(sprintf('Created %d invoice(s).', count($created)));
     return DrushCommands::EXIT_SUCCESS;
   }

@@ -1,0 +1,515 @@
+/**
+ * @file
+ * MEL notification bell, dropdown, and inbox (works on public + vendor themes).
+ */
+
+/* —— Bell —— */
+.mel-notif-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mel-notif-bell__trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(41, 50, 65, 0.06);
+  color: #293241;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+.mel-notif-bell__trigger:hover,
+.mel-notif-bell__trigger:focus-visible {
+  background: rgba(107, 92, 230, 0.12);
+  outline: 2px solid rgba(107, 92, 230, 0.35);
+  outline-offset: 2px;
+}
+
+.mel-notif-bell__trigger[aria-expanded='true'] {
+  background: rgba(107, 92, 230, 0.18);
+  box-shadow: 0 0 0 1px rgba(107, 92, 230, 0.2);
+}
+
+.mel-notif-bell__badge {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.15rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: #f26d5b;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+  transform: scale(1);
+  transition: transform 0.2s ease;
+}
+
+.mel-notif-bell__badge--empty {
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+.mel-notif-bell__badge:not(.mel-notif-bell__badge--empty) {
+  opacity: 1;
+}
+
+.mel-notif-bell__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(70vh, 28rem);
+  display: flex;
+  flex-direction: column;
+  background: #fffdf9;
+  border-radius: 1rem;
+  box-shadow: 0 12px 40px rgba(41, 50, 65, 0.12), 0 2px 8px rgba(41, 50, 65, 0.06);
+  border: 1px solid rgba(41, 50, 65, 0.06);
+  z-index: 9000;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mel-notif-bell__panel.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.mel-notif-bell__panel[hidden] {
+  display: none !important;
+}
+
+.mel-notif-bell__panel.is-open:not([hidden]) {
+  display: flex !important;
+}
+
+.mel-notif-bell__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(41, 50, 65, 0.06);
+}
+
+.mel-notif-bell__panel-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #293241;
+}
+
+.mel-notif-bell__mark-all {
+  border: none;
+  background: transparent;
+  color: #6b5ce6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.35rem;
+}
+
+.mel-notif-bell__mark-all:hover,
+.mel-notif-bell__mark-all:focus-visible {
+  background: rgba(107, 92, 230, 0.1);
+  outline: none;
+}
+
+.mel-notif-bell__panel-body {
+  overflow-y: auto;
+  padding: 0.35rem 0;
+  flex: 1;
+}
+
+.mel-notif-bell__loading,
+.mel-notif-bell__empty {
+  padding: 1rem 1.25rem;
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(41, 50, 65, 0.65);
+}
+
+.mel-notif-bell__row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 1rem 0.65rem 0.85rem;
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+
+.mel-notif-bell__row:hover,
+.mel-notif-bell__row:focus-visible {
+  background: rgba(107, 92, 230, 0.06);
+  outline: none;
+}
+
+.mel-notif-bell__row.is-unread {
+  border-left-color: #6b5ce6;
+  background: rgba(107, 92, 230, 0.04);
+}
+
+.mel-notif-bell__row-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #293241;
+  margin-bottom: 0.15rem;
+}
+
+.mel-notif-bell__row-preview {
+  font-size: 0.8rem;
+  color: rgba(41, 50, 65, 0.7);
+  line-height: 1.35;
+}
+
+.mel-notif-bell__panel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid rgba(41, 50, 65, 0.06);
+}
+
+.mel-notif-bell__inbox-link,
+.mel-notif-bell__settings-link {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #6b5ce6;
+  text-decoration: none;
+}
+
+.mel-notif-bell__inbox-link:hover,
+.mel-notif-bell__inbox-link:focus-visible,
+.mel-notif-bell__settings-link:hover,
+.mel-notif-bell__settings-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+/* Public theme: keep bell aligned with cart + account */
+.site-header__notifications {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-inline-start: 0.25rem;
+}
+
+/* Vendor shell: align bell in header actions */
+.mel-shell-header__actions .mel-notif-bell {
+  margin-right: 0.5rem;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* —— Toast stack (legacy positions; refined) —— */
+.mel-notification-toast {
+  pointer-events: auto;
+  background: #fffdf9;
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(41, 50, 65, 0.12);
+  padding: 14px 16px 14px 18px;
+  cursor: pointer;
+  font: 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #293241;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mel-notification-toast.is-leaving {
+  opacity: 0;
+  transform: translateX(6px);
+}
+
+/* —— Inbox page —— */
+.mel-notif-inbox {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.mel-notif-inbox__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #293241;
+  margin: 0 0 0.35rem;
+}
+
+.mel-notif-inbox__lede {
+  margin: 0 0 1.5rem;
+  color: rgba(41, 50, 65, 0.7);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.mel-notif-inbox__header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mel-notif-inbox__header-row .mel-notif-inbox__lede {
+  margin-bottom: 0;
+}
+
+.mel-notif-inbox__settings {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #6b5ce6;
+  text-decoration: none;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.mel-notif-inbox__settings:hover,
+.mel-notif-inbox__settings:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.mel-notif-prefs__intro {
+  max-width: 40rem;
+  margin-bottom: 1.5rem;
+  color: rgba(41, 50, 65, 0.75);
+}
+
+.mel-notif-prefs__fieldset {
+  margin-bottom: 1rem;
+}
+
+.mel-notif-inbox__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.mel-notif-inbox__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #293241;
+  background: rgba(41, 50, 65, 0.06);
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.mel-notif-inbox__chip:hover,
+.mel-notif-inbox__chip:focus-visible {
+  background: rgba(107, 92, 230, 0.1);
+  outline: none;
+}
+
+.mel-notif-inbox__chip.is-active {
+  background: rgba(107, 92, 230, 0.16);
+  border-color: rgba(107, 92, 230, 0.25);
+  color: #4b3bbd;
+}
+
+.mel-notif-inbox__toolbar {
+  margin-bottom: 1rem;
+}
+
+.mel-notif-inbox__mark-all-btn.button {
+  font-size: 0.85rem;
+}
+
+.mel-notif-inbox__day {
+  margin-bottom: 2rem;
+}
+
+.mel-notif-inbox__day-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(41, 50, 65, 0.55);
+  margin: 0 0 0.65rem;
+}
+
+.mel-notif-inbox__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.mel-notif-inbox__item {
+  display: grid;
+  grid-template-columns: 4px 1fr auto;
+  gap: 0.85rem;
+  align-items: start;
+  padding: 1rem 1rem 1rem 0;
+  background: #fffdf9;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(41, 50, 65, 0.06);
+  box-shadow: 0 2px 10px rgba(41, 50, 65, 0.04);
+}
+
+.mel-notif-inbox__item.is-unread {
+  border-color: rgba(107, 92, 230, 0.2);
+  box-shadow: 0 4px 16px rgba(107, 92, 230, 0.08);
+}
+
+.mel-notif-inbox__accent {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 4px;
+  background: rgba(41, 50, 65, 0.2);
+}
+
+.mel-notif-inbox__accent--ticket {
+  background: #f26d5b;
+}
+.mel-notif-inbox__accent--calendar {
+  background: #6b5ce6;
+}
+.mel-notif-inbox__accent--clock {
+  background: #3d9a82;
+}
+.mel-notif-inbox__accent--spark {
+  background: #e8a951;
+}
+.mel-notif-inbox__accent--platform {
+  background: #5a6b8c;
+}
+.mel-notif-inbox__accent--bell {
+  background: rgba(41, 50, 65, 0.25);
+}
+
+.mel-notif-inbox__row-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #293241;
+  margin-bottom: 0.25rem;
+}
+
+.mel-notif-inbox__preview {
+  font-size: 0.9rem;
+  color: rgba(41, 50, 65, 0.72);
+  line-height: 1.45;
+  margin-bottom: 0.35rem;
+}
+
+.mel-notif-inbox__action {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b5ce6;
+  text-decoration: none;
+}
+
+.mel-notif-inbox__action:hover,
+.mel-notif-inbox__action:focus-visible {
+  text-decoration: underline;
+}
+
+.mel-notif-inbox__meta .button {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.mel-notif-inbox__empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: #fffdf9;
+  border-radius: 1.25rem;
+  border: 1px dashed rgba(41, 50, 65, 0.12);
+}
+
+.mel-notif-inbox__empty-icon {
+  color: rgba(107, 92, 230, 0.35);
+  margin-bottom: 1rem;
+}
+
+.mel-notif-inbox__empty-title {
+  font-size: 1.35rem;
+  margin: 0 0 0.5rem;
+  color: #293241;
+}
+
+.mel-notif-inbox__empty-copy {
+  max-width: 28rem;
+  margin: 0 auto 1.5rem;
+  color: rgba(41, 50, 65, 0.7);
+  line-height: 1.55;
+}
+
+.mel-notif-inbox__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
+.mel-notif-inbox__empty-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: #6b5ce6;
+  color: #fff;
+}
+
+.mel-notif-inbox__empty-btn--ghost {
+  background: transparent;
+  color: #6b5ce6;
+  border: 1px solid rgba(107, 92, 230, 0.35);
+}
+
+.mel-notif-inbox__pager {
+  margin-top: 1.5rem;
+}
+
+.mel-notif-inbox__pager-link {
+  font-weight: 600;
+  color: #6b5ce6;
+  text-decoration: none;
+}
+
+.mel-notif-inbox__pager-link:hover,
+.mel-notif-inbox__pager-link:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .mel-notif-inbox__item {
+    grid-template-columns: 4px 1fr;
+  }
+
+  .mel-notif-inbox__meta {
+    grid-column: 2 / -1;
+  }
+}

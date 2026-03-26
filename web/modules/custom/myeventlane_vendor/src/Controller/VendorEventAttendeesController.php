@@ -8,9 +8,9 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
-use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\myeventlane_growth\Service\GrowthTrackingService;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
@@ -29,7 +29,7 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorEventTabsService $eventTabsService,
-    private readonly TicketLabelResolver $ticketLabelResolver,
+    private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly ?GrowthTrackingService $growthTracking = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
@@ -66,50 +66,67 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
       $grouped[$source][] = $attendee;
     }
 
-    // Build attendee rows for the table (one row per attendee, all info on one line).
-    $rows = [];
+    $checked_in_count = 0;
     foreach ($attendees as $attendee) {
-      $ticketType = $this->getTicketTypeForAttendee($attendee);
-      $orderLink = $this->buildOrderLinkForAttendee($attendee, $event);
-      $extraData = $attendee->hasField('extra_data') && !$attendee->get('extra_data')->isEmpty()
-        ? (array) $attendee->get('extra_data')->value
-        : [];
-      $phone = $attendee->hasField('phone') && !$attendee->get('phone')->isEmpty()
-        ? (string) $attendee->get('phone')->value
-        : '';
-
-      $rows[] = [
-        'name' => $attendee->getName(),
-        'email' => $attendee->getEmail(),
-        'phone' => $phone,
-        'source' => ucfirst($attendee->getSource()),
-        'ticket_type' => $ticketType,
-        'order_link' => $orderLink,
-        'extra_data' => $extraData,
-        'status' => ucfirst($attendee->getStatus()),
-        'checked_in' => $attendee->isCheckedIn(),
-        'ticket_code' => $attendee->getTicketCode() ?? '',
-      ];
+      if ($attendee->isCheckedIn()) {
+        $checked_in_count++;
+      }
     }
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Attendees',
+    // Build attendee rows for the table (one row per attendee, all info on one line).
+    $rows = [];
+    $pairTotal = 0;
+    foreach ($attendees as $attendee) {
+      $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
+      $pairTotal += count($vm['custom_answers']);
+      $orderLink = $this->buildOrderLinkForAttendee($attendee, $event);
+
+      $rows[] = [
+        'name' => $vm['full_name'],
+        'email' => $vm['email'],
+        'phone' => $vm['phone'],
+        'source' => ucfirst($vm['source']),
+        'ticket_type' => $vm['ticket_type'],
+        'order_link' => $orderLink,
+        'custom_answers' => $vm['custom_answers'],
+        'custom_answers_display' => $vm['custom_answers_display'],
+        'extra_data' => $attendee->getExtraDataMap(),
+        'status' => ucfirst($attendee->getStatus()),
+        'checked_in' => $attendee->isCheckedIn(),
+        'ticket_code' => $vm['ticket_code'],
+      ];
+    }
+    $this->vendorPresentation->logVendorParityBatch('vendor_attendees_list', (int) $event->id(), count($rows), $pairTotal);
+
+    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'header_actions' => [
+      'actions' => [
         [
-          'label' => 'Export CSV',
+          'label' => (string) $this->t('Check-in'),
+          'url' => Url::fromRoute('myeventlane_rsvp.checkin_list', ['event' => $event->id()])->toString(),
+          'class' => 'mel-btn--primary',
+        ],
+        [
+          'label' => (string) $this->t('Export CSV'),
           'url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $event->id()])->toString(),
           'class' => 'mel-btn--secondary',
         ],
       ],
-      'body' => [
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
         '#theme' => 'myeventlane_vendor_event_attendees',
         '#event' => $event,
         '#attendees' => $rows,
         '#tabs' => $tabs,
         '#is_tickets_enabled' => $this->eventTabsService->isTicketsEnabled($event),
+        '#public_event_url' => $public_event_url,
         '#summary' => [
           'total' => count($attendees),
+          'checked_in' => $checked_in_count,
           'ticket' => count($grouped['ticket']),
           'rsvp' => count($grouped['rsvp']),
           'manual' => count($grouped['manual']),
@@ -118,32 +135,6 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
         ],
       ],
     ]);
-  }
-
-  /**
-   * Resolves ticket type (product variation label) for a ticket-source attendee.
-   *
-   * Uses the order item's purchased entity (variation) label. Excludes Boost.
-   * Returns '—' for RSVP, manual, or when variation cannot be resolved.
-   *
-   * @param \Drupal\myeventlane_event_attendees\Entity\EventAttendee $attendee
-   *   The event attendee.
-   *
-   * @return string
-   *   Product variation label (e.g. Full price, Concession) or '—'.
-   */
-  private function getTicketTypeForAttendee(EventAttendee $attendee): string {
-    if ($attendee->getSource() !== 'ticket') {
-      return '—';
-    }
-    if (!$attendee->hasField('order_item') || $attendee->get('order_item')->isEmpty()) {
-      return '—';
-    }
-    $orderItem = $attendee->get('order_item')->entity;
-    if (!$orderItem || (method_exists($orderItem, 'bundle') && $orderItem->bundle() === 'boost')) {
-      return '—';
-    }
-    return $this->ticketLabelResolver->getTicketLabel($orderItem);
   }
 
   /**

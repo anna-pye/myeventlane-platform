@@ -39,3 +39,14 @@ mel-vendor-billing:
   dependencies:
     - core/drupal
 
+mel-save-payment-method:
+  js:
+    https://js.stripe.com/v3/: { type: external, minified: true }
+    js/mel-save-payment-method.js: {}
+  css:
+    theme:
+      css/mel-vendor-billing.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+

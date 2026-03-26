@@ -378,3 +378,44 @@ function myeventlane_legal_update_9005(): string {
   drupal_flush_all_caches();
   return 'Added field_last_updated to Basic Page content type.';
 }
+
+/**
+ * Add legal_consent_event entity and consent audit system.
+ *
+ * Creates the immutable consent audit entity type and table.
+ * The admin view (legal_consent_events) is in config/install and will be
+ * created on fresh install; for existing sites, import via config:import.
+ */
+function myeventlane_legal_update_9006(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('legal_consent_event');
+  if ($entity_type) {
+    $entity_definition_update_manager->installEntityType($entity_type);
+  }
+
+  drupal_flush_all_caches();
+  return 'Added legal_consent_event entity for immutable consent audit.';
+}
+
+/**
+ * Add event_id field to legal_consent_event for RSVP event context.
+ */
+function myeventlane_legal_update_9007(): string {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $installed = $entity_definition_update_manager->getFieldStorageDefinition('event_id', 'legal_consent_event');
+  if ($installed === NULL) {
+    $entity_type = \Drupal::entityTypeManager()->getDefinition('legal_consent_event');
+    $class = $entity_type->getClass();
+    $base_fields = $class::baseFieldDefinitions($entity_type);
+    if (isset($base_fields['event_id'])) {
+      $entity_definition_update_manager->installFieldStorageDefinition(
+        'event_id',
+        'legal_consent_event',
+        'myeventlane_legal',
+        $base_fields['event_id']
+      );
+    }
+  }
+  drupal_flush_all_caches();
+  return 'Added event_id field to legal_consent_event for RSVP event context.';
+}

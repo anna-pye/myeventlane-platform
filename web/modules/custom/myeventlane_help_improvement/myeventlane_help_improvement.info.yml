@@ -1,0 +1,11 @@
+name: 'MyEventLane Help Improvement'
+type: module
+description: 'Feedback-driven documentation opportunity queue, analytics capture, and human-in-the-loop AI draft assistance.'
+package: 'MyEventLane'
+core_version_requirement: ^11
+dependencies:
+  - myeventlane_core:myeventlane_core
+  - myeventlane_help_centre:myeventlane_help_centre
+  - myeventlane_ai:myeventlane_ai
+  - drupal:node
+  - drupal:user

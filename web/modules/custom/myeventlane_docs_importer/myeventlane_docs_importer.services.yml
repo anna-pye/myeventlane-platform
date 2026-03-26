@@ -1,0 +1,16 @@
+services:
+  logger.channel.myeventlane_docs_importer:
+    parent: logger.channel_base
+    arguments: ['myeventlane_docs_importer']
+
+  myeventlane_docs_importer.import:
+    class: Drupal\myeventlane_docs_importer\Service\DocsImportService
+    arguments:
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@entity.definition_update_manager'
+      - '@database'
+      - '@file_system'
+      - '@language_manager'
+      - '@account_switcher'
+      - '@logger.channel.myeventlane_docs_importer'

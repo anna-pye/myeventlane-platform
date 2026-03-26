@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_help_assistant\Controller;
 
-use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_help_assistant\Service\HelpAssistantService;
+use Drupal\myeventlane_help_assistant\Service\HelpContextResolver;
+use Drupal\myeventlane_help_assistant\Service\HelpResponseBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -28,6 +31,8 @@ final class HelpAssistantController extends ControllerBase {
 
   public function __construct(
     private readonly HelpAssistantService $helpAssistantService,
+    private readonly HelpContextResolver $helpContextResolver,
+    private readonly HelpResponseBuilder $helpResponseBuilder,
     private readonly ConfigFactoryInterface $assistantConfigFactory,
     private readonly FloodInterface $flood,
     private readonly RequestStack $requestStack,
@@ -40,6 +45,8 @@ final class HelpAssistantController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_help_assistant.assistant'),
+      $container->get('myeventlane_help_assistant.context_resolver'),
+      $container->get('myeventlane_help_assistant.response_builder'),
       $container->get('config.factory'),
       $container->get('flood'),
       $container->get('request_stack'),
@@ -48,15 +55,23 @@ final class HelpAssistantController extends ControllerBase {
   }
 
   /**
-   * Builds the Help Assistant page.
+   * Redirects the standalone assistant route to the canonical /help hub.
+   *
+   * The JSON POST handler remains on the same path for backwards compatibility.
    */
-  public function page(): array {
+  public function page(): RedirectResponse|array {
+    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
+      return $this->redirect(
+        'myeventlane_help_centre.home',
+        [],
+        ['fragment' => 'mel-help-assistant'],
+        301,
+      );
+    }
+
     return [
       '#theme' => 'myeventlane_help_assistant_page',
       '#attached' => [
-        'library' => [
-          'myeventlane_help_assistant/assistant',
-        ],
         'drupalSettings' => [
           'myeventlaneHelpAssistant' => [
             'endpoint' => '/help/assistant',
@@ -97,8 +112,13 @@ final class HelpAssistantController extends ControllerBase {
       ], 422);
     }
 
-    $result = $this->helpAssistantService->answerQuestion($question);
-    return new JsonResponse($result);
+    $client_context = $payload['context'] ?? NULL;
+    $context = $this->helpContextResolver->resolve(is_array($client_context) ? $client_context : NULL);
+
+    $raw = $this->helpAssistantService->answerQuestion($question, $context);
+    $final = $this->helpResponseBuilder->build($raw, $context);
+
+    return new JsonResponse($final);
   }
 
   /**

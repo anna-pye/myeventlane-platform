@@ -3,11 +3,28 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_help_assistant']
 
+  myeventlane_help_assistant.context_resolver:
+    class: Drupal\myeventlane_help_assistant\Service\HelpContextResolver
+    arguments:
+      - '@current_route_match'
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_help_assistant'
+
+  myeventlane_help_assistant.response_builder:
+    class: Drupal\myeventlane_help_assistant\Service\HelpResponseBuilder
+    calls:
+      - [setStringTranslation, ['@string_translation']]
+
+  myeventlane_help.context_resolver:
+    alias: myeventlane_help_assistant.context_resolver
+
   myeventlane_help_assistant.retriever:
     class: Drupal\myeventlane_help_assistant\Service\HelpRetriever
     arguments:
       - '@entity_type.manager'
       - '@path_alias.manager'
+      - '@current_user'
       - '@logger.channel.myeventlane_help_assistant'
 
   myeventlane_help_assistant.assistant:
@@ -19,6 +36,8 @@ services:
       - '@config.factory'
       - '@current_user'
       - '@logger.channel.myeventlane_help_assistant'
+    calls:
+      - [setStringTranslation, ['@string_translation']]
 
   myeventlane_help_assistant.event_suggestions:
     class: Drupal\myeventlane_help_assistant\Service\EventSuggestionService

@@ -1,0 +1,23 @@
+uuid: b2c3d4e5-f6a7-8901-bcde-f12345678901
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_ai_allowed
+    - node.type.help_article
+id: node.help_article.field_help_ai_allowed
+field_name: field_help_ai_allowed
+entity_type: node
+bundle: help_article
+label: 'Allow in Help Assistant'
+description: 'When unchecked, this article is excluded from AI retrieval even if published.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 1
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

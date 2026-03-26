@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Refund status badge.
+ *
+ * Variables:
+ * - status: Refund status machine name.
+ */
+#}
+{% set label = {
+  'completed': 'Complete',
+  'processing': 'In progress',
+  'pending_confirmation': 'Confirming',
+  'partial': 'Partial',
+  'failed': 'Needs attention',
+  'none': 'No refund'
+}[status]|default('Unknown') %}
+
+<span class="mel-refund-badge mel-refund-badge--{{ status|default('none') }}">
+  {{ label|t }}
+</span>

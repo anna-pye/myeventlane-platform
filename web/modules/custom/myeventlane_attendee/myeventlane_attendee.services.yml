@@ -13,6 +13,6 @@ services:
 
   myeventlane_attendee.repository.ticket:
     class: Drupal\myeventlane_attendee\Repository\TicketAttendeeRepository
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager', '@myeventlane_event_attendees.vendor_presentation']
     tags:
       - { name: attendee.repository }

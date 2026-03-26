@@ -13,6 +13,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\views\Entity\View;
@@ -95,12 +96,19 @@ function myeventlane_help_centre_schema(): array {
         'unsigned' => TRUE,
         'not null' => FALSE,
       ],
+      'context_audience' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'Optional Help search audience filter (public, vendor, staff).',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
       'event_type' => ['event_type'],
       'node_id' => ['node_id'],
       'created' => ['created'],
+      'context_audience' => ['context_audience'],
     ],
   ];
 
@@ -1447,6 +1455,293 @@ function myeventlane_help_centre_update_10028(): string {
   $storage->delete($entities);
 
   return sprintf('Removed %d legacy path alias(es) so /help and audience URLs use controllers.', count($entities));
+}
+
+/**
+ * Sync canonical field_audience from taxonomy field_help_audience (deprecated).
+ *
+ * field_help_audience is retained for backward compatibility; all access and
+ * listings should use field_audience (public | vendor | staff).
+ */
+function myeventlane_help_centre_update_10029(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $entityFieldManager = \Drupal::service('entity_field.manager');
+  $storageDefinitions = $entityFieldManager->getActiveFieldStorageDefinitions('node');
+  if (!isset($storageDefinitions['field_audience']) || !isset($storageDefinitions['field_help_audience'])) {
+    return 'Skipped 10029: field_audience or field_help_audience storage missing.';
+  }
+
+  $audienceStorage = FieldStorageConfig::loadByName('node', 'field_audience');
+  if (!$audienceStorage) {
+    return 'Skipped 10029: field_audience storage not loadable.';
+  }
+
+  foreach (['faq', 'help_landing_page'] as $bundle) {
+    $type = NodeType::load($bundle);
+    if (!$type) {
+      continue;
+    }
+    if (!FieldConfig::loadByName('node', $bundle, 'field_audience')) {
+      FieldConfig::create([
+        'field_storage' => $audienceStorage,
+        'bundle' => $bundle,
+        'entity_type' => 'node',
+        'field_name' => 'field_audience',
+        'label' => 'Audience',
+        'required' => FALSE,
+        'settings' => [],
+      ])->save();
+    }
+  }
+
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+  $updated = 0;
+  foreach (['help_article', 'faq', 'help_landing_page'] as $bundle) {
+    if (!FieldConfig::loadByName('node', $bundle, 'field_audience')) {
+      continue;
+    }
+    if (!FieldConfig::loadByName('node', $bundle, 'field_help_audience')) {
+      continue;
+    }
+
+    $lastId = 0;
+    do {
+      $query = $nodeStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('type', $bundle)
+        ->condition('nid', $lastId, '>')
+        ->exists('field_help_audience')
+        ->sort('nid', 'ASC')
+        ->range(0, 100);
+      $nids = $query->execute();
+      if ($nids === []) {
+        break;
+      }
+      $nodes = $nodeStorage->loadMultiple($nids);
+      foreach ($nodes as $node) {
+        if (!$node instanceof Node) {
+          continue;
+        }
+        $lastId = max($lastId, (int) $node->id());
+        $canonical = [];
+        foreach ($node->get('field_audience')->getValue() as $row) {
+          $v = (string) ($row['value'] ?? '');
+          if ($v !== '') {
+            $canonical[$v] = $v;
+          }
+        }
+        foreach ($node->get('field_help_audience')->referencedEntities() as $term) {
+          $mapped = _myeventlane_help_centre_map_audience_term_to_canonical((string) $term->label());
+          if ($mapped !== NULL) {
+            $canonical[$mapped] = $mapped;
+          }
+        }
+        if ($canonical === []) {
+          continue;
+        }
+        $newValue = array_map(static fn(string $v): array => ['value' => $v], array_values($canonical));
+        if (serialize($node->get('field_audience')->getValue()) === serialize($newValue)) {
+          continue;
+        }
+        $node->set('field_audience', $newValue);
+        $node->save();
+        $updated++;
+      }
+    } while (count($nids) === 100);
+  }
+
+  $logger->notice('field_audience taxonomy sync: @count node(s) updated.', ['@count' => (string) $updated]);
+
+  return sprintf(
+    'Synced field_audience from field_help_audience on %d node(s). Run search-api-reindex for mel_content when convenient.',
+    $updated,
+  );
+}
+
+/**
+ * Adds Help Assistant / editorial fields on help_article (AI allow-list + status).
+ */
+function myeventlane_help_centre_update_10030(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+
+  if (!FieldStorageConfig::loadByName('node', 'field_help_ai_allowed')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_help_ai_allowed',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [
+        'on_label' => 'Allowed',
+        'off_label' => 'Excluded',
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'help_article', 'field_help_ai_allowed')) {
+    $storage = FieldStorageConfig::loadByName('node', 'field_help_ai_allowed');
+    if ($storage) {
+      FieldConfig::create([
+        'field_storage' => $storage,
+        'bundle' => 'help_article',
+        'entity_type' => 'node',
+        'field_name' => 'field_help_ai_allowed',
+        'label' => 'Allow in Help Assistant',
+        'description' => 'When unchecked, this article is excluded from AI retrieval even if published.',
+        'required' => FALSE,
+        'default_value' => [['value' => 1]],
+      ])->save();
+    }
+  }
+
+  if (!FieldStorageConfig::loadByName('node', 'field_help_status')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_help_status',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => [
+          'draft' => 'Draft',
+          'review' => 'Review',
+          'approved' => 'Approved',
+          'published' => 'Published',
+          'archived' => 'Archived',
+        ],
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  if (!FieldConfig::loadByName('node', 'help_article', 'field_help_status')) {
+    $storage = FieldStorageConfig::loadByName('node', 'field_help_status');
+    if ($storage) {
+      FieldConfig::create([
+        'field_storage' => $storage,
+        'bundle' => 'help_article',
+        'entity_type' => 'node',
+        'field_name' => 'field_help_status',
+        'label' => 'Documentation status',
+        'required' => FALSE,
+        'default_value' => [['value' => 'published']],
+      ])->save();
+    }
+  }
+
+  $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+  $lastNid = 0;
+  $filled = 0;
+  do {
+    $nids = $nodeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'help_article')
+      ->condition('nid', $lastNid, '>')
+      ->sort('nid', 'ASC')
+      ->range(0, 100)
+      ->execute();
+    if ($nids === []) {
+      break;
+    }
+    foreach ($nodeStorage->loadMultiple($nids) as $node) {
+      if (!$node instanceof Node) {
+        continue;
+      }
+      $lastNid = max($lastNid, (int) $node->id());
+      $changed = FALSE;
+      if ($node->hasField('field_help_status') && $node->get('field_help_status')->isEmpty()) {
+        $node->set('field_help_status', 'published');
+        $changed = TRUE;
+      }
+      if ($node->hasField('field_help_ai_allowed') && $node->get('field_help_ai_allowed')->isEmpty()) {
+        $node->set('field_help_ai_allowed', 1);
+        $changed = TRUE;
+      }
+      if ($changed) {
+        $node->save();
+        $filled++;
+      }
+    }
+  } while (count($nids) === 100);
+
+  $logger->notice('Backfilled defaults on @c help_article node(s).', ['@c' => (string) $filled]);
+
+  $viewDisplay = EntityViewDisplay::load('node.help_article.default');
+  if ($viewDisplay) {
+    $viewDisplay->setComponent('field_audience', [
+      'type' => 'list_default',
+      'label' => 'inline',
+      'weight' => 2,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ]);
+    $viewDisplay->setComponent('field_help_ai_allowed', [
+      'type' => 'boolean',
+      'label' => 'inline',
+      'weight' => 15,
+      'region' => 'content',
+      'settings' => [
+        'format' => 'default',
+        'format_custom_false' => '',
+        'format_custom_true' => '',
+      ],
+      'third_party_settings' => [],
+    ]);
+    $viewDisplay->setComponent('field_help_status', [
+      'type' => 'list_default',
+      'label' => 'inline',
+      'weight' => 16,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ]);
+    $viewDisplay->save();
+  }
+
+  $logger->notice('Help article editorial fields ensured (field_help_ai_allowed, field_help_status).');
+
+  return 'Ensured field_help_ai_allowed and field_help_status on help_article; default status published. Export config and reindex mel_content.';
+}
+
+/**
+ * Adds context_audience column to Help analytics for opportunity segmentation.
+ */
+function myeventlane_help_centre_update_10031(): string {
+  $schema = Database::getConnection()->schema();
+  if (!$schema->fieldExists('myeventlane_help_analytics', 'context_audience')) {
+    $schema->addField('myeventlane_help_analytics', 'context_audience', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => FALSE,
+      'description' => 'Optional Help search audience filter (public, vendor, staff).',
+    ]);
+    if (!$schema->indexExists('myeventlane_help_analytics', 'context_audience')) {
+      $schema->addIndex('myeventlane_help_analytics', 'context_audience', ['context_audience'], []);
+    }
+  }
+  return 'Added context_audience to myeventlane_help_analytics for documentation opportunity segmentation.';
+}
+
+/**
+ * Maps help_audience taxonomy term labels to field_audience list values.
+ *
+ * Unknown labels are ignored so custom terms do not silently become public.
+ */
+function _myeventlane_help_centre_map_audience_term_to_canonical(string $label): ?string {
+  $key = mb_strtolower(trim($label));
+  $map = [
+    'vendors' => 'vendor',
+    'vendor' => 'vendor',
+    'admin' => 'staff',
+    'staff' => 'staff',
+    'attendees' => 'public',
+    'attendee' => 'public',
+    'organisers' => 'public',
+    'organizers' => 'public',
+    'general' => 'public',
+    'public' => 'public',
+  ];
+  return $map[$key] ?? NULL;
 }
 
 /**

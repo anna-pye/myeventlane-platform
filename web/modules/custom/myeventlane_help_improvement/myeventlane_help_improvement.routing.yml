@@ -1,0 +1,31 @@
+myeventlane_help_improvement.opportunities:
+  path: '/admin/myeventlane/docs/opportunities'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_improvement\Controller\DocumentationOpportunityAdminController::listing'
+    _title: 'Documentation opportunities'
+  requirements:
+    _permission: 'view documentation opportunities'
+  options:
+    _admin_route: TRUE
+
+myeventlane_help_improvement.opportunity:
+  path: '/admin/myeventlane/docs/opportunities/{opportunity}'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_improvement\Controller\DocumentationOpportunityAdminController::view'
+    _title_callback: '\Drupal\myeventlane_help_improvement\Controller\DocumentationOpportunityAdminController::title'
+  requirements:
+    _permission: 'view documentation opportunities'
+    opportunity: \d+
+  options:
+    _admin_route: TRUE
+
+myeventlane_help_improvement.generate_draft:
+  path: '/admin/myeventlane/docs/opportunities/{opportunity}/generate-draft'
+  defaults:
+    _form: '\Drupal\myeventlane_help_improvement\Form\DocumentationOpportunityGenerateDraftForm'
+    _title: 'Generate draft help article'
+  requirements:
+    _permission: 'generate ai help drafts+administer documentation opportunities'
+    opportunity: \d+
+  options:
+    _admin_route: TRUE

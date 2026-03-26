@@ -8,6 +8,30 @@
 declare(strict_types=1);
 
 /**
+ * Returns the key used in $message['headers'] for a header, if it exists.
+ *
+ * Drupal core may set names with mixed case (e.g. Reply-to). PHP treats header
+ * keys as distinct strings, while Symfony Mime treats them as one logical
+ * header, so duplicate keys must not be added.
+ *
+ * @param array $headers
+ *   The message headers array.
+ * @param string $header_name
+ *   Header name to look up (comparison is case-insensitive).
+ *
+ * @return string|null
+ *   The actual array key, or NULL if absent.
+ */
+function _myeventlane_messaging_mail_headers_key(array $headers, string $header_name): ?string {
+  foreach (array_keys($headers) as $key) {
+    if (strcasecmp((string) $key, $header_name) === 0) {
+      return (string) $key;
+    }
+  }
+  return NULL;
+}
+
+/**
  * Implements hook_cron().
  */
 function myeventlane_messaging_cron(): void {
@@ -103,8 +127,9 @@ function myeventlane_messaging_mail($key, &$message, $params) {
   }
   $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
 
-  if (!empty($params['reply_to'])) {
-    $message['headers']['Reply-To'] = $params['reply_to'];
+  if (!empty($params['reply_to']) && _myeventlane_messaging_mail_headers_key($message['headers'], 'Reply-To') === NULL) {
+    // Match \Drupal\Core\Mail\MailManager::doMail() which uses "Reply-to".
+    $message['headers']['Reply-to'] = $params['reply_to'];
   }
   if (!empty($params['from_name']) && !empty($params['from_email'])) {
     $message['headers']['From'] = $params['from_name'] . ' <' . $params['from_email'] . '>';
@@ -229,9 +254,9 @@ function myeventlane_messaging_mail_alter(array &$message): void {
   }
 
   // Apply Reply-To if vendor has custom reply_to.
-  // Only override if not already set.
-  if (!empty($brandArray['reply_to']) && empty($message['headers']['Reply-To'])) {
-    $message['headers']['Reply-To'] = $brandArray['reply_to'];
+  // Only override if not already set (any header name casing).
+  if (!empty($brandArray['reply_to']) && _myeventlane_messaging_mail_headers_key($message['headers'], 'Reply-To') === NULL) {
+    $message['headers']['Reply-to'] = $brandArray['reply_to'];
   }
 
   // Inject brand variables into params for template use.

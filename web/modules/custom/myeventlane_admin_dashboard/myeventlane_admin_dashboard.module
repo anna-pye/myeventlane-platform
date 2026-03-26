@@ -23,6 +23,7 @@ function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
   }
   $pcc_routes = [
     'myeventlane_admin_dashboard.platform_control',
+    'myeventlane_admin_dashboard.platform_studio',
     'myeventlane_admin_dashboard.financials',
     'myeventlane_admin_dashboard.vendors',
     'myeventlane_admin_dashboard.payouts',
@@ -33,12 +34,14 @@ function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
     'entity.escalation.canonical',
     'entity.escalation.add_form',
     'entity.escalation.edit_form',
+    'myeventlane_support_console.dashboard',
   ];
   $is_pcc = in_array($route_name, $pcc_routes, TRUE)
     || str_starts_with((string) $route_name, 'myeventlane_reporting.admin');
   if (!$is_pcc) {
     return;
   }
+  $variables['mel_admin_pcc_layout'] = TRUE;
   $variables['pcc_utility_links'] = [
     'main_site_url' => Url::fromRoute('<front>')->toString(),
     'vendor_dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),

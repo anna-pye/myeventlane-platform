@@ -2,72 +2,96 @@
   Event tickets view.
   Variables: event, sales, tickets.
 #}
-<div class="mel-grid mel-grid--2">
-  <div class="mel-card">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Sales summary'|t }}</div>
-    </div>
-    <div class="mel-stats">
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Gross'|t }}</div>
-        <div class="mel-stat__value">{{ sales.gross|default('$0') }}</div>
+<div class="mel-workspace-page mel-event-tickets-page">
+  <section class="mel-section" aria-labelledby="mel-tickets-kpi-heading">
+    <header class="mel-section__header">
+      <div>
+        <h2 class="mel-section__title" id="mel-tickets-kpi-heading">{{ 'Sales & shortcuts'|t }}</h2>
+        <p class="mel-section__intro">{{ 'A quick read on revenue and links to ticket tools.'|t }}</p>
       </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Net'|t }}</div>
-        <div class="mel-stat__value">{{ sales.net|default('$0') }}</div>
+    </header>
+    <div class="mel-card-grid">
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <h3 class="mel-card__title">{{ 'Sales summary'|t }}</h3>
       </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Tickets sold'|t }}</div>
-        <div class="mel-stat__value">{{ sales.tickets_sold|default(0) }}</div>
-      </div>
-      <div class="mel-stat">
-        <div class="mel-stat__label">{{ 'Remaining'|t }}</div>
-        <div class="mel-stat__value">{{ sales.tickets_available|default(0) }}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="mel-card">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Actions'|t }}</div>
-    </div>
-    <div class="mel-list mel-list--actions">
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">
-        {{ 'Edit ticket types'|t }}
-      </a>
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.checkout_questions', { event: event_id|default(event.id()) }) }}">
-        {{ 'Checkout questions'|t }}
-      </a>
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.payments', { event: event_id|default(event.id()) }) }}">
-        {{ 'Payment settings'|t }}
-      </a>
-    </div>
-  </div>
-</div>
-
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Ticket types'|t }}</div>
-    <a class="mel-btn mel-btn--ghost" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">{{ 'Manage'|t }}</a>
-  </div>
-  <div class="mel-table">
-    <div class="mel-table__head">
-      <div>{{ 'Type'|t }}</div>
-      <div>{{ 'Sold'|t }}</div>
-      <div>{{ 'Available'|t }}</div>
-      <div>{{ 'Revenue'|t }}</div>
-    </div>
-    <div class="mel-table__body">
-      {% for ticket in tickets %}
-        <div class="mel-table__row">
-          <div>{{ ticket.label }}</div>
-          <div>{{ ticket.sold }}</div>
-          <div>{{ ticket.available }}</div>
-          <div>{{ ticket.revenue }}</div>
+      <div class="mel-card__body">
+        <div class="mel-stats">
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Gross'|t }}</div>
+            <div class="mel-stat__value">{{ sales.gross|default('$0') }}</div>
+          </div>
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Net'|t }}</div>
+            <div class="mel-stat__value">{{ sales.net|default('$0') }}</div>
+          </div>
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Tickets sold'|t }}</div>
+            <div class="mel-stat__value">{{ sales.tickets_sold|default(0) }}</div>
+          </div>
+          <div class="mel-stat">
+            <div class="mel-stat__label">{{ 'Remaining'|t }}</div>
+            <div class="mel-stat__value">{{ sales.tickets_available|default(0) }}</div>
+          </div>
         </div>
-      {% else %}
-        <div class="mel-table__empty">{{ 'No ticket types configured yet.'|t }}</div>
-      {% endfor %}
+      </div>
     </div>
-  </div>
+
+    <div class="mel-card">
+      <div class="mel-card__header">
+        <h3 class="mel-card__title">{{ 'Actions'|t }}</h3>
+      </div>
+      <div class="mel-card__body">
+        <div class="mel-list mel-list--actions">
+          <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">
+            {{ 'Edit ticket types'|t }}
+          </a>
+          <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.checkout_questions', { event: event_id|default(event.id()) }) }}">
+            {{ 'Checkout questions'|t }}
+          </a>
+          <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.payments', { event: event_id|default(event.id()) }) }}">
+            {{ 'Payment settings'|t }}
+          </a>
+        </div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section class="mel-section" aria-labelledby="mel-tickets-types-heading">
+    <header class="mel-section__header">
+      <div>
+        <h2 class="mel-section__title" id="mel-tickets-types-heading">{{ 'Ticket types'|t }}</h2>
+        <p class="mel-section__intro">{{ 'What you are selling and how each tier is tracking.'|t }}</p>
+      </div>
+    </header>
+    <div class="mel-card mel-card--static">
+      <div class="mel-card__header">
+        <h3 class="mel-card__title">{{ 'Inventory'|t }}</h3>
+        <a class="mel-btn mel-btn--ghost" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">{{ 'Manage'|t }}</a>
+      </div>
+      <div class="mel-card__body mel-card__body--flush">
+        <div class="mel-table">
+        <div class="mel-table__head">
+          <div>{{ 'Type'|t }}</div>
+          <div>{{ 'Sold'|t }}</div>
+          <div>{{ 'Available'|t }}</div>
+          <div>{{ 'Revenue'|t }}</div>
+        </div>
+        <div class="mel-table__body">
+          {% for ticket in tickets %}
+            <div class="mel-table__row">
+              <div>{{ ticket.label }}</div>
+              <div>{{ ticket.sold }}</div>
+              <div>{{ ticket.available }}</div>
+              <div>{{ ticket.revenue }}</div>
+            </div>
+          {% else %}
+            <div class="mel-table__empty">{{ 'No ticket types configured yet.'|t }}</div>
+          {% endfor %}
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>

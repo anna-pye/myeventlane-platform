@@ -217,6 +217,21 @@ function myeventlane_donations_schema(): array {
     ],
   ];
 
+  $schema['mel_vendor_invoice_auto_payment'] = [
+    'description' => 'Auto-billing payments (Stripe off-session) applied to MEL vendor invoices.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'invoice_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'amount_cents' => ['type' => 'int', 'not null' => TRUE],
+      'currency_code' => ['type' => 'varchar', 'length' => 3, 'not null' => TRUE, 'default' => 'aud'],
+      'stripe_payment_intent_id' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'created' => ['type' => 'int', 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['stripe_payment_intent' => ['stripe_payment_intent_id']],
+    'indexes' => ['invoice_id' => ['invoice_id']],
+  ];
+
   return $schema;
 }
 
@@ -529,5 +544,16 @@ function myeventlane_donations_update_9004(): void {
   }
   if (!$schema->tableExists('mel_vendor_invoice_payment')) {
     $schema->createTable('mel_vendor_invoice_payment', $full['mel_vendor_invoice_payment']);
+  }
+}
+
+/**
+ * Phase 4: Add mel_vendor_invoice_auto_payment table for auto-billing payments.
+ */
+function myeventlane_donations_update_9005(): void {
+  $schema = \Drupal::database()->schema();
+  $full = myeventlane_donations_schema();
+  if (!$schema->tableExists('mel_vendor_invoice_auto_payment') && isset($full['mel_vendor_invoice_auto_payment'])) {
+    $schema->createTable('mel_vendor_invoice_auto_payment', $full['mel_vendor_invoice_auto_payment']);
   }
 }

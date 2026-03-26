@@ -1,0 +1,105 @@
+/**
+ * @file
+ * Refund badges and analytics card styles.
+ */
+
+.mel-refund-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+
+  &--completed {
+    background: #e6f7ee;
+    color: #1a7f4b;
+  }
+
+  &--processing {
+    background: #eef2ff;
+    color: #4a5bdc;
+  }
+
+  &--pending_confirmation {
+    background: #fff7e6;
+    color: #a36b00;
+  }
+
+  &--partial {
+    background: #fff4e5;
+    color: #c96a00;
+  }
+
+  &--failed {
+    background: #fdecea;
+    color: #c0392b;
+  }
+
+  &--none {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+}
+
+.mel-refund-analytics-card {
+  background: #ffffff;
+  border: 1px solid #e8ecf4;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.mel-refund-analytics-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mel-refund-analytics-card__title {
+  margin: 0;
+  font-size: 20px;
+}
+
+.mel-refund-analytics-card__intro {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.mel-refund-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mel-refund-metrics__item {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8faff;
+  border: 1px solid #e6ecf5;
+}
+
+.mel-refund-metrics__label {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.mel-refund-metrics__value {
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .mel-refund-metrics {
+    grid-template-columns: 1fr;
+  }
+}

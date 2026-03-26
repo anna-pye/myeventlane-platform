@@ -1,0 +1,25 @@
+/**
+ * @file
+ * Documentation opportunity admin screens.
+ */
+
+.mel-doc-opp-summary {
+  font-weight: 600;
+}
+
+.mel-doc-opp-query {
+  white-space: pre-wrap;
+}
+
+.mel-doc-opp-meta {
+  max-height: 20rem;
+  overflow: auto;
+  font-size: 0.85rem;
+  padding: 0.75rem;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+}
+
+.mel-help-improvement-nav {
+  margin-bottom: 1.5rem;
+}

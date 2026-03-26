@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Event workspace section links (horizontal). Data from VendorEventTabsService.
+ */
+#}
+{% if tabs %}
+  {% for tab in tabs %}
+    {% if tab.disabled|default(false) %}
+      <span
+        class="mel-tab mel-tab--disabled"
+        role="tab"
+        aria-disabled="true"
+        aria-selected="false"
+        {% if tab.disabled_reason|default('') %}title="{{ tab.disabled_reason|e }}"{% endif %}
+      >{{ tab.label }}</span>
+    {% else %}
+      <a
+        href="{{ tab.url }}"
+        class="mel-tab{% if tab.active %} is-active{% endif %}"
+        role="tab"
+        {% if tab.active %}aria-current="page"{% endif %}
+        aria-selected="{{ tab.active ? 'true' : 'false' }}"
+      >{{ tab.label }}</a>
+    {% endif %}
+  {% endfor %}
+{% endif %}

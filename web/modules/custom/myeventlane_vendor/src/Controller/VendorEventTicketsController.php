@@ -41,11 +41,13 @@ final class VendorEventTicketsController extends VendorConsoleBaseController {
     $sales = $this->ticketSalesService->getSalesSummary($event);
     $tickets = $this->ticketSalesService->getTicketBreakdown($event);
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Tickets',
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
       'tabs' => $tabs,
-      'header_actions' => [],
-      'body' => [
+      'actions' => [],
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
         '#theme' => 'myeventlane_vendor_event_tickets',
         '#event' => $event,
         '#sales' => $sales,

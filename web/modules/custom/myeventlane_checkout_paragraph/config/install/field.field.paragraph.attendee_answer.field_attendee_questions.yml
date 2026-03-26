@@ -1,0 +1,31 @@
+uuid: d8b5f9e2-3c4d-5e6f-9a0b-1c2d3e4f5a6b
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.paragraph.field_attendee_questions
+    - paragraphs.paragraphs_type.attendee_answer
+    - paragraphs.paragraphs_type.attendee_extra_field
+  module:
+    - entity_reference_revisions
+id: paragraph.attendee_answer.field_attendee_questions
+field_name: field_attendee_questions
+entity_type: paragraph
+bundle: attendee_answer
+label: 'Attendee questions (per holder)'
+description: 'Cloned attendee_extra_field paragraphs holding answers for this ticket holder.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:paragraph'
+  handler_settings:
+    target_bundles:
+      attendee_extra_field: attendee_extra_field
+    negate: 0
+    target_bundles_drag_drop:
+      attendee_extra_field:
+        weight: 0
+        enabled: true
+field_type: entity_reference_revisions

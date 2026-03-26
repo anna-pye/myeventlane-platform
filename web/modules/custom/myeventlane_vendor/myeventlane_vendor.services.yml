@@ -108,7 +108,7 @@ services:
 
   myeventlane_vendor.service.event_tabs:
     class: Drupal\myeventlane_vendor\Service\VendorEventTabsService
-    arguments: ['@myeventlane_event.event_mode_manager', '@module_handler']
+    arguments: ['@myeventlane_event.event_mode_manager', '@module_handler', '@string_translation']
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
@@ -150,7 +150,7 @@ services:
 
   myeventlane_vendor.controller.vendor_event_overview:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOverviewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@?myeventlane_pro.active_resolver', '@?myeventlane_donations.vendor_mel_pct_contribution']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@myeventlane_vendor.service.metrics_aggregator', '@myeventlane_vendor.service.event_tabs', '@myeventlane_event.cta_resolver', '@myeventlane_boost.help_content', '@date.formatter', '@?myeventlane_pro.active_resolver', '@?myeventlane_donations.vendor_mel_pct_contribution', '@?myeventlane_refunds.processor']
     tags:
       - { name: controller.service_arguments }
 
@@ -180,13 +180,13 @@ services:
 
   myeventlane_vendor.controller.vendor_event_orders:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOrdersController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@date.formatter', '@myeventlane_vendor.service.event_tabs']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@date.formatter', '@myeventlane_vendor.service.event_tabs', '@?myeventlane_refunds.processor']
     tags:
       - { name: controller.service_arguments }
 
   myeventlane_vendor.controller.vendor_event_order_view:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOrderViewController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@date.formatter', '@database', '@myeventlane_vendor.service.event_tabs', '@myeventlane_core.ticket_label_resolver']
+    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@date.formatter', '@database', '@myeventlane_vendor.service.event_tabs', '@myeventlane_core.ticket_label_resolver', '@myeventlane_event_attendees.vendor_presentation', '@?myeventlane_refunds.processor']
     tags:
       - { name: controller.service_arguments }
 
@@ -222,7 +222,7 @@ services:
       - '@messenger'
       - '@myeventlane_event_attendees.manager'
       - '@myeventlane_vendor.service.event_tabs'
-      - '@myeventlane_core.ticket_label_resolver'
+      - '@myeventlane_event_attendees.vendor_presentation'
       - '@?myeventlane_growth.tracking'
     tags:
       - { name: controller.service_arguments }

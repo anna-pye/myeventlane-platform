@@ -11,7 +11,7 @@ field_name: field_help_audience
 entity_type: node
 bundle: help_article
 label: Audience
-description: ''
+description: 'Deprecated: use field_audience (public | vendor | staff). Kept for backward compatibility and migration; do not use for new access or View logic.'
 required: false
 translatable: true
 default_value: {  }

@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
+use Drupal\myeventlane_donations\Service\VendorBillingPreferencesService;
 use Drupal\myeventlane_donations\Service\VendorContributionInvoiceService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -19,6 +20,7 @@ final class VendorMelContributionBillingController extends ControllerBase {
 
   public function __construct(
     private readonly VendorContributionInvoiceService $invoiceService,
+    private readonly VendorBillingPreferencesService $billingPreferences,
   ) {}
 
   /**
@@ -27,11 +29,12 @@ final class VendorMelContributionBillingController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_donations.vendor_contribution_invoice'),
+      $container->get('myeventlane_donations.vendor_billing_preferences'),
     );
   }
 
   /**
-   * Summary + invoice list.
+   * Summary + invoice list + auto-billing section.
    */
   public function overview(): array {
     $uid = (int) $this->currentUser()->id();
@@ -45,10 +48,21 @@ final class VendorMelContributionBillingController extends ControllerBase {
     $summary = $this->invoiceService->getVendorDashboardSummary($vendorId);
     $invoices = $this->invoiceService->listInvoicesForVendor($vendorId);
 
+    $vendor = $this->entityTypeManager()->getStorage('myeventlane_vendor')->load($vendorId);
+    $billing_prefs = $vendor ? $this->billingPreferences->getBillingState($vendor) : [
+      'auto_billing_enabled' => FALSE,
+      'has_payment_method' => FALSE,
+      'last4' => NULL,
+      'stripe_customer_id' => NULL,
+    ];
+
     return [
       '#theme' => 'myeventlane_mel_vendor_billing',
       '#summary' => $summary,
       '#invoices' => $invoices,
+      '#billing_prefs' => $billing_prefs,
+      '#save_payment_url' => Url::fromRoute('myeventlane_donations.vendor_mel_save_payment_method')->toString(),
+      '#remove_payment_url' => Url::fromRoute('myeventlane_donations.vendor_mel_remove_payment_method')->toString(),
       '#attached' => [
         'library' => ['myeventlane_donations/mel-vendor-billing'],
       ],

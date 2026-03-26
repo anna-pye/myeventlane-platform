@@ -30,6 +30,11 @@ final class VendorContributionInvoiceService {
 
   public const INVOICE_VOID = 'void';
 
+  /**
+   * Auto-billing was attempted and failed. Vendor should update payment method.
+   */
+  public const INVOICE_FAILED = 'failed';
+
   public const BILLING_UNBILLED = 'unbilled';
 
   public const BILLING_BILLED = 'billed';
@@ -468,6 +473,112 @@ final class VendorContributionInvoiceService {
       '@oid' => (string) $orderId,
       '@s' => $newStatus,
     ]);
+  }
+
+  /**
+   * Applies an auto-billing (Stripe off-session) payment to an invoice.
+   *
+   * Idempotent per stripe_payment_intent_id.
+   */
+  public function applyAutoBillingPayment(
+    int $invoiceId,
+    int $paidCents,
+    string $currency,
+    string $stripePaymentIntentId,
+  ): void {
+    if (!$this->tablesExist() || $paidCents <= 0 || trim($stripePaymentIntentId) === '') {
+      return;
+    }
+
+    $currency = strtolower($currency);
+    $s = $this->database->schema();
+    if (!$s->tableExists('mel_vendor_invoice_auto_payment')) {
+      $this->logger()->error('MEL auto-billing: table mel_vendor_invoice_auto_payment does not exist.');
+      return;
+    }
+
+    try {
+      $this->database->insert('mel_vendor_invoice_auto_payment')
+        ->fields([
+          'invoice_id' => $invoiceId,
+          'amount_cents' => $paidCents,
+          'currency_code' => $currency,
+          'stripe_payment_intent_id' => $stripePaymentIntentId,
+          'created' => time(),
+        ])
+        ->execute();
+    }
+    catch (IntegrityConstraintViolationException) {
+      $this->logger()->notice('MEL auto-billing: duplicate payment intent @pi ignored (idempotent).', [
+        '@pi' => $stripePaymentIntentId,
+      ]);
+      return;
+    }
+
+    $invoice = $this->loadInvoice($invoiceId);
+    if (!$invoice) {
+      $this->logger()->error('MEL auto-billing: invoice @iid missing.', ['@iid' => (string) $invoiceId]);
+      return;
+    }
+
+    if (strtolower((string) $invoice['currency_code']) !== $currency) {
+      $this->logger()->error('MEL auto-billing: currency mismatch for invoice @iid.', ['@iid' => (string) $invoiceId]);
+      return;
+    }
+
+    $total = (int) $invoice['total_amount_cents'];
+    $prevPaid = (int) $invoice['paid_amount_cents'];
+    $newPaid = min($total, $prevPaid + $paidCents);
+    $now = time();
+
+    $newStatus = self::INVOICE_PARTIAL;
+    if ($newPaid >= $total) {
+      $newStatus = self::INVOICE_PAID;
+      $newPaid = $total;
+    }
+
+    $this->database->update('mel_vendor_invoice')
+      ->fields([
+        'paid_amount_cents' => $newPaid,
+        'status' => $newStatus,
+        'changed' => $now,
+      ])
+      ->condition('id', $invoiceId)
+      ->execute();
+
+    if ($newStatus === self::INVOICE_PAID) {
+      $this->database->update('mel_vendor_pct_contribution')
+        ->fields([
+          'billing_status' => self::BILLING_PAID,
+          'changed' => $now,
+        ])
+        ->condition('invoice_id', $invoiceId)
+        ->execute();
+    }
+
+    $this->logger()->info('MEL invoice @iid auto-billing settled @cents cents (pi @pi, status @s).', [
+      '@iid' => (string) $invoiceId,
+      '@cents' => (string) $paidCents,
+      '@pi' => $stripePaymentIntentId,
+      '@s' => $newStatus,
+    ]);
+  }
+
+  /**
+   * Marks an invoice as failed (auto-billing attempt failed).
+   */
+  public function markInvoiceFailed(int $invoiceId): void {
+    if (!$this->tablesExist()) {
+      return;
+    }
+    $this->database->update('mel_vendor_invoice')
+      ->fields([
+        'status' => self::INVOICE_FAILED,
+        'changed' => time(),
+      ])
+      ->condition('id', $invoiceId)
+      ->execute();
+    $this->logger()->info('MEL invoice @iid marked as failed (auto-billing).', ['@iid' => (string) $invoiceId]);
   }
 
   private function extractInvoiceIdFromOrder(OrderInterface $order): ?int {

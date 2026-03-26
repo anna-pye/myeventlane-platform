@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Save payment method for MEL contribution auto-billing (SetupIntent + Stripe).
+ */
+#}
+<div class="mel-mel-save-payment">
+  <p><a href="{{ billing_url }}">{{ '← Back to MEL contributions'|t }}</a></p>
+
+  <h1>{{ 'Save payment method'|t }}</h1>
+  <p class="mel-mel-save-payment__desc">
+    {{ 'Enter your card details below. Your card will be securely saved for automatic MEL contribution payments. We never store your full card number.'|t }}
+  </p>
+
+  <div id="mel-payment-element-container" class="mel-mel-save-payment__element"></div>
+  <div id="mel-payment-element-errors" class="mel-mel-save-payment__errors" role="alert"></div>
+
+  <form id="mel-save-payment-form" class="mel-mel-save-payment__form">
+    <button type="submit" id="mel-save-payment-submit" class="mel-btn mel-btn--primary">
+      {{ 'Save payment method'|t }}
+    </button>
+  </form>
+
+  <p class="mel-mel-save-payment__consent">
+    {{ 'By saving, you authorise MyEventLane to charge your saved payment method for future invoices.'|t }}
+  </p>
+</div>

@@ -603,6 +603,21 @@ myeventlane_vendor.console.event_settings:
         bundle:
           - event
 
+myeventlane_vendor.console.event_unpublish:
+  path: '/vendor/events/{event}/unpublish'
+  defaults:
+    _form: '\Drupal\myeventlane_vendor\Form\EventUnpublishForm'
+    _title: 'Unpublish event'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 myeventlane_vendor.console.event_attendees:
   path: '/vendor/events/{event}/attendees'
   defaults:

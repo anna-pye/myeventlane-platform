@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Controller;
 
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 
 /**
@@ -13,58 +17,68 @@ use Drupal\node\NodeInterface;
  *
  * Provides common functionality for all ticket management pages:
  * - Event ownership assertion
- * - Tickets sub-navigation
- * - Vendor console page rendering.
+ * - Primary event tabs + tickets sub-navigation (sidebar)
+ * - MEL event workspace rendering.
  */
 abstract class VendorEventTicketsBaseController extends VendorConsoleBaseController {
 
   /**
-   * Builds a Tickets workspace page with sub-navigation.
+   * Constructs the base controller.
+   */
+  public function __construct(
+    DomainDetector $domainDetector,
+    AccountProxyInterface $currentUser,
+    MessengerInterface $messenger,
+    protected readonly VendorEventTabsService $eventTabsService,
+  ) {
+    parent::__construct($domainDetector, $currentUser, $messenger);
+  }
+
+  /**
+   * Builds a Tickets workspace page with event shell + ticket tools sidebar.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    * @param array $body
    *   The main content render array.
-   * @param string $title
-   *   The page title (will be prefixed with event label).
    * @param string $active_key
    *   The key of the currently active section in tickets navigation.
    * @param array|null $header_actions
    *   Optional array of header action buttons.
    *
    * @return array
-   *   The render array for the vendor console page.
+   *   The render array for the event workspace.
    */
   protected function buildTicketsPage(
     NodeInterface $event,
     array $body,
-    string $title,
     string $active_key,
     ?array $header_actions = NULL,
   ): array {
-    // Assert event ownership.
     $this->assertEventOwnership($event);
 
-    // Build tickets sub-navigation.
-    $tabs = $this->buildTicketsNavigation($event, $active_key);
+    $event_tabs = $this->eventTabsService->getTabs($event, 'tickets');
+    $ticket_tabs = $this->buildTicketsNavigation($event, $active_key);
 
-    // Build full page title.
-    $full_title = $event->label() . ' — ' . $title;
-
-    // Build page variables.
-    $page_vars = [
-      'title' => $full_title,
-      'tabs' => $tabs,
-      'body' => $body,
+    $sidebar = [
+      '#theme' => 'mel_workspace_ticket_sidebar',
+      '#ticket_tabs' => $ticket_tabs,
+      '#cache' => [
+        'contexts' => $event->getCacheContexts(),
+        'tags' => $event->getCacheTags(),
+      ],
     ];
 
-    // Add header actions if provided.
-    if ($header_actions !== NULL) {
-      $page_vars['header_actions'] = $header_actions;
-    }
+    $page_vars = [
+      'event' => $event,
+      'tabs' => $event_tabs,
+      'content' => $body,
+      'actions' => $header_actions ?? [],
+      'meta' => NULL,
+      'sidebar' => $sidebar,
+    ];
 
-    // Render via vendor console.
-    return $this->buildVendorPage('myeventlane_vendor_console_page', $page_vars);
+    return $this->buildVendorPage('mel_event_workspace', $page_vars);
   }
 
   /**
@@ -114,10 +128,10 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
       ],
     ];
 
-    // Mark active tab.
     foreach ($tabs as &$tab) {
       $tab['active'] = ($tab['key'] === $active_key);
     }
+    unset($tab);
 
     return $tabs;
   }

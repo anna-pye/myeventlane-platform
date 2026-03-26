@@ -1,0 +1,49 @@
+services:
+  logger.channel.myeventlane_help_improvement:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: ['@logger.factory', 'get']
+    arguments: ['myeventlane_help_improvement']
+
+  myeventlane_help_improvement.normalizer:
+    class: Drupal\myeventlane_help_improvement\Service\DocumentationOpportunityNormalizer
+
+  myeventlane_help_improvement.storage:
+    class: Drupal\myeventlane_help_improvement\Service\DocumentationOpportunityStorage
+    arguments:
+      - '@database'
+      - '@logger.channel.myeventlane_help_improvement'
+      - '@myeventlane_help_improvement.normalizer'
+
+  myeventlane_help_improvement.capture:
+    class: Drupal\myeventlane_help_improvement\Service\DocumentationOpportunityCaptureService
+    arguments:
+      - '@myeventlane_help_improvement.storage'
+      - '@myeventlane_help_improvement.normalizer'
+      - '@logger.channel.myeventlane_help_improvement'
+
+  myeventlane_help_improvement.aggregation:
+    class: Drupal\myeventlane_help_improvement\Service\DocumentationOpportunityAggregationService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@myeventlane_help_improvement.normalizer'
+      - '@myeventlane_help_improvement.capture'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_help_improvement'
+
+  myeventlane_help_improvement.draft_generator:
+    class: Drupal\myeventlane_help_improvement\Service\HelpArticleDraftGeneratorService
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@myeventlane_ai.manager'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_help_improvement'
+
+  myeventlane_help_improvement.analytics_subscriber:
+    class: Drupal\myeventlane_help_improvement\EventSubscriber\HelpAnalyticsOpportunitySubscriber
+    arguments:
+      - '@myeventlane_help_improvement.capture'
+      - '@logger.channel.myeventlane_help_improvement'
+    tags:
+      - { name: event_subscriber }

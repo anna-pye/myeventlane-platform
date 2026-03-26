@@ -36,18 +36,36 @@ final class VendorEventSettingsController extends VendorConsoleBaseController {
     $this->assertStripeConnected();
     $tabs = $this->eventTabsService->getTabs($event, 'settings');
 
-    return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $event->label() . ' — Settings',
-      'tabs' => $tabs,
-      'header_actions' => [
-        [
-          'label' => 'Edit Event',
-          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()])->toString(),
-          'class' => 'mel-btn--primary',
-        ],
+    $event_id = (int) $event->id();
+
+    $header_actions = [
+      [
+        'label' => $this->t('Edit Event'),
+        'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event_id])->toString(),
+        'class' => 'mel-btn mel-btn--primary',
       ],
-      'body' => [
-        '#theme' => 'myeventlane_vendor_event_settings',
+      [
+        'label' => $this->t('View Page'),
+        'url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
+        'class' => 'mel-btn mel-btn--secondary',
+        'external' => TRUE,
+      ],
+      [
+        'label' => $this->t('Booking Page'),
+        'url' => Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event_id])->toString(),
+        'class' => 'mel-btn mel-btn--secondary',
+        'external' => TRUE,
+      ],
+    ];
+
+    return $this->buildVendorPage('mel_event_workspace', [
+      'event' => $event,
+      'tabs' => $tabs,
+      'actions' => $header_actions,
+      'meta' => NULL,
+      'sidebar' => NULL,
+      'content' => [
+        '#theme' => 'myeventlane_vendor_event_settings_page',
         '#event' => $event,
       ],
     ]);

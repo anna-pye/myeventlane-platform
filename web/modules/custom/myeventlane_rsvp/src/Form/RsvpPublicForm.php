@@ -13,7 +13,10 @@ use Drupal\Core\Url;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_donations\Service\RsvpDonationService;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
+use Drupal\myeventlane_event_attendees\Service\EventAttendeeQuestionCaptureService;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\myeventlane_legal\Service\RsvpLegalAlter;
 use Drupal\myeventlane_rsvp\Service\RsvpMailer;
 use Drupal\myeventlane_rsvp\Service\RsvpSubmissionManager;
@@ -59,6 +62,16 @@ final class RsvpPublicForm extends FormBase {
   protected ?AttendanceManager $attendanceManager = NULL;
 
   /**
+   * Event attendee question templates (RSVP tiered path).
+   */
+  protected EventAttendeeQuestionCaptureService $questionCapture;
+
+  /**
+   * Vendor parity / RSVP debug logging for attendee questions.
+   */
+  protected VendorAttendeePresentationService $vendorAttendeePresentation;
+
+  /**
    * Module handler for vendor/store lookups.
    */
   protected ModuleHandlerInterface $moduleHandler;
@@ -72,6 +85,8 @@ final class RsvpPublicForm extends FormBase {
     RsvpSubmissionManager $submission_manager,
     RsvpMailer $mailer,
     ModuleHandlerInterface $module_handler,
+    EventAttendeeQuestionCaptureService $question_capture,
+    VendorAttendeePresentationService $vendor_attendee_presentation,
     ?RsvpDonationService $rsvp_donation_service = NULL,
     ?AttendanceManager $attendance_manager = NULL,
   ) {
@@ -83,6 +98,8 @@ final class RsvpPublicForm extends FormBase {
     $this->submissionManager = $submission_manager;
     $this->mailer = $mailer;
     $this->moduleHandler = $module_handler;
+    $this->questionCapture = $question_capture;
+    $this->vendorAttendeePresentation = $vendor_attendee_presentation;
     $this->rsvpDonationService = $rsvp_donation_service;
     $this->attendanceManager = $attendance_manager;
   }
@@ -105,6 +122,8 @@ final class RsvpPublicForm extends FormBase {
       $container->get('myeventlane_rsvp.submission_manager'),
       $container->get('myeventlane_rsvp.mailer'),
       $container->get('module_handler'),
+      $container->get('myeventlane_event_attendees.rsvp_question_capture'),
+      $container->get('myeventlane_event_attendees.vendor_presentation'),
       $donation_service,
       $attendance_manager,
     );
@@ -176,6 +195,13 @@ final class RsvpPublicForm extends FormBase {
       '#required' => TRUE,
     ];
 
+    $this->vendorAttendeePresentation->logRsvpEventQuestionTemplateCount($event);
+    $questionTemplates = $this->questionCapture->getTemplatesFromEvent($event);
+    $questionElements = $this->questionCapture->buildFormElements($questionTemplates);
+    if ($questionElements !== []) {
+      $form['mel_rsvp_event_questions'] = $questionElements;
+    }
+
     // Donation section: rich UI when donations enabled and vendor can receive, else simple field.
     $this->buildDonationSection($form, $event);
 
@@ -210,6 +236,16 @@ final class RsvpPublicForm extends FormBase {
     if ($email === '') {
       $form_state->setErrorByName('email', $this->t('Email is required.'));
       return;
+    }
+
+    $event_id = $form_state->getValue('event_id');
+    $event_node = $event_id ? $this->entityTypeManager->getStorage('node')->load($event_id) : NULL;
+    if ($event_node instanceof NodeInterface) {
+      $templates = $this->questionCapture->getTemplatesFromEvent($event_node);
+      if ($templates !== []) {
+        $raw = $form_state->getValue('mel_rsvp_event_questions');
+        $this->questionCapture->validateRequired($templates, is_array($raw) ? $raw : [], $form_state);
+      }
     }
 
     // Donation: rich section (toggle + preset) or simple number field.
@@ -310,6 +346,8 @@ final class RsvpPublicForm extends FormBase {
       ], $capacity, $legalConsent);
 
       $submissionId = (int) $submission->id();
+
+      $this->syncVendorMirrorForRsvp($event, $form_state, $values);
     }
     catch (CapacityExceededException $e) {
       $this->messengerService->addError($this->t('This event is full. Join the waitlist?'));
@@ -409,29 +447,6 @@ final class RsvpPublicForm extends FormBase {
       // (Email + thank you).
     }
 
-    // Optional: Save accessibility needs only when RSVP is confirmed (free path or fallback).
-    $accessibilityNeeds = $values['accessibility_needs'] ?? [];
-    if (!empty($accessibilityNeeds) && $this->attendanceManager) {
-      $accessibilityNeeds = array_filter($accessibilityNeeds, fn($value) => $value !== 0 && $value !== FALSE && $value !== '');
-      if (!empty($accessibilityNeeds)) {
-        try {
-          $attendeeData = [
-            'name' => $values['name'] ?? '',
-            'email' => $values['email'] ?? '',
-            'status' => 'confirmed',
-            'accessibility_needs' => array_values($accessibilityNeeds),
-          ];
-          $this->attendanceManager->createAttendance($event, $attendeeData, 'rsvp');
-        }
-        catch (\Throwable $e) {
-          $this->logger->warning('Could not save accessibility needs for RSVP: @message', [
-            '@message' => $e->getMessage(),
-            'event_id' => $eventId,
-          ]);
-        }
-      }
-    }
-
     // Send confirmation email (free RSVP or donation fallback only).
     try {
       $this->mailer->sendConfirmation($submission, $event);
@@ -455,6 +470,59 @@ final class RsvpPublicForm extends FormBase {
     }
     catch (\Throwable) {
       $form_state->setRedirect('entity.node.canonical', ['node' => $event->id()]);
+    }
+  }
+
+  /**
+   * Mirrors RSVP identity + optional questions/accessibility onto event_attendee.
+   *
+   * Runs when the event defines attendee question templates and/or the guest
+   * selected accessibility options (tiered vendor-console parity).
+   */
+  private function syncVendorMirrorForRsvp(NodeInterface $event, FormStateInterface $form_state, array $values): void {
+    if (!$this->attendanceManager) {
+      return;
+    }
+
+    $templates = $this->questionCapture->getTemplatesFromEvent($event);
+    $rawQuestions = $form_state->getValue('mel_rsvp_event_questions');
+    $rawQuestions = is_array($rawQuestions) ? $rawQuestions : [];
+    $structured = $templates !== []
+      ? $this->questionCapture->buildStructuredExtraData($templates, $rawQuestions)
+      : [];
+
+    $accessibilityNeeds = $values['accessibility_needs'] ?? [];
+    $accessibilityNeeds = is_array($accessibilityNeeds)
+      ? array_filter($accessibilityNeeds, static fn ($value) => $value !== 0 && $value !== FALSE && $value !== '')
+      : [];
+    $accessibilityNeeds = array_values($accessibilityNeeds);
+
+    if ($templates === [] && $accessibilityNeeds === []) {
+      return;
+    }
+
+    try {
+      $this->attendanceManager->upsertRsvpVendorMirror($event, [
+        'name' => $values['name'] ?? '',
+        'email' => $values['email'] ?? '',
+        'phone' => $values['phone'] ?? '',
+        'extra_data' => $structured,
+        'accessibility_needs' => $accessibilityNeeds,
+        'status' => EventAttendee::STATUS_CONFIRMED,
+      ]);
+      if ($templates !== []) {
+        $this->vendorAttendeePresentation->logRsvpQuestionsSaved(
+          (int) $event->id(),
+          count($templates),
+          count($structured),
+        );
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not sync RSVP vendor mirror (event_attendee): @message', [
+        '@message' => $e->getMessage(),
+        'event_id' => (int) $event->id(),
+      ]);
     }
   }
 

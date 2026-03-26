@@ -1,0 +1,66 @@
+{#
+/**
+ * @file
+ * Structured Help Assistant / MEL AI response (answer, steps, actions, sources, follow-ups).
+ */
+#}
+<div class="mel-ai-response">
+  {% if context_display.event_title %}
+    <div class="mel-ai-context">
+      <span>{{ 'Helping with:'|t }} {{ context_display.event_title }}</span>
+    </div>
+  {% endif %}
+
+  {% if answer %}
+    <div class="mel-ai-answer">
+      <p>{{ answer }}</p>
+    </div>
+  {% endif %}
+
+  {% if steps %}
+    <div class="mel-ai-steps">
+      <strong>{{ 'What to do next'|t }}</strong>
+      <ol>
+        {% for step in steps %}
+          <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+  {% endif %}
+
+  {% if actions %}
+    <div class="mel-ai-actions">
+      {% for action in actions %}
+        <a href="{{ action.url }}" class="mel-ai-button">
+          {{ action.label }}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if sources %}
+    <div class="mel-ai-sources">
+      <span>{{ 'Based on:'|t }}</span>
+      <ul>
+        {% for source in sources %}
+          <li>
+            <a href="{{ source.url }}">{{ source.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if followups %}
+    <div class="mel-ai-followups">
+      <span>{{ 'Try asking:'|t }}</span>
+      <div class="mel-chip-group">
+        {% for q in followups %}
+          <button type="button" class="mel-chip" data-question="{{ q|e('html_attr') }}">
+            {{ q }}
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

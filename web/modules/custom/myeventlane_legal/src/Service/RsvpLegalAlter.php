@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_legal\Service;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -21,23 +22,21 @@ final class RsvpLegalAlter {
   public const RSVP_CONSENT_FORM_STATE_KEY = 'myeventlane_legal_rsvp_consent';
 
   /**
-   * Current HTTP request stack (Symfony).
+   * Form key for consent status (version diff result).
+   *
+   * @var string
    */
-  private readonly RequestStack $requestStack;
+  public const LEGAL_STATUS_FORM_KEY = '#myeventlane_legal_status';
 
   /**
    * Constructs the alter service.
-   *
-   * @param \Symfony\Component\HttpFoundation\RequestStack|null $requestStack
-   *   Injected request stack; omit only when the container was not rebuilt after
-   *   adding the third service argument (falls back to \Drupal::requestStack()).
    */
   public function __construct(
     private readonly LegalSettingsService $legalSettings,
-    ?RequestStack $requestStack = NULL,
-  ) {
-    $this->requestStack = $requestStack ?? \Drupal::requestStack();
-  }
+    private readonly ConsentVersionDiffService $versionDiff,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly RequestStack $requestStack,
+  ) {}
 
   /**
    * Alters RsvpPublicForm.
@@ -48,6 +47,16 @@ final class RsvpLegalAlter {
       $form['donation_section']['#weight'] = 25;
     }
     $form['legal_consent']['#weight'] = 5;
+
+    $context = $this->resolveRsvpConsentContext($form, $form_state);
+    $status = $this->versionDiff->getRsvpConsentStatus(
+      $context['email'],
+      $context['uid'],
+      $context['event_id']
+    );
+    $form[self::LEGAL_STATUS_FORM_KEY] = $status;
+
+    $this->applyReconsentUx($form, $status);
     $this->enforceLegalConsentNonCoreRequired($form);
     array_unshift($form['#validate'], [$this, 'validateRsvpLegal']);
     $form['#submit'] = array_merge(
@@ -65,12 +74,125 @@ final class RsvpLegalAlter {
       $form['donation_section']['#weight'] = 25;
     }
     $form['legal_consent']['#weight'] = 5;
+
+    $context = $this->resolveRsvpConsentContext($form, $form_state);
+    $status = $this->versionDiff->getRsvpConsentStatus(
+      $context['email'],
+      $context['uid'],
+      $context['event_id']
+    );
+    $form[self::LEGAL_STATUS_FORM_KEY] = $status;
+
+    $this->applyReconsentUx($form, $status);
     $this->enforceLegalConsentNonCoreRequired($form);
     array_unshift($form['#validate'], [$this, 'validateRsvpLegal']);
     $form['#submit'] = array_merge(
       [[$this, 'submitStoreLegalConsent']],
       $form['#submit'] ?? []
     );
+  }
+
+  /**
+   * Resolves email, uid, event_id from form for version-diff lookup.
+   *
+   * @return array{email: ?string, uid: ?int, event_id: ?int}
+   */
+  private function resolveRsvpConsentContext(array $form, FormStateInterface $form_state): array {
+    $email = NULL;
+    $event_id = NULL;
+
+    // Prefer submitted values, then user input, then default.
+    $values = $form_state->getValues();
+    $userInput = $form_state->getUserInput();
+
+    if (isset($values['email']) && trim((string) $values['email']) !== '') {
+      $email = trim((string) $values['email']);
+    }
+    elseif (is_array($userInput) && isset($userInput['email']) && trim((string) $userInput['email']) !== '') {
+      $email = trim((string) $userInput['email']);
+    }
+    elseif (isset($form['email']['#default_value']) && trim((string) $form['email']['#default_value']) !== '') {
+      $email = trim((string) $form['email']['#default_value']);
+    }
+
+    if (isset($values['event_id']) && $values['event_id'] !== NULL && $values['event_id'] !== '') {
+      $event_id = (int) $values['event_id'];
+    }
+    elseif (isset($form['event_id']['#value']) && $form['event_id']['#value'] !== NULL && $form['event_id']['#value'] !== '') {
+      $event_id = (int) $form['event_id']['#value'];
+    }
+    elseif (isset($form['event_id']['#default_value']) && $form['event_id']['#default_value'] !== NULL) {
+      $event_id = (int) $form['event_id']['#default_value'];
+    }
+
+    $uid = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;
+
+    return [
+      'email' => $email,
+      'uid' => $uid,
+      'event_id' => $event_id,
+    ];
+  }
+
+  /**
+   * Applies re-consent UX when policy versions have changed.
+   */
+  private function applyReconsentUx(array &$form, array $status): void {
+    if (!isset($form['legal_consent']['customer_terms_agreed'])) {
+      return;
+    }
+
+    if (empty($status['requires_reconsent'])) {
+      return;
+    }
+
+    $checkbox_weight = $form['legal_consent']['customer_terms_agreed']['#weight'] ?? 0;
+
+    $message = $this->buildReconsentMessage($status);
+    $form['legal_consent']['legal_consent_notice'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['myeventlane-legal-notice', 'myeventlane-legal-notice--warning', 'myeventlane-legal-version-diff'],
+      ],
+      '#weight' => $checkbox_weight - 1,
+      'message' => [
+        '#markup' => '<p>' . $message . '</p>',
+        '#allowed_tags' => ['p'],
+      ],
+    ];
+
+    $form['legal_consent']['customer_terms_agreed']['#myeventlane_requires_reconsent'] = TRUE;
+    $form['legal_consent']['customer_terms_agreed']['#description'] = t('I agree to the latest Terms of Service and Privacy Policy.');
+  }
+
+  /**
+   * Builds the re-consent notice message.
+   */
+  private function buildReconsentMessage(array $status): string {
+    $terms = $status['terms_changed'] ?? FALSE;
+    $privacy = $status['privacy_changed'] ?? FALSE;
+
+    if ($terms && $privacy) {
+      return t('Our Terms of Service and Privacy Policy have been updated since your last RSVP. Please review and agree again to continue.');
+    }
+    if ($terms) {
+      $version = $status['current_terms_version'] ?? '';
+      $msg = t('Our Terms of Service have been updated since your last RSVP. Please review and agree again to continue.');
+      if ($version !== '') {
+        $msg .= ' ' . t('(Current version: @version)', ['@version' => $version]);
+      }
+      return $msg;
+    }
+    if ($privacy) {
+      $version = $status['current_privacy_version'] ?? '';
+      $msg = t('Our Privacy Policy has been updated since your last RSVP. Please review and agree again to continue.');
+      if ($version !== '') {
+        $msg .= ' ' . t('(Current version: @version)', ['@version' => $version]);
+      }
+      return $msg;
+    }
+
+    return t('Our Terms of Service and/or Privacy Policy have been updated since your last RSVP. Please review and agree again to continue.');
   }
 
   /**
@@ -227,10 +349,39 @@ final class RsvpLegalAlter {
       return;
     }
 
-    $this->legalSettings->getLogger()->warning('RSVP legal: terms/privacy not accepted. POST legal_consent keys: @keys', [
-      '@keys' => $this->legalConsentPostKeysForLog(),
-    ]);
-    $form_state->setErrorByName('legal_consent][customer_terms_agreed', t('You must agree to the Terms of Service and Privacy Policy.'));
+    $status = $form[self::LEGAL_STATUS_FORM_KEY] ?? [];
+    $requiresReconsent = !empty($status['requires_reconsent']);
+
+    if ($requiresReconsent) {
+      $message = $this->getReconsentValidationMessage($status);
+      $form_state->setErrorByName('legal_consent][customer_terms_agreed', $message);
+    }
+    else {
+      $this->legalSettings->getLogger()->warning('RSVP legal: terms/privacy not accepted. POST legal_consent keys: @keys', [
+        '@keys' => $this->legalConsentPostKeysForLog(),
+      ]);
+      $form_state->setErrorByName('legal_consent][customer_terms_agreed', t('You must agree to the Terms of Service and Privacy Policy.'));
+    }
+  }
+
+  /**
+   * Returns the validation error message for re-consent required.
+   */
+  private function getReconsentValidationMessage(array $status): string {
+    $terms = $status['terms_changed'] ?? FALSE;
+    $privacy = $status['privacy_changed'] ?? FALSE;
+
+    if ($terms && $privacy) {
+      return t('You must agree to the updated Terms of Service and Privacy Policy to continue.');
+    }
+    if ($terms) {
+      return t('You must agree to the updated Terms of Service to continue.');
+    }
+    if ($privacy) {
+      return t('You must agree to the updated Privacy Policy to continue.');
+    }
+
+    return t('You must agree to the updated Terms of Service and Privacy Policy to continue.');
   }
 
   /**

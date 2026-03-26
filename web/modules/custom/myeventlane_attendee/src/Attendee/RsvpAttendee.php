@@ -107,13 +107,20 @@ final class RsvpAttendee implements AttendeeInterface {
    */
   public function toExportRow(): array {
     $checkedInAt = $this->getCheckedInAt();
+    $phone = '';
+    if ($this->rsvp->hasField('phone') && !$this->rsvp->get('phone')->isEmpty()) {
+      $phone = trim((string) ($this->rsvp->get('phone')->value ?? ''));
+    }
     return [
       'name' => $this->getDisplayName(),
       'email' => $this->getEmail(),
+      'phone' => $phone,
       'ticket_type' => NULL,
       'checked_in' => $this->isCheckedIn(),
       'checked_in_at' => $checkedInAt?->format('c'),
       'source' => 'rsvp',
+      'ticket_code' => '',
+      'custom_answers' => '',
     ];
   }
 

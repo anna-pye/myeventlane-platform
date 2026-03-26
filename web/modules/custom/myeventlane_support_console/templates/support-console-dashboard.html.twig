@@ -37,6 +37,37 @@
     </section>
   {% endif %}
 
+  {# Internal knowledge: playbooks + staff help (links only) #}
+  {% set ik = panels.internal_knowledge|default({}) %}
+  {% if ik.playbooks is not empty or ik.staff_articles is not empty or ik.actions is not empty %}
+    <section class="support-console__panel support-console__panel--knowledge">
+      <h2 class="support-console__panel-title">{{ 'Playbooks & internal help'|t }}</h2>
+      {% if ik.actions is not empty %}
+        <p class="support-console__action-row">
+          {% for action in ik.actions %}
+            <a class="support-console__text-link" href="{{ action.url }}">{{ action.title }}</a>{% if not loop.last %} · {% endif %}
+          {% endfor %}
+        </p>
+      {% endif %}
+      {% if ik.playbooks is not empty %}
+        <h3 class="support-console__subhead">{{ 'Recent playbooks'|t }}</h3>
+        <ul class="support-console__quick-links">
+          {% for item in ik.playbooks %}
+            <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if ik.staff_articles is not empty %}
+        <h3 class="support-console__subhead">{{ 'Staff help articles'|t }}</h3>
+        <ul class="support-console__quick-links">
+          {% for item in ik.staff_articles %}
+            <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {# Action queue #}
   <section class="support-console__panel support-console__panel--action-queue">
     <h2 class="support-console__panel-title">{{ 'Action queue'|t }} ({{ 'waiting on staff'|t }})</h2>

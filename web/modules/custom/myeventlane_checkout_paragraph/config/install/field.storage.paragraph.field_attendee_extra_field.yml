@@ -1,0 +1,19 @@
+uuid: e9c6a0f3-4d5e-6f7a-0b1c-2d3e4f5a6b7c
+langcode: en
+status: true
+dependencies:
+  module:
+    - paragraphs
+id: paragraph.field_attendee_extra_field
+field_name: field_attendee_extra_field
+entity_type: paragraph
+type: string_long
+settings:
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

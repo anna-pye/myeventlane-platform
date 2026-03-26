@@ -1,28 +1,14 @@
 {#
 /**
  * @file
- * Help Assistant block wrapper.
+ * Help Assistant block — vendor workspace sidebar.
  */
 #}
-<section class="mel-help-assistant mel-help-assistant--block js-mel-help-assistant" data-endpoint="{{ endpoint }}">
-  <div class="mel-help-assistant__card">
-    <h3 class="mel-help-assistant__title">{{ 'Need help?'|t }}</h3>
-    <p class="mel-help-assistant__intro">{{ 'Ask a question and get an answer grounded in Help Centre articles.'|t }}</p>
-    <form class="mel-help-assistant__form js-mel-help-assistant-form" novalidate>
-      <label class="visually-hidden" for="mel-help-assistant-question">{{ 'Ask a question'|t }}</label>
-      <textarea
-        id="mel-help-assistant-question"
-        class="mel-help-assistant__question js-mel-help-assistant-question"
-        name="question"
-        rows="3"
-        maxlength="500"
-        placeholder="{{ 'Ask a question'|t }}"
-        required
-      ></textarea>
-      <button type="submit" class="button button--primary mel-help-assistant__submit js-mel-help-assistant-submit">
-        {{ 'Ask a question'|t }}
-      </button>
-    </form>
-    <div class="mel-help-assistant__response js-mel-help-assistant-response" hidden></div>
-  </div>
-</section>
+{{ attach_library('myeventlane_help_assistant/help_assistant') }}
+{% include '@myeventlane_help_assistant/help-assistant.html.twig' with {
+  endpoint: endpoint,
+  starter_questions: starter_questions,
+  support_url: support_url,
+  question_input_id: 'mel-help-assistant-question',
+  wrapper_modifier: 'block',
+} only %}

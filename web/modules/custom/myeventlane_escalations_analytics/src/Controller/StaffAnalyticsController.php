@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_escalations_analytics\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\Core\Url;
 use Drupal\myeventlane_escalations_analytics\Service\EscalationAnalyticsQuery;
 use Drupal\myeventlane_escalations_analytics\Service\EscalationMetricsCalculator;
@@ -24,6 +25,7 @@ final class StaffAnalyticsController extends ControllerBase {
     private readonly EscalationAnalyticsQuery $analyticsQuery,
     private readonly EscalationMetricsCalculator $metricsCalculator,
     private readonly VendorHealthEvaluator $healthEvaluator,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -34,6 +36,7 @@ final class StaffAnalyticsController extends ControllerBase {
       $container->get('myeventlane_escalations_analytics.query'),
       $container->get('myeventlane_escalations_analytics.metrics'),
       $container->get('myeventlane_escalations_analytics.health'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -68,13 +71,19 @@ final class StaffAnalyticsController extends ControllerBase {
       ];
     }
 
-    return [
+    $main = [
       '#theme' => 'escalation_analytics_staff',
       '#platform_metrics' => $platform_metrics,
       '#vendor_rows' => $vendor_rows,
       '#export_url' => Url::fromRoute('myeventlane_escalations_analytics.staff_export')->toString(),
       '#cache' => ['max-age' => 0],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Escalation analytics'),
+      $this->t('Platform and per-vendor escalation metrics.'),
+    );
   }
 
   /**

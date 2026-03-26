@@ -62,20 +62,48 @@ final class VendorRefundWorker extends QueueWorkerBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function processItem($data): void {
-    $logId = $data['log_id'] ?? NULL;
+    $data = is_array($data) ? $data : [];
+    $logId = (int) ($data['refund_log_id'] ?? 0);
     if (!$logId) {
-      $this->logger->error('VendorRefundWorker: Missing log_id in queue item.');
+      return;
+    }
+
+    $log = $this->refundProcessor->loadRefundLog($logId);
+    if (!$log) {
+      return;
+    }
+
+    if (!in_array($log['status'], [
+      RefundProcessor::STATUS_PROCESSING,
+      RefundProcessor::STATUS_PENDING_CONFIRMATION,
+      RefundProcessor::STATUS_PARTIAL,
+    ], TRUE)) {
+      return;
+    }
+
+    if (!empty($log['next_attempt_at']) && time() < (int) $log['next_attempt_at']) {
       return;
     }
 
     try {
-      $this->refundProcessor->processRefund((int) $logId);
+      $result = $this->refundProcessor->processRefund($logId);
+
+      if ($result !== RefundProcessor::STATUS_COMPLETED) {
+        $this->refundProcessor->scheduleRetry(
+          $logId,
+          (int) ($log['retry_count'] ?? 0)
+        );
+      }
     }
-    catch (\Exception $e) {
+    catch (\Throwable $e) {
       $this->logger->error('VendorRefundWorker failed for log_id @log_id: @message', [
         '@log_id' => $logId,
         '@message' => $e->getMessage(),
       ]);
+      $this->refundProcessor->scheduleRetry(
+        $logId,
+        (int) ($log['retry_count'] ?? 0)
+      );
     }
   }
 

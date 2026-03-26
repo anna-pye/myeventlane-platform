@@ -8,6 +8,7 @@ lifecycle: stable
 dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_commerce:myeventlane_commerce
+  - myeventlane_vendor:myeventlane_vendor
   - myeventlane_rsvp:myeventlane_rsvp
   - drupal:commerce
   - drupal:commerce_checkout

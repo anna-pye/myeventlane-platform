@@ -10,7 +10,9 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -27,7 +29,8 @@ final class AttendeeExportController extends ControllerBase implements Container
    * AttendeeExportController constructor.
    */
   public function __construct(
-    private readonly AttendeeRepositoryResolver $repositoryResolver,
+    private readonly AttendanceManagerInterface $attendanceManager,
+    private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly MessengerInterface $messengerService,
   ) {}
 
@@ -36,7 +39,8 @@ final class AttendeeExportController extends ControllerBase implements Container
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('myeventlane_attendee.repository_resolver'),
+      $container->get('myeventlane_event_attendees.manager'),
+      $container->get('myeventlane_event_attendees.vendor_presentation'),
       $container->get('messenger'),
     );
   }
@@ -72,50 +76,53 @@ final class AttendeeExportController extends ControllerBase implements Container
         return;
       }
 
-      // Get attendees via repository.
-      $repository = $this->repositoryResolver->getRepository($event);
-      $attendees = $repository->loadByEvent($event);
+      $entities = $this->attendanceManager->getAttendeesForEvent((int) $event->id());
+      $pairTotal = 0;
+      foreach ($entities as $entity) {
+        if ($entity instanceof EventAttendee) {
+          $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
+        }
+      }
+      $this->vendorPresentation->logVendorParityBatch(
+        'checkout_paragraph_csv_export',
+        (int) $event->id(),
+        count($entities),
+        $pairTotal,
+      );
 
-      if (empty($attendees)) {
+      if ($entities === []) {
         fclose($handle);
         return;
       }
 
-      // Get column headers from first attendee's export row.
-      $firstRow = $attendees[0]->toExportRow();
-      $headers = array_keys($firstRow);
+      fputcsv($handle, [
+        (string) $this->t('Name'),
+        (string) $this->t('Email'),
+        (string) $this->t('Phone'),
+        (string) $this->t('Source'),
+        (string) $this->t('Product variation'),
+        (string) $this->t('Ticket Code'),
+        (string) $this->t('Custom answers'),
+        (string) $this->t('Checked In'),
+        (string) $this->t('Checked In At'),
+      ]);
 
-      // Map header keys to human-readable labels.
-      $headerLabels = [
-        'name' => $this->t('Name'),
-        'email' => $this->t('Email'),
-        'ticket_type' => $this->t('Product variation'),
-        'checked_in' => $this->t('Checked In'),
-        'checked_in_at' => $this->t('Checked In At'),
-        'source' => $this->t('Source'),
-        'ticket_code' => $this->t('Ticket Code'),
-      ];
-
-      // Write header row.
-      $headerRow = [];
-      foreach ($headers as $header) {
-        $headerRow[] = $headerLabels[$header] ?? $header;
-      }
-      fputcsv($handle, $headerRow);
-
-      // Write data rows.
-      foreach ($attendees as $attendee) {
-        $row = $attendee->toExportRow();
-        $csvRow = [];
-        foreach ($headers as $header) {
-          $value = $row[$header] ?? '';
-          // Convert boolean to readable string.
-          if ($header === 'checked_in') {
-            $value = $value ? $this->t('Yes') : $this->t('No');
-          }
-          $csvRow[] = $value;
+      foreach ($entities as $attendee) {
+        if (!$attendee instanceof EventAttendee) {
+          continue;
         }
-        fputcsv($handle, $csvRow);
+        $row = $this->vendorPresentation->buildCsvExportRow($attendee);
+        fputcsv($handle, [
+          $row['name'],
+          $row['email'],
+          $row['phone'],
+          $row['source'],
+          $row['ticket_type'],
+          $row['ticket_code'],
+          $row['custom_answers'],
+          $row['checked_in'] ? (string) $this->t('Yes') : (string) $this->t('No'),
+          $row['checked_in_at'],
+        ]);
       }
 
       fclose($handle);

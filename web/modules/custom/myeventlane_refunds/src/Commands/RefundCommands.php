@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_refunds\Commands;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -22,10 +23,13 @@ final class RefundCommands extends DrushCommands {
    *   The database connection.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   The logger channel factory (for myeventlane_refunds audit channel).
    */
   public function __construct(
     private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {
     parent::__construct();
   }
@@ -37,6 +41,7 @@ final class RefundCommands extends DrushCommands {
     return new static(
       $container->get('database'),
       $container->get('entity_type.manager'),
+      $container->get('logger.factory'),
     );
   }
 
@@ -181,6 +186,43 @@ final class RefundCommands extends DrushCommands {
     $this->output()->writeln('<comment>To verify in Stripe:</comment> Dashboard → Payments → search by Charge ID or PaymentIntent ID (remote_id above).');
     $this->output()->writeln('status=completed means our code called the payment gateway (Stripe) and it did not throw; the refund was submitted to Stripe.');
     $this->output()->writeln('');
+  }
+
+  /**
+   * Writes a test Notice to the myeventlane_refunds log channel.
+   *
+   * Use this to confirm DbLog is recording that channel (then run
+   * `drush ws --type=myeventlane_refunds --count=3`). Vendor refunds only add
+   * rows when requestRefund() runs in the web request (Refund Now / approve).
+   *
+   * @command mel:refund-dblog-probe
+   * @aliases mel-refund-dblog-probe
+   * @usage drush mel:refund-dblog-probe
+   *   Inserts one probe row into watchdog for type myeventlane_refunds.
+   */
+  public function dblogProbe(): void {
+    $this->loggerFactory->get('myeventlane_refunds')->notice(
+      'Mel DbLog probe: myeventlane_refunds channel writable at @time.',
+      ['@time' => date('c')]
+    );
+    $row = $this->database->select('watchdog', 'w')
+      ->fields('w', ['wid', 'message', 'timestamp'])
+      ->condition('type', 'myeventlane_refunds')
+      ->orderBy('wid', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+    if ($row) {
+      $this->output()->writeln(sprintf(
+        'Latest myeventlane_refunds watchdog: wid=%s date=%s message=%s',
+        $row['wid'],
+        date('Y-m-d H:i:s', (int) $row['timestamp']),
+        $row['message']
+      ));
+    }
+    else {
+      $this->output()->writeln('No watchdog row found for type myeventlane_refunds (unexpected).');
+    }
   }
 
 }

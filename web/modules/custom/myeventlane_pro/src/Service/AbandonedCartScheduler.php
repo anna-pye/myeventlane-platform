@@ -260,7 +260,7 @@ final class AbandonedCartScheduler {
       ->condition('status', self::STATUS_SCHEDULED)
       ->condition('scheduled', $now, '<=')
       ->condition('processed', NULL, 'IS NULL')
-      ->sort('id', 'ASC')
+      ->orderBy('id', 'ASC')
       ->range(0, $limit)
       ->execute()
       ->fetchCol();

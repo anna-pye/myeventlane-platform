@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Unified MyEventLane support hub.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_support_theme(): array {
+  $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+
+  return [
+    'myeventlane_support_page' => [
+      'variables' => [
+        'contact_form' => NULL,
+      ],
+      'template' => 'support-page',
+      'path' => $theme_path . '/templates/support',
+    ],
+  ];
+}

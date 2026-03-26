@@ -92,9 +92,16 @@ final class RefundAccessResolver {
       return FALSE;
     }
 
-    // Order must be in a refundable state.
+    // Order must be in a refundable state (align with vendor order list + Commerce workflows).
     $orderState = $order->getState()->getId();
-    if (!in_array($orderState, ['completed', 'fulfilled', 'placed'], TRUE)) {
+    $refundableStates = [
+      'completed',
+      'fulfilled',
+      'placed',
+      'fulfillment',
+      'partially_refunded',
+    ];
+    if (!in_array($orderState, $refundableStates, TRUE)) {
       return FALSE;
     }
 

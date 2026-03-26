@@ -66,5 +66,24 @@ function myeventlane_refunds_theme($existing, $type, $theme, $path): array {
       ],
       'template' => 'myeventlane-refunds-order-list',
     ],
+    'refund_status_badge' => [
+      'variables' => [
+        'status' => NULL,
+      ],
+      'template' => 'refund-status-badge',
+    ],
+    'mel_refund_analytics' => [
+      'variables' => [
+        'data' => [],
+      ],
+      'template' => 'mel-refund-analytics',
+    ],
+    'mel_refund_timeline' => [
+      'variables' => [
+        'items' => [],
+        'variant' => 'default',
+      ],
+      'template' => 'mel-refund-timeline',
+    ],
   ];
 }

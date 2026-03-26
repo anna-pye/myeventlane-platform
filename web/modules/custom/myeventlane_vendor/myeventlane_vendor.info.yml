@@ -16,6 +16,7 @@ dependencies:
   - drupal:image
   - drupal:link
   - drupal:user
+  - drupal:views
   - drupal:field_ui
   - commerce:commerce_store
   - myeventlane_vendor_analytics:myeventlane_vendor_analytics

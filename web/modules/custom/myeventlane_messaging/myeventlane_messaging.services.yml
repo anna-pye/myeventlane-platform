@@ -76,6 +76,7 @@ services:
       - '@queue'
       - '@state'
       - '@myeventlane_messaging.manager'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_messaging.scheduler.event:
     class: Drupal\myeventlane_messaging\Scheduler\EventReminderScheduler
@@ -98,6 +99,7 @@ services:
       - '@myeventlane_messaging.manager'
       - '@date.formatter'
       - '@?myeventlane_rsvp.ics_generator'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_messaging.unsubscribe_controller:
     class: Drupal\myeventlane_messaging\Controller\UnsubscribeController
@@ -114,5 +116,6 @@ services:
       - '@file_url_generator'
       - '@myeventlane_messaging.manager'
       - '@logger.channel.myeventlane_messaging'
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: event_subscriber }

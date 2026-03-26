@@ -5,5 +5,9 @@ max_retrieved_articles: 5
 rate_limit_per_session_hour: 20
 max_requests_per_hour: 20
 max_requests_per_10min: 5
-support_url: /contact/support
+support_url: /support/tickets
 event_suggestions_ai: false
+starter_questions:
+  - 'How do I request a refund for my ticket?'
+  - 'How do I set up ticketing for my event?'
+  - 'What is the difference between RSVP and paid tickets?'

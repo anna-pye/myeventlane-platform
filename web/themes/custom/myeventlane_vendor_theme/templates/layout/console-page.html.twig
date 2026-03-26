@@ -2,19 +2,25 @@
   Base console page layout for vendor routes.
   Expects:
   - title
+  - meta (optional) — e.g. "RSVP • Published • Created 22 Mar 2026"
   - header_actions[]
   - tabs[] (label, url, active)
   - body render array
 #}
 <div class="mel-console">
   <div class="mel-console__header">
-    {% if title %}
-      <h1 class="mel-console__title">{{ title }}</h1>
-    {% endif %}
+    <div class="mel-console__header-main">
+      {% if title %}
+        <h1 class="mel-console__title">{{ title }}</h1>
+      {% endif %}
+      {% if meta %}
+        <p class="mel-console__meta">{{ meta }}</p>
+      {% endif %}
+    </div>
     {% if header_actions %}
       <div class="mel-console__actions">
         {% for action in header_actions %}
-          <a class="mel-btn {{ action.class|default('mel-btn--primary') }}" href="{{ action.url }}">{{ action.label }}</a>
+          <a class="mel-btn {{ action.class|default('mel-btn--primary') }}" href="{{ action.url }}"{% if action.external|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ action.label }}</a>
         {% endfor %}
       </div>
     {% endif %}

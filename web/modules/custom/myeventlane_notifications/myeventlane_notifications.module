@@ -1,0 +1,220 @@
+<?php
+
+/**
+ * @file
+ * Hooks for MyEventLane notifications (entity lifecycle + front-end attachment).
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\myeventlane_notifications\NotificationPrefsFieldDefinition;
+use Drupal\myeventlane_notifications\Service\NotificationPreferenceService;
+use Drupal\myeventlane_notifications\Entity\MelNotification;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_preprocess_site_header().
+ *
+ * Injects the notification bell for the public theme (no block plugin).
+ */
+function myeventlane_notifications_preprocess_site_header(array &$variables): void {
+  if (\Drupal::theme()->getActiveTheme()->getName() !== 'myeventlane_theme') {
+    return;
+  }
+  $variables['notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build();
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ * Injects the notification bell for the vendor console theme (no block plugin).
+ */
+function myeventlane_notifications_preprocess_page(array &$variables): void {
+  if (\Drupal::theme()->getActiveTheme()->getName() !== 'myeventlane_vendor_theme') {
+    return;
+  }
+  $variables['page']['mel_notification_bell'] = \Drupal::service('myeventlane_notifications.bell_presenter')->build();
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_notifications_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'mel_notification_bell' => [
+      'variables' => [
+        'inbox_url' => NULL,
+        'settings_url' => NULL,
+      ],
+      'template' => 'mel-notification-bell',
+    ],
+    'mel_notification_inbox' => [
+      'variables' => [
+        'filter' => 'all',
+        'filter_links' => [],
+        'groups' => [],
+        'empty' => FALSE,
+        'mark_all_form' => NULL,
+        'pager_info' => [],
+        'settings_url' => NULL,
+      ],
+      'template' => 'mel-notification-inbox',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function myeventlane_notifications_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  $fields = [];
+  if ($entity_type->id() === 'user') {
+    $fields[NotificationPreferenceService::FIELD_NAME] = NotificationPrefsFieldDefinition::storage();
+  }
+  return $fields;
+}
+
+/**
+ * Implements hook_preprocess_menu__account().
+ */
+function myeventlane_notifications_preprocess_menu__account(array &$variables): void {
+  $account = \Drupal::currentUser();
+  if (!$account->isAuthenticated() || !$account->hasPermission('access myeventlane notifications')) {
+    return;
+  }
+  try {
+    $url = Url::fromRoute('myeventlane_notifications.inbox');
+    if (!$url->access()) {
+      return;
+    }
+  }
+  catch (\Throwable) {
+    return;
+  }
+
+  $link = [
+    'title' => t('Notifications'),
+    'url' => $url,
+    'attributes' => new Attribute(['class' => ['mel-account-menu-item']]),
+    'below' => [],
+    'in_active_trail' => FALSE,
+    'is_expanded' => FALSE,
+    'is_collapsed' => FALSE,
+  ];
+
+  if (empty($variables['items'])) {
+    return;
+  }
+  $items = $variables['items'];
+  $first = array_shift($items);
+  $variables['items'] = array_merge([$first, $link], $items);
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function myeventlane_notifications_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() === 'rsvp_submission') {
+    \Drupal::service('myeventlane_notifications.trigger')->onRsvpEntityInserted($entity);
+    return;
+  }
+  if ($entity instanceof NodeInterface && $entity->bundle() === 'event' && $entity->isPublished()) {
+    \Drupal::service('myeventlane_notifications.trigger')->onEventPublished($entity);
+  }
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function myeventlane_notifications_entity_update(EntityInterface $entity): void {
+  if ($entity instanceof NodeInterface) {
+    \Drupal::service('myeventlane_notifications.trigger')->onNodeUpdate($entity);
+  }
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Loads only due scheduled drafts (bounded query) and delegates to
+ * NotificationManager::queueNotification(), which enqueues queue workers.
+ * No audience resolution loops run here beyond the lightweight entity query.
+ */
+function myeventlane_notifications_cron(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('mel_notification');
+  $now = \Drupal::time()->getRequestTime();
+  $ids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('status', MelNotification::STATUS_DRAFT)
+    ->condition('scheduled_at', 0, '>')
+    ->condition('scheduled_at', $now, '<=')
+    ->range(0, 50)
+    ->execute();
+
+  if ($ids === []) {
+    return;
+  }
+
+  $manager = \Drupal::service('myeventlane_notifications.notification_manager');
+  foreach ($storage->loadMultiple($ids) as $notification) {
+    try {
+      $manager->queueNotification($notification);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_notifications')->error(
+        'Cron could not queue scheduled notification @id: @message',
+        [
+          '@id' => (string) $notification->id(),
+          '@message' => $e->getMessage(),
+        ]
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_help().
+ */
+function myeventlane_notifications_help(string $route_name, RouteMatchInterface $route_match): string {
+  if ($route_name === 'myeventlane_notifications.admin') {
+    return '<p>' . t('Creates notification records and enqueues delivery batches. Run the queue with Drush: <code>drush queue:run myeventlane_notification_dispatch</code> or wait for cron.') . '</p>';
+  }
+  return '';
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_notifications_page_attachments(array &$attachments): void {
+  $account = \Drupal::currentUser();
+  if (!$account->isAuthenticated() || !$account->hasPermission('access myeventlane notifications')) {
+    return;
+  }
+
+  $theme = \Drupal::theme()->getActiveTheme()->getName();
+  if (!in_array($theme, ['myeventlane_theme', 'myeventlane_vendor_theme'], TRUE)) {
+    return;
+  }
+
+  $placeholder = 2147483645;
+  $readTemplate = Url::fromRoute('myeventlane_notifications.mark_read', ['delivery' => $placeholder], ['absolute' => TRUE])->toString();
+  $readTemplate = str_replace((string) $placeholder, '__DELIVERY__', $readTemplate);
+
+  $library = $theme === 'myeventlane_vendor_theme'
+    ? 'myeventlane_vendor_theme/mel_notifications'
+    : 'myeventlane_theme/mel_notifications';
+  $attachments['#attached']['library'][] = $library;
+  $attachments['#attached']['drupalSettings']['myeventlaneNotifications'] = [
+    'pollSeconds' => 25,
+    'pollUrl' => Url::fromRoute('myeventlane_notifications.unread', [], ['absolute' => TRUE])->toString(),
+    'countUrl' => Url::fromRoute('myeventlane_notifications.unread_count', [], ['absolute' => TRUE])->toString(),
+    'previewUrl' => Url::fromRoute('myeventlane_notifications.preview', [], ['absolute' => TRUE])->toString(),
+    'readAllUrl' => Url::fromRoute('myeventlane_notifications.mark_all_read', [], ['absolute' => TRUE])->toString(),
+    'inboxUrl' => Url::fromRoute('myeventlane_notifications.inbox', [], ['absolute' => TRUE])->toString(),
+    'readUrlTemplate' => $readTemplate,
+  ];
+}

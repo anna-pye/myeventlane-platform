@@ -1,0 +1,15 @@
+myeventlane_support.page:
+  path: '/support'
+  defaults:
+    _controller: '\Drupal\myeventlane_support\Controller\SupportController::page'
+    _title: 'Support'
+  requirements:
+    _permission: 'access content'
+
+myeventlane_support.search_api:
+  path: '/support/search-api'
+  defaults:
+    _controller: '\Drupal\myeventlane_support\Controller\SupportController::searchApi'
+  requirements:
+    _permission: 'access content'
+  methods: [GET]

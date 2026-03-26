@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Controller;
 
-use Drupal\Core\Block\BlockManagerInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
@@ -12,6 +12,7 @@ use Drupal\myeventlane_admin_dashboard\Service\DashboardRenderer;
 use Drupal\myeventlane_admin_dashboard\Service\PlatformAlertService;
 use Drupal\myeventlane_admin_dashboard\Service\PlatformMetricsService;
 use Drupal\myeventlane_admin_dashboard\Service\PlatformRecentActivityService;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,7 +30,7 @@ final class PlatformControlCentreController extends ControllerBase {
     protected PlatformMetricsService $metricsService,
     protected PlatformAlertService $alertService,
     protected PlatformRecentActivityService $recentActivityService,
-    protected BlockManagerInterface $blockManager,
+    protected MelAdminShellBuilder $adminShellBuilder,
     protected EntityTypeManagerInterface $melEntityTypeManager,
     protected LoggerInterface $logger,
   ) {}
@@ -43,7 +44,7 @@ final class PlatformControlCentreController extends ControllerBase {
       $container->get('myeventlane_admin_dashboard.metrics'),
       $container->get('myeventlane_admin_dashboard.platform_alert'),
       $container->get('myeventlane_admin_dashboard.platform_recent_activity'),
-      $container->get('plugin.manager.block'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
       $container->get('entity_type.manager'),
       $container->get('logger.channel.myeventlane_admin_dashboard'),
     );
@@ -56,7 +57,7 @@ final class PlatformControlCentreController extends ControllerBase {
     return $this->buildAdminShell(
       $this->buildOverviewMain($request),
       $this->t('Admin Control Centre'),
-      $this->t('Platform health, vendor operations, and financial visibility in one place.'),
+      $this->t('Monitor platform health, vendors, finance, and support in one view.'),
     );
   }
 
@@ -162,40 +163,25 @@ final class PlatformControlCentreController extends ControllerBase {
    * Builds the shared admin shell around supplied main content.
    */
   private function buildAdminShell(array $main, string|\Stringable $title, string|\Stringable $subtitle): array {
-    $left_nav = [];
-    try {
-      $left_nav = $this->blockManager->createInstance('mel_admin_sidebar_nav')->build();
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Admin shell could not render sidebar block: @message', ['@message' => $e->getMessage()]);
-      $left_nav = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-admin-shell__fallback']],
-        'message' => [
-          '#markup' => '<p>' . $this->t('Sidebar navigation is temporarily unavailable.') . '</p>',
-        ],
-      ];
-    }
-
-    return [
-      '#theme' => 'myeventlane_studio_layout',
-      '#title' => $title,
-      '#subtitle' => $subtitle,
-      '#left_nav' => $left_nav,
-      '#main' => $main,
-      '#right_panel' => $this->buildStudioRightPanel(),
-      '#attached' => [
-        'library' => [
-          'myeventlane_core/studio_layout',
-          'myeventlane_admin_dashboard/platform_control_centre',
-        ],
-      ],
-      '#cache' => [
-        'contexts' => ['user.permissions', 'user.roles', 'url.query_args:days'],
-        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list', 'myeventlane_payout_ledger', 'commerce_subscription_list'],
-        'max-age' => 120,
-      ],
-    ];
+    $shell = $this->adminShellBuilder->wrapStudio(
+      $main,
+      $title,
+      $subtitle,
+      $this->buildStudioRightPanel(),
+      ['myeventlane_admin_dashboard/platform_control_centre'],
+    );
+    $extra = new CacheableMetadata();
+    $extra->addCacheContexts(['user.permissions', 'user.roles', 'url.query_args:days']);
+    $extra->addCacheTags([
+      'platform:summary',
+      'escalation_list',
+      'commerce_order_list',
+      'myeventlane_payout_ledger',
+      'commerce_subscription_list',
+    ]);
+    $extra->setCacheMaxAge(120);
+    CacheableMetadata::createFromRenderArray($shell)->merge($extra)->applyTo($shell);
+    return $shell;
   }
 
   /**

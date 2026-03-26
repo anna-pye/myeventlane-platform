@@ -12,6 +12,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,6 +29,7 @@ final class VendorAttendeeController extends ControllerBase {
   public function __construct(
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly VendorAttendeePresentationService $vendorPresentation,
   ) {}
 
   /**
@@ -37,6 +39,7 @@ final class VendorAttendeeController extends ControllerBase {
     return new static(
       $container->get('myeventlane_event_attendees.manager'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_event_attendees.vendor_presentation'),
     );
   }
 
@@ -338,44 +341,53 @@ final class VendorAttendeeController extends ControllerBase {
    * Exports attendees as CSV with optional email obfuscation.
    *
    * IMPORTANT:
-   * This export uses the attendee repository for unified data access.
-   * If you need to add revenue, tickets sold, or RSVP counts to this export,
-   * use VendorMetricsService to guarantee parity with the vendor dashboard.
-   * Do not reimplement metrics here.
+   * Exports {@see \Drupal\myeventlane_event_attendees\Entity\EventAttendee} rows
+   * via {@see \Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService}
+   * so CSV matches vendor console attendees and order detail (canonical operations record).
    */
   public function export(NodeInterface $node): Response {
     $request = \Drupal::request();
     $obfuscateEmails = (bool) $request->query->get('obfuscate', FALSE);
-
-    // Use attendee repository for unified export.
-    $repositoryResolver = \Drupal::service('myeventlane_attendee.repository_resolver');
-    $repository = $repositoryResolver->getRepository($node);
-    $attendees = $repository->loadByEvent($node);
 
     $filename = sprintf('attendees-%s-%s.csv',
       preg_replace('/[^a-z0-9]+/', '-', strtolower($node->label())),
       date('Y-m-d')
     );
 
-    $response = new StreamedResponse(function () use ($attendees, $obfuscateEmails) {
+    $response = new StreamedResponse(function () use ($node, $obfuscateEmails) {
       $handle = fopen('php://output', 'w');
+      if (!$handle) {
+        return;
+      }
 
-      // Header row.
+      $entities = $this->attendanceManager->getAttendeesForEvent((int) $node->id());
+      $pairTotal = 0;
+      foreach ($entities as $entity) {
+        if ($entity instanceof EventAttendee) {
+          $pairTotal += count($this->vendorPresentation->normalizeCustomAnswers($entity));
+        }
+      }
+      $this->vendorPresentation->logVendorParityBatch('csv_export', (int) $node->id(), count($entities), $pairTotal);
+
+      // Header row (aligned with vendor attendees list fields).
       fputcsv($handle, [
         'Name',
         'Email',
+        'Phone',
         'Source',
         'Product variation',
         'Ticket Code',
+        'Custom answers',
         'Checked In',
         'Checked In At',
       ]);
 
-      // Data rows.
-      foreach ($attendees as $attendee) {
-        $row = $attendee->toExportRow();
+      foreach ($entities as $attendee) {
+        if (!$attendee instanceof EventAttendee) {
+          continue;
+        }
+        $row = $this->vendorPresentation->buildCsvExportRow($attendee);
 
-        // Obfuscate email if requested.
         $email = $row['email'];
         if ($obfuscateEmails && $email) {
           $parts = explode('@', $email);
@@ -401,9 +413,11 @@ final class VendorAttendeeController extends ControllerBase {
         fputcsv($handle, [
           $row['name'],
           $email,
-          ucfirst($row['source']),
+          $row['phone'],
+          ucfirst((string) $row['source']),
           $row['ticket_type'] ?? '',
           $row['ticket_code'] ?? '',
+          $row['custom_answers'] ?? '',
           $row['checked_in'] ? 'Yes' : 'No',
           $checkedInAt,
         ]);

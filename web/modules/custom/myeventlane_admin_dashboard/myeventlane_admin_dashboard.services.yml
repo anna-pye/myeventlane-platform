@@ -20,7 +20,7 @@ services:
       - '@myeventlane_admin_dashboard.metrics'
       - '@myeventlane_admin_dashboard.platform_alert'
       - '@myeventlane_admin_dashboard.platform_recent_activity'
-      - '@plugin.manager.block'
+      - '@myeventlane_core.mel_admin_shell_builder'
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_admin_dashboard'
 
@@ -33,10 +33,12 @@ services:
     class: Drupal\myeventlane_admin_dashboard\Controller\FinancialController
     arguments:
       - '@myeventlane_admin_dashboard.metrics'
+      - '@myeventlane_core.mel_admin_shell_builder'
 
   myeventlane_admin_dashboard.vendor_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\VendorController
-    arguments: []
+    arguments:
+      - '@myeventlane_core.mel_admin_shell_builder'
 
   myeventlane_admin_dashboard.payout_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PayoutController
@@ -44,6 +46,7 @@ services:
       - '@myeventlane_admin_dashboard.metrics'
       - '@database'
       - '@csrf_token'
+      - '@myeventlane_core.mel_admin_shell_builder'
 
   myeventlane_admin_dashboard.payout_action_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PayoutActionController
@@ -100,6 +103,7 @@ services:
     arguments:
       - '@myeventlane_admin_dashboard.payout_batch_workflow'
       - '@csrf_token'
+      - '@myeventlane_core.mel_admin_shell_builder'
 
   myeventlane_admin_dashboard.dashboard_renderer:
     class: Drupal\myeventlane_admin_dashboard\Service\DashboardRenderer

@@ -37,6 +37,12 @@ analytics:
     - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/chartjs
 
+# Event overview (Mission Control) — charts + layout tokens
+event_overview:
+  dependencies:
+    - myeventlane_vendor_theme/global-styling
+    - myeventlane_vendor_theme/chartjs
+
 # Vendor workspace UI shell.
 vendor-workspace:
   css:
@@ -56,4 +62,20 @@ vendor_wizard:
   dependencies:
     - core/drupal
     - core/drupal.form
+
+# Organiser events list (/vendor/events): list/grid toggle.
+mel_vendor_events:
+  js:
+    js/mel-events-toggle.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_vendor_theme/global-styling
+
+mel_notifications:
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+    - myeventlane_notifications/user_experience
 

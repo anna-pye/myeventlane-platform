@@ -1,0 +1,48 @@
+{#
+/**
+ * @file
+ * Workspace header — event identity, chips (type, date, status), actions.
+ *
+ * Variables: event, meta (optional string), event_type_label, event_date_label,
+ * event_status, event_status_badge_modifier, actions (optional).
+ */
+#}
+<header class="mel-workspace-header" role="region" aria-label="{{ 'Event workspace'|t }}">
+  <div class="mel-workspace-header__main">
+    <div class="mel-workspace-header__identity">
+      {% if event %}
+        <h1 class="mel-workspace-header__title">{{ event.label }}</h1>
+      {% endif %}
+
+      {% if event_type_label or event_date_label or event_status %}
+        <div class="mel-workspace-header__chips" aria-label="{{ 'Event details'|t }}">
+          {% if event_type_label %}
+            <span class="mel-badge mel-badge--muted">{{ event_type_label }}</span>
+          {% endif %}
+          {% if event_date_label %}
+            <span class="mel-badge mel-badge--muted">{{ event_date_label }}</span>
+          {% endif %}
+          {% if event_status %}
+            <span class="mel-badge {{ event_status_badge_modifier|default('mel-badge--neutral') }}">{{ event_status }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if meta and not event_type_label %}
+        <p class="mel-workspace-header__meta-line">{{ meta }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if actions is not empty %}
+    <div class="mel-workspace-header__actions mel-action-group">
+      {% for action in actions %}
+        <a
+          class="mel-btn {{ action.class|default('mel-btn--cta') }}"
+          href="{{ action.url }}"
+          {% if action.external|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}
+        >{{ action.label }}</a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</header>

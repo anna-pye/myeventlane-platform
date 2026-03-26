@@ -224,7 +224,7 @@ final class BuyerRefundForm extends ConfirmFormBase {
     $event = $this->getEvent();
 
     if (!$order || !$event) {
-      $this->messenger()->addError($this->t('Unable to process refund request.'));
+      $this->messenger()->addError($this->t('Refund request could not be started. Please refresh and try again.'));
       return;
     }
 
@@ -233,10 +233,10 @@ final class BuyerRefundForm extends ConfirmFormBase {
         'attendee_ids' => (array) $form_state->get('selected_attendee_ids'),
         'amount_cents' => (int) ($form_state->get('selected_refund_amount_cents') ?? 0),
       ]);
-      $this->messenger()->addStatus($this->t('Your refund has been requested. You will receive an email confirmation once it is processed (typically within 2–5 business days).'));
+      $this->messenger()->addStatus($this->t("Refund request sent — we've notified the host."));
     }
     catch (\Exception $e) {
-      $this->messenger()->addError($this->t('Refund request failed: @message', [
+      $this->messenger()->addError($this->t('Refund request could not be submitted - @message', [
         '@message' => $e->getMessage(),
       ]));
       return;

@@ -4,12 +4,13 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
+    - field.storage.node.field_audience
     - node.type.help_article
     - taxonomy.vocabulary.help_article_type
-    - taxonomy.vocabulary.help_audience
     - taxonomy.vocabulary.help_topic
   module:
     - node
+    - options
     - taxonomy
     - user
 id: mel_help_search
@@ -88,24 +89,48 @@ display:
             required: false
             remember: false
             multiple: false
-        field_help_audience_target_id:
-          id: field_help_audience_target_id
-          table: node__field_help_audience
-          field: field_help_audience_target_id
-          plugin_id: taxonomy_index_tid
+        field_audience_value:
+          id: field_audience_value
+          table: node__field_audience
+          field: field_audience_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_audience
+          plugin_id: list_field
           operator: or
           value: {  }
+          group: 1
           exposed: true
           expose:
-            operator_id: field_help_audience_target_id_op
+            operator_id: field_audience_value_op
             label: Audience
+            description: ''
+            use_operator: false
+            operator: field_audience_value_op
+            operator_limit_selection: false
+            operator_list: {  }
             identifier: audience
             required: false
             remember: false
             multiple: false
+            remember_roles:
+              authenticated: authenticated
+            reduce: false
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
           reduce_duplicates: false
-          vid: help_audience
-          type: select
         field_help_topic_target_id:
           id: field_help_topic_target_id
           table: node__field_help_topic

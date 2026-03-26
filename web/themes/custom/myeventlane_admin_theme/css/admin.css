@@ -66,6 +66,41 @@
   pointer-events: none;
 }
 
+/* Platform Control Centre: separate utility links from Gin branding / title stack. */
+.mel-admin-layout--pcc .mel-pcc-utility-bar {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(31, 39, 83, 0.08);
+}
+
+.mel-admin-layout--pcc .mel-admin-header {
+  margin-top: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.mel-admin-layout--pcc .mel-admin-header .site-branding {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mel-admin-layout--pcc .mel-admin-header .site-logo img {
+  display: block;
+  max-height: 40px;
+  width: auto;
+  height: auto;
+}
+
+/* Studio shell title sits in content; keep it visually below header without stray floats. */
+.mel-admin-layout--pcc .mel-studio-shell-wrapper {
+  clear: both;
+}
+
+.mel-admin-layout--pcc .mel-studio-shell__title {
+  clear: both;
+  margin-top: 0;
+}
+
 /* Validation feedback (JS adds classes). */
 .mel-admin-form.mel-was-validated .mel-is-invalid {
   border-color: #d7263d;

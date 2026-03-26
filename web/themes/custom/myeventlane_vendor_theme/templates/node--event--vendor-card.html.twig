@@ -1,0 +1,42 @@
+{#
+/**
+ * @file
+ * Event node — vendor_card view mode (organiser console card list/grid).
+ *
+ * Structure: image anchors card, body with title/status, meta (date/venue), actions.
+ */
+#}
+<article{{ attributes.addClass('mel-card') }} data-view-mode>
+  <div class="mel-card__image">
+    {% if content.field_event_image is defined and content.field_event_image|render|trim is not empty %}
+      {{ content.field_event_image }}
+    {% else %}
+      <div class="mel-card__image-placeholder" aria-hidden="true"></div>
+    {% endif %}
+  </div>
+
+  <div class="mel-card__body">
+    <div class="mel-card__top">
+      <h3 class="mel-card__title">
+        <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}">{{ label }}</a>
+      </h3>
+      {% if content.field_event_state is defined and content.field_event_state|render|trim is not empty %}
+        <span class="mel-status{% if mel_event_state_key %} mel-status--{{ mel_event_state_key }}{% endif %}">{{ content.field_event_state }}</span>
+      {% endif %}
+    </div>
+
+    <div class="mel-card__meta">
+      {% if content.field_event_start is defined and content.field_event_start|render|trim is not empty %}
+        <span class="mel-card__meta-date">{{ content.field_event_start }}</span>
+      {% endif %}
+      {% if content.field_venue is defined and content.field_venue|render|trim is not empty %}
+        <span class="mel-card__meta-venue">{{ content.field_venue }}</span>
+      {% endif %}
+    </div>
+
+    <div class="mel-card__actions">
+      <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}" class="mel-btn mel-btn--primary mel-btn--sm">{{ 'Manage'|t }}</a>
+      <a href="{{ path('myeventlane_event.wizard.edit', {'node': node.id}) }}" class="mel-btn mel-btn--ghost mel-btn--sm">{{ 'Edit'|t }}</a>
+    </div>
+  </div>
+</article>

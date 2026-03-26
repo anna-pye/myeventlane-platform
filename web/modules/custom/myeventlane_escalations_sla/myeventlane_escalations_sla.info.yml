@@ -4,5 +4,6 @@ description: 'SLA policy, timers, breach detection, and level escalation for the
 package: 'MyEventLane'
 core_version_requirement: '^11'
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - drupal:options

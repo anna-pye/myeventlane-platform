@@ -46,6 +46,10 @@ final class AttendanceManager implements AttendanceManagerInterface {
       'extra_data' => $data['extra_data'] ?? [],
     ];
 
+    if (!empty($data['accessibility_needs']) && is_array($data['accessibility_needs'])) {
+      $values['accessibility_needs'] = array_values($data['accessibility_needs']);
+    }
+
     // Generate ticket code if not provided.
     if (!empty($data['ticket_code'])) {
       $values['ticket_code'] = $data['ticket_code'];
@@ -67,6 +71,79 @@ final class AttendanceManager implements AttendanceManagerInterface {
     $attendee->save();
 
     return $attendee;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function upsertRsvpVendorMirror(NodeInterface $event, array $data): ?EventAttendee {
+    if ($event->bundle() !== 'event') {
+      throw new \InvalidArgumentException('Node must be an event.');
+    }
+    $email = trim((string) ($data['email'] ?? ''));
+    if ($email === '') {
+      return NULL;
+    }
+    $eventId = (int) $event->id();
+    $existing = $this->findByEventEmailAndSource($eventId, $email, EventAttendee::SOURCE_RSVP);
+    $extraIncoming = $data['extra_data'] ?? [];
+    if (!is_array($extraIncoming)) {
+      $extraIncoming = [];
+    }
+
+    if ($existing instanceof EventAttendee) {
+      $merged = array_merge($existing->getExtraDataMap(), $extraIncoming);
+      $existing->set('extra_data', $merged);
+      if (isset($data['name'])) {
+        $existing->setName(trim((string) $data['name']));
+      }
+      if (array_key_exists('phone', $data)) {
+        $phone = trim((string) ($data['phone'] ?? ''));
+        $existing->set('phone', $phone !== '' ? $phone : NULL);
+      }
+      if (!empty($data['accessibility_needs']) && is_array($data['accessibility_needs'])) {
+        $existing->set('accessibility_needs', array_values($data['accessibility_needs']));
+      }
+      if (!empty($data['status'])) {
+        $existing->setStatus((string) $data['status']);
+      }
+      $existing->save();
+      return $existing;
+    }
+
+    $phoneRaw = trim((string) ($data['phone'] ?? ''));
+    $createPayload = [
+      'name' => trim((string) ($data['name'] ?? '')) !== '' ? trim((string) $data['name']) : 'Attendee',
+      'email' => $email,
+      'phone' => $phoneRaw !== '' ? $phoneRaw : NULL,
+      'status' => $data['status'] ?? EventAttendee::STATUS_CONFIRMED,
+      'extra_data' => $extraIncoming,
+    ];
+    if (!empty($data['accessibility_needs']) && is_array($data['accessibility_needs'])) {
+      $createPayload['accessibility_needs'] = array_values($data['accessibility_needs']);
+    }
+
+    return $this->createAttendance($event, $createPayload, EventAttendee::SOURCE_RSVP);
+  }
+
+  /**
+   * Finds an RSVP attendee row for vendor mirror updates.
+   */
+  private function findByEventEmailAndSource(int $eventId, string $email, string $source): ?EventAttendee {
+    $ids = $this->entityTypeManager
+      ->getStorage('event_attendee')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventId)
+      ->condition('email', $email)
+      ->condition('source', $source)
+      ->range(0, 1)
+      ->execute();
+    if (empty($ids)) {
+      return NULL;
+    }
+    $entity = $this->entityTypeManager->getStorage('event_attendee')->load(reset($ids));
+    return $entity instanceof EventAttendee ? $entity : NULL;
   }
 
   /**

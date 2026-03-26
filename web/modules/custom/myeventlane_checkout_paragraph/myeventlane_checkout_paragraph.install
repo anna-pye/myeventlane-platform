@@ -8,6 +8,7 @@
  * Adds field_event to commerce_product if it does not exist.
  */
 
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -157,4 +158,154 @@ function myeventlane_checkout_paragraph_update_9002() {
   $field_by->save();
 
   \Drupal::logger('myeventlane_checkout_paragraph')->notice('✅ Check-in fields added to attendee_answer paragraphs.');
+}
+
+/**
+ * Allow multiple ticket-holder paragraphs per order item (qty > 1).
+ *
+ * Field storage cardinality was 1, which prevented persisting more than one
+ * attendee_answer per commerce_order_item.default line. Unlimited (-1) matches
+ * TicketHolderParagraphPane behaviour and preserves existing single-delta rows.
+ */
+function myeventlane_checkout_paragraph_update_9003() {
+  $storage = FieldStorageConfig::load('commerce_order_item.field_ticket_holder');
+  if (!$storage) {
+    return t('field_ticket_holder storage not found; skipped.');
+  }
+  if ($storage->getCardinality() === -1) {
+    return t('field_ticket_holder storage already unlimited; nothing to do.');
+  }
+
+  $storage->setCardinality(-1);
+  $storage->save();
+
+  \Drupal::logger('myeventlane_checkout_paragraph')->notice(
+    'field_ticket_holder on commerce_order_item: cardinality updated to unlimited (-1).'
+  );
+
+  return t('Updated field_ticket_holder cardinality to unlimited.');
+}
+
+/**
+ * Adds per-holder question references and answer storage on paragraph bundles.
+ *
+ * Creates paragraph.field_attendee_questions on attendee_answer (ER revisions
+ * to attendee_extra_field, unlimited) and paragraph.field_attendee_extra_field
+ * on attendee_extra_field (string_long). Idempotent; does not remove data.
+ */
+function myeventlane_checkout_paragraph_update_9004() {
+  $log = \Drupal::logger('myeventlane_checkout_paragraph');
+  $created = [];
+
+  $storage_id = 'paragraph.field_attendee_questions';
+  if (!FieldStorageConfig::load($storage_id)) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_attendee_questions',
+      'entity_type' => 'paragraph',
+      'type' => 'entity_reference_revisions',
+      'settings' => ['target_type' => 'paragraph'],
+      'module' => 'entity_reference_revisions',
+      'cardinality' => -1,
+      'translatable' => TRUE,
+    ])->save();
+    $created[] = $storage_id;
+    $log->notice('Created field storage @id.', ['@id' => $storage_id]);
+  }
+
+  $field_id = 'paragraph.attendee_answer.field_attendee_questions';
+  if (!FieldConfig::load($field_id)) {
+    FieldConfig::create([
+      'field_name' => 'field_attendee_questions',
+      'entity_type' => 'paragraph',
+      'bundle' => 'attendee_answer',
+      'label' => 'Attendee questions (per holder)',
+      'description' => 'Cloned attendee_extra_field paragraphs holding answers for this ticket holder.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'settings' => [
+        'handler' => 'default:paragraph',
+        'handler_settings' => [
+          'target_bundles' => ['attendee_extra_field' => 'attendee_extra_field'],
+          'negate' => 0,
+          'target_bundles_drag_drop' => [
+            'attendee_extra_field' => [
+              'weight' => 0,
+              'enabled' => TRUE,
+            ],
+          ],
+        ],
+      ],
+    ])->save();
+    $created[] = $field_id;
+    $log->notice('Created field instance @id.', ['@id' => $field_id]);
+  }
+
+  $answer_storage_id = 'paragraph.field_attendee_extra_field';
+  if (!FieldStorageConfig::load($answer_storage_id)) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_attendee_extra_field',
+      'entity_type' => 'paragraph',
+      'type' => 'string_long',
+      'settings' => ['case_sensitive' => FALSE],
+      'module' => 'core',
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ])->save();
+    $created[] = $answer_storage_id;
+    $log->notice('Created field storage @id.', ['@id' => $answer_storage_id]);
+  }
+
+  $answer_field_id = 'paragraph.attendee_extra_field.field_attendee_extra_field';
+  if (!FieldConfig::load($answer_field_id)) {
+    FieldConfig::create([
+      'field_name' => 'field_attendee_extra_field',
+      'entity_type' => 'paragraph',
+      'bundle' => 'attendee_extra_field',
+      'label' => 'Answer',
+      'description' => 'Response captured at checkout or RSVP. Hidden on event question templates; populated on per-holder clones.',
+      'required' => FALSE,
+      'translatable' => TRUE,
+      'settings' => [],
+    ])->save();
+    $created[] = $answer_field_id;
+    $log->notice('Created field instance @id.', ['@id' => $answer_field_id]);
+  }
+
+  $extra_form = EntityFormDisplay::load('paragraph.attendee_extra_field.default');
+  if ($extra_form && $extra_form->getComponent('field_attendee_extra_field')) {
+    $extra_form->removeComponent('field_attendee_extra_field')->save();
+    $log->notice('Hid field_attendee_extra_field on paragraph.attendee_extra_field.default form display (template UX).');
+  }
+
+  $answer_form = EntityFormDisplay::load('paragraph.attendee_answer.default');
+  if ($answer_form && FieldConfig::load($field_id) && !$answer_form->getComponent('field_attendee_questions')) {
+    $answer_form->setComponent('field_attendee_questions', [
+      'type' => 'paragraphs',
+      'weight' => 20,
+      'region' => 'content',
+      'settings' => [
+        'title' => 'Question',
+        'title_plural' => 'Questions',
+        'edit_mode' => 'closed',
+        'closed_mode' => 'summary',
+        'autocollapse' => 'none',
+        'closed_mode_threshold' => 0,
+        'add_mode' => 'dropdown',
+        'form_display_mode' => 'default',
+        'default_paragraph_type' => 'attendee_extra_field',
+        'features' => [
+          'add_above' => '0',
+          'collapse_edit_all' => 'collapse_edit_all',
+          'duplicate' => 'duplicate',
+        ],
+      ],
+    ])->save();
+    $log->notice('Added field_attendee_questions widget to paragraph.attendee_answer.default form display.');
+  }
+
+  if ($created === []) {
+    return t('Attendee question fields already present; form display adjustments applied if needed.');
+  }
+
+  return t('Installed attendee question fields: @list', ['@list' => implode(', ', $created)]);
 }

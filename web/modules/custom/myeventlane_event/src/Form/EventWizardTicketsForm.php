@@ -27,6 +27,12 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
   protected EventTicketsBuilder $ticketBuilder;
 
+  /**
+   * @var \Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper|null
+   *   Null when form was unserialized from cache; lazy-loaded on first access.
+   */
+  protected ?MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm = null;
+
   public function __construct(
     $entity_type_manager,
     $domain_detector,
@@ -35,12 +41,28 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     LoggerInterface $logger,
     TicketTypeManager $ticket_type_manager,
     EventTicketsBuilder $ticket_builder,
-    private readonly MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm,
+    MelPlatformSupportWizardFormHelper $mel_platform_support_wizard_form,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
     $this->ticketTypeManager = $ticket_type_manager;
     $this->ticketBuilder = $ticket_builder;
+    $this->melPlatformSupportWizardForm = $mel_platform_support_wizard_form;
+  }
+
+  /**
+   * Returns the MEL platform support wizard form helper.
+   *
+   * Lazy-loaded when form was unserialized from cache (AJAX rebuilds). The
+   * form object is serialized for form cache; constructor-injected services
+   * are not restored, so we re-fetch from container on first access.
+   */
+  protected function getMelPlatformSupportWizardForm(): MelPlatformSupportWizardFormHelper {
+    if ($this->melPlatformSupportWizardForm === null) {
+      $this->melPlatformSupportWizardForm = \Drupal::getContainer()
+        ->get('myeventlane_event.mel_platform_support_wizard_form');
+    }
+    return $this->melPlatformSupportWizardForm;
   }
 
   /**
@@ -89,7 +111,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->applyTicketTypeStates($form);
     $this->addCapacityWarning($form, $event);
-    $this->melPlatformSupportWizardForm->buildSection($form, $form_state, $event);
+    $this->getMelPlatformSupportWizardForm()->buildSection($form, $form_state, $event);
 
     $form['#title'] = $this->t('Create event: Tickets');
     $form['#event'] = $event;
@@ -176,7 +198,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
         }
       }
 
-      $this->melPlatformSupportWizardForm->validate($form_state, $event, (string) $value);
+      $this->getMelPlatformSupportWizardForm()->validate($form_state, $event, (string) $value);
     }
   }
 
@@ -197,7 +219,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->copyFormValuesToEvent($event, $form, $form_state, 'wizard_step_4');
 
-    $this->melPlatformSupportWizardForm->apply($event, $form_state);
+    $this->getMelPlatformSupportWizardForm()->apply($event, $form_state);
 
     $event->set('field_ticket_types', $saved_ticket_types);
     $event->save();

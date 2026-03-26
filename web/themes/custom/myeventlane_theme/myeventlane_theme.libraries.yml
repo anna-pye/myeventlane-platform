@@ -42,6 +42,11 @@ front:
     - core/drupal
     - core/once
 
+# Help Centre search (/help/search) — compiled into dist/main.scss via Vite.
+help_search:
+  dependencies:
+    - myeventlane_theme/global-styling
+
 # Listing headers (taxonomy/search/filtered views).
 # Reuses the front "above-the-cards" CSS without loading front-only JS.
 mel-listing-header:
@@ -86,6 +91,14 @@ mel_toasts:
   dependencies:
     - core/drupal
 
+# In-app notification polling + toast stack (MyEventLane notifications module).
+mel_notifications:
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+    - myeventlane_notifications/user_experience
+
 # RSVP sidebar accordion (Accessibility + Support sections on event book page).
 rsvp_sidebar:
   js:
@@ -93,6 +106,13 @@ rsvp_sidebar:
   dependencies:
     - core/drupal
     - core/once
+
+# Contact /support entry (/contact). Styles are compiled into dist/main.css via
+# src/scss/pages/_contact.scss; this library ensures the bundle is referenced
+# when the contact form template attaches it.
+contact_page:
+  dependencies:
+    - myeventlane_theme/global-styling
 
 # Auth pages: login, register, password reset. Styled for Gin Login + MEL branding.
 # Attached only on user.login, user.register, user.pass.

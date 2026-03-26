@@ -1,0 +1,197 @@
+{#
+/**
+ * @file
+ * Mission Control layout — compact grid; KPIs live in workspace header.
+ */
+#}
+<div class="mel-workspace-page mel-event-overview-page">
+  <div class="mel-grid mel-overview-layout">
+    <div class="mel-grid__main mel-main">
+      <section class="mel-section mel-section--compact mel-card mel-card--performance" aria-label="{{ 'Performance'|t }}">
+        <div class="mel-card__header">
+          <div>
+            <h2 class="mel-card__title">{{ 'Performance'|t }}</h2>
+            <p class="mel-card__intro">{{ 'A quick snapshot of how this event is performing.'|t }}</p>
+          </div>
+        </div>
+        {% if performance_empty %}
+          <div class="mel-empty-state mel-empty-state--compact mel-event-overview-empty mel-event-overview-empty--inline">
+            <p class="mel-empty-state__title">{{ 'No sales yet'|t }}</p>
+            <p class="mel-empty-state__text">{{ 'Once tickets or RSVPs start coming in, your event performance will appear here.'|t }}</p>
+          </div>
+        {% endif %}
+        <div class="mel-stat-grid mel-stat-grid--performance">
+          {% for stat in performance_stats %}
+            <div class="mel-stat-grid__item">
+              <div class="mel-stat-grid__label">{{ stat.label }}</div>
+              <div class="mel-stat-grid__value">{{ stat.value }}</div>
+              {% if stat.meta %}
+                <div class="mel-stat-grid__meta">{{ stat.meta }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if refund_analytics %}
+        {{ refund_analytics }}
+      {% endif %}
+
+      <section class="mel-section mel-section--compact mel-overview-grid mel-overview-grid--secondary">
+        <div class="mel-card mel-card--audience">
+          <div class="mel-card__header">
+            <div>
+              <h2 class="mel-card__title">{{ 'Audience'|t }}</h2>
+              <p class="mel-card__intro">{{ 'Where interest in this event is coming from.'|t }}</p>
+            </div>
+          </div>
+          <div class="mel-card__body">
+            {% if audience_rows|length > 0 %}
+              <ul class="mel-overview-audience-list" role="list">
+                {% for row in audience_rows %}
+                  <li class="mel-overview-audience-list__item">
+                    <span class="mel-overview-audience-list__label">{{ row.label }}</span>
+                    <span class="mel-badge mel-badge--neutral">{{ row.value }}%</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="mel-empty-state mel-empty-state--compact">
+                <p class="mel-empty-state__title">{{ audience_empty_copy.title }}</p>
+                <p class="mel-empty-state__text">{{ audience_empty_copy.body }}</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mel-card mel-card--boost-summary">
+          <div class="mel-card__header">
+            <div>
+              <h2 class="mel-card__title">{{ 'Boost'|t }}</h2>
+              {% if boost_card.status_chip %}
+                <span class="mel-meta-chip mel-meta-chip--status">{{ boost_card.status_chip }}</span>
+              {% endif %}
+            </div>
+            {% if event %}
+              <a href="{{ boost_card.cta_url }}" class="mel-btn mel-btn--sm mel-btn--cta">{{ boost_card.cta_label }}</a>
+            {% endif %}
+          </div>
+          <div class="mel-card__body">
+            <p class="mel-card__intro mel-card__intro--tight">{{ boost_card.headline }}</p>
+            <p class="mel-boost-summary-line">{{ boost_card.summary_line }}</p>
+          </div>
+        </div>
+
+        {% if show_support_card %}
+          <div class="mel-card mel-card--support">
+            <div class="mel-card__header">
+              <div>
+                <h2 class="mel-card__title">{{ 'MyEventLane support'|t }}</h2>
+                <p class="mel-card__intro">{{ 'Optional contribution that helps keep MyEventLane running.'|t }}</p>
+              </div>
+            </div>
+            <div class="mel-card__body">
+              {% for line in support_card.paragraphs %}
+                <p class="mel-support-line">{{ line }}</p>
+              {% endfor %}
+              {% if support_card.cta %}
+                <p class="mel-support-cta-wrap">
+                  <a class="mel-btn mel-btn--secondary" href="{{ support_card.cta.url }}">{{ support_card.cta.label }}</a>
+                </p>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      {% if overview.is_pro|default(false) %}
+        <section class="mel-section mel-section--compact mel-card mel-card--pro-financial" aria-labelledby="mel-pro-fin-heading">
+          <div class="mel-card__header">
+            <div>
+              <h2 class="mel-card__title" id="mel-pro-fin-heading">{{ 'Pro financial analytics'|t }}</h2>
+              <p class="mel-card__intro">{{ 'Premium financial insight for this event.'|t }}</p>
+            </div>
+          </div>
+          <div class="mel-card__body">
+            {% if overview.pro_refund_analytics.empty_insights_message %}
+              <p class="mel-pro-financial-lede">{{ overview.pro_refund_analytics.empty_insights_message }}</p>
+            {% endif %}
+            <div class="mel-pro-financial-grid">
+              <div class="mel-stat">
+                <div class="mel-stat__label">{{ 'Refund rate'|t }}</div>
+                <div class="mel-stat__value">{{ overview.pro_refund_analytics.refund_rate_percent|default('0.0%') }}</div>
+              </div>
+              <div class="mel-stat">
+                <div class="mel-stat__label">{{ 'Anomaly indicators'|t }}</div>
+                <div class="mel-stat__value mel-stat__value--soft">{{ overview.pro_refund_analytics.anomaly_message|default('No anomalies detected'|t) }}</div>
+              </div>
+              <div class="mel-stat">
+                <div class="mel-stat__label">{{ 'Exports'|t }}</div>
+                <div class="mel-stat__value">
+                  <a class="mel-btn mel-btn--sm mel-btn--secondary" href="{{ overview.pro_refund_analytics.export_csv_url|default('#') }}">{{ 'Open analytics & exports'|t }}</a>
+                </div>
+              </div>
+            </div>
+            <div class="mel-table mel-table--pro-refunds">
+              <div class="mel-table__head">
+                <div>{{ 'Refund type'|t }}</div>
+                <div>{{ 'Attributed amount'|t }}</div>
+              </div>
+              <div class="mel-table__body">
+                {% for row in overview.pro_refund_analytics.breakdown|default([]) %}
+                  <div class="mel-table__row">
+                    <div>{{ row.type }}</div>
+                    <div>{{ row.amount }}</div>
+                  </div>
+                {% else %}
+                  <div class="mel-table__empty">{{ 'No refund attribution data available yet.'|t }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </section>
+      {% else %}
+        <section class="mel-section mel-section--compact mel-card mel-card--pro-upsell">
+          <div class="mel-card__header">
+            <div>
+              <h2 class="mel-card__title">{{ 'Unlock Pro analytics'|t }}</h2>
+              <p class="mel-card__intro">{{ 'Upgrade to Pro to view refund-rate analytics, attribution breakdowns, and financial exports.'|t }}</p>
+            </div>
+          </div>
+          <div class="mel-card__body">
+            {% if pro_upgrade_url %}
+              <a class="mel-btn mel-btn--primary" href="{{ pro_upgrade_url }}">{{ 'Explore MyEventLane Pro'|t }}</a>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% include '@myeventlane_vendor_theme/event/overview-secondary-blocks.html.twig' %}
+    </div>
+
+    <aside class="mel-grid__sidebar mel-sidebar" aria-label="{{ 'Quick actions'|t }}">
+      <div class="mel-card mel-card--quick-actions mel-card--quick-actions--sidebar">
+        <div class="mel-card__header">
+          <div>
+            <h2 class="mel-card__title">{{ 'Quick actions'|t }}</h2>
+            <p class="mel-card__intro">{{ 'Jump straight to the tools you will use most.'|t }}</p>
+          </div>
+        </div>
+        <div class="mel-overview-quick-actions">
+          {% for action in quick_actions %}
+            <a href="{{ action.url }}" class="mel-overview-quick-actions__item">
+              <span class="mel-overview-quick-actions__icon" aria-hidden="true">{{ action.icon }}</span>
+              <span class="mel-overview-quick-actions__content">
+                <span class="mel-overview-quick-actions__title">{{ action.title }}</span>
+                {% if action.description %}
+                  <span class="mel-overview-quick-actions__description">{{ action.description }}</span>
+                {% endif %}
+              </span>
+              <span class="mel-overview-quick-actions__arrow" aria-hidden="true">→</span>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

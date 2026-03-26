@@ -1,4 +1,11 @@
 services:
+  myeventlane_event_attendees.vendor_presentation:
+    class: Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService
+    arguments: ['@myeventlane_core.ticket_label_resolver', '@logger.factory']
+
+  myeventlane_event_attendees.rsvp_question_capture:
+    class: Drupal\myeventlane_event_attendees\Service\EventAttendeeQuestionCaptureService
+
   # Unified attendance management service.
   myeventlane_event_attendees.manager:
     class: Drupal\myeventlane_event_attendees\Service\AttendanceManager

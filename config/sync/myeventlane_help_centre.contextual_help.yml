@@ -1,0 +1,34 @@
+langcode: en
+links:
+  event_create:
+    text: 'Need help creating your event?'
+    path: /help/organisers/how-to-create-an-event
+  ticket_types:
+    text: 'Not sure how ticket types work?'
+    path: /help/organisers/understanding-ticket-types
+  rsvp_vs_paid:
+    text: 'What’s the difference between RSVP and paid events?'
+    path: /help/organisers/choosing-rsvp-or-paid-tickets
+  refunds_checkout:
+    text: 'How do refunds work?'
+    path: /help/attendees/how-to-request-a-refund
+  vendor_dashboard:
+    text: 'Need help using your dashboard?'
+    path: /help/vendors/vendor-dashboard-overview
+  rsvp_after_submit:
+    text: 'What happens after you RSVP?'
+    path: /help/attendees/how-to-rsvp-to-a-free-event
+  managing_dashboard:
+    text: 'Managing your event dashboard'
+    path: /help/organisers/managing-your-event-dashboard
+  event_wizard:
+    text: 'Tips for completing your event setup'
+    path: /help/organisers/how-to-create-an-event
+  checkout:
+    text: 'Help with checkout and tickets'
+    path: /help/attendees/how-to-request-a-refund
+  refunds:
+    text: 'How refunds work on MyEventLane'
+    path: /help/attendees/how-to-request-a-refund
+uuid: 6d7e8f90-1234-5678-9abc-def012345678
+status: true

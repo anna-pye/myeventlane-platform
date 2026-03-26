@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_escalations_capacity\Service\CapacitySignalEvaluator;
 use Drupal\myeventlane_escalations_capacity\Service\EscalationWorkloadQuery;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Drupal\myeventlane_escalations_capacity\Service\StaffActivityAggregator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -26,6 +27,7 @@ final class CapacityDashboardController extends ControllerBase {
     private readonly CapacitySignalEvaluator $signalEvaluator,
     private readonly ConfigFactoryInterface $config,
     private readonly TimeInterface $time,
+    private readonly MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -38,6 +40,7 @@ final class CapacityDashboardController extends ControllerBase {
       $container->get('myeventlane_escalations_capacity.signal_evaluator'),
       $container->get('config.factory'),
       $container->get('datetime.time'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -75,7 +78,7 @@ final class CapacityDashboardController extends ControllerBase {
 
     $trend = $this->buildTrend($workload, $activity, $prev_workload, $prev_activity);
 
-    return [
+    $main = [
       '#theme' => 'escalation_capacity_dashboard',
       '#workload' => $workload,
       '#activity' => $activity,
@@ -83,6 +86,12 @@ final class CapacityDashboardController extends ControllerBase {
       '#trend' => $trend,
       '#cache' => ['max-age' => 0],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Escalation capacity'),
+      $this->t('Workload, staff activity, and capacity signal.'),
+    );
   }
 
   /**

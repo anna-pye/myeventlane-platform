@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
 use Drupal\myeventlane_admin_dashboard\Service\PlatformMetricsService;
+use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -21,6 +22,7 @@ final class PayoutController extends ControllerBase {
     protected PlatformMetricsService $metricsService,
     protected Connection $database,
     protected CsrfTokenGenerator $csrfToken,
+    protected MelAdminShellBuilder $adminShellBuilder,
   ) {}
 
   /**
@@ -31,6 +33,7 @@ final class PayoutController extends ControllerBase {
       $container->get('myeventlane_admin_dashboard.metrics'),
       $container->get('database'),
       $container->get('csrf_token'),
+      $container->get('myeventlane_core.mel_admin_shell_builder'),
     );
   }
 
@@ -44,7 +47,7 @@ final class PayoutController extends ControllerBase {
     $currentRoute = 'myeventlane_admin_dashboard.payouts';
     $account = $this->currentUser();
 
-    return [
+    $main = [
       '#theme' => 'platform_control_centre_payouts',
       '#payout_summary' => $payoutSummary,
       '#ledger_rows' => $ledgerRows,
@@ -68,6 +71,12 @@ final class PayoutController extends ControllerBase {
         'max-age' => 300,
       ],
     ];
+
+    return $this->adminShellBuilder->wrapStandard(
+      $main,
+      $this->t('Payouts'),
+      $this->t('Ledger, liability, and batch workflow.'),
+    );
   }
 
   /**

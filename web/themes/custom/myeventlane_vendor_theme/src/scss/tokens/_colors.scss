@@ -134,6 +134,20 @@ $chart-grid:      $gray-200;
 $chart-label:     $text-secondary;
 
 // ============================================================================
+// MEL EVENT WORKSPACE (product surface — pastel, coral, purple accent)
+// ============================================================================
+
+// Authoritative workspace palette (shared shell: Overview / Tickets / RSVPs / Analytics / Settings).
+$mel-ws-coral: #f26d5b;
+$mel-ws-purple: #6e7ef2;
+$mel-ws-bg-warm: #fef5ec;
+$mel-ws-navy: #2c3e50;
+$mel-ws-border-soft: rgba(44, 62, 80, 0.08);
+$mel-ws-shadow-soft: rgba(0, 0, 0, 0.06);
+$mel-ws-purple-tint: rgba(110, 126, 242, 0.12);
+$mel-ws-purple-border: rgba(110, 126, 242, 0.2);
+
+// ============================================================================
 // EXPORTS (for JavaScript access)
 // ============================================================================
 

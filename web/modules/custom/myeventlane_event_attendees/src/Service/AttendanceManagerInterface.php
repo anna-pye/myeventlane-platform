@@ -39,6 +39,21 @@ interface AttendanceManagerInterface {
   public function createAttendance(NodeInterface $event, array $data, string $source): EventAttendee;
 
   /**
+   * Creates or updates an RSVP-sourced event_attendee for vendor mirror data.
+   *
+   * Merges extra_data keys when a row already exists for the same event, email,
+   * and RSVP source.
+   *
+   * @param array $data
+   *   Keys: name, email, phone (optional), extra_data (optional map), status
+   *   (optional), accessibility_needs (optional list of term IDs).
+   *
+   * @return \Drupal\myeventlane_event_attendees\Entity\EventAttendee|null
+   *   The saved entity, or NULL when email is empty.
+   */
+  public function upsertRsvpVendorMirror(NodeInterface $event, array $data): ?EventAttendee;
+
+  /**
    * Gets the count of attendees for an event.
    *
    * @param int $eventId

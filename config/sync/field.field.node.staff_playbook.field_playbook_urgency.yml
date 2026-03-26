@@ -1,0 +1,21 @@
+uuid: e1f2a3b4-c5d6-7890-4567-901234567890
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_playbook_urgency
+    - node.type.staff_playbook
+  module:
+    - options
+id: node.staff_playbook.field_playbook_urgency
+field_name: field_playbook_urgency
+entity_type: node
+bundle: staff_playbook
+label: Urgency
+description: 'Optional urgency tier. Display order remains field_priority (integer). Escalation matching uses field_applicable_priority.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

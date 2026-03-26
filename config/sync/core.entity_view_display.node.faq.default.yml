@@ -4,10 +4,12 @@ status: true
 dependencies:
   config:
     - field.field.node.faq.body
+    - field.field.node.faq.field_audience
     - field.field.node.faq.field_help_audience
     - field.field.node.faq.field_help_category
     - node.type.faq
   module:
+    - options
     - text
     - user
 id: node.faq.default
@@ -21,6 +23,13 @@ content:
     settings: {  }
     third_party_settings: {  }
     weight: 0
+    region: content
+  field_audience:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 3
     region: content
   field_help_audience:
     type: entity_reference_label

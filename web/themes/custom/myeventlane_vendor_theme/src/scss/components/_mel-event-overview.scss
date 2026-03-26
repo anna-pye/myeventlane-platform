@@ -1,0 +1,485 @@
+/**
+ * @file
+ * Mission Control — vendor event overview page + compact workspace header.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+
+// -----------------------------------------------------------------------------
+// Compact workspace header (overview)
+// -----------------------------------------------------------------------------
+
+.mel-event-header {
+  background: linear-gradient(135deg, #fdf2f8, #f0f9ff);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba($mel-ws-navy, 0.06);
+}
+
+.mel-event-header__top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @include respond-to(md) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+}
+
+.mel-event-title__heading {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+  color: $mel-ws-navy;
+  letter-spacing: $letter-spacing-tight;
+}
+
+.mel-event-meta {
+  margin-top: 4px;
+  font-size: $font-size-sm;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.mel-event-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding-top: 4px;
+}
+
+.mel-stat--header {
+  min-width: 0;
+
+  .mel-stat__value {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: $font-weight-bold;
+    color: $mel-ws-navy;
+    line-height: 1.2;
+  }
+
+  .mel-stat__label {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.75rem;
+    font-weight: $font-weight-bold;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .mel-stat__hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: #6b7280;
+    line-height: 1.35;
+    max-width: 22ch;
+  }
+}
+
+.mel-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+
+  @include respond-to(md) {
+    justify-content: flex-end;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Overview layout — main + quick actions
+// -----------------------------------------------------------------------------
+
+.mel-event-overview-page {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-overview-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+.mel-grid__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mel-grid__sidebar {
+  min-width: 0;
+
+  @media (max-width: 1023px) {
+    order: -1;
+  }
+}
+
+.mel-section--compact {
+  gap: $spacing-3;
+}
+
+.mel-overview-grid--secondary {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 0;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-card--quick-actions--sidebar {
+  padding: $mel-spacing-lg;
+
+  .mel-card__header {
+    margin-bottom: 12px;
+  }
+}
+
+.mel-kpi-row--overview {
+  display: none;
+}
+
+.mel-overview-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  &--primary {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  &--secondary {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: stretch;
+  }
+}
+
+.mel-card--quick-actions,
+.mel-card--performance,
+.mel-card--audience,
+.mel-card--boost-summary,
+.mel-card--support,
+.mel-card--pro-financial,
+.mel-card--pro-upsell {
+  background: $bg-primary;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
+  box-shadow: $shadow-workspace-surface;
+  padding: $mel-spacing-lg;
+}
+
+.mel-event-overview-page .mel-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mel-event-overview-page .mel-card__title {
+  margin: 0;
+  font-size: $font-size-lg;
+  line-height: 1.2;
+  font-weight: $font-weight-bold;
+  color: $mel-ws-navy;
+}
+
+.mel-event-overview-page .mel-card__intro {
+  margin: $spacing-1 0 0;
+  font-size: $font-size-sm;
+  color: rgba($mel-ws-navy, 0.72);
+  line-height: 1.45;
+}
+
+.mel-card__intro--tight {
+  margin-top: 0;
+}
+
+.mel-event-overview-page .mel-card__body {
+  margin: 0;
+}
+
+.mel-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--status {
+    background: rgba($primary, 0.12);
+    color: $primary-dark;
+  }
+}
+
+.mel-stat-grid--performance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+
+  .mel-stat-grid__item {
+    min-width: 0;
+  }
+
+  .mel-stat-grid__label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #7a8394;
+    margin-bottom: 4px;
+  }
+
+  .mel-stat-grid__value {
+    font-size: 1.25rem;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #293241;
+    letter-spacing: -0.02em;
+  }
+
+  .mel-stat-grid__meta {
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 0.85rem;
+  }
+}
+
+.mel-overview-quick-actions {
+  display: grid;
+  gap: 8px;
+
+  &__item {
+    display: grid;
+    grid-template-columns: 32px 1fr 16px;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid #eee7f5;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+
+    &:hover,
+    &:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(41, 50, 65, 0.05);
+      border-color: #e3daf4;
+      background: #fcfbff;
+    }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #fff1ee;
+    color: #f26d5b;
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-weight: 800;
+    color: #293241;
+    line-height: 1.2;
+    font-size: 0.95rem;
+  }
+
+  &__description {
+    color: #6b7280;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  &__arrow {
+    color: #8b93a5;
+    font-size: 1rem;
+    justify-self: end;
+  }
+}
+
+.mel-overview-audience-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0edf8;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    font-weight: 600;
+    color: #293241;
+  }
+}
+
+.mel-boost-summary-line {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.mel-card--support {
+  background:
+    linear-gradient(135deg, rgba(242, 109, 91, 0.05), rgba(110, 126, 242, 0.04)),
+    #fff;
+}
+
+.mel-support-line {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  color: #4b5563;
+  line-height: 1.55;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.mel-support-cta-wrap {
+  margin: 12px 0 0;
+}
+
+.mel-event-overview-empty {
+  padding: 6px 0;
+
+  &--inline {
+    padding: 0 0 12px;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed #e8e0f4;
+  }
+
+  &__title {
+    margin: 0 0 4px;
+    font-weight: 800;
+    color: #293241;
+    font-size: 0.95rem;
+  }
+
+  &__body {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+}
+
+.mel-pro-financial-lede {
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.mel-pro-financial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mel-stat__value--soft {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.mel-table--pro-refunds {
+  margin-top: 6px;
+}
+
+.mel-event-overview-secondary {
+  margin-top: 4px;
+}
+
+@media (max-width: 980px) {
+  .mel-overview-grid {
+    &--primary,
+    &--secondary {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .mel-pro-financial-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .mel-card--quick-actions,
+  .mel-card--performance,
+  .mel-card--audience,
+  .mel-card--boost-summary,
+  .mel-card--support,
+  .mel-card--pro-financial,
+  .mel-card--pro-upsell {
+    padding: 14px;
+  }
+
+  .mel-stat-grid--performance {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-overview-quick-actions {
+    &__item {
+      grid-template-columns: 32px 1fr;
+    }
+
+    &__arrow {
+      display: none;
+    }
+  }
+}

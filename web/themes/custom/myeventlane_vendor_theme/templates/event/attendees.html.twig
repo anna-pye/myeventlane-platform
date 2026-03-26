@@ -1,133 +1,169 @@
 {#
-  Event attendees pane.
-  Variables: event, attendees, summary, is_tickets_enabled.
-  Tabs are rendered by layout/console-page above the body.
+/**
+ * Event attendees — door + people management (vendor console).
+ *
+ * Variables: event, attendees, summary, is_tickets_enabled, public_event_url
+ */
 #}
-<div class="mel-grid mel-grid--4">
-  <div class="mel-card mel-card--stat">
-    <div class="mel-stat">
-      <div class="mel-stat__label">{{ 'Total attendees'|t }}</div>
-      <div class="mel-stat__value">{{ summary.total|default(0) }}</div>
-    </div>
-  </div>
-  <div class="mel-card mel-card--stat">
-    <div class="mel-stat">
-      <div class="mel-stat__label">{{ 'Ticket holders'|t }}</div>
-      <div class="mel-stat__value">{{ summary.ticket|default(0) }}</div>
-    </div>
-  </div>
-  <div class="mel-card mel-card--stat">
-    <div class="mel-stat">
-      <div class="mel-stat__label">{{ 'RSVPs'|t }}</div>
-      <div class="mel-stat__value">{{ summary.rsvp|default(0) }}</div>
-    </div>
-  </div>
-  <div class="mel-card mel-card--stat">
-    <div class="mel-stat">
-      <div class="mel-stat__label">{{ 'Capacity'|t }}</div>
-      <div class="mel-stat__value">
-        {% if summary.remaining is not null %}
-          {{ summary.total }}/{{ summary.capacity }}
-        {% else %}
-          {{ summary.capacity }}
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
+<div class="mel-workspace-page mel-page mel-attendees">
+  <p class="mel-page__next" role="status">
+    {% trans %}Next: open <strong>Check-in</strong> on the day — search this list quickly at the door.{% endtrans %}
+  </p>
 
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Attendee list'|t }}</div>
-    <div class="mel-card__actions">
-      <label class="visually-hidden" for="attendee-search">{{ 'Search attendees'|t }}</label>
-      <input
-        type="search"
-        class="mel-input mel-input--sm"
-        placeholder="{{ 'Search attendees…'|t }}"
-        id="attendee-search"
-        data-mel-table-search
-        data-mel-table-search-rows="#attendee-list .mel-table__row"
-      >
+  <div class="mel-kpi-row">
+    <div class="mel-kpi-card mel-kpi-card--sky">
+      <p class="mel-kpi-card__label">{{ 'Total attendees'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.total|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card mel-kpi-card--mint">
+      <p class="mel-kpi-card__label">{{ 'Checked-in'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.checked_in|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card">
+      <p class="mel-kpi-card__label">{{ 'Ticket holders'|t }}</p>
+      <p class="mel-kpi-card__value">{{ summary.ticket|default(0) }}</p>
+    </div>
+    <div class="mel-kpi-card mel-kpi-card--peach">
+      <p class="mel-kpi-card__label">{{ 'Capacity'|t }}</p>
+      <p class="mel-kpi-card__value">
+        {% if summary.capacity is not same as('Unlimited') %}
+          {{ summary.total|default(0) }}/{{ summary.capacity }}
+        {% else %}
+          {{ summary.capacity|default('—') }}
+        {% endif %}
+      </p>
+      {% if summary.remaining is not null and summary.capacity is not same as('Unlimited') %}
+        <p class="mel-kpi-card__hint">{{ '@left spots left'|t({'@left': summary.remaining}) }}</p>
+      {% endif %}
     </div>
   </div>
-  
-  {% if attendees|length > 0 %}
-    <div class="mel-table mel-table--striped mel-table--cols-{{ is_tickets_enabled|default(true) ? '10' : '8' }}">
-      <div class="mel-table__head">
-        <div>{{ 'Name'|t }}</div>
-        <div>{{ 'Email'|t }}</div>
-        <div>{{ 'Phone'|t }}</div>
-        <div>{{ 'Source'|t }}</div>
-        {% if is_tickets_enabled|default(true) %}
-          <div>{{ 'Product variation'|t }}</div>
-          <div>{{ 'Order'|t }}</div>
-        {% endif %}
-        <div>{{ 'Additional data'|t }}</div>
-        <div>{{ 'Status'|t }}</div>
-        <div>{{ 'Ticket code'|t }}</div>
-        <div>{{ 'Checked in'|t }}</div>
-      </div>
-      <div class="mel-table__body" id="attendee-list">
-        {% for attendee in attendees %}
-          <div class="mel-table__row" data-name="{{ attendee.name|lower }}" data-email="{{ attendee.email|lower }}" data-phone="{{ attendee.phone|lower }}">
-            <div class="mel-text--bold">{{ attendee.name|default('—') }}</div>
-            <div>{{ attendee.email|default('—') }}</div>
-            <div>{{ attendee.phone|default('—') }}</div>
-            <div>
-              <span class="mel-badge mel-badge--{{ attendee.source|lower }}">
-                {{ attendee.source }}
-              </span>
-            </div>
+
+  <div class="mel-card">
+    <div class="mel-card__header">
+      <h2 class="mel-card__title">{{ 'Attendee list'|t }}</h2>
+      {% if attendees|length > 0 %}
+        <div class="mel-rsvp-toolbar">
+          <label class="visually-hidden" for="attendee-search">{{ 'Search attendees'|t }}</label>
+          <input
+            type="search"
+            class="mel-input mel-input--sm"
+            placeholder="{{ 'Search attendees…'|t }}"
+            id="attendee-search"
+            data-mel-table-search
+            data-mel-table-search-rows="#attendee-list .mel-table__row"
+          >
+        </div>
+      {% endif %}
+    </div>
+    <div class="mel-card__body">
+      {% if attendees|length > 0 %}
+        <div class="mel-table mel-table--striped mel-table--cols-{{ is_tickets_enabled|default(true) ? '9' : '7' }}">
+          <div class="mel-table__head">
+            <div>{{ 'Guest'|t }}</div>
+            <div>{{ 'Phone'|t }}</div>
+            <div>{{ 'Source'|t }}</div>
             {% if is_tickets_enabled|default(true) %}
-              <div>{{ attendee.ticket_type|default('—') }}</div>
-              <div>
-                {% if attendee.order_link %}
-                  <a href="{{ attendee.order_link.url }}" class="mel-link">{{ attendee.order_link.label }}</a>
-                {% else %}
-                  <span class="mel-text--muted">—</span>
-                {% endif %}
-              </div>
+              <div>{{ 'Product variation'|t }}</div>
+              <div>{{ 'Order'|t }}</div>
             {% endif %}
-            <div class="mel-text--sm">
-              {% if attendee.extra_data is not empty %}
-                {% for label, value in attendee.extra_data %}
-                  {{ label }}: {{ value }}{% if not loop.last %}; {% endif %}
-                {% endfor %}
-              {% else %}
-                <span class="mel-text--muted">—</span>
-              {% endif %}
-            </div>
-            <div>
-              <span class="mel-badge mel-badge--{{ attendee.status|lower }}">
-                {{ attendee.status }}
-              </span>
-            </div>
-            <div>
-              {% if attendee.ticket_code %}
-                <code class="mel-code">{{ attendee.ticket_code }}</code>
-              {% else %}
-                <span class="mel-text--muted">—</span>
-              {% endif %}
-            </div>
-            <div>
-              {% if attendee.checked_in %}
-                <span class="mel-badge mel-badge--success">{{ 'Yes'|t }}</span>
-              {% else %}
-                <span class="mel-badge mel-badge--neutral">{{ 'No'|t }}</span>
-              {% endif %}
-            </div>
+            <div>{{ 'Additional data'|t }}</div>
+            <div>{{ 'Status'|t }}</div>
+            <div>{{ 'Ticket code'|t }}</div>
+            <div>{{ 'Checked in'|t }}</div>
           </div>
-        {% endfor %}
-      </div>
+          <div class="mel-table__body" id="attendee-list">
+            {% for attendee in attendees %}
+              {% set initial = (attendee.name|default('?')|trim|slice(0, 1))|upper %}
+              <div class="mel-table__row" data-name="{{ attendee.name|lower }}" data-email="{{ attendee.email|lower }}" data-phone="{{ attendee.phone|lower }}">
+                <div class="mel-cell-user">
+                  <span class="mel-avatar" aria-hidden="true">{{ initial }}</span>
+                  <div class="mel-cell-user__text">
+                    <span class="mel-cell-user__name">{{ attendee.name|default('—') }}</span>
+                    {% if attendee.email %}
+                      <a class="mel-cell-user__email" href="mailto:{{ attendee.email }}">{{ attendee.email }}</a>
+                    {% else %}
+                      <span class="mel-cell-user__email">—</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div>{{ attendee.phone|default('—') }}</div>
+                <div>
+                  <span class="mel-badge mel-badge--{{ attendee.source|lower }}">
+                    {{ attendee.source }}
+                  </span>
+                </div>
+                {% if is_tickets_enabled|default(true) %}
+                  <div>{{ attendee.ticket_type|default('—') }}</div>
+                  <div>
+                    {% if attendee.order_link %}
+                      <a href="{{ attendee.order_link.url }}" class="mel-link">{{ attendee.order_link.label }}</a>
+                    {% else %}
+                      <span class="mel-text--muted">—</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+                <div class="mel-text--sm">
+                  {% if attendee.custom_answers is defined and attendee.custom_answers is not empty %}
+                    {% for row in attendee.custom_answers %}
+                      {{ row.label }}: {{ row.value }}{% if not loop.last %}; {% endif %}
+                    {% endfor %}
+                  {% elseif attendee.extra_data is not empty %}
+                    {% for key, item in attendee.extra_data %}
+                      {% if item is mapping and item.label is defined and item.value is defined %}
+                        {{ item.label }}: {{ item.value }}{% if not loop.last %}; {% endif %}
+                      {% else %}
+                        {{ key }}: {{ item }}{% if not loop.last %}; {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                  {% elseif attendee.custom_answers_display is defined and attendee.custom_answers_display %}
+                    {{ attendee.custom_answers_display }}
+                  {% else %}
+                    <span class="mel-text--muted">—</span>
+                  {% endif %}
+                </div>
+                <div>
+                  <span class="mel-badge mel-badge--{{ attendee.status|lower }}">
+                    {{ attendee.status }}
+                  </span>
+                </div>
+                <div>
+                  {% if attendee.ticket_code %}
+                    <code class="mel-code">{{ attendee.ticket_code }}</code>
+                  {% else %}
+                    <span class="mel-text--muted">—</span>
+                  {% endif %}
+                </div>
+                <div>
+                  {% if attendee.checked_in %}
+                    <span class="mel-badge mel-badge--success">{{ 'Yes'|t }}</span>
+                  {% else %}
+                    <span class="mel-badge mel-badge--neutral">{{ 'No'|t }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="mel-empty-state">
+          <svg class="mel-empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+          <p class="mel-empty-state__title">{{ 'No attendees yet'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'When people RSVP or purchase tickets, they will appear here.'|t }}</p>
+          {% if public_event_url %}
+            <div class="mel-action-group">
+              <a class="mel-btn mel-btn--cta mel-button mel-button--primary" href="{{ public_event_url }}" target="_blank" rel="noopener noreferrer">{{ 'View event page'|t }}</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
-  {% else %}
-    <div class="mel-empty">
-      <div class="mel-empty__icon">👥</div>
-      <div class="mel-empty__title">{{ 'No attendees yet'|t }}</div>
-      <div class="mel-empty__description">
-        {{ 'When people RSVP or purchase tickets, they will appear here.'|t }}
-      </div>
-    </div>
-  {% endif %}
+  </div>
+
+  <div class="mel-support-card">
+    <h3 class="mel-support-card__title">{{ 'Need help with check-in?'|t }}</h3>
+    <p class="mel-support-card__text">{{ 'Use the Check-in tool from the header for door mode and QR flows.'|t }}</p>
+    <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+  </div>
 </div>

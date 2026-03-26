@@ -1,0 +1,113 @@
+<?php
+
+/**
+ * @file
+ * Schema for documentation opportunities.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ */
+function myeventlane_help_improvement_schema(): array {
+  $schema['mel_doc_opportunity'] = [
+    'description' => 'Queued documentation improvement opportunities derived from Help analytics.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'source_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ],
+      'audience' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'unknown',
+      ],
+      'query_text' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'normalized_topic' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'suggested_title' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+      ],
+      'suggested_article_type' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => 'help_article',
+      ],
+      'frequency_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+        'size' => 'normal',
+      ],
+      'first_seen' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'last_seen' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'new',
+      ],
+      'linked_help_article_nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'notes' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+      'dedupe_key' => [
+        'type' => 'varchar',
+        'length' => 191,
+        'not null' => TRUE,
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'dedupe_key' => ['dedupe_key'],
+    ],
+    'indexes' => [
+      'status' => ['status'],
+      'source_type' => ['source_type'],
+      'audience' => ['audience'],
+      'last_seen' => ['last_seen'],
+      'linked_nid' => ['linked_help_article_nid'],
+    ],
+  ];
+
+  return $schema;
+}

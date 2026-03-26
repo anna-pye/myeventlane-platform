@@ -1,7 +1,7 @@
 myeventlane_help_centre.vendor_help:
   title: 'Help centre'
   description: 'View help articles and guides for vendors.'
-  route_name: myeventlane_help_centre.vendor_help
+  route_name: myeventlane_help_centre.home
   menu_name: account
   weight: 90
 
@@ -19,3 +19,10 @@ myeventlane_help_centre.help_insights_dashboard:
   route_name: myeventlane_help_centre.help_insights_dashboard
   parent: system.admin_reports
   weight: 40
+
+myeventlane_help_centre.docs_health:
+  title: 'Help content health'
+  description: 'Top articles, zero-result searches, and least-helpful content.'
+  route_name: myeventlane_help_centre.docs_health
+  parent: myeventlane_core.config
+  weight: 44
