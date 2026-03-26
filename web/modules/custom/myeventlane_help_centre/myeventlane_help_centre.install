@@ -1708,16 +1708,25 @@ function myeventlane_help_centre_update_10030(): string {
  */
 function myeventlane_help_centre_update_10031(): string {
   $schema = Database::getConnection()->schema();
+  $field_spec = [
+    'type' => 'varchar',
+    'length' => 32,
+    'not null' => FALSE,
+    'description' => 'Optional Help search audience filter (public, vendor, staff).',
+  ];
   if (!$schema->fieldExists('myeventlane_help_analytics', 'context_audience')) {
-    $schema->addField('myeventlane_help_analytics', 'context_audience', [
-      'type' => 'varchar',
-      'length' => 32,
-      'not null' => FALSE,
-      'description' => 'Optional Help search audience filter (public, vendor, staff).',
-    ]);
-    if (!$schema->indexExists('myeventlane_help_analytics', 'context_audience')) {
-      $schema->addIndex('myeventlane_help_analytics', 'context_audience', ['context_audience'], []);
-    }
+    $schema->addField('myeventlane_help_analytics', 'context_audience', $field_spec);
+  }
+  if (!$schema->indexExists('myeventlane_help_analytics', 'context_audience')) {
+    $index_spec = [
+      'fields' => [
+        'context_audience' => $field_spec,
+      ],
+      'indexes' => [
+        'context_audience' => ['context_audience'],
+      ],
+    ];
+    $schema->addIndex('myeventlane_help_analytics', 'context_audience', ['context_audience'], $index_spec);
   }
   return 'Added context_audience to myeventlane_help_analytics for documentation opportunity segmentation.';
 }
