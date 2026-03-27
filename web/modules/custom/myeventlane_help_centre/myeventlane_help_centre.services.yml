@@ -34,3 +34,39 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_help_centre'
       - '@string_translation'
+
+  myeventlane_help_centre.support_action_builder:
+    class: Drupal\myeventlane_help_centre\Service\SupportActionBuilder
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@config.factory'
+      - '@string_translation'
+
+  myeventlane_help_centre.support_context_builder:
+    class: Drupal\myeventlane_help_centre\Service\SupportContextBuilder
+    arguments:
+      - '@current_route_match'
+      - '@request_stack'
+      - '@current_user'
+      - '@?myeventlane_help_assistant.context_resolver'
+      - '@myeventlane_help_centre.support_action_builder'
+
+  myeventlane_help_centre.mel_support_settings_builder:
+    class: Drupal\myeventlane_help_centre\Service\MelSupportSettingsBuilder
+    arguments:
+      - '@myeventlane_help_centre.support_context_builder'
+      - '@myeventlane_help_centre.support_action_builder'
+      - '@request_stack'
+      - '@current_user'
+      - '@module_handler'
+      - '@config.factory'
+      - '@string_translation'
+
+  myeventlane_help_centre.support_shell_page_attachments:
+    class: Drupal\myeventlane_help_centre\Service\SupportShellPageAttachments
+    arguments:
+      - '@current_route_match'
+      - '@request_stack'
+      - '@myeventlane_help_centre.mel_support_settings_builder'

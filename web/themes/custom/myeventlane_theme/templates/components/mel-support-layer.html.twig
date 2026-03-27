@@ -1,0 +1,41 @@
+{#
+/**
+ * @file
+ * Shared MEL support layer shell (hub variant). Actions + debug hydrated by JS.
+ *
+ * Variables: variant, escalation (urls), show_intro, show_articles_jump, strings (pre-translated).
+ */
+#}
+<section class="mel-mel-support-layer mel-mel-support-layer--{{ variant|default('hub') }}" data-mel-support-layer>
+  {% if show_intro %}
+    <h2 class="mel-mel-support-layer__intro-title visually-hidden">{{ 'Support shortcuts'|t }}</h2>
+    <p class="mel-mel-support-layer__intro-lead" id="mel-support-layer-intro">{{ strings.intro_hub|default('') }}</p>
+  {% endif %}
+
+  <div class="mel-mel-support-layer__actions" data-mel-support-actions-host hidden></div>
+
+  {% if show_articles_jump and escalation.articles_jump_id is defined %}
+    <p class="mel-mel-support-layer__jump">
+      <a href="#{{ escalation.articles_jump_id }}">{{ strings.articles_jump|default('Browse featured articles below') }}</a>
+    </p>
+  {% endif %}
+
+  {% set esc_contact = escalation.contact_url|default('') %}
+  {% set esc_assistant = escalation.assistant_url|default('') %}
+  {% set esc_search = escalation.help_search_url|default('') %}
+  {% if esc_contact or esc_assistant or esc_search %}
+    <footer class="mel-mel-support-layer__escalation" aria-label="{{ 'Get more help'|t }}">
+      {% if esc_contact %}
+        <a href="{{ esc_contact }}">{{ strings.contact_support|default('Contact support') }}</a>
+      {% endif %}
+      {% if esc_assistant %}
+        <a href="{{ esc_assistant }}">{{ strings.open_assistant|default('Open Help Assistant') }}</a>
+      {% endif %}
+      {% if esc_search %}
+        <a href="{{ esc_search }}">{{ strings.search_help|default('Search help') }}</a>
+      {% endif %}
+    </footer>
+  {% endif %}
+
+  <div class="mel-mel-support-layer__debug" data-mel-support-debug-host hidden></div>
+</section>

@@ -35,6 +35,7 @@ function myeventlane_help_centre_theme(): array {
         'ia_sections' => [],
         'help_assistant_page_url' => '/help#mel-help-assistant',
         'contact_support_url' => '/support/tickets',
+        'mel_support_layer' => NULL,
       ],
       'template' => 'help-centre-home',
       // Template ships with myeventlane_theme (see help_link pattern).
@@ -78,7 +79,25 @@ function myeventlane_help_centre_theme(): array {
       'template' => 'components/contextual-help-card',
       'path' => $theme_path . '/templates',
     ],
+    'mel_support_layer' => [
+      'variables' => [
+        'variant' => 'hub',
+        'escalation' => [],
+        'show_intro' => TRUE,
+        'show_articles_jump' => TRUE,
+        'strings' => [],
+      ],
+      'template' => 'components/mel-support-layer',
+      'path' => $theme_path . '/templates',
+    ],
   ];
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function myeventlane_help_centre_page_attachments(array &$attachments): void {
+  \Drupal::service('myeventlane_help_centre.support_shell_page_attachments')->attachIfNeeded($attachments);
 }
 
 /**

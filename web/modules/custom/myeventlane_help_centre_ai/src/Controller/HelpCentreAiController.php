@@ -33,15 +33,15 @@ final class HelpCentreAiController extends ControllerBase {
   public function ask(): RedirectResponse {
     $this->helpCentreAiLogger->warning('Deprecated AI endpoint used: /help/ask');
 
-    $target = '/help';
+    $options = [];
     if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
       $settings = $this->config('myeventlane_help_assistant.settings');
       if ((bool) $settings->get('enabled')) {
-        $target = '/help#mel-help-assistant';
+        $options['fragment'] = 'mel-help-assistant';
       }
     }
 
-    return new RedirectResponse($target, 302);
+    return $this->redirect('myeventlane_help_centre.home', [], $options, 302);
   }
 
 }

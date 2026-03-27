@@ -10,9 +10,12 @@ services:
       - '@current_user'
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_help_assistant'
+      - '@request_stack'
 
   myeventlane_help_assistant.response_builder:
     class: Drupal\myeventlane_help_assistant\Service\HelpResponseBuilder
+    arguments:
+      - '@myeventlane_help_centre.support_action_builder'
     calls:
       - [setStringTranslation, ['@string_translation']]
 

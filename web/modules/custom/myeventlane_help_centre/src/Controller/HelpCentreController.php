@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
+use Drupal\myeventlane_help_centre\Service\MelSupportSettingsBuilder;
 use Drupal\taxonomy\TermInterface;
 use Drupal\views\Views;
 use Psr\Log\LoggerInterface;
@@ -26,6 +27,7 @@ final class HelpCentreController extends ControllerBase {
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
     private readonly HelpAnalyticsService $analyticsService,
+    private readonly MelSupportSettingsBuilder $melSupportSettingsBuilder,
   ) {}
 
   /**
@@ -37,6 +39,7 @@ final class HelpCentreController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_help_centre'),
       $container->get('myeventlane_help_centre.analytics'),
+      $container->get('myeventlane_help_centre.mel_support_settings_builder'),
     );
   }
 
@@ -57,6 +60,8 @@ final class HelpCentreController extends ControllerBase {
     $contextValue = $currentRequest?->query->get('context');
     $isVendorContext = is_string($contextValue) && trim($contextValue) === 'vendor';
 
+    $melPayload = $this->melSupportSettingsBuilder->buildDrupalSettings('hub', TRUE);
+
     $build = [
       '#theme' => 'help_centre_home',
       '#context' => $isVendorContext ? 'vendor' : NULL,
@@ -71,6 +76,38 @@ final class HelpCentreController extends ControllerBase {
       '#ia_sections' => $isVendorContext ? [] : $this->buildHelpCentreIaSections(),
       '#help_assistant_page_url' => $this->getHelpAssistantPageUrl(),
       '#contact_support_url' => $this->getContactSupportUrl(),
+      '#mel_support_layer' => [
+        '#theme' => 'mel_support_layer',
+        '#variant' => 'hub',
+        '#escalation' => $melPayload['escalation'],
+        '#show_intro' => TRUE,
+        '#show_articles_jump' => !$isVendorContext,
+        '#strings' => $melPayload['strings'],
+        '#cache' => [
+          'contexts' => [
+            'languages:language_interface',
+            'url.path',
+            'url.query_args:q',
+            'url.query_args:context',
+            'url.query_args:event',
+            'user.permissions',
+            'url.query_args:mel_support_debug',
+          ],
+          'tags' => [
+            'node_list:help_article',
+            'node_list:faq',
+            'config:taxonomy.vocabulary.help_topic',
+          ],
+        ],
+      ],
+      '#attached' => [
+        'library' => [
+          'myeventlane_help_centre/support_components',
+        ],
+        'drupalSettings' => [
+          'melSupport' => $melPayload,
+        ],
+      ],
     ];
 
     $cacheability = new CacheableMetadata();
@@ -83,11 +120,14 @@ final class HelpCentreController extends ControllerBase {
       'url.path',
       'url.query_args:q',
       'url.query_args:context',
+      'url.query_args:event',
       'languages:language_interface',
       'user.permissions',
+      'url.query_args:mel_support_debug',
     ]);
     if ($this->moduleHandler()->moduleExists('myeventlane_help_assistant')) {
       $cacheability->addCacheTags(['config:myeventlane_help_assistant.settings']);
+      $cacheability->addCacheContexts(['url.query_args:event']);
     }
     $cacheability->applyTo($build);
 

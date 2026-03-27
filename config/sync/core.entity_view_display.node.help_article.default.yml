@@ -38,45 +38,15 @@ content:
     third_party_settings: {  }
     weight: 0
     region: content
-  field_help_article_type:
-    type: entity_reference_label
-    label: above
-    settings:
-      link: true
-    third_party_settings: {  }
-    weight: 1
-    region: content
-  field_help_category:
-    type: entity_reference_label
-    label: above
-    settings:
-      link: true
-    third_party_settings: {  }
-    weight: 2
-    region: content
-  field_related_articles:
-    type: entity_reference_label
-    label: visually_hidden
-    settings:
-      link: true
-    third_party_settings: {  }
-    weight: 4
-    region: content
-  field_related_help_articles:
-    type: entity_reference_label
-    label: visually_hidden
-    settings:
-      link: true
-    third_party_settings: {  }
-    weight: 3
-    region: content
 hidden:
   content_moderation_control: true
   field_audience: true
   field_content_owner: true
   field_featured_help: true
   field_help_ai_allowed: true
+  field_help_article_type: true
   field_help_audience: true
+  field_help_category: true
   field_help_cta_label: true
   field_help_cta_link: true
   field_help_keywords: true
@@ -86,6 +56,8 @@ hidden:
   field_last_reviewed: true
   field_last_updated: true
   field_priority: true
+  field_related_articles: true
+  field_related_help_articles: true
   langcode: true
   links: true
   search_api_excerpt: true

@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_help_assistant\Service;
 
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_help_centre\Service\SupportActionBuilder;
 
 /**
  * Merges grounded AI payloads with verified workspace context (actions, follow-ups).
  *
  * Staff-only help content is never added here; retrieval remains audience-filtered
- * in HelpRetriever.
+ * in HelpRetriever. Contextual actions are delegated to SupportActionBuilder so
+ * URLs and access checks stay route-based and consistent with the Help Centre hub.
  */
 final class HelpResponseBuilder {
 
   use StringTranslationTrait;
+
+  public function __construct(
+    private readonly SupportActionBuilder $supportActionBuilder,
+  ) {}
 
   /**
    * @param array<string, mixed> $ai
@@ -31,7 +37,8 @@ final class HelpResponseBuilder {
     $response['steps'] = is_array($ai['steps'] ?? NULL) ? $ai['steps'] : [];
     $response['followups'] = is_array($ai['followups'] ?? NULL) ? $ai['followups'] : [];
 
-    $context_actions = $this->buildContextActions($context);
+    $normalized = $this->supportActionBuilder->buildNormalizedForWorkspaceContext($context);
+    $context_actions = $this->supportActionBuilder->toAssistantLabelUrlRows($normalized);
     $context_followups = $this->buildContextFollowups($context);
 
     $response['actions'] = $this->mergeUniqueActions($context_actions, $response['actions']);
@@ -41,60 +48,9 @@ final class HelpResponseBuilder {
       $response['answer'] = (string) $this->t('Here are practical next steps from MyEventLane based on the Help Centre and your workspace.');
     }
 
-    if ($this->contextExpectsAction($context) && $response['actions'] === []) {
-      $response['actions'] = $this->defaultActionsForContext($context);
-    }
-
     $response['context_display'] = $this->buildContextDisplay($context);
 
     return $response;
-  }
-
-  /**
-   * @param array<string, mixed> $context
-   *
-   * @return array<int, array<string, string>>
-   */
-  private function buildContextActions(array $context): array {
-    $actions = [];
-    $event = $context['event'] ?? NULL;
-    $surface = (string) ($context['surface'] ?? 'unknown');
-    $vendorish = in_array($surface, ['vendor_dashboard', 'event_workspace', 'event_wizard'], TRUE);
-
-    if (is_array($event)) {
-      $eid = (int) ($event['id'] ?? 0);
-      $status = (string) ($event['status'] ?? '');
-      if ($eid > 0 && $status === 'draft') {
-        $actions[] = [
-          'label' => (string) $this->t('Finish your event'),
-          'url' => '/vendor/events/' . $eid . '/edit',
-        ];
-      }
-      if ($eid > 0 && $status === 'published') {
-        $boost_url = $vendorish
-          ? '/vendor/events/' . $eid . '/boost/wizard'
-          : '/event/' . $eid . '/boost';
-        $actions[] = [
-          'label' => (string) $this->t('Boost your event'),
-          'url' => $boost_url,
-        ];
-      }
-      if ($eid > 0) {
-        $actions[] = [
-          'label' => (string) $this->t('Open event workspace'),
-          'url' => '/vendor/events/' . $eid,
-        ];
-      }
-    }
-
-    if ($surface === 'vendor_dashboard') {
-      $actions[] = [
-        'label' => (string) $this->t('View your events'),
-        'url' => '/vendor/events',
-      ];
-    }
-
-    return $actions;
   }
 
   /**
@@ -176,43 +132,6 @@ final class HelpResponseBuilder {
       }
     }
     return $out;
-  }
-
-  /**
-   * @param array<string, mixed> $context
-   */
-  private function contextExpectsAction(array $context): bool {
-    if (!empty($context['event']) && is_array($context['event'])) {
-      return TRUE;
-    }
-    $surface = (string) ($context['surface'] ?? '');
-    return in_array($surface, ['vendor_dashboard', 'event_workspace', 'event_wizard'], TRUE);
-  }
-
-  /**
-   * @param array<string, mixed> $context
-   *
-   * @return array<int, array<string, string>>
-   */
-  private function defaultActionsForContext(array $context): array {
-    $event = $context['event'] ?? NULL;
-    if (is_array($event)) {
-      $eid = (int) ($event['id'] ?? 0);
-      if ($eid > 0) {
-        return [
-          [
-            'label' => (string) $this->t('Open event workspace'),
-            'url' => '/vendor/events/' . $eid,
-          ],
-        ];
-      }
-    }
-    return [
-      [
-        'label' => (string) $this->t('View your events'),
-        'url' => '/vendor/events',
-      ],
-    ];
   }
 
   /**

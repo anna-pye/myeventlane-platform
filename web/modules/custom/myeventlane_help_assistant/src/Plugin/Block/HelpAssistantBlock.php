@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_help_assistant\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\myeventlane_help_assistant\Service\HelpContextResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -27,6 +28,7 @@ final class HelpAssistantBlock extends BlockBase implements ContainerFactoryPlug
     $plugin_definition,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly HelpContextResolver $helpContextResolver,
+    private readonly UrlGeneratorInterface $urlGenerator,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -41,6 +43,7 @@ final class HelpAssistantBlock extends BlockBase implements ContainerFactoryPlug
       $plugin_definition,
       $container->get('config.factory'),
       $container->get('myeventlane_help_assistant.context_resolver'),
+      $container->get('url_generator'),
     );
   }
 
@@ -54,19 +57,18 @@ final class HelpAssistantBlock extends BlockBase implements ContainerFactoryPlug
     }
 
     $starters = _myeventlane_help_assistant_starter_list($config);
-    $page_context = $this->helpContextResolver->exportClientEchoPayload(
-      $this->helpContextResolver->resolve(NULL),
-    );
+    $endpoint = $this->urlGenerator->generateFromRoute('myeventlane_help_assistant.ask');
+    $page_context = $this->helpContextResolver->exportClientContextForRequest();
 
     return [
       '#theme' => 'myeventlane_help_assistant_block',
-      '#endpoint' => '/help/assistant',
+      '#endpoint' => $endpoint,
       '#starter_questions' => $starters,
       '#support_url' => _myeventlane_help_assistant_support_ticket_path(),
       '#attached' => [
         'drupalSettings' => [
           'myeventlaneHelpAssistant' => [
-            'endpoint' => '/help/assistant',
+            'endpoint' => $endpoint,
             'starters' => $starters,
             'pageContext' => $page_context,
           ],
@@ -75,7 +77,7 @@ final class HelpAssistantBlock extends BlockBase implements ContainerFactoryPlug
       '#cache' => [
         'max-age' => 0,
         'tags' => ['config:myeventlane_help_assistant.settings'],
-        'contexts' => ['user.permissions', 'route'],
+        'contexts' => ['user.permissions', 'route', 'url.query_args:event'],
       ],
     ];
   }
