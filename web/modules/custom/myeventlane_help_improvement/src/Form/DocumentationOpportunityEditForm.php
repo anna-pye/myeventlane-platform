@@ -40,8 +40,23 @@ final class DocumentationOpportunityEditForm extends FormBase {
 
   /**
    * {@inheritdoc}
+   *
+   * Extra arguments from the form builder's getForm() call are passed after
+   * $form_state; a variadic parameter keeps the signature compatible with
+   * \Drupal\Core\Form\FormInterface while still receiving the opportunity row.
    */
-  public function buildForm(array $form, FormStateInterface $form_state, array $opportunity): array {
+  public function buildForm(array $form, FormStateInterface $form_state, mixed ...$form_args): array {
+    $opportunity = [];
+    if ($form_args !== [] && is_array($form_args[0])) {
+      $opportunity = $form_args[0];
+    }
+    else {
+      $build_args = $form_state->getBuildInfo()['args'] ?? [];
+      if (isset($build_args[0]) && is_array($build_args[0])) {
+        $opportunity = $build_args[0];
+      }
+    }
+
     if (!$this->currentUser()->hasPermission('administer documentation opportunities')) {
       return [
         '#markup' => '<p>' . $this->t('You do not have permission to edit opportunities.') . '</p>',

@@ -52,10 +52,10 @@ function _myeventlane_core_create_default_menu_links(): void {
   ]);
   $organisers_link->save();
 
-  // Create Support link.
+  // Create Support link (canonical Help Centre hub).
   $support_link = MenuLinkContent::create([
     'title' => 'Support',
-    'link' => ['uri' => 'internal:/support'],
+    'link' => ['uri' => 'internal:/help'],
     'menu_name' => 'main',
     'weight' => 3,
   ]);

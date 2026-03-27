@@ -12,6 +12,7 @@
  * - faq_listing: FAQ view render array.
  * - ia_sections: Structured sections (Discover / Book / Manage / Policies).
  * - help_assistant_page_url: URL to Help Assistant anchor on /help (if enabled).
+ * - mel_support_layer: Optional render array; shared MEL support shell (hub).
  */
 #}
 {% set is_vendor_context = context == 'vendor' %}
@@ -43,6 +44,12 @@
       <button type="submit" class="mel-help-home__search-button">{{ 'Search'|t }}</button>
     </form>
   </header>
+
+  {% if mel_support_layer %}
+    <div class="mel-help-home__support-layer-wrap">
+      {{ mel_support_layer }}
+    </div>
+  {% endif %}
 
   {% if is_vendor_context %}
     <section class="mel-help-home__section mel-help-home__section--vendor-intro" aria-labelledby="mel-vendor-context-title">

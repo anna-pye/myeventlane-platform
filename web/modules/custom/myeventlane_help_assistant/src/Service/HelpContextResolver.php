@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Resolves Help Assistant workspace context from the route and verified client hints.
@@ -39,6 +40,7 @@ final class HelpContextResolver {
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -243,15 +245,7 @@ final class HelpContextResolver {
   }
 
   /**
-   * Minimal payload echoed by the browser on POST (no user ids or roles).
-   *
-   * @param array<string, mixed> $full
-   *   Output of resolve().
-   *
-   * @return array<string, mixed>
-   */
-  /**
-   * Workspace hints for the unified /support hub (optional ?event=, server-validated).
+   * Workspace hints for the help hub (optional ?event=, server-validated).
    *
    * @param int|null $event_query_param
    *   Raw event node ID from the query string, or NULL.
@@ -274,6 +268,35 @@ final class HelpContextResolver {
     return $base;
   }
 
+  /**
+   * Client echo payload for the current HTTP request (GET), including ?event=.
+   *
+   * @return array<string, mixed>
+   */
+  public function exportClientContextForRequest(): array {
+    $request = $this->requestStack->getCurrentRequest();
+    $event_id = NULL;
+    if ($request !== NULL) {
+      $param = $request->query->get('event');
+      if (is_numeric($param)) {
+        $parsed = (int) $param;
+        $event_id = $parsed > 0 ? $parsed : NULL;
+      }
+    }
+    $full = $event_id !== NULL
+      ? $this->resolveSupportHubContext($event_id)
+      : $this->resolve(NULL);
+    return $this->exportClientEchoPayload($full);
+  }
+
+  /**
+   * Minimal payload echoed by the browser on POST (no user ids or roles).
+   *
+   * @param array<string, mixed> $full
+   *   Output of resolve() or resolveSupportHubContext().
+   *
+   * @return array<string, mixed>
+   */
   public function exportClientEchoPayload(array $full): array {
     $out = [
       'surface' => (string) ($full['surface'] ?? 'unknown'),

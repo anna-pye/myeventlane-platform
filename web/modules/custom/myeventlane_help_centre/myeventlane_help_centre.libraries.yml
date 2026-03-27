@@ -1,3 +1,14 @@
+support_components:
+  css:
+    theme:
+      css/mel-support-components.css: {}
+  js:
+    js/mel-support-components.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
 help_feedback:
   js:
     js/help-feedback.js: {}

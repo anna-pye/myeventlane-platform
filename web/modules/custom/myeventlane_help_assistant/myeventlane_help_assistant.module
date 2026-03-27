@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
 /**
@@ -57,8 +58,7 @@ function _myeventlane_help_assistant_page_context(): array {
   if (!\Drupal::hasService('myeventlane_help_assistant.context_resolver')) {
     return [];
   }
-  $resolver = \Drupal::service('myeventlane_help_assistant.context_resolver');
-  return $resolver->exportClientEchoPayload($resolver->resolve(NULL));
+  return \Drupal::service('myeventlane_help_assistant.context_resolver')->exportClientContextForRequest();
 }
 
 /**
@@ -72,16 +72,17 @@ function myeventlane_help_assistant_preprocess_help_centre_home(array &$variable
 
   $starters = _myeventlane_help_assistant_starter_list($config);
   $page_context = _myeventlane_help_assistant_page_context();
+  $endpoint = Url::fromRoute('myeventlane_help_assistant.ask')->toString();
 
   $variables['help_assistant'] = [
     '#theme' => 'myeventlane_help_assistant_block',
-    '#endpoint' => '/help/assistant',
+    '#endpoint' => $endpoint,
     '#starter_questions' => $starters,
     '#support_url' => _myeventlane_help_assistant_support_ticket_path(),
     '#attached' => [
       'drupalSettings' => [
         'myeventlaneHelpAssistant' => [
-          'endpoint' => '/help/assistant',
+          'endpoint' => $endpoint,
           'starters' => $starters,
           'pageContext' => $page_context,
         ],
@@ -90,7 +91,7 @@ function myeventlane_help_assistant_preprocess_help_centre_home(array &$variable
     '#cache' => [
       'max-age' => 0,
       'tags' => ['config:myeventlane_help_assistant.settings'],
-      'contexts' => ['user.permissions', 'route'],
+      'contexts' => ['user.permissions', 'route', 'url.query_args:event'],
     ],
   ];
 }
@@ -102,9 +103,18 @@ function myeventlane_help_assistant_preprocess_myeventlane_help_assistant_page(a
   $config = \Drupal::config('myeventlane_help_assistant.settings');
   $variables['starter_questions'] = _myeventlane_help_assistant_starter_list($config);
   $variables['support_url'] = _myeventlane_help_assistant_support_ticket_path();
+  $endpoint = Url::fromRoute('myeventlane_help_assistant.ask')->toString();
+  $variables['endpoint'] = $endpoint;
   if (!isset($variables['#attached'])) {
     $variables['#attached'] = [];
   }
+  if (!isset($variables['#attached']['drupalSettings'])) {
+    $variables['#attached']['drupalSettings'] = [];
+  }
+  if (!isset($variables['#attached']['drupalSettings']['myeventlaneHelpAssistant'])) {
+    $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant'] = [];
+  }
+  $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant']['endpoint'] = $endpoint;
   $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant']['starters'] = $variables['starter_questions'];
   $variables['#attached']['drupalSettings']['myeventlaneHelpAssistant']['pageContext'] =
     _myeventlane_help_assistant_page_context();

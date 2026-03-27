@@ -1,0 +1,204 @@
+/**
+ * @file
+ * Shared MEL support component layer (public, vendor, admin).
+ */
+
+.mel-mel-support-layer {
+  margin: 0 0 2rem;
+  padding: 1.25rem 1.25rem 1.5rem;
+  background: var(--mel-color-surface, #fff);
+  border: 1px solid var(--mel-color-border, #e2e2e8);
+  border-radius: var(--mel-radius-md, 0.5rem);
+  box-shadow: 0 1px 2px rgba(26, 26, 46, 0.04);
+}
+
+.mel-mel-support-layer__intro-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+.mel-mel-support-layer__intro-lead {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #555);
+}
+
+.mel-mel-support-layer__actions-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.65rem;
+  color: var(--mel-color-text-secondary, #555);
+}
+
+.mel-mel-support-layer__actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-mel-support-layer__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--mel-radius-sm, 0.25rem);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mel-mel-support-layer__action--primary {
+  background: var(--mel-color-primary, #4f46e5);
+  color: #fff;
+}
+
+.mel-mel-support-layer__action--primary:hover,
+.mel-mel-support-layer__action--primary:focus-visible {
+  background: var(--mel-color-primary-hover, #4338ca);
+  color: #fff;
+  text-decoration: none;
+}
+
+.mel-mel-support-layer__action--secondary {
+  background: var(--mel-color-surface-muted, #f4f4f7);
+  color: var(--mel-color-text-primary, #1a1a2e);
+  border-color: var(--mel-color-border, #e2e2e8);
+}
+
+.mel-mel-support-layer__action--secondary:hover,
+.mel-mel-support-layer__action--secondary:focus-visible {
+  border-color: var(--mel-color-primary, #4f46e5);
+  color: var(--mel-color-primary, #4f46e5);
+  text-decoration: none;
+}
+
+.mel-mel-support-layer__action--link {
+  background: transparent;
+  color: var(--mel-color-primary, #4f46e5);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.mel-mel-support-layer__action--link:hover,
+.mel-mel-support-layer__action--link:focus-visible {
+  text-decoration: underline;
+}
+
+.mel-mel-support-layer__jump {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+}
+
+.mel-mel-support-layer__jump a {
+  color: var(--mel-color-primary, #4f46e5);
+  font-weight: 500;
+}
+
+.mel-mel-support-layer__escalation {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mel-color-border-light, #f0f0f4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  font-size: 0.875rem;
+}
+
+.mel-mel-support-layer__escalation a {
+  color: var(--mel-color-text-primary, #1a1a2e);
+  font-weight: 500;
+}
+
+.mel-mel-support-layer__debug-pre {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  overflow: auto;
+  max-height: 12rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: var(--mel-radius-sm, 0.25rem);
+}
+
+/* Vendor / admin mount: floating shortcuts */
+.mel-mel-support-mount {
+  position: relative;
+  z-index: 20;
+}
+
+.mel-mel-support-floating {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: min(20rem, calc(100vw - 2rem));
+  background: var(--mel-color-surface, #fff);
+  border: 1px solid var(--mel-color-border, #e2e2e8);
+  border-radius: var(--mel-radius-md, 0.5rem);
+  box-shadow: 0 4px 24px rgba(26, 26, 46, 0.12);
+}
+
+.mel-mel-support-floating__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--mel-color-border-light, #f0f0f4);
+}
+
+.mel-mel-support-floating__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mel-color-text-primary, #1a1a2e);
+}
+
+.mel-mel-support-floating__toggle {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--mel-radius-sm, 0.25rem);
+  border: 1px solid var(--mel-color-border, #e2e2e8);
+  background: var(--mel-color-surface, #fff);
+  cursor: pointer;
+}
+
+.mel-mel-support-floating__body {
+  padding: 0.65rem;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.mel-mel-support-floating__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--mel-color-border-light, #f0f0f4);
+  font-size: 0.8125rem;
+}
+
+.mel-mel-support-floating__link {
+  color: var(--mel-color-primary, #4f46e5);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.mel-mel-support-floating__link:hover,
+.mel-mel-support-floating__link:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .mel-mel-support-floating {
+    left: 0.75rem;
+    right: 0.75rem;
+    max-width: none;
+  }
+}

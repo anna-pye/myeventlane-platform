@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_help_improvement\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\PagerSelectExtender;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\myeventlane_help_improvement\Form\DocumentationOpportunityEditForm;
@@ -26,6 +27,7 @@ final class DocumentationOpportunityAdminController extends ControllerBase {
     private readonly Connection $connection,
     private readonly DocumentationOpportunityStorage $storage,
     private readonly MelAdminShellBuilder $adminShellBuilder,
+    private readonly DateFormatterInterface $dateFormatter,
   ) {}
 
   /**
@@ -36,6 +38,7 @@ final class DocumentationOpportunityAdminController extends ControllerBase {
       $container->get('database'),
       $container->get('myeventlane_help_improvement.storage'),
       $container->get('myeventlane_core.mel_admin_shell_builder'),
+      $container->get('date.formatter'),
     );
   }
 
@@ -86,7 +89,7 @@ final class DocumentationOpportunityAdminController extends ControllerBase {
         (string) ($row['source_type'] ?? ''),
         (string) ($row['audience'] ?? ''),
         (string) ($row['frequency_count'] ?? '0'),
-        $this->dateFormatter()->format((int) ($row['last_seen'] ?? 0), 'short'),
+        $this->dateFormatter->format((int) ($row['last_seen'] ?? 0), 'short'),
         mb_substr((string) ($row['query_text'] ?? ''), 0, 120),
         Link::fromTextAndUrl($this->t('View'), $viewUrl)->toString(),
       ];
