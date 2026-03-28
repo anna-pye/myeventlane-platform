@@ -1,9 +1,12 @@
 {#
-  Event Home Card (view mode: event_home_card)
-}
-
-{% include '@myeventlane_theme/templates/node/node--event--event-card-compact.html.twig' with {
-  node: node,
-  content: content,
-  label: label
-} only %}
+/**
+ * @file
+ * Event Home Card (view mode: event_home_card) — compact variant.
+ */
+#}
+{% set is_past = mel_event_state is defined and mel_event_state in ['ended', 'archived'] %}
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: 'compact',
+  is_past: is_past,
+  attributes: attributes,
+} %}

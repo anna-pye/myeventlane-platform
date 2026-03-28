@@ -124,8 +124,12 @@
       display: none !important;
     }
 
-    // Hide CTA button
-    .mel-event-card__cta {
+    // Hide CTA / badge / editorial chrome (carousel uses glass overlay copy)
+    .mel-event-card__image .mel-event-card__cta,
+    .mel-event-card__cta--body,
+    .mel-event-card__overlay,
+    .mel-event-card__tag,
+    .mel-card-badge {
       display: none !important;
     }
 

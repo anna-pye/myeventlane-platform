@@ -1,69 +1,19 @@
 {#
 /**
  * @file
- * Event card used by Views field rows.
- *
- * This MUST match the homepage/listing card system (mockup):
- * - wide media (16:9)
- * - category pill (top-left)
- * - featured badge (top-right, if promoted)
- * - CTA chip (bottom-right)
- * - title + meta below
- *
- * Variables (strings; typically cleaned upstream in the Views template):
- * - title
- * - url
- * - image (URL string; optional)
- * - date_full
- * - location
- * - category
- * - category_slug
- * - ticket_label (e.g. RSVP / Tickets / Free)
- * - ticket_type (rsvp|paid|both|external|none) (optional)
- * - is_promoted (optional boolean)
+ * Views field-row bridge → unified MEL event card.
  */
 #}
-
-{% set is_promoted = is_promoted|default(false) %}
-
-{% set category_class = category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
-{% set cta_text = (ticket_type|default('paid') == 'rsvp') ? 'RSVP'|t : 'Get tickets'|t %}
-
-<article class="mel-event-card{% if is_promoted %} mel-event-card--promoted{% endif %}">
-  <a href="{{ url|default('#') }}" class="mel-event-card__link" aria-label="{{ title|default('') }}">
-    <div class="mel-event-card__image">
-      {% if image %}
-        <img src="{{ image }}" alt="{{ title|default('') }}" loading="lazy" decoding="async" class="mel-event-card__image-element" />
-      {% else %}
-        <div class="mel-event-card__placeholder" aria-hidden="true"></div>
-      {% endif %}
-
-      {% if category %}
-        <span class="mel-event-card__category-pill mel-pill mel-pill--on-image {{ category_class }}">
-          <span class="mel-pill__label">{{ category }}</span>
-        </span>
-      {% endif %}
-
-      {% if is_promoted %}
-        <div class="mel-featured-badge" role="note" aria-label="{{ 'Featured event'|t }}">
-          <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
-          <span class="mel-featured-badge__text">{{ 'Featured'|t }}</span>
-        </div>
-      {% endif %}
-
-      <span class="mel-event-card__cta" aria-hidden="true">{{ cta_text }}</span>
-    </div>
-
-    <div class="mel-event-card__content">
-      <h3 class="mel-event-card__title">{{ title|default('') }}</h3>
-      <div class="mel-event-card__meta">
-        {% if date_full %}
-          <div class="mel-event-card__meta-item">{{ date_full }}</div>
-        {% endif %}
-        {% if location %}
-          <div class="mel-event-card__meta-item">{{ location }}</div>
-        {% endif %}
-      </div>
-    </div>
-  </a>
-</article>
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: 'standard',
+  card_title: title|default(''),
+  card_url: url|default('#'),
+  card_image_url: image|default(''),
+  card_image_alt: title|default(''),
+  card_time_range: date_full|default(''),
+  card_location: location|default(''),
+  card_category: (category is defined and category) ? { label: category, url: null } : null,
+  category_slug: category_slug|default(''),
+  card_type: ticket_type|default('paid'),
+  is_promoted: is_promoted|default(false),
+} %}

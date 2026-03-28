@@ -28,7 +28,7 @@
   }
 
   // Ensure event grids have proper spacing within container
-  .mel-event-grid {
+  .mel-grid.mel-grid--events {
     margin-top: spacing.mel-space(4);
   }
 }
@@ -56,7 +56,8 @@
 
 .mel-featured-events__row {
   // Override default event grid for featured section
-  .mel-event-grid,
+  .mel-grid.mel-grid--events,
+  .mel-grid.mel-grid--featured,
   .view-content {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
@@ -222,7 +223,7 @@
   }
 
   // Reduce vertical spacing in event grid
-  .mel-event-grid {
+  .mel-grid.mel-grid--events {
     gap: spacing.mel-space(3);
   }
 }
@@ -560,8 +561,7 @@
 // Events List
 // ---------------------------------------------------------------------------
 // REMOVED: All .mel-events-grid overrides
-// Event listings now use the canonical .mel-event-grid from components/_event-grid.scss
-// Views are wrapped with .mel-event-grid in templates, not styled here.
+// Event listings use .mel-grid.mel-grid--events / .mel-grid--featured (layout/_grid.scss).
 // The grid is applied at the template level, not through CSS overrides.
 
 // ---------------------------------------------------------------------------

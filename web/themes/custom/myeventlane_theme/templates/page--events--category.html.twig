@@ -21,7 +21,7 @@
 
   {# ==================== MAIN CONTENT ==================== #}
   <main id="main-content" class="mel-main">
-    <div class="mel-container">
+    <div class="mel-container mel-container--wide">
       <div class="mel-content">
         {% set header_title = (current_category is defined) ? current_category.name : 'Events' %}
         {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {

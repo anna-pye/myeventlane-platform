@@ -12,10 +12,13 @@
 {% for c in categories %}
   {% set pill_mod = c.pill_color|default(c.slug)|default(c.label|lower|replace({' ': '-', '&': 'and', '+': ''}))|trim|lower|default('default') %}
   <a
-    href="{{ c.url|default(path('entity.taxonomy_term.canonical', {'taxonomy_term': c.tid})) }}"
+    href="{{ c.url|default(path('view.upcoming_events.page_events', {}, {'query': {'category': c.tid}})) }}"
     class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}"
     aria-label="{{ 'View events in'|t }} {{ c.label }}"
   >
-    {{ c.label }}
+    <span class="mel-category-pill__label">{{ c.label }}</span>
+    {% if c.count is defined %}
+      <span class="mel-category-pill__count" aria-hidden="true">{{ c.count }}</span>
+    {% endif %}
   </a>
 {% endfor %}

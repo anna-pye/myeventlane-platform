@@ -241,11 +241,8 @@
 // Event Grid Layout
 // --------------------------------------------------------------------------
 
-// NOTE: .mel-event-grid layout is defined in:
-// - _event-card.scss: Grid layout for event listings (home page, search, etc.)
-// - _event-full.scss: Flexbox layout for event full pages (scoped to .mel-event--full)
-// 
-// This file does NOT define .mel-event-grid to avoid conflicts.
+// NOTE: Listing grids use layout/_grid.scss (`.mel-grid.mel-grid--events` / `--featured`).
+// Event full pages use flex layout in _event-full.scss (scoped to .mel-event--full).
 
 // --------------------------------------------------------------------------
 // Event Cards (Event Detail Pages Only)

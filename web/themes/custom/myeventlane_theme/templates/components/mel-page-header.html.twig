@@ -13,10 +13,12 @@
  * - hero_image_url: Optional URL for hero background (desktop).
  * - hero_image_url_mobile: Optional URL for hero background (mobile viewports).
  * - hero_hide_on_mobile: Boolean; when TRUE, hide hero on mobile.
+ * - hide_page_title: When TRUE, skip default h1 + tagline (e.g. browse supplies its own).
  */
 #}
 {% set show_search = show_search|default(false) %}
 {% set show_categories = show_categories|default(false) %}
+{% set hide_page_title = hide_page_title|default(false) %}
 {% set categories = categories|default([]) %}
 {% set hero_image_url = hero_image_url|default(null) %}
 {% set hero_image_url_mobile = hero_image_url_mobile|default(null) %}
@@ -28,13 +30,15 @@
 {% set hero_style = (hero_image_url and not hero_hide_on_mobile) ? ('--mel-hero-bg: url(' ~ hero_image_url ~ ')' ~ (hero_image_url_mobile ? '; --mel-hero-bg-mobile: url(' ~ hero_image_url_mobile ~ ')' : '')) : '' %}
 
 <section class="mel-page-header{% if has_hero %} mel-page-header--hero{% endif %}"{% if hero_style %} style="{{ hero_style }}"{% endif %}>
-  <h1 class="mel-page-title">
-    {{ title }}
-  </h1>
+  {% if not hide_page_title %}
+    <h1 class="mel-page-title">
+      {{ title }}
+    </h1>
 
-  <p class="mel-page-tagline">
-    Your lane to great events.
-  </p>
+    <p class="mel-page-tagline">
+      {{ 'Your lane to great events.'|t }}
+    </p>
+  {% endif %}
 
   {% if show_search %}
     {# Reuse the exact homepage search UI markup. #}
@@ -44,15 +48,17 @@
   {% endif %}
 
   {% if show_categories and categories %}
-    <nav class="mel-category-pills" aria-label="Event categories">
-      {% for c in categories %}
-        <a
-          href="{{ path('view.upcoming_events.page_category', {'arg_0': c.tid}) }}"
-          class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}"
-        >
-          {{ c.label }}
-        </a>
-      {% endfor %}
-    </nav>
+    <div class="mel-category-strip">
+      <nav class="mel-category-pills" aria-label="{{ 'Event categories'|t }}">
+        {% for c in categories %}
+          <a
+            href="{{ path('view.upcoming_events.page_events', {}, {'query': {'category': c.tid}}) }}"
+            class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}"
+          >
+            {{ c.label }}
+          </a>
+        {% endfor %}
+      </nav>
+    </div>
   {% endif %}
 </section>

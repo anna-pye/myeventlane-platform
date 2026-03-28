@@ -1,0 +1,40 @@
+// ==========================================================================
+// MEL design system — Sass tokens (Phase 1)
+// ==========================================================================
+// Used by layout + event card variants. Complements CSS custom properties
+// in tokens/_index (loaded as @use 'tokens').
+
+// Colors
+$mel-ds-color-primary: #f26d5b;
+$mel-ds-color-accent: #6e7ef2;
+$mel-ds-color-bg: #fef5ec;
+$mel-ds-color-surface: #ffffff;
+$mel-ds-color-text: #293241;
+$mel-ds-color-muted: #888888;
+
+// Spacing scale
+$mel-ds-space-xs: 4px;
+$mel-ds-space-sm: 8px;
+$mel-ds-space-md: 12px;
+$mel-ds-space-lg: 16px;
+$mel-ds-space-xl: 24px;
+$mel-ds-space-2xl: 32px;
+$mel-ds-space-3xl: 48px;
+
+// Typography
+$mel-ds-font-main: 'Nunito', sans-serif;
+
+$mel-ds-font-h1: 36px;
+$mel-ds-font-h2: 28px;
+$mel-ds-font-h3: 20px;
+$mel-ds-font-body: 16px;
+$mel-ds-font-small: 14px;
+
+// Radius
+$mel-ds-radius-sm: 12px;
+$mel-ds-radius-md: 16px;
+$mel-ds-radius-lg: 20px;
+
+// Shadow
+$mel-ds-shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.06);
+$mel-ds-shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.1);

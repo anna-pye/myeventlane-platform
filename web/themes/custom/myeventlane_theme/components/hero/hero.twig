@@ -1,34 +1,34 @@
 {#
 /**
- * @component Hero
- * Homepage hero with brand, search, and popular tags.
+ * @component Hero (homepage — Probe)
  *
  * Variables:
- * - popular_tags: array of { name, url }
+ * - popular_tags: optional array of { name, url } for category shortcuts
  */
 #}
 
-<section class="hero" aria-labelledby="hero-brand">
-  <div class="hero__inner">
+<section class="mel-section hero mel-section--hero mel-section--full" aria-labelledby="mel-hero-headline">
+  <div class="hero__inner mel-container mel-container--wide">
     <div class="hero__content">
       <div class="hero__text">
-        <h1 id="hero-brand" class="hero__brand">{{ 'My EventLane'|t }}</h1>
-
-        <p class="hero__tagline">{{ 'Your lane to great events'|t }}</p>
-        <p class="hero__utility">{{ 'Find events near you'|t }}</p>
-
-        <p class="hero__description">
+        <h1 id="mel-hero-headline" class="hero__headline">{{ 'Your lane to great events.'|t }}</h1>
+        <p class="hero__supporting">
           {{ 'Discover local events, workshops, gigs, and community gatherings — or create your own in minutes.'|t }}
         </p>
       </div>
 
-      <div class="hero__search">
-        {{ drupal_block('myeventlane_search_block') }}
+      <div class="hero__ctas" role="group" aria-label="{{ 'Get started'|t }}">
+        <a class="mel-btn mel-btn--primary hero__cta hero__cta--primary" href="{{ path('view.upcoming_events.page_events') }}">
+          {{ 'Explore events'|t }}
+        </a>
+        <a class="mel-btn mel-btn-secondary hero__cta hero__cta--secondary" href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}">
+          {{ 'Create event'|t }}
+        </a>
       </div>
 
       {% if popular_tags %}
         <div class="hero__tags">
-          <span class="hero__tags-label">{{ 'Popular tags:'|t }}</span>
+          <span class="hero__tags-label">{{ 'Popular categories'|t }}</span>
           {% for term in popular_tags %}
             <a href="{{ term.url }}" class="hero__tag">{{ term.name }}</a>
           {% endfor %}

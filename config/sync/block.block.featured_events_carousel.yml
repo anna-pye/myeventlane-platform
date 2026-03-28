@@ -1,6 +1,6 @@
 uuid: cdf6383f-166b-4577-ae80-d9e1f2e70f98
 langcode: en
-status: true
+status: false
 dependencies:
   config:
     - views.view.featured_events_carousel

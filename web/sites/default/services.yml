@@ -1,6 +1,8 @@
 parameters:
   twig.config:
     debug: true
+    auto_reload: true
+    cache: false
   session.storage.options:
     cookie_httponly: true
     cookie_secure: false

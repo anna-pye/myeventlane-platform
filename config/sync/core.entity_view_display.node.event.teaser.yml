@@ -4,6 +4,7 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
+    - image.style.mel_event_card_standard
     - field.field.node.event.field_category
     - field.field.node.event.field_event_image
     - field.field.node.event.field_event_start
@@ -40,7 +41,7 @@ content:
     label: hidden
     settings:
       image_link: content
-      image_style: medium
+      image_style: mel_event_card_standard
       image_loading:
         attribute: lazy
     third_party_settings: {  }

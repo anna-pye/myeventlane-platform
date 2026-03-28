@@ -1,19 +1,13 @@
 {#
 /**
  * @file
- * Template for mel_home_events discover display - Sticker Wall grid.
- * 
- * Outputs rows in the canonical `.mel-event-grid` wrapper.
- *
- * The current homepage template does not provide a `.mel-sticker-wall` container,
- * so we use `.mel-event-grid` (defined in components/_event-grid.scss) to ensure
- * the intended 4-across desktop grid.
+ * mel_home_events — discover display: stable auto-fill grid.
  */
 #}
 {% if rows %}
-  <div class="mel-event-grid" aria-label="{{ 'Discover events'|t }}">
+  <div class="mel-grid mel-grid--events" role="list" aria-label="{{ 'Discover events'|t }}">
     {% for row in rows %}
-      {{- row.content -}}
+      <div role="listitem">{{ row.content }}</div>
     {% endfor %}
   </div>
 {% endif %}

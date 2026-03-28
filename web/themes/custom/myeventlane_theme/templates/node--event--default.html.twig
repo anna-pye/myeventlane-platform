@@ -88,10 +88,10 @@
   {# ==========================================================================
      MAIN CONTENT GRID
      ========================================================================== #}
-  <div class="mel-event-grid">
+  <div class="mel-event-detail-grid">
     
     {# Left Column: Main Content #}
-    <div class="mel-event-grid__main">
+    <div class="mel-event-detail-grid__main">
       
       {# About Section Card #}
       {% if node.body.value or content.body %}
@@ -127,7 +127,7 @@
     </div>
 
     {# Right Column: Sticky Sidebar #}
-    <aside class="event-sidebar">
+    <aside class="mel-event-detail-grid__sidebar event-sidebar">
       
       {# Sidebar CTA Card #}
       {% if mel_event_state != 'cancelled' and mel_event_state != 'ended' %}

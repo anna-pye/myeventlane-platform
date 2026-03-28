@@ -6,14 +6,14 @@
  *
  * IMPORTANT:
  * - This display is intended to be embedded in the homepage region output.
- * - Use the canonical `.mel-event-grid` wrapper (defined in components/_event-grid.scss).
+ * - Use `.mel-grid.mel-grid--events` (layout/_grid.scss).
  * - Do not output section headers or wrapper shells here (homepage template owns layout).
  * - When there are 0 rows, output nothing so the homepage section can collapse.
  */
 #}
 
 {% if rows %}
-  <div class="mel-event-grid" aria-label="{{ 'Recommended events'|t }}">
+  <div class="mel-grid mel-grid--events" aria-label="{{ 'Recommended events'|t }}">
     {% for row in rows %}
       {{- row.content -}}
     {% endfor %}

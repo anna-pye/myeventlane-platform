@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 
 /**
@@ -91,7 +92,7 @@ final class FrontCategoryStatsService {
     $vocab = (string) $settings->get('front_page.category_vocab') ?: 'categories';
     $field = (string) $settings->get('front_page.category_field') ?: 'field_category';
 
-    $cid = "myeventlane:front:category_stats:v3:$event_type:$vocab:$field";
+    $cid = "myeventlane:front:category_stats:v4:$event_type:$vocab:$field";
     if ($cached = $this->cache->get($cid)) {
       return $cached->data;
     }
@@ -110,6 +111,9 @@ final class FrontCategoryStatsService {
         'label' => $term->label(),
         'count' => $count,
         'color' => $this->colors->getColorForLabel($term->label(), $i),
+        'url' => Url::fromRoute('view.upcoming_events.page_events', [], [
+          'query' => ['category' => (string) $term->id()],
+        ])->toString(),
       ];
     }
 

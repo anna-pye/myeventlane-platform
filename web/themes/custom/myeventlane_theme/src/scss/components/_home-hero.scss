@@ -35,7 +35,6 @@
   &__inner {
     position: relative;
     z-index: 1;
-    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -54,41 +53,41 @@
     }
   }
 
-  &__brand {
-    font-size: clamp(2.75rem, 4vw, 3rem);
+  &__headline {
+    font-size: clamp(2rem, 4.5vw, 2.75rem);
     font-weight: 700;
-    color: var(--mel-coral);
-    margin-bottom: 0.5rem;
+    color: var(--mel-ink);
+    margin: 0 0 1rem;
+    line-height: 1.15;
+    max-width: 22ch;
   }
 
-  &__tagline {
-    font-size: 1.625rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-
-  &__utility {
-    font-size: 1.375rem;
-    color: var(--mel-muted);
-    margin-bottom: 1.25rem;
-  }
-
-  &__description {
-    max-width: 42rem;
-    margin-bottom: 0.5rem;
+  &__supporting {
+    max-width: 36rem;
+    margin: 0 0 1.75rem;
     line-height: 1.6;
+    font-size: clamp(1rem, 2.2vw, 1.125rem);
+    color: var(--mel-muted);
   }
 
-  // Search bar and pills: spacing from text (+20px down)
-  &__search {
+  &__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
     margin-bottom: 0.5rem;
-    margin-top: 2.5rem;
 
     @include breakpoints.mel-break(md) {
       position: relative;
       z-index: 1;
-      margin-top: 2.75rem;
     }
+  }
+
+  &__cta {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   &__tags {
@@ -96,12 +95,12 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
-    margin-top: 2.25rem;
+    margin-top: 2rem;
 
     @include breakpoints.mel-break(md) {
       position: relative;
       z-index: 1;
-      margin-top: 2.5rem;
+      margin-top: 2.25rem;
     }
   }
 

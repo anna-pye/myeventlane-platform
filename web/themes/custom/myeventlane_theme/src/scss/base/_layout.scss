@@ -2,6 +2,10 @@
 // Canonical Layout Wrappers (Mobile-First)
 // ==========================================================================
 // Container and section utilities for consistent page structure.
+//
+// Intent-based width helpers (mel-container--wide, --full, mel-section--wide,
+// mel-section--full) live in layout/_mel-public-layout.scss next to the MEL
+// design-system container (.mel-container--ds).
 
 .mel-container {
   width: 100%;

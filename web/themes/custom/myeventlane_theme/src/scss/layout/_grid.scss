@@ -1,29 +1,31 @@
 // ==========================================================================
-// Grid System
+// Grid System — MEL single source (Phase 3.6)
 // ==========================================================================
-// 12-column grid with responsive breakpoints.
+// Listing rails: .mel-grid.mel-grid--events | .mel-grid.mel-grid--featured
+// Layout columns / auto helpers below are separate from listing modifiers.
 
 @use '../tokens/spacing';
 @use '../tokens/breakpoints';
+@use '../base/mel-ds-tokens' as melds;
 
 // ---------------------------------------------------------------------------
-// Grid Container
+// Base grid (gap only; modifiers set columns)
 // ---------------------------------------------------------------------------
 
 .mel-grid {
   display: grid;
-  gap: spacing.mel-space(4);
-
-  @include breakpoints.mel-break(md) {
-    grid-template-columns: repeat(12, 1fr);
-  }
+  gap: 20px;
 }
 
 // ---------------------------------------------------------------------------
-// Column Spans (Desktop)
+// 12-column layout (explicit opt-in — not applied to listing modifiers)
 // ---------------------------------------------------------------------------
 
 @include breakpoints.mel-break(md) {
+  .mel-grid--cols-12 {
+    grid-template-columns: repeat(12, 1fr);
+  }
+
   .mel-col-1  { grid-column: span 1; }
   .mel-col-2  { grid-column: span 2; }
   .mel-col-3  { grid-column: span 3; }
@@ -36,10 +38,7 @@
   .mel-col-10 { grid-column: span 10; }
   .mel-col-11 { grid-column: span 11; }
   .mel-col-12 { grid-column: span 12; }
-}
 
-// Legacy class names for compatibility
-@include breakpoints.mel-break(md) {
   .mel-col-span-1  { grid-column: span 1; }
   .mel-col-span-2  { grid-column: span 2; }
   .mel-col-span-3  { grid-column: span 3; }
@@ -55,9 +54,8 @@
 }
 
 // ---------------------------------------------------------------------------
-// Auto-fit Grids
+// Auto-fit helpers (non–event-listing)
 // ---------------------------------------------------------------------------
-// Responsive grids that auto-fit columns.
 
 .mel-grid-auto {
   display: grid;
@@ -75,4 +73,41 @@
   display: grid;
   gap: spacing.mel-space(5);
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+// ---------------------------------------------------------------------------
+// Event card listings
+// ---------------------------------------------------------------------------
+
+.mel-grid.mel-grid--events {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-grid.mel-grid--featured {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Dev / theme rebuild: reinforce columns when aggregate CSS order shifts.
+.mel-page .mel-grid.mel-grid--events {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-page .mel-grid.mel-grid--featured {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 }

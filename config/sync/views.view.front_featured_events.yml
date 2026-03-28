@@ -3,7 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.event_card
+    - core.entity_view_mode.node.event.teaser_featured
     - node.type.event
   module:
     - datetime
@@ -155,7 +155,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: event_card
+          view_mode: teaser_featured
       query:
         type: views_query
         options:
@@ -186,6 +186,13 @@ display:
         options:
           offset: 0
           items_per_page: 0
+      style:
+        type: default
+        options:
+          grouping: {  }
+          row_class: ''
+          default_row_class: false
+          uses_fields: false
       row:
         type: 'entity:node'
         options:
