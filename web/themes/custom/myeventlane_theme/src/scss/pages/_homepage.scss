@@ -204,7 +204,24 @@
   }
   
   /* ---------------------------------------------------------
-     STICKER WALL — MAIN EVENT GRID (CRITICAL FIX)
+     DISCOVER — Phase 1 grid (.mel-grid.mel-grid--events from View)
+  --------------------------------------------------------- */
+
+  .mel-home__discover-grid {
+    width: 100%;
+    max-width: 100%;
+
+    .view,
+    .view-content,
+    .views-row,
+    div[class*='view'],
+    div[class*='views'] {
+      display: contents !important;
+    }
+  }
+
+  /* ---------------------------------------------------------
+     STICKER WALL — legacy homepage grid (other placements)
   --------------------------------------------------------- */
   
   .mel-sticker-wall {
@@ -214,6 +231,15 @@
   
     /* Mobile first */
     grid-template-columns: 1fr !important;
+
+    /*
+     * Inner listing grid (.mel-grid) must span full sticker-wall width.
+     */
+    > .mel-grid {
+      grid-column: 1 / -1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
     
     /* Remove ANY wrapper divs that break the grid - make them invisible to grid */
     .view,
@@ -260,11 +286,18 @@
   }
   
   /* ---------------------------------------------------------
-     SECONDARY ROWS (Tonight / Under $20 / Near You)
+     SECONDARY ROWS (Tonight / Free & RSVP / Popular)
   --------------------------------------------------------- */
   
   .mel-row {
     margin-bottom: 14px;
+  }
+
+  /* Popular block brings its own grid; do not force scroller column layout. */
+  .mel-row--popular-this-week .mel-row__scroller {
+    display: block !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
   }
   
   /* Mobile: horizontal scroll

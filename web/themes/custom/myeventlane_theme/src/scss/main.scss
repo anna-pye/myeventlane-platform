@@ -49,6 +49,7 @@
 // Page structure, grid, containers.
 
 @use 'layout/container';
+@use 'layout/mel-public-layout';
 @use 'layout/grid';
 @use 'layout/flex';
 @use 'layout/navigation';
@@ -84,10 +85,9 @@
 @use 'components/featured-carousel';
 @use 'components/featured-badge';
 @use 'components/event-card';
+@use 'pages/mel-browse';
 @use 'components/attendees-event-card';
 @use 'components/attendees-kpi-bar';
-@use 'components/event-card-poster';
-@use 'components/event-card-compact';
 @use 'components/event-page';
 @use 'components/event-full' as event_full_component;
 @use 'components/event-node';
@@ -98,6 +98,7 @@
 @use 'components/event-detail-grid';
 @use 'components/event-mobile-cta';
 @use 'components/mel-page-header';
+@use 'components/mel-events-filters';
 @use 'components/event-type-pill';
 @use 'components/rsvp';
 @use 'components/toasts';
@@ -147,6 +148,7 @@
 
 @use 'pages/front';
 @use 'pages/homepage' as homepage-pages;
+@use 'pages/front-page';
 @use 'pages/event';
 @use 'pages/event-form';
 @use 'pages/dashboard';

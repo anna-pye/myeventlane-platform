@@ -1,24 +1,39 @@
 {#
 /**
  * @file
- * Template for upcoming_events View page-events display wrapper.
- * 
- * Removes default View wrapper divs so rows go directly into .mel-event-grid
- * provided by views-view-unformatted template.
- * Empty state: nothing-found image when no results.
+ * upcoming_events — page_events: browse layout, filters aside, results grid.
  */
 #}
-{% if view.result %}
-  {{ rows }}
-{% else %}
-  <div class="mel-empty-state mel-empty-state--listing">
-    <div class="mel-empty-state__image">
-      <img src="{{ base_path }}{{ directory }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
+<!-- MEL DEBUG: EVENTS VIEW TEMPLATE ACTIVE (views-view--upcoming-events--page-events.html.twig) -->
+{{ attach_library('myeventlane_theme/mel-events-discovery') }}
+
+<div class="mel-browse__layout">
+  <aside id="mel-browse-filters" class="mel-browse__filters" aria-label="{{ 'Filters'|t }}">
+    {% include '@myeventlane_theme/components/browse/mel-browse-filters.twig' with { display_id: view.current_display } %}
+    <div class="mel-filter-panel">
+      <h3 class="mel-filter-panel__title">{{ 'Filter events'|t }}</h3>
+      {{ exposed }}
     </div>
-    <h3 class="mel-empty-state__title">{{ 'No upcoming events'|t }}</h3>
-    <p class="mel-empty-state__text">{{ 'Check back soon for new events!'|t }}</p>
-  </div>
-{% endif %}
+  </aside>
 
+  <main class="mel-browse__results">
+    <a href="#mel-browse-filters" class="mel-filter-button mel-btn mel-btn-secondary">{{ 'Filter'|t }}</a>
 
+    {% if mel_browse_active_filters|default(false) %}
+      <div class="mel-active-filters" role="status">
+        {{ 'Showing filtered results'|t }}
+      </div>
+    {% endif %}
 
+    {% if view.result %}
+      {{ rows }}
+    {% else %}
+      <div class="mel-empty mel-empty--browse" role="status">
+        <h3 class="mel-empty__title">{{ 'No events found'|t }}</h3>
+        <p class="mel-empty__text">{{ 'Try adjusting your filters or browse a different category.'|t }}</p>
+      </div>
+    {% endif %}
+
+    {{ pager }}
+  </main>
+</div>

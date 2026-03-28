@@ -1,18 +1,10 @@
 {#
-  MEL v2 Front Page
-  - Hero (component)
-  - Featured Events (component)
-  - Discover events (View render)
-  - Secondary rows (Views)
+/**
+ * @file
+ * MEL homepage — code-driven discovery (Phase 2 + 2.1 width system).
+ */
 #}
-
 {% extends "page.html.twig" %}
-
-{#
-  NOTE:
-  - Sections render regions that should be populated with Views blocks in Drupal.
-  - Hero and Featured Events use component includes.
-#}
 
 {% block hero %}
   {% set popular_tags = popular_tags|default([]) %}
@@ -20,104 +12,132 @@
 {% endblock %}
 
 {% block content %}
+  <!-- MEL DEBUG: FRONT PAGE TEMPLATE ACTIVE (page--front.html.twig) -->
   {{ attach_library('myeventlane_theme/front') }}
 
-  {# SVG filter for Liquid Glass — shared by all event cards #}
-  <svg class="mel-liquid-glass-svg" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;">
-    <defs>
-      <filter id="mel-liquid-glass" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise"/>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
-        <feGaussianBlur in="displaced" stdDeviation="3" result="blurred"/>
-        <feColorMatrix in="blurred" type="matrix"
-          values="1.1 0 0 0 0.02
-                  0 1.1 0 0 0.02
-                  0 0 1.1 0 0.02
-                  0 0 0 1 0" result="brightened"/>
-      </filter>
-    </defs>
-  </svg>
+  {% set mel_home_featured_markup %}
+    {{ drupal_view('front_featured_events', 'block_featured') }}
+  {% endset %}
 
-  <div class="mel-home">
-    {% if page.home_featured %}
-      {% include '@myeventlane_theme/components/featured-events/featured-events.twig' with {
-        title: 'Featured Events'|t,
-        subtitle: null,
-        view: page.home_featured
+  {% set mel_home_discover_markup %}
+    {{ drupal_view('mel_home_events', 'embed_discover') }}
+  {% endset %}
+
+  {% set mel_home_free_markup %}
+    {{ drupal_view('mel_home_events', 'under_20') }}
+  {% endset %}
+
+  {% set mel_home_tonight_markup %}
+    {{ drupal_view('mel_home_events', 'tonight') }}
+  {% endset %}
+
+  {% set mel_home_categories_markup %}
+    {{ drupal_block('myeventlane_category_pills') }}
+  {% endset %}
+
+  <div class="mel-home mel-home--phase2">
+    {% if mel_home_featured_markup|trim %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--featured',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        header_extra_class: 'mel-section__header--featured',
+        title: 'Featured events'|t,
+        subtitle: 'Curated picks you won’t want to miss.'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'See all'|t,
+        link_class: 'mel-link',
+        content: mel_home_featured_markup,
       } %}
     {% endif %}
 
-    {% if page.home_discover %}
-      <section class="mel-home-section mel-home-section--discover" aria-labelledby="mel-home-discover-title">
-        <div class="mel-container">
-          <div class="mel-section-head">
-            <h2 id="mel-home-discover-title" class="mel-section-head__title">{{ 'Discover events'|t }}</h2>
-            <a class="mel-section-head__link" href="{{ path('view.upcoming_events.page_events') }}">{{ 'View all'|t }}</a>
+    {% if mel_home_discover_markup|trim %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--discover',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'Discover events'|t,
+        subtitle: 'Browse what’s coming up near you.'|t,
+        link_url: path('view.upcoming_events.page_events'),
+        link_text: 'See all'|t,
+        content_wrapper_class: 'mel-home__discover-grid',
+        content: mel_home_discover_markup,
+      } %}
+    {% endif %}
+
+    {% if mel_home_free_markup|trim %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--free',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'Free & RSVP'|t,
+        subtitle: 'Low-friction ways to join in — no ticket checkout required.'|t,
+        link_url: path('view.upcoming_events.page_free'),
+        link_text: 'See all'|t,
+        content_wrapper_class: 'mel-row__scroller',
+        content: mel_home_free_markup,
+      } %}
+    {% endif %}
+
+    {% if mel_home_tonight_markup|trim %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--time',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'On tonight'|t,
+        subtitle: 'Happening today — grab a seat while you can.'|t,
+        link_url: path('view.upcoming_events.page_today'),
+        link_text: 'See all'|t,
+        content_wrapper_class: 'mel-row__scroller',
+        content: mel_home_tonight_markup,
+      } %}
+    {% endif %}
+
+    {% if mel_home_categories_markup|trim %}
+      <section class="mel-section mel-home-section mel-section--categories" aria-labelledby="mel-home-categories-title">
+        <div class="mel-container mel-container--wide">
+          <div class="mel-section__header">
+            <div class="mel-section__intro">
+              <h2 id="mel-home-categories-title" class="mel-section__title">{{ 'Browse by category'|t }}</h2>
+              <p class="mel-section__subtitle">{{ 'Pick a lane — we’ll show matching events.'|t }}</p>
+            </div>
+            <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-section__link">{{ 'All events'|t }}</a>
           </div>
-          {{ page.home_discover }}
+          <div class="mel-section__content">
+            <div class="mel-category-list">
+              {{ mel_home_categories_markup }}
+            </div>
+          </div>
         </div>
       </section>
     {% endif %}
 
-    {% if page.home_recommended %}
-      <section class="mel-home-section mel-home-section--recommended" aria-labelledby="mel-home-recommended-title">
-        <div class="mel-container">
-          <div class="mel-section-head">
-            <h2 id="mel-home-recommended-title" class="mel-section-head__title">{{ 'Recommended for you'|t }}</h2>
-            <a class="mel-section-head__link" href="{{ path('view.upcoming_events.page_events') }}">{{ 'View all'|t }}</a>
+    <section class="mel-section mel-home-section mel-section--host mel-section--full" aria-labelledby="mel-home-host-title">
+      <div class="mel-container mel-container--wide">
+        <div class="mel-home-host">
+          <div class="mel-home-host__copy">
+            <h2 id="mel-home-host-title" class="mel-home-host__title">{{ 'Empowering event creators everywhere.'|t }}</h2>
+            <p class="mel-home-host__text">
+              {{ 'Create a free RSVP or ticketed event, reach your audience, and manage it all in one place.'|t }}
+            </p>
           </div>
-          {{ page.home_recommended }}
+          <div class="mel-home-host__actions">
+            <a class="mel-btn mel-btn--cta" href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}">{{ 'Create event'|t }}</a>
+            <a class="mel-btn mel-btn-secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'How hosting works'|t }}</a>
+          </div>
         </div>
-      </section>
-    {% endif %}
-
-    {# Fallback: if no dedicated home regions are populated, render normal content. #}
-    {% if not page.home_featured and not page.home_discover and not page.home_recommended %}
-      <div class="mel-container">
-        {{ page.content }}
       </div>
-    {% endif %}
+    </section>
+
+    <section class="mel-section mel-home-section mel-section--final-cta mel-section--full" aria-labelledby="mel-home-final-cta-title">
+      <div class="mel-container mel-container--wide">
+        <div class="mel-home-final-cta">
+          <h2 id="mel-home-final-cta-title" class="mel-home-final-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
+          <p class="mel-home-final-cta__text">{{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}</p>
+          <a class="mel-btn mel-btn--cta mel-home-final-cta__btn" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Start hosting'|t }}</a>
+        </div>
+      </div>
+    </section>
+
   </div>
-
-  {# Adaptive text contrast for ALL event cards based on image brightness #}
-  <script>
-    (function() {
-      function getImageBrightness(img, card) {
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        var sW = 100, sH = 60;
-        canvas.width = sW;
-        canvas.height = sH;
-        try {
-          var srcY = img.naturalHeight * 0.6;
-          var srcH = img.naturalHeight * 0.4;
-          ctx.drawImage(img, 0, srcY, img.naturalWidth, srcH, 0, 0, sW, sH);
-          var data = ctx.getImageData(0, 0, sW, sH).data;
-          var total = 0, count = data.length / 4;
-          for (var i = 0; i < data.length; i += 4) {
-            total += (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
-          }
-          var avg = total / count;
-          if (avg > 140) {
-            card.classList.add('mel-event-card--light-bg');
-          } else {
-            card.classList.add('mel-event-card--dark-bg');
-          }
-        } catch (e) {
-          card.classList.add('mel-event-card--dark-bg');
-        }
-      }
-
-      document.querySelectorAll('.mel-event-card').forEach(function(card) {
-        var img = card.querySelector('.mel-event-card__image-element');
-        if (!img) return;
-        if (img.complete && img.naturalWidth > 0) {
-          getImageBrightness(img, card);
-        } else {
-          img.addEventListener('load', function() { getImageBrightness(img, card); });
-        }
-      });
-    })();
-  </script>
 {% endblock %}

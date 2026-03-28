@@ -1,13 +1,21 @@
 {#
 /**
  * @file
- * Template for upcoming_events View page-category display wrapper.
- * 
- * Removes default View wrapper divs so rows go directly into .mel-event-grid
- * provided by views-view-unformatted template.
- * Empty state: nothing-found image when no results.
+ * upcoming_events — page_category: intro + date pills + exposed + grid + pager.
  */
 #}
+{{ attach_library('myeventlane_theme/mel-events-discovery') }}
+
+{% if mel_browse_category_name %}
+  <p class="mel-category-browse__intro">
+    {{ 'Explore events in @name.'|t({'@name': mel_browse_category_name}) }}
+  </p>
+{% endif %}
+
+{% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: view.current_display } %}
+
+{{ exposed }}
+
 {% if view.result %}
   {{ rows }}
 {% else %}
@@ -21,11 +29,4 @@
   </div>
 {% endif %}
 
-
-
-
-
-
-
-
-
+{{ pager }}

@@ -54,7 +54,8 @@
 }
 
 // Compact cards don’t always have a dedicated media wrapper; anchor to the card.
-.mel-card--compact.mel-card--promoted {
+.mel-card--compact.mel-card--promoted,
+.mel-event-card--compact.mel-event-card--promoted {
   position: relative;
 }
 
@@ -96,6 +97,13 @@
 // Poster cards sometimes also show a stamp at top-right; stack the Featured badge below it.
 .mel-stamp + .mel-featured-badge {
   top: 52px;
+}
+
+// Poster discover: badges live in .mel-card__media-corner--tr (flex column).
+.mel-card__media-corner--tr .mel-featured-badge {
+  position: static;
+  top: auto;
+  right: auto;
 }
 
 // Inline variant for event full page meta row.

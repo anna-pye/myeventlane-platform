@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * Homepage / marketing section wrapper — width + container from caller variables.
+ *
+ * Variables: section_class, section_width_class, container_class, title, subtitle,
+ * link_url, link_text, content, content_wrapper_class, header_extra_class, link_class.
+ */
+#}
+<section class="mel-section mel-home-section {{ section_class }} {{ section_width_class|default('') }}">
+  <div class="{{ container_class|default('mel-container') }}">
+    {% if title or subtitle or link_url %}
+      <div class="mel-section__header {{ header_extra_class|default('') }}">
+        <div class="mel-section__intro">
+          {% if title %}
+            <h2 class="mel-section__title">{{ title }}</h2>
+          {% endif %}
+
+          {% if subtitle %}
+            <p class="mel-section__subtitle">{{ subtitle }}</p>
+          {% endif %}
+        </div>
+
+        {% if link_url and link_text %}
+          <a href="{{ link_url }}" class="{{ link_class|default('mel-section__link') }}">
+            {{ link_text }}
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="mel-section__content {{ content_wrapper_class|default('') }}">
+      {{ content }}
+    </div>
+  </div>
+</section>

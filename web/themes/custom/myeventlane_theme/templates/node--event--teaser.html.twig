@@ -1,77 +1,11 @@
 {#
 /**
  * @file
- * Event teaser card.
+ * Event node — teaser view mode (standard card).
  */
 #}
-
-{# Variables expected from preprocess:
- * card_url
- * card_title
- * card_image_url (optional)
- * card_image_alt (optional)
- * card_day
- * card_month
- * card_time_range
- * card_location
- * card_category (array with 'label' and 'url')
- * card_price_label
- * card_type (rsvp|paid|both|none)
- * card_accessibility (array of strings or rendered markup, optional)
-#}
-
-{# Promoted / Boosted flag (data already managed by Boost system). #}
-{% set is_promoted = node is defined and node and node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
-
-{% set cta_text = 'Get tickets'|t %}
-{% if card_type|default('paid') == 'rsvp' %}
-  {% set cta_text = 'RSVP'|t %}
-{% elseif card_type|default('paid') == 'external' %}
-  {% set cta_text = 'Book'|t %}
-{% endif %}
-
-<article class="mel-event-card{% if is_promoted %} mel-event-card--promoted{% endif %}">
-  <a href="{{ card_url|default(url|default('#')) }}" class="mel-event-card__link" aria-label="{{ card_title }}">
-    <div class="mel-event-card__image">
-      {% if card_image_url %}
-        <img
-          src="{{ card_image_url }}"
-          alt="{{ card_image_alt|default(card_title) }}"
-          loading="lazy"
-          decoding="async"
-          class="mel-event-card__image-element"
-        />
-      {% else %}
-        <div class="mel-event-card__placeholder" aria-hidden="true"></div>
-      {% endif %}
-
-      {% if card_category %}
-        <span class="mel-event-card__category-pill mel-pill mel-pill--category mel-pill--on-image" aria-hidden="true">
-          <span class="mel-pill__label">{{ card_category.label }}</span>
-        </span>
-      {% endif %}
-
-      {% if is_promoted %}
-        <div class="mel-featured-badge" role="note" aria-label="{{ 'Featured event'|t }}">
-          <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
-          <span class="mel-featured-badge__text">{{ 'Featured'|t }}</span>
-        </div>
-      {% endif %}
-
-      <span class="mel-event-card__cta" aria-hidden="true">{{ cta_text }}</span>
-    </div>
-
-    <div class="mel-event-card__content">
-      <h3 class="mel-event-card__title">{{ card_title }}</h3>
-
-      <div class="mel-event-card__meta">
-        {% if card_time_range %}
-          <div class="mel-event-card__meta-item">{{ card_time_range }}</div>
-        {% endif %}
-        {% if card_location %}
-          <div class="mel-event-card__meta-item">{{ card_location }}</div>
-        {% endif %}
-      </div>
-    </div>
-  </a>
-</article>
+<!-- MEL DEBUG: NODE EVENT TEASER ACTIVE (node--event--teaser.html.twig) -->
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: 'standard',
+  attributes: attributes,
+} %}
