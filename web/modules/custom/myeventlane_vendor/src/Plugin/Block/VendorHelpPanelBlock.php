@@ -47,7 +47,7 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
     private readonly ?EventSuggestionService $eventSuggestionService,
     private readonly CsrfTokenGenerator $csrfToken,
     private readonly EntityIdNormalizer $entityIdNormalizer,
-    private readonly EventRepository $eventRepository,
+    private readonly ?EventRepository $eventRepository,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -71,7 +71,7 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
         : NULL,
       $container->get('csrf_token'),
       $container->get('myeventlane_core.entity_id_normalizer'),
-      $container->get('myeventlane_event_studio.repository'),
+      $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
     );
   }
 
@@ -249,6 +249,13 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
     $all_ids = $this->entityIdNormalizer->normalizeNodeIds(array_values($query->execute()));
     if ($all_ids === []) {
       return ['events_total' => 0, 'events_published' => 0];
+    }
+
+    if ($this->eventRepository === NULL) {
+      return [
+        'events_total' => count($all_ids),
+        'events_published' => 0,
+      ];
     }
 
     $published = 0;

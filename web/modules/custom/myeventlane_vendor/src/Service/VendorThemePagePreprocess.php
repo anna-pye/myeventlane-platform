@@ -42,7 +42,7 @@ final class VendorThemePagePreprocess {
    *   The string translation service.
    * @param \Drupal\myeventlane_core\Service\EntityIdNormalizer $entityIdNormalizer
    *   Normalizes IDs before entity loadMultiple() (avoids array_flip warnings).
-   * @param \Drupal\myeventlane_event_studio\Service\EventRepository $eventRepository
+   * @param \Drupal\myeventlane_event_studio\Service\EventRepository|null $eventRepository
    *   Event read model for studio switcher cards (no node loadMultiple in vendor).
    */
   public function __construct(
@@ -53,7 +53,7 @@ final class VendorThemePagePreprocess {
     private readonly ?OptionalServiceResolver $optionalServiceResolver,
     TranslationInterface $stringTranslation,
     private readonly EntityIdNormalizer $entityIdNormalizer,
-    private readonly EventRepository $eventRepository,
+    private readonly ?EventRepository $eventRepository,
   ) {
     $this->setStringTranslation($stringTranslation);
   }
@@ -580,6 +580,9 @@ final class VendorThemePagePreprocess {
   private function buildStudioSwitcherCards(): array {
     $selected_id = $this->resolveCurrentEventId();
     if (!$this->currentUser->isAuthenticated()) {
+      return [NULL, []];
+    }
+    if ($this->eventRepository === NULL) {
       return [NULL, []];
     }
 

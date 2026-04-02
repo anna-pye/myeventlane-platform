@@ -57,7 +57,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   /**
    * Event read model for vendor UI (no node entities to Twig).
    */
-  protected EventRepository $eventRepository;
+  protected ?EventRepository $eventRepository;
 
   /**
    * RSVP stats service.
@@ -141,7 +141,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
     EntityIdNormalizer $entity_id_normalizer,
-    EventRepository $event_repository,
+    ?EventRepository $event_repository,
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
@@ -189,7 +189,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_core.entity_id_normalizer'),
-      $container->get('myeventlane_event_studio.repository'),
+      $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
@@ -560,6 +560,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
     if ($eventIds === []) {
+      return [];
+    }
+
+    if ($this->eventRepository === NULL) {
       return [];
     }
 
@@ -1014,6 +1018,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       return [];
     }
 
+    if ($this->eventRepository === NULL) {
+      return [];
+    }
+
     try {
       $normalizedEvents = $this->entityIdNormalizer->normalizeNodeIds(array_values($userEvents));
       $melEvents = $normalizedEvents === [] ? [] : $this->eventRepository->loadMany($normalizedEvents);
@@ -1445,7 +1453,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($userEvents));
-    $melList = $normalized === [] ? [] : $this->eventRepository->loadMany($normalized);
+    $melList = ($this->eventRepository === NULL || $normalized === [])
+      ? []
+      : $this->eventRepository->loadMany($normalized);
     $now = time();
     $threeDaysFromNow = $now + (3 * 24 * 60 * 60);
 
@@ -1795,7 +1805,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ->range(0, 2)
         ->execute();
       $editedIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($editedIds));
-      foreach (($editedIds === [] ? [] : $this->eventRepository->loadMany($editedIds)) as $edited) {
+      $editedMel = ($this->eventRepository === NULL || $editedIds === [])
+        ? []
+        : $this->eventRepository->loadMany($editedIds);
+      foreach ($editedMel as $edited) {
         if (!$edited instanceof MelEventData) {
           continue;
         }

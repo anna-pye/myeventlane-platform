@@ -32,7 +32,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     private readonly TicketSalesService $ticketSalesService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityIdNormalizer $entityIdNormalizer,
-    private readonly EventRepository $eventRepository,
+    private readonly ?EventRepository $eventRepository,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -48,7 +48,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_core.entity_id_normalizer'),
-      $container->get('myeventlane_event_studio.repository'),
+      $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
     );
   }
 
@@ -127,8 +127,10 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       }
 
       $eventTitles = [];
-      foreach ($this->eventRepository->loadMany($normalized) as $dto) {
-        $eventTitles[$dto->id] = $dto->title;
+      if ($this->eventRepository !== NULL) {
+        foreach ($this->eventRepository->loadMany($normalized) as $dto) {
+          $eventTitles[$dto->id] = $dto->title;
+        }
       }
 
       // Get order items for these events.

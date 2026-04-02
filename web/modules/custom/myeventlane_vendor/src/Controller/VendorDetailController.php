@@ -20,7 +20,7 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
 
   private EntityIdNormalizer $entityIdNormalizer;
 
-  private EventRepository $eventRepository;
+  private ?EventRepository $eventRepository = NULL;
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,9 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
   public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
     $instance->entityIdNormalizer = $container->get('myeventlane_core.entity_id_normalizer');
-    $instance->eventRepository = $container->get('myeventlane_event_studio.repository');
+    $instance->eventRepository = $container->has('myeventlane_event_studio.repository')
+      ? $container->get('myeventlane_event_studio.repository')
+      : NULL;
     return $instance;
   }
 
@@ -164,7 +166,7 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
       ->execute();
 
     $events_build = [];
-    if (!empty($event_ids)) {
+    if (!empty($event_ids) && $this->eventRepository !== NULL) {
       $nids = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
       foreach ($this->eventRepository->loadMany($nids) as $dto) {
         $date_text = $dto->start_timestamp > 0
@@ -410,6 +412,10 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
 
     $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
     $events_data = [];
+
+    if ($this->eventRepository === NULL) {
+      return [];
+    }
 
     foreach ($this->eventRepository->loadMany($normalized) as $dto) {
       $event_id = $dto->id;

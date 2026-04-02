@@ -26,7 +26,7 @@ final class CategoryAudienceService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityIdNormalizer $entityIdNormalizer,
-    private readonly EventRepository $eventRepository,
+    private readonly ?EventRepository $eventRepository,
   ) {}
 
   /**
@@ -41,6 +41,9 @@ final class CategoryAudienceService {
    *   Array of category breakdown with labels and values.
    */
   public function getCategoryBreakdown(?NodeInterface $event = NULL): array {
+    if ($this->eventRepository === NULL) {
+      return [];
+    }
     try {
       $userId = (int) $this->currentUser->id();
       $nodeStorage = $this->entityTypeManager->getStorage('node');
@@ -276,8 +279,10 @@ final class CategoryAudienceService {
       }
 
       $eventTitles = [];
-      foreach ($this->eventRepository->loadMany($eventIds) as $dto) {
-        $eventTitles[$dto->id] = $dto->title;
+      if ($this->eventRepository !== NULL) {
+        foreach ($this->eventRepository->loadMany($eventIds) as $dto) {
+          $eventTitles[$dto->id] = $dto->title;
+        }
       }
 
       // Get attendees for these events.

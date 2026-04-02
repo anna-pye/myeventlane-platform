@@ -34,7 +34,7 @@ services:
       - '@?myeventlane_core.optional_service_resolver'
       - '@string_translation'
       - '@myeventlane_core.entity_id_normalizer'
-      - '@myeventlane_event_studio.repository'
+      - '@?myeventlane_event_studio.repository'
 
   myeventlane_vendor.vendor_console_page_preprocess:
     class: Drupal\myeventlane_vendor\Hook\VendorConsolePagePreprocess
@@ -93,7 +93,7 @@ services:
       - '@entity_type.manager'
       - '@current_user'
       - '@myeventlane_core.entity_id_normalizer'
-      - '@myeventlane_event_studio.repository'
+      - '@?myeventlane_event_studio.repository'
 
   myeventlane_vendor.service.boost_status:
     class: Drupal\myeventlane_vendor\Service\BoostStatusService
@@ -126,7 +126,7 @@ services:
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@entity_type.manager'
       - '@myeventlane_core.entity_id_normalizer'
-      - '@myeventlane_event_studio.repository'
+      - '@?myeventlane_event_studio.repository'
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor_analytics.vendor_kpi'
@@ -244,7 +244,7 @@ services:
       - '@myeventlane_vendor.service.ticket_sales'
       - '@entity_type.manager'
       - '@myeventlane_core.entity_id_normalizer'
-      - '@myeventlane_event_studio.repository'
+      - '@?myeventlane_event_studio.repository'
     tags:
       - { name: controller.service_arguments }
 
