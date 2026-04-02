@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_domain_events\ProjectionReadModel;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\myeventlane_core\Utility\EntityLoadIds;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -81,7 +82,7 @@ final class VendorMetricsReadModel {
       return $metrics;
     }
 
-    $this->logger->notice(
+    $this->logger->debug(
       'Projection miss for vendor {vendor_id}; using fallback metrics.',
       ['vendor_id' => $vendorId]
     );
@@ -330,6 +331,11 @@ final class VendorMetricsReadModel {
       ->condition('state', ['partially_refunded', 'refunded'], 'IN')
       ->execute();
 
+    if ($paymentIds === []) {
+      return 0.0;
+    }
+
+    $paymentIds = EntityLoadIds::normalizeForLoadMultiple($paymentIds);
     if ($paymentIds === []) {
       return 0.0;
     }

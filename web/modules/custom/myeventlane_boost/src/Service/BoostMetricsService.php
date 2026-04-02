@@ -13,6 +13,7 @@ use Drupal\node\NodeInterface;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Utility\EntityLoadIds;
 
 /**
  * Aggregates Boost metrics for display in vendor dashboard.
@@ -159,6 +160,17 @@ final class BoostMetricsService {
     $orderItemIds = $query->execute();
 
     if (empty($orderItemIds)) {
+      return [];
+    }
+
+    $orderItemIds = array_values(array_unique(array_map(
+      static fn ($id): int => (int) $id,
+      array_filter(
+        EntityLoadIds::normalizeForLoadMultiple($orderItemIds),
+        static fn ($id): bool => is_numeric($id) && (int) $id > 0,
+      )
+    )));
+    if ($orderItemIds === []) {
       return [];
     }
 

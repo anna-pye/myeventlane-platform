@@ -1,5 +1,8 @@
 services:
 
+  myeventlane_core.entity_id_normalizer:
+    class: Drupal\myeventlane_core\Service\EntityIdNormalizer
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 

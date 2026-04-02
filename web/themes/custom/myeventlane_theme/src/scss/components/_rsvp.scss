@@ -404,6 +404,86 @@
   color: colors.$mel-color-text;
 }
 
+.mel-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mel-chip-group .form-item {
+  margin: 0;
+  position: relative;
+}
+
+.mel-chip-group input[type='radio'],
+.mel-chip-group input[type='checkbox'] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mel-chip-group .mel-chip,
+.mel-chip-group label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.mel-chip-group .mel-chip:hover,
+.mel-chip-group label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.mel-chip-group .mel-chip::after,
+.mel-chip-group label::after {
+  content: "✓";
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mel-chip-group input:checked + .mel-chip,
+.mel-chip-group input:checked + label,
+.mel-chip-group .mel-chip.mel-chip--active,
+.mel-chip-group .mel-chip:has(input:checked),
+.mel-chip-group .form-item:has(input:checked) .mel-chip,
+.mel-chip-group .form-item:has(input:checked) label {
+  background: linear-gradient(
+    135deg,
+    rgba(242, 109, 91, 0.12),
+    rgba(110, 126, 242, 0.12)
+  );
+  border-color: #f26d5b;
+  box-shadow: 0 8px 20px rgba(242, 109, 91, 0.25);
+  transform: scale(1.03);
+}
+
+.mel-chip-group input:checked + .mel-chip::after,
+.mel-chip-group input:checked + label::after,
+.mel-chip-group .mel-chip.mel-chip--active::after,
+.mel-chip-group .mel-chip:has(input:checked)::after,
+.mel-chip-group .form-item:has(input:checked) .mel-chip::after,
+.mel-chip-group .form-item:has(input:checked) label::after {
+  opacity: 1;
+}
+
+.mel-chip-group.mel-guest-selector .form-item:first-child .mel-chip,
+.mel-chip-group.mel-guest-selector .form-item:first-child label {
+  border-width: 2px;
+}
+
 // ---------------------------------------------------------------------------
 // Guest Count
 // ---------------------------------------------------------------------------
@@ -665,6 +745,136 @@
   .form-type-checkbox {
     margin-bottom: spacing.mel-space(2);
   }
+}
+
+.mel-intent__supporting-copy {
+  margin: spacing.mel-space(1) 0 0;
+}
+
+.mel-attendees__intro {
+  margin: 0;
+  font-weight: typography.$mel-font-semibold;
+}
+
+.mel-intent__sub {
+  font-size: 14px;
+  color: #666;
+  margin-top: 6px;
+}
+
+.mel-attendee-status {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.mel-legal__intro {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.mel-cta-helper {
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.mel-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mel-rsvp-legal .mel-legal__label {
+  margin: spacing.mel-space(2) 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mel-rsvp-legal .mel-legal__label--required {
+  color: color.adjust(colors.$mel-color-primary, $lightness: -8%);
+}
+
+.mel-rsvp-legal .mel-legal__label--optional {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-rsvp-legal .description {
+  margin-top: spacing.mel-space(1);
+  margin-left: spacing.mel-space(1);
+}
+
+// Legal consent chips: explicit selected/unselected visual feedback.
+.mel-rsvp-legal .mel-legal__choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 18px;
+  border-radius: 16px;
+  border: 2px solid rgba(242, 109, 91, 0.2);
+  background: #fff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.mel-rsvp-legal .mel-chip-group input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mel-rsvp-legal .mel-legal__choice::after {
+  content: "✓";
+  position: absolute;
+  right: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: #f26d5b;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s ease;
+}
+
+.mel-rsvp-legal .mel-chip-group input[type="checkbox"]:checked + .mel-legal__choice,
+.mel-rsvp-legal .mel-legal__choice.mel-chip--active,
+.mel-rsvp-legal .mel-legal__choice:has(input:checked) {
+  background: rgba(242, 109, 91, 0.06);
+  border-color: #f26d5b;
+  box-shadow: 0 4px 12px rgba(242, 109, 91, 0.15);
+}
+
+.mel-rsvp-legal .mel-chip-group input[type="checkbox"]:checked + .mel-legal__choice::after,
+.mel-rsvp-legal .mel-legal__choice.mel-chip--active::after,
+.mel-rsvp-legal .mel-legal__choice:has(input:checked)::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mel-rsvp-legal .mel-legal__choice:hover {
+  border-color: #f26d5b;
+  transform: translateY(-1px);
+}
+
+.mel-rsvp-legal .mel-legal__choice--required {
+  border-width: 2px;
+}
+
+.mel-rsvp-cta {
+  margin-top: 24px;
 }
 
 // Legal consent version-diff notice (re-consent required).

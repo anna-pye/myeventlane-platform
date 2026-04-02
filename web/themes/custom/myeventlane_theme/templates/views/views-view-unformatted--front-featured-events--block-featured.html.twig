@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Featured events — full-bleed hero slider (homepage block_featured).
+ */
+#}
+{% if rows %}
+  <div class="mel-featured-hero">
+
+    <div class="mel-featured-hero__track">
+      {% for row in rows %}
+        <div class="mel-featured-hero__slide">
+          {{ row.content }}
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+{% endif %}

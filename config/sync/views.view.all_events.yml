@@ -12,7 +12,7 @@ dependencies:
 id: all_events
 label: 'All Events'
 module: views
-description: 'Displays all upcoming published events.'
+description: '[DEPRECATED — use view upcoming_events page_events / block] Legacy all-events listing; do not use for new placements.'
 tag: ''
 base_table: node_field_data
 base_field: nid

@@ -255,7 +255,7 @@ form .mel-simple-tabs {
   }
 }
 
-/* Support MyEventLane — vendor wizard (Tickets step + legacy wizard). */
+/* Support MyEventLane — vendor event wizard (Tickets step). */
 .mel-mel-support.mel-mel-support--callout {
   margin-top: 2rem;
   padding: 1.5rem 1.5rem 1.75rem;

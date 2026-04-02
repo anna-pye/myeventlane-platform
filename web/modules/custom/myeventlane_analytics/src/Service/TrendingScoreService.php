@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_analytics\Service;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_boost\BoostManager;
 

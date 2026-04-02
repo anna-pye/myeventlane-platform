@@ -289,22 +289,15 @@
         newVenueAddress.style.display = 'block';
       }
 
-      // Populate the hidden field_location address widget using address-autocomplete.js functions
-      // Find the field_location widget root (it's hidden but still in DOM)
-      const locationWidgetRoot = this.findLocationWidgetRoot(form);
-      if (locationWidgetRoot) {
-        // Use the same extraction logic as address-autocomplete.js
-        const components = this.extractAddressComponentsForWidget(place, provider);
-        this.populateAddressWidget(form, locationWidgetRoot, components);
-        
-        // Populate coordinates if available
-        if (place.geometry && place.geometry.location) {
-          const lat = place.geometry.location.lat();
-          const lng = place.geometry.location.lng();
-          this.populateLatLng(form, locationWidgetRoot, lat, lng);
-        }
-      } else {
-        console.warn('Venue selection: Could not find field_location widget root');
+      const components = this.extractAddressComponentsForWidget(place, provider);
+      let lat = null;
+      let lng = null;
+      if (place.geometry && place.geometry.location) {
+        lat = place.geometry.location.lat();
+        lng = place.geometry.location.lng();
+      }
+      if (Drupal.melLocation && typeof Drupal.melLocation.populateFromComponents === 'function') {
+        Drupal.melLocation.populateFromComponents(form, components, lat, lng, place.place_id || '');
       }
 
       // Show map preview if coordinates exist.
@@ -384,188 +377,6 @@
       }
 
       return out;
-    },
-
-    /**
-     * Find the field_location widget root in the form.
-     */
-    findLocationWidgetRoot: function (form) {
-      if (!form) return null;
-
-      // Try explicit wrapper first
-      let root = form.querySelector('[data-mel-address="field_location"]');
-      if (root) return root;
-
-      // Try Drupal field wrapper
-      root = form.querySelector('.field--name-field-location');
-      if (root) return root;
-
-      // Try to find fieldset containing address inputs
-      const fieldsets = form.querySelectorAll('fieldset');
-      for (const fs of fieldsets) {
-        if (fs.querySelector('input[name*="[address][address_line1]"]') ||
-            fs.querySelector('input[name*="[address][locality]"]') ||
-            fs.querySelector('input[name*="[address][postal_code]"]')) {
-          return fs;
-        }
-      }
-
-      // Fallback: look for any element containing field_location address inputs
-      const locationInput = form.querySelector('input[name*="field_location"][name*="[address][address_line1]"]');
-      if (locationInput) {
-        return locationInput.closest('fieldset') || locationInput.closest('.field--name-field-location') || form;
-      }
-
-      return null;
-    },
-
-    /**
-     * Find address component field by name pattern.
-     */
-    findAddressComponent: function (widgetRoot, componentName, allowSelect) {
-      if (!widgetRoot) return null;
-
-      const baseSelector = `[name*="[address][${componentName}]"]`;
-      let field = widgetRoot.querySelector(`input${baseSelector}`);
-
-      if (!field && allowSelect) {
-        field = widgetRoot.querySelector(`select${baseSelector}`);
-      }
-      if (field) return field;
-
-      // Fallback patterns
-      field = widgetRoot.querySelector(`input[name*="${componentName}"]`) ||
-              (allowSelect ? widgetRoot.querySelector(`select[name*="${componentName}"]`) : null);
-
-      return field || null;
-    },
-
-    /**
-     * Set field value and notify Drupal.
-     */
-    setFieldValue: function (field, value) {
-      if (!field) return;
-      field.value = value;
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-      field.dispatchEvent(new Event('blur', { bubbles: true }));
-    },
-
-    /**
-     * Normalize AU state values to short codes.
-     */
-    normalizeAUState: function (value) {
-      if (!value) return '';
-      const v = value.trim();
-
-      const short = ['NSW','VIC','QLD','SA','WA','TAS','ACT','NT'];
-      if (short.includes(v.toUpperCase())) return v.toUpperCase();
-
-      const map = {
-        'new south wales': 'NSW',
-        'victoria': 'VIC',
-        'queensland': 'QLD',
-        'south australia': 'SA',
-        'western australia': 'WA',
-        'tasmania': 'TAS',
-        'australian capital territory': 'ACT',
-        'northern territory': 'NT',
-      };
-      const key = v.toLowerCase();
-      return map[key] || v;
-    },
-
-    /**
-     * Populate Drupal Address widget fields.
-     */
-    populateAddressWidget: function (form, widgetRoot, components) {
-      if (!form || !widgetRoot || !components) return;
-
-      const country = this.findAddressComponent(widgetRoot, 'country_code', true);
-      const state = this.findAddressComponent(widgetRoot, 'administrative_area', true);
-      const suburb = this.findAddressComponent(widgetRoot, 'locality', false);
-      const postcode = this.findAddressComponent(widgetRoot, 'postal_code', false);
-      const line1 = this.findAddressComponent(widgetRoot, 'address_line1', false);
-      const line2 = this.findAddressComponent(widgetRoot, 'address_line2', false);
-
-      // Country first (drives dynamic state list)
-      if (country) {
-        const countryValue = components.country_code || 'AU';
-        this.setFieldValue(country, countryValue);
-      }
-
-      // Address line 1
-      if (line1) this.setFieldValue(line1, components.address_line1 || '');
-
-      // Address line 2 (optional)
-      if (line2 && components.address_line2) this.setFieldValue(line2, components.address_line2);
-
-      // Suburb + postcode
-      if (suburb) this.setFieldValue(suburb, components.locality || '');
-      if (postcode) this.setFieldValue(postcode, components.postal_code || '');
-
-      // State: if select, prefer matching option
-      if (state) {
-        const desired = this.normalizeAUState(components.administrative_area || '');
-        if (state.tagName === 'SELECT') {
-          let matched = false;
-          for (const opt of state.options) {
-            if (opt.value === desired || opt.text === desired) {
-              state.value = opt.value;
-              matched = true;
-              break;
-            }
-          }
-          if (!matched && desired) {
-            for (const opt of state.options) {
-              if ((opt.text || '').toUpperCase().includes(desired.toUpperCase())) {
-                state.value = opt.value;
-                matched = true;
-                break;
-              }
-            }
-          }
-          state.dispatchEvent(new Event('change', { bubbles: true }));
-          state.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-          this.setFieldValue(state, desired);
-        }
-      }
-
-      // Trigger Drupal formUpdated if jQuery exists
-      if (window.jQuery) {
-        window.jQuery(form).trigger('formUpdated');
-      }
-    },
-
-    /**
-     * Populate latitude and longitude fields.
-     */
-    populateLatLng: function (form, widgetRoot, lat, lng) {
-      if (!form || !widgetRoot) return;
-
-      const scope = widgetRoot || form || document;
-
-      // Look for latitude field - prefer explicit classes added by myeventlane_location module
-      let latField = scope.querySelector('input.myeventlane-location-latitude-field[type="hidden"], input.myeventlane-location-latitude[type="hidden"]');
-      if (!latField) {
-        latField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="latitude"], input[type="hidden"][name*="field_location_latitude"], input[type="hidden"][name*="latitude"]');
-      }
-      if (!latField && form) {
-        latField = form.querySelector('input[type="hidden"][name*="latitude"]');
-      }
-
-      // Look for longitude field - prefer explicit classes added by myeventlane_location module
-      let lngField = scope.querySelector('input.myeventlane-location-longitude-field[type="hidden"], input.myeventlane-location-longitude[type="hidden"]');
-      if (!lngField) {
-        lngField = scope.querySelector('input[type="hidden"][name*="field_location"][name*="longitude"], input[type="hidden"][name*="field_location_longitude"], input[type="hidden"][name*="longitude"]');
-      }
-      if (!lngField && form) {
-        lngField = form.querySelector('input[type="hidden"][name*="longitude"]');
-      }
-
-      if (latField) this.setFieldValue(latField, String(Number(lat).toFixed(7)));
-      if (lngField) this.setFieldValue(lngField, String(Number(lng).toFixed(7)));
     },
 
     /**

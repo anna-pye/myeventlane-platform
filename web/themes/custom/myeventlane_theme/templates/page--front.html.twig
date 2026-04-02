@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * MEL homepage — code-driven discovery (Phase 2 + 2.1 width system).
+ * MEL homepage — code-driven discovery.
  */
 #}
 {% extends "page.html.twig" %}
@@ -12,7 +12,6 @@
 {% endblock %}
 
 {% block content %}
-  <!-- MEL DEBUG: FRONT PAGE TEMPLATE ACTIVE (page--front.html.twig) -->
   {{ attach_library('myeventlane_theme/front') }}
 
   {% set mel_home_featured_markup %}
@@ -35,7 +34,8 @@
     {{ drupal_block('myeventlane_category_pills') }}
   {% endset %}
 
-  <div class="mel-home mel-home--phase2">
+  <div class="mel-page mel-page--home">
+
     {% if mel_home_featured_markup|trim %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--featured',
@@ -43,11 +43,11 @@
         container_class: 'mel-container mel-container--wide',
         header_extra_class: 'mel-section__header--featured',
         title: 'Featured events'|t,
-        subtitle: 'Curated picks you won’t want to miss.'|t,
+        subtitle: 'Hand-picked events worth your evening.'|t,
         link_url: path('view.upcoming_events.page_events'),
-        link_text: 'See all'|t,
+        link_text: 'Browse marketplace'|t,
         link_class: 'mel-link',
-        content: mel_home_featured_markup,
+        content: mel_home_featured_markup
       } %}
     {% endif %}
 
@@ -57,11 +57,24 @@
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
         title: 'Discover events'|t,
-        subtitle: 'Browse what’s coming up near you.'|t,
+        subtitle: 'Browse what’s happening near you.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'See all'|t,
-        content_wrapper_class: 'mel-home__discover-grid',
-        content: mel_home_discover_markup,
+        content_wrapper_class: 'mel-section__discover-view',
+        content: mel_home_discover_markup
+      } %}
+    {% endif %}
+
+    {% if mel_home_tonight_markup|trim %}
+      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+        section_class: 'mel-section--time mel-section--tonight-urgent',
+        section_width_class: 'mel-section--wide',
+        container_class: 'mel-container mel-container--wide',
+        title: 'On tonight'|t,
+        subtitle: 'Starting today — don\'t miss out.'|t,
+        link_url: path('view.upcoming_events.page_today'),
+        link_text: 'See tonight\'s events'|t,
+        content: mel_home_tonight_markup
       } %}
     {% endif %}
 
@@ -71,40 +84,25 @@
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
         title: 'Free & RSVP'|t,
-        subtitle: 'Low-friction ways to join in — no ticket checkout required.'|t,
+        subtitle: 'Low-friction ways to join in.'|t,
         link_url: path('view.upcoming_events.page_free'),
         link_text: 'See all'|t,
-        content_wrapper_class: 'mel-row__scroller',
-        content: mel_home_free_markup,
-      } %}
-    {% endif %}
-
-    {% if mel_home_tonight_markup|trim %}
-      {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
-        section_class: 'mel-section--time',
-        section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
-        title: 'On tonight'|t,
-        subtitle: 'Happening today — grab a seat while you can.'|t,
-        link_url: path('view.upcoming_events.page_today'),
-        link_text: 'See all'|t,
-        content_wrapper_class: 'mel-row__scroller',
-        content: mel_home_tonight_markup,
+        content: mel_home_free_markup
       } %}
     {% endif %}
 
     {% if mel_home_categories_markup|trim %}
-      <section class="mel-section mel-home-section mel-section--categories" aria-labelledby="mel-home-categories-title">
+      <section class="mel-section mel-section--categories" aria-labelledby="mel-home-categories-title">
         <div class="mel-container mel-container--wide">
           <div class="mel-section__header">
             <div class="mel-section__intro">
               <h2 id="mel-home-categories-title" class="mel-section__title">{{ 'Browse by category'|t }}</h2>
               <p class="mel-section__subtitle">{{ 'Pick a lane — we’ll show matching events.'|t }}</p>
             </div>
-            <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-section__link">{{ 'All events'|t }}</a>
           </div>
+
           <div class="mel-section__content">
-            <div class="mel-category-list">
+            <div class="mel-category-strip">
               {{ mel_home_categories_markup }}
             </div>
           </div>
@@ -112,16 +110,16 @@
       </section>
     {% endif %}
 
-    <section class="mel-section mel-home-section mel-section--host mel-section--full" aria-labelledby="mel-home-host-title">
+    <section class="mel-section mel-section--host mel-section--full" aria-labelledby="mel-host-cta-title">
       <div class="mel-container mel-container--wide">
-        <div class="mel-home-host">
-          <div class="mel-home-host__copy">
-            <h2 id="mel-home-host-title" class="mel-home-host__title">{{ 'Empowering event creators everywhere.'|t }}</h2>
-            <p class="mel-home-host__text">
+        <div class="mel-host-cta">
+          <div class="mel-host-cta__copy">
+            <h2 id="mel-host-cta-title" class="mel-host-cta__title">{{ 'Empowering event creators everywhere.'|t }}</h2>
+            <p class="mel-host-cta__text">
               {{ 'Create a free RSVP or ticketed event, reach your audience, and manage it all in one place.'|t }}
             </p>
           </div>
-          <div class="mel-home-host__actions">
+          <div class="mel-host-cta__actions">
             <a class="mel-btn mel-btn--cta" href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}">{{ 'Create event'|t }}</a>
             <a class="mel-btn mel-btn-secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'How hosting works'|t }}</a>
           </div>
@@ -129,12 +127,14 @@
       </div>
     </section>
 
-    <section class="mel-section mel-home-section mel-section--final-cta mel-section--full" aria-labelledby="mel-home-final-cta-title">
+    <section class="mel-section mel-section--final-cta mel-section--full" aria-labelledby="mel-final-cta-title">
       <div class="mel-container mel-container--wide">
-        <div class="mel-home-final-cta">
-          <h2 id="mel-home-final-cta-title" class="mel-home-final-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
-          <p class="mel-home-final-cta__text">{{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}</p>
-          <a class="mel-btn mel-btn--cta mel-home-final-cta__btn" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Start hosting'|t }}</a>
+        <div class="mel-final-cta">
+          <h2 id="mel-final-cta-title" class="mel-final-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
+          <p class="mel-final-cta__text">
+            {{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}
+          </p>
+          <a class="mel-btn mel-btn--cta mel-final-cta__btn" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Start hosting'|t }}</a>
         </div>
       </div>
     </section>

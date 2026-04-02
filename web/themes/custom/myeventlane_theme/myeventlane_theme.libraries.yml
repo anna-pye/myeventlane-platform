@@ -18,6 +18,16 @@ global-styling:
     - core/drupal
     - core/once
 
+myeventlane-global:
+  css:
+    theme:
+      dist/main.css: {}
+  js:
+    dist/main.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Account dropdown fallback bundle (kept for legacy attachments).
 account-dropdown:
   js:
@@ -38,6 +48,8 @@ front:
   css:
     theme:
       dist/css/front.css: {}
+  js:
+    js/mel-cards.js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -54,6 +66,12 @@ mel-listing-header:
     theme:
       dist/css/front.css: {}
   dependencies:
+    - core/drupal
+
+# /events listing: date pills + exposed filter bar (bundled in main.css via Vite).
+mel-events-discovery:
+  dependencies:
+    - myeventlane_theme/global-styling
     - core/drupal
 
 # Event page (Poster Card layout).
@@ -74,6 +92,11 @@ event-wizard:
     - core/drupal.form
     - core/drupal.states
     - myeventlane_theme/global-styling
+
+# Alias: vendor event builder preview assets live in myeventlane_event module.
+event-builder-preview:
+  dependencies:
+    - myeventlane_event/event_builder_preview
 
 # Event full node page styling.
 # Styles are compiled via Vite into dist/main.css from src/scss/pages/_event.scss.

@@ -14,6 +14,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Image\ImageFactory as CoreImageFactory;
 use Drupal\myeventlane_seed\Util\ImageFactory;
 use Drupal\myeventlane_core\Service\OnboardingManager;
+use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\user\Entity\User;
 
 /**
@@ -43,6 +44,8 @@ final class DemoSeeder {
    *   The core image factory.
    * @param \Drupal\myeventlane_seed\Util\ImageFactory $imageFactoryUtil
    *   The image factory utility.
+   * @param \Drupal\myeventlane_event_studio\Service\EventStudioSaveService|null $eventStudioSave
+   *   Persists event location (single writer); NULL if Event Studio is disabled.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -52,6 +55,7 @@ final class DemoSeeder {
     private readonly FileSystemInterface $fileSystem,
     private readonly CoreImageFactory $imageFactory,
     private readonly ImageFactory $imageFactoryUtil,
+    private readonly ?EventStudioSaveService $eventStudioSave,
   ) {}
 
   /**
@@ -417,16 +421,6 @@ final class DemoSeeder {
       'field_venue_name' => $location['name'],
     ]);
 
-    // Set location address.
-    if ($event->hasField('field_location')) {
-      $event->set('field_location', [
-        'country_code' => 'AU',
-        'address_line1' => $location['street'],
-        'locality' => $location['city'],
-        'postal_code' => $location['postcode'],
-      ]);
-    }
-
     // Create event image.
     if ($event->hasField('field_event_image')) {
       $image = $this->imageFactoryUtil->createPlaceholderImage(
@@ -445,6 +439,36 @@ final class DemoSeeder {
     }
 
     $event->save();
+
+    if ($this->eventStudioSave instanceof EventStudioSaveService && $event->hasField('field_location')) {
+      $payload = [
+        'title' => $title,
+        'summary' => '',
+        'venue_choice' => 'one_off',
+        'venue_id' => NULL,
+        'new_venue_name' => '',
+        'field_location' => [[
+          'country_code' => 'AU',
+          'address_line1' => $location['street'],
+          'locality' => $location['city'],
+          'administrative_area' => '',
+          'postal_code' => $location['postcode'],
+          'address_line2' => '',
+        ]],
+        'field_event_start' => $start->format('Y-m-d\TH:i:s'),
+        'field_event_end' => $end->format('Y-m-d\TH:i:s'),
+        'field_event_type' => $eventType,
+        'status' => TRUE,
+      ];
+      $result = $this->eventStudioSave->save($payload, $event, $vendorUser, FALSE);
+      if ($result['errors'] !== []) {
+        $this->loggerFactory->get('myeventlane_seed')->error('Demo event @nid location via Studio failed: @e', [
+          '@nid' => (string) $event->id(),
+          '@e' => implode('; ', $result['errors']),
+        ]);
+      }
+    }
+
     return (int) $event->id();
   }
 

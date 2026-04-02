@@ -7,7 +7,7 @@
  * link_url, link_text, content, content_wrapper_class, header_extra_class, link_class.
  */
 #}
-<section class="mel-section mel-home-section {{ section_class }} {{ section_width_class|default('') }}">
+<section class="mel-section {{ section_class }} {{ section_width_class|default('') }}">
   <div class="{{ container_class|default('mel-container') }}">
     {% if title or subtitle or link_url %}
       <div class="mel-section__header {{ header_extra_class|default('') }}">

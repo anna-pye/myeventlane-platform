@@ -5,20 +5,30 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Controller for vendor detail pages with analytics.
  */
-final class VendorDetailController extends ControllerBase {
+final class VendorDetailController extends ControllerBase implements ContainerInjectionInterface {
+
+  private EntityIdNormalizer $entityIdNormalizer;
+
+  private EventRepository $eventRepository;
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container): self {
+  public static function create(ContainerInterface $container): static {
     $instance = parent::create($container);
+    $instance->entityIdNormalizer = $container->get('myeventlane_core.entity_id_normalizer');
+    $instance->eventRepository = $container->get('myeventlane_event_studio.repository');
     return $instance;
   }
 
@@ -155,11 +165,26 @@ final class VendorDetailController extends ControllerBase {
 
     $events_build = [];
     if (!empty($event_ids)) {
-      $events = $this->entityTypeManager()->getStorage('node')->loadMultiple($event_ids);
-      $node_view_builder = $this->entityTypeManager()->getViewBuilder('node');
-
-      foreach ($events as $event) {
-        $events_build[] = $node_view_builder->view($event, 'card');
+      $nids = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
+      foreach ($this->eventRepository->loadMany($nids) as $dto) {
+        $date_text = $dto->start_timestamp > 0
+          ? date('M j, Y', $dto->start_timestamp)
+          : '';
+        $events_build[] = [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['vendor-profile__event-teaser']],
+          'link' => [
+            '#type' => 'link',
+            '#title' => $dto->title,
+            '#url' => Url::fromRoute('entity.node.canonical', ['node' => $dto->id]),
+          ],
+          'date' => $date_text !== '' ? [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $date_text,
+            '#attributes' => ['class' => ['vendor-profile__event-date']],
+          ] : NULL,
+        ];
       }
     }
 
@@ -383,21 +408,17 @@ final class VendorDetailController extends ControllerBase {
       return [];
     }
 
-    $events = $this->entityTypeManager()->getStorage('node')->loadMultiple($event_ids);
+    $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
     $events_data = [];
 
-    foreach ($events as $event) {
-      $event_id = (int) $event->id();
+    foreach ($this->eventRepository->loadMany($normalized) as $dto) {
+      $event_id = $dto->id;
 
-      // Get event date.
       $event_date = '';
       $event_date_timestamp = NULL;
-      if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-        $date_item = $event->get('field_event_start');
-        if ($date_item->date) {
-          $event_date = $date_item->date->format('M j, Y');
-          $event_date_timestamp = $date_item->date->getTimestamp();
-        }
+      if ($dto->start_timestamp > 0) {
+        $event_date_timestamp = $dto->start_timestamp;
+        $event_date = date('M j, Y', $dto->start_timestamp);
       }
 
       // Calculate revenue for this event.
@@ -477,18 +498,18 @@ final class VendorDetailController extends ControllerBase {
 
       $events_data[] = [
         'event_id' => $event_id,
-        'event_title' => $event->label(),
-        'event_url' => $event->toUrl()->toString(),
+        'event_title' => $dto->title,
+        'event_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
         'event_date' => $event_date,
         'event_date_timestamp' => $event_date_timestamp,
-        'status' => $event->isPublished() ? 'published' : 'draft',
+        'status' => $dto->published ? 'published' : 'draft',
         'revenue' => $revenue,
         'tickets_sold' => $tickets_sold,
         'rsvps' => $rsvp_count,
         'attendees' => $attendee_count,
         'total_participants' => $tickets_sold + $attendee_count + $rsvp_count,
         'orders' => $orders_count,
-        'created' => $event->getCreatedTime(),
+        'created' => $dto->created,
       ];
     }
 

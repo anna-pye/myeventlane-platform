@@ -1,0 +1,18 @@
+.mel-intent {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.mel-guest-selector {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.mel-guest-selector .form-item {
+  margin: 0;
+}
+
+.mel-details--collapsed {
+  display: none;
+}

@@ -1,14 +1,15 @@
 {#
 /**
  * @file
- * Template for mel_home_events view - all displays.
- * 
- * Outputs rows directly into grid containers provided by homepage template.
- * No wrapper divs - rows are direct children of .mel-sticker-wall or .mel-row__scroller.
+ * mel_home_events — default unformatted (tonight, under_20, etc.).
+ *
+ * Wraps rows in `.mel-grid.mel-grid--events` (MEL v2 single grid system).
  */
 #}
 {% if rows %}
-  {% for row in rows %}
-    {{- row.content -}}
-  {% endfor %}
+  <div class="mel-grid mel-grid--events">
+    {% for row in rows %}
+      {{- row.content -}}
+    {% endfor %}
+  </div>
 {% endif %}

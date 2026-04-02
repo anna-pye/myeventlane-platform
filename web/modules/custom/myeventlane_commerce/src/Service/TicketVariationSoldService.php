@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_core\Utility\EntityLoadIds;
 
 /**
  * Completed-order quantity per Commerce variation and event (shared query).
@@ -27,6 +28,16 @@ final class TicketVariationSoldService {
       ->condition('purchased_entity', $variationId)
       ->execute();
     if (!$ids) {
+      return 0;
+    }
+    $ids = array_values(array_unique(array_map(
+      static fn ($id): int => (int) $id,
+      array_filter(
+        EntityLoadIds::normalizeForLoadMultiple($ids),
+        static fn ($id): bool => is_numeric($id) && (int) $id > 0,
+      )
+    )));
+    if ($ids === []) {
       return 0;
     }
     $items = $orderItemStorage->loadMultiple($ids);
@@ -71,6 +82,16 @@ final class TicketVariationSoldService {
     if (!$ids) {
       return $out;
     }
+    $ids = array_values(array_unique(array_map(
+      static fn ($id): int => (int) $id,
+      array_filter(
+        EntityLoadIds::normalizeForLoadMultiple($ids),
+        static fn ($id): bool => is_numeric($id) && (int) $id > 0,
+      )
+    )));
+    if ($ids === []) {
+      return $out;
+    }
     $items = $orderItemStorage->loadMultiple($ids);
     foreach ($items as $item) {
       if ($item->get('order_id')->isEmpty()) {
@@ -104,6 +125,16 @@ final class TicketVariationSoldService {
       ->condition('purchased_entity', $variationId)
       ->execute();
     if (!$ids) {
+      return NULL;
+    }
+    $ids = array_values(array_unique(array_map(
+      static fn ($id): int => (int) $id,
+      array_filter(
+        EntityLoadIds::normalizeForLoadMultiple($ids),
+        static fn ($id): bool => is_numeric($id) && (int) $id > 0,
+      )
+    )));
+    if ($ids === []) {
       return NULL;
     }
     $items = $orderItemStorage->loadMultiple($ids);

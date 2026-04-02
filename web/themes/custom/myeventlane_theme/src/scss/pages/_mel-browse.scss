@@ -1,0 +1,220 @@
+// ==========================================================================
+// MEL browse — /events layout (filters + results)
+// ==========================================================================
+
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/breakpoints';
+
+.mel-browse-header {
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-family: mel.$mel-ds-font-main;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: mel.$mel-ds-color-text;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-family: mel.$mel-ds-font-main;
+    font-size: mel.$mel-ds-font-body;
+    line-height: 1.45;
+    color: mel.$mel-ds-color-muted;
+  }
+}
+
+.mel-filter-panel {
+  background: mel.$mel-ds-color-surface;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
+}
+
+.mel-filter-panel__title {
+  margin: 0 0 12px;
+  font-family: mel.$mel-ds-font-main;
+  font-size: 16px;
+  font-weight: 600;
+  color: mel.$mel-ds-color-text;
+}
+
+// Scoped: wins over generic .view / .mel-events-exposed listing rules.
+.mel-browse .mel-filter-panel {
+  background: mel.$mel-ds-color-surface;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 6%, transparent);
+}
+
+.mel-browse .mel-filter-panel .mel-events-exposed {
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.mel-active-filters {
+  margin-bottom: 16px;
+  font-family: mel.$mel-ds-font-main;
+  font-size: 14px;
+  line-height: 1.4;
+  color: mel.$mel-ds-color-muted;
+}
+
+.mel-category-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-top: mel.$mel-ds-space-sm;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+
+  .mel-category-pills {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: min-content;
+  }
+}
+
+.mel-browse__layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  align-items: start;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-browse__filters {
+  position: sticky;
+  top: 1rem;
+  padding: mel.$mel-ds-space-md 0;
+
+  @media (max-width: 768px) {
+    display: none;
+    position: static;
+    padding: mel.$mel-ds-space-lg;
+    margin-bottom: mel.$mel-ds-space-md;
+    border-radius: mel.$mel-ds-radius-md;
+    background: mel.$mel-ds-color-surface;
+    box-shadow: mel.$mel-ds-shadow-soft;
+    border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+
+    &:target {
+      display: block;
+    }
+  }
+}
+
+.mel-browse__results {
+  min-width: 0;
+}
+
+.mel-filter-button {
+  display: none;
+  width: 100%;
+  max-width: 280px;
+  margin-bottom: mel.$mel-ds-space-md;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    display: inline-flex;
+    justify-content: center;
+  }
+}
+
+.mel-browse-filters__intro {
+  margin-bottom: mel.$mel-ds-space-lg;
+}
+
+.mel-browse-filters__lede {
+  margin: 0;
+  font-size: mel.$mel-ds-font-small;
+  line-height: 1.45;
+  color: mel.$mel-ds-color-muted;
+}
+
+.mel-browse-filters__label {
+  margin: 0 0 mel.$mel-ds-space-xs;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: mel.$mel-ds-color-muted;
+}
+
+.mel-browse-filters__when {
+  margin-bottom: mel.$mel-ds-space-lg;
+
+  .mel-events-date-filters {
+    flex-wrap: wrap;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.mel-browse__filters .mel-events-exposed {
+  margin-bottom: 0;
+
+  .mel-events-exposed__fields {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .mel-events-exposed__field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .mel-events-exposed__actions {
+    margin-top: mel.$mel-ds-space-sm;
+  }
+}
+
+.mel-empty--browse,
+.mel-empty {
+  text-align: center;
+  padding: 48px mel.$mel-ds-space-lg;
+  border-radius: mel.$mel-ds-radius-md;
+  background: color-mix(in srgb, mel.$mel-ds-color-bg 80%, mel.$mel-ds-color-surface);
+  border: 1px dashed color-mix(in srgb, mel.$mel-ds-color-text 12%, transparent);
+
+  .mel-empty__title {
+    margin: 0 0 mel.$mel-ds-space-sm;
+    font-family: mel.$mel-ds-font-main;
+    font-size: mel.$mel-ds-font-h3;
+    font-weight: 700;
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-empty__text {
+    margin: 0;
+    font-family: mel.$mel-ds-font-main;
+    font-size: mel.$mel-ds-font-body;
+    line-height: 1.5;
+    color: mel.$mel-ds-color-muted;
+  }
+}
+
+.mel-category-browse__intro {
+  margin: 0 0 mel.$mel-ds-space-lg;
+  font-size: mel.$mel-ds-font-body;
+  line-height: 1.5;
+  color: mel.$mel-ds-color-muted;
+  max-width: 40rem;
+}
+

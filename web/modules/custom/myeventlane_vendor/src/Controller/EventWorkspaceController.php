@@ -52,8 +52,8 @@ final class EventWorkspaceController extends VendorConsoleBaseController {
     $this->assertEventOwnership($event);
 
     try {
-      $target = Url::fromRoute('myeventlane_event.wizard.publish', [
-        'event' => (int) $event->id(),
+      $target = Url::fromRoute('myeventlane_event_studio.edit', [
+        'node' => (int) $event->id(),
       ])->toString();
     }
     catch (\Throwable $exception) {

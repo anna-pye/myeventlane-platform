@@ -166,7 +166,7 @@
   }
 
   /**
-   * Handle stepper button clicks (for EventWizardForm and EventFormAlter).
+   * Handle stepper button clicks (for step wizard UI and EventFormAlter).
    * Step wizard (Basics, When & Where, …) uses real <a href="..."> links; do not intercept.
    */
   function initStepperButtons(context) {
@@ -181,7 +181,7 @@
         }
       }
 
-      // For EventWizardForm: handle clicks on step containers that trigger hidden submit buttons.
+      // Handle clicks on step containers that trigger hidden submit buttons.
       if (button.tagName !== 'BUTTON' && button.tagName !== 'INPUT') {
         const hiddenSubmit = button.querySelector('.js-mel-step-submit');
         if (hiddenSubmit) {
@@ -300,7 +300,7 @@
         }
       }
 
-      // Initialize stepper buttons for both EventWizardForm and EventFormAlter.
+      // Initialize stepper buttons for step wizard and EventFormAlter layouts.
       // This will also update button accessibility.
       initStepperButtons(context);
 

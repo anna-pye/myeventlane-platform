@@ -5,6 +5,7 @@ dependencies:
     - commerce_store.commerce_store_type.online
   module:
     - address
+    - myeventlane_location
     - path
 id: commerce_store.online.default
 targetEntityType: commerce_store
@@ -12,7 +13,7 @@ bundle: online
 mode: default
 content:
   address:
-    type: address_default
+    type: myeventlane_location_address_default
     weight: 4
     region: content
     settings: {  }

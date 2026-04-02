@@ -1,0 +1,621 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_event_studio\Service;
+
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\file\FileInterface;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Service\VenueManager;
+use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Canonical orchestrator for vendor-originated event node edits from Event Studio.
+ *
+ * - Owns persistence for the Event Studio form (title, schedule, venue/address,
+ *   coordinates, publish flag on full save).
+ * - Vendor shell JSON that mutates the same scalar fields must delegate here
+ *   (see patchOverviewBasics) so save/revision behaviour stays consistent.
+ * - Legacy step-wizard and admin node forms are out of scope; they must not be
+ *   linked from vendor surfaces (see VendorLegacyWizardRedirectSubscriber).
+ */
+final class EventStudioSaveService {
+
+  public function __construct(
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly VenueManager $venueManager,
+    private readonly LoggerInterface $logger,
+    private readonly MelTicketTypeManager $melTicketTypeManager,
+  ) {}
+
+  /**
+   * @param array<string, mixed> $payload
+   *   Normalised values from form or request.
+   * @param \Drupal\node\NodeInterface|null $node
+   *   Existing event or NULL to create.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
+   */
+  public function save(array $payload, ?NodeInterface $node, AccountInterface $account, bool $draft = FALSE): array {
+    $storage = $this->entityTypeManager->getStorage('node');
+    if ($node === NULL) {
+      $node = $storage->create([
+        'type' => 'event',
+        'title' => trim((string) ($payload['title'] ?? 'Untitled event')),
+        'uid' => (int) $account->id(),
+        'status' => $draft ? 0 : 1,
+      ]);
+    }
+    else {
+      if ($node->bundle() !== 'event') {
+        return ['node' => NULL, 'errors' => ['Invalid event.']];
+      }
+      $node->setTitle(trim((string) ($payload['title'] ?? $node->label())));
+      if (!$draft) {
+        $node->setPublished((bool) ($payload['status'] ?? TRUE));
+      }
+    }
+
+    if ($node->hasField('field_event_summary') && isset($payload['summary'])) {
+      $s = trim((string) $payload['summary']);
+      if ($s !== '') {
+        $node->set('field_event_summary', $s);
+      }
+    }
+
+    $this->applyBodyPayload($node, $payload);
+    $this->applyDiscoveryTaxonomy($node, $payload);
+
+    if ($node->hasField('field_event_start') && !empty($payload['field_event_start'])) {
+      $node->set('field_event_start', [['value' => (string) $payload['field_event_start']]]);
+    }
+    if ($node->hasField('field_event_end') && !empty($payload['field_event_end'])) {
+      $node->set('field_event_end', [['value' => (string) $payload['field_event_end']]]);
+    }
+
+    if ($node->hasField('field_event_type') && isset($payload['field_event_type'])) {
+      $node->set('field_event_type', (string) $payload['field_event_type']);
+    }
+
+    $event_type = (string) ($payload['field_event_type'] ?? ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()
+      ? (string) $node->get('field_event_type')->value
+      : 'rsvp'));
+
+    $ticket_errors = $this->applyTicketPayload($node, $payload, $event_type, $draft);
+    if ($ticket_errors !== []) {
+      return ['node' => NULL, 'errors' => $ticket_errors];
+    }
+
+    $donationEnabled = !empty($payload['enable_donations']) || !empty($payload['donation_enabled']);
+    if ($node->hasField('field_enable_donations')) {
+      $node->set('field_enable_donations', $donationEnabled);
+    }
+    if ($node->hasField('field_rsvp_donation_enabled')) {
+      $node->set('field_rsvp_donation_enabled', $donationEnabled);
+    }
+    if ($node->hasField('field_donation_suggested_amount')) {
+      $amount = $payload['donation_amount'] ?? NULL;
+      if ($amount === '' || $amount === NULL) {
+        $node->set('field_donation_suggested_amount', NULL);
+      }
+      else {
+        $node->set('field_donation_suggested_amount', (string) $amount);
+      }
+    }
+    if ($node->hasField('field_donation_default')) {
+      $amount = $payload['donation_amount'] ?? NULL;
+      if ($amount === '' || $amount === NULL) {
+        $node->set('field_donation_default', NULL);
+      }
+      else {
+        $node->set('field_donation_default', (string) $amount);
+      }
+    }
+    if ($node->hasField('field_donation_options')) {
+      $rawOptions = trim((string) ($payload['donation_options'] ?? ''));
+      if ($rawOptions === '') {
+        $node->set('field_donation_options', NULL);
+      }
+      else {
+        $parts = array_values(array_filter(array_map('trim', explode(',', $rawOptions)), static fn($v) => $v !== ''));
+        $normalized = [];
+        foreach ($parts as $part) {
+          if (is_numeric($part) && (float) $part > 0) {
+            $normalized[] = (float) $part;
+          }
+        }
+        $node->set('field_donation_options', $normalized === [] ? NULL : json_encode($normalized));
+      }
+    }
+    if ($node->hasField('field_donation_label')) {
+      $label = trim((string) ($payload['donation_label'] ?? 'Support this event'));
+      $node->set('field_donation_label', $label !== '' ? $label : 'Support this event');
+    }
+
+    $choice = (string) ($payload['venue_choice'] ?? 'one_off');
+    $location_values = NULL;
+
+    $skip_venue_location = $draft && (
+      ($choice === 'saved' && (int) ($payload['venue_id'] ?? 0) < 1)
+      || ($choice === 'create' && trim((string) ($payload['new_venue_name'] ?? '')) === '')
+    );
+
+    if ($skip_venue_location) {
+      $location_values = NULL;
+    }
+    elseif ($choice === 'saved') {
+      $vid = (int) ($payload['venue_id'] ?? 0);
+      if ($vid < 1) {
+        return ['node' => NULL, 'errors' => ['Select a saved venue.']];
+      }
+      $venue = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
+      if (!$venue instanceof Venue) {
+        return ['node' => NULL, 'errors' => ['Venue not found.']];
+      }
+      $node->set('field_venue', ['target_id' => $vid]);
+      $primary = $this->venueManager->getPrimaryLocation($venue);
+      $location_values = $primary ? [$this->addressFromVenueLocation($primary)] : [];
+    }
+    elseif ($choice === 'create') {
+      $name = trim((string) ($payload['new_venue_name'] ?? ''));
+      if ($name === '') {
+        return ['node' => NULL, 'errors' => ['Venue name is required.']];
+      }
+      $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
+      if ($row === NULL) {
+        return ['node' => NULL, 'errors' => ['Enter an address for the new venue.']];
+      }
+      try {
+        $venue = $this->venueManager->createVenueWithLocation(
+          ['name' => $name, 'visibility' => Venue::VISIBILITY_SHARED, 'description' => ''],
+          [
+            'title' => $name,
+            'address_text' => $this->formatAddressText($row),
+            'lat' => $payload['field_location_latitude'] ?? NULL,
+            'lng' => $payload['field_location_longitude'] ?? NULL,
+          ],
+          (int) $account->id()
+        );
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);
+        return ['node' => NULL, 'errors' => ['Could not create venue.']];
+      }
+      $node->set('field_venue', ['target_id' => $venue->id()]);
+      $location_values = [$row];
+    }
+    else {
+      if ($node->hasField('field_venue')) {
+        $node->set('field_venue', NULL);
+      }
+      $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
+      if (!$draft && $row === NULL) {
+        return ['node' => NULL, 'errors' => ['Location is required.']];
+      }
+      $location_values = $row !== NULL ? [$row] : [];
+    }
+
+    if ($node->hasField('field_location') && $location_values !== NULL) {
+      $node->set('field_location', $location_values);
+    }
+
+    $this->applyOptionalCoordinates($node, $payload);
+
+    $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
+    if ($image_errors !== []) {
+      return ['node' => NULL, 'errors' => $image_errors];
+    }
+
+    $studio_tier_errors = $this->melTicketTypeManager->validateStudioTicketDefinitions($node, $account, $payload, $draft);
+    if ($studio_tier_errors !== []) {
+      return ['node' => NULL, 'errors' => $studio_tier_errors];
+    }
+
+    EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio draft.' : 'Event Studio save.');
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio event save failed: @m', ['@m' => $e->getMessage()]);
+      return ['node' => NULL, 'errors' => ['Save failed.']];
+    }
+
+    $this->melTicketTypeManager->onEventStudioSaveComplete($node, $account, $payload, $draft);
+
+    return ['node' => $node, 'errors' => []];
+  }
+
+  /**
+   * Persists Overview tab fields from the vendor Studio shell (title, summary, type).
+   *
+   * Does not change location or tickets; those use save() from the Studio UI.
+   *
+   * @param array<string, mixed> $payload
+   *   Decoded JSON body (title, field_event_summary, field_event_type).
+   *
+   * @return array{ok: bool, http_status: int, message: string}
+   */
+  public function patchOverviewBasics(NodeInterface $node, AccountInterface $account, array $payload): array {
+    if ($node->bundle() !== 'event') {
+      return ['ok' => FALSE, 'http_status' => 422, 'message' => 'Invalid event.'];
+    }
+
+    $title = isset($payload['title']) ? trim((string) $payload['title']) : '';
+    $summary = isset($payload['field_event_summary']) ? trim((string) $payload['field_event_summary']) : '';
+    $event_type = isset($payload['field_event_type']) ? trim((string) $payload['field_event_type']) : '';
+
+    if ($title === '') {
+      return ['ok' => FALSE, 'http_status' => 422, 'message' => 'Event name is required.'];
+    }
+
+    if (strlen($summary) > 255) {
+      return ['ok' => FALSE, 'http_status' => 422, 'message' => 'Summary must be 255 characters or less.'];
+    }
+
+    $allowed_event_types = [];
+    if ($node->hasField('field_event_type')) {
+      $allowed = (array) $node->getFieldDefinition('field_event_type')->getSetting('allowed_values');
+      $allowed_event_types = array_keys($allowed);
+    }
+
+    if ($event_type === '' || !in_array($event_type, $allowed_event_types, TRUE)) {
+      return ['ok' => FALSE, 'http_status' => 422, 'message' => 'Invalid event type.'];
+    }
+
+    try {
+      $has_changes = FALSE;
+
+      if ($node->label() !== $title) {
+        $node->setTitle($title);
+        $has_changes = TRUE;
+      }
+
+      if ($node->hasField('field_event_summary')) {
+        $current_summary = (string) ($node->get('field_event_summary')->value ?? '');
+        if ($current_summary !== $summary) {
+          $node->set('field_event_summary', $summary);
+          $has_changes = TRUE;
+        }
+      }
+
+      if ($node->hasField('field_event_type')) {
+        $current_type = (string) ($node->get('field_event_type')->value ?? '');
+        if ($current_type !== $event_type) {
+          $node->set('field_event_type', $event_type);
+          $has_changes = TRUE;
+        }
+      }
+
+      if ($has_changes) {
+        EventNodeRevisionSave::prepare($node, 'Updated Overview fields from Vendor Studio.');
+        if ($node->getEntityType()->isRevisionable()) {
+          $node->setRevisionUserId((int) $account->id());
+        }
+        $node->save();
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio overview patch failed: @m', ['@m' => $e->getMessage()]);
+      return ['ok' => FALSE, 'http_status' => 500, 'message' => 'Could not save changes.'];
+    }
+
+    return ['ok' => TRUE, 'http_status' => 200, 'message' => 'Overview saved.'];
+  }
+
+  /**
+   * Sets published flag for vendor list bulk actions (single orchestrated path).
+   */
+  public function setNodePublishedState(NodeInterface $node, AccountInterface $account, bool $published, string $revision_log = 'Vendor events list publish action.'): void {
+    if ($node->bundle() !== 'event') {
+      throw new \InvalidArgumentException('Expected event node.');
+    }
+    $node->setPublished($published);
+    EventNodeRevisionSave::prepare($node, $revision_log);
+    if ($node->getEntityType()->isRevisionable()) {
+      $node->setRevisionUserId((int) $account->id());
+    }
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio orchestrated publish save failed: @m', ['@m' => $e->getMessage()]);
+      throw $e;
+    }
+  }
+
+  /**
+   * @param mixed $raw
+   *   Address field value shape, JSON string from Event Studio hidden field, or empty.
+   *
+   * @return array<string, string>|null
+   */
+  private function normalizeAddressRow(mixed $raw): ?array {
+    $row = $raw;
+    if (is_string($raw)) {
+      $trimmed = trim($raw);
+      if ($trimmed === '') {
+        return NULL;
+      }
+      $decoded = json_decode($trimmed, TRUE);
+      $row = is_array($decoded) ? $decoded : [];
+    }
+    elseif (!is_array($raw)) {
+      return NULL;
+    }
+    if (isset($row[0]) && is_array($row[0])) {
+      $first = $row[0];
+      $row = isset($first['address']) && is_array($first['address']) ? $first['address'] : $first;
+    }
+    if (!is_array($row)) {
+      return NULL;
+    }
+    $line1 = trim((string) ($row['address_line1'] ?? ''));
+    $locality = trim((string) ($row['locality'] ?? ''));
+    if ($line1 === '' && $locality === '') {
+      return NULL;
+    }
+    return [
+      'country_code' => trim((string) ($row['country_code'] ?? 'AU')) ?: 'AU',
+      'address_line1' => $line1,
+      'address_line2' => trim((string) ($row['address_line2'] ?? '')),
+      'locality' => $locality,
+      'administrative_area' => trim((string) ($row['administrative_area'] ?? '')),
+      'postal_code' => trim((string) ($row['postal_code'] ?? '')),
+    ];
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  private function addressFromVenueLocation(object $location): array {
+    $text = method_exists($location, 'getAddressText') ? trim($location->getAddressText()) : '';
+    return [
+      'country_code' => 'AU',
+      'address_line1' => $text,
+      'address_line2' => '',
+      'locality' => '',
+      'administrative_area' => '',
+      'postal_code' => '',
+    ];
+  }
+
+  /**
+   * @param array<string, string> $address_row
+   */
+  private function formatAddressText(array $address_row): string {
+    return implode(', ', array_filter([
+      $address_row['address_line1'] ?? '',
+      $address_row['locality'] ?? '',
+      $address_row['administrative_area'] ?? '',
+      $address_row['postal_code'] ?? '',
+    ], static fn ($p) => $p !== ''));
+  }
+
+  /**
+   * Maps Studio ticket payload to event fields (no Commerce / ticket builder logic).
+   *
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyTicketPayload(NodeInterface $node, array $payload, string $event_type, bool $draft): array {
+    if ($node->hasField('field_capacity')) {
+      if ($event_type === 'rsvp' && array_key_exists('capacity', $payload)) {
+        $raw = $payload['capacity'];
+        if ($raw === NULL || $raw === '') {
+          $node->get('field_capacity')->setValue([]);
+        }
+        else {
+          $cap = (int) $raw;
+          $node->set('field_capacity', $cap > 0 ? $cap : NULL);
+        }
+      }
+      elseif (!$draft && $event_type !== 'rsvp') {
+        $node->get('field_capacity')->setValue([]);
+      }
+    }
+
+    if ($node->hasField('field_external_url')) {
+      if ($event_type === 'external') {
+        $url = trim((string) ($payload['external_url'] ?? ''));
+        if ($url !== '' && !str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+          $url = 'https://' . $url;
+        }
+        if (!$draft && $url === '') {
+          return ['Booking URL is required for external events.'];
+        }
+        if ($url !== '') {
+          $node->set('field_external_url', [['uri' => $url, 'title' => '']]);
+        }
+      }
+      else {
+        $node->set('field_external_url', []);
+      }
+    }
+
+    if ($node->hasField('field_collect_per_ticket')) {
+      if (in_array($event_type, ['paid', 'rsvp'], TRUE) && (array_key_exists('collect_per_ticket', $payload) || array_key_exists('collect_attendee_questions', $payload))) {
+        $collectPerTicket = !empty($payload['collect_per_ticket']) || !empty($payload['collect_attendee_questions']);
+        $node->set('field_collect_per_ticket', $collectPerTicket);
+      }
+      elseif (!in_array($event_type, ['paid', 'rsvp'], TRUE)) {
+        $node->set('field_collect_per_ticket', FALSE);
+      }
+    }
+
+    if ($node->hasField('field_product_target')) {
+      if ($event_type === 'paid') {
+        if (array_key_exists('field_product_target', $payload)) {
+          $pid = $payload['field_product_target'];
+          $pid = is_int($pid) || is_numeric($pid) ? (int) $pid : 0;
+          if ($pid > 0) {
+            $product = $this->entityTypeManager->getStorage('commerce_product')->load($pid);
+            if ($product && $product->bundle() === 'ticket') {
+              $node->set('field_product_target', ['target_id' => $pid]);
+            }
+            else {
+              $this->logger->warning('Studio save ignored invalid ticket product id @id for nid @nid', [
+                '@id' => (string) $pid,
+                '@nid' => (string) $node->id(),
+              ]);
+              $node->set('field_product_target', NULL);
+            }
+          }
+          else {
+            $node->set('field_product_target', NULL);
+          }
+        }
+      }
+      else {
+        $node->set('field_product_target', NULL);
+      }
+    }
+
+    if ($node->hasField('field_ticket_types')) {
+      if (in_array($event_type, ['paid', 'rsvp'], TRUE) && array_key_exists('field_ticket_types', $payload) && is_array($payload['field_ticket_types'])) {
+        $rows = [];
+        if ($this->entityTypeManager->hasDefinition('mel_ticket_type')) {
+          $storage = $this->entityTypeManager->getStorage('mel_ticket_type');
+          foreach ($payload['field_ticket_types'] as $tid) {
+            $tid = (int) $tid;
+            if ($tid > 0 && $storage->load($tid)) {
+              $rows[] = ['target_id' => $tid];
+            }
+          }
+        }
+        $node->set('field_ticket_types', $rows);
+      }
+      elseif (!in_array($event_type, ['paid', 'rsvp'], TRUE)) {
+        $node->set('field_ticket_types', []);
+      }
+    }
+
+    if (!$draft && $event_type === 'paid' && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
+      return ['Paid events need a ticket product. Link one above or finish setup in the Tickets workspace.'];
+    }
+
+    return [];
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyBodyPayload(NodeInterface $node, array $payload): void {
+    if (!$node->hasField('body') || !array_key_exists('body', $payload)) {
+      return;
+    }
+    $text = trim((string) $payload['body']);
+    $format = 'plain_text';
+    $definition = $node->getFieldDefinition('body');
+    $allowed = $definition->getSetting('allowed_formats');
+    if (is_array($allowed) && $allowed !== []) {
+      $format = (string) reset($allowed);
+    }
+    if ($text === '') {
+      $node->set('body', NULL);
+      return;
+    }
+    $node->set('body', [
+      [
+        'value' => $text,
+        'format' => $format,
+        'summary' => '',
+      ],
+    ]);
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyDiscoveryTaxonomy(NodeInterface $node, array $payload): void {
+    if ($node->hasField('field_category') && array_key_exists('field_category', $payload) && is_array($payload['field_category'])) {
+      $term_storage = $this->entityTypeManager->getStorage('taxonomy_term');
+      $rows = [];
+      foreach ($payload['field_category'] as $tid) {
+        $tid = (int) $tid;
+        if ($tid < 1) {
+          continue;
+        }
+        $term = $term_storage->load($tid);
+        if ($term && $term->bundle() === 'categories') {
+          $rows[] = ['target_id' => $tid];
+        }
+      }
+      $node->set('field_category', $rows);
+    }
+
+    if ($node->hasField('field_tags') && array_key_exists('field_tags', $payload) && is_array($payload['field_tags'])) {
+      $term_storage = $this->entityTypeManager->getStorage('taxonomy_term');
+      $rows = [];
+      foreach ($payload['field_tags'] as $tid) {
+        $tid = (int) $tid;
+        if ($tid < 1) {
+          continue;
+        }
+        $term = $term_storage->load($tid);
+        if ($term && $term->bundle() === 'tags') {
+          $rows[] = ['target_id' => $tid];
+        }
+      }
+      $node->set('field_tags', $rows);
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function applyHeroImagePayload(NodeInterface $node, array $payload, bool $draft): array {
+    if (!$node->hasField('field_event_image') || !array_key_exists('field_event_image', $payload)) {
+      return [];
+    }
+    $fid = (int) $payload['field_event_image'];
+    $alt = trim((string) ($payload['field_event_image_alt'] ?? ''));
+
+    if ($fid < 1) {
+      $node->set('field_event_image', []);
+      return [];
+    }
+
+    $file = $this->entityTypeManager->getStorage('file')->load($fid);
+    if (!$file instanceof FileInterface) {
+      $this->logger->warning('Studio save: missing file @fid for event image', ['@fid' => (string) $fid]);
+      return ['The uploaded image could not be loaded. Try uploading again.'];
+    }
+    if ($alt === '' && !$draft) {
+      return ['Alt text is required for the cover image.'];
+    }
+
+    if ($file->isTemporary()) {
+      $file->setPermanent();
+      $file->save();
+    }
+
+    $node->set('field_event_image', [
+      [
+        'target_id' => $fid,
+        'alt' => $alt,
+        'title' => '',
+      ],
+    ]);
+
+    return [];
+  }
+
+  private function applyOptionalCoordinates(NodeInterface $node, array $payload): void {
+    $lat = $payload['field_location_latitude'] ?? NULL;
+    $lng = $payload['field_location_longitude'] ?? NULL;
+    if ($node->hasField('field_location_latitude') && $lat !== NULL && $lat !== '') {
+      $node->set('field_location_latitude', (string) $lat);
+    }
+    if ($node->hasField('field_location_longitude') && $lng !== NULL && $lng !== '') {
+      $node->set('field_location_longitude', (string) $lng);
+    }
+  }
+
+}

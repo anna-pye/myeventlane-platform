@@ -29,12 +29,6 @@
         Drupal.behaviors.venueWizardIntegration.initCreateVenueSearch(searchField, context);
       });
 
-      // Initialize manual entry location search.
-      var manualSearches = once('venue-wizard-manual', '.mel-manual-location-search', context);
-      manualSearches.forEach(function (searchField) {
-        Drupal.behaviors.venueWizardIntegration.initManualEntrySearch(searchField, context);
-      });
-
       // Listen for venue created events from modal (only once on body).
       var $body = $('body', context);
       if (!$body.data('venue-wizard-listener-attached')) {
@@ -45,6 +39,129 @@
           }
         });
       }
+
+      once('venue-wizard-change-venue', '.js-mel-change-venue', context).forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          var formEl = btn.closest('form');
+          if (!formEl) {
+            return;
+          }
+          Drupal.behaviors.venueWizardIntegration.applyMelChangeVenueAndAddress($(formEl));
+        });
+      });
+    },
+
+    /**
+     * Clears venue picker + address UI for one section or all.
+     *
+     * @param {jQuery} $form
+     * @param {string} section
+     *   existing|create|skip|all
+     */
+    /**
+     * Re-run MEL field_location autocomplete after the widget becomes visible (e.g. skip path).
+     *
+     * @param {jQuery} $form
+     */
+    refreshMelFieldLocationAutocomplete: function ($form) {
+      var formEl = $form.get(0);
+      if (!formEl || typeof once.remove !== 'function' || !Drupal.behaviors.myeventlaneLocationAutocomplete) {
+        return;
+      }
+      once.remove('mel-location-autocomplete', formEl);
+      $form.find('[data-mel-address="field_location"] input[name*="address_search"], [data-mel-address="field_location"] .myeventlane-location-address-search').each(function () {
+        this.dataset.melAutocompleteAttached = '';
+      });
+      Drupal.behaviors.myeventlaneLocationAutocomplete.attach(formEl);
+    },
+
+    clearVenueData: function ($form, section) {
+      console.log('[Venue Wizard] Clearing venue data for section:', section);
+
+      if (section === 'existing' || section === 'all') {
+        $form.find('[data-venue-autocomplete]').val('');
+        $form.find('[data-venue-locations-select]').html('<option value="">- Select a venue first -</option>');
+        $form.find('.mel-selected-venue-location-id').val('');
+      }
+
+      if (section === 'create' || section === 'all') {
+        $form.find('.mel-venue-location-trigger').val('');
+        $form.find('.mel-new-venue-name').val('');
+        $form.find('.mel-new-venue-address').val('');
+        $form.find('.mel-new-venue-lat').val('');
+        $form.find('.mel-new-venue-lng').val('');
+        $form.find('.mel-created-venue-location-id').val('');
+        $form.find('.mel-created-venue-id').val('');
+        var $completeBtn = $form.find('.mel-complete-venue-btn');
+        if ($completeBtn.length) {
+          var baseUrl = $completeBtn.attr('href').split('?')[0];
+          $completeBtn.attr('href', baseUrl);
+        }
+      }
+
+      if (section === 'skip' || section === 'all') {
+        $form.find('[data-mel-address="field_location"] input[name*="address_search"]').val('');
+        Drupal.behaviors.venueWizardIntegration.clearAddressWidget($form);
+      }
+
+      if (section === 'all') {
+        $form.find('input[name*="field_venue"]').val('');
+        $form.find('select[name*="field_venue"]').val('');
+      }
+
+      var $wizardVenueName = $form.find('input[name="_venue_wrapper[venue_name]"]');
+      if ($wizardVenueName.length) {
+        $wizardVenueName.val('');
+      }
+
+      var $classedField = $form.find('input.myeventlane-venue-name-field');
+      if (!$classedField.length) {
+        $classedField = $form.find('.myeventlane-venue-name-field input[type="text"]');
+      }
+      if ($classedField.length) {
+        $classedField.val('');
+      }
+
+      $form.find('input[name*="field_venue_name"]').val('');
+    },
+
+    /**
+     * Vendor MEL builder: wipe venue + address, switch to one-off, allow re-pick.
+     *
+     * @param {jQuery} $form
+     */
+    applyMelChangeVenueAndAddress: function ($form) {
+      var self = Drupal.behaviors.venueWizardIntegration;
+      self.clearVenueData($form, 'all');
+
+      $form.find('.myeventlane-location-address-search, .mel-venue-location-trigger, [data-mel-address="field_location"] input[name*="address_search"]').each(function () {
+        this.dataset.melAutocompleteAttached = '';
+      });
+
+      var $whenWhere = $form.find('.mel-event-section--when-where').first();
+      if ($whenWhere.length) {
+        $whenWhere.removeClass('is-manual-address');
+      }
+
+      var $skip = $form.find('input[name="venue_choice"][value="skip"]');
+      if ($skip.length) {
+        $skip.prop('checked', true);
+        $skip.trigger('change');
+      }
+
+      $form.trigger('formUpdated');
+
+      Drupal.behaviors.venueWizardIntegration.refreshMelFieldLocationAutocomplete($form);
+
+      var addrSearch = $form.find('[data-mel-address="field_location"] input[name*="address_search"], [data-mel-address="field_location"] .myeventlane-location-address-search').get(0);
+      if (addrSearch && typeof addrSearch.focus === 'function') {
+        addrSearch.focus();
+      }
+
+      if (Drupal.announce) {
+        Drupal.announce(Drupal.t('Venue and address cleared. Choose how to add the new venue.'));
+      }
     },
 
     /**
@@ -53,67 +170,9 @@
     initVenueChoiceToggle: function (choiceGroup) {
       var $choiceGroup = $(choiceGroup);
       var $form = $choiceGroup.closest('form');
-      var $manualFields = $form.find('.mel-manual-location-fields, .field--name-field-location');
       var previousChoice = null;
-
-      // Clear all venue-related data from a specific section.
       var clearVenueData = function (section) {
-        console.log('[Venue Wizard] Clearing venue data for section:', section);
-
-        if (section === 'existing' || section === 'all') {
-          // Clear existing venue selection.
-          $form.find('[data-venue-autocomplete]').val('');
-          $form.find('[data-venue-locations-select]').html('<option value="">- Select a venue first -</option>');
-          $form.find('.mel-selected-venue-location-id').val('');
-        }
-
-        if (section === 'create' || section === 'all') {
-          // Clear create venue fields.
-          $form.find('.mel-venue-location-trigger').val('');
-          $form.find('.mel-new-venue-name').val('');
-          $form.find('.mel-new-venue-address').val('');
-          $form.find('.mel-new-venue-lat').val('');
-          $form.find('.mel-new-venue-lng').val('');
-          $form.find('.mel-created-venue-location-id').val('');
-          $form.find('.mel-created-venue-id').val('');
-          // Reset the complete venue button URL.
-          var $completeBtn = $form.find('.mel-complete-venue-btn');
-          if ($completeBtn.length) {
-            var baseUrl = $completeBtn.attr('href').split('?')[0];
-            $completeBtn.attr('href', baseUrl);
-          }
-        }
-
-        if (section === 'skip' || section === 'all') {
-          // Clear manual entry fields.
-          $form.find('.mel-manual-location-search').val('');
-          // Clear address widget fields.
-          Drupal.behaviors.venueWizardIntegration.clearAddressWidget($form);
-        }
-
-        // Always clear all venue name fields when switching sections.
-        // The form has both a visible venue_name field and hidden field_venue_name.
-
-        // 1. Clear the custom wizard venue_name field (visible).
-        var $wizardVenueName = $form.find('input[name="_venue_wrapper[venue_name]"]');
-        if ($wizardVenueName.length) {
-          $wizardVenueName.val('');
-          console.log('[Venue Wizard] Cleared wizard venue name field');
-        }
-
-        // 2. Clear fields with the class we set.
-        var $classedField = $form.find('input.myeventlane-venue-name-field');
-        if (!$classedField.length) {
-          $classedField = $form.find('.myeventlane-venue-name-field input[type="text"]');
-        }
-        if ($classedField.length) {
-          $classedField.val('');
-          console.log('[Venue Wizard] Cleared classed venue name field:', $classedField.attr('name'));
-        }
-
-        // 3. Also clear the hidden field_venue_name if it exists.
-        $form.find('input[name*="field_venue_name"]').val('');
-        console.log('[Venue Wizard] Cleared hidden field_venue_name fields');
+        Drupal.behaviors.venueWizardIntegration.clearVenueData($form, section);
       };
 
       // Initial state based on current selection.
@@ -139,17 +198,10 @@
 
         previousChoice = selected;
 
-        if (selected === 'skip') {
-          $manualFields.removeClass('js-hide').show();
-        } else {
-          $manualFields.addClass('js-hide').hide();
-        }
-
-        // If switching to "create" or "skip", initialize location autocomplete for the search field.
         if (selected === 'create') {
           Drupal.behaviors.venueWizardIntegration.initLocationAutocomplete($form, 'create');
         } else if (selected === 'skip') {
-          Drupal.behaviors.venueWizardIntegration.initLocationAutocomplete($form, 'skip');
+          Drupal.behaviors.venueWizardIntegration.refreshMelFieldLocationAutocomplete($form);
         }
       };
 
@@ -178,9 +230,10 @@
       $addressWidget.find('select[name*="administrative_area"]').val('');
       $addressWidget.find('input[name*="postal_code"]').val('');
       $addressWidget.find('input[name*="organization"]').val('');
+      $addressWidget.find('select[name*="country_code"]').val('');
 
       // Also clear any top-level address search field.
-      $form.find('.mel-address-search-input, [data-address-search]').not('.mel-venue-location-trigger').not('.mel-manual-location-search').val('');
+      $form.find('.mel-address-search-input, [data-address-search]').not('.mel-venue-location-trigger').val('');
 
       // Clear hidden lat/lng fields throughout the form.
       $form.find('input[name*="latitude"]').val('');
@@ -196,21 +249,18 @@
     },
 
     /**
-     * Initialize location autocomplete for the venue creation or manual entry search field.
+     * Google Places on the create-venue search field (not field_location; that uses myeventlane_location).
      *
-     * @param {jQuery} $form - The form element.
-     * @param {string} mode - 'create' for new venue, 'skip' for manual entry.
+     * @param {jQuery} $form
+     * @param {string} mode
+     *   Only 'create' is supported.
      */
     initLocationAutocomplete: function ($form, mode) {
-      var searchField;
-
-      if (mode === 'skip') {
-        // Manual entry mode - use the manual location search field.
-        searchField = $form.find('.mel-manual-location-search, .mel-venue-manual-container .myeventlane-location-address-search')[0];
-      } else {
-        // Create venue mode - use the venue creation search field.
-        searchField = $form.find('.mel-venue-location-trigger, .mel-venue-create-container .myeventlane-location-address-search')[0];
+      if (mode !== 'create') {
+        return;
       }
+
+      var searchField = $form.find('.mel-venue-location-trigger, .mel-venue-create-container .myeventlane-location-address-search')[0];
 
       if (!searchField) {
         console.log('[Venue Wizard] No search field found for location autocomplete in mode:', mode);
@@ -562,139 +612,23 @@
           lat: lat,
           lng: lng
         });
+
       });
     },
 
     /**
-     * Initialize manual entry location search.
+     * Expand MEL event builder address fields (hidden until "Enter address manually").
      *
-     * Captures place_selected events and populates the address fields
-     * in field_venue_address widget.
+     * @param {HTMLElement|null} formEl
+     *   Closest form element.
      */
-    initManualEntrySearch: function (searchField, context) {
-      var $searchField = $(searchField);
-      var $form = $searchField.closest('form');
-
-      console.log('[Venue Wizard] Initializing manual entry search');
-
-      // Listen for place_selected event from location autocomplete.
-      searchField.addEventListener('place_selected', function (e) {
-        var detail = e.detail;
-        if (!detail) return;
-
-        console.log('[Venue Wizard] Place selected in manual entry mode:', detail);
-
-        var lat = null;
-        var lng = null;
-        var placeName = '';
-
-        // Get coordinates.
-        if (typeof detail.lat === 'number') {
-          lat = detail.lat;
-        }
-        if (typeof detail.lng === 'number') {
-          lng = detail.lng;
-        }
-
-        // Get place name.
-        if (detail.place && detail.place.name) {
-          placeName = detail.place.name;
-        }
-
-        // Build address data from components.
-        var addressData = {};
-        if (detail.components) {
-          addressData = {
-            address_line1: detail.components.address_line1 || '',
-            address_line2: detail.components.address_line2 || '',
-            locality: detail.components.locality || '',
-            administrative_area: detail.components.administrative_area || '',
-            postal_code: detail.components.postal_code || '',
-            country_code: detail.components.country_code || 'AU'
-          };
-        }
-
-        // Populate the visible address fields.
-        Drupal.behaviors.venueWizardIntegration.populateAddressFields($form, addressData, lat, lng);
-
-        // Also populate venue name if we have one.
-        if (placeName) {
-          var $venueName = $form.find('.myeventlane-venue-name-field, [name*="venue_name"]');
-          if ($venueName.length) {
-            $venueName.val(placeName).trigger('change');
-          }
-        }
-
-        console.log('[Venue Wizard] Populated address fields:', addressData);
-      });
-    },
-
-    /**
-     * Populate address fields from address data.
-     * Targets field_venue_address widget if visible, falls back to other address widgets.
-     */
-    populateAddressFields: function ($form, addressData, lat, lng) {
-      // Try field_venue_address first (visible in Event Wizard).
-      var $widgetRoot = $form.find('.field--name-field-venue-address');
-      if (!$widgetRoot.length) {
-        // Fallback to field_location.
-        $widgetRoot = $form.find('.field--name-field-location');
+    revealMelWhenWhereAddress: function (formEl) {
+      if (!formEl || !formEl.querySelector) {
+        return;
       }
-      if (!$widgetRoot.length) {
-        // Fallback to any fieldset with address fields.
-        $widgetRoot = $form;
-      }
-
-      console.log('[Venue Wizard] Populating address fields in widget root:', $widgetRoot);
-
-      // Country.
-      var $country = $widgetRoot.find('[name*="[address][country_code]"]');
-      if ($country.length && addressData.country_code) {
-        $country.val(addressData.country_code).trigger('change');
-      }
-
-      // Address line 1.
-      var $line1 = $widgetRoot.find('[name*="[address][address_line1]"]');
-      if ($line1.length && addressData.address_line1) {
-        $line1.val(addressData.address_line1).trigger('change');
-      }
-
-      // Address line 2.
-      var $line2 = $widgetRoot.find('[name*="[address][address_line2]"]');
-      if ($line2.length && addressData.address_line2) {
-        $line2.val(addressData.address_line2).trigger('change');
-      }
-
-      // Locality (suburb/city).
-      var $locality = $widgetRoot.find('[name*="[address][locality]"]');
-      if ($locality.length && addressData.locality) {
-        $locality.val(addressData.locality).trigger('change');
-      }
-
-      // Administrative area (state).
-      var $state = $widgetRoot.find('[name*="[address][administrative_area]"]');
-      if ($state.length && addressData.administrative_area) {
-        $state.val(addressData.administrative_area).trigger('change');
-      }
-
-      // Postal code.
-      var $postcode = $widgetRoot.find('[name*="[address][postal_code]"]');
-      if ($postcode.length && addressData.postal_code) {
-        $postcode.val(addressData.postal_code).trigger('change');
-      }
-
-      // Coordinates (if there are hidden fields for them).
-      if (lat !== null) {
-        var $latField = $widgetRoot.find('[name*="latitude"], [name*="[lat]"]');
-        if ($latField.length) {
-          $latField.val(lat).trigger('change');
-        }
-      }
-      if (lng !== null) {
-        var $lngField = $widgetRoot.find('[name*="longitude"], [name*="[lng]"]');
-        if ($lngField.length) {
-          $lngField.val(lng).trigger('change');
-        }
+      var section = formEl.querySelector('.mel-event-section--when-where');
+      if (section) {
+        section.classList.add('is-manual-address');
       }
     },
 
@@ -718,16 +652,6 @@
       }
       if ($createdLocationId.length && data.location_id) {
         $createdLocationId.val(data.location_id);
-      }
-
-      // Populate field_location from venue data if provided.
-      if (data.address) {
-        Drupal.behaviors.venueWizardIntegration.populateFieldLocation(
-          $form,
-          data.address,
-          data.latitude || null,
-          data.longitude || null
-        );
       }
 
       // Switch to "existing venue" mode and populate.
@@ -836,130 +760,21 @@
     },
 
     /**
-     * Handle venue location selection.
-     *
-     * Updates hidden field and populates field_location widget.
+     * Handle venue location selection (hidden ID only; event address uses Places / mel-location.js).
      *
      * @param {jQuery} $select
-     *   The locations select element.
      * @param {string} locationId
-     *   The selected location ID.
      */
     handleLocationSelected: function ($select, locationId) {
       var $form = $select.closest('form');
-      if (!$form.length) return;
+      if (!$form.length) {
+        return;
+      }
 
-      // Update hidden field for submit handler.
       var $hiddenField = $form.find('.mel-selected-venue-location-id');
       if ($hiddenField.length) {
         $hiddenField.val(locationId);
       }
-
-      // Get address data from selected option.
-      var $option = $select.find('option[value="' + locationId + '"]');
-      if (!$option.length) return;
-
-      var addressData = {
-        address_line1: $option.data('address-line1') || '',
-        locality: $option.data('locality') || '',
-        administrative_area: $option.data('state') || '',
-        postal_code: $option.data('postcode') || '',
-        country_code: 'AU'
-      };
-
-      var lat = $option.data('lat');
-      var lng = $option.data('lng');
-
-      console.log('[Venue Wizard] Populating field_location from venue location:', locationId, addressData);
-
-      // Populate the hidden field_location widget.
-      Drupal.behaviors.venueWizardIntegration.populateFieldLocation($form, addressData, lat, lng);
-    },
-
-    /**
-     * Populate the field_location address widget.
-     *
-     * @param {jQuery} $form
-     *   The form element.
-     * @param {object} addressData
-     *   Address components object.
-     * @param {number|string} lat
-     *   Latitude.
-     * @param {number|string} lng
-     *   Longitude.
-     */
-    populateFieldLocation: function ($form, addressData, lat, lng) {
-      if (!$form.length) return;
-
-      // Find field_location inputs.
-      var findField = function (name) {
-        return $form.find('input[name*="field_location"][name*="[' + name + ']"]').first();
-      };
-
-      var findSelect = function (name) {
-        return $form.find('select[name*="field_location"][name*="[' + name + ']"]').first();
-      };
-
-      // Set values.
-      var $line1 = findField('address_line1');
-      if ($line1.length) {
-        $line1.val(addressData.address_line1 || '');
-        $line1.trigger('change');
-      }
-
-      var $line2 = findField('address_line2');
-      if ($line2.length && addressData.address_line2) {
-        $line2.val(addressData.address_line2);
-        $line2.trigger('change');
-      }
-
-      var $locality = findField('locality');
-      if ($locality.length) {
-        $locality.val(addressData.locality || '');
-        $locality.trigger('change');
-      }
-
-      var $postcode = findField('postal_code');
-      if ($postcode.length) {
-        $postcode.val(addressData.postal_code || '');
-        $postcode.trigger('change');
-      }
-
-      // State can be input or select.
-      var $state = findField('administrative_area');
-      if (!$state.length) {
-        $state = findSelect('administrative_area');
-      }
-      if ($state.length) {
-        $state.val(addressData.administrative_area || '');
-        $state.trigger('change');
-      }
-
-      // Country.
-      var $country = findSelect('country_code');
-      if (!$country.length) {
-        $country = findField('country_code');
-      }
-      if ($country.length) {
-        $country.val(addressData.country_code || 'AU');
-        $country.trigger('change');
-      }
-
-      // Coordinates.
-      if (lat && lng) {
-        var $lat = $form.find('input[name*="latitude"]').first();
-        var $lng = $form.find('input[name*="longitude"]').first();
-        if ($lat.length) {
-          $lat.val(lat);
-          $lat.trigger('change');
-        }
-        if ($lng.length) {
-          $lng.val(lng);
-          $lng.trigger('change');
-        }
-      }
-
-      console.log('[Venue Wizard] Field location populated');
     }
   };
 

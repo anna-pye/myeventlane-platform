@@ -156,7 +156,31 @@ final class TrendingInCategoryBlock extends BlockBase implements ContainerFactor
       ];
     }
 
-    $nids = array_map(static fn(array $r): int => (int) $r['nid'], $rows);
+    $nids = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $raw = $row['nid'] ?? NULL;
+      if (!is_numeric($raw)) {
+        continue;
+      }
+      $nid = (int) $raw;
+      if ($nid > 0) {
+        $nids[] = $nid;
+      }
+    }
+    $nids = array_values(array_unique($nids));
+    if ($nids === []) {
+      return [
+        '#markup' => '',
+        '#cache' => [
+          'max-age' => 900,
+          'contexts' => ['route', 'languages:language_interface'],
+          'tags' => ["taxonomy_term:$tid"],
+        ],
+      ];
+    }
 
     /** @var \Drupal\node\NodeStorageInterface $storage */
     $storage = $this->entityTypeManager->getStorage('node');

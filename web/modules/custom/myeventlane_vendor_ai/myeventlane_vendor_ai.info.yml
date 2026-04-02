@@ -7,5 +7,6 @@ dependencies:
   - drupal:user
   - myeventlane_ai:myeventlane_ai
   - myeventlane_help_centre:myeventlane_help_centre
+  - myeventlane_help_shared:myeventlane_help_shared
   - myeventlane_escalations_portal:myeventlane_escalations_portal
   - myeventlane_escalations_sla:myeventlane_escalations_sla

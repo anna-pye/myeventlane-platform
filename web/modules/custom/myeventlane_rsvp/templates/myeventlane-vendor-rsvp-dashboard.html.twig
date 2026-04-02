@@ -13,7 +13,9 @@
         <th>Name</th>
         <th>Email</th>
         <th>Status</th>
+        <th>Guests</th>
         <th>Created</th>
+        <th>Updated</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -23,7 +25,14 @@
           <td>{{ item.name }}</td>
           <td>{{ item.email }}</td>
           <td>{{ item.status }}</td>
+          <td>{{ item.quantity }}</td>
           <td>{{ item.created }}</td>
+          <td>
+            {{ item.updated }}
+            {% if item.is_updated %}
+              <span class="mel-badge mel-badge--info">Updated</span>
+            {% endif %}
+          </td>
           <td>
             <a href="{{ item.actions.cancel.toString() }}">Cancel</a>
             {% if item.status == 'waitlist' %}

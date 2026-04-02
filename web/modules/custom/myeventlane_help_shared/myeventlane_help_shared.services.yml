@@ -1,0 +1,12 @@
+services:
+  logger.channel.myeventlane_help:
+    parent: logger.channel_base
+    arguments: ['myeventlane_help']
+
+  myeventlane_help_shared.unified_help_retriever:
+    class: Drupal\myeventlane_help_shared\Service\UnifiedHelpRetriever
+    arguments:
+      - '@myeventlane_help_assistant.retriever'
+      - '@account_switcher'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_help'

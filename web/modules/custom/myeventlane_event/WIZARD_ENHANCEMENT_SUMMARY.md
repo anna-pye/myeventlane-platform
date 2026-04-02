@@ -3,24 +3,17 @@
 **Date:** 2025-01-27  
 **Status:** ✅ **COMPLETE**
 
+> **2026-03:** The monolithic `EventWizardForm` and `EventWizardFormTest` were **removed**; the vendor flow uses per-step `EventWizard*Form` classes. Treat the file list below as historical unless updated.
+
 ---
 
 ## 📋 Modified Files List
 
 ### Core Implementation
-1. **`web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`**
-   - Enhanced validation with proper error handling
-   - Improved date format validation
-   - Better error messages using `setError()` for proper form element targeting
-   - Added try/catch for save operations with user-friendly error messages
-   - Added `data-step` and `data-step-id` attributes for JavaScript targeting
-   - Enhanced venue field handling (name, address, lat/lng, place_id)
+1. **`web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`** (**removed** — replaced by step forms)
 
 ### Tests
-2. **`web/modules/custom/myeventlane_event/tests/src/Functional/EventWizardFormTest.php`**
-   - Added 5 new comprehensive test methods
-   - Total test coverage: 10 test methods
-   - Tests cover all acceptance criteria
+2. **`web/modules/custom/myeventlane_event/tests/src/Functional/EventWizardFormTest.php`** (**removed**)
 
 ### Documentation
 3. **`web/modules/custom/myeventlane_event/WIZARD_ENHANCEMENT_VERIFICATION.md`**
@@ -83,7 +76,7 @@ ddev exec vendor/bin/phpcs web/modules/custom/myeventlane_event
 ddev exec vendor/bin/phpstan web/modules/custom/myeventlane_event
 
 # Run functional tests
-ddev drush test EventWizardFormTest
+ddev drush test myeventlane_event
 ```
 
 ### Optional Commands
@@ -176,8 +169,8 @@ ddev exec npm run build
 - [ ] Test validation errors
 
 ### Automated Testing
-- [ ] Run `ddev drush test EventWizardFormTest`
-- [ ] All 10 tests should pass
+- [ ] Run `ddev drush test myeventlane_event`
+- [ ] All targeted tests should pass
 
 ### Code Quality
 - [ ] Run `ddev exec vendor/bin/phpcs web/modules/custom/myeventlane_event`
@@ -202,7 +195,7 @@ ddev exec npm run build
 
 If issues arise:
 1. Check `WIZARD_ENHANCEMENT_VERIFICATION.md` for detailed verification steps
-2. Review test failures: `ddev drush test EventWizardFormTest`
+2. Review test failures: `ddev drush test myeventlane_event`
 3. Check Drupal logs: `ddev drush watchdog-show`
 4. Verify cache is cleared: `ddev drush cr`
 

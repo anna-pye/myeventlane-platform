@@ -3,6 +3,8 @@
 **Date:** 2025-01-27  
 **Issues Fixed:** 3
 
+> **2026-03:** References to `EventWizardForm.php` below are **historical**; that class was removed in favour of per-step wizard forms.
+
 ---
 
 ## ✅ Fix 1: Address Autocomplete Not Working
@@ -55,7 +57,7 @@ The datetime widget was rendering date and time fields without proper labels, ma
    - Clear error messages for each field
 
 ### Files Modified
-- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardWhenWhereForm.php` (step wizard; formerly `EventWizardForm.php`)
 
 ### Testing
 1. Navigate to wizard "When & Where" step
@@ -82,7 +84,7 @@ Error message indicated 256MB limit, but validator was set to 5MB. The error sug
    - `FILE_UPLOAD_FIX.md` with troubleshooting steps
 
 ### Files Modified
-- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardWhenWhereForm.php` (step wizard; formerly `EventWizardForm.php`)
 - `web/modules/custom/myeventlane_event/FILE_UPLOAD_FIX.md` (new)
 
 ### Additional Steps Required

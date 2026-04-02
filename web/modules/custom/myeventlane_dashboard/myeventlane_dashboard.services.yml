@@ -42,6 +42,7 @@ services:
       - '@entity_type.manager'
       - '@date.formatter'
       - '@myeventlane_dashboard.metrics'
+      - '@myeventlane_core.entity_id_normalizer'
 
   myeventlane_dashboard.stripe:
     class: Drupal\myeventlane_dashboard\Service\VendorStripeService

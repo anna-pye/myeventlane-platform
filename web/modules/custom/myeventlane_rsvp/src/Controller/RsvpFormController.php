@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_rsvp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
 use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -73,6 +75,12 @@ final class RsvpFormController extends ControllerBase {
         'event' => $event ? $event->toLink()->toString() : $this->t('(Event deleted)'),
         'status' => ucfirst($rsvp->status ?? 'confirmed'),
         'date' => date('M j, Y', (int) ($rsvp->created ?? time())),
+        'actions' => isset($rsvp->id) && ($rsvp->status ?? '') !== 'cancelled'
+          ? Link::fromTextAndUrl(
+            $this->t('Cancel RSVP'),
+            Url::fromRoute('myeventlane_rsvp.cancel_confirm', ['rsvp_id' => (int) $rsvp->id])
+          )->toString()
+          : $this->t('—'),
       ];
     }
 
@@ -82,6 +90,7 @@ final class RsvpFormController extends ControllerBase {
         $this->t('Event'),
         $this->t('Status'),
         $this->t('Date'),
+        $this->t('Actions'),
       ],
       '#rows' => $rows,
       '#empty' => $this->t('You have not RSVPed to any events yet.'),

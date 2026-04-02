@@ -42,6 +42,21 @@ final class RsvpLegalAlter {
    * Alters RsvpPublicForm.
    */
   public function alterRsvpPublicForm(array &$form, FormStateInterface $form_state): void {
+    // RsvpPublicForm now owns a single legal section at $form['legal'].
+    // Do not inject legacy legal_consent fieldsets/callbacks for this form.
+    if (isset($form['legal']['terms'])) {
+      unset($form['legal_consent']);
+      $form['#validate'] = array_values(array_filter(
+        $form['#validate'] ?? [],
+        static fn ($callback): bool => $callback !== 'myeventlane_legal_rsvp_validate_callback'
+      ));
+      $form['#submit'] = array_values(array_filter(
+        $form['#submit'] ?? [],
+        static fn ($callback): bool => $callback !== 'myeventlane_legal_rsvp_submit_store_legal_consent_callback'
+      ));
+      return;
+    }
+
     $form['legal_consent'] = RsvpLegalConsentHelper::buildFieldset($this->legalSettings);
     if (isset($form['donation_section'])) {
       $form['donation_section']['#weight'] = 25;
@@ -58,9 +73,9 @@ final class RsvpLegalAlter {
 
     $this->applyReconsentUx($form, $status);
     $this->enforceLegalConsentNonCoreRequired($form);
-    array_unshift($form['#validate'], [$this, 'validateRsvpLegal']);
+    array_unshift($form['#validate'], 'myeventlane_legal_rsvp_validate_callback');
     $form['#submit'] = array_merge(
-      [[$this, 'submitStoreLegalConsent']],
+      ['myeventlane_legal_rsvp_submit_store_legal_consent_callback'],
       $form['#submit'] ?? []
     );
   }
@@ -85,9 +100,9 @@ final class RsvpLegalAlter {
 
     $this->applyReconsentUx($form, $status);
     $this->enforceLegalConsentNonCoreRequired($form);
-    array_unshift($form['#validate'], [$this, 'validateRsvpLegal']);
+    array_unshift($form['#validate'], 'myeventlane_legal_rsvp_validate_callback');
     $form['#submit'] = array_merge(
-      [[$this, 'submitStoreLegalConsent']],
+      ['myeventlane_legal_rsvp_submit_store_legal_consent_callback'],
       $form['#submit'] ?? []
     );
   }

@@ -1,4 +1,4 @@
-{% set create_event_url = path('myeventlane_event.wizard.create') %}
+{% set create_event_url = path('entity.node.add_form', {'node_type': 'event'}) %}
 {% if quick_actions is iterable and quick_actions|length > 0 and quick_actions.0.url is defined %}
   {% set create_event_url = quick_actions.0.url %}
 {% endif %}

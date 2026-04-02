@@ -1,40 +1,8 @@
-/* MyEventLane RSVP Form — Full mobile-first redesign
-   Scope strictly to the RSVP form wrapper + Drupal form classes.
-*/
+/* MyEventLane RSVP conversion-focused booking experience. */
 
-/* --- Mobile de-constrain: only affects pages containing .mel-rsvp --- */
-@media (max-width: 768px) {
-  /* Common Drupal/theme wrappers that often impose narrow max-widths. */
-  .mel-rsvp,
-  .mel-rsvp * {
-    box-sizing: border-box;
-  }
-
-  /* If any ancestor containers are constraining width, neutralize it locally. */
-  .mel-rsvp {
-    width: 100%;
-    max-width: none;
-  }
-
-  /* These selectors are intentionally broad but scoped by presence of .mel-rsvp. */
-  .mel-rsvp__shell,
-  .mel-rsvp__card,
-  .mel-rsvp__content {
-    width: 100%;
-    max-width: none;
-  }
-
-  /* Some themes wrap blocks/views with fixed widths; ensure the form can expand. */
-  .mel-rsvp .block,
-  .mel-rsvp .block-content,
-  .mel-rsvp .content,
-  .mel-rsvp .layout__region,
-  .mel-rsvp .region,
-  .mel-rsvp .container,
-  .mel-rsvp .layout-container {
-    width: 100%;
-    max-width: none;
-  }
+.mel-rsvp,
+.mel-rsvp * {
+  box-sizing: border-box;
 }
 
 .mel-rsvp {
@@ -42,7 +10,7 @@
 }
 
 .mel-rsvp__shell {
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto;
 }
 
@@ -59,7 +27,7 @@
 .mel-rsvp__subtitle {
   margin-top: 6px;
   font-size: 14px;
-  opacity: 0.8;
+  opacity: 0.82;
   line-height: 1.35;
 }
 
@@ -67,18 +35,32 @@
   margin-top: 10px;
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .mel-rsvp__content {
   padding: 16px 14px 12px;
 }
 
-/* Drupal form structure */
+.mel-rsvp .mel-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcff 100%);
+  border: 1px solid rgba(122, 105, 255, 0.16);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.mel-rsvp .mel-card__title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 .mel-rsvp .form-item {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
 }
 
 .mel-rsvp label {
@@ -88,7 +70,6 @@
   line-height: 1.3;
 }
 
-/* Help text */
 .mel-rsvp .description {
   margin-top: 6px;
   font-size: 13px;
@@ -96,7 +77,6 @@
   opacity: 0.8;
 }
 
-/* Inputs — consistent, iOS zoom safe */
 .mel-rsvp input[type="text"],
 .mel-rsvp input[type="email"],
 .mel-rsvp input[type="tel"],
@@ -106,13 +86,12 @@
 .mel-rsvp select,
 .mel-rsvp textarea {
   width: 100%;
-  box-sizing: border-box;
   min-height: 48px;
-  padding: 12px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.14);
-  background: rgba(0,0,0,0.02);
-  font-size: 16px; /* iOS no-zoom */
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 16px;
   line-height: 1.2;
   outline: none;
 }
@@ -125,97 +104,334 @@
 .mel-rsvp input:focus,
 .mel-rsvp select:focus,
 .mel-rsvp textarea:focus {
-  border-color: rgba(122, 105, 255, 0.85);
-  box-shadow: 0 0 0 4px rgba(122, 105, 255, 0.15);
+  border-color: rgba(122, 105, 255, 0.9);
+  box-shadow: 0 0 0 4px rgba(122, 105, 255, 0.16);
   background: #fff;
 }
 
-/* Fieldsets / groups */
-.mel-rsvp fieldset {
-  border: 0;
-  padding: 0;
-  margin: 18px 0 10px;
-}
-
-.mel-rsvp fieldset > legend {
-  font-weight: 700;
-  font-size: 15px;
-  margin-bottom: 10px;
-}
-
-/* Radios + checkboxes */
-.mel-rsvp .form-type-checkbox,
-.mel-rsvp .form-type-radio {
+.mel-rsvp .mel-chip-group {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 10px 0;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.mel-rsvp .form-type-checkbox input,
-.mel-rsvp .form-type-radio input {
-  margin-top: 2px;
+.mel-rsvp-public-form .mel-chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.mel-rsvp .form-type-checkbox label,
-.mel-rsvp .form-type-radio label {
+.mel-rsvp .mel-chip-group .form-item {
   margin: 0;
-  font-weight: 500;
 }
 
-/* Error styling (works with core) */
-.mel-rsvp .form-item--error-message,
-.mel-rsvp .form-item--error {
-  color: inherit;
+.mel-rsvp-public-form .mel-chip-group .form-item {
+  margin: 0;
 }
 
-.mel-rsvp .messages--error,
-.mel-rsvp .form-item--error-message {
-  font-size: 13px;
-  line-height: 1.35;
+.mel-rsvp .mel-chip-group input {
+  display: none;
 }
 
-/* Sticky submit area: target Drupal's actual actions container */
+.mel-rsvp-public-form .mel-chip-group input {
+  display: none;
+}
+
+/* Base */
+.mel-rsvp .mel-chip-group label,
+.mel-rsvp .mel-chip-group .mel-chip__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.mel-rsvp-public-form .mel-chip-group label,
+.mel-rsvp-public-form .mel-chip-group .mel-chip__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+/* subtle glow layer */
+.mel-rsvp .mel-chip-group label::before,
+.mel-rsvp .mel-chip-group .mel-chip__label::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(242, 109, 91, 0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.mel-rsvp-public-form .mel-chip-group label::before,
+.mel-rsvp-public-form .mel-chip-group .mel-chip__label::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(242, 109, 91, 0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+/* Hover */
+.mel-rsvp .mel-chip-group label:hover,
+.mel-rsvp .mel-chip-group .mel-chip__label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: rgba(242, 109, 91, 0.4);
+}
+
+.mel-rsvp-public-form .mel-chip-group label:hover,
+.mel-rsvp-public-form .mel-chip-group .mel-chip__label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: rgba(242, 109, 91, 0.4);
+}
+
+.mel-rsvp .mel-chip-group label:hover::before,
+.mel-rsvp .mel-chip-group .mel-chip__label:hover::before {
+  opacity: 1;
+}
+
+.mel-rsvp-public-form .mel-chip-group label:hover::before,
+.mel-rsvp-public-form .mel-chip-group .mel-chip__label:hover::before {
+  opacity: 1;
+}
+
+/* Selected */
+.mel-rsvp .mel-chip-group input:checked + label,
+.mel-rsvp .mel-chip-group input:checked + .mel-chip__label,
+.mel-rsvp .mel-chip-group .mel-chip--active .mel-chip__label {
+  background: linear-gradient(135deg, rgba(242, 109, 91, 0.12), rgba(110, 126, 242, 0.08));
+  border-color: #f26d5b;
+  box-shadow: 0 8px 22px rgba(242, 109, 91, 0.18);
+  transform: translateY(-1px) scale(1.01);
+}
+
+.mel-rsvp-public-form .mel-chip-group input:checked + label,
+.mel-rsvp-public-form .mel-chip-group input:checked + .mel-chip__label,
+.mel-rsvp-public-form .mel-chip-group .mel-chip--active .mel-chip__label {
+  background: linear-gradient(135deg, rgba(242, 109, 91, 0.12), rgba(110, 126, 242, 0.08));
+  border-color: #f26d5b;
+  box-shadow: 0 8px 22px rgba(242, 109, 91, 0.18);
+  transform: translateY(-1px) scale(1.01);
+}
+
+/* check indicator */
+.mel-rsvp .mel-chip-group input:checked + label::after,
+.mel-rsvp .mel-chip-group input:checked + .mel-chip__label::after,
+.mel-rsvp .mel-chip-group .mel-chip--active .mel-chip__label::after {
+  content: "\2713";
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  background: #f26d5b;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.mel-rsvp-public-form .mel-chip-group input:checked + label::after,
+.mel-rsvp-public-form .mel-chip-group input:checked + .mel-chip__label::after,
+.mel-rsvp-public-form .mel-chip-group .mel-chip--active .mel-chip__label::after {
+  content: "\2713";
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  background: #f26d5b;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.mel-rsvp .mel-rsvp-legal {
+  background: linear-gradient(180deg, #fbfaff 0%, #f8f7ff 100%);
+}
+
+.mel-rsvp .mel-legal__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  margin: 4px 0 8px;
+}
+
+.mel-rsvp .mel-legal__label--required {
+  color: #3a2dd2;
+}
+
+.mel-rsvp .mel-legal__label--optional {
+  color: #6f6f86;
+}
+
+.mel-rsvp .mel-legal__choice label,
+.mel-rsvp .mel-legal__choice .mel-chip__label {
+  width: 100%;
+}
+
+.mel-rsvp-public-form .mel-legal__choice label,
+.mel-rsvp-public-form .mel-legal__choice .mel-chip__label {
+  width: 100%;
+}
+
+.mel-rsvp .mel-legal__choice--required label,
+.mel-rsvp .mel-legal__choice--required .mel-chip__label {
+  border-color: rgba(110, 126, 242, 0.2);
+}
+
+.mel-rsvp-public-form .mel-legal__choice--required label,
+.mel-rsvp-public-form .mel-legal__choice--required .mel-chip__label {
+  border-color: rgba(110, 126, 242, 0.2);
+}
+
+.mel-rsvp .mel-legal__choice--required input:checked + label,
+.mel-rsvp .mel-legal__choice--required input:checked + .mel-chip__label,
+.mel-rsvp .mel-legal__choice--required .mel-chip--active .mel-chip__label {
+  background: linear-gradient(135deg, rgba(110, 126, 242, 0.12), rgba(242, 109, 91, 0.05));
+  border-color: #6e7ef2;
+  box-shadow: 0 8px 22px rgba(110, 126, 242, 0.18);
+}
+
+.mel-rsvp-public-form .mel-legal__choice--required input:checked + label,
+.mel-rsvp-public-form .mel-legal__choice--required input:checked + .mel-chip__label,
+.mel-rsvp-public-form .mel-legal__choice--required .mel-chip--active .mel-chip__label {
+  background: linear-gradient(135deg, rgba(110, 126, 242, 0.12), rgba(242, 109, 91, 0.05));
+  border-color: #6e7ef2;
+  box-shadow: 0 8px 22px rgba(110, 126, 242, 0.18);
+}
+
+.mel-rsvp .mel-legal__choice--optional label,
+.mel-rsvp .mel-legal__choice--optional .mel-chip__label {
+  opacity: 0.85;
+}
+
+.mel-rsvp-public-form .mel-legal__choice--optional label,
+.mel-rsvp-public-form .mel-legal__choice--optional .mel-chip__label {
+  opacity: 0.85;
+}
+
+.mel-rsvp .mel-donation__amounts {
+  margin-top: 8px;
+}
+
+.mel-rsvp .mel-donation-card,
+.mel-rsvp-public-form .mel-donation-card {
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(245, 192, 76, 0.15), rgba(242, 109, 91, 0.08));
+  border: 2px solid rgba(245, 192, 76, 0.3);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  font-weight: 600;
+}
+
+.mel-rsvp .mel-donation-card:hover,
+.mel-rsvp-public-form .mel-donation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(245, 192, 76, 0.25);
+}
+
+.mel-rsvp .mel-attendees {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mel-rsvp .mel-attendee-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mel-rsvp .mel-attendee-card:first-child,
+.mel-rsvp-public-form .mel-attendee-card:first-child {
+  border: 2px solid rgba(110, 126, 242, 0.2);
+  background: linear-gradient(135deg, rgba(110, 126, 242, 0.05), transparent);
+}
+
+.mel-rsvp .mel-attendee-meta,
+.mel-rsvp-public-form .mel-attendee-meta {
+  font-size: 12px;
+  color: #6e7ef2;
+  margin-bottom: 6px;
+}
+
+.mel-rsvp .mel-attendee-card.is-complete,
+.mel-rsvp-public-form .mel-attendee-card.is-complete {
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.2);
+}
+
+.mel-rsvp .mel-attendee-card h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .mel-rsvp .form-actions {
   position: sticky;
   bottom: 0;
-  padding: 12px 14px;
-  background: rgba(255,255,255,0.92);
+  z-index: 30;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(0,0,0,0.06);
-  margin: 16px -14px -12px; /* stretch to card edges on mobile */
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  margin: 14px -14px -12px;
 }
 
-/* Make submit button full-width and consistent */
-.mel-rsvp .form-actions .button,
-.mel-rsvp .form-actions input[type="submit"],
-.mel-rsvp .form-actions button {
+.mel-rsvp .form-actions .mel-btn {
   width: 100%;
   min-height: 52px;
-  border-radius: 999px;
-  font-size: 16px;
-  font-weight: 700;
-  border: 0;
-  cursor: pointer;
 }
 
-/* Primary button — pastel purple */
-.mel-rsvp .form-actions .button--primary,
-.mel-rsvp .form-actions input[type="submit"] {
-  background: rgba(122, 105, 255, 0.95);
-  color: #fff;
-  box-shadow: 0 10px 22px rgba(122, 105, 255, 0.25);
+.mel-rsvp .form-actions .mel-btn--primary {
+  box-shadow: 0 10px 24px rgba(242, 109, 91, 0.35);
 }
 
-.mel-rsvp .form-actions .button--primary:hover,
-.mel-rsvp .form-actions input[type="submit"]:hover {
+.mel-rsvp .form-actions .mel-btn--primary:hover {
   filter: brightness(0.98);
 }
 
-.mel-rsvp .form-actions .button:focus,
-.mel-rsvp .form-actions input[type="submit"]:focus {
-  box-shadow: 0 0 0 4px rgba(122, 105, 255, 0.22);
+.mel-rsvp .form-actions .mel-btn:focus {
+  box-shadow: 0 0 0 4px rgba(242, 109, 91, 0.24);
   outline: none;
+}
+
+.mel-rsvp .form-item--error-message,
+.mel-rsvp .messages--error {
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .mel-rsvp__fineprint {
@@ -225,14 +441,15 @@
   line-height: 1.3;
 }
 
-/* Desktop refinements */
 @media (min-width: 768px) {
   .mel-rsvp {
     padding: 24px;
   }
+
   .mel-rsvp__content {
     padding: 18px 18px 14px;
   }
+
   .mel-rsvp .form-actions {
     position: static;
     margin: 18px 0 0;
@@ -241,12 +458,29 @@
     background: transparent;
     backdrop-filter: none;
   }
-  .mel-rsvp .form-actions .button,
-  .mel-rsvp .form-actions input[type="submit"],
-  .mel-rsvp .form-actions button {
+
+  .mel-rsvp .form-actions .mel-btn {
     width: auto;
     min-width: 220px;
   }
 }
 
-.mel-rsvp__textarea--compact { min-height: 88px; }
+.mel-rsvp__textarea--compact {
+  min-height: 88px;
+}
+
+/* RSVP attendee cards are controlled by JS visibility. */
+.mel-rsvp .mel-attendee-card,
+.mel-rsvp-public-form .mel-attendee-card {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition: all 0.25s ease;
+}
+
+.mel-rsvp .mel-attendee-card.is-visible,
+.mel-rsvp-public-form .mel-attendee-card.is-visible {
+  display: block;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}

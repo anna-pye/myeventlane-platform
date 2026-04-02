@@ -170,7 +170,11 @@ class VenueAccessResolver {
         ->execute();
 
       if (!empty($accessGrants)) {
-        $grants = $accessStorage->loadMultiple($accessGrants);
+        $accessGrantIds = array_values(array_filter(array_map(
+          static fn ($id): ?int => is_numeric($id) ? (int) $id : NULL,
+          $accessGrants
+        )));
+        $grants = $accessStorage->loadMultiple($accessGrantIds);
         foreach ($grants as $grant) {
           $venueIds[] = $grant->get('venue_id')->target_id;
         }
@@ -180,9 +184,17 @@ class VenueAccessResolver {
       // Access entity type may not exist.
     }
 
-    $venueIds = array_unique(array_filter($venueIds));
+    $venueIds = array_values(array_unique(array_filter(array_map(
+      static function ($id): ?int {
+        if ($id === NULL || $id === '') {
+          return NULL;
+        }
+        return is_numeric($id) ? (int) $id : NULL;
+      },
+      $venueIds
+    ))));
 
-    if (empty($venueIds)) {
+    if ($venueIds === []) {
       return [];
     }
 

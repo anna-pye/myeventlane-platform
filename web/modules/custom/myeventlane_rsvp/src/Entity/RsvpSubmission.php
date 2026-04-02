@@ -113,6 +113,7 @@ class RsvpSubmission extends ContentEntityBase implements RsvpSubmissionInterfac
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+
     // Phone field (optional).
     $fields['phone'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Phone'))

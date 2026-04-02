@@ -114,10 +114,10 @@ abstract class ManageEventControllerBase extends ControllerBase {
       $preview_url = $event->toUrl('canonical');
     }
 
-    // Build edit URL in canonical event wizard.
+    // Vendor edit: Event Studio only (legacy wizard is staff-only / redirected).
     $edit_url = NULL;
     if (!$event->isNew()) {
-      $edit_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()]);
+      $edit_url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $event->id()]);
     }
 
     return [

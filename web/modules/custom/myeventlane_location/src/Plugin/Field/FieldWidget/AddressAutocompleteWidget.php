@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_location\Plugin\Field\FieldWidget;
 
-use Drupal\address\Plugin\Field\FieldWidget\AddressDefaultWidget;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -19,7 +18,7 @@ use Drupal\Core\Form\FormStateInterface;
  *   }
  * )
  */
-final class AddressAutocompleteWidget extends AddressDefaultWidget {
+final class AddressAutocompleteWidget extends LocationAddressDefaultWidgetBase {
 
   /**
    * {@inheritdoc}
@@ -109,21 +108,6 @@ final class AddressAutocompleteWidget extends AddressDefaultWidget {
     $element['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
 
     return $element;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function massageFormValues(array $values, array $form, FormStateInterface $form_state): array {
-    // Drupal stores deltas under 'widget' (field_location[widget][0]).
-    // Parent expects [0 => ['address' => ...], ...].
-    if (isset($values['widget']) && is_array($values['widget'])) {
-      $values = $values['widget'];
-    }
-
-    $values = parent::massageFormValues($values, $form, $form_state);
-    // Lat/lng saved via myeventlane_location submit handler.
-    return $values;
   }
 
 }

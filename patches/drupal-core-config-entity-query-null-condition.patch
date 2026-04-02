@@ -1,0 +1,23 @@
+--- a/lib/Drupal/Core/Config/Entity/Query/Condition.php
++++ b/lib/Drupal/Core/Config/Entity/Query/Condition.php
+@@ -32,10 +32,18 @@ class Condition extends ConditionBase {
+         // Process the value for operator that use it.
+         if (!in_array($condition['operator'], ['IS NULL', 'IS NOT NULL'], TRUE)) {
+           // Lowercase condition value(s) for case-insensitive matches.
++          // NULL must not be passed to mb_strtolower() (PHP 8.1+ deprecation).
++          // Callers may use condition($field, NULL) with default '='; matching
++          // still behaves as before via match().
+           if (is_array($condition['value'])) {
+-            $condition['value'] = array_map('mb_strtolower', $condition['value']);
++            $condition['value'] = array_map(static function ($v) {
++              if (is_bool($v) || $v === NULL) {
++                return $v;
++              }
++              return mb_strtolower($v);
++            }, $condition['value']);
+           }
+-          elseif (!is_bool($condition['value'])) {
++          elseif (!is_bool($condition['value']) && $condition['value'] !== NULL) {
+             $condition['value'] = mb_strtolower($condition['value']);
+           }
+         }

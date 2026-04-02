@@ -13,7 +13,7 @@
 
   /**
    * Find the event type field selector.
-   * Supports multiple form structures (EventWizardForm, EventFormAlter, standard node form).
+   * Supports multiple form structures (event wizard steps, EventFormAlter, standard node form).
    */
   function findEventTypeField(form) {
     if (!form) return null;

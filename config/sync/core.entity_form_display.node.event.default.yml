@@ -35,6 +35,7 @@ dependencies:
   module:
     - address
     - datetime
+    - myeventlane_location
     - entity_reference_revisions
     - image
     - link
@@ -189,7 +190,7 @@ content:
       display_label: true
     third_party_settings: {  }
   field_location:
-    type: address_default
+    type: myeventlane_location_address_default
     weight: 8
     region: content
     settings: {  }

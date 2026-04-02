@@ -19,3 +19,13 @@ waitlist-signup:
   dependencies:
     - core/drupal
     - core/drupal.form
+
+rsvp_mel_form:
+  css:
+    theme:
+      css/rsvp-mel-form.css: {}
+  js:
+    js/rsvp-mel-form.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

@@ -140,7 +140,30 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       ];
     }
 
-    $nids = array_map(static fn(array $r): int => (int) $r['nid'], $rows);
+    $nids = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $raw = $row['nid'] ?? NULL;
+      if (!is_numeric($raw)) {
+        continue;
+      }
+      $nid = (int) $raw;
+      if ($nid > 0) {
+        $nids[] = $nid;
+      }
+    }
+    $nids = array_values(array_unique($nids));
+    if ($nids === []) {
+      return [
+        '#markup' => '',
+        '#cache' => [
+          'max-age' => 900,
+          'contexts' => ['languages:language_interface'],
+        ],
+      ];
+    }
 
     /** @var \Drupal\node\NodeStorageInterface $storage */
     $storage = $this->entityTypeManager->getStorage('node');
@@ -202,19 +225,6 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
       '#attributes' => [
         'class' => ['mel-popular-events-block'],
       ],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $title,
-        '#attributes' => ['class' => ['mel-popular-events-block__title']],
-      ],
-      'list' => [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-popular-events-block__grid'],
-        ],
-        'items' => $items,
-      ],
       '#cache' => [
         // Short TTL ensures RSVP changes are reflected even if RSVP entities/tags
         // are not perfectly tagged everywhere yet.
@@ -222,6 +232,23 @@ final class PopularEventsBlock extends BlockBase implements ContainerFactoryPlug
         'contexts' => ['languages:language_interface'],
         'tags' => Cache::mergeTags(['node_list'], $node_tags),
       ],
+    ];
+
+    if ($title !== '') {
+      $build['header'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $title,
+        '#attributes' => ['class' => ['mel-popular-events-block__title']],
+      ];
+    }
+
+    $build['list'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-popular-events-block__grid', 'mel-event-grid'],
+      ],
+      'items' => $items,
     ];
 
     return $build;

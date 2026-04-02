@@ -291,14 +291,21 @@ function myeventlane_help_centre_form_alter(array &$form, FormStateInterface $fo
     'event_wizard_tickets_form' => 'event_wizard_tickets',
     'event_wizard_publish_form' => 'event_wizard_publish',
     'event_wizard_review_form' => 'event_wizard_review',
+    'mel_event_studio_form' => 'event_wizard_basics',
   ];
-  if (isset($wizard_map[$form_id]) && \Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
-    $card = _myeventlane_help_centre_resolver()->buildCard($wizard_map[$form_id], [
-      'show_assistant_secondary' => TRUE,
-    ]);
-    if ($card !== []) {
-      $form['mel_contextual_help_card'] = $card;
-      $form['mel_contextual_help_card']['#weight'] = -30;
+  if (isset($wizard_map[$form_id])) {
+    $module_ok = \Drupal::moduleHandler()->moduleExists('myeventlane_event');
+    if ($form_id === 'mel_event_studio_form') {
+      $module_ok = \Drupal::moduleHandler()->moduleExists('myeventlane_event_studio');
+    }
+    if ($module_ok) {
+      $card = _myeventlane_help_centre_resolver()->buildCard($wizard_map[$form_id], [
+        'show_assistant_secondary' => TRUE,
+      ]);
+      if ($card !== []) {
+        $form['mel_contextual_help_card'] = $card;
+        $form['mel_contextual_help_card']['#weight'] = -30;
+      }
     }
     return;
   }
@@ -313,28 +320,17 @@ function myeventlane_help_centre_form_alter(array &$form, FormStateInterface $fo
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for the event creation wizard.
+ * Implements hook_form_FORM_ID_alter() for the event wizard Tickets step.
  */
-function myeventlane_help_centre_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+function myeventlane_help_centre_form_event_wizard_tickets_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   if (!\Drupal::moduleHandler()->moduleExists('myeventlane_event')) {
     return;
   }
 
-  $step = (string) ($form['wizard_step']['#value'] ?? '');
-  if ($step !== 'tickets_capacity') {
-    return;
-  }
-
-  if (!isset($form['wizard']['layout']['content']['card']['body']) || !is_array($form['wizard']['layout']['content']['card']['body'])) {
-    return;
-  }
-
-  $body = &$form['wizard']['layout']['content']['card']['body'];
-
   $eventCreate = myeventlane_help_centre_get_link('event_create');
   $rsvpPaid = myeventlane_help_centre_get_link('rsvp_vs_paid');
   if ($eventCreate || $rsvpPaid) {
-    $body['mel_help_event_type_context'] = [
+    $form['mel_help_event_type_context'] = [
       '#type' => 'container',
       '#weight' => -12,
       '#attributes' => [
@@ -342,16 +338,16 @@ function myeventlane_help_centre_form_myeventlane_event_wizard_alter(array &$for
       ],
     ];
     if ($eventCreate) {
-      $body['mel_help_event_type_context']['event_create'] = myeventlane_help_link($eventCreate['text'], $eventCreate['url']);
+      $form['mel_help_event_type_context']['event_create'] = myeventlane_help_link($eventCreate['text'], $eventCreate['url']);
     }
     if ($rsvpPaid) {
-      $body['mel_help_event_type_context']['rsvp_vs_paid'] = myeventlane_help_link($rsvpPaid['text'], $rsvpPaid['url']);
+      $form['mel_help_event_type_context']['rsvp_vs_paid'] = myeventlane_help_link($rsvpPaid['text'], $rsvpPaid['url']);
     }
   }
 
   $ticketTypes = myeventlane_help_centre_get_link('ticket_types');
   if ($ticketTypes) {
-    $body['mel_help_ticket_types_context'] = [
+    $form['mel_help_ticket_types_context'] = [
       '#type' => 'container',
       '#weight' => 5,
       '#attributes' => [

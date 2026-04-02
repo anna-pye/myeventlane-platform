@@ -116,7 +116,7 @@ final class EventIntelligenceService {
 
     // Missing image — highest-quality improvement.
     if (empty($primary) && !$hasImage) {
-      $url = $this->safeRouteUrl('myeventlane_event.wizard.edit', ['node' => $nid]);
+      $url = $this->safeRouteUrl('entity.node.edit_form', ['node' => $nid]);
       if ($url !== '') {
         $primary[] = [
           'title' => (string) $this->t('Add a cover image'),
@@ -184,7 +184,7 @@ final class EventIntelligenceService {
 
     // Weak description.
     if (!$hasDescription) {
-      $url = $this->safeRouteUrl('myeventlane_event.wizard.edit', ['node' => $nid]);
+      $url = $this->safeRouteUrl('entity.node.edit_form', ['node' => $nid]);
       if ($url !== '') {
         $secondary[] = [
           'title' => (string) $this->t('Expand your event details'),

@@ -1,0 +1,61 @@
+{#
+/**
+ * @file
+ * Exposed filters for upcoming_events (category + accessibility): compact bar, mobile scroll.
+ */
+#}
+<div class="mel-events-exposed">
+  {{ form.form_build_id }}
+  {{ form.form_token }}
+  {{ form.form_id }}
+
+  <div class="mel-events-exposed__fields">
+    {% if form.search is defined %}
+      <div class="mel-events-exposed__field mel-events-exposed__field--search">
+        {{ form.search }}
+      </div>
+    {% endif %}
+
+    {% if form.category is defined %}
+      <div class="mel-events-exposed__field mel-events-exposed__field--category">
+        {{ form.category }}
+      </div>
+    {% elseif form.field_category_target_id is defined %}
+      <div class="mel-events-exposed__field mel-events-exposed__field--category">
+        {{ form.field_category_target_id }}
+      </div>
+    {% endif %}
+
+    {% if form.event_type is defined %}
+      <div class="mel-events-exposed__field mel-events-exposed__field--price">
+        {{ form.event_type }}
+      </div>
+    {% endif %}
+
+    {% if form.accessibility is defined %}
+      <div class="mel-events-exposed__field mel-events-exposed__field--accessibility">
+        {{ form.accessibility }}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if form.actions is defined %}
+    <div class="mel-events-exposed__actions">
+      {{ form.actions }}
+    </div>
+  {% endif %}
+
+  <div class="visually-hidden">
+    {{ form|without(
+      'form_build_id',
+      'form_token',
+      'form_id',
+      'actions',
+      'search',
+      'category',
+      'field_category_target_id',
+      'event_type',
+      'accessibility'
+    ) }}
+  </div>
+</div>

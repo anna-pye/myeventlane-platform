@@ -731,7 +731,7 @@ final class EventSuggestionService {
 
   private function wizardTicketsAction(NodeInterface $event, string $label): ?array {
     try {
-      $url = Url::fromRoute('myeventlane_event.wizard.tickets', ['event' => $event->id()])->toString();
+      $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
       return [
         'type' => 'link',
         'label' => $label,
@@ -746,7 +746,7 @@ final class EventSuggestionService {
 
   private function wizardWhenWhereAction(NodeInterface $event, string $label): ?array {
     try {
-      $url = Url::fromRoute('myeventlane_event.wizard.when_where', ['event' => $event->id()])->toString();
+      $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
       return [
         'type' => 'link',
         'label' => $label,
@@ -761,7 +761,7 @@ final class EventSuggestionService {
 
   private function wizardDetailsAction(NodeInterface $event, string $label): ?array {
     try {
-      $url = Url::fromRoute('myeventlane_event.wizard.details', ['event' => $event->id()])->toString();
+      $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
       return [
         'type' => 'link',
         'label' => $label,
@@ -776,7 +776,7 @@ final class EventSuggestionService {
 
   private function wizardBasicsAction(NodeInterface $event, string $label): ?array {
     try {
-      $url = Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event->id()])->toString();
+      $url = Url::fromRoute('entity.node.edit_form', ['node' => $event->id()])->toString();
       return [
         'type' => 'link',
         'label' => $label,

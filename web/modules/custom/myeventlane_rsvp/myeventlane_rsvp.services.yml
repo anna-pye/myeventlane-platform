@@ -34,6 +34,8 @@ services:
       - '@request_stack'
       - '@logger.factory'
       - '@myeventlane_rsvp.mailer'
+      - '@module_handler'
+      - '@current_user'
     tags:
       - { name: controller.service_arguments }
 

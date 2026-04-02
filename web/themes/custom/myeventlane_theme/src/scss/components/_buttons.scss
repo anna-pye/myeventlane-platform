@@ -38,8 +38,10 @@
   border-radius: radii.$mel-radius-md;
   cursor: pointer;
   transition:
-    transform var(--mel-motion-fast) var(--mel-ease-out),
-    box-shadow var(--mel-motion-fast) var(--mel-ease-out),
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    opacity 0.2s ease,
     background-color var(--mel-motion-fast) var(--mel-ease-out),
     border-color var(--mel-motion-fast) var(--mel-ease-out),
     color var(--mel-motion-fast) var(--mel-ease-out);
@@ -132,6 +134,89 @@
   &:focus-visible {
     @include colors.mel-focus-ring;
   }
+}
+
+// RSVP booking standardization (premium conversion styles).
+.mel-rsvp .mel-btn,
+.mel-rsvp-public-form .mel-btn {
+  font-family: typography.$mel-font-family;
+  border-radius: radii.$mel-radius-full;
+  padding: 14px 22px;
+  font-weight: typography.$mel-font-semibold;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mel-btn.is-updating {
+  transform: scale(1.02);
+  box-shadow: 0 14px 36px rgba(242, 109, 91, 0.45);
+}
+
+.mel-btn__label {
+  display: inline-block;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mel-btn.is-fading .mel-btn__label {
+  opacity: 0;
+  transform: translateY(2px);
+}
+
+.mel-btn.is-visible .mel-btn__label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mel-btn--secondary {
+  background: colors.$mel-color-surface;
+  color: colors.$mel-color-primary;
+  border: 2px solid colors.$mel-color-primary;
+}
+
+.mel-btn--ghost {
+  background: transparent;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-btn--xl {
+  width: 100%;
+  padding: 18px;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .mel-btn {
+    width: 100%;
+    min-height: 52px;
+  }
+}
+
+// Hard reset Drupal/Gin button styles in RSVP booking scope.
+.mel-rsvp button,
+.mel-rsvp input[type="submit"],
+.mel-rsvp .button,
+.mel-rsvp .form-submit,
+.mel-rsvp-form button,
+.mel-rsvp-form input[type="submit"],
+.mel-rsvp-form .button,
+.mel-rsvp-form .form-submit {
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+}
+
+.mel-rsvp button,
+.mel-rsvp input[type="submit"],
+.mel-rsvp-form button,
+.mel-rsvp-form input[type="submit"] {
+  cursor: pointer;
 }
 
 .button--secondary {
@@ -352,22 +437,90 @@
 // Additional button classes using CSS custom properties for consistency.
 
 .mel-btn--primary {
-  // Default primary = brand lavender/purple.
-  background: var(--mel-primary);
+  background: linear-gradient(
+    135deg,
+    colors.$mel-color-primary 0%,
+    colors.$mel-color-secondary 100%
+  );
   color: colors.$mel-color-text-inverse;
-  border-radius: radii.$mel-radius-full; // Pill shape
+  border-radius: radii.$mel-radius-full;
   font-weight: typography.$mel-font-bold;
+  box-shadow: 0 8px 24px rgba(colors.$mel-color-primary, 0.35);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 
-  @media (hover: hover) and (pointer: fine) {
+  @media (hover: hover) {
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(colors.$mel-color-primary, 0.35);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(colors.$mel-color-primary, 0.45);
     }
   }
 
-  &:focus-visible {
-    @include colors.mel-focus-ring;
+  &:active {
+    transform: scale(0.98);
   }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.25),
+      transparent 70%
+    );
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  @media (hover: hover) {
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+}
+
+.mel-rsvp .mel-btn--primary,
+.mel-rsvp button.mel-btn--primary,
+.mel-rsvp-form .mel-btn--primary,
+.mel-rsvp-form button.mel-btn--primary {
+  background: linear-gradient(135deg, #f26d5b 0%, #6e7ef2 100%) !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  padding: 18px !important;
+  width: 100% !important;
+  box-shadow: 0 10px 28px rgba(242, 109, 91, 0.4) !important;
+  transition: all 0.25s ease !important;
+}
+
+.mel-rsvp input[type="submit"].mel-btn,
+.mel-rsvp button.mel-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 18px 22px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #f26d5b 0%, #6e7ef2 100%) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  box-shadow: 0 10px 28px rgba(242, 109, 91, 0.4) !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+}
+
+.mel-rsvp input[type="submit"].mel-btn:hover,
+.mel-rsvp button.mel-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 32px rgba(242, 109, 91, 0.5);
+}
+
+input.form-submit {
+  display: inline-block;
 }
 
 // CTA (Coral) - conversion moments (Create, Boost, Tickets, Checkout).
@@ -386,6 +539,13 @@
 
   &:focus-visible {
     @include colors.mel-focus-ring;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-btn,
+  .mel-btn__label {
+    transition: none !important;
   }
 }
 
@@ -465,38 +625,11 @@ button.mel-btn,
   }
 }
 
-// Softer hover shadows for primary buttons (pastel system overlay)
-.mel-btn-primary,
-.mel-btn--primary,
-.button--primary {
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      box-shadow: 0 6px 20px rgba(108, 126, 242, 0.28);
-    }
-  }
-}
-
-// Softer hover shadows for CTA buttons
-.mel-btn--cta,
-.button--rsvp,
-.button--ticket {
+// Soft CTA hover for checkout-focused CTA class.
+.mel-btn--cta {
   @media (hover: hover) and (pointer: fine) {
     &:hover {
       box-shadow: 0 6px 20px rgba(242, 109, 91, 0.28);
     }
-  }
-}
-
-// Drupal form-submit buttons — softer radius + shadow
-.form-submit,
-input.form-submit[type="submit"],
-button[type="submit"] {
-  border-radius: radii.$mel-radius-full;
-
-  &:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 2px rgba(255, 255, 255, 0.8),
-      0 0 0 5px rgba(colors.$mel-color-primary, 0.25);
   }
 }

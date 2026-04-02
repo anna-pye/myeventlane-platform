@@ -1,6 +1,6 @@
 uuid: 48f78fbe-9b7a-4aa4-af00-bf17e5940c2a
 langcode: en
-status: true
+status: false
 dependencies:
   config:
     - views.view.mel_home_events

@@ -163,27 +163,15 @@ final class BookController extends ControllerBase {
    *   Form render array.
    */
   private function buildRsvpOnlyForm(NodeInterface $event): array {
-    $hasProduct = $event->hasField('field_product_target')
-      && !$event->get('field_product_target')->isEmpty();
-
-    if ($hasProduct) {
-      $product = $event->get('field_product_target')->entity;
-      if ($product && $product->isPublished()) {
-        $variation = $product->getDefaultVariation();
-        if ($variation) {
-          $price = $variation->getPrice();
-          if ($price && (float) $price->getNumber() === 0.0) {
-            return $this->formBuilderService->getForm(
-              'Drupal\myeventlane_commerce\Form\RsvpBookingForm',
-              $product->id(),
-              $variation->id(),
-              $event->id()
-            );
-          }
-        }
-      }
+    if (!$this->melEventHasRsvp($event)) {
+      return [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-alert', 'mel-alert--warning']],
+        'message' => [
+          '#markup' => '<p>' . $this->t('RSVP is not yet available for this event.') . '</p>',
+        ],
+      ];
     }
-
     return $this->formBuilderService->getForm(
       'Drupal\myeventlane_rsvp\Form\RsvpPublicForm',
       $event
@@ -271,7 +259,7 @@ final class BookController extends ControllerBase {
         '#title' => $this->t('Get Tickets'),
         '#url' => Url::fromUri($externalUrl),
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg', 'mel-btn-block'],
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl'],
           'target' => '_blank',
           'rel' => 'noopener noreferrer',
         ],
@@ -293,6 +281,96 @@ final class BookController extends ControllerBase {
         '#markup' => '<p>' . $this->t('Booking will be available soon.') . '</p>',
       ],
     ];
+  }
+
+  /**
+   * Applies per-event donation UI defaults to RSVP forms.
+   *
+   * @param array<string, mixed> $form
+   */
+  private function applyEventDonationConfigToRsvpForm(array $form, NodeInterface $event): array {
+    if (!empty($form['#mel_donation_structured'])) {
+      return $form;
+    }
+
+    $enabled = $event->hasField('field_enable_donations')
+      && !$event->get('field_enable_donations')->isEmpty()
+      && (bool) $event->get('field_enable_donations')->value;
+
+    if (!$enabled) {
+      unset($form['donation_section'], $form['donation_unavailable'], $form['donation_amount']);
+      return $form;
+    }
+
+    $label = 'Support this event';
+    if ($event->hasField('field_donation_label') && !$event->get('field_donation_label')->isEmpty()) {
+      $label = trim((string) $event->get('field_donation_label')->value) ?: 'Support this event';
+    }
+    $amount = '';
+    if ($event->hasField('field_donation_default') && !$event->get('field_donation_default')->isEmpty()) {
+      $amount = (string) $event->get('field_donation_default')->value;
+    }
+    elseif ($event->hasField('field_donation_suggested_amount') && !$event->get('field_donation_suggested_amount')->isEmpty()) {
+      $amount = (string) $event->get('field_donation_suggested_amount')->value;
+    }
+
+    if (isset($form['donation_section']) && is_array($form['donation_section'])) {
+      $form['donation_section']['#title'] = $this->t('💖 @label (optional)', ['@label' => $label]);
+      $form['donation_section']['donation_intro'] = [
+        '#markup' => '<p class="mel-donation-intro-text">' . $this->t('Support this event (optional)') . '</p>',
+      ];
+    }
+
+    if (isset($form['donation_amount']) && is_array($form['donation_amount'])) {
+      $form['donation_amount']['#type'] = 'number';
+      $form['donation_amount']['#title'] = $label;
+      $form['donation_amount']['#default_value'] = $amount;
+      $form['donation_amount']['#min'] = 0;
+      $form['donation_amount']['#step'] = 1;
+      $form['donation_amount']['#attributes']['placeholder'] = '$0';
+    }
+    else {
+      $form['donation_amount'] = [
+        '#type' => 'number',
+        '#title' => $label,
+        '#default_value' => $amount,
+        '#min' => 0,
+        '#step' => 1,
+        '#attributes' => ['placeholder' => '$0'],
+      ];
+    }
+
+    return $form;
+  }
+
+  /**
+   * MEL source-of-truth RSVP readiness: at least one RSVP tier.
+   */
+  private function melEventHasRsvp(NodeInterface $event): bool {
+    if (!$event->hasField('field_ticket_types')) {
+      return FALSE;
+    }
+
+    $tiers = $event->get('field_ticket_types')->referencedEntities();
+    if ($tiers === []) {
+      \Drupal::logger('mel_debug')->notice('No tiers resolved on event @nid', [
+        '@nid' => (string) $event->id(),
+      ]);
+      return FALSE;
+    }
+
+    foreach ($tiers as $tier) {
+      $kind = (string) ($tier->get('ticket_kind')->value ?? '');
+      \Drupal::logger('mel_debug')->notice('Tier check @id kind=@kind', [
+        '@id' => (string) $tier->id(),
+        '@kind' => $kind,
+      ]);
+      if ($kind === 'rsvp') {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
 }

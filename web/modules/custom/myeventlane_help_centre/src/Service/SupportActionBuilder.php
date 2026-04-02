@@ -170,14 +170,14 @@ final class SupportActionBuilder {
       if ($eid > 0) {
         $node = $this->loadEventNode($eid);
         if ($node instanceof NodeInterface) {
-          $this->tryAddRoute($actions, 'hub_event_workspace', 'myeventlane_vendor.console.event_workspace', ['event' => $node], $account, [
+          $this->tryAddRoute($actions, 'hub_event_workspace', 'myeventlane_vendor.console.event_workspace', ['event' => $node->id()], $account, [
             'label' => (string) $this->t('Open event workspace'),
             'audience' => 'vendor',
             'style' => 'primary',
             'weight' => 12,
           ], $include_debug_metadata);
 
-          $this->tryAddRoute($actions, 'hub_event_tickets', 'myeventlane_vendor.console.event_tickets', ['event' => $node], $account, [
+          $this->tryAddRoute($actions, 'hub_event_tickets', 'myeventlane_vendor.console.event_tickets', ['event' => $node->id()], $account, [
             'label' => (string) $this->t('Manage tickets'),
             'audience' => 'vendor',
             'style' => 'link',
@@ -185,7 +185,7 @@ final class SupportActionBuilder {
           ], $include_debug_metadata);
 
           if ($this->moduleHandler->moduleExists('myeventlane_boost')) {
-            $this->tryAddRoute($actions, 'hub_event_boost', 'myeventlane_boost.vendor_boost_wizard', ['event' => $node], $account, [
+            $this->tryAddRoute($actions, 'hub_event_boost', 'myeventlane_boost.vendor_boost_wizard', ['event' => $node->id()], $account, [
               'label' => (string) $this->t('Boost wizard'),
               'audience' => 'vendor',
               'style' => 'link',
@@ -226,7 +226,7 @@ final class SupportActionBuilder {
         $node = $this->loadEventNode($eid);
         if ($node instanceof NodeInterface && $node->access('view', $account)) {
           if ($status === 'draft') {
-            $this->tryAddRoute($actions, 'ws_event_finish', 'myeventlane_vendor.console.event_editor', ['event' => $node], $account, [
+            $this->tryAddRoute($actions, 'ws_event_finish', 'myeventlane_vendor.console.event_editor', ['event' => $node->id()], $account, [
               'label' => (string) $this->t('Finish your event'),
               'audience' => 'vendor',
               'style' => 'primary',
@@ -235,7 +235,7 @@ final class SupportActionBuilder {
           }
           if ($status === 'published' && $this->moduleHandler->moduleExists('myeventlane_boost')) {
             if ($vendorish) {
-              $this->tryAddRoute($actions, 'ws_event_boost', 'myeventlane_boost.vendor_boost_wizard', ['event' => $node], $account, [
+              $this->tryAddRoute($actions, 'ws_event_boost', 'myeventlane_boost.vendor_boost_wizard', ['event' => $node->id()], $account, [
                 'label' => (string) $this->t('Boost your event'),
                 'audience' => 'vendor',
                 'style' => 'secondary',
@@ -243,7 +243,7 @@ final class SupportActionBuilder {
               ], FALSE);
             }
             else {
-              $this->tryAddRoute($actions, 'ws_event_boost_public', 'myeventlane_boost.boost_page', ['node' => $node], $account, [
+              $this->tryAddRoute($actions, 'ws_event_boost_public', 'myeventlane_boost.boost_page', ['node' => $node->id()], $account, [
                 'label' => (string) $this->t('Boost your event'),
                 'audience' => 'public',
                 'style' => 'secondary',
@@ -251,7 +251,7 @@ final class SupportActionBuilder {
               ], FALSE);
             }
           }
-          $this->tryAddRoute($actions, 'ws_event_workspace', 'myeventlane_vendor.console.event_workspace', ['event' => $node], $account, [
+          $this->tryAddRoute($actions, 'ws_event_workspace', 'myeventlane_vendor.console.event_workspace', ['event' => $node->id()], $account, [
             'label' => (string) $this->t('Open event workspace'),
             'audience' => 'vendor',
             'style' => 'link',

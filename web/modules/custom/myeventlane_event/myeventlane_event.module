@@ -254,22 +254,12 @@ function myeventlane_event_form_node_event_form_validate(array &$form, FormState
             !empty($form_values['field_event_start'][0]['value']['date'])) {
           $field_has_value = TRUE;
         }
-        // Also check wizard structure.
-        if (!$field_has_value && isset($form['mel_wizard']['layout']['content']['step_basics']['section']['field_event_start'])) {
-          // Field exists in wizard, assume it might have value.
-          $field_has_value = TRUE;
-        }
       }
       elseif (str_contains($key, 'field_location') || str_contains($key, 'address_line1') || str_contains($key, 'street_address')) {
         // Check if address field has values in form.
         $form_values = $form_state->getValues();
         if (isset($form_values['field_location'][0]['address']['address_line1']) &&
             !empty($form_values['field_location'][0]['address']['address_line1'])) {
-          $field_has_value = TRUE;
-        }
-        // Also check wizard structure.
-        if (!$field_has_value && isset($form['mel_wizard']['layout']['content']['step_basics']['section']['field_location'])) {
-          // Field exists in wizard, assume it might have value.
           $field_has_value = TRUE;
         }
       }
@@ -379,7 +369,7 @@ function myeventlane_event_form_after_build_reorder_quality_venue(array $form, F
       $form_id = $form_object->getFormId();
     }
   }
-  if (!in_array($form_id, ['event_wizard_when_where_form', 'node_event_form', 'node_event_edit_form'], TRUE)) {
+  if ($form_id !== 'event_wizard_when_where_form') {
     return $form;
   }
 
@@ -387,11 +377,15 @@ function myeventlane_event_form_after_build_reorder_quality_venue(array $form, F
   $venue_key = _myeventlane_event_detect_venue_form_key($form);
 
   if (!$quality_key || !$venue_key || $quality_key === $venue_key) {
-    \Drupal::logger('myeventlane_event')->debug('Venue reorder skipped for @form_id: quality=@q venue=@v', [
-      '@form_id' => $form_id,
-      '@q' => $quality_key ?? 'missing',
-      '@v' => $venue_key ?? 'missing',
-    ]);
+    // MEL vendor builder nests venue/quality under mel_layout → mel_builder; top-level
+    // detection is expected to miss — do not spam dblog. Log only partial detection.
+    if ($quality_key || $venue_key) {
+      \Drupal::logger('myeventlane_event')->debug('Venue reorder skipped for @form_id: quality=@q venue=@v', [
+        '@form_id' => $form_id,
+        '@q' => $quality_key ?? 'missing',
+        '@v' => $venue_key ?? 'missing',
+      ]);
+    }
     return $form;
   }
 
@@ -414,19 +408,18 @@ function myeventlane_event_form_alter(array &$form, FormStateInterface $form_sta
   // Ticket type paragraph conditional logic.
   TicketTypeFormAlter::alterForm($form, $form_state);
 
-  // Event quality panel vs Venue: fix order after every module's form alters.
-  if (in_array($form_id, ['event_wizard_when_where_form', 'node_event_form', 'node_event_edit_form'], TRUE)) {
-    $form['#after_build'] = $form['#after_build'] ?? [];
-    if (!in_array('myeventlane_event_form_after_build_reorder_quality_venue', $form['#after_build'], TRUE)) {
-      $form['#after_build'][] = 'myeventlane_event_form_after_build_reorder_quality_venue';
-    }
-  }
-
   // Ensure field_multiple_value_form elements have #attributes (prevents
   // FieldPreprocess warnings in wizard step forms).
   if (str_starts_with($form_id, 'event_wizard_')) {
     $form['#attached']['library'][] = 'myeventlane_event/event_wizard';
     $form['#after_build'][] = [\Drupal\myeventlane_event\Form\EventWizardBaseForm::class, 'ensureFieldAttributes'];
+
+    if ($form_id === 'event_wizard_when_where_form') {
+      $form['#after_build'] = $form['#after_build'] ?? [];
+      if (!in_array('myeventlane_event_form_after_build_reorder_quality_venue', $form['#after_build'], TRUE)) {
+        $form['#after_build'][] = 'myeventlane_event_form_after_build_reorder_quality_venue';
+      }
+    }
 
     // Basics step: ensure form accepts file uploads (field_event_image).
     if ($form_id === 'event_wizard_basics_form') {
@@ -518,16 +511,6 @@ function myeventlane_event_form_alter(array &$form, FormStateInterface $form_sta
  *   The form ID (for Phase 3D DEBUG logging only).
  */
 function _myeventlane_event_details_step_descriptions(array &$form, string $form_id): void {
-  // Phase 3D DEBUG (audit-only): prove alter runs and list actual form keys.
-  \Drupal::logger('myeventlane_event')->notice(
-    'Phase 3D DEBUG: details step alter fired for form_id=@id',
-    ['@id' => $form_id]
-  );
-  \Drupal::logger('myeventlane_event')->notice(
-    'Phase 3D DEBUG: details fields=@fields',
-    ['@fields' => implode(', ', array_keys($form))]
-  );
-
   $t = function (string $s) {
     return t($s);
   };
@@ -560,15 +543,24 @@ function _myeventlane_event_details_step_descriptions(array &$form, string $form
 
 /**
  * Implements hook_form_node_event_form_alter().
- *
- * This specific hook runs AFTER hook_form_alter, ensuring we can remove
- * conflicting elements added by other modules (like vendor module's tabs).
- *
- * Legacy wizard (EventFormAlter stepping on node edit) is OFF by default.
- * Canonical event creation flow is /vendor/events/create.
  */
 function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  $route_name = (string) \Drupal::routeMatch()->getRouteName();
+  _myeventlane_event_alter_admin_event_node_form($form, $form_state);
+}
+
+/**
+ * Implements hook_form_node_event_edit_form_alter().
+ */
+function myeventlane_event_form_node_event_edit_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  _myeventlane_event_alter_admin_event_node_form($form, $form_state);
+}
+
+/**
+ * Minimal admin-only event node form: ticket UI points vendors to workspace.
+ *
+ * Organisers use Event Studio; this form is only reachable with administer nodes.
+ */
+function _myeventlane_event_alter_admin_event_node_form(array &$form, FormStateInterface $form_state): void {
   $event = $form_state->getFormObject()->getEntity();
   $event_id = $event instanceof NodeInterface ? (int) $event->id() : 0;
 
@@ -585,121 +577,56 @@ function myeventlane_event_form_node_event_form_alter(array &$form, FormStateInt
     }
   }
 
-  $is_admin_advanced_editor = \Drupal::currentUser()->hasPermission('administer nodes');
-
-  // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-  \Drupal::logger('myeventlane_event')->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-    'route' => $route_name,
-    'event_id' => $event_id,
-    'form_id' => $form_id,
-    'canonical' => 0,
-  ]);
-
-  // Raw node form is reserved for admin advanced edits.
-  if ($is_admin_advanced_editor) {
+  if (\Drupal::currentUser()->hasPermission('administer nodes')) {
+    $studio_url = '/vendor/events/create';
+    try {
+      $studio_url = Url::fromRoute('myeventlane_event_studio.create')->toString();
+    }
+    catch (\Throwable) {
+    }
     $form['myeventlane_advanced_notice'] = [
       '#type' => 'markup',
-      '#markup' => '<div class="mel-advanced-edit-warning"><strong>⚠️ Advanced edit mode</strong><br>Event creation and ticketing should be done via <em>Create Event</em>. Editing here may bypass validation and capacity safeguards.</div>',
+      '#markup' => '<div class="mel-advanced-edit-warning"><p><strong>' . t('Administrator event form') . '</strong></p><p>' . t('Organisers create and edit events in <a href=":url">Event Studio</a>. Use this form only for support or data repair.', [':url' => $studio_url]) . '</p></div>',
       '#weight' => -100,
     ];
   }
+}
 
-  /**
-   * Legacy node form wizard (EventFormAlter) — DEPRECATED.
-   * Canonical flow is /vendor/events/create. Re-enabling this state key
-   * bypasses wizard safeguards and capacity UX (Phase 3A) and is unsupported.
-   * State key: myeventlane.enable_legacy_node_wizard (default FALSE).
-   */
-  if (!\Drupal::state()->get('myeventlane.enable_legacy_node_wizard', FALSE)) {
-    return;
-  }
+/**
+ * #after_build: simplify attendee questions paragraph chrome for vendor builder.
+ *
+ * @param array<string, mixed> $element
+ *
+ * @return array<string, mixed>
+ */
+function myeventlane_event_attendee_questions_builder_after_build(array $element, FormStateInterface $form_state): array {
+  _myeventlane_event_attendee_questions_polish_recursive($element);
+  return $element;
+}
 
-  /** @var \Drupal\myeventlane_event\Form\EventFormAlter $alter */
-  $alter = \Drupal::service('myeventlane_event.event_form_alter');
-  $alter->alterForm($form, $form_state, $form_id);
-
-  // CRITICAL: Final safety check - ensure buttons ALWAYS exist and are visible.
-  // This runs AFTER all other form alters to ensure nothing can remove our buttons.
-  // Ensure actions container exists and is visible.
-  if (!isset($form['actions'])) {
-    $form['actions'] = [
-      '#type' => 'actions',
-      '#weight' => 1000,
-    ];
-  }
-  $form['actions']['#access'] = TRUE;
-
-  // Ensure buttons exist - call this again to be absolutely sure.
-  $alter->ensureActionButtons($form, $form_state);
-
-  // CRITICAL: Force buttons to exist and be visible - create if missing.
-  $form_object = $form_state->getFormObject();
-  $entity = $form_object->getEntity();
-  $is_new = $entity->isNew();
-
-  // Ensure a "Save" button exists (for edit forms, this is the primary action).
-  if (!isset($form['actions']['submit']) || (isset($form['actions']['submit']['#access']) && $form['actions']['submit']['#access'] === FALSE)) {
-    $submit_handlers = [];
-    if ($is_new) {
-      // For new events, publish on submit.
-      $submit_handlers[] = ['\Drupal\myeventlane_event\Form\EventFormAlter', 'submitPublish'];
+/**
+ * @param array<string, mixed> $element
+ */
+function _myeventlane_event_attendee_questions_polish_recursive(array &$element): void {
+  foreach ($element as $key => &$child) {
+    if (str_starts_with((string) $key, '#') || !is_array($child)) {
+      continue;
     }
-    if ($form_object instanceof EntityFormInterface) {
-      $submit_handlers[] = [$form_object, 'save'];
+    if ($key === 'field_question_machine_name' || $key === 'field_question_help') {
+      $child['#access'] = FALSE;
     }
-    if ($is_new) {
-      $submit_handlers[] = ['\Drupal\myeventlane_event\Form\EventFormAlter', 'submitPublishPostSave'];
-    }
-    $form['actions']['submit'] = [
-      '#type' => 'submit',
-      '#value' => $is_new ? t('Publish event') : t('Save'),
-      '#submit' => $submit_handlers,
-      '#access' => TRUE,
-      '#weight' => 10,
-      '#attributes' => ['class' => ['button', 'button--primary']],
-    ];
-  }
-  else {
-    $form['actions']['submit']['#access'] = TRUE;
-    // Update label for edit forms if it says "Publish event".
-    if (!$is_new && isset($form['actions']['submit']['#value']) && $form['actions']['submit']['#value'] === t('Publish event')) {
-      $form['actions']['submit']['#value'] = t('Save');
-    }
-  }
-
-  if (!isset($form['actions']['save_draft']) || (isset($form['actions']['save_draft']['#access']) && $form['actions']['save_draft']['#access'] === FALSE)) {
-    $submit_handlers = [];
-    $submit_handlers[] = ['\Drupal\myeventlane_event\Form\EventFormAlter', 'submitSaveDraft'];
-    if ($form_object instanceof EntityFormInterface) {
-      $submit_handlers[] = [$form_object, 'save'];
-    }
-    $form['actions']['save_draft'] = [
-      '#type' => 'submit',
-      '#value' => t('Save draft'),
-      '#submit' => $submit_handlers,
-      '#access' => TRUE,
-      '#weight' => 5,
-      '#attributes' => ['class' => ['button']],
-    ];
-  }
-  else {
-    $form['actions']['save_draft']['#access'] = TRUE;
-  }
-
-  // Ensure buttons have proper attributes.
-  foreach (['submit', 'save_draft'] as $button_key) {
-    if (isset($form['actions'][$button_key])) {
-      if (!isset($form['actions'][$button_key]['#attributes'])) {
-        $form['actions'][$button_key]['#attributes'] = [];
+    if (($child['#type'] ?? '') === 'paragraphs' || isset($child['widget']['add_more'])) {
+      if (!isset($child['#attributes'])) {
+        $child['#attributes'] = [];
       }
-      if (!isset($form['actions'][$button_key]['#attributes']['class'])) {
-        $form['actions'][$button_key]['#attributes']['class'] = [];
+      if (!isset($child['#attributes']['class'])) {
+        $child['#attributes']['class'] = [];
       }
-      if (!in_array('button', $form['actions'][$button_key]['#attributes']['class'])) {
-        $form['actions'][$button_key]['#attributes']['class'][] = 'button';
-      }
+      $child['#attributes']['class'][] = 'mel-attendee-questions-paragraphs-widget';
     }
+    _myeventlane_event_attendee_questions_polish_recursive($child);
   }
+  unset($child);
 }
 
 /**
@@ -841,42 +768,9 @@ function myeventlane_event_node_presave(NodeInterface $node): void {
 /**
  * Implements hook_entity_presave().
  *
- * Non-blocking audit log when event is saved with incomplete ticket config.
  * Also prevents saving corrupted datetime field values in ticket type paragraphs.
  */
 function myeventlane_event_entity_presave(EntityInterface $entity): void {
-  // Audit: log when event is saved with incomplete ticket configuration (do not block save).
-  if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'event' && $entity instanceof NodeInterface) {
-    // Do not warn when saving from a wizard step form (basics, when_where, etc.).
-    $route = \Drupal::routeMatch()->getRouteName();
-    $wizard_step_routes = [
-      'myeventlane_event.wizard.basics',
-      'myeventlane_event.wizard.when_where',
-      'myeventlane_event.wizard.tickets',
-      'myeventlane_event.wizard.details',
-      'myeventlane_event.wizard.review',
-      'myeventlane_event.wizard.publish',
-    ];
-    if ($route && in_array($route, $wizard_step_routes, TRUE)) {
-      return;
-    }
-
-    $event_type = $entity->hasField('field_event_type') && !$entity->get('field_event_type')->isEmpty()
-      ? $entity->get('field_event_type')->value : NULL;
-    $capacity_required = in_array($event_type, ['rsvp', 'paid', 'both'], TRUE);
-    $capacity_ok = !$capacity_required;
-    if ($capacity_required && $entity->hasField('field_capacity') && !$entity->get('field_capacity')->isEmpty()) {
-      $capacity_ok = (int) $entity->get('field_capacity')->value > 0;
-    }
-    if ($event_type === NULL || ($capacity_required && !$capacity_ok)) {
-      \Drupal::logger('myeventlane_event')->warning(
-        'Event @id saved outside wizard with incomplete ticket configuration.',
-        ['@id' => $entity->id() ?? 'new']
-      );
-    }
-    return;
-  }
-
   // MIGRATION_ONLY: ticket_type_config paragraph ticketing removed.
   if ($entity->getEntityTypeId() !== 'paragraph' || $entity->bundle() !== 'ticket_type_config') {
     return;
@@ -1020,8 +914,28 @@ function _myeventlane_event_sync_events_for_ticket_type(int $ticketId): void {
   if (!$query) {
     return;
   }
+  // EntityStorageBase::loadMultiple() uses array_flip() on ID values; each must be int|string.
+  $nids = [];
+  foreach ($query as $k => $v) {
+    if (is_int($v) || (is_string($v) && is_numeric($v))) {
+      $nids[] = (int) $v;
+    }
+    elseif (is_float($v) && floor($v) == $v) {
+      $nids[] = (int) $v;
+    }
+    elseif (is_array($v) && isset($v['target_id'])) {
+      $nids[] = (int) $v['target_id'];
+    }
+    elseif (is_int($k) || (is_string($k) && is_numeric($k))) {
+      $nids[] = (int) $k;
+    }
+  }
+  $nids = array_values(array_unique(array_filter($nids)));
+  if ($nids === []) {
+    return;
+  }
   $ticket_type_manager = \Drupal::service('myeventlane_event.ticket_type_manager');
-  foreach ($node_storage->loadMultiple($query) as $event) {
+  foreach ($node_storage->loadMultiple($nids) as $event) {
     if ($event instanceof NodeInterface && $event->bundle() === 'event') {
       $ticket_type_manager->syncTicketTypesToVariations($event);
     }

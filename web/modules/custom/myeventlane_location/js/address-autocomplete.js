@@ -13,7 +13,7 @@
   'use strict';
 
   const SETTINGS = (drupalSettings && drupalSettings.myeventlaneLocation) ? drupalSettings.myeventlaneLocation : {};
-  const DEBUG = !!SETTINGS.debug || true; // Temporarily enable debug for diagnosis
+  const DEBUG = !!SETTINGS.debug;
 
   function log(...args) {
     if (DEBUG && window.console) console.log('[MEL Location]', ...args);
@@ -40,119 +40,66 @@
     return !!(el && (el.offsetParent !== null || el.getClientRects().length));
   }
 
+  /**
+   * MEL event builder hides granular address rows until "Enter address manually";
+   * reveal them when a place is chosen so populated values are visible.
+   */
+  function revealMelEventBuilderAddress(form) {
+    if (!form) {
+      return;
+    }
+    const section = form.querySelector('.mel-event-section--when-where');
+    if (section) {
+      section.classList.add('is-manual-address');
+    }
+  }
+
   function closestForm(el) {
     return el ? el.closest('form') : null;
   }
 
   /**
-   * Return the best "widget root" for field_location or field_venue_address.
-   *
-   * Priority (VISIBLE widgets preferred):
-   * 1) Explicit wrapper: [data-mel-address="field_venue_address"] (PHASE 5: prefer venue address)
-   * 2) Explicit wrapper: [data-mel-address="field_location"]
-   * 3) Drupal field wrapper: .field--name-field-venue-address
-   * 4) Drupal field wrapper: .field--name-field-location
-   * 5) Closest fieldset containing address inputs
-   * 6) Form fallback
-   *
-   * IMPORTANT: Only return visible widgets. Hidden widgets (like field_location
-   * in the Event Wizard) should be skipped.
+   * MEL field_location only — single canonical root, no form fallback.
    */
   function getLocationWidgetRoot(form) {
-    if (!form) return null;
-
-    // PHASE 5: Prefer field_venue_address if it exists AND is visible.
-    let root = form.querySelector('[data-mel-address="field_venue_address"]');
-    if (root && isVisible(root)) {
-      log('Found field_venue_address widget root by data-mel-address attribute');
-      return root;
+    if (!form) {
+      return null;
     }
-
-    root = form.querySelector('[data-mel-address="field_location"]');
-    if (root && isVisible(root)) {
-      log('Found field_location widget root by data-mel-address attribute');
-      return root;
-    }
-
-    root = form.querySelector('.field--name-field-venue-address');
-    if (root && isVisible(root)) {
-      log('Found field_venue_address widget root by class');
-      return root;
-    }
-
-    root = form.querySelector('.field--name-field-location');
-    if (root && isVisible(root)) {
-      log('Found field_location widget root by class');
-      return root;
-    }
-
-    // Fieldset containing VISIBLE address inputs (prefer field_venue_address).
-    const fieldsets = form.querySelectorAll('fieldset');
-    for (const fs of fieldsets) {
-      if (!isVisible(fs)) continue;
-      if (fs.querySelector('input[name*="field_venue_address"][name*="[address][address_line1]"]') ||
-          fs.querySelector('input[name*="field_venue_address"][name*="[address][locality]"]')) {
-        log('Found field_venue_address widget root in fieldset');
-        return fs;
-      }
-    }
-    for (const fs of fieldsets) {
-      if (!isVisible(fs)) continue;
-      if (fs.querySelector('input[name*="[address][address_line1]"]') ||
-          fs.querySelector('input[name*="[address][locality]"]') ||
-          fs.querySelector('input[name*="[address][postal_code]"]')) {
-        log('Found address widget root in fieldset');
-        return fs;
-      }
-    }
-
-    // Fall back to form but log it.
-    log('Using form as widget root fallback (no visible address widget found)');
-    return form;
+    return form.querySelector('[data-mel-address="field_location"]');
   }
 
   /**
-   * Finds the search input that the vendor types into.
-   * Returns the FIRST VISIBLE input matching any of these selectors:
-   * - .myeventlane-location-address-search
-   * - input[data-address-search="true"]
-   * - name contains field_location_address_search
-   *
-   * IMPORTANT: We search for ALL matches and return the first visible one
-   * because forms may have multiple search inputs (e.g., one hidden in
-   * field_location widget, one visible at the top).
+   * Location search input: only inside [data-mel-address="field_location"].
    */
-  function findSearchInput(context) {
-    if (!context) return null;
-
-    // Collect all possible search inputs.
+  function findSearchInput(form) {
+    if (!form) {
+      return null;
+    }
+    const root = form.querySelector('[data-mel-address="field_location"]');
+    if (!root) {
+      return null;
+    }
     const selectors = [
+      '.mel-venue-location-trigger',
       '.myeventlane-location-address-search',
       'input[data-address-search="true"]',
       'input[name*="field_location_address_search"]',
-      'input[name*="address_search"]'
     ];
-
-    // First pass: try to find a visible input.
     for (const selector of selectors) {
-      const inputs = context.querySelectorAll(selector);
+      const inputs = root.querySelectorAll(selector);
       for (const input of inputs) {
         if (isVisible(input)) {
-          log('Found visible search input with selector:', selector);
+          log('Found visible location search inside field_location root:', selector);
           return input;
         }
       }
     }
-
-    // Second pass: if no visible input, return the first match (for backwards compat).
     for (const selector of selectors) {
-      const input = context.querySelector(selector);
+      const input = root.querySelector(selector);
       if (input) {
-        log('No visible search input found, falling back to first match:', selector);
         return input;
       }
     }
-
     return null;
   }
 
@@ -341,16 +288,16 @@
   }
 
   /**
-   * Populate Drupal Address widget fields.
+   * Populate a Drupal address widget subtree (e.g. field_venue_address). Not for MEL field_location.
    */
-  function populateAddressWidget(form, widgetRoot, components) {
+  function populateGenericAddressWidget(form, widgetRoot, components) {
     if (!form || !widgetRoot || !components) {
-      log('populateAddressWidget: Missing required params', { form: !!form, widgetRoot: !!widgetRoot, components: !!components });
+      log('populateGenericAddressWidget: Missing required params', { form: !!form, widgetRoot: !!widgetRoot, components: !!components });
       return;
     }
 
-    log('populateAddressWidget: Starting, widgetRoot:', widgetRoot, 'components:', components);
-    
+    log('populateGenericAddressWidget: Starting, widgetRoot:', widgetRoot, 'components:', components);
+
     const country = findAddressComponent(widgetRoot, 'country_code', true);
     const state = findAddressComponent(widgetRoot, 'administrative_area', true);
     const suburb = findAddressComponent(widgetRoot, 'locality', false);
@@ -358,7 +305,7 @@
     const line1 = findAddressComponent(widgetRoot, 'address_line1', false);
     const line2 = findAddressComponent(widgetRoot, 'address_line2', false);
     
-    log('populateAddressWidget: Found fields', {
+    log('populateGenericAddressWidget: Found fields', {
       country: country ? country.name : 'NOT FOUND',
       state: state ? state.name : 'NOT FOUND',
       suburb: suburb ? suburb.name : 'NOT FOUND',
@@ -381,10 +328,14 @@
         setFieldValue(country, countryValue);
         log('Country value after set:', country.value);
         
-        // Wait for AJAX to complete if country change triggers it
-        // Check if there's an AJAX wrapper that will refresh
-        const ajaxWrapper = widgetRoot.querySelector('[data-drupal-selector*="ajax"], .ajax-wrapper, [id*="ajax"]');
-        if (ajaxWrapper) {
+        // Wait for AJAX only when the country field lives in a Drupal AJAX wrapper
+        // (state/province options refresh). Avoid matching unrelated [id*="ajax"] on
+        // the whole form, which deferred population incorrectly on large pages.
+        const countryItem = country.closest('.js-form-item, .form-item');
+        const ajaxWrapper = countryItem
+          ? countryItem.querySelector('.ajax-wrapper, [data-drupal-selector*="ajax"]')
+          : null;
+        if (ajaxWrapper && window.jQuery) {
           log('Detected AJAX wrapper, waiting for AJAX to complete before setting other fields');
           
           // Listen for AJAX completion
@@ -429,12 +380,13 @@
     populateRemainingFields();
     
     function populateRemainingFields() {
-      // Re-find fields in case AJAX refreshed them
-      const refreshedLine1 = findAddressComponent(widgetRoot, 'address_line1', false);
-      const refreshedLine2 = findAddressComponent(widgetRoot, 'address_line2', false);
-      const refreshedSuburb = findAddressComponent(widgetRoot, 'locality', false);
-      const refreshedPostcode = findAddressComponent(widgetRoot, 'postal_code', false);
-      const refreshedState = findAddressComponent(widgetRoot, 'administrative_area', true);
+      const rootNow = widgetRoot;
+      // Re-find fields in case AJAX refreshed them or the root was wrong initially.
+      const refreshedLine1 = findAddressComponent(rootNow, 'address_line1', false);
+      const refreshedLine2 = findAddressComponent(rootNow, 'address_line2', false);
+      const refreshedSuburb = findAddressComponent(rootNow, 'locality', false);
+      const refreshedPostcode = findAddressComponent(rootNow, 'postal_code', false);
+      const refreshedState = findAddressComponent(rootNow, 'administrative_area', true);
       
       // line1
       const fieldToUse = refreshedLine1 || line1;
@@ -582,8 +534,7 @@
 
     log('populateVenueAddress called with components:', components);
 
-    // First, try to find field_venue_address widget root using the same logic as getLocationWidgetRoot
-    // but specifically for field_venue_address
+    // field_venue_address only (MEL field_location uses Drupal.melLocation).
     let widgetRoot = form.querySelector('[data-mel-address="field_venue_address"]');
     
     if (!widgetRoot) {
@@ -636,9 +587,8 @@
     }
 
     if (widgetRoot) {
-      log('Found field_venue_address widget root, using populateAddressWidget');
-      // Use the standard populateAddressWidget function which handles all the logic
-      populateAddressWidget(form, widgetRoot, components);
+      log('Found field_venue_address widget root, using populateGenericAddressWidget');
+      populateGenericAddressWidget(form, widgetRoot, components);
       return;
     }
 
@@ -913,13 +863,20 @@
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
 
-          populateAddressWidget(form, widgetRoot, comps);
-          // Populate venue name from place.name (not comps.name, which may be empty).
-          populateVenueName(form, place.name || comps.name || '');
-          // Populate field_venue_address with the same address components.
-          populateVenueAddress(form, comps);
-          populateLatLng(form, widgetRoot, lat, lng);
-          populatePlaceId(form, widgetRoot, place.place_id || '');
+          if (widgetRoot) {
+            revealMelEventBuilderAddress(form);
+            if (Drupal.melLocation && typeof Drupal.melLocation.populate === 'function') {
+              Drupal.melLocation.populate(place, form);
+            }
+            else {
+              warn('Drupal.melLocation.populate missing; attach myeventlane_location/mel_location.');
+            }
+            if (form) {
+              form.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            populateVenueName(form, place.name || comps.name || '');
+            populateVenueAddress(form, comps);
+          }
 
           // Dispatch custom event for venue-selection.js to handle venue-specific logic
           const placeSelectedEvent = new CustomEvent('place_selected', {
@@ -1084,13 +1041,16 @@
                   const lat = p.coordinate ? p.coordinate.latitude : null;
                   const lng = p.coordinate ? p.coordinate.longitude : null;
 
-                  populateAddressWidget(form, widgetRoot, comps);
-                  // Populate venue name from place.name (not comps.name, which may be empty).
-                  populateVenueName(form, p.name || comps.name || '');
-                  // Populate field_venue_address with the same address components.
-                  populateVenueAddress(form, comps);
-                  if (lat !== null && lng !== null) {
-                    populateLatLng(form, widgetRoot, lat, lng);
+                  if (widgetRoot) {
+                    revealMelEventBuilderAddress(form);
+                    if (Drupal.melLocation && typeof Drupal.melLocation.populateFromComponents === 'function') {
+                      Drupal.melLocation.populateFromComponents(form, comps, lat, lng, '');
+                    }
+                    if (form) {
+                      form.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    populateVenueName(form, p.name || comps.name || '');
+                    populateVenueAddress(form, comps);
                   }
 
                   // Dispatch custom event for venue-selection.js to handle venue-specific logic
@@ -1159,12 +1119,55 @@
   }
 
   /**
+   * Event Studio: attach Places to .mel-location-search when visible (no Drupal address widget).
+   */
+  function maybeAttachStudioLocationSearch(form) {
+    if (!form) return;
+    const input = form.querySelector('.mel-location-search');
+    if (!input || input.dataset.melAutocompleteAttached === '1') {
+      return;
+    }
+    if (!isVisible(input)) {
+      return;
+    }
+    const provider = SETTINGS.provider || 'google_maps';
+    if (provider === 'google_maps') {
+      setupGoogleAutocomplete(input, form, null);
+    }
+    else if (provider === 'apple_maps') {
+      setupAppleAutocomplete(input, form, null);
+    }
+  }
+
+  /**
+   * Re-try Studio location attach when venue mode toggles visibility.
+   */
+  function ensureStudioVenueModeListener(form) {
+    if (!form || form.dataset.melStudioVenueListener === '1') {
+      return;
+    }
+    if (!form.querySelector('.mel-location-search')) {
+      return;
+    }
+    form.dataset.melStudioVenueListener = '1';
+    form.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t && t.name === 'mel[venue_mode]' && t.matches && t.matches('input[type="radio"]')) {
+        window.setTimeout(() => maybeAttachStudioLocationSearch(form), 50);
+      }
+    });
+  }
+
+  /**
    * ------------------------------------------------------------------------
    * Main initializer (called per form)
    * ------------------------------------------------------------------------
    */
   function initForForm(form) {
     if (!form) return;
+
+    ensureStudioVenueModeListener(form);
+    maybeAttachStudioLocationSearch(form);
 
     const widgetRoot = getLocationWidgetRoot(form);
     const searchInput = findSearchInput(form);
@@ -1225,8 +1228,9 @@
           const hasDataAttr = f.querySelector('[data-mel-address="field_location"]');
           const hasFieldLocation = f.querySelector('.field--name-field-location');
           const hasVenueWidget = f.querySelector('.myeventlane-venue-selection-widget');
-          
-          if (hasSearch || hasDataAttr || hasFieldLocation || hasVenueWidget) {
+          const hasMelStudioSearch = f.querySelector('.mel-location-search');
+
+          if (hasSearch || hasDataAttr || hasFieldLocation || hasVenueWidget || hasMelStudioSearch) {
             candidates.push(f);
             log('Found relevant form, has search:', !!hasSearch, 'has data-attr:', !!hasDataAttr, 'has field-location:', !!hasFieldLocation, 'has venue-widget:', !!hasVenueWidget);
           }

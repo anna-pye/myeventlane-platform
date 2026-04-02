@@ -16,6 +16,8 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_vendor_ai']
 
+  # Deprecated: use myeventlane_help_shared.unified_help_retriever. Kept for
+  # one release cycle; safe to remove when no custom code injects this id.
   myeventlane_vendor_ai.help_retriever:
     class: Drupal\myeventlane_vendor_ai\Service\HelpArticleRetriever
     arguments:

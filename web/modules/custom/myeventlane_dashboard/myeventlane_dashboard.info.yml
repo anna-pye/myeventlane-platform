@@ -8,6 +8,7 @@ lifecycle: stable
 dependencies:
   - myeventlane_analytics:myeventlane_analytics
   - myeventlane_core:myeventlane_core
+  - myeventlane_event_studio:myeventlane_event_studio
   - myeventlane_event:myeventlane_event
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_event_attendees:myeventlane_event_attendees

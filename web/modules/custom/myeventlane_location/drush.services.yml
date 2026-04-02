@@ -1,6 +1,6 @@
 services:
   myeventlane_location.commands:
     class: Drupal\myeventlane_location\Commands\MyeventlaneLocationCommands
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager', '@?myeventlane_event_studio.save']
     tags:
       - { name: drush.command }

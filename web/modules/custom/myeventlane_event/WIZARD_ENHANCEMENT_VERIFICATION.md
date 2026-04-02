@@ -2,17 +2,15 @@
 
 **Date:** 2025-01-27  
 **Module:** `myeventlane_event`  
-**Form Class:** `EventWizardForm`
+**Forms:** Step wizard (`EventWizardBasicsForm`, `EventWizardWhenWhereForm`, `EventWizardTicketsForm`, etc.). The legacy monolithic `EventWizardForm` / `myeventlane_event_wizard` was removed.
 
 ---
 
 ## ✅ Step 0 - Wizard Discovery
 
 - [x] **Module name:** `myeventlane_event`
-- [x] **Form class:** `Drupal\myeventlane_event\Form\EventWizardForm`
-- [x] **Route names:**
-  - `myeventlane_event.wizard_form_new` (`/vendor/events/wizard`)
-  - `myeventlane_event.wizard_form_edit` (`/vendor/events/wizard/{node}`)
+- [x] **Form classes:** `Drupal\myeventlane_event\Form\EventWizard*Form` (per-step)
+- [x] **Route names:** `myeventlane_event.wizard.basics`, `.when_where`, `.tickets`, `.details`, `.review`, `.publish`, `.success` (see `myeventlane_event.routing.yml`)
 - [x] **JS/CSS libraries:** `myeventlane_event/event_wizard`
   - CSS: `css/event-wizard.css`
   - JS: `js/event-wizard.js`
@@ -117,25 +115,11 @@ Venue stored as:
 
 ## ✅ Step 5 - Regression Tests (Required)
 
-**Test Class:** `EventWizardFormTest` (BrowserTestBase)
-
-Tests implemented:
-- [x] `testWizardStepProgression()` - Step progression ✅
-- [x] `testValuePersistence()` - Value persistence ✅
-- [x] `testConditionalFieldVisibility()` - Conditional visibility ✅
-- [x] `testSaveDraft()` - Save draft functionality ✅
-- [x] `testStepValidation()` - Step validation ✅
-- [x] `testVenueDataPersistence()` - Venue data persistence ✅
-- [x] `testVenueCoordinatesPersistence()` - Lat/lng/place_id persistence ✅
-- [x] `testEventPageRendersFromWizard()` - Event page rendering ✅
-- [x] `testNoPhpNotices()` - No PHP errors ✅
-- [x] `testRelevantFieldsPerStep()` - Field visibility per step ✅
+**Note:** `EventWizardFormTest` and the monolithic wizard were removed. Add new functional coverage for step routes (`myeventlane_event.wizard.*`) when needed.
 
 **Run tests:**
 ```bash
 ddev drush test myeventlane_event
-# Or specific test:
-ddev drush test EventWizardFormTest
 ```
 
 ---
@@ -144,24 +128,10 @@ ddev drush test EventWizardFormTest
 
 ### Modified Files
 
-1. **`web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`**
-   - Enhanced validation with proper error handling
-   - Improved date validation
-   - Better error messages using `setError()` instead of `setErrorByName()`
-   - Added try/catch for save operations
-   - Added data attributes for JavaScript targeting
-
-2. **`web/modules/custom/myeventlane_event/tests/src/Functional/EventWizardFormTest.php`**
-   - Added comprehensive test coverage
-   - Tests for all acceptance criteria
-   - Tests for venue coordinates persistence
-   - Tests for event page rendering
-   - Tests for PHP error prevention
-
-3. **`web/modules/custom/myeventlane_event/myeventlane_event.libraries.yml`**
+1. **`web/modules/custom/myeventlane_event/myeventlane_event.libraries.yml`**
    - Already properly configured ✅
 
-4. **`web/themes/custom/myeventlane_theme/src/scss/components/_event-wizard.scss`**
+2. **`web/themes/custom/myeventlane_theme/src/scss/components/_event-wizard.scss`**
    - Already comprehensive ✅
 
 ---
@@ -243,18 +213,13 @@ ddev exec npm run build
 
 1. **Manual Testing:**
    ```bash
-   # Navigate to wizard
-   ddev launch /vendor/events/wizard
-   
-   # Complete all 7 steps
-   # Verify data persists when going back
-   # Verify venue fields save correctly
-   # Verify event page renders correctly
+   # Use vendor flow to create an event, then open each wizard step route
+   # (Basics → When & Where → Tickets → …) from the vendor console.
    ```
 
 2. **Automated Testing:**
    ```bash
-   ddev drush test EventWizardFormTest
+   ddev drush test myeventlane_event
    ```
 
 3. **Code Quality:**

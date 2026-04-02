@@ -1,6 +1,6 @@
 uuid: e0f3144f-7ab4-48ec-9539-362ac11b15b5
 langcode: en
-status: true
+status: false
 dependencies:
   config:
     - views.view.front_recommended_events

@@ -85,6 +85,9 @@ class RsvpMailer {
       $email = $submission->getEmail();
       $name = $submission->getAttendeeName() ?? $submission->get('name')->value ?? '';
       $event_nid = $submission->getEventId() ?? $event->id();
+      $guests = $submission->hasField('quantity')
+        ? max(1, (int) ($submission->get('quantity')->value ?? 1))
+        : ($submission->hasField('guests') ? max(1, (int) ($submission->get('guests')->value ?? 1)) : 1);
     }
     // Handle legacy array format.
     elseif (is_array($submission)) {
@@ -100,6 +103,7 @@ class RsvpMailer {
       $email = $submission['email'] ?? '';
       $name = $submission['name'] ?? '';
       $event_nid = $submission['event_nid'] ?? $event->id();
+      $guests = max(1, (int) ($submission['quantity'] ?? $submission['guests'] ?? 1));
     }
     else {
       return;
@@ -130,6 +134,7 @@ class RsvpMailer {
       'event_location' => $event_location,
       'name' => $name,
       'email' => $email,
+      'guests' => $guests,
       'event_nid' => $event_nid,
       'attachments' => [],
     ];

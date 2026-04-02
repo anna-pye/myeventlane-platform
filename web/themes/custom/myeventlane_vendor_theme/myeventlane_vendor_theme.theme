@@ -73,6 +73,24 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   }
   $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
 
+  // Event node add form: staff/support only. Vendors use Event Studio (myeventlane_event_studio.create).
+  try {
+    if (\Drupal::routeMatch()->getRouteName() === 'entity.node.add_form') {
+      $account = \Drupal::currentUser();
+      $is_staff_node_form = $account->hasPermission('administer nodes') || (int) $account->id() === 1;
+      $node_type = \Drupal::routeMatch()->getParameter('node_type');
+      if ($is_staff_node_form && $node_type) {
+        $bundle = is_object($node_type) ? $node_type->id() : (string) $node_type;
+        if ($bundle === 'event') {
+          $variables['#attached']['library'][] = 'myeventlane_vendor_theme/vendor_event_form_page';
+        }
+      }
+    }
+  }
+  catch (\Exception $e) {
+    // Route parameters unavailable; skip optional bridge script.
+  }
+
   // Get current user info.
   $current_user = \Drupal::currentUser();
   $account = $current_user->getAccount();
@@ -217,9 +235,11 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $route_match
   );
 
-  // Build Event Wizard sidebar steps when on wizard route (requires event param).
+  // Legacy step-wizard sidebar: staff/support only (vendors are redirected to Event Studio).
   $variables['page']['wizard_steps'] = [];
-  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+  $account = $current_user;
+  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_step_routes(), TRUE)
+    && ($account->hasPermission('administer nodes') || (int) $account->id() === 1)) {
     $event = $route_match->getParameter('event') ?? $route_match->getParameter('node');
     if ($event && $event instanceof \Drupal\node\NodeInterface && $event->bundle() === 'event') {
       $variables['page']['wizard_steps'] = _myeventlane_vendor_theme_build_wizard_steps($event, $route_name);
@@ -314,8 +334,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $variables['page']['quick_actions'][] = [
       '#type' => 'link',
       '#title' => t('+ Create Event'),
-      // Use canonical wizard route for event creation.
-      '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event.wizard.create'),
+      '#url' => \Drupal\Core\Url::fromRoute('myeventlane_event_studio.create'),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn--primary', 'mel-header__action-btn'],
       ],
@@ -370,7 +389,7 @@ function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
 
   // Event step wizard pages: body class for layout (e.g. full-width content).
   $route_name = \Drupal::routeMatch()->getRouteName();
-  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+  if (in_array($route_name, _myeventlane_vendor_theme_event_builder_layout_routes(), TRUE)) {
     $variables['attributes']['class'][] = 'mel-page--event-wizard';
   }
 }
@@ -398,21 +417,6 @@ function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $f
     }
   }
   
-  // Also attach event-form library for the custom wizard form.
-  if ($form_id === 'myeventlane_event_wizard') {
-    $form['#attributes']['class'][] = 'mel-event-form';
-    $form['#attributes']['class'][] = 'mel-event-form-page';
-    $form['#attributes']['data-event-form'] = TRUE;
-    
-    // Attach vendor theme's event-form library (includes compiled wizard styles).
-    $form['#attached']['library'][] = 'myeventlane_vendor_theme/event-form';
-    
-    // Attach required libraries for form functionality.
-    $form['#attached']['library'][] = 'core/drupal.form';
-    $form['#attached']['library'][] = 'core/drupal.states';
-    $form['#attached']['library'][] = 'core/drupal.ajax';
-  }
-
   // Step wizard forms (Basics, When & Where, Tickets, Details, Review, Publish).
   if (str_starts_with($form_id, 'event_wizard_')) {
     $form['#attributes']['class'][] = 'mel-event-wizard-page';
@@ -425,9 +429,19 @@ function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $f
 }
 
 /**
- * Event wizard build route names (step wizard: Basics → When & Where → … → Publish).
+ * Event Studio routes (vendor create/edit).
  */
-function _myeventlane_vendor_theme_event_wizard_routes(): array {
+function _myeventlane_vendor_theme_event_studio_routes(): array {
+  return [
+    'myeventlane_event_studio.create',
+    'myeventlane_event_studio.edit',
+  ];
+}
+
+/**
+ * Legacy multi-step wizard routes (Basics → … → Publish), for admin/support.
+ */
+function _myeventlane_vendor_theme_event_wizard_step_routes(): array {
   return [
     'myeventlane_event.wizard.basics',
     'myeventlane_event.wizard.when_where',
@@ -437,6 +451,18 @@ function _myeventlane_vendor_theme_event_wizard_routes(): array {
     'myeventlane_event.wizard.publish',
     'myeventlane_event.wizard.success',
   ];
+}
+
+/**
+ * Vendor event-builder layout: Event Studio always; legacy wizard only for staff.
+ */
+function _myeventlane_vendor_theme_event_builder_layout_routes(): array {
+  $routes = _myeventlane_vendor_theme_event_studio_routes();
+  $account = \Drupal::currentUser();
+  if ($account->hasPermission('administer nodes') || (int) $account->id() === 1) {
+    $routes = array_merge($routes, _myeventlane_vendor_theme_event_wizard_step_routes());
+  }
+  return $routes;
 }
 
 /**
@@ -479,7 +505,7 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
   // Add page suggestions based on route.
   $route_name = \Drupal::routeMatch()->getRouteName();
 
-  if (in_array($route_name, _myeventlane_vendor_theme_event_wizard_routes(), TRUE)) {
+  if (in_array($route_name, _myeventlane_vendor_theme_event_builder_layout_routes(), TRUE)) {
     $suggestions[] = 'page__vendor__event_wizard';
   }
   elseif ($route_name === 'myeventlane_vendor.dashboard') {
@@ -503,10 +529,6 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
   $form_id = $variables['element']['#form_id'] ?? '';
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'], TRUE)) {
     $suggestions[] = 'form__node_event_form__vendor';
-  }
-
-  if ($form_id === 'myeventlane_event_wizard') {
-    $suggestions[] = 'form__myeventlane_event_wizard';
   }
 
   if ($form_id === 'vendor_onboard_profile_form') {
@@ -1016,7 +1038,7 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_p
   $date_formatter = \Drupal::service('date.formatter');
 
   $variables['event_title'] = $event->label();
-  $variables['edit_url'] = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eid])->toString();
+  $variables['edit_url'] = Url::fromRoute('entity.node.edit_form', ['node' => $eid])->toString();
   $variables['public_url'] = Url::fromRoute('entity.node.canonical', ['node' => $eid])->toString();
   $variables['booking_url'] = Url::fromRoute('myeventlane_commerce.event_book', ['node' => $eid])->toString();
 
@@ -1386,6 +1408,15 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_notifications.preferences' => 'notifications',
     'myeventlane_help_centre.vendor_help' => 'help',
     'myeventlane_help_centre.home' => 'help',
+    'myeventlane_event_studio.create' => 'events',
+    'myeventlane_event_studio.edit' => 'events',
+    'myeventlane_event.wizard.basics' => 'events',
+    'myeventlane_event.wizard.when_where' => 'events',
+    'myeventlane_event.wizard.tickets' => 'events',
+    'myeventlane_event.wizard.details' => 'events',
+    'myeventlane_event.wizard.review' => 'events',
+    'myeventlane_event.wizard.publish' => 'events',
+    'myeventlane_event.wizard.success' => 'events',
     // Legacy/alternate routes.
     'myeventlane_vendor.dashboard' => 'dashboard',
     'myeventlane_vendor.console.dashboard' => 'dashboard',
@@ -1539,34 +1570,21 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
  */
 function _myeventlane_vendor_theme_build_event_wizard_submenu(?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
   $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
-  $has_event = $event_id !== NULL;
-  if (!$has_event) {
-    // Wizard step links are only meaningful while editing a specific event.
+  if ($event_id === NULL) {
     return [];
   }
 
-  $children = [];
-  $wizard_steps = [
-    ['label' => t('Basics'), 'route' => 'myeventlane_event.wizard.basics'],
-    ['label' => t('When & Where'), 'route' => 'myeventlane_event.wizard.when_where'],
-    ['label' => t('Tickets'), 'route' => 'myeventlane_event.wizard.tickets'],
-    ['label' => t('Details'), 'route' => 'myeventlane_event.wizard.details'],
-    ['label' => t('Review'), 'route' => 'myeventlane_event.wizard.review'],
-    ['label' => t('Publish'), 'route' => 'myeventlane_event.wizard.publish'],
-  ];
+  $url = _myeventlane_vendor_theme_safe_route_url('myeventlane_event_studio.edit', ['node' => $event_id]);
+  $studio_routes = _myeventlane_vendor_theme_event_studio_routes();
 
-  foreach ($wizard_steps as $step) {
-    $url = NULL;
-    $url = _myeventlane_vendor_theme_safe_route_url((string) $step['route'], ['event' => $event_id]);
-    $children[] = [
-      'label' => $step['label'],
+  return [
+    [
+      'label' => t('Event builder'),
       'url' => $url,
       'is_disabled' => $url === NULL,
-      'is_active' => $route_name === $step['route'],
-    ];
-  }
-
-  return $children;
+      'is_active' => in_array($route_name, $studio_routes, TRUE),
+    ],
+  ];
 }
 
 /**
@@ -1701,8 +1719,14 @@ function _myeventlane_vendor_theme_alert_event_sold_out(int $uid): ?array {
     if (empty($ids)) {
       return NULL;
     }
+    /** @var \Drupal\myeventlane_core\Service\EntityIdNormalizer $normalizer */
+    $normalizer = \Drupal::service('myeventlane_core.entity_id_normalizer');
+    $nids = $normalizer->normalizeNodeIds(array_values($ids));
+    if ($nids === []) {
+      return NULL;
+    }
     $capacity = \Drupal::service('myeventlane_capacity.service');
-    foreach (array_slice($ids, 0, 20) as $nid) {
+    foreach (array_slice($nids, 0, 20) as $nid) {
       $node = $etm->getStorage('node')->load($nid);
       if ($node && $capacity->isSoldOut($node)) {
         return [
@@ -1808,21 +1832,26 @@ function _myeventlane_vendor_theme_alert_new_order(int $uid): ?array {
 function _myeventlane_vendor_theme_get_max_completed_order_id_for_user(int $uid): int {
   try {
     $etm = \Drupal::entityTypeManager();
-    $eids = $etm->getStorage('node')->getQuery()
+    $eids_raw = $etm->getStorage('node')->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', 'event')
       ->condition('uid', $uid)
       ->range(0, 100)
       ->execute();
-    if (empty($eids)) {
+    /** @var \Drupal\myeventlane_core\Service\EntityIdNormalizer $normalizer */
+    $normalizer = \Drupal::service('myeventlane_core.entity_id_normalizer');
+    // Before: raw query map; mixed scalars. After: int nids.
+    $eids = $normalizer->normalizeNodeIds(array_values($eids_raw));
+    if ($eids === []) {
       return 0;
     }
-    $oi_ids = $etm->getStorage('commerce_order_item')->getQuery()
+    $oi_ids_raw = $etm->getStorage('commerce_order_item')->getQuery()
       ->accessCheck(FALSE)
-      ->condition('field_target_event', array_values($eids), 'IN')
+      ->condition('field_target_event', $eids, 'IN')
       ->range(0, 500)
       ->execute();
-    if (empty($oi_ids)) {
+    $oi_ids = $normalizer->normalizeEntityIds(array_values($oi_ids_raw));
+    if ($oi_ids === []) {
       return 0;
     }
     $items = $etm->getStorage('commerce_order_item')->loadMultiple($oi_ids);
@@ -1832,8 +1861,8 @@ function _myeventlane_vendor_theme_get_max_completed_order_id_for_user(int $uid)
         $order_ids[] = $it->get('order_id')->target_id;
       }
     }
-    $order_ids = array_values(array_unique(array_filter($order_ids)));
-    if (empty($order_ids)) {
+    $order_ids = $normalizer->normalizeOrderIds(array_values($order_ids));
+    if ($order_ids === []) {
       return 0;
     }
     $completed = $etm->getStorage('commerce_order')->getQuery()

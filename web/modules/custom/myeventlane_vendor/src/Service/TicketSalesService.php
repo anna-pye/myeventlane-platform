@@ -40,6 +40,33 @@ final class TicketSalesService {
   }
 
   /**
+   * @return array<string, mixed>
+   */
+  private function emptySalesSummary(): array {
+    return [
+      'gross' => '$0.00',
+      'refunded' => '$0.00',
+      'donation_refunded' => '$0.00',
+      'net' => '$0.00',
+      'fees' => '$0.00',
+      'gross_raw' => 0.0,
+      'refunded_raw' => 0.0,
+      'donation_refunded_raw' => 0.0,
+      'net_raw' => 0.0,
+      'gross_cents' => 0,
+      'refunded_ticket_cents' => 0,
+      'donation_refunded_cents' => 0,
+      'net_cents' => 0,
+      'refund_rate_percent' => 0.0,
+      'currency' => 'AUD',
+      'tickets_sold' => 0,
+      'tickets_available' => 0,
+      'conversion' => 0.0,
+      'orders_count' => 0,
+    ];
+  }
+
+  /**
    * Returns a sales summary for an event.
    *
    * Counts: Completed orders only (order state='completed').
@@ -55,7 +82,16 @@ final class TicketSalesService {
    *   tickets_available (int|string), conversion (float), orders_count (int).
    */
   public function getSalesSummary(NodeInterface $event): array {
-    $eventId = (int) $event->id();
+    return $this->getSalesSummaryForEventId((int) $event->id());
+  }
+
+  /**
+   * Same as getSalesSummary() without requiring a loaded node (vendor dashboard DTO path).
+   */
+  public function getSalesSummaryForEventId(int $eventId): array {
+    if ($eventId <= 0) {
+      return $this->emptySalesSummary();
+    }
     $grossCents = 0;
     $ticketsSold = 0;
     $currency = 'AUD';
@@ -122,7 +158,11 @@ final class TicketSalesService {
     $refundedDonationCents = (int) ($refundAttribution['donation_cents'] ?? 0);
     $netCents = max(0, $grossCents - $refundedTicketCents);
 
-    $ticketsAvailable = $this->getTicketsAvailable($event);
+    $ticketsAvailable = 0;
+    $eventNode = $this->entityTypeManager->getStorage('node')->load($eventId);
+    if ($eventNode instanceof NodeInterface && $eventNode->bundle() === 'event') {
+      $ticketsAvailable = $this->getTicketsAvailable($eventNode);
+    }
     $gross = $grossCents / 100;
     $refunded = $refundedTicketCents / 100;
     $donationRefunded = $refundedDonationCents / 100;

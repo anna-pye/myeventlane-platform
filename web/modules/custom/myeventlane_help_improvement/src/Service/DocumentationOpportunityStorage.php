@@ -131,8 +131,9 @@ final class DocumentationOpportunityStorage {
     }
 
     try {
-      $initialFreq = $record['target_frequency'] !== NULL
-        ? max(1, (int) $record['target_frequency'])
+      $insertTargetFrequency = $record['target_frequency'] ?? NULL;
+      $initialFreq = $insertTargetFrequency !== NULL
+        ? max(1, (int) $insertTargetFrequency)
         : max(1, (int) ($record['frequency_count'] ?? 1));
       $this->connection->insert('mel_doc_opportunity')
         ->fields([

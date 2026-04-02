@@ -77,7 +77,7 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    if (in_array($routeName, ['myeventlane_event.wizard.create', 'myeventlane_vendor.console.events_add'], TRUE)) {
+    if (in_array($routeName, ['myeventlane_event_studio.create', 'myeventlane_vendor.console.events_add'], TRUE)) {
       $this->rateLimiter->enforce(
         'myeventlane_launch.event_create',
         $this->rateLimiter->buildIdentifier($request, 'event_create'),

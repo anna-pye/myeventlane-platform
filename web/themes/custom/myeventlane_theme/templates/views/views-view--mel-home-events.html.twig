@@ -2,12 +2,14 @@
 /**
  * @file
  * Template for mel_home_events View wrapper.
- * 
- * Completely removes all View wrapper divs so rows go directly into grid containers
- * provided by homepage template (.mel-sticker-wall, .mel-row__scroller).
- * 
- * This template outputs ONLY the rows content - no .view, .view-content, or other wrappers.
+ *
+ * Mirrors core views-view.html.twig row/empty handling. Outputting only {{ rows }}
+ * hides the empty state and can look like “nothing renders” when the query
+ * returns no rows or the view is building an empty result set.
  */
 #}
-{{ rows }}
-
+{% if rows -%}
+  {{ rows }}
+{% elseif empty -%}
+  {{ empty }}
+{% endif -%}

@@ -6,6 +6,7 @@ core_version_requirement: ^11
 dependencies:
   - drupal:commerce_order
   - drupal:commerce_payment
+  - myeventlane_core:myeventlane_core
   - myeventlane_launch:myeventlane_launch
   - myeventlane_rsvp:myeventlane_rsvp
   - myeventlane_tickets:myeventlane_tickets

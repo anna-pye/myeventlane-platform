@@ -20,6 +20,7 @@ use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * Tier rules, event capacity, and placement lock (acquire + release) in one module.
@@ -127,7 +128,7 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
           '@msg' => $e->getMessage(),
         ]
       );
-      throw new CapacityExceededException($e->getMessage(), 0, $e);
+      throw new UnprocessableEntityHttpException($e->getMessage(), $e);
     }
   }
 

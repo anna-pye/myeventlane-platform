@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\node\NodeInterface;
 use Drupal\views\Entity\View as ViewEntity;
 use Drupal\views\ViewExecutable;
@@ -47,6 +48,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
     LoggerInterface $logger,
+    private readonly EventStudioSaveService $eventStudioSave,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
@@ -63,6 +65,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
       $container->get('current_user'),
       $container->get('messenger'),
       $container->get('logger.channel.myeventlane_vendor'),
+      $container->get('myeventlane_event_studio.save'),
     );
   }
 
@@ -78,7 +81,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form['#attributes']['class'][] = 'mel-vendor-events-form';
-    $form['#create_event_url'] = Url::fromRoute('myeventlane_event.wizard.create')->toString();
+    $form['#create_event_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/mel_vendor_events';
 
     $executable = $this->loadVendorEventsViewExecutable();
@@ -124,7 +127,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
         'action' => [
           '#type' => 'link',
           '#title' => $this->t('Create your first event'),
-          '#url' => Url::fromRoute('myeventlane_event.wizard.create'),
+          '#url' => Url::fromRoute('myeventlane_event_studio.create'),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
         ],
       ];
@@ -369,8 +372,12 @@ final class VendorEventsBulkActionsForm extends FormBase {
       if ($node instanceof NodeInterface
           && $node->bundle() === 'event'
           && (int) $node->getOwnerId() === $userId) {
-        $node->setPublished($publish);
-        $node->save();
+        $this->eventStudioSave->setNodePublishedState(
+          $node,
+          $this->currentUser,
+          $publish,
+          $publish ? 'Bulk publish from vendor events list.' : 'Bulk unpublish from vendor events list.',
+        );
         $updatedCount++;
       }
     }

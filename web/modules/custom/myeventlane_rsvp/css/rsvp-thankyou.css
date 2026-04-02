@@ -1,0 +1,189 @@
+.mel-card--confirmation {
+  background: #fef5ec;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.mel-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.mel-subtitle {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.mel-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mel-btn--primary {
+  background: #f26d5b;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 12px;
+}
+
+.mel-btn--ghost {
+  background: transparent;
+  border: 1px solid #ccc;
+}
+
+.mel-btn--danger {
+  color: #c0392b;
+}
+
+.mel-donation-cta {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 18px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.mel-donation-cta__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.mel-donation-cta__body {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #413438;
+}
+
+.mel-donation-cta__actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.mel-donation-cta--pending {
+  padding: 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(245, 192, 76, 0.18), rgba(242, 109, 91, 0.12));
+  border: 2px solid rgba(245, 192, 76, 0.4);
+  box-shadow: 0 12px 40px rgba(245, 192, 76, 0.25);
+  text-align: center;
+  margin-top: 20px;
+  animation: mel-fade-up 0.4s ease-out;
+}
+
+.mel-donation-cta__icon {
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.mel-donation-progress {
+  margin: 16px 0;
+}
+
+.mel-donation-progress__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f5c04c, #f26d5b);
+  width: 75%;
+  margin: 0 auto;
+  animation: mel-progress-pulse 1.6s ease-in-out infinite alternate;
+}
+
+.mel-donation-progress__label {
+  font-size: 12px;
+  margin-top: 6px;
+  color: #888;
+}
+
+.mel-donation-cta__reassurance {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #645258;
+}
+
+.mel-donation-cta--pending .mel-btn--primary {
+  background: #f26d5b;
+  border: 0;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(242, 109, 91, 0.28);
+}
+
+.mel-donation-cta--pending .mel-btn {
+  font-size: 18px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  box-shadow: 0 8px 25px rgba(242, 109, 91, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.mel-donation-cta--pending .mel-btn:hover {
+  transform: translateY(-2px);
+}
+
+.mel-donation-cta--complete {
+  background: linear-gradient(135deg, #ecfbf1 0%, #e4f7eb 100%);
+  border-color: #bce8cc;
+}
+
+.mel-donation-cta__badge {
+  display: inline-block;
+  margin-top: 12px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f6f3a;
+  background: #dff6e8;
+}
+
+.mel-donation-cta--upsell {
+  background: linear-gradient(135deg, #fff8f0 0%, #fff2f8 100%);
+  border-color: #ffdce8;
+}
+
+@keyframes mel-progress-pulse {
+  from {
+    width: 65%;
+  }
+  to {
+    width: 85%;
+  }
+}
+
+@keyframes mel-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .mel-card--confirmation {
+    padding: 18px;
+  }
+
+  .mel-donation-cta {
+    padding: 16px;
+  }
+
+  .mel-donation-cta__title {
+    font-size: 18px;
+  }
+
+  .mel-donation-cta__actions .mel-btn {
+    width: 100%;
+  }
+}

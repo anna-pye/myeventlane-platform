@@ -43,23 +43,13 @@
       </a>
       {% if categories is defined and categories|length %}
         {% for term in categories %}
-          <a href="/events?category={{ term.tid }}" class="mel-category-chip">
+          <a href="{{ path('view.upcoming_events.page_category', {'arg_0': term.tid}) }}" class="mel-category-chip">
             {{ term.name }}
           </a>
         {% endfor %}
       {% else %}
-        {# Default categories #}
-        <a href="/events?type=workshop" class="mel-category-chip mel-category-chip--coral">
-          Workshop
-        </a>
-        <a href="/events?type=music" class="mel-category-chip mel-category-chip--purple">
-          Music
-        </a>
-        <a href="/events?type=community" class="mel-category-chip mel-category-chip--blue">
-          Community
-        </a>
-        <a href="/events?type=food" class="mel-category-chip mel-category-chip--teal">
-          Food & Drink
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-category-chip mel-category-chip--coral">
+          {{ 'Browse events'|t }}
         </a>
       {% endif %}
     </div>

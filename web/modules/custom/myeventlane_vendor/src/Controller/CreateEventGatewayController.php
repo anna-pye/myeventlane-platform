@@ -188,7 +188,7 @@ class CreateEventGatewayController extends ControllerBase {
 
     $this->legalGatekeeper->assertVendorTermsAccepted();
 
-    $create_url = Url::fromRoute('myeventlane_event.wizard.create');
+    $create_url = Url::fromRoute('myeventlane_event_studio.create');
     return new RedirectResponse($create_url->toString());
   }
 

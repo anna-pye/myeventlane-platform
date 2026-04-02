@@ -17,7 +17,7 @@
   // Semi-transparent tint that blends into the page-shell gradient.
   // NOT opaque — the body/page radials show through, creating continuity.
   background: var(--mel-gradient-hero);
-  padding: clamp(3rem, 6vw, 6rem) 1.5rem;
+  padding: clamp(1.5rem, 4vw, 3.25rem) 1.5rem;
   position: relative;
   overflow: hidden;
 

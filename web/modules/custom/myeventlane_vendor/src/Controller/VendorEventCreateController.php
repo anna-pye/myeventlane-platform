@@ -14,10 +14,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Controller for vendor event creation: redirects to canonical wizard.
+ * Controller for vendor event creation: redirects to Event Studio.
  *
- * This legacy route (/vendor/events/add) is retained for backwards
- * compatibility and redirects to the canonical wizard create route.
+ * Legacy route (/vendor/events/add) is retained and forwards to Event Studio.
  */
 final class VendorEventCreateController extends VendorConsoleBaseController implements ContainerInjectionInterface {
 
@@ -41,26 +40,22 @@ final class VendorEventCreateController extends VendorConsoleBaseController impl
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
-      $container->get('logger.factory')->get('myeventlane_vendor'),
+      $container->get('logger.channel.myeventlane_vendor'),
     );
   }
 
   /**
-   * Redirects to the canonical wizard create route.
+   * Redirects to Event Studio create.
    */
   public function buildForm(): RedirectResponse {
     $this->assertVendorAccess();
     $this->assertStripeConnected();
 
-    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-      'route' => 'myeventlane_vendor.console.events_add',
-      'event_id' => 0,
-      'form_id' => 'n/a',
-      'canonical' => 1,
+    $this->logger->notice('Vendor event create entry: from_route=myeventlane_vendor.console.events_add target_route=myeventlane_event_studio.create studio_selected=1 uid=@uid', [
+      '@uid' => (string) $this->currentUser->id(),
     ]);
 
-    $url = Url::fromRoute('myeventlane_event.wizard.create');
+    $url = Url::fromRoute('myeventlane_event_studio.create');
     return new RedirectResponse($url->toString());
   }
 

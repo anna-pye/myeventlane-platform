@@ -373,64 +373,9 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // On vendor domain, force event add form through the vendor gateway to
-    // create-and-redirect to the vendor edit journey.
-    if ($is_vendor_domain
-      && $route_name === 'entity.node.add_form'
-      && !$this->currentUser->hasPermission('administer nodes')) {
-      try {
-        $node_type = $this->routeMatch->getParameter('node_type');
-        $bundle = NULL;
-        if ($node_type) {
-          $bundle = is_string($node_type) ? $node_type : $node_type->id();
-        }
-        if ($bundle === 'event') {
-          // Redirect directly to wizard (gateway will handle auth/onboarding if
-          // needed).
-          // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-          $this->loggerFactory->get('myeventlane_event')->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-            'route' => $route_name,
-            'event_id' => 0,
-            'form_id' => 'node_event_form',
-            'canonical' => 1,
-          ]);
-          $wizard_url = Url::fromRoute('myeventlane_event.wizard.create')->toString();
-          $event->setResponse(new TrustedRedirectResponse($wizard_url, 302));
-          return;
-        }
-      }
-      catch (\Exception $e) {
-        // If parameter resolution fails, do nothing.
-      }
-    }
-
-    // On vendor domain, redirect event edit forms to the wizard.
-    // This ensures vendors never see the default Drupal node edit form.
-    if ($is_vendor_domain
-      && $route_name === 'entity.node.edit_form'
-      && !$this->currentUser->hasPermission('administer nodes')) {
-      try {
-        $node = $this->routeMatch->getParameter('node');
-        if ($node && method_exists($node, 'bundle') && $node->bundle() === 'event') {
-          // Check if user owns the event.
-          if ((int) $node->getOwnerId() === (int) $this->currentUser->id()) {
-            // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-            $this->loggerFactory->get('myeventlane_event')->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-              'route' => $route_name,
-              'event_id' => (int) $node->id(),
-              'form_id' => 'node_event_form',
-              'canonical' => 1,
-            ]);
-            $wizard_url = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $node->id()])->toString();
-            $event->setResponse(new TrustedRedirectResponse($wizard_url, 302));
-            return;
-          }
-        }
-      }
-      catch (\Exception $e) {
-        // If parameter resolution fails, do nothing.
-      }
-    }
+    // Event add/edit forms stay on the canonical node routes; vendor UX is
+    // shaped by EventFormAlter (single-page builder) instead of redirecting
+    // into the legacy step wizard.
   }
 
   /**

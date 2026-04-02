@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Related-by-category embed: no wrapper when there are no rows.
+ *
+ * Lets the event full template use one drupal_view() render and a trim check
+ * without treating the default .view shell as “content”.
+ */
+#}
+{% if rows %}
+  {{ rows }}
+{% endif %}

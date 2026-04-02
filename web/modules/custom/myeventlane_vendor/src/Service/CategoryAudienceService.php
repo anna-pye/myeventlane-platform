@@ -6,6 +6,9 @@ namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event_studio\DTO\MelEventData;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\node\NodeInterface;
 
 /**
@@ -22,6 +25,8 @@ final class CategoryAudienceService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AccountProxyInterface $currentUser,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
+    private readonly EventRepository $eventRepository,
   ) {}
 
   /**
@@ -40,9 +45,12 @@ final class CategoryAudienceService {
       $userId = (int) $this->currentUser->id();
       $nodeStorage = $this->entityTypeManager->getStorage('node');
 
-      // Get events to analyze.
-      if ($event) {
-        $events = [$event];
+      $eventDtos = [];
+      if ($event instanceof NodeInterface) {
+        $one = $this->eventRepository->load((int) $event->id());
+        if ($one instanceof MelEventData) {
+          $eventDtos[] = $one;
+        }
       }
       else {
         $eventIds = $nodeStorage->getQuery()
@@ -51,21 +59,19 @@ final class CategoryAudienceService {
           ->condition('uid', $userId)
           ->execute();
 
-        if (empty($eventIds)) {
+        $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+        if ($eventIds === []) {
           return [];
         }
-        $events = $nodeStorage->loadMultiple($eventIds);
+        $eventDtos = $this->eventRepository->loadMany($eventIds);
       }
 
       // Count events by category.
       $categoryCounts = [];
-      foreach ($events as $eventNode) {
-        if ($eventNode->hasField('field_event_category') && !$eventNode->get('field_event_category')->isEmpty()) {
-          $term = $eventNode->get('field_event_category')->entity;
-          if ($term) {
-            $termName = $term->label();
-            $categoryCounts[$termName] = ($categoryCounts[$termName] ?? 0) + 1;
-          }
+      foreach ($eventDtos as $dto) {
+        $label = $dto->category_label;
+        if ($label !== NULL && $label !== '') {
+          $categoryCounts[$label] = ($categoryCounts[$label] ?? 0) + 1;
         }
       }
 
@@ -129,7 +135,8 @@ final class CategoryAudienceService {
         ->condition('uid', $userId)
         ->execute();
 
-      if (empty($eventIds)) {
+      $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+      if ($eventIds === []) {
         return 0;
       }
 
@@ -137,7 +144,7 @@ final class CategoryAudienceService {
       $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
       $total = (int) $attendeeStorage->getQuery()
         ->accessCheck(FALSE)
-        ->condition('event', array_values($eventIds), 'IN')
+        ->condition('event', $eventIds, 'IN')
         ->count()
         ->execute();
     }
@@ -172,11 +179,11 @@ final class CategoryAudienceService {
         ->condition('uid', $userId)
         ->execute();
 
-      if (empty($eventIds)) {
+      $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+      if ($eventIds === []) {
         return ['total_attendees' => 0, 'repeat_attendees' => 0];
       }
 
-      $eventIds = array_values($eventIds);
       $emailToEvents = [];
 
       // event_attendee: email → set of event IDs.
@@ -205,7 +212,8 @@ final class CategoryAudienceService {
           ->condition($eventRefField, $eventIds, 'IN')
           ->condition('status', 'confirmed')
           ->execute();
-        foreach ($rsvpStorage->loadMultiple($rsvpIds) as $rsvp) {
+        $rsvpIds = $this->entityIdNormalizer->normalizeEntityIds(array_values($rsvpIds));
+        foreach (($rsvpIds === [] ? [] : $rsvpStorage->loadMultiple($rsvpIds)) as $rsvp) {
           $email = NULL;
           if ($rsvp->hasField('email') && !$rsvp->get('email')->isEmpty()) {
             $email = $rsvp->get('email')->value;
@@ -262,21 +270,20 @@ final class CategoryAudienceService {
         ->condition('uid', $userId)
         ->execute();
 
-      if (empty($eventIds)) {
+      $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+      if ($eventIds === []) {
         return [];
       }
 
-      // Load events for titles.
-      $events = $nodeStorage->loadMultiple($eventIds);
       $eventTitles = [];
-      foreach ($events as $event) {
-        $eventTitles[$event->id()] = $event->label();
+      foreach ($this->eventRepository->loadMany($eventIds) as $dto) {
+        $eventTitles[$dto->id] = $dto->title;
       }
 
       // Get attendees for these events.
       $attendeeStorage = $this->entityTypeManager->getStorage('event_attendee');
       $attendeeEntities = $attendeeStorage->loadByProperties([
-        'event' => array_values($eventIds),
+        'event' => $eventIds,
       ]);
 
       foreach ($attendeeEntities as $attendee) {

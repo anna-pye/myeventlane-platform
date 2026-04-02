@@ -226,7 +226,7 @@ final class HelpContextResolver {
     )) {
       return 'checkout';
     }
-    if ($route_name !== '' && str_starts_with($route_name, 'myeventlane_event.wizard')) {
+    if ($route_name !== '' && (str_starts_with($route_name, 'myeventlane_event.wizard') || str_starts_with($route_name, 'myeventlane_event_studio.'))) {
       return 'event_wizard';
     }
     if ($route_name !== '' && str_contains($route_name, 'myeventlane_boost.vendor_boost')) {

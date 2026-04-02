@@ -1,0 +1,48 @@
+{#
+/**
+ * @file
+ * Shared shell for /events browse (page__events + view-specific page suggestion).
+ */
+#}
+<div class="mel-page mel-page--events">
+
+  <a href="#main-content" class="visually-hidden focusable skip-link">
+    {{ 'Skip to main content'|t }}
+  </a>
+
+  <div class="mel-region-header">
+    {{ site_header }}
+  </div>
+
+  <main id="main-content" class="mel-main">
+    <div class="mel-browse">
+      <div class="mel-container mel-container--wide">
+        <header class="mel-browse-header">
+          <h1>{{ 'Find your next event'|t }}</h1>
+          <p>{{ 'Browse what’s happening near you.'|t }}</p>
+        </header>
+
+        {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
+          title: '',
+          hide_page_title: true,
+          show_search: true,
+          show_categories: true,
+          categories: mel_header_categories|default([]),
+          hero_image_url: mel_hero_image_url|default(null),
+          hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
+          hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
+        } %}
+
+        <section class="mel-section mel-section--browse-results" aria-labelledby="mel-browse-results-title">
+          <h2 id="mel-browse-results-title" class="visually-hidden">{{ 'Upcoming events'|t }}</h2>
+          {{ page.content }}
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div class="mel-region-footer">
+    {% include '@myeventlane_theme/includes/footer.html.twig' %}
+  </div>
+
+</div>

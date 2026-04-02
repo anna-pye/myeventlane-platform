@@ -17,7 +17,7 @@ use Drupal\Core\Url;
 /**
  * Shared service to assert vendor has accepted vendor terms.
  *
- * Used by CreateEventGatewayController and EventWizardCreateController
+ * Used by CreateEventGatewayController and vendor event entry controllers.
  * to avoid duplication.
  */
 final class LegalGatekeeper {

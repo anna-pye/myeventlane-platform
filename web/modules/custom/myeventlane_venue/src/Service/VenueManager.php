@@ -46,6 +46,11 @@ class VenueManager {
       return [];
     }
 
+    $ids = array_values(array_unique(array_map(
+      static fn ($id): int => (int) $id,
+      $ids
+    )));
+
     return $storage->loadMultiple($ids);
   }
 

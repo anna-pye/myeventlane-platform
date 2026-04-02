@@ -1,0 +1,859 @@
+/**
+ * Vendor event single-page builder: hero header, preview column, sections, sticky actions.
+ */
+
+/* —— Layout —— */
+.mel-event-builder-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .mel-event-builder-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .mel-event-builder-main {
+    flex: 1 1 62%;
+    min-width: 0;
+  }
+
+  .mel-event-builder-sidebar {
+    flex: 0 0 34%;
+    position: sticky;
+    top: 1rem;
+    align-self: flex-start;
+  }
+}
+
+/* —— Section cards (progressive disclosure shell) —— */
+.mel-event-section {
+  margin-bottom: 1rem;
+  background: #fff;
+  padding: 1rem 1.125rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.mel-event-builder-form .mel-step:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-section__hint {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+.mel-advanced-section {
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.mel-warning.mel-tickets-publish-warning {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(180, 120, 0, 0.1);
+  border: 1px solid rgba(180, 120, 0, 0.35);
+  font-size: 0.9375rem;
+  color: #5c4300;
+}
+
+/* —— Hero header —— */
+.mel-event-header {
+  margin-bottom: 0.5rem;
+  padding: 1.25rem 1.25rem 1rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-header__title-field {
+  margin-bottom: 0.35rem;
+}
+
+.mel-event-header__title-field .form-item__label,
+.mel-event-header__title-field label.form-required {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mel-event-header__title-input {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.25rem 0 !important;
+  width: 100%;
+  box-shadow: none !important;
+}
+
+.mel-event-header__title-input:focus {
+  outline: 2px solid rgba(80, 60, 200, 0.35);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.mel-event-header__when-where {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  color: rgba(0, 0, 0, 0.58);
+  min-height: 1.35em;
+}
+
+.mel-event-header__status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.mel-event-header__status-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.mel-event-header__dots {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.mel-event-header__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.12);
+  transition: background 0.2s ease;
+}
+
+.mel-event-header__dot.is-filled {
+  background: rgba(80, 60, 200, 0.85);
+}
+
+.mel-event-header__actions-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (min-width: 600px) {
+  .mel-event-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    align-items: start;
+    column-gap: 1rem;
+  }
+
+  .mel-event-header__title-field {
+    grid-column: 1 / -1;
+  }
+
+  .mel-event-header__when-where {
+    grid-column: 1 / 2;
+  }
+
+  .mel-event-header__status-row {
+    grid-column: 1 / 2;
+    margin-bottom: 0;
+  }
+
+  .mel-event-header__actions {
+    grid-column: 2 / 3;
+    grid-row: 2 / 4;
+    justify-self: end;
+    align-self: center;
+  }
+}
+
+/* —— Live preview (MEL-style card) —— */
+.mel-event-preview__heading {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0 0 0.75rem;
+}
+
+.mel-event-preview__card--mel-style {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-preview__media {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, rgba(80, 60, 200, 0.12), rgba(0, 0, 0, 0.04));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mel-event-preview__media.has-image .mel-event-preview__media-placeholder {
+  opacity: 0;
+}
+
+.mel-event-preview__media-placeholder {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.mel-event-preview__body {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.mel-event-preview__title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin: 0 0 0.35rem;
+  line-height: 1.3;
+}
+
+.mel-event-preview__datetime {
+  font-size: 0.9rem;
+  opacity: 0.82;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+}
+
+.mel-event-preview__badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(34, 160, 90, 0.14);
+  color: #1b6b45;
+  margin-bottom: 0.65rem;
+}
+
+.mel-event-preview__badge:empty,
+.mel-event-preview__badge[hidden] {
+  display: none !important;
+}
+
+.mel-event-preview__cta,
+button.mel-event-preview__cta.mel-preview-cta {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: rgba(80, 60, 200, 0.92);
+  color: #fff;
+  text-align: center;
+  min-width: 7rem;
+  border: none;
+  cursor: default;
+  font-family: inherit;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+.mel-event-preview__tickets {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.35;
+}
+
+.mel-event-preview__tickets:empty,
+.mel-event-preview__tickets[hidden] {
+  display: none !important;
+}
+
+/* —— Sticky footer actions —— */
+.mel-builder-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 14px 16px;
+  margin-top: 1rem;
+  margin-left: -4px;
+  margin-right: -4px;
+  width: calc(100% + 8px);
+  box-sizing: border-box;
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.mel-builder-actions .button {
+  min-height: 44px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  font-size: 1rem;
+}
+
+.mel-action-pulse {
+  animation: mel-action-pulse 0.9s ease-out 1;
+}
+
+@keyframes mel-action-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(80, 60, 200, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(80, 60, 200, 0);
+  }
+}
+
+/* —— Section headings —— */
+.mel-event-section__heading-block {
+  margin-bottom: 0.75rem;
+}
+
+.mel-event-section__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.mel-event-section__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* —— Header helper —— */
+.mel-event-header__helper {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.55);
+  grid-column: 1 / -1;
+}
+
+/* —— Header completion bar —— */
+.mel-progress {
+  margin-bottom: 20px;
+  max-width: 100%;
+}
+
+.mel-header-progress.mel-progress,
+.mel-progress.mel-header-progress {
+  margin: 0 0 20px;
+  max-width: 100%;
+}
+
+.mel-progress-bar {
+  height: 6px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mel-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #f26d5b;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  will-change: width;
+}
+
+.mel-progress-label {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.52);
+}
+
+/* —— Toasts —— */
+.mel-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10050;
+  max-width: min(92vw, 360px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #2c3e50;
+  color: #fff;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.mel-toast.mel-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* —— Tickets empty state —— */
+.mel-empty-state .mel-empty-state__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.82);
+}
+
+.mel-empty-state .mel-empty-state__text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+/* —— Publish confidence —— */
+.mel-confidence {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(80, 60, 200, 0.06);
+  border: 1px solid rgba(80, 60, 200, 0.2);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.72);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.mel-confidence.mel-confidence--ready {
+  background: rgba(34, 160, 90, 0.1);
+  border-color: rgba(34, 160, 90, 0.28);
+  color: #1b6b45;
+}
+
+.mel-confidence.mel-confidence--warn {
+  background: rgba(242, 109, 91, 0.08);
+  border-color: rgba(242, 109, 91, 0.35);
+  color: #8b3a2e;
+}
+
+.mel-confidence.mel-confidence--draft {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.65);
+}
+
+/* —— Field focus (builder scope) —— */
+.mel-event-builder-form .mel-field input:focus,
+.mel-event-builder-form .mel-field textarea:focus,
+.mel-event-builder-form .mel-field select:focus,
+.mel-event-builder-form .mel-field input:focus-visible,
+.mel-event-builder-form .mel-field textarea:focus-visible,
+.mel-event-builder-form .mel-field select:focus-visible {
+  outline: 2px solid #f26d5b;
+  outline-offset: 2px;
+}
+
+/* —— New event: hide static wizard stepper (does not match single-page builder) —— */
+.mel-event-form-page:has(form.mel-event-builder-form) .mel-event-form__stepper {
+  display: none !important;
+}
+
+/* —— New event: clear path + Save draft CTA —— */
+.mel-new-event-path {
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(80, 60, 200, 0.07);
+  border: 1px solid rgba(80, 60, 200, 0.2);
+}
+
+.mel-new-event-path__lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.mel-new-event-path__steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.mel-new-event-path__steps li {
+  margin-bottom: 0.35rem;
+}
+
+.mel-tickets-first-save-cta {
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.mel-tickets-first-save-cta__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+.mel-tickets-first-save-cta .js-mel-save-draft-scroll {
+  min-height: 44px;
+}
+
+/* Softer “focus” for first-save (not the same as missing-tickets warning). */
+.mel-step--tickets-first-save.mel-first-save-focus {
+  border: 2px dashed rgba(80, 60, 200, 0.45);
+  box-shadow: 0 2px 14px rgba(80, 60, 200, 0.08);
+}
+
+.mel-event-header__actions-inner .button + .button {
+  margin-left: 0.5rem;
+}
+
+/* —— When & where: manual address —— */
+.mel-when-where-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.mel-link-button {
+  background: none;
+  border: none;
+  padding: 0.35rem 0;
+  font: inherit;
+  color: rgba(80, 60, 200, 0.95);
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+  text-align: left;
+}
+
+.mel-link-button:hover {
+  color: rgba(50, 35, 140, 0.98);
+}
+
+/* Location field visibility is driven by venue_choice (#states); no manual-toggle hide. */
+
+/* —— Guided builder microcopy —— */
+.mel-helper {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.mel-help {
+  margin: 0 0 0.85rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.62);
+  background: rgba(80, 60, 200, 0.07);
+  border-radius: 10px;
+}
+
+.mel-mode-explainer {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: rgba(80, 60, 200, 0.92);
+  line-height: 1.4;
+  min-height: 1.35em;
+}
+
+.mel-tickets-guided-empty {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(242, 109, 91, 0.07);
+  border: 1px dashed rgba(242, 109, 91, 0.4);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.78);
+}
+
+.mel-step--tickets.mel-highlight:not(.mel-step--tickets-first-save) {
+  border: 2px dashed #f26d5b;
+  box-shadow: 0 2px 12px rgba(242, 109, 91, 0.1);
+}
+
+/* —— Step cards: guided layout —— */
+.mel-event-builder--clean .mel-step {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* —— Preview: category + image —— */
+.mel-event-preview__category {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(80, 60, 200, 0.88);
+  margin: 0 0 0.35rem;
+}
+
+.mel-event-preview__category:empty,
+.mel-event-preview__category[hidden] {
+  display: none !important;
+}
+
+.mel-event-preview__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mel-event-preview__media.has-image .mel-event-preview__img:not([hidden]) {
+  position: absolute;
+  inset: 0;
+}
+
+.mel-event-preview__media.has-image {
+  position: relative;
+}
+
+/* —— Publish gate —— */
+.button.is-muted-publish,
+.button--primary.is-muted-publish {
+  opacity: 0.55;
+}
+
+/* —— Reduce default Drupal form chrome inside MEL builder —— */
+.mel-event-builder-form.mel-event-builder--clean .form-item:not(.form-type-checkbox):not(.form-type-radio) {
+  margin-bottom: 16px;
+}
+
+.mel-event-builder-form.mel-event-builder--clean fieldset:not(.filter-wrapper) {
+  border: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.mel-event-builder-form.mel-event-builder--clean .details-wrapper {
+  padding: 0;
+}
+
+.mel-event-builder-form.mel-event-builder--clean .form-item--checkbox label,
+.mel-event-builder-form.mel-event-builder--clean .form-type-checkbox label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.mel-event-builder-form.mel-event-builder--clean .form-item:not(.form-type-checkbox):not(.form-type-radio) > label,
+.mel-event-builder-form.mel-event-builder--clean .form-item:not(.form-type-checkbox):not(.form-type-radio) label.form-item__label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* —— MEL field shells (sections below tickets) —— */
+.mel-event-builder--clean .mel-field {
+  margin-bottom: 1.1rem;
+}
+
+.mel-event-builder--clean .mel-field:last-child {
+  margin-bottom: 0;
+}
+
+.mel-field__label {
+  display: block;
+  font-weight: 650;
+  font-size: 0.9375rem;
+  margin: 0 0 0.45rem;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.mel-field__label-wrap {
+  margin-bottom: 0.15rem;
+}
+
+.mel-field__sublabel {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 0.35rem;
+}
+
+.mel-event-subsection {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.mel-event-builder--clean .mel-ticket-ops .form-item,
+.mel-event-builder--clean .mel-field .form-item {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.mel-capacity-block__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mel-capacity-block__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.mel-capacity-block__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .mel-capacity-block__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mel-questions-shell__title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* Flatten Claro/Seven fieldset noise inside MEL shells */
+.mel-event-builder--clean .mel-field .fieldset__wrapper,
+.mel-event-builder--clean .mel-field details.fieldset {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.mel-location-search .address-search input.form-text,
+.mel-location-search input.form-text {
+  max-width: 100%;
+}
+
+/* —— Attendee questions: reduce Paragraphs admin feel —— */
+.mel-attendee-questions-field .tabledrag-toggle-weight,
+.mel-attendee-questions-field .paragraphs-dropdown-actions {
+  display: none !important;
+}
+
+.mel-attendee-questions-field .field--name-field-question-machine-name,
+.mel-attendee-questions-field .field--name-field-question-help {
+  display: none !important;
+}
+
+.mel-attendee-questions-field .paragraph-type-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mel-attendee-questions-field .field--name-field-question-type,
+.mel-attendee-questions-field .field--name-field-question-required {
+  display: inline-block;
+  vertical-align: top;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 600px) {
+  .mel-attendee-questions-field .field--name-field-question-type {
+    max-width: 48%;
+    margin-right: 3%;
+  }
+
+  .mel-attendee-questions-field .field--name-field-question-required {
+    max-width: 48%;
+  }
+}
+
+/* —— Ticket controls —— */
+.mel-ticket-controls--primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mel-ticket-controls--primary .mel-btn {
+  min-height: 44px;
+}
+
+/* —— Mobile-first layout —— */
+@media (max-width: 959px) {
+  .mel-event-builder-layout {
+    flex-direction: column;
+  }
+
+  .mel-event-builder-sidebar {
+    order: 10;
+    width: 100%;
+    position: relative;
+    top: auto;
+  }
+
+  .mel-event-header {
+    display: block;
+  }
+
+  .mel-event-header__actions-inner {
+    justify-content: stretch;
+  }
+
+  .mel-event-header__actions-inner .button {
+    flex: 1 1 auto;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mel-event-builder-form .mel-step {
+    padding: 16px;
+  }
+
+  .mel-builder-actions {
+    position: sticky;
+    bottom: 0;
+  }
+
+  .mel-toast {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}

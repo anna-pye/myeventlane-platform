@@ -111,3 +111,46 @@
 .mel-category-pills .mel-pill--cat-sport,
 .mel-category-pills .mel-pill--cat-sports { background: var(--mel-blue); color: #fff; }
 .mel-category-pills .mel-pill--cat-default { background: var(--mel-lilac); color: var(--mel-navy); }
+
+// MyEventLane category pills block (homepage strip + global block).
+a.mel-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: spacing.mel-space(2);
+  min-height: 44px;
+  padding: 0.35rem 1rem;
+  border-radius: radii.$mel-radius-full;
+  font-weight: typography.$mel-font-semibold;
+  font-size: typography.mel-font-size(sm);
+  text-decoration: none;
+  color: colors.$mel-color-text;
+  background: var(--mel-lilac);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: shadows.$mel-shadow-sm;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: shadows.$mel-shadow-md;
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: colors.$mel-focus-ring;
+  }
+}
+
+.mel-category-pill__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: radii.$mel-radius-full;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+}

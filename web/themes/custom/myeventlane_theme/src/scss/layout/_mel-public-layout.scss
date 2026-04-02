@@ -1,0 +1,179 @@
+// ==========================================================================
+// MEL public layout — section + container (MEL v2 conversion lock)
+// ==========================================================================
+
+@use '../base/mel-ds-tokens' as mel;
+
+.mel-container--ds {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 mel.$mel-ds-space-xl;
+}
+
+.mel-container--wide {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.mel-container--full {
+  width: 100%;
+  padding: 0 32px;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.mel-section--full {
+  width: 100%;
+}
+
+.mel-section--hero.mel-section {
+  margin-bottom: 0;
+}
+
+.mel-section--wide .mel-container {
+  max-width: 1400px;
+}
+
+// ---------------------------------------------------------------------------
+// Section rhythm — single source (spacing only here + modifiers below)
+// ---------------------------------------------------------------------------
+
+.mel-section {
+  padding: 24px 0;
+}
+
+.mel-section + .mel-section {
+  margin-top: 0;
+}
+
+.mel-section--featured {
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+
+.mel-section--discover {
+  padding-top: 32px;
+}
+
+.mel-section--tonight {
+  padding-top: 18px;
+}
+
+.mel-section--free {
+  padding-top: 18px;
+}
+
+.mel-section__intro {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mel-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: mel.$mel-ds-space-md;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .mel-section__link {
+      white-space: normal;
+      align-self: flex-start;
+    }
+  }
+}
+
+.mel-section__title {
+  font-family: mel.$mel-ds-font-main;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-section__subtitle {
+  font-family: mel.$mel-ds-font-main;
+  font-size: 14px;
+  color: #666;
+  margin: mel.$mel-ds-space-sm 0 0;
+  line-height: 1.45;
+  max-width: 40rem;
+}
+
+.mel-section__link,
+.mel-section__header a {
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-small;
+  color: mel.$mel-ds-color-muted;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.mel-section__content {
+  width: 100%;
+}
+
+// Hero lives in `{% block hero %}` above `<main>`; first home rail is inside `.mel-page--home`.
+.mel-main .mel-page--home > .mel-section:first-of-type {
+  padding-top: 12px;
+}
+
+.mel-section__header--featured {
+  align-items: flex-end;
+  gap: mel.$mel-ds-space-lg;
+
+  .mel-section__title {
+    letter-spacing: -0.02em;
+  }
+
+  .mel-section__subtitle {
+    margin-top: mel.$mel-ds-space-xs;
+    max-width: 36rem;
+    font-size: mel.$mel-ds-font-body;
+    line-height: 1.5;
+    color: mel.$mel-ds-color-muted;
+  }
+
+  .mel-link {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: mel.$mel-ds-font-small;
+    text-decoration: none;
+    color: mel.$mel-ds-color-primary;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  @media (max-width: 640px) {
+    align-items: stretch;
+
+    .mel-link {
+      align-self: flex-start;
+    }
+  }
+}
+
+// Discover rail: unwrap Views wrappers so `.mel-grid` lays out cards.
+.mel-section__discover-view {
+  width: 100%;
+  max-width: 100%;
+
+  .view,
+  .view-content,
+  .views-row,
+  div[class*='view'],
+  div[class*='views'] {
+    display: contents !important;
+  }
+}

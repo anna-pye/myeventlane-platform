@@ -12,7 +12,7 @@ entity_type: paragraph
 bundle: attendee_extra_field
 label: 'Question Type'
 description: 'The type of form field to display.'
-required: true
+required: false
 translatable: false
 default_value:
   - value: textfield

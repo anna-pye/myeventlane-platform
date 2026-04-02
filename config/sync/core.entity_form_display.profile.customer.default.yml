@@ -8,6 +8,7 @@ dependencies:
     - profile.type.customer
   module:
     - address
+    - myeventlane_location
     - path
   enforced:
     module:
@@ -20,7 +21,7 @@ bundle: customer
 mode: default
 content:
   address:
-    type: address_default
+    type: myeventlane_location_address_default
     weight: 0
     region: content
     settings: {  }

@@ -113,15 +113,15 @@
 
         {% set display_venue = mel_venue|default('')|trim %}
         {% set display_address = mel_address|default('')|trim %}
-        {% if display_venue is empty and content.field_venue_name is defined %}{% set display_venue = content.field_venue_name|render|striptags|trim %}{% endif %}
-        {% if display_address is empty and content.field_location is defined %}{% set display_address = content.field_location|render|striptags|trim %}{% endif %}
-        {% if display_venue is not empty or display_address is not empty %}
+        {# Match node--event--default: show row when the field has data, not only when preprocess strings are non-empty. #}
+        {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
+        {% if display_venue is not empty or display_address is not empty or has_field_location %}
           <div class="mel-event-meta mel-event-meta--venue">
             <span class="mel-event-meta__icon mel-event-meta__icon--location" aria-hidden="true"></span>
             <div class="mel-event-meta__text">
               <div class="mel-event-meta__primary">{{ display_venue }}</div>
-              {% if display_address is not empty %}
-                <div class="mel-event-meta__secondary">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% else %}{{ display_address }}{% endif %}</div>
+              {% if display_address is not empty or has_field_location %}
+                <div class="mel-event-meta__secondary">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% elseif display_address is not empty %}{{ display_address }}{% endif %}</div>
               {% endif %}
             </div>
           </div>
@@ -387,7 +387,28 @@
         {# Note: We intentionally do NOT render field_ticket_types or field_attendee_questions on Event Full.
            These are configuration inputs, not attendee-facing content. #}
 
-        {# More like this: populate via below_content region (page template). #}
+        {# Same-category upcoming events: single drupal_view() (no drupal_view_result). #}
+        {% if node.hasField('field_category') and not node.field_category.isEmpty %}
+          {% set primary_category_tid = node.field_category.0.target_id %}
+          {% set primary_category_name = mel_category_label|default('')|trim %}
+          {% if primary_category_name is empty and node.field_category.0.entity %}
+            {% set primary_category_name = node.field_category.0.entity.label %}
+          {% endif %}
+          {% if primary_category_tid and primary_category_name %}
+            {% set related_events_markup %}
+              {{ drupal_view('upcoming_events', 'related_by_category', primary_category_tid, node.id()) }}
+            {% endset %}
+            {% if related_events_markup|trim %}
+              <section class="mel-event-related mel-mt-5" aria-labelledby="mel-event-related-heading">
+                <div class="mel-section-head">
+                  <h2 id="mel-event-related-heading" class="mel-section-head__title">{{ 'More in @category'|t({'@category': primary_category_name}) }}</h2>
+                  <a class="mel-link" href="{{ path('view.upcoming_events.page_category', {'arg_0': primary_category_tid}) }}">{{ 'View all'|t }}</a>
+                </div>
+                {{ related_events_markup }}
+              </section>
+            {% endif %}
+          {% endif %}
+        {% endif %}
       </div>
 
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
@@ -433,9 +454,8 @@
             {# Location first: venue, address, map under address. #}
             {% set info_venue = mel_venue|default('')|trim %}
             {% set info_address = mel_address|default('')|trim %}
-            {% if info_venue is empty and content.field_venue_name is defined %}{% set info_venue = content.field_venue_name|render|striptags|trim %}{% endif %}
-            {% if info_address is empty and content.field_location is defined %}{% set info_address = content.field_location|render|striptags|trim %}{% endif %}
-            {% if info_venue or info_address %}
+            {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
+            {% if info_venue or info_address or has_field_location %}
               {% set map_query = '' %}
               {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
                 {% set map_query = mel_lat ~ ',' ~ mel_lng %}
@@ -445,13 +465,15 @@
                 {% set map_query = info_venue %}
               {% elseif info_address is not empty %}
                 {% set map_query = info_address %}
+              {% elseif has_field_location and content.field_location is defined %}
+                {% set map_query = content.field_location|render|striptags|trim %}
               {% endif %}
               <div class="mel-info-row">
                 <div class="mel-info-row__label">{{ 'Location'|t }}</div>
                 <div class="mel-info-row__value">
                   {{ info_venue }}
-                  {% if info_address is not empty %}
-                    <div class="mel-muted">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% else %}{{ info_address }}{% endif %}</div>
+                  {% if info_address is not empty or has_field_location %}
+                    <div class="mel-muted">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% elseif info_address is not empty %}{{ info_address }}{% endif %}</div>
                   {% endif %}
                   {% if map_query is not empty %}
                     <div class="mel-event-map-embed mel-mt-3">

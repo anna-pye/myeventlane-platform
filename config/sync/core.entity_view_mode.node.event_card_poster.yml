@@ -1,0 +1,11 @@
+uuid: 8f4c2a10-9b3e-4d71-a8c6-1e7f90d42a11
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.event_card_poster
+label: 'Event card (Poster)'
+description: 'Sticker-wall / homepage discover poster cards.'
+targetEntityType: node
+cache: true

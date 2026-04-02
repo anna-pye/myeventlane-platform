@@ -345,3 +345,4 @@ function myeventlane_rsvp_update_9008() {
 
   return t('Updated RSVP Submission status and event_id field definitions.');
 }
+

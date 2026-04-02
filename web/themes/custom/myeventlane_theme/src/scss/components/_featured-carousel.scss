@@ -26,25 +26,41 @@
   position: relative;
   width: 100%;
   margin-bottom: space-tokens.mel-space(1);
-
-  // Horizontal scrolling carousel - HIDE OVERFLOW to prevent 3rd card peek
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
 
-  // Track - horizontal flex, NO wrap, constrained to parent width
+  // Edge fade (invites horizontal scroll; matches page surface)
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 40px;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  &::before {
+    left: 0;
+    background: linear-gradient(to right, colors.$mel-color-surface, transparent);
+  }
+
+  &::after {
+    right: 0;
+    background: linear-gradient(to left, colors.$mel-color-surface, transparent);
+  }
+
   &__track {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 24px;
-    // Exactly 2 cards: each card = (100% - gap) / 2
+    gap: 20px;
     width: 100%;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
-    padding-bottom: 4px; // Prevent cut-off shadows
-
-    // Hide scrollbar on track
+    padding-bottom: 8px;
     scrollbar-width: none;
     -ms-overflow-style: none;
 
@@ -53,16 +69,15 @@
     }
   }
 
-  // Individual slide - EXACTLY 2 cards visible, no 3rd card peek
-  &__slide {
-    // Width = (100% - 24px gap) / 2
-    flex: 0 0 calc(50% - 12px) !important;
+  // Homepage unformatted uses __item; legacy carousel view uses __slide.
+  &__slide,
+  &__item {
+    flex: 0 0 min(320px, 88vw) !important;
     min-width: 0;
     scroll-snap-align: start;
 
-    // Mobile: single card view
-    @media (max-width: 767px) {
-      flex: 0 0 100% !important;
+    @media (min-width: 1024px) {
+      flex: 0 0 360px !important;
     }
 
     // =========================================================================
@@ -434,5 +449,45 @@
     font-size: 0.875rem;
     color: colors.$mel-color-text-muted;
     margin-bottom: space-tokens.mel-space(5);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full-bleed hero slider (homepage front_featured_events — block_featured)
+// ---------------------------------------------------------------------------
+
+.mel-featured-hero {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: space-tokens.mel-space(1);
+  -webkit-overflow-scrolling: touch;
+
+  &__track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__track {
+      scroll-behavior: auto;
+    }
   }
 }

@@ -36,6 +36,9 @@ final class RsvpSubmissionManager {
     $email = trim((string) ($data['email'] ?? ''));
     $name = trim((string) ($data['name'] ?? ''));
     $donation = (float) ($data['donation'] ?? 0);
+    $guestCount = (int) ($data['quantity'] ?? $data['guest_count'] ?? $data['guests'] ?? 1);
+    $guestCount = max(1, $guestCount);
+    $mode = (string) ($data['mode'] ?? 'create');
 
     if ($email === '') {
       throw new \InvalidArgumentException('Email is required.');
@@ -57,7 +60,7 @@ final class RsvpSubmissionManager {
     try {
       $storage = $this->entityTypeManager->getStorage('rsvp_submission');
 
-      $existing = $this->findExisting($event_id, $uid, $email);
+      $existing = $mode === 'edit' ? $this->findExisting($event_id, $uid, $email) : NULL;
       if ($existing) {
         $this->updateSubmission($existing, $data);
 
@@ -93,7 +96,7 @@ final class RsvpSubmissionManager {
         'name' => $name,
         'email' => $email,
         'phone' => trim((string) ($data['phone'] ?? '')),
-        'guests' => (int) ($data['guests'] ?? 1),
+        'guests' => $guestCount,
         'donation' => $donation,
         'status' => $status,
         'user_id' => ['target_id' => $uid > 0 ? $uid : 0],
@@ -101,6 +104,9 @@ final class RsvpSubmissionManager {
 
       /** @var \Drupal\myeventlane_rsvp\Entity\RsvpSubmissionInterface $submission */
       $submission = $storage->create($values);
+      if ($submission instanceof RsvpSubmission && $submission->hasField('quantity')) {
+        $submission->set('quantity', $guestCount);
+      }
       if ($legalConsent !== NULL) {
         $submission->_myeventlaneLegalConsent = $legalConsent;
       }
@@ -115,6 +121,19 @@ final class RsvpSubmissionManager {
     finally {
       $this->lock->release($lock_name);
     }
+  }
+
+  /**
+   * Finds an existing RSVP for the current dedupe key (event + user/email).
+   */
+  public function findExistingForEventAndEmail(NodeInterface $event, string $email): ?RsvpSubmissionInterface {
+    $event_id = (int) $event->id();
+    $uid = (int) $this->currentUser->id();
+    $email = trim($email);
+    if ($email === '') {
+      return NULL;
+    }
+    return $this->findExisting($event_id, $uid, $email);
   }
 
   private function findExisting(int $event_id, int $uid, string $email): ?RsvpSubmissionInterface {
@@ -156,7 +175,12 @@ final class RsvpSubmissionManager {
     $submission->set('attendee_name', trim((string) ($data['name'] ?? $submission->get('attendee_name')->value)));
     $submission->set('name', trim((string) ($data['name'] ?? $submission->get('name')->value)));
     $submission->set('phone', trim((string) ($data['phone'] ?? $submission->get('phone')->value)));
-    $submission->set('guests', (int) ($data['guests'] ?? $submission->get('guests')->value));
+    $guestCount = (int) ($data['quantity'] ?? $data['guest_count'] ?? $data['guests'] ?? $submission->get('guests')->value);
+    $guestCount = max(1, $guestCount);
+    $submission->set('guests', $guestCount);
+    if ($submission->hasField('quantity')) {
+      $submission->set('quantity', $guestCount);
+    }
     $submission->set('donation', (float) ($data['donation'] ?? $submission->get('donation')->value));
   }
 

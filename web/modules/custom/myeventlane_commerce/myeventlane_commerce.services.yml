@@ -147,6 +147,12 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_commerce.donation:
+    class: Drupal\myeventlane_commerce\Service\DonationService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_commerce'
+
   myeventlane_commerce.controller.ticket_waitlist_claim:
     class: Drupal\myeventlane_commerce\Controller\TicketWaitlistClaimController
     arguments:

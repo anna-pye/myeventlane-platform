@@ -6,7 +6,7 @@ description: 'Minimal admin UX layer for MyEventLane (Gin-based)'
 version: 1.0.0
 
 libraries:
-  - myeventlane_admin_theme/admin
+  - myeventlane_admin/admin
   - claro/global-styling
   - gin/gin
 

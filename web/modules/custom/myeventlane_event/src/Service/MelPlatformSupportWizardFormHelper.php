@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
@@ -155,6 +156,9 @@ final class MelPlatformSupportWizardFormHelper {
    * Validates optional MEL support fields.
    */
   public function validate(FormStateInterface $form_state, NodeInterface $event, string $event_type): void {
+    if (Settings::get('mel_save_trace', FALSE)) {
+      \Drupal::logger('myeventlane_event')->notice('TRACE: validate method fired: MelPlatformSupportWizardFormHelper::validate');
+    }
     if (!$this->moduleHandler->moduleExists('myeventlane_donations')) {
       return;
     }

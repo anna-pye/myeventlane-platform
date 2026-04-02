@@ -118,6 +118,7 @@ myeventlane_event_attendees.waitlist_signup:
     _form: '\Drupal\myeventlane_event_attendees\Form\WaitlistSignupForm'
     _title: 'Join Waitlist'
   requirements:
+    _permission: 'access content'
     node: '\d+'
   options:
     parameters:

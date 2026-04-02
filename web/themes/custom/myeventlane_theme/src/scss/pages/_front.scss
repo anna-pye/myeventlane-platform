@@ -12,28 +12,6 @@
 @use '../tokens/breakpoints';
 
 // ---------------------------------------------------------------------------
-// Homepage Events Wrapper
-// ---------------------------------------------------------------------------
-// Homepage-only wrapper class for grid breathing room within .mel-container
-// Allows event grids to breathe without breaking event detail pages
-
-.mel-home-events {
-  // Additional spacing for homepage event sections
-  .mel-section {
-    margin-bottom: spacing.mel-space(7);
-
-    @include breakpoints.mel-break(md) {
-      margin-bottom: spacing.mel-space(9);
-    }
-  }
-
-  // Ensure event grids have proper spacing within container
-  .mel-grid.mel-grid--events {
-    margin-top: spacing.mel-space(4);
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Featured Events Section
 // ---------------------------------------------------------------------------
 
@@ -479,7 +457,7 @@
 
 .mel-page--events .mel-main,
 .mel-page--category .mel-main {
-  padding-bottom: spacing.mel-space(4);
+  padding-bottom: spacing.mel-space(2);
 }
 
 // ---------------------------------------------------------------------------
@@ -487,10 +465,10 @@
 // ---------------------------------------------------------------------------
 
 .mel-section {
-  margin-bottom: spacing.mel-space(8);
+  margin-bottom: spacing.mel-space(4);
 
   @include breakpoints.mel-break(md) {
-    margin-bottom: spacing.mel-space(10);
+    margin-bottom: spacing.mel-space(5);
   }
 }
 

@@ -246,13 +246,6 @@ function _myeventlane_help_assistant_attach_event_wizard_suggestions(array &$for
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for myeventlane_event_wizard.
- */
-function myeventlane_help_assistant_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  _myeventlane_help_assistant_attach_event_wizard_suggestions($form, $form_state);
-}
-
-/**
  * Implements hook_form_FORM_ID_alter() for event_wizard_basics_form.
  */
 function myeventlane_help_assistant_form_event_wizard_basics_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {

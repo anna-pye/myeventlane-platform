@@ -3,6 +3,8 @@
 **Date:** 2025-01-27  
 **Issues Fixed:** 3
 
+> **2026-03:** References to `EventWizardForm.php` below are **historical**; that class was removed in favour of per-step wizard forms.
+
 ---
 
 ## ✅ Fix 1: Time Fields Not Showing
@@ -21,7 +23,7 @@ Start and end time fields were not visible - only date fields were showing.
    - Added rules for form item wrappers
 
 ### Files Modified
-- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardWhenWhereForm.php` (and related step forms; formerly `EventWizardForm.php`)
 - `web/modules/custom/myeventlane_event/css/wizard-fixes.css` (new)
 - `web/modules/custom/myeventlane_event/myeventlane_event.libraries.yml`
 
@@ -90,7 +92,7 @@ Address field was showing unnecessary fields (Organization, First name, Last nam
    - Ensures fields are hidden even if PHP hiding fails
 
 ### Files Modified
-- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardWhenWhereForm.php` (and related step forms; formerly `EventWizardForm.php`)
 - `web/modules/custom/myeventlane_event/css/wizard-fixes.css`
 
 ### Testing

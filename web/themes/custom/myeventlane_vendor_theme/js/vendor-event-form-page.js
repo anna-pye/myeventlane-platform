@@ -1,0 +1,53 @@
+/**
+ * @file
+ * Bridges the page header "Save draft" control to the real form submit button.
+ *
+ * page--node--add--event.html.twig renders a type="button" outside the form;
+ * without this, clicks do nothing while the real control lives in form.actions.
+ */
+(function (Drupal, once) {
+  'use strict';
+
+  /**
+   * @returns {HTMLInputElement|HTMLButtonElement|null}
+   */
+  function findRealSaveDraft() {
+    const primary = document.querySelector(
+      'form.mel-event-builder-form [data-mel-action="save-draft"]',
+    );
+    if (primary) {
+      return primary;
+    }
+    const form = document.querySelector('form.node-event-form, form#node-event-form');
+    if (!form) {
+      return null;
+    }
+    const candidates = form.querySelectorAll(
+      'input[type="submit"].mel-event-form__actions-draft, button[type="submit"].mel-event-form__actions-draft, input[type="submit"][name="op"], button[type="submit"][name="op"]',
+    );
+    const want = (Drupal.t('Save draft') || 'Save draft').toLowerCase();
+    for (let i = 0; i < candidates.length; i += 1) {
+      const el = candidates[i];
+      const v = (el.value || el.textContent || '').trim().toLowerCase();
+      if (v === want || v.indexOf('draft') !== -1) {
+        return el;
+      }
+    }
+    return form.querySelector('input[name*="save_draft"], button[name*="save_draft"]');
+  }
+
+  Drupal.behaviors.melVendorEventFormPageSaveDraft = {
+    attach(context) {
+      once('mel-vendor-page-save-draft', '[data-save-draft]', context).forEach((decoy) => {
+        decoy.addEventListener('click', (e) => {
+          e.preventDefault();
+          const real = findRealSaveDraft();
+          if (real) {
+            real.click();
+            real.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
+    },
+  };
+})(Drupal, once);

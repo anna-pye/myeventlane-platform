@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\node\NodeInterface;
 use InvalidArgumentException;
 
@@ -160,6 +161,7 @@ final class TicketTierLifecycleService {
     $ids = array_values(array_unique($ids));
     $event->set('field_ticket_types', array_map(static fn (int $id) => ['target_id' => $id], $ids));
     if ($save) {
+      EventNodeRevisionSave::prepare($event, 'Ticket types updated on event.');
       $event->save();
       $this->syncPaidTiers($event);
     }
@@ -178,6 +180,7 @@ final class TicketTierLifecycleService {
     );
     $event->set('field_ticket_types', array_values($refs));
     if ($save) {
+      EventNodeRevisionSave::prepare($event, 'Ticket types updated on event.');
       $event->save();
       $this->syncPaidTiers($event);
     }
@@ -213,6 +216,7 @@ final class TicketTierLifecycleService {
       }
     }
     $event->set('field_ticket_types', array_map(static fn (int $id) => ['target_id' => $id], $new));
+    EventNodeRevisionSave::prepare($event, 'Ticket order updated on event.');
     $event->save();
     $this->syncPaidTiers($event);
   }

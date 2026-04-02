@@ -6,7 +6,7 @@ namespace Drupal\myeventlane_analytics\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Schema;
-use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
 /**
@@ -38,7 +38,7 @@ final class PopularEventsService {
   private Connection $database;
 
   /**
-   * @var \Drupal\Core\Datetime\TimeInterface
+   * @var \Drupal\Component\Datetime\TimeInterface
    */
   private TimeInterface $time;
 
@@ -104,7 +104,19 @@ final class PopularEventsService {
 
     // Merge counts for any event present in either list.
     $nids = array_unique(array_merge(array_keys($tickets), array_keys($rsvps)));
-    if (empty($nids)) {
+    $nids = array_values(array_filter(array_map(static function ($nid): int {
+      if (is_int($nid)) {
+        return $nid;
+      }
+      if (is_float($nid)) {
+        return (int) $nid;
+      }
+      if (is_string($nid) && is_numeric($nid)) {
+        return (int) $nid;
+      }
+      return 0;
+    }, $nids), static fn (int $nid): bool => $nid > 0));
+    if ($nids === []) {
       return [];
     }
 
@@ -239,7 +251,11 @@ final class PopularEventsService {
 
     $out = [];
     foreach ($result as $nid => $row) {
-      $out[(int) $nid] = (int) round((float) ($row->tickets_sold ?? 0));
+      $nid = is_numeric($nid) ? (int) $nid : 0;
+      if ($nid < 1) {
+        continue;
+      }
+      $out[$nid] = (int) round((float) ($row->tickets_sold ?? 0));
     }
     return $out;
   }
@@ -310,7 +326,11 @@ final class PopularEventsService {
 
     $out = [];
     foreach ($result as $nid => $row) {
-      $out[(int) $nid] = (int) ($row->rsvps ?? 0);
+      $nid = is_numeric($nid) ? (int) $nid : 0;
+      if ($nid < 1) {
+        continue;
+      }
+      $out[$nid] = (int) ($row->rsvps ?? 0);
     }
     return $out;
   }

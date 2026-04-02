@@ -1,0 +1,12 @@
+{#
+/**
+ * @file
+ * Event node in Front: Featured Events (block_featured) — full-bleed hero slide.
+ *
+ * Other views that reuse teaser_featured keep node--event--teaser-featured (carousel card).
+ */
+#}
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: 'featured_hero',
+  attributes: attributes,
+} %}

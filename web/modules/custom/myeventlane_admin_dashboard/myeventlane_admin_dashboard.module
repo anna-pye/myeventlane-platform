@@ -10,16 +10,15 @@ declare(strict_types=1);
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Template\Attribute;
 use Drupal\node\NodeInterface;
 
 /**
- * Implements hook_preprocess_page().
+ * Returns TRUE when the route should show Platform Control Centre chrome.
  */
-function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
-  $route_match = \Drupal::routeMatch();
-  $route_name = $route_match->getRouteName();
-  if (!$route_name) {
-    return;
+function _myeventlane_admin_dashboard_is_pcc_route(?string $route_name): bool {
+  if ($route_name === NULL || $route_name === '') {
+    return FALSE;
   }
   $pcc_routes = [
     'myeventlane_admin_dashboard.platform_control',
@@ -36,16 +35,43 @@ function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
     'entity.escalation.edit_form',
     'myeventlane_support_console.dashboard',
   ];
-  $is_pcc = in_array($route_name, $pcc_routes, TRUE)
-    || str_starts_with((string) $route_name, 'myeventlane_reporting.admin');
-  if (!$is_pcc) {
+  return in_array($route_name, $pcc_routes, TRUE)
+    || str_starts_with($route_name, 'myeventlane_reporting.admin');
+}
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function myeventlane_admin_dashboard_preprocess_html(array &$variables): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (!_myeventlane_admin_dashboard_is_pcc_route($route_name)) {
     return;
   }
-  $variables['mel_admin_pcc_layout'] = TRUE;
-  $variables['pcc_utility_links'] = [
-    'main_site_url' => Url::fromRoute('<front>')->toString(),
-    'vendor_dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
-    'platform_control_url' => Url::fromRoute('myeventlane_admin_dashboard.platform_control')->toString(),
+  if (isset($variables['attributes']) && $variables['attributes'] instanceof Attribute) {
+    $variables['attributes']->addClass('mel-admin-layout--pcc');
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (!_myeventlane_admin_dashboard_is_pcc_route($route_name)) {
+    return;
+  }
+  if (!isset($variables['page']['pre_content']) || !is_array($variables['page']['pre_content'])) {
+    $variables['page']['pre_content'] = [];
+  }
+  $variables['page']['pre_content']['mel_pcc_utility_bar'] = [
+    '#theme' => 'mel_pcc_utility_bar',
+    '#weight' => -100,
+    '#main_site_url' => Url::fromRoute('<front>')->toString(),
+    '#vendor_dashboard_url' => Url::fromRoute('myeventlane_vendor.console.dashboard')->toString(),
+    '#platform_control_url' => Url::fromRoute('myeventlane_admin_dashboard.platform_control')->toString(),
+    '#cache' => [
+      'contexts' => ['route', 'user.permissions'],
+    ],
   ];
 }
 
@@ -54,6 +80,14 @@ function myeventlane_admin_dashboard_preprocess_page(&$variables): void {
  */
 function myeventlane_admin_dashboard_theme(): array {
   return [
+    'mel_pcc_utility_bar' => [
+      'variables' => [
+        'main_site_url' => '',
+        'vendor_dashboard_url' => '',
+        'platform_control_url' => '',
+      ],
+      'template' => 'mel-pcc-utility-bar',
+    ],
     'admin_dashboard' => [
       'variables' => [
         'event_count' => 0,

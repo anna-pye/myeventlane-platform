@@ -10,7 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_ai\Service\AiJobEnqueueService;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
-use Drupal\myeventlane_vendor_ai\Service\HelpArticleRetriever;
+use Drupal\myeventlane_help_shared\Service\UnifiedHelpRetriever;
 use Drupal\myeventlane_vendor_ai\Service\VendorAiContextBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -28,7 +28,7 @@ final class VendorAiAssistantForm extends FormBase {
   public function __construct(
     private readonly AiJobEnqueueService $jobEnqueue,
     private readonly VendorAiContextBuilder $contextBuilder,
-    private readonly HelpArticleRetriever $helpRetriever,
+    private readonly UnifiedHelpRetriever $unifiedHelpRetriever,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EscalationPartyResolver $partyResolver,
   ) {}
@@ -40,7 +40,7 @@ final class VendorAiAssistantForm extends FormBase {
     return new self(
       $container->get('myeventlane_ai.job_enqueue'),
       $container->get('myeventlane_vendor_ai.context_builder'),
-      $container->get('myeventlane_vendor_ai.help_retriever'),
+      $container->get('myeventlane_help_shared.unified_help_retriever'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_escalations_portal.party_resolver'),
     );
@@ -178,7 +178,9 @@ final class VendorAiAssistantForm extends FormBase {
       throw new AccessDeniedHttpException();
     }
 
-    $articles = $this->helpRetriever->retrieve($question, 'vendor', 5);
+    $articles = $this->mapUnifiedRowsToVendorAiArticles(
+      $this->unifiedHelpRetriever->retrieveForUser($question, $account, 5),
+    );
     $context = $this->contextBuilder->build($escalation_id, $articles);
 
     if (isset($context['error'])) {
@@ -221,6 +223,34 @@ final class VendorAiAssistantForm extends FormBase {
 
     $form_state->set('ai_job_id', (int) $job->id());
     $form_state->setRebuild();
+  }
+
+  /**
+   * Maps UnifiedHelpRetriever rows to the legacy HelpArticleRetriever shape.
+   *
+   * @param array<int, array<string, mixed>> $rows
+   *
+   * @return array<int, array{nid: int, title: string, url: string, excerpt: string}>
+   */
+  private function mapUnifiedRowsToVendorAiArticles(array $rows): array {
+    $out = [];
+    foreach ($rows as $row) {
+      $plain = trim((string) ($row['content'] ?? $row['summary'] ?? ''));
+      if ($plain === '') {
+        $plain = trim((string) ($row['title'] ?? ''));
+      }
+      $excerpt = $plain;
+      if (mb_strlen($excerpt) > 400) {
+        $excerpt = mb_substr($excerpt, 0, 400) . '…';
+      }
+      $out[] = [
+        'nid' => (int) ($row['nid'] ?? 0),
+        'title' => (string) ($row['title'] ?? ''),
+        'url' => (string) ($row['url'] ?? ''),
+        'excerpt' => $excerpt,
+      ];
+    }
+    return $out;
   }
 
 }

@@ -3,15 +3,17 @@
 **Date:** 2025-01-27  
 **Status:** In Progress
 
+> **Update (2026-03):** The monolithic `EventWizardForm` (`myeventlane_event_wizard`) described in this document was **removed**. The live vendor flow uses per-step forms (`EventWizardBasicsForm`, `EventWizardWhenWhereForm`, …) and routes in `myeventlane_event.routing.yml`. The sections below are **historical** only.
+
 ---
 
 ## What Has Been Built
 
-### 1. New EventWizardForm Class
+### 1. EventWizardForm (removed — historical)
 
-**File:** `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php`
+**Former file:** `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php` (deleted)
 
-A comprehensive step-by-step wizard form with:
+Previously, a single-form wizard implemented:
 
 - ✅ **8 Steps:**
   1. Basics - Title, summary, event type, hero image
@@ -47,17 +49,17 @@ A comprehensive step-by-step wizard form with:
 
 ## What Still Needs to Be Done
 
-### 1. Routing
+### 1. Routing (obsolete snippet — historical)
 
 **File:** `web/modules/custom/myeventlane_event/myeventlane_event.routing.yml`
 
-Add route for wizard form:
+The codebase no longer uses this single-form route; step routes (`myeventlane_event.wizard.*`) replaced it. Original planned YAML:
 
 ```yaml
 myeventlane_event.wizard_form:
   path: '/vendor/events/wizard/{node}'
   defaults:
-    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'
+    _form: '\Drupal\myeventlane_event\Form\EventWizardForm'  # class removed
     _title: 'Create event'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
@@ -178,7 +180,7 @@ Decide whether to:
 ## Files Modified/Created
 
 ### Created:
-- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php` (NEW)
+- `web/modules/custom/myeventlane_event/src/Form/EventWizardForm.php` (**removed**; use step form classes instead)
 
 ### Modified:
 - None yet (routing, services, etc. still needed)

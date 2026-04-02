@@ -562,7 +562,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
           (string) $this->t('You can add a one-time or percentage pledge when you configure tickets in the event editor.'),
         ];
         $support_card['cta'] = [
-          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event_id])->toString(),
+          'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
           'label' => (string) $this->t('Open event wizard'),
         ];
       }

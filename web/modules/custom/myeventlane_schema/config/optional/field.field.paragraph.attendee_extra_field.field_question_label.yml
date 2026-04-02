@@ -10,7 +10,7 @@ entity_type: paragraph
 bundle: attendee_extra_field
 label: 'Question Label'
 description: 'The label/question text shown to attendees.'
-required: true
+required: false
 translatable: true
 default_value: {  }
 default_value_callback: ''

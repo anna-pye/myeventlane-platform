@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_commerce\Form;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_commerce\Service\TicketAccessCodeService;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
@@ -54,6 +55,7 @@ final class TicketSelectionForm extends FormBase {
     protected TicketTierWaitlistService $tierWaitlist,
     protected TicketVariationSoldService $variationSold,
     protected TimeInterface $time,
+    protected CapacityOrderInspector $orderInspector,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
@@ -72,6 +74,7 @@ final class TicketSelectionForm extends FormBase {
       $container->get('myeventlane_commerce.ticket_tier_waitlist'),
       $container->get('myeventlane_commerce.ticket_variation_sold'),
       $container->get('datetime.time'),
+      $container->get('myeventlane_capacity.order_inspector'),
       $container->has('myeventlane_capacity.service')
         ? $container->get('myeventlane_capacity.service')
         : NULL,
@@ -292,7 +295,7 @@ final class TicketSelectionForm extends FormBase {
         'submit' => [
           '#type' => 'submit',
           '#value' => $this->t('Add to cart'),
-          '#attributes' => ['class' => ['button--primary', 'mel-add-to-cart-button']],
+          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl', 'mel-add-to-cart-button']],
         ],
       ];
     }
@@ -454,9 +457,12 @@ final class TicketSelectionForm extends FormBase {
     $node = $form['#node'];
     $product = $form['#product'];
 
+    $pending = $this->getPendingCartTicketTotals($node, $product);
+    $combined_event_total = $pending['event_total'] + $total_quantity;
+
     if ($node) {
       try {
-        $this->ticketAvailability->assertEventTotalBookable($node, $total_quantity);
+        $this->ticketAvailability->assertEventTotalBookable($node, $combined_event_total);
       }
       catch (CapacityExceededException $e) {
         $remaining = $this->capacityService?->getRemaining($node);
@@ -475,8 +481,10 @@ final class TicketSelectionForm extends FormBase {
         $form_state->setError($form['actions']['submit'], $this->t('An invalid ticket was selected.'));
         return;
       }
+      $existing_line = (int) ($pending['variation'][$variation_id] ?? 0);
+      $combined_line = $existing_line + $qty;
       try {
-        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $qty);
+        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $combined_line);
       }
       catch (CapacityExceededException $e) {
         $form_state->setError($form['actions']['submit'], $e->getMessage());
@@ -517,8 +525,11 @@ final class TicketSelectionForm extends FormBase {
       }
     }
 
+    $pending = $this->getPendingCartTicketTotals($node, $product);
+    $combined_event_total = $pending['event_total'] + $total_quantity;
+
     try {
-      $this->ticketAvailability->assertEventTotalBookable($node, $total_quantity);
+      $this->ticketAvailability->assertEventTotalBookable($node, $combined_event_total);
     }
     catch (CapacityExceededException $e) {
       $this->messenger()->addError($e->getMessage());
@@ -532,8 +543,10 @@ final class TicketSelectionForm extends FormBase {
         $this->messenger()->addError($this->t('An invalid ticket was selected.'));
         return;
       }
+      $existing_line = (int) ($pending['variation'][$variation_id] ?? 0);
+      $combined_line = $existing_line + $qty;
       try {
-        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $qty);
+        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $combined_line);
       }
       catch (CapacityExceededException $e) {
         $this->messenger()->addError($e->getMessage());
@@ -652,6 +665,30 @@ final class TicketSelectionForm extends FormBase {
     $m = intdiv($seconds % 3600, 60);
     $s = $seconds % 60;
     return sprintf('%02d:%02d:%02d', $h, $m, $s);
+  }
+
+  /**
+   * Ticket quantities already in the active cart for this event (same store as product).
+   *
+   * @return array{event_total: int, variation: array<int, int>}
+   */
+  private function getPendingCartTicketTotals(NodeInterface $event_node, ProductInterface $product): array {
+    $stores = $product->getStores();
+    if ($stores === []) {
+      return ['event_total' => 0, 'variation' => []];
+    }
+    $store = reset($stores);
+    $cart = $this->cartProvider->getCart('default', $store);
+    if ($cart === NULL) {
+      return ['event_total' => 0, 'variation' => []];
+    }
+    $eid = (int) $event_node->id();
+    $by_variation = $this->orderInspector->extractEventVariationQuantities($cart);
+    $event_totals = $this->orderInspector->extractEventQuantities($cart);
+    return [
+      'event_total' => (int) ($event_totals[$eid] ?? 0),
+      'variation' => $by_variation[$eid] ?? [],
+    ];
   }
 
 }

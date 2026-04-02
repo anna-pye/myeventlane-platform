@@ -39,11 +39,22 @@
           </div>
         {% endif %}
         <div class="mel-rsvp-section mel-rsvp-core">
-          {{ element.first_name }}
-          {{ element.last_name }}
-          {{ element.email }}
-          {{ element.phone }}
+          {% if element.attendee_details is defined %}
+            {{ element.attendee_details }}
+          {% else %}
+            {% if element.first_name is defined %}{{ element.first_name }}{% endif %}
+            {% if element.last_name is defined %}{{ element.last_name }}{% endif %}
+            {% if element.name is defined %}{{ element.name }}{% endif %}
+            {% if element.email is defined %}{{ element.email }}{% endif %}
+            {% if element.phone is defined %}{{ element.phone }}{% endif %}
+            {% if element.guests is defined %}{{ element.guests }}{% endif %}
+          {% endif %}
         </div>
+        {% if element.optional_details is defined %}
+          <div class="mel-rsvp-section">
+            {{ element.optional_details }}
+          </div>
+        {% endif %}
         {% if element.accessibility_needs %}
           <div class="mel-rsvp-section mel-rsvp-section--collapsed">
             <button type="button" class="mel-rsvp-toggle" data-target="accessibility" aria-expanded="false" aria-controls="mel-rsvp-accessibility">
@@ -88,7 +99,8 @@
         {# Any other alter-added elements; keeps them inside the single form. #}
         {{ element|without(
           'form_build_id', 'form_token', 'form_id', 'event_id', 'product_id', 'variation_id',
-          'mel_help_rsvp_after', 'intro', 'first_name', 'last_name', 'email', 'phone', 'accessibility_needs',
+          'mel_help_rsvp_after', 'intro', 'first_name', 'last_name', 'name', 'email', 'phone', 'guests',
+          'attendee_details', 'optional_details', 'accessibility_needs',
           'legal_consent', 'donation_section', 'donation_unavailable', 'donation_amount', 'actions'
         ) }}
       </div>

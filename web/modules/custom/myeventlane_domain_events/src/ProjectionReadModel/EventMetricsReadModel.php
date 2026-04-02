@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_domain_events\ProjectionReadModel;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\myeventlane_core\Utility\EntityLoadIds;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -85,7 +86,8 @@ final class EventMetricsReadModel {
       return $metrics;
     }
 
-    $this->logger->notice(
+    // Expected until projector queue catches up; fallback metrics are authoritative enough for UI.
+    $this->logger->debug(
       'Projection miss for event {event_id}; using fallback metrics.',
       ['event_id' => $eventId]
     );
@@ -229,6 +231,11 @@ final class EventMetricsReadModel {
       ->condition('state', ['completed', 'partially_refunded', 'refunded'], 'IN')
       ->execute();
 
+    if ($paymentIds === []) {
+      return 0.0;
+    }
+
+    $paymentIds = EntityLoadIds::normalizeForLoadMultiple($paymentIds);
     if ($paymentIds === []) {
       return 0.0;
     }

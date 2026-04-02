@@ -11,6 +11,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_help_assistant\Service\EventSuggestionService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -44,6 +46,8 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
     private readonly TimeInterface $time,
     private readonly ?EventSuggestionService $eventSuggestionService,
     private readonly CsrfTokenGenerator $csrfToken,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
+    private readonly EventRepository $eventRepository,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -66,6 +70,8 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
         ? $container->get('myeventlane_help_assistant.event_suggestions')
         : NULL,
       $container->get('csrf_token'),
+      $container->get('myeventlane_core.entity_id_normalizer'),
+      $container->get('myeventlane_event_studio.repository'),
     );
   }
 
@@ -232,21 +238,22 @@ final class VendorHelpPanelBlock extends BlockBase implements ContainerFactoryPl
       return ['events_total' => 0, 'events_published' => 0];
     }
 
-    $node_storage = $this->entityTypeManager->getStorage('node');
     $query = $this->entityTypeManager->getStorage('node')
       ->getQuery()
       ->accessCheck(TRUE)
       ->condition('type', 'event')
       ->condition('uid', $uid);
 
-    $all_ids = array_map('intval', array_values($query->execute()));
+    // Before: query execute() keyed list; mixed scalar types possible.
+    // After: int nids for loadMultiple().
+    $all_ids = $this->entityIdNormalizer->normalizeNodeIds(array_values($query->execute()));
     if ($all_ids === []) {
       return ['events_total' => 0, 'events_published' => 0];
     }
 
     $published = 0;
-    foreach ($node_storage->loadMultiple($all_ids) as $candidate) {
-      if ($candidate instanceof NodeInterface && $candidate->bundle() === 'event' && $this->isEventPublished($candidate)) {
+    foreach ($this->eventRepository->loadMany($all_ids) as $dto) {
+      if ($dto->published) {
         $published++;
       }
     }

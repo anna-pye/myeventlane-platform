@@ -11,8 +11,6 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\myeventlane_legal\Service\RsvpLegalAlter;
-use Drupal\myeventlane_rsvp\Service\RsvpSubmissionManager;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -23,11 +21,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class RsvpBookingForm extends FormBase {
 
   /**
-   * RSVP submission manager (centralised submit logic).
-   */
-  private readonly RsvpSubmissionManager $submissionManager;
-
-  /**
    * Constructs RsvpBookingForm.
    */
   public function __construct(
@@ -35,9 +28,7 @@ final class RsvpBookingForm extends FormBase {
     private readonly CartManagerInterface $cartManager,
     private readonly CartProviderInterface $cartProvider,
     private readonly ModuleHandlerInterface $moduleHandler,
-    RsvpSubmissionManager $submissionManager,
   ) {
-    $this->submissionManager = $submissionManager;
   }
 
   /**
@@ -49,7 +40,6 @@ final class RsvpBookingForm extends FormBase {
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('module_handler'),
-      $container->get('myeventlane_rsvp.submission_manager')
     );
     // Set services provided by FormBase traits.
     $form->setConfigFactory($container->get('config.factory'));
@@ -139,113 +129,9 @@ final class RsvpBookingForm extends FormBase {
       '#value' => $event_id,
     ];
 
-    // Optional donation panel (same as RsvpPublicForm).
-    $donationConfig = $this->config('myeventlane_donations.settings');
-    $donationEnabled = $donationConfig->get('enable_rsvp_donations') ?? FALSE;
-    $requireStripeConnected = $donationConfig->get('require_stripe_connected_for_attendee_donations') ?? TRUE;
-
-    if ($donationEnabled && $event_id) {
-      // Load event to check Stripe Connect status.
-      $event = $this->entityTypeManager->getStorage('node')->load($event_id);
-      if ($event) {
-        // Check if vendor has Stripe Connect if required.
-        $showDonation = TRUE;
-        if ($requireStripeConnected) {
-          $showDonation = $this->isVendorStripeConnected($event);
-        }
-
-        if ($showDonation) {
-          $form['donation_section'] = [
-            '#type' => 'details',
-            '#title' => $this->t('Support this event (optional)'),
-            // Open so the intro + "Add a donation" are visible without an extra click.
-            '#open' => TRUE,
-            '#attributes' => ['class' => ['mel-rsvp-donation-section']],
-          ];
-
-          $form['donation_section']['donation_intro'] = [
-            '#markup' => '<p class="mel-donation-intro-text">' .
-            $this->t($donationConfig->get('attendee_copy') ?? 'Support this event organiser with an optional donation. Your contribution helps make this event possible.') .
-            '</p>',
-          ];
-
-          $presets = $donationConfig->get('attendee_presets') ?? [5.00, 10.00, 25.00, 50.00];
-          $minAmount = (float) ($donationConfig->get('min_amount') ?? 1.00);
-
-          $form['donation_section']['donation_toggle'] = [
-            '#type' => 'checkbox',
-            '#title' => $this->t('Add a donation'),
-            '#default_value' => FALSE,
-            '#attributes' => ['class' => ['mel-donation-toggle']],
-          ];
-
-          $form['donation_section']['donation_amounts'] = [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['mel-donation-amounts']],
-            '#states' => [
-              'visible' => [
-                ':input[name="donation_section[donation_toggle]"]' => ['checked' => TRUE],
-              ],
-            ],
-          ];
-
-          // Preset radio buttons.
-          $presetOptions = [];
-          foreach ($presets as $preset) {
-            $presetOptions[(string) $preset] = '$' . number_format($preset, 2);
-          }
-          $presetOptions['custom'] = $this->t('Custom amount');
-
-          $form['donation_section']['donation_amounts']['donation_preset'] = [
-            '#type' => 'radios',
-            '#title' => $this->t('Donation amount'),
-            '#options' => $presetOptions,
-            '#default_value' => '',
-            '#required' => FALSE,
-            '#attributes' => ['class' => ['mel-donation-presets']],
-          ];
-
-          // Custom amount input.
-          $form['donation_section']['donation_amounts']['donation_custom'] = [
-            '#type' => 'number',
-            '#title' => $this->t('Custom amount (AUD)'),
-            '#description' => $this->t('Minimum $@min', ['@min' => number_format($minAmount, 2)]),
-            '#required' => FALSE,
-            '#min' => $minAmount,
-            '#step' => 0.01,
-            '#default_value' => '',
-            '#field_prefix' => '$',
-            '#attributes' => ['class' => ['mel-donation-custom-input']],
-            '#states' => [
-              'visible' => [
-                ':input[name="donation_section[donation_amounts][donation_preset]"]' => ['value' => 'custom'],
-              ],
-              'required' => [
-                ':input[name="donation_section[donation_amounts][donation_preset]"]' => ['value' => 'custom'],
-              ],
-            ],
-          ];
-
-          // Hidden field to store final donation amount.
-          $form['donation_amount'] = [
-            '#type' => 'hidden',
-            '#default_value' => 0,
-          ];
-
-          $form['#attached']['library'][] = 'myeventlane_donations/donation-form';
-          $form['#attached']['library'][] = 'myeventlane_donations/donation-rsvp';
-        }
-        elseif ($requireStripeConnected) {
-          $form['donation_unavailable'] = [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['mel-rsvp-donation-unavailable']],
-            'note' => [
-              '#markup' => '<p class="mel-text-muted">' . $this->t('Optional donations to the organiser are not available for this event yet — the organiser must finish connecting payments (Stripe).') . '</p>',
-            ],
-          ];
-        }
-      }
-    }
+    // Legacy donation UI is intentionally disabled here.
+    // Donation UI is centralized in RsvpPublicForm::buildDonationSection().
+    $form_state->set('donation_amount', '0.00');
 
     $form['actions'] = [
       '#type' => 'actions',
@@ -253,11 +139,13 @@ final class RsvpBookingForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('RSVP Now'),
+      '#value' => $this->t('🎉 Reserve my spot'),
       '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-block'],
+        'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl'],
       ],
     ];
+
+    $form['#attached']['library'][] = 'myeventlane_theme/myeventlane-global';
 
     return $form;
   }
@@ -266,50 +154,7 @@ final class RsvpBookingForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    // Validate donation amount if donation toggle is enabled (fields live under donation_section).
-    $donationToggle = (bool) $form_state->getValue(['donation_section', 'donation_toggle']);
-    if ($donationToggle) {
-      $donationConfig = $this->config('myeventlane_donations.settings');
-      $minAmount = (float) ($donationConfig->get('min_amount') ?? 1.00);
-      $preset = $form_state->getValue(['donation_section', 'donation_amounts', 'donation_preset']);
-      $customAmount = $form_state->getValue(['donation_section', 'donation_amounts', 'donation_custom']);
-
-      $donationAmount = 0;
-      if ($preset === 'custom') {
-        if (empty($customAmount) || (float) $customAmount < $minAmount) {
-          $form_state->setErrorByName('donation_section][donation_amounts][donation_custom', $this->t('Please enter a donation amount of at least $@min.', [
-            '@min' => number_format($minAmount, 2),
-          ]));
-        }
-        else {
-          $donationAmount = (float) $customAmount;
-        }
-      }
-      elseif (!empty($preset) && $preset !== 'custom') {
-        $donationAmount = (float) $preset;
-      }
-      else {
-        $form_state->setErrorByName('donation_section][donation_amounts][donation_preset', $this->t('Please select a donation amount.'));
-      }
-
-      // Canonicalise preset donation amount as string without float arithmetic.
-      $donationAmount = (string) $donationAmount;
-      $donationAmount = trim($donationAmount);
-      if ($donationAmount !== '' && preg_match('/^\d+(?:\.\d{1,2})?$/', $donationAmount)) {
-        [$whole, $frac] = array_pad(explode('.', $donationAmount, 2), 2, '');
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-        $frac = substr(str_pad($frac, 2, '0'), 0, 2);
-        $donationAmount = $whole . '.' . $frac;
-      }
-      else {
-        $donationAmount = '0.00';
-      }
-      $form_state->set('donation_amount', $donationAmount);
-    }
-    else {
-      $form_state->set('donation_amount', '0.00');
-    }
+    $form_state->set('donation_amount', '0.00');
   }
 
   /**
@@ -320,8 +165,6 @@ final class RsvpBookingForm extends FormBase {
     $product_id = $values['product_id'];
     $variation_id = $values['variation_id'];
     $event_id = $values['event_id'];
-    $donationAmount = (string) ($form_state->get('donation_amount') ?? '0.00');
-
     // Load product variation.
     $variation = $this->entityTypeManager
       ->getStorage('commerce_product_variation')
@@ -372,55 +215,6 @@ final class RsvpBookingForm extends FormBase {
       ?: $this->cartProvider->createCart('default', $store, $account);
 
     $this->cartManager->addOrderItem($cart, $order_item);
-
-    // Process donation payment if amount > 0.
-    // $donationAmount is canonical "X.YY". Avoid bccomp(): BCMath may not be installed.
-    if ($donationAmount !== '0.00') {
-      try {
-        if (\Drupal::hasService('myeventlane_donations.rsvp')) {
-          $event = $this->entityTypeManager->getStorage('node')->load($event_id);
-          if ($event instanceof \Drupal\node\NodeInterface) {
-            $capacity = $event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()
-              ? (int) $event->get('field_capacity')->value
-              : NULL;
-
-            $legalConsent = $form_state->get(RsvpLegalAlter::RSVP_CONSENT_FORM_STATE_KEY);
-            $legalConsent = is_array($legalConsent) ? $legalConsent : NULL;
-
-            $submission = $this->submissionManager->submitOrUpdate($event, [
-              'name' => trim(($values['first_name'] ?? '') . ' ' . ($values['last_name'] ?? '')),
-              'email' => $values['email'] ?? '',
-              'phone' => $values['phone'] ?? '',
-              'guests' => 1,
-              'donation' => $donationAmount,
-            ], $capacity, $legalConsent);
-
-            $rsvpDonationService = \Drupal::service('myeventlane_donations.rsvp');
-            $donationOrder = $rsvpDonationService->createDonationOrder($submission, $event, $donationAmount);
-            if ($donationOrder) {
-              $form_state->setRedirect('commerce_checkout.form', [
-                'commerce_order' => $donationOrder->id(),
-              ]);
-              return;
-            }
-          }
-        }
-      }
-      catch (\Drupal\myeventlane_capacity\Exception\CapacityExceededException $e) {
-        $this->messenger()->addError($this->t('This event is full.'));
-        return;
-      }
-      catch (\RuntimeException $e) {
-        $this->messenger()->addError($e->getMessage());
-        return;
-      }
-      catch (\Exception $e) {
-        $this->getLogger('myeventlane_commerce')->error('Failed to process RSVP donation: @message', [
-          '@message' => $e->getMessage(),
-        ]);
-        $this->messenger()->addWarning($this->t('Your RSVP was saved, but we could not process your donation. Please contact support.'));
-      }
-    }
 
     // Save accessibility needs if provided.
     $accessibilityNeeds = $values['accessibility_needs'] ?? [];

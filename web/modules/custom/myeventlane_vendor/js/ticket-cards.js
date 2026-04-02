@@ -61,7 +61,7 @@
    */
   function persistOrder(list) {
     const wrapper = list.closest('#mel-ticket-builder-ajax-wrapper');
-    if (!wrapper || !wrapper.classList.contains('mel-ticket-builder')) {
+    if (!wrapper) {
       return;
     }
     const input = wrapper.querySelector('.js-mel-ticket-order');
@@ -201,7 +201,7 @@
 
   Drupal.behaviors.melTicketCards = {
     attach(context) {
-      once('mel-ticket-dnd', '#mel-ticket-builder-ajax-wrapper.mel-ticket-builder', context).forEach(
+      once('mel-ticket-dnd', '#mel-ticket-builder-ajax-wrapper', context).forEach(
         (wrapper) => {
           const list = wrapper.querySelector('.js-mel-ticket-sortable');
           if (list) {

@@ -78,6 +78,34 @@
       </ul>
     </div>
 
+    {% set mel_has_booking_signals =
+      mel_signal_is_community
+      or mel_signal_booked_count is not null
+      or mel_signal_remaining_spots is not null
+      or mel_signal_urgency_label
+      or mel_signal_trust_label
+    %}
+    {% if mel_has_booking_signals %}
+      <section class="mel-booking-signals" aria-label="{{ 'Booking signals'|t }}">
+        <div class="mel-booking-signals__list">
+          {% if mel_signal_is_community %}
+            <span class="mel-booking-signals__pill mel-booking-signals__pill--community">{{ '✨ Community-powered event'|t }}</span>
+          {% endif %}
+          {% if mel_signal_remaining_spots is not null and mel_signal_remaining_spots <= 10 %}
+            <span class="mel-booking-signals__pill mel-booking-signals__pill--urgency">{{ '🔥 Only @count spots left'|t({'@count': mel_signal_remaining_spots}) }}</span>
+          {% elseif mel_signal_urgency_label %}
+            <span class="mel-booking-signals__pill mel-booking-signals__pill--urgency">{{ mel_signal_urgency_label }}</span>
+          {% endif %}
+          {% if mel_signal_booked_count is not null and mel_signal_booked_count > 0 %}
+            <span class="mel-booking-signals__pill mel-booking-signals__pill--booked">{{ '🎟️ @count people already booked'|t({'@count': mel_signal_booked_count}) }}</span>
+          {% endif %}
+          {% if mel_signal_trust_label %}
+            <span class="mel-booking-signals__pill mel-booking-signals__pill--trust">{{ mel_signal_trust_label }}</span>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
     {# CONTENT — context + decision #}
     <div class="mel-booking-container">
       {% if event_description is defined and event_description is not empty %}
@@ -93,7 +121,7 @@
         <div class="mel-booking-layout__main">
           {% if event_mode == 'paid' %}
             <p class="mel-booking-confidence mel-text--muted">
-              {{ "Select your tickets below, then continue to review. You won't be charged on this step."|t }}
+              {{ "Pick the option that feels right for you - you can review everything before checkout."|t }}
             </p>
           {% endif %}
 
@@ -111,7 +139,7 @@
             </h2>
 
             {% if event_mode == 'paid' %}
-              <p class="mel-ticket-panel__lead">{{ "Need help choosing? Check the descriptions for what's included. You can review everything before checkout."|t }}</p>
+              <p class="mel-ticket-panel__lead">{{ "Pick the option that feels right for you - you can review everything before checkout."|t }}</p>
             {% endif %}
 
             <div class="mel-ticket-panel__body mel-event-book__form-body">

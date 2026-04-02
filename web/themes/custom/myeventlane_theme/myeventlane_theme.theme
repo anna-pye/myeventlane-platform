@@ -835,8 +835,17 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     // Add calendar data for mini calendar
     $variables['calendar'] = _myeventlane_theme_get_calendar_data();
 
-    // Homepage event rails: rendered via drupal_view() in page--front.html.twig (Phase 2).
-    // Category pills: drupal_block('myeventlane_category_pills') in the same template.
+    // Homepage event rails: rendered via drupal_view() in page--front.html.twig.
+    // Category pills: drupal_block('myeventlane_category_pills') in page--front.html.twig.
+    // Region emptiness: Twig `{% if page.host_cta %}` is true for empty regions; use children count.
+    $variables['mel_home_use_host_cta_region'] = FALSE;
+    if (isset($variables['page']['host_cta']) && is_array($variables['page']['host_cta'])) {
+      $variables['mel_home_use_host_cta_region'] = count(Element::children($variables['page']['host_cta'])) > 0;
+    }
+    $variables['mel_home_use_bottom_cta_region'] = FALSE;
+    if (isset($variables['page']['bottom_cta']) && is_array($variables['page']['bottom_cta'])) {
+      $variables['mel_home_use_bottom_cta_region'] = count(Element::children($variables['page']['bottom_cta'])) > 0;
+    }
   }
   
   // MyEventLane Illustration System: Category-aware hero swaps.
@@ -1142,26 +1151,50 @@ function myeventlane_theme_library_info_alter(array &$libraries, string $extensi
   }
 
   $manifest = _myeventlane_theme_vite_manifest();
-  if (!$manifest) {
+  if (!$manifest || !is_array($manifest) || $manifest === []) {
+    \Drupal::logger('myeventlane_theme')->error('MEL ERROR: Vite manifest missing. Assets not built.');
     return;
   }
 
+  $theme_handler = \Drupal::service('extension.list.theme');
+  $relative_theme_path = $theme_handler->getPath('myeventlane_theme');
+  $theme_fs = DRUPAL_ROOT . '/' . $relative_theme_path . '/';
+
+  $log_missing_asset = static function (string $relative_path) : void {
+    \Drupal::logger('myeventlane_theme')->error('MEL ERROR: Vite manifest references missing file: @path', [
+      '@path' => $relative_path,
+    ]);
+  };
+
   // Global bundle (main) entry: src/js/main.js → css + js.
-  if (isset($libraries['global-styling'])) {
-    $main = $manifest['js/main.js'] ?? NULL;
-    if (is_array($main)) {
+  // Keep both legacy aliases in sync to avoid stale hardcoded dist/main.js paths.
+  $main = $manifest['js/main.js'] ?? NULL;
+  if (is_array($main)) {
+    $global_libraries = ['global-styling', 'myeventlane-global'];
+    foreach ($global_libraries as $library_name) {
+      if (!isset($libraries[$library_name])) {
+        continue;
+      }
       // CSS.
       if (!empty($main['css'][0]) && is_string($main['css'][0])) {
         $css = ltrim($main['css'][0], '/');
-        $libraries['global-styling']['css']['theme'] = [
-          "dist/{$css}" => [],
+        $relative = 'dist/' . $css;
+        if (!is_file($theme_fs . $relative)) {
+          $log_missing_asset($relative);
+        }
+        $libraries[$library_name]['css']['theme'] = [
+          $relative => [],
         ];
       }
       // JS.
       if (!empty($main['file']) && is_string($main['file'])) {
         $js = ltrim($main['file'], '/');
-        $libraries['global-styling']['js'] = [
-          "dist/{$js}" => [],
+        $relative = 'dist/' . $js;
+        if (!is_file($theme_fs . $relative)) {
+          $log_missing_asset($relative);
+        }
+        $libraries[$library_name]['js'] = [
+          $relative => [],
         ];
       }
     }
@@ -1172,14 +1205,18 @@ function myeventlane_theme_library_info_alter(array &$libraries, string $extensi
     $front = $manifest['scss/front.scss'] ?? NULL;
     if (is_array($front) && !empty($front['file']) && is_string($front['file'])) {
       $css = ltrim($front['file'], '/');
+      $relative = 'dist/' . $css;
+      if (!is_file($theme_fs . $relative)) {
+        $log_missing_asset($relative);
+      }
       if (isset($libraries['front']['css']['theme'])) {
         $libraries['front']['css']['theme'] = [
-          "dist/{$css}" => [],
+          $relative => [],
         ];
       }
       if (isset($libraries['mel-listing-header']['css']['theme'])) {
         $libraries['mel-listing-header']['css']['theme'] = [
-          "dist/{$css}" => [],
+          $relative => [],
         ];
       }
     }
@@ -1190,8 +1227,12 @@ function myeventlane_theme_library_info_alter(array &$libraries, string $extensi
     $entry = $manifest['js/account-dropdown.js'] ?? NULL;
     if (is_array($entry) && !empty($entry['file']) && is_string($entry['file'])) {
       $js = ltrim($entry['file'], '/');
+      $relative = 'dist/' . $js;
+      if (!is_file($theme_fs . $relative)) {
+        $log_missing_asset($relative);
+      }
       $libraries['account-dropdown']['js'] = [
-        "dist/{$js}" => [],
+        $relative => [],
       ];
     }
   }
@@ -2518,6 +2559,11 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['event_description'] = [];
   $variables['event_summary_excerpt'] = NULL;
   $variables['mel_booking_host_label'] = NULL;
+  $variables['mel_signal_booked_count'] = NULL;
+  $variables['mel_signal_remaining_spots'] = NULL;
+  $variables['mel_signal_is_community'] = FALSE;
+  $variables['mel_signal_trust_label'] = NULL;
+  $variables['mel_signal_urgency_label'] = NULL;
 
   $event = $variables['event'] ?? NULL;
   if (!$event instanceof NodeInterface) {
@@ -2547,7 +2593,50 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
     $vendor = $event->get('field_event_vendor')->entity;
     if ($vendor && $vendor->access('view')) {
       $variables['mel_booking_host_label'] = $vendor->label();
+      $variables['mel_signal_trust_label'] = t('Hosted by @name', ['@name' => $vendor->label()]);
     }
+  }
+
+  if (\Drupal::hasService('myeventlane_capacity.service')) {
+    try {
+      /** @var \Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface $capacity */
+      $capacity = \Drupal::service('myeventlane_capacity.service');
+      $soldCount = $capacity->getSoldCount($event);
+      $remaining = $capacity->getRemaining($event);
+
+      if ($soldCount > 0) {
+        $variables['mel_signal_booked_count'] = $soldCount;
+      }
+      if ($remaining !== NULL) {
+        $variables['mel_signal_remaining_spots'] = $remaining;
+        if ($remaining > 10 && $remaining <= 25) {
+          $variables['mel_signal_urgency_label'] = t('Popular event - spots are filling');
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->warning('Could not resolve booking signals for event @event_id: @message', [
+        '@event_id' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  $categoryText = '';
+  if ($event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {
+    $parts = [];
+    foreach ($event->get('field_category')->referencedEntities() as $term) {
+      $label = trim(mb_strtolower((string) $term->label()));
+      if ($label !== '') {
+        $parts[] = $label;
+      }
+    }
+    $categoryText = implode(' ', $parts);
+  }
+  if ($categoryText !== '') {
+    $variables['mel_signal_is_community'] = str_contains($categoryText, 'community')
+      || str_contains($categoryText, 'lgbtq')
+      || str_contains($categoryText, 'grassroots');
   }
 
 }

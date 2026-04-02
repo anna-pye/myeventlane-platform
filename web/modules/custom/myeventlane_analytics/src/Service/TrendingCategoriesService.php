@@ -6,7 +6,7 @@ namespace Drupal\myeventlane_analytics\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Schema;
-use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\taxonomy\TermInterface;

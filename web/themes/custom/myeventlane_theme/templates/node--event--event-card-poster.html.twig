@@ -1,0 +1,10 @@
+{#
+/**
+ * @file
+ * Event node — event_card_poster (maps to featured variant; Views should prefer teaser/teaser_featured).
+ */
+#}
+{% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
+  variant: 'featured',
+  attributes: attributes,
+} %}

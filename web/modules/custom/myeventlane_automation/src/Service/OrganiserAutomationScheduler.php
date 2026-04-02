@@ -241,7 +241,7 @@ final class OrganiserAutomationScheduler {
 
   private function buildPayload(NodeInterface $event, string $key, array $eventData): array {
     $eventId = (int) $event->id();
-    $editUrl = Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eventId], ['absolute' => TRUE])->toString();
+    $editUrl = Url::fromRoute('entity.node.edit_form', ['node' => $eventId], ['absolute' => TRUE])->toString();
     $attendeesUrl = NULL;
     $duplicateUrl = NULL;
     try {

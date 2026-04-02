@@ -1,27 +1,36 @@
 {#
 /**
  * @file
- * HTML template for MyEventLane Admin theme.
+ * HTML document; keeps Gin body classes + MyEventLane admin body hook.
  *
- * Claro is the base theme; this adds a stable wrapper class only.
+ * @see gin/templates/html.html.twig
  */
 #}
+{%
+  set body_classes = [
+    logged_in ? 'user-logged-in',
+    not root_path ? 'path-frontpage' : 'path-' ~ root_path|clean_class,
+    node_type ? 'page-node-type-' ~ node_type|clean_class,
+    db_offline ? 'db-offline',
+    'mel-admin-body',
+  ]
+%}
 <!DOCTYPE html>
 <html{{ html_attributes }}>
   <head>
-    <head-placeholder token="{{ placeholder_token|raw }}">
+    <head-placeholder token="{{ placeholder_token }}">
     <title>{{ head_title|safe_join(' | ') }}</title>
-    <css-placeholder token="{{ placeholder_token|raw }}">
-    <js-placeholder token="{{ placeholder_token|raw }}">
+    <css-placeholder token="{{ placeholder_token }}">
+    <js-placeholder token="{{ placeholder_token }}">
   </head>
-  <body{{ attributes.addClass('mel-admin-body') }}>
+
+  <body{{ attributes.addClass(body_classes) }}>
     <a href="#main-content" class="visually-hidden focusable skip-link">
       {{ 'Skip to main content'|t }}
     </a>
-    {{ page_top }}
+    {{ page_top|without('gin_secondary_toolbar') }}
     {{ page }}
     {{ page_bottom }}
-    <js-bottom-placeholder token="{{ placeholder_token|raw }}">
+    <js-bottom-placeholder token="{{ placeholder_token }}">
   </body>
 </html>
-

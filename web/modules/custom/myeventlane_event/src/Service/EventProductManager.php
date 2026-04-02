@@ -13,6 +13,7 @@ use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\node\NodeInterface;
 
 /**
@@ -184,6 +185,7 @@ final class EventProductManager {
 
     // Link event to product.
     $event->set('field_product_target', ['target_id' => $product->id()]);
+    EventNodeRevisionSave::prepare($event, 'Linked RSVP product to event.');
     $event->save();
 
     $this->loggerFactory->get('myeventlane_event')->notice(

@@ -39,12 +39,16 @@ services:
     arguments:
       - '@logger.factory'
 
-  myeventlane_event.event_form_alter:
-    class: Drupal\myeventlane_event\Form\EventFormAlter
+  myeventlane_event.event_form_ticket_builder_callbacks:
+    class: Drupal\myeventlane_event\Form\EventFormTicketBuilderCallbacks
     arguments:
-      - '@current_user'
-      - '@current_route_match'
+      - '@myeventlane_vendor.ticket_builder'
       - '@entity_type.manager'
+
+  myeventlane_event.builder_state:
+    class: Drupal\myeventlane_event\Service\EventBuilderStateService
+    arguments:
+      - '@myeventlane_event.ticket_type_manager'
 
   myeventlane_event.ticket_type_route_subscriber:
     class: Drupal\myeventlane_event\Routing\TicketTypeRouteSubscriber

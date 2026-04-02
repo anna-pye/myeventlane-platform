@@ -1,0 +1,56 @@
+services:
+  myeventlane_event_studio.vendor_legacy_wizard_redirect_subscriber:
+    class: Drupal\myeventlane_event_studio\EventSubscriber\VendorLegacyWizardRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_event_studio'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_event_studio.node_form_access_subscriber:
+    class: Drupal\myeventlane_event_studio\EventSubscriber\EventNodeFormAccessSubscriber
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }
+
+  logger.channel.myeventlane_event_studio:
+    parent: logger.channel_base
+    arguments: ['myeventlane_event_studio']
+
+  myeventlane_event_studio.repository:
+    class: Drupal\myeventlane_event_studio\Service\EventRepository
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_core.entity_id_normalizer'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@?myeventlane_event_state.resolver'
+      - '@?myeventlane_capacity.service'
+
+  myeventlane_event_studio.mel_ticket_type_manager:
+    class: Drupal\myeventlane_event_studio\Service\MelTicketTypeManager
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_event.ticket_tier_lifecycle'
+      - '@myeventlane_event.ticket_type_manager'
+      - '@?myeventlane_domain_events.bus'
+      - '@logger.channel.myeventlane_event_studio'
+
+  myeventlane_event_studio.save:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioSaveService
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_venue.manager'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@myeventlane_event_studio.mel_ticket_type_manager'
+
+  myeventlane_event_studio.autosave_controller:
+    class: Drupal\myeventlane_event_studio\Controller\EventStudioAutosaveController
+    arguments:
+      - '@myeventlane_event_studio.save'
+      - '@current_user'
+      - '@entity_type.manager'
+    tags:
+      - { name: controller.service_arguments }

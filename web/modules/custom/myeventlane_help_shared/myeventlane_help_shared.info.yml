@@ -1,0 +1,9 @@
+name: MyEventLane Help Shared
+type: module
+description: 'Shared help retrieval utilities (unified retriever wrapping Help Assistant retrieval).'
+package: MyEventLane
+core_version_requirement: ^11
+dependencies:
+  - drupal:user
+  - drupal:node
+  - myeventlane_help_assistant:myeventlane_help_assistant

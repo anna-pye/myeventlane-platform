@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * upcoming_events — shared wrapper for page_today, page_this_weekend, page_free
+ * (displays without a more specific template).
+ */
+#}
+{{ attach_library('myeventlane_theme/mel-events-discovery') }}
+
+{% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' %}
+
+{{ exposed }}
+
+{% if rows %}
+  <div class="view-content">
+    {{ rows }}
+  </div>
+{% elseif empty %}
+  <div class="view-empty">
+    {{ empty }}
+  </div>
+{% endif %}
+
+{{ pager }}

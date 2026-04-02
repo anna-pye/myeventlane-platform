@@ -32,7 +32,12 @@ final class EventMetricsProjector implements DomainEventProjectorInterface {
    * {@inheritdoc}
    */
   public function supports(string $eventType): bool {
-    return in_array($eventType, ['ticket.issued', 'rsvp.created', 'checkin.completed'], TRUE);
+    return in_array($eventType, [
+      'ticket.issued',
+      'rsvp.created',
+      'checkin.completed',
+      'event.ticket_catalog.updated',
+    ], TRUE);
   }
 
   /**
@@ -40,6 +45,16 @@ final class EventMetricsProjector implements DomainEventProjectorInterface {
    */
   public function project(array $event): void {
     $payload = is_array($event['payload'] ?? NULL) ? $event['payload'] : [];
+    $eventType = (string) ($event['event_type'] ?? '');
+
+    if ($eventType === 'event.ticket_catalog.updated') {
+      $eventNodeId = (int) ($payload['event_node_id'] ?? 0);
+      if ($eventNodeId > 0) {
+        $this->cacheTagsInvalidator->invalidateTags([sprintf('event_metrics:%d', $eventNodeId)]);
+      }
+      return;
+    }
+
     $eventNodeId = (int) ($payload['event_node_id'] ?? $event['event_node_id'] ?? 0);
     if ($eventNodeId <= 0) {
       $this->logger->warning('Event metrics projector skipped event {event_id}: missing event_node_id.', [

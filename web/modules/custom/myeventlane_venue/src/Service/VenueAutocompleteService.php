@@ -81,6 +81,12 @@ class VenueAutocompleteService {
       return [];
     }
 
+    // EntityStorageBase::loadMultiple() uses array_flip(); IDs must be int|string (not float).
+    $ids = array_values(array_unique(array_filter(array_map(
+      static fn ($id): int => (int) $id,
+      $ids
+    ))));
+
     return $storage->loadMultiple($ids);
   }
 

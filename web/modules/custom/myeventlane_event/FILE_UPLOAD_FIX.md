@@ -21,9 +21,8 @@
 Error message: "An unrecoverable error occurred. The uploaded file likely exceeded the maximum file size (256 MB) that this server supports."
 
 ## Changes Made
-1. **Increased file validator limit** from 5MB to 10MB in `EventWizardForm.php`
+1. **Increased file validator limit** from 5MB to 10MB on the Basics wizard step (see `EventWizardBasicsForm.php` / image handling; the old monolithic `EventWizardForm` was removed).
    - This is a reasonable limit for hero images
-   - Location: `buildBrandingStep()` method
 
 ## Additional Steps Required
 

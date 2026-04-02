@@ -66,7 +66,7 @@ final class VendorEventsController extends VendorConsoleBaseController implement
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
       'title' => t('Events'),
       'header_actions' => [
-        ['label' => t('Create Event'), 'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString()],
+        ['label' => t('Create Event'), 'url' => Url::fromRoute('myeventlane_event_studio.create')->toString()],
       ],
       'tabs' => [],
       'body' => $form,

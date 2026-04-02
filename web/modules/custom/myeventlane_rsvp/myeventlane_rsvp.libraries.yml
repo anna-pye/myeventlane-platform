@@ -12,6 +12,19 @@ rsvp_form:
   dependencies:
     - core/drupal
     - core/once
+rsvp-conversion:
+  css:
+    theme:
+      css/rsvp-conversion.css: {}
+  js:
+    js/rsvp-conversion.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+rsvp-thankyou:
+  css:
+    theme:
+      css/rsvp-thankyou.css: {}
 qrscan:
   js:
     js/qrscan.js: {}

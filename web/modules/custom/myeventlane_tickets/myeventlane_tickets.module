@@ -70,10 +70,10 @@ function myeventlane_tickets_form_node_event_edit_form_alter(array &$form, FormS
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for myeventlane_event_wizard.
+ * Implements hook_form_FORM_ID_alter() for event_wizard_tickets_form.
  */
-function myeventlane_tickets_form_myeventlane_event_wizard_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  // Attach event wizard library for Paid/RSVP toggle functionality in wizard.
+function myeventlane_tickets_form_event_wizard_tickets_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Attach event wizard library for Paid/RSVP toggle functionality on Tickets step.
   $form['#attached']['library'][] = 'myeventlane_tickets/event_wizard';
 }
 

@@ -98,14 +98,14 @@ final class SearchController extends ControllerBase {
       [$events, $pages] = $this->runContentQuery($contentIndex, $q);
       $groups['events']['items'] = $events;
       if (count($events) >= 1) {
-        // Enrich event items with rendered teaser (matches /events cards).
+        // Enrich event items with rendered event_card (same as /events discovery).
         $nids = array_filter(array_map('intval', array_column($events, 'nid')));
         $nodes = $nids ? $this->entityTypeManager()->getStorage('node')->loadMultiple($nids) : [];
         $view_builder = $this->entityTypeManager()->getViewBuilder('node');
         foreach ($groups['events']['items'] as &$item) {
           $nid = (int) ($item['nid'] ?? 0);
           if ($nid && isset($nodes[$nid])) {
-            $item['rendered'] = $view_builder->view($nodes[$nid], 'teaser');
+            $item['rendered'] = $view_builder->view($nodes[$nid], 'event_card');
           }
           else {
             $item['rendered'] = ['#markup' => ''];

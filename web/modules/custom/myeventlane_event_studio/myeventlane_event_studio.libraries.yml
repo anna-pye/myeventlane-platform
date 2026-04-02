@@ -1,0 +1,10 @@
+mel_event_studio:
+  css:
+    theme:
+      css/mel-event-studio.css: {}
+  js:
+    js/mel-event-studio.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_location/address_autocomplete

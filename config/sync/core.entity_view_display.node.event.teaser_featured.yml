@@ -1,0 +1,300 @@
+uuid: 13f26679-7cd2-4a87-89ae-eaac01f3aa79
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.event.teaser_featured
+    - field.field.node.event.body
+    - field.field.node.event.field_accessibility
+    - field.field.node.event.field_accessibility_contact
+    - field.field.node.event.field_accessibility_directions
+    - field.field.node.event.field_accessibility_entry
+    - field.field.node.event.field_accessibility_parking
+    - field.field.node.event.field_age_restriction
+    - field.field.node.event.field_attendee_questions
+    - field.field.node.event.field_cancel_reason
+    - field.field.node.event.field_cancelled_at
+    - field.field.node.event.field_capacity
+    - field.field.node.event.field_category
+    - field.field.node.event.field_collect_per_ticket
+    - field.field.node.event.field_contact_email
+    - field.field.node.event.field_contact_phone
+    - field.field.node.event.field_event_capacity_total
+    - field.field.node.event.field_event_end
+    - field.field.node.event.field_event_highlights
+    - field.field.node.event.field_event_image
+    - image.style.mel_event_card_featured
+    - field.field.node.event.field_event_intro
+    - field.field.node.event.field_event_start
+    - field.field.node.event.field_event_state
+    - field.field.node.event.field_event_state_override
+    - field.field.node.event.field_event_store
+    - field.field.node.event.field_event_type
+    - field.field.node.event.field_event_vendor
+    - field.field.node.event.field_external_url
+    - field.field.node.event.field_featured
+    - field.field.node.event.field_is_series_template
+    - field.field.node.event.field_location
+    - field.field.node.event.field_location_latitude
+    - field.field.node.event.field_location_longitude
+    - field.field.node.event.field_location_place_id
+    - field.field.node.event.field_product_target
+    - field.field.node.event.field_promo_expires
+    - field.field.node.event.field_promoted
+    - field.field.node.event.field_refund_policy
+    - field.field.node.event.field_reviews_enabled
+    - field.field.node.event.field_sales_end
+    - field.field.node.event.field_sales_start
+    - field.field.node.event.field_series_instance_id
+    - field.field.node.event.field_series_parent
+    - field.field.node.event.field_series_rrule
+    - field.field.node.event.field_series_timezone
+    - field.field.node.event.field_tags
+    - field.field.node.event.field_ticket_types
+    - field.field.node.event.field_venue_address
+    - field.field.node.event.field_venue_name
+    - field.field.node.event.field_waitlist_capacity
+    - node.type.event
+  module:
+    - address
+    - datetime
+    - layout_builder
+    - link
+    - options
+    - image
+    - text
+    - user
+third_party_settings:
+  layout_builder:
+    enabled: false
+    allow_custom: false
+id: node.event.teaser_featured
+targetEntityType: node
+bundle: event
+mode: teaser_featured
+content:
+  body:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  content_moderation_control:
+    settings: {  }
+    third_party_settings: {  }
+    weight: -20
+    region: content
+  field_accessibility:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 12
+    region: content
+  field_accessibility_contact:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 13
+    region: content
+  field_accessibility_directions:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 14
+    region: content
+  field_accessibility_entry:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 16
+    region: content
+  field_accessibility_parking:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 17
+    region: content
+  field_capacity:
+    type: number_integer
+    label: visually_hidden
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 7
+    region: content
+  field_category:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 11
+    region: content
+  field_event_end:
+    type: datetime_default
+    label: inline
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_event_image:
+    type: image
+    label: hidden
+    settings:
+      image_link: ''
+      image_style: mel_event_card_featured
+      image_loading:
+        attribute: lazy
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_event_start:
+    type: datetime_default
+    label: inline
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_event_type:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_external_url:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: _blank
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  field_featured:
+    type: boolean
+    label: hidden
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 15
+    region: content
+  field_location:
+    type: address_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 6
+    region: content
+  field_location_latitude:
+    type: number_decimal
+    label: visually_hidden
+    settings:
+      thousand_separator: ''
+      decimal_separator: .
+      scale: 2
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 18
+    region: content
+  field_location_longitude:
+    type: number_decimal
+    label: visually_hidden
+    settings:
+      thousand_separator: ''
+      decimal_separator: .
+      scale: 2
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 19
+    region: content
+  field_product_target:
+    type: entity_reference_label
+    label: hidden
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 9
+    region: content
+  field_venue_name:
+    type: string
+    label: hidden
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  field_waitlist_capacity:
+    type: number_integer
+    label: visually_hidden
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 8
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 20
+    region: content
+hidden:
+  field_age_policy: true
+  field_age_policy_note: true
+  field_age_restriction: true
+  field_attendee_questions: true
+  field_cancel_reason: true
+  field_cancelled_at: true
+  field_collect_per_ticket: true
+  field_contact_email: true
+  field_contact_phone: true
+  field_event_capacity_total: true
+  field_event_geo: true
+  field_event_highlights: true
+  field_event_intro: true
+  field_event_setup_complete: true
+  field_event_state: true
+  field_event_state_override: true
+  field_event_store: true
+  field_event_summary: true
+  field_event_vendor: true
+  field_is_series_template: true
+  field_location_place_id: true
+  field_mel_sup_amt: true
+  field_mel_sup_chk: true
+  field_mel_sup_mode: true
+  field_mel_sup_oid: true
+  field_mel_sup_pct: true
+  field_promo_expires: true
+  field_promoted: true
+  field_refund_policy: true
+  field_reviews_enabled: true
+  field_sales_end: true
+  field_sales_start: true
+  field_series_instance_id: true
+  field_series_parent: true
+  field_series_rrule: true
+  field_series_timezone: true
+  field_tags: true
+  field_ticket_types: true
+  field_venue: true
+  field_venue_address: true
+  langcode: true
+  search_api_excerpt: true

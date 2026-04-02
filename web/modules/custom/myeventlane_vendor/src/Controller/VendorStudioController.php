@@ -11,6 +11,10 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event_studio\DTO\MelEventData;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
+use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
@@ -43,6 +47,9 @@ final class VendorStudioController extends VendorConsoleBaseController implement
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CsrfTokenGenerator $csrfToken,
     private readonly LoggerInterface $logger,
+    private readonly EventStudioSaveService $eventStudioSave,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
+    private readonly EventRepository $eventRepository,
     private readonly ?TicketSalesService $ticketSalesService = NULL,
     private readonly ?RsvpStatsService $rsvpStatsService = NULL,
     private readonly ?EventMetricsServiceInterface $eventMetricsService = NULL,
@@ -61,6 +68,9 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       $container->get('entity_type.manager'),
       $container->get('csrf_token'),
       $container->get('logger.channel.myeventlane_vendor'),
+      $container->get('myeventlane_event_studio.save'),
+      $container->get('myeventlane_core.entity_id_normalizer'),
+      $container->get('myeventlane_event_studio.repository'),
       $container->has('myeventlane_vendor.service.ticket_sales') ? $container->get('myeventlane_vendor.service.ticket_sales') : NULL,
       $container->has('myeventlane_vendor.service.rsvp_stats') ? $container->get('myeventlane_vendor.service.rsvp_stats') : NULL,
       $container->has('myeventlane_metrics.service') ? $container->get('myeventlane_metrics.service') : NULL,
@@ -384,82 +394,23 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       ], 400);
     }
 
-    $title = isset($payload['title']) ? trim((string) $payload['title']) : '';
-    $summary = isset($payload['field_event_summary']) ? trim((string) $payload['field_event_summary']) : '';
-    $event_type = isset($payload['field_event_type']) ? trim((string) $payload['field_event_type']) : '';
-
-    if ($title === '') {
+    $result = $this->eventStudioSave->patchOverviewBasics($event, $this->currentUser, $payload);
+    if (!$result['ok']) {
+      if ($result['http_status'] >= 500) {
+        $this->logger->error('Vendor Studio overview save failed. nid=@nid message=@message', [
+          '@nid' => (int) $event->id(),
+          '@message' => $result['message'],
+        ]);
+      }
       return new JsonResponse([
         'success' => FALSE,
-        'message' => 'Event name is required.',
-      ], 422);
-    }
-
-    if (strlen($summary) > 255) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => 'Summary must be 255 characters or less.',
-      ], 422);
-    }
-
-    $allowed_event_types = [];
-    if ($event->hasField('field_event_type')) {
-      $allowed = (array) $event->getFieldDefinition('field_event_type')->getSetting('allowed_values');
-      $allowed_event_types = array_keys($allowed);
-    }
-
-    if ($event_type === '' || !in_array($event_type, $allowed_event_types, TRUE)) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => 'Invalid event type.',
-      ], 422);
-    }
-
-    try {
-      $has_changes = FALSE;
-
-      if ($event->label() !== $title) {
-        $event->setTitle($title);
-        $has_changes = TRUE;
-      }
-
-      if ($event->hasField('field_event_summary')) {
-        $current_summary = (string) ($event->get('field_event_summary')->value ?? '');
-        if ($current_summary !== $summary) {
-          $event->set('field_event_summary', $summary);
-          $has_changes = TRUE;
-        }
-      }
-
-      if ($event->hasField('field_event_type')) {
-        $current_type = (string) ($event->get('field_event_type')->value ?? '');
-        if ($current_type !== $event_type) {
-          $event->set('field_event_type', $event_type);
-          $has_changes = TRUE;
-        }
-      }
-
-      if ($has_changes) {
-        $event->setNewRevision(TRUE);
-        $event->setRevisionUserId((int) $this->currentUser->id());
-        $event->setRevisionLogMessage('Updated Overview fields from Vendor Studio.');
-        $event->save();
-      }
-    }
-    catch (\Throwable $exception) {
-      $this->logger->error('Vendor Studio overview save failed. nid=@nid message=@message', [
-        '@nid' => (int) $event->id(),
-        '@message' => $exception->getMessage(),
-      ]);
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => 'Could not save changes.',
-      ], 500);
+        'message' => $result['message'],
+      ], $result['http_status']);
     }
 
     return new JsonResponse([
       'success' => TRUE,
-      'message' => 'Overview saved.',
+      'message' => $result['message'],
       'event' => $this->buildEventPayload($event),
     ]);
   }
@@ -972,28 +923,34 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       return [];
     }
 
-    $events = $this->entityTypeManager->getStorage('node')->loadMultiple($event_ids);
+    // Before: query ->execute() may yield string-keyed maps; values int|string.
+    // After: scalar int list for loadMultiple() (avoids array_flip() type warnings).
+    $event_ids = $this->entityIdNormalizer->normalizeNodeIds(array_values($event_ids));
+    if ($event_ids === []) {
+      return [];
+    }
+
+    $melEvents = $this->eventRepository->loadMany($event_ids);
     $cards = [];
 
-    foreach ($events as $event) {
-      if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+    foreach ($melEvents as $event) {
+      if (!$event instanceof MelEventData) {
         continue;
       }
 
-      $event_id = (int) $event->id();
+      $event_id = $event->id;
       $studio_endpoints = $this->buildStudioEndpoints($event_id);
+      $moderation = $event->moderation_state !== ''
+        ? $event->moderation_state
+        : ($event->published ? 'published' : 'draft');
       $cards[] = [
         'id' => $event_id,
         'nid' => $event_id,
-        'title' => $event->label(),
-        'date' => $this->extractEventDateLabel($event),
-        'location' => $this->extractEventLocationLabel($event),
-        'image' => $this->extractEventImageUrl($event),
-        'status' => $this->normalizeModerationState(
-          $event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()
-            ? (string) $event->get('moderation_state')->value
-            : 'draft'
-        ),
+        'title' => $event->title,
+        'date' => $this->extractMelEventDateLabel($event),
+        'location' => $this->extractMelEventLocationLabel($event),
+        'image' => $event->image_url ?? '',
+        'status' => $this->normalizeModerationState($moderation),
         'tickets_sold' => 0,
         'rsvp_count' => 0,
         'revenue' => '0',
@@ -1010,7 +967,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'publish_url' => $studio_endpoints['publish'],
         'preview_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
         'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
-        'wizard_url' => Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event_id])->toString(),
+        'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
         'active' => $active_event_id > 0 && $active_event_id === $event_id,
       ];
     }
@@ -1074,7 +1031,7 @@ final class VendorStudioController extends VendorConsoleBaseController implement
         'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $event_id])->toString(),
         'duplicate_url' => NULL,
       ],
-      'wizard_url' => Url::fromRoute('myeventlane_event.wizard.basics', ['event' => $event_id])->toString(),
+      'wizard_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
       'editor_url' => Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event_id])->toString(),
       'read_url' => $studio_endpoints['overview_read'],
       'save_url' => $studio_endpoints['overview_save'],
@@ -1350,6 +1307,52 @@ final class VendorStudioController extends VendorConsoleBaseController implement
       return 'Needs promotion';
     }
     return 'Low sales';
+  }
+
+  /**
+   * Display date from MEL event DTO (studio cards).
+   */
+  protected function extractMelEventDateLabel(MelEventData $event): string {
+    if ($event->start_timestamp > 0) {
+      return date('D, j M Y - H:i', $event->start_timestamp);
+    }
+    if ($event->start !== NULL && $event->start !== '') {
+      $timestamp = strtotime($event->start);
+      if ($timestamp !== FALSE) {
+        return date('D, j M Y - H:i', $timestamp);
+      }
+      return $event->start;
+    }
+    return (string) $this->t('Date TBD');
+  }
+
+  /**
+   * Display location from MEL event DTO (studio cards).
+   */
+  protected function extractMelEventLocationLabel(MelEventData $event): string {
+    if ($event->venue_label !== '') {
+      return $event->venue_label;
+    }
+    $loc = $event->location;
+    if ($loc !== []) {
+      $parts = [];
+      $line1 = trim((string) ($loc['address_line1'] ?? ''));
+      $locality = trim((string) ($loc['locality'] ?? ''));
+      $admin = trim((string) ($loc['administrative_area'] ?? ''));
+      if ($line1 !== '') {
+        $parts[] = $line1;
+      }
+      if ($locality !== '') {
+        $parts[] = $locality;
+      }
+      if ($admin !== '') {
+        $parts[] = $admin;
+      }
+      if ($parts !== []) {
+        return implode(', ', $parts);
+      }
+    }
+    return (string) $this->t('Location TBD');
   }
 
   /**

@@ -36,7 +36,7 @@
 
     <div class="mel-card__actions">
       <a href="{{ path('myeventlane_vendor.console.event_overview', {'event': node.id}) }}" class="mel-btn mel-btn--primary mel-btn--sm">{{ 'Manage'|t }}</a>
-      <a href="{{ path('myeventlane_event.wizard.edit', {'node': node.id}) }}" class="mel-btn mel-btn--ghost mel-btn--sm">{{ 'Edit'|t }}</a>
+      <a href="{{ path('entity.node.edit_form', {'node': node.id}) }}" class="mel-btn mel-btn--ghost mel-btn--sm">{{ 'Edit'|t }}</a>
     </div>
   </div>
 </article>

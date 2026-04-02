@@ -1,0 +1,191 @@
+// ==========================================================================
+// MEL homepage — v2 conversion layout (scoped to .mel-page--home)
+// ==========================================================================
+
+@use '../base/mel-ds-tokens' as mel;
+@use '../tokens/breakpoints';
+
+// ---------------------------------------------------------------------------
+// Category strip — homepage block (`myeventlane_category_pills`)
+// ---------------------------------------------------------------------------
+
+.mel-section--categories .mel-category-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mel-section--categories .mel-category-strip .mel-category-pill {
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: #efe9ff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    background: #e2d9ff;
+    transform: translateY(-1px);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Featured — marketplace hero rail (homepage only)
+// ---------------------------------------------------------------------------
+
+.mel-page--home .mel-section--featured {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Discover / Free — tighter marketplace density (homepage listings)
+// ---------------------------------------------------------------------------
+
+.mel-page--home .mel-section--discover .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--free .mel-grid.mel-grid--events,
+.mel-page--home .mel-section--time .mel-grid.mel-grid--events {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// On tonight — urgency band
+// ---------------------------------------------------------------------------
+
+.mel-page--home .mel-section--tonight-urgent {
+  position: relative;
+  padding-left: mel.$mel-ds-space-lg;
+  border-radius: mel.$mel-ds-radius-md;
+  background: color-mix(in srgb, mel.$mel-ds-color-accent 8%, mel.$mel-ds-color-surface);
+  box-shadow: inset 4px 0 0 color-mix(in srgb, mel.$mel-ds-color-accent 70%, transparent);
+}
+
+// ---------------------------------------------------------------------------
+// Card CTAs — clearer affordance on hover (full card is still one link)
+// ---------------------------------------------------------------------------
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-page--home .mel-event-card:hover .mel-event-card__cta--body {
+    background: color-mix(in srgb, mel.$mel-ds-color-primary 16%, mel.$mel-ds-color-surface);
+    border-color: color-mix(in srgb, mel.$mel-ds-color-primary 40%, transparent);
+    color: mel.$mel-ds-color-text;
+  }
+
+  .mel-page--home .mel-event-card:hover .mel-event-card__image .mel-event-card__cta {
+    background: mel.$mel-ds-color-primary;
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px color-mix(in srgb, mel.$mel-ds-color-primary 35%, transparent);
+  }
+
+  .mel-page--home .mel-event-card--featured:hover .mel-event-card__image .mel-event-card__cta {
+    background: #fff;
+    color: mel.$mel-ds-color-primary;
+    border-color: rgba(41, 50, 65, 0.12);
+    box-shadow: mel.$mel-ds-shadow-soft;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Host CTA band
+// ---------------------------------------------------------------------------
+
+.mel-section--host {
+  margin-bottom: mel.$mel-ds-space-lg;
+}
+
+.mel-host-cta {
+  display: flex;
+  flex-direction: column;
+  gap: mel.$mel-ds-space-xl;
+  padding: mel.$mel-ds-space-2xl mel.$mel-ds-space-lg;
+  border-radius: mel.$mel-ds-radius-lg;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, mel.$mel-ds-color-accent 12%, mel.$mel-ds-color-surface) 0%,
+    color-mix(in srgb, mel.$mel-ds-color-primary 10%, mel.$mel-ds-color-bg) 100%
+  );
+  box-shadow: mel.$mel-ds-shadow-soft;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+
+  @include breakpoints.mel-break(md) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: mel.$mel-ds-space-3xl mel.$mel-ds-space-2xl;
+  }
+}
+
+.mel-host-cta__title {
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-h2;
+  font-weight: 700;
+  margin: 0 0 mel.$mel-ds-space-sm;
+  color: mel.$mel-ds-color-text;
+  line-height: 1.2;
+}
+
+.mel-host-cta__text {
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-body;
+  line-height: 1.55;
+  color: mel.$mel-ds-color-text;
+  margin: 0;
+  max-width: 36rem;
+  opacity: 0.92;
+}
+
+.mel-host-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: mel.$mel-ds-space-sm mel.$mel-ds-space-md;
+  flex-shrink: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Final CTA band
+// ---------------------------------------------------------------------------
+
+.mel-section--final-cta {
+  margin-bottom: mel.$mel-ds-space-xl;
+}
+
+.mel-final-cta {
+  text-align: center;
+  padding: mel.$mel-ds-space-2xl mel.$mel-ds-space-lg;
+  border-radius: mel.$mel-ds-radius-md;
+  background: mel.$mel-ds-color-surface;
+  box-shadow: mel.$mel-ds-shadow-soft;
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 10%, transparent);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.mel-final-cta__title {
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-h3;
+  font-weight: 700;
+  margin: 0 0 mel.$mel-ds-space-sm;
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-final-cta__text {
+  font-family: mel.$mel-ds-font-main;
+  font-size: mel.$mel-ds-font-small;
+  line-height: 1.55;
+  color: mel.$mel-ds-color-muted;
+  margin: 0 0 mel.$mel-ds-space-lg;
+}
+
+.mel-final-cta__btn {
+  min-width: 200px;
+}

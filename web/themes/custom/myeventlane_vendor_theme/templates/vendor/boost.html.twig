@@ -107,7 +107,7 @@
       <div class="mel-empty__description">
         {{ 'Create an event first, then come back to boost it.'|t }}
       </div>
-      <a href="{{ path('myeventlane_event.wizard.create') }}" class="mel-btn mel-btn--cta">
+      <a href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}" class="mel-btn mel-btn--cta">
         {{ 'Create event'|t }}
       </a>
     </div>

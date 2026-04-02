@@ -223,6 +223,57 @@
 }
 
 // ---------------------------------------------------------------------------
+// Booking signals (real-data only)
+// ---------------------------------------------------------------------------
+
+.mel-booking-v2 .mel-booking-signals {
+  margin: 0 0 spacing.mel-space(4);
+}
+
+.mel-booking-v2 .mel-booking-signals__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+}
+
+.mel-booking-v2 .mel-booking-signals__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: radii.$mel-radius-full;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.35;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 10px rgba(41, 50, 65, 0.06);
+}
+
+.mel-booking-v2 .mel-booking-signals__pill--community {
+  background: rgba(242, 109, 91, 0.12);
+  color: color.adjust(colors.$mel-color-primary, $lightness: -12%);
+  border-color: rgba(242, 109, 91, 0.24);
+}
+
+.mel-booking-v2 .mel-booking-signals__pill--urgency {
+  background: rgba(255, 188, 100, 0.18);
+  color: color.adjust(colors.$mel-color-warning, $lightness: -28%);
+  border-color: rgba(255, 188, 100, 0.42);
+}
+
+.mel-booking-v2 .mel-booking-signals__pill--booked {
+  background: rgba(163, 146, 255, 0.14);
+  color: color.adjust(colors.$mel-color-secondary, $lightness: -22%);
+  border-color: rgba(163, 146, 255, 0.35);
+}
+
+.mel-booking-v2 .mel-booking-signals__pill--trust {
+  background: rgba(117, 193, 129, 0.12);
+  color: color.adjust(colors.$mel-color-success, $lightness: -20%);
+  border-color: rgba(117, 193, 129, 0.35);
+}
+
+// ---------------------------------------------------------------------------
 // Main column + description
 // ---------------------------------------------------------------------------
 
@@ -1008,14 +1059,12 @@
     border-top: none;
   }
 
-  .button--primary,
-  .mel-add-to-cart-button,
-  input[type='submit'].button--primary,
-  button[type='submit'].button--primary {
+  .mel-btn--primary,
+  .mel-add-to-cart-button {
     width: 100%;
     min-height: 52px;
     padding: spacing.mel-space(3) spacing.mel-space(4);
-    border-radius: radii.$mel-radius-lg;
+    border-radius: radii.$mel-radius-full;
     border: none;
     font-weight: typography.$mel-font-extrabold;
     font-size: typography.mel-font-size(md);
@@ -1028,12 +1077,15 @@
     );
     box-shadow: 0 4px 18px rgba(108, 126, 242, 0.35);
 
-    &:hover {
-      filter: brightness(1.04);
+    @media (hover: hover) {
+      &:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(colors.$mel-color-primary, 0.45);
+      }
     }
   }
 
-  .button--primary:focus-visible,
+  .mel-btn--primary:focus-visible,
   .mel-add-to-cart-button:focus-visible {
     outline: none;
     box-shadow: colors.$mel-focus-ring;

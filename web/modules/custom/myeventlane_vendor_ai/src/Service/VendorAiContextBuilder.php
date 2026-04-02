@@ -29,7 +29,8 @@ final class VendorAiContextBuilder {
    * @param int $escalation_id
    *   The escalation entity ID.
    * @param array $helpExcerpts
-   *   Help article excerpts from HelpArticleRetriever.
+   *   Help article excerpts from UnifiedHelpRetriever (legacy shape:
+   *   nid, title, url, excerpt).
    *
    * @return array
    *   Safe context array for prompt building.

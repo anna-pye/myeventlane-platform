@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_domain_events\ProjectionReadModel;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\myeventlane_core\Utility\EntityLoadIds;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -72,7 +73,8 @@ final class FinanceReadModel {
       return $finance;
     }
 
-    $this->logger->notice(
+    // Expected until projector queue catches up.
+    $this->logger->debug(
       'Projection miss for vendor {vendor_id}, event {event_id}; using fallback finance.',
       [
         'vendor_id' => $vendorId,
@@ -122,6 +124,11 @@ final class FinanceReadModel {
         ->condition('state', ['completed', 'partially_refunded', 'refunded'], 'IN')
         ->execute();
 
+      if ($paymentIds === []) {
+        return $this->emptyFinance();
+      }
+
+      $paymentIds = EntityLoadIds::normalizeForLoadMultiple($paymentIds);
       if ($paymentIds === []) {
         return $this->emptyFinance();
       }

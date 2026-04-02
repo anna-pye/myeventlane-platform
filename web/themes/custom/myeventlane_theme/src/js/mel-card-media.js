@@ -49,6 +49,172 @@
   }
 
   /**
+   * Auto-advance full-width featured hero slider (homepage).
+   * Pauses on hover, focus-within, hidden document, or off-screen; respects
+   * prefers-reduced-motion (no autoplay).
+   */
+  function initFeaturedHeroAutoplay(context) {
+    const heroes = once('mel-featured-hero-autoplay', '.mel-featured-hero', context);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    heroes.forEach(function (hero) {
+      const track = hero.querySelector('.mel-featured-hero__track');
+      if (!track) {
+        return;
+      }
+
+      const slides = track.querySelectorAll('.mel-featured-hero__slide');
+      if (slides.length < 2) {
+        return;
+      }
+
+      const intervalMs = Math.max(
+        4000,
+        parseInt(hero.getAttribute('data-mel-hero-interval'), 10) || 5500,
+      );
+
+      let intervalId = null;
+      let userPaused = false;
+      let viewportPaused = false;
+      const ac = new AbortController();
+      const signal = ac.signal;
+
+      function shouldRun() {
+        return (
+          !reducedMotion.matches &&
+          !userPaused &&
+          !viewportPaused &&
+          !document.hidden
+        );
+      }
+
+      function advance() {
+        if (!shouldRun()) {
+          return;
+        }
+        const w = track.clientWidth;
+        if (w < 8) {
+          return;
+        }
+        const maxScroll = track.scrollWidth - w;
+        const atEnd = track.scrollLeft + w >= maxScroll - 4;
+        const nextLeft = atEnd ? 0 : track.scrollLeft + w;
+
+        track.scrollTo({
+          left: nextLeft,
+          behavior: reducedMotion.matches ? 'auto' : 'smooth',
+        });
+      }
+
+      function startTimer() {
+        if (intervalId !== null || !shouldRun()) {
+          return;
+        }
+        intervalId = window.setInterval(advance, intervalMs);
+      }
+
+      function stopTimer() {
+        if (intervalId === null) {
+          return;
+        }
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+
+      function syncTimer() {
+        if (shouldRun()) {
+          startTimer();
+        }
+        else {
+          stopTimer();
+        }
+      }
+
+      hero.addEventListener(
+        'mouseenter',
+        function () {
+          userPaused = true;
+          stopTimer();
+        },
+        { signal: signal },
+      );
+
+      hero.addEventListener(
+        'mouseleave',
+        function () {
+          userPaused = false;
+          syncTimer();
+        },
+        { signal: signal },
+      );
+
+      hero.addEventListener(
+        'focusin',
+        function () {
+          userPaused = true;
+          stopTimer();
+        },
+        { signal: signal },
+      );
+
+      hero.addEventListener(
+        'focusout',
+        function (e) {
+          if (!hero.contains(e.relatedTarget)) {
+            userPaused = false;
+            syncTimer();
+          }
+        },
+        { signal: signal },
+      );
+
+      document.addEventListener(
+        'visibilitychange',
+        function () {
+          syncTimer();
+        },
+        { signal: signal },
+      );
+
+      reducedMotion.addEventListener(
+        'change',
+        function () {
+          syncTimer();
+        },
+        { signal: signal },
+      );
+
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              viewportPaused = !entry.isIntersecting;
+              syncTimer();
+            });
+          },
+          { threshold: 0.15, rootMargin: '0px' },
+        );
+        io.observe(hero);
+        hero._melHeroIO = io;
+      }
+
+      hero._melHeroAutoplay = {
+        destroy: function () {
+          stopTimer();
+          ac.abort();
+          if (hero._melHeroIO) {
+            hero._melHeroIO.disconnect();
+            delete hero._melHeroIO;
+          }
+          delete hero._melHeroAutoplay;
+        },
+      };
+
+      syncTimer();
+    });
+  }
+
+  /**
    * Initialize carousel controls.
    * Adds prev/next button functionality for featured carousel.
    */
@@ -65,7 +231,7 @@
       }
 
       // Get slide width for scroll distance
-      const firstSlide = track.querySelector('.mel-featured-carousel__slide');
+      const firstSlide = track.querySelector('.mel-featured-carousel__slide, .mel-featured-carousel__item');
       if (!firstSlide) {
         return;
       }
@@ -100,8 +266,19 @@
   Drupal.behaviors.melCardMedia = {
     attach: function (context, settings) {
       initImageSkeleton(context);
+      initFeaturedHeroAutoplay(context);
       initCarouselControls(context);
-    }
+    },
+
+    detach: function (context, settings, trigger) {
+      once
+        .remove('mel-featured-hero-autoplay', '.mel-featured-hero', context)
+        .forEach(function (hero) {
+          if (hero._melHeroAutoplay && typeof hero._melHeroAutoplay.destroy === 'function') {
+            hero._melHeroAutoplay.destroy();
+          }
+        });
+    },
   };
 
 })(Drupal);

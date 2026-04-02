@@ -38,7 +38,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
   /**
    * Step 6: Onboarding complete - celebration page or redirect.
    *
-   * With ?auto=1: redirects to wizard.create.
+   * With ?auto=1: redirects to Event Studio create.
    * Otherwise: renders celebration page with CTA to create first event.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
@@ -86,7 +86,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
 
     if ($auto_redirect) {
       return new RedirectResponse(
-        Url::fromRoute('myeventlane_event.wizard.create')->toString()
+        Url::fromRoute('myeventlane_event_studio.create')->toString()
       );
     }
 

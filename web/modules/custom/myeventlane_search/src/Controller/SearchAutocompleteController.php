@@ -190,6 +190,7 @@ final class SearchAutocompleteController extends ControllerBase {
    */
   private function fetchCategories(IndexInterface $index, string $keys): array {
     $query = $index->query();
+    $query->setFulltextFields(['name']);
     $query->keys($keys);
     $query->range(0, 5);
     $rs = $query->execute();

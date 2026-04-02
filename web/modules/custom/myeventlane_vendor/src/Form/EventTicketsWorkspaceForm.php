@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
@@ -17,8 +18,11 @@ final class EventTicketsWorkspaceForm extends FormBase {
 
   protected EventTicketsBuilder $ticketBuilder;
 
-  public function __construct(EventTicketsBuilder $ticket_builder) {
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  public function __construct(EventTicketsBuilder $ticket_builder, EntityTypeManagerInterface $entity_type_manager) {
     $this->ticketBuilder = $ticket_builder;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -27,6 +31,7 @@ final class EventTicketsWorkspaceForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_vendor.ticket_builder'),
+      $container->get('entity_type.manager'),
     );
   }
 
@@ -69,6 +74,13 @@ final class EventTicketsWorkspaceForm extends FormBase {
   public function handleAction(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEventOrInjectedEvent($form_state);
     $this->ticketBuilder->handleAction($form, $form_state, $event);
+    $nid = (int) $event->id();
+    if ($nid > 0) {
+      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($fresh instanceof NodeInterface) {
+        $form_state->set('event', $fresh);
+      }
+    }
   }
 
   public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {

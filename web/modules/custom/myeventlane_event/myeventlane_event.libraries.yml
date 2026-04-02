@@ -16,6 +16,17 @@ event_wizard:
     - core/drupal
     - core/once
 
+event_builder_preview:
+  js:
+    js/event-builder-preview.js: {}
+  css:
+    theme:
+      css/event-builder-preview.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once
+
 hide_venue_name:
   css:
     component:

@@ -43,6 +43,24 @@ function myeventlane_legal_form_myeventlane_commerce_rsvp_booking_form_alter(arr
 }
 
 /**
+ * Non-object validate callback for RSVP legal consent.
+ *
+ * Using a string callback avoids serializing service objects into form cache.
+ */
+function myeventlane_legal_rsvp_validate_callback(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('myeventlane_legal.rsvp_alter')->validateRsvpLegal($form, $form_state);
+}
+
+/**
+ * Non-object submit callback for RSVP legal consent persistence.
+ *
+ * Using a string callback avoids serializing service objects into form cache.
+ */
+function myeventlane_legal_rsvp_submit_store_legal_consent_callback(array &$form, FormStateInterface $form_state): void {
+  \Drupal::service('myeventlane_legal.rsvp_alter')->submitStoreLegalConsent($form, $form_state);
+}
+
+/**
  * Implements hook_entity_presave().
  *
  * Applies runtime RSVP legal consent attached before save (see RsvpSubmissionManager).

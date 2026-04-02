@@ -96,7 +96,8 @@
     "extra": {
         "patches": {
             "drupal/core": {
-                "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch"
+                "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch",
+                "Fix mb_strtolower(null) deprecation in config entity query Condition": "patches/drupal-core-config-entity-query-null-condition.patch"
             }
         },
         "drupal-scaffold": {

@@ -112,6 +112,7 @@ module:
   myeventlane_event: 0
   myeventlane_event_attendees: 0
   myeventlane_event_state: 0
+  myeventlane_event_studio: 0
   myeventlane_finance: 0
   myeventlane_front: 0
   myeventlane_growth: 0
@@ -119,6 +120,7 @@ module:
   myeventlane_help_centre: 0
   myeventlane_help_centre_ai: 0
   myeventlane_help_improvement: 0
+  myeventlane_help_shared: 0
   myeventlane_launch: 0
   myeventlane_location: 0
   myeventlane_messaging: 0

@@ -31,18 +31,12 @@
       {% if categories is defined and categories|length %}
         {% for term in categories %}
           {% set term_normalized = term.name|lower|replace({' ': '-', '&': 'and', '+': ''}) %}
-          <a href="/events?category={{ term.tid }}" class="category-button tag-{{ term_normalized }}">
+          <a href="{{ path('view.upcoming_events.page_category', {'arg_0': term.tid}) }}" class="category-button tag-{{ term_normalized }}">
             {{ term.name }}
           </a>
         {% endfor %}
       {% else %}
-        {# Fallback categories if not provided #}
-        <a href="/events" class="category-button tag-all">All Events</a>
-        <a href="/events?category=workshop" class="category-button tag-workshop">Workshop</a>
-        <a href="/events?category=music" class="category-button tag-music">Music</a>
-        <a href="/events?category=community" class="category-button tag-community">Community</a>
-        <a href="/events?category=food-drink" class="category-button tag-food-drink">Food & Drink</a>
-        <a href="/events?category=lgbtq" class="category-button tag-lgbtq">LGBTQ+</a>
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="category-button tag-all">{{ 'All events'|t }}</a>
       {% endif %}
     </div>
 

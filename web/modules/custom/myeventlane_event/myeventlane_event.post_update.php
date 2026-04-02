@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Repair Event wizard form displays (wizard_step_1, wizard_step_2, wizard_step_4).
@@ -288,4 +290,187 @@ function myeventlane_event_post_update_repair_wizard_step_details(array &$sandbo
   }
 
   $display->save();
+}
+
+/**
+ * Add per-event RSVP donation configuration fields.
+ */
+function myeventlane_event_post_update_add_event_donation_fields(array &$sandbox): void {
+  $fields = [
+    'field_enable_donations' => [
+      'storage' => [
+        'type' => 'boolean',
+        'settings' => [],
+      ],
+      'instance' => [
+        'label' => 'Enable optional donations',
+        'required' => FALSE,
+        'settings' => ['on_label' => 'Enabled', 'off_label' => 'Disabled'],
+        'default_value' => [['value' => 0]],
+      ],
+    ],
+    'field_donation_suggested_amount' => [
+      'storage' => [
+        'type' => 'decimal',
+        'settings' => ['precision' => 10, 'scale' => 2],
+      ],
+      'instance' => [
+        'label' => 'Suggested donation',
+        'required' => FALSE,
+        'settings' => ['min' => '0', 'prefix' => '', 'suffix' => ''],
+      ],
+    ],
+    'field_donation_label' => [
+      'storage' => [
+        'type' => 'string',
+        'settings' => ['max_length' => 255, 'is_ascii' => FALSE, 'case_sensitive' => FALSE],
+      ],
+      'instance' => [
+        'label' => 'Donation label',
+        'required' => FALSE,
+        'settings' => [],
+        'default_value' => [['value' => 'Support this event']],
+      ],
+    ],
+  ];
+
+  foreach ($fields as $field_name => $definition) {
+    $storage = FieldStorageConfig::loadByName('node', $field_name);
+    if (!$storage) {
+      $storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $definition['storage']['type'],
+        'settings' => $definition['storage']['settings'] ?? [],
+        'cardinality' => 1,
+        'translatable' => TRUE,
+      ]);
+      $storage->save();
+    }
+
+    $instance = FieldConfig::loadByName('node', 'event', $field_name);
+    if (!$instance) {
+      $instance = FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'event',
+        'label' => $definition['instance']['label'],
+        'required' => $definition['instance']['required'] ?? FALSE,
+        'settings' => $definition['instance']['settings'] ?? [],
+        'default_value' => $definition['instance']['default_value'] ?? [],
+      ]);
+      $instance->save();
+    }
+  }
+
+  // Keep legacy wizard form display in sync when fields exist.
+  $display = EntityFormDisplay::load('node.event.wizard_step_4');
+  if ($display) {
+    if (FieldConfig::loadByName('node', 'event', 'field_enable_donations')) {
+      $display->setComponent('field_enable_donations', [
+        'type' => 'boolean_checkbox',
+        'weight' => 40,
+        'region' => 'content',
+        'settings' => ['display_label' => TRUE],
+      ]);
+    }
+    if (FieldConfig::loadByName('node', 'event', 'field_donation_suggested_amount')) {
+      $display->setComponent('field_donation_suggested_amount', [
+        'type' => 'number',
+        'weight' => 41,
+        'region' => 'content',
+        'settings' => ['placeholder' => ''],
+      ]);
+    }
+    if (FieldConfig::loadByName('node', 'event', 'field_donation_label')) {
+      $display->setComponent('field_donation_label', [
+        'type' => 'string_textfield',
+        'weight' => 42,
+        'region' => 'content',
+        'settings' => ['size' => 60, 'placeholder' => 'Support this event'],
+      ]);
+    }
+    $display->save();
+  }
+}
+
+/**
+ * Add donation options/default fields for MEL RSVP donation model.
+ */
+function myeventlane_event_post_update_add_event_donation_model_fields(array &$sandbox): void {
+  $fields = [
+    'field_donation_options' => [
+      'storage' => [
+        'type' => 'string_long',
+        'settings' => [],
+      ],
+      'instance' => [
+        'label' => 'Donation options (JSON)',
+        'required' => FALSE,
+        'settings' => [],
+        'default_value' => [['value' => '[5,10,25,50]']],
+      ],
+    ],
+    'field_donation_default' => [
+      'storage' => [
+        'type' => 'decimal',
+        'settings' => ['precision' => 10, 'scale' => 2],
+      ],
+      'instance' => [
+        'label' => 'Default donation',
+        'required' => FALSE,
+        'settings' => ['min' => '0', 'prefix' => '', 'suffix' => ''],
+      ],
+    ],
+  ];
+
+  foreach ($fields as $field_name => $definition) {
+    $storage = FieldStorageConfig::loadByName('node', $field_name);
+    if (!$storage) {
+      $storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $definition['storage']['type'],
+        'settings' => $definition['storage']['settings'] ?? [],
+        'cardinality' => 1,
+        'translatable' => TRUE,
+      ]);
+      $storage->save();
+    }
+
+    $instance = FieldConfig::loadByName('node', 'event', $field_name);
+    if (!$instance) {
+      $instance = FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'event',
+        'label' => $definition['instance']['label'],
+        'required' => $definition['instance']['required'] ?? FALSE,
+        'settings' => $definition['instance']['settings'] ?? [],
+        'default_value' => $definition['instance']['default_value'] ?? [],
+      ]);
+      $instance->save();
+    }
+  }
+
+  $display = EntityFormDisplay::load('node.event.wizard_step_4');
+  if ($display) {
+    if (FieldConfig::loadByName('node', 'event', 'field_donation_options')) {
+      $display->setComponent('field_donation_options', [
+        'type' => 'string_textarea',
+        'weight' => 43,
+        'region' => 'content',
+        'settings' => ['rows' => 1, 'placeholder' => '[5,10,25,50]'],
+      ]);
+    }
+    if (FieldConfig::loadByName('node', 'event', 'field_donation_default')) {
+      $display->setComponent('field_donation_default', [
+        'type' => 'number',
+        'weight' => 44,
+        'region' => 'content',
+        'settings' => ['placeholder' => '20.00'],
+      ]);
+    }
+    $display->save();
+  }
 }

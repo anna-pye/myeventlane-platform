@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_rsvp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Flood\FloodInterface;
-use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
-use Drupal\myeventlane_rsvp\Service\UserRsvpRepository;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
+use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,11 +37,11 @@ final class QrCheckinController extends ControllerBase {
    * Constructs QrCheckinController.
    */
   public function __construct(
-    private readonly UserRsvpRepository $repo,
     private readonly EntityTypeManagerInterface $em,
     private readonly ConfigFactoryInterface $config,
     private readonly FloodInterface $flood,
     private readonly AccountProxyInterface $account,
+    private readonly ?AttendanceManager $attendanceManager = NULL,
   ) {}
 
   /**
@@ -45,11 +49,13 @@ final class QrCheckinController extends ControllerBase {
    */
   public static function create(ContainerInterface $c): self {
     return new self(
-      $c->get('myeventlane_rsvp.user_rsvp_repository'),
       $c->get('entity_type.manager'),
       $c->get('config.factory'),
       $c->get('flood'),
       $c->get('current_user'),
+      $c->has('myeventlane_event_attendees.manager')
+        ? $c->get('myeventlane_event_attendees.manager')
+        : NULL,
     );
   }
 
@@ -83,15 +89,28 @@ final class QrCheckinController extends ControllerBase {
     $this->flood->register('myeventlane_rsvp.qr_validate', self::FLOOD_WINDOW, $identifier);
 
     $data = json_decode($req->getContent(), TRUE);
-    $code = $data['code'] ?? '';
+    $code = trim((string) ($data['code'] ?? ''));
 
-    if (!preg_match('/^mel:rsvp:(\d+):([a-f0-9]{64})$/', $code, $m)) {
+    if ($code === '') {
       return $this->jsonResponse(['status' => 'invalid', 'message' => 'Bad QR format']);
     }
 
-    $rsvp_id = (int) $m[1];
-    $hash = $m[2];
+    if (preg_match('/^mel:rsvp:(\d+):([a-f0-9]{64})$/', $code, $m)) {
+      return $this->validateLegacyRsvpQr((int) $m[1], $m[2]);
+    }
 
+    $codeUpper = strtoupper($code);
+    if (preg_match('/^MEL-\d+-\d+-\d+-[A-Z0-9]{6}$/', $codeUpper)) {
+      return $this->validateCommerceRsvpTicketQr($codeUpper);
+    }
+
+    return $this->jsonResponse(['status' => 'invalid', 'message' => 'Bad QR format']);
+  }
+
+  /**
+   * Legacy rsvp_submission QR (mel:rsvp:…).
+   */
+  private function validateLegacyRsvpQr(int $rsvp_id, string $hash): JsonResponse {
     $rsvp = $this->em->getStorage('rsvp_submission')->load($rsvp_id);
     if (!$rsvp instanceof RsvpSubmission) {
       return $this->jsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
@@ -102,7 +121,6 @@ final class QrCheckinController extends ControllerBase {
       return $this->jsonResponse(['status' => 'invalid', 'message' => 'Event not found']);
     }
 
-    // Verify current user can manage this event.
     if (!$this->canManageEvent($event)) {
       throw new AccessDeniedHttpException('You do not have access to check in for this event.');
     }
@@ -134,9 +152,68 @@ final class QrCheckinController extends ControllerBase {
   }
 
   /**
+   * Commerce RSVP: ticket_code format MEL-{event}-{order}-{item}-{suffix}.
+   */
+  private function validateCommerceRsvpTicketQr(string $ticketCode): JsonResponse {
+    if (!$this->em->hasDefinition('event_attendee')) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
+    }
+
+    $ids = $this->em->getStorage('event_attendee')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('ticket_code', $ticketCode)
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($ids)) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
+    }
+
+    $attendee = $this->em->getStorage('event_attendee')->load(reset($ids));
+    if (!$attendee instanceof EventAttendee) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'RSVP not found']);
+    }
+
+    if ((string) $attendee->get('source')->value !== EventAttendee::SOURCE_RSVP) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'Invalid code for RSVP check-in']);
+    }
+
+    $event = $attendee->get('event')->entity;
+    if (!$event instanceof NodeInterface) {
+      return $this->jsonResponse(['status' => 'invalid', 'message' => 'Event not found']);
+    }
+
+    if (!$this->canManageEvent($event)) {
+      throw new AccessDeniedHttpException('You do not have access to check in for this event.');
+    }
+
+    if ($attendee->isCheckedIn()) {
+      return $this->jsonResponse([
+        'status' => 'repeat',
+        'message' => 'Already checked in',
+      ]);
+    }
+
+    if ($this->attendanceManager instanceof AttendanceManager) {
+      $this->attendanceManager->checkIn($attendee);
+    }
+    else {
+      $attendee->checkIn();
+      $attendee->save();
+    }
+
+    return $this->jsonResponse([
+      'status' => 'success',
+      'message' => 'Checked in',
+      'name' => $attendee->label(),
+    ]);
+  }
+
+  /**
    * Checks if the current user can manage the event (owner or vendor).
    */
-  private function canManageEvent(\Drupal\node\NodeInterface $event): bool {
+  private function canManageEvent(NodeInterface $event): bool {
     $account = $this->account->getAccount();
     if ($account->hasPermission('administer rsvps') || $account->hasPermission('administer nodes')) {
       return TRUE;

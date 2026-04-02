@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Platform Control Centre quick links (injected into page.pre_content).
+ */
+#}
+<div class="mel-pcc-utility-bar" role="navigation" aria-label="{{ 'Quick links'|t }}">
+  <a href="{{ main_site_url }}" class="mel-pcc-utility-bar__link">{{ 'Main Site'|t }}</a>
+  <span class="mel-pcc-utility-bar__sep" aria-hidden="true">|</span>
+  <a href="{{ vendor_dashboard_url }}" class="mel-pcc-utility-bar__link">{{ 'Vendor Dashboard'|t }}</a>
+  <span class="mel-pcc-utility-bar__sep" aria-hidden="true">|</span>
+  <a href="{{ platform_control_url }}" class="mel-pcc-utility-bar__link">{{ 'Platform Control Centre'|t }}</a>
+</div>

@@ -15,6 +15,10 @@
         <p>Location: {{ params.event_location }}</p>
       {% endif %}
 
+      {% if params.guests %}
+        <p>You’ve reserved {{ params.guests }} spot(s).</p>
+      {% endif %}
+
       <p>
         View event: <a href="{{ url('entity.node.canonical', {'node': params.event_nid}, {'absolute': true}) }}">
           {{ params.event_title }}

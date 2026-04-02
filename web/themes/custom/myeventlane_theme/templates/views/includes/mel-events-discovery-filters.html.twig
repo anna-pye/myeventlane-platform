@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Date scope pills for upcoming_events listing displays (routes, not query hacks).
+ *
+ * @var string display_id
+ *   Views display machine ID (e.g. page_events, page_today).
+ */
+#}
+{% set d = display_id|default('') %}
+<nav class="mel-events-date-filters" aria-label="{{ 'When'|t }}">
+  <a
+    href="{{ path('view.upcoming_events.page_events') }}"
+    class="mel-events-date-filters__pill{% if d == 'page_events' %} is-active{% endif %}"
+  >{{ 'All upcoming'|t }}</a>
+  <a
+    href="{{ path('view.upcoming_events.page_today') }}"
+    class="mel-events-date-filters__pill{% if d == 'page_today' %} is-active{% endif %}"
+  >{{ 'Today'|t }}</a>
+  <a
+    href="{{ path('view.upcoming_events.page_this_weekend') }}"
+    class="mel-events-date-filters__pill{% if d == 'page_this_weekend' %} is-active{% endif %}"
+  >{{ 'This weekend'|t }}</a>
+  <a
+    href="{{ path('view.upcoming_events.page_free') }}"
+    class="mel-events-date-filters__pill{% if d == 'page_free' %} is-active{% endif %}"
+  >{{ 'Free & RSVP'|t }}</a>
+</nav>

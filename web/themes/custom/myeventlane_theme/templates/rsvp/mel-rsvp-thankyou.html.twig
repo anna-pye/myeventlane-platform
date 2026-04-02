@@ -1,33 +1,83 @@
-{#
-  RSVP Thank You page template.
-  Simple, accessible thank you message after RSVP submission.
-#}
 <div class="mel-rsvp-thankyou">
-  {% if title %}
-    <h1 class="mel-rsvp-thankyou__title">{{ title }}</h1>
-  {% endif %}
+  <div class="mel-card mel-card--confirmation">
+    <h1 class="mel-title">You're going 🎉</h1>
 
-  {% if message %}
-    <div class="mel-rsvp-thankyou__message">
-      {{ message }}
-    </div>
-  {% endif %}
+    <p class="mel-subtitle">
+      Your spot is confirmed for <strong>{{ event ? event.label : 'this event' }}</strong>
+    </p>
 
-  {% if event_title %}
-    <div class="mel-rsvp-thankyou__event">
-      <p>{{ 'Thanks for RSVPing to'|t }} <strong>{{ event_title }}</strong>.</p>
+    {% if attendee_name %}
+      <p class="mel-meta">Booked as {{ attendee_name }}</p>
+    {% endif %}
 
-      {% if event_link %}
-        <p>
-          {{ event_link }}
+    {% if attendee_email %}
+      <p class="mel-meta">{{ attendee_email }}</p>
+    {% endif %}
+
+    {% if guests and guests > 1 %}
+      <p class="mel-meta">You’ve booked {{ guests }} spots</p>
+    {% endif %}
+
+    {% set donation_amount = donation|default(0)|number_format(2, '.', '') %}
+    {% if donation and donation > 0 and donation_pending %}
+      <section class="mel-donation-cta mel-donation-cta--pending">
+        <div class="mel-donation-cta__icon" aria-hidden="true">💛</div>
+        <h2 class="mel-donation-cta__title">You’re supporting this event</h2>
+        <p class="mel-donation-cta__body">
+          You’ve already chosen to contribute ${{ donation_amount }} — thank you.
+          Complete your contribution below to help bring this event to life.
         </p>
+        <div class="mel-donation-progress">
+          <div class="mel-donation-progress__bar"></div>
+          <div class="mel-donation-progress__label">Almost done</div>
+        </div>
+        {% if donation_checkout_url %}
+          <div class="mel-donation-cta__actions">
+            <a href="{{ donation_checkout_url }}" class="mel-btn mel-btn--primary">
+              Complete your ${{ donation_amount }} contribution
+            </a>
+          </div>
+          <p class="mel-donation-cta__reassurance">Your RSVP is already confirmed</p>
+        {% endif %}
+      </section>
+    {% elseif donation and donation > 0 and donation_completed %}
+      <section class="mel-donation-cta mel-donation-cta--complete">
+        <h2 class="mel-donation-cta__title">💛 Thank you for your support</h2>
+        <p class="mel-donation-cta__body">Thank you — your contribution has been completed.</p>
+        <span class="mel-donation-cta__badge">Contribution complete</span>
+      </section>
+    {% else %}
+      <section class="mel-donation-cta mel-donation-cta--upsell">
+        <h2 class="mel-donation-cta__title">💛 Support this event</h2>
+        <p class="mel-donation-cta__body">This event is community-powered. Add a small contribution if you'd like to support it.</p>
+        {% if can_add_post_rsvp_contribution %}
+          <div class="mel-donation-cta__actions">
+            <a href="{{ event_url }}" class="mel-btn mel-btn--primary">
+              Add a contribution
+            </a>
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <div class="mel-actions">
+      {% if event_url %}
+        <a href="{{ event_url }}" class="mel-btn mel-btn--primary">
+          View Event
+        </a>
+      {% endif %}
+
+      {% if event %}
+        <a href="/calendar/download/{{ event.id }}" class="mel-btn mel-btn--ghost">
+          Add to Calendar
+        </a>
+      {% endif %}
+
+      {% if cancel_url %}
+        <a href="{{ cancel_url }}" class="mel-btn mel-btn--danger">
+          Cancel RSVP
+        </a>
       {% endif %}
     </div>
-  {% endif %}
-
-  {% if donation_enabled %}
-    <div class="mel-rsvp-thankyou__donation">
-      <p>You can optionally add a donation on the next step.</p>
-    </div>
-  {% endif %}
+  </div>
 </div>

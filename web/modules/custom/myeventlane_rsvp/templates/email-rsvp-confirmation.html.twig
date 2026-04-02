@@ -4,6 +4,10 @@
 
 <p>Date: {{ event.field_event_start.value|date("j M Y, g:ia") }}</p>
 
+{% if params.guests %}
+<p>You've reserved {{ params.guests }} spot(s).</p>
+{% endif %}
+
 <p>We've attached an ICS calendar file so you don't forget!</p>
 
 <p>See you there 🌈✨</p>

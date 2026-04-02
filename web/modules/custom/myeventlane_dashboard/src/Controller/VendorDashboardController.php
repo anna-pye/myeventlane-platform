@@ -343,7 +343,7 @@ final class VendorDashboardController extends ControllerBase {
         'id' => $event->id(),
         'title' => $event->label(),
         'url' => $event->toUrl()->toString(),
-        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $event->id()])->toString(),
+        'edit_url' => Url::fromRoute('entity.node.edit_form', ['node' => (int) $event->id()])->toString(),
         'start_date' => $startTime ? date('M j, Y', $startTime) : '',
         'start_time' => $startTime ? date('g:ia', $startTime) : '',
         'attendee_count' => $stats['attendee_count'],
@@ -375,7 +375,7 @@ final class VendorDashboardController extends ControllerBase {
     $quickLinks = [
       [
         'title' => $this->t('Create Event'),
-        'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString(),
+        'url' => Url::fromRoute('entity.node.add_form', ['node_type' => 'event'])->toString(),
         'icon' => 'add',
       ],
     ];

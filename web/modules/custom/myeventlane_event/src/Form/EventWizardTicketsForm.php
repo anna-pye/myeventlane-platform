@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -158,6 +159,13 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
   public function handleAction(array &$form, FormStateInterface $form_state): void {
     $event = $this->getEventOrInjectedEvent($form_state);
     $this->ticketBuilder->handleAction($form, $form_state, $event);
+    $nid = (int) $event->id();
+    if ($nid > 0) {
+      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($fresh instanceof NodeInterface) {
+        $form_state->set('event', $fresh);
+      }
+    }
   }
 
   public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
@@ -222,6 +230,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $this->getMelPlatformSupportWizardForm()->apply($event, $form_state);
 
     $event->set('field_ticket_types', $saved_ticket_types);
+    EventNodeRevisionSave::prepare($event, 'Event wizard: tickets step (field_ticket_types).');
     $event->save();
 
     $this->logger->notice('Event wizard tickets step saved: event_id=@id, fields=@fields', [

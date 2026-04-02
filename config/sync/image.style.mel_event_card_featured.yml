@@ -1,0 +1,15 @@
+uuid: d8454f47-0878-472b-b78c-d2810a4e4295
+langcode: en
+status: true
+dependencies: {  }
+name: mel_event_card_featured
+label: 'MEL event card (featured)'
+effects:
+  c5d4f6d0-3a04-493b-a2d2-42ec2263ec4e:
+    uuid: c5d4f6d0-3a04-493b-a2d2-42ec2263ec4e
+    id: image_scale_and_crop
+    weight: 0
+    data:
+      width: 800
+      height: 450
+      anchor: center-center

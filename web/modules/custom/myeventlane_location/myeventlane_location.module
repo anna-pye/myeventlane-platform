@@ -42,30 +42,6 @@ function myeventlane_location_theme(): array {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for node_event_form.
- */
-function myeventlane_location_form_node_event_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  _myeventlane_location_alter_event_form($form, $form_state);
-  _myeventlane_location_hide_unused_address_fields($form);
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for node_event_edit_form.
- */
-function myeventlane_location_form_node_event_edit_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  _myeventlane_location_alter_event_form($form, $form_state);
-  _myeventlane_location_hide_unused_address_fields($form);
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for vendor_event_create_form.
- */
-function myeventlane_location_form_vendor_event_create_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
-  _myeventlane_location_alter_event_form($form, $form_state);
-  _myeventlane_location_hide_unused_address_fields($form);
-}
-
-/**
  * Implements hook_form_FORM_ID_alter() for event_wizard_when_where_form.
  *
  * Ensures address lookup (autocomplete) and Australia default apply to the
@@ -119,46 +95,27 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
   // Find field_location wherever it exists in the form (might be at root or moved to wizard).
   // Check root first (normal form).
   $field_location_ref = NULL;
-  $is_wizard_form = FALSE;
-
-  // Check if this is the wizard form (EventWizardForm).
-  if (isset($form['#form_id']) && $form['#form_id'] === 'myeventlane_event_wizard') {
-    $is_wizard_form = TRUE;
-  }
-  elseif (isset($form['wizard']) || isset($form['wizard_step'])) {
-    $is_wizard_form = TRUE;
-  }
+  $form_id = (string) ($form['#form_id'] ?? '');
+  $is_wizard_form = str_starts_with($form_id, 'event_wizard_')
+    || isset($form['wizard'])
+    || isset($form['wizard_step']);
 
   if (isset($form['field_location'])) {
     $field_location_ref = &$form['field_location'];
   }
-  // Check wizard structure with venue wrapper (EventWizardForm - when_where step).
-  elseif (isset($form['wizard']['content']['_venue_wrapper']['field_location'])) {
-    $field_location_ref = &$form['wizard']['content']['_venue_wrapper']['field_location'];
+  // Vendor MEL builder wraps field_location as mel_ww_location.widget after restructure.
+  elseif (isset($form['mel_layout']['mel_main']['mel_builder']['when_where']['mel_ww_location']['widget'])) {
+    $field_location_ref = &$form['mel_layout']['mel_main']['mel_builder']['when_where']['mel_ww_location']['widget'];
   }
-  // Check wizard structure with location wrapper (EventWizardForm - when_where step).
-  elseif (isset($form['wizard']['content']['_location_wrapper']['field_location'])) {
-    $field_location_ref = &$form['wizard']['content']['_location_wrapper']['field_location'];
+  // Vendor single-page builder (legacy key before restructure).
+  elseif (isset($form['mel_layout']['mel_main']['mel_builder']['when_where']['field_location'])) {
+    $field_location_ref = &$form['mel_layout']['mel_main']['mel_builder']['when_where']['field_location'];
   }
-  // Check new wizard structure (EventWizardForm - other steps).
-  elseif (isset($form['wizard']['content']['field_location'])) {
-    $field_location_ref = &$form['wizard']['content']['field_location'];
+  // Legacy builder key if present.
+  elseif (isset($form['mel_layout']['mel_main']['mel_builder']['datetime']['field_location'])) {
+    $field_location_ref = &$form['mel_layout']['mel_main']['mel_builder']['datetime']['field_location'];
   }
-  // Check new wizard structure (EventWizardForm - alternative path).
-  elseif (isset($form['wizard']['content']['step_content']['location_fields']['field_location'])) {
-    $field_location_ref = &$form['wizard']['content']['step_content']['location_fields']['field_location'];
-  }
-  // Check old wizard structure (EventFormAlter).
-  elseif (isset($form['mel_wizard']['layout']['content'])) {
-    foreach ($form['mel_wizard']['layout']['content'] as $step_key => &$step_content) {
-      if (is_array($step_content) && isset($step_content['section']['field_location'])) {
-        $field_location_ref = &$step_content['section']['field_location'];
-        break;
-      }
-    }
-  }
-
-  // For wizard forms, if field_location is hidden (by EventWizardForm), don't add search field to it.
+  // For wizard forms, if field_location is hidden on non-active steps, don't add search field to it.
   if ($is_wizard_form && isset($field_location_ref) && isset($field_location_ref['#access']) && $field_location_ref['#access'] === FALSE) {
     // Field is intentionally hidden in wizard - just attach library for the custom search field.
     $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
@@ -182,6 +139,11 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
     $field_location_ref['#attributes']['class'][] = 'myeventlane-location-address-widget';
   }
 
+  // Canonical DOM root for JS: mel-location.js fills [data-mel-address="field_location"].
+  if (empty($field_location_ref['#attributes']['data-mel-address'])) {
+    $field_location_ref['#attributes']['data-mel-address'] = 'field_location';
+  }
+
   // Add the address search field if it doesn't exist (in case widget isn't using AddressAutocompleteWidget).
   // Check if address_search already exists in any widget delta.
   $has_search_field = FALSE;
@@ -195,16 +157,14 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
   }
 
   // If no search field exists, add it to the first widget delta (delta 0).
-  // BUT: Skip this for wizard forms - they have their own search field.
-  if (!$has_search_field && isset($field_location_ref['widget'][0]) && !$is_wizard_form) {
+  if (!$has_search_field && isset($field_location_ref['widget'][0])) {
     $field_location_ref['widget'][0]['address_search'] = [
       '#type' => 'textfield',
-      '#title' => t('Search for address or venue'),
-      '#description' => t('Start typing to search for an address. Select from the suggestions to populate the address fields.'),
+      '#title' => t('Search address'),
       '#attributes' => [
         'class' => ['myeventlane-location-address-search'],
         'autocomplete' => 'off',
-        'placeholder' => t('Type address or venue name...'),
+        'placeholder' => t('Start typing an address…'),
       ],
       '#weight' => -10,
     ];
@@ -254,14 +214,6 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
     }
   }
 
-  // Update field_location title to be more descriptive.
-  if (isset($field_location_ref['#title']) && $field_location_ref['#title'] === 'Location') {
-    $field_location_ref['#title'] = t('Address Details');
-    if (!isset($field_location_ref['#description'])) {
-      $field_location_ref['#description'] = t('Use the search field above to find and select an address. The address fields below will be automatically filled.');
-    }
-  }
-
   // Hide the coordinate fields from the form display if they're showing up.
   // We'll use hidden form elements instead that are populated by JavaScript.
   $form_object = $form_state->getFormObject();
@@ -306,13 +258,6 @@ function _myeventlane_location_alter_event_form(array &$form, FormStateInterface
   // The wrapper already has the class for JavaScript targeting.
   // Attach our library for autocomplete functionality.
   $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
-
-  // Note: drupalSettings are already attached at the top of this function
-  // to ensure they're always available, even if field_location doesn't exist.
-  // Add submit handler to save coordinates.
-  if (isset($form['actions']['submit'])) {
-    $form['actions']['submit']['#submit'][] = '_myeventlane_location_save_coordinates';
-  }
 }
 
 /**
@@ -351,163 +296,6 @@ function _myeventlane_location_bypass_coordinate_validation(array &$elements): v
     if (is_array($child) && !str_starts_with((string) $key, '#')) {
       _myeventlane_location_bypass_coordinate_validation($child);
     }
-  }
-}
-
-/**
- * Form submit handler to save latitude and longitude from address widget.
- */
-function _myeventlane_location_save_coordinates(array &$form, FormStateInterface $form_state): void {
-  $form_object = $form_state->getFormObject();
-  $node = method_exists($form_object, 'getEntity')
-    ? $form_object->getEntity()
-    : (method_exists($form_object, 'getEvent') ? $form_object->getEvent() : NULL);
-  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
-    return;
-  }
-
-  $lat = NULL;
-  $lng = NULL;
-
-  // Get coordinates from our hidden fields added by form_alter.
-  // We use custom field names to avoid validation issues with the actual entity fields.
-  $user_input = $form_state->getUserInput();
-
-  // Check our custom hidden fields first (from form submission).
-  if (isset($user_input['myeventlane_location_latitude']) && !empty($user_input['myeventlane_location_latitude']) && is_numeric($user_input['myeventlane_location_latitude'])) {
-    $lat = (float) $user_input['myeventlane_location_latitude'];
-  }
-  elseif ($form_state->hasValue('myeventlane_location_latitude')) {
-    $lat_value = $form_state->getValue('myeventlane_location_latitude');
-    if (!empty($lat_value) && is_numeric($lat_value)) {
-      $lat = (float) $lat_value;
-    }
-  }
-
-  if (isset($user_input['myeventlane_location_longitude']) && !empty($user_input['myeventlane_location_longitude']) && is_numeric($user_input['myeventlane_location_longitude'])) {
-    $lng = (float) $user_input['myeventlane_location_longitude'];
-  }
-  elseif ($form_state->hasValue('myeventlane_location_longitude')) {
-    $lng_value = $form_state->getValue('myeventlane_location_longitude');
-    if (!empty($lng_value) && is_numeric($lng_value)) {
-      $lng = (float) $lng_value;
-    }
-  }
-
-  // Also check the actual entity fields in case they were set directly.
-  if ($lat === NULL && isset($user_input['field_location_latitude']) && !empty($user_input['field_location_latitude']) && is_numeric($user_input['field_location_latitude'])) {
-    $lat = (float) $user_input['field_location_latitude'];
-  }
-  if ($lng === NULL && isset($user_input['field_location_longitude']) && !empty($user_input['field_location_longitude']) && is_numeric($user_input['field_location_longitude'])) {
-    $lng = (float) $user_input['field_location_longitude'];
-  }
-
-  // Step form: inner widget has #parents = ['field_location'], so lat/lng
-  // are at field_location[0][latitude] / field_location[0][longitude].
-  if ($lat === NULL && $form_state->hasValue(['field_location', 0, 'latitude'])) {
-    $lat_value = $form_state->getValue(['field_location', 0, 'latitude']);
-    if ($lat_value !== NULL && $lat_value !== '' && is_numeric($lat_value)) {
-      $lat = (float) $lat_value;
-    }
-  }
-  if ($lng === NULL && $form_state->hasValue(['field_location', 0, 'longitude'])) {
-    $lng_value = $form_state->getValue(['field_location', 0, 'longitude']);
-    if ($lng_value !== NULL && $lng_value !== '' && is_numeric($lng_value)) {
-      $lng = (float) $lng_value;
-    }
-  }
-  if ($lat === NULL && isset($user_input['field_location'][0]['latitude']) && is_numeric($user_input['field_location'][0]['latitude'])) {
-    $lat = (float) $user_input['field_location'][0]['latitude'];
-  }
-  if ($lng === NULL && isset($user_input['field_location'][0]['longitude']) && is_numeric($user_input['field_location'][0]['longitude'])) {
-    $lng = (float) $user_input['field_location'][0]['longitude'];
-  }
-
-  // Check for dedicated coordinate fields (field_location_latitude/longitude or field_event_lat/lng).
-  if ($lat === NULL && $form_state->hasValue(['field_location_latitude', 0, 'value'])) {
-    $lat_value = $form_state->getValue(['field_location_latitude', 0, 'value']);
-    if (!empty($lat_value) && is_numeric($lat_value)) {
-      $lat = (float) $lat_value;
-    }
-  }
-
-  if ($lng === NULL && $form_state->hasValue(['field_location_longitude', 0, 'value'])) {
-    $lng_value = $form_state->getValue(['field_location_longitude', 0, 'value']);
-    if (!empty($lng_value) && is_numeric($lng_value)) {
-      $lng = (float) $lng_value;
-    }
-  }
-
-  // Check for legacy field_event_lat/lng fields.
-  if ($lat === NULL && $form_state->hasValue(['field_event_lat', 0, 'value'])) {
-    $lat_value = $form_state->getValue(['field_event_lat', 0, 'value']);
-    if (!empty($lat_value) && is_numeric($lat_value)) {
-      $lat = (float) $lat_value;
-    }
-  }
-
-  if ($lng === NULL && $form_state->hasValue(['field_event_lng', 0, 'value'])) {
-    $lng_value = $form_state->getValue(['field_event_lng', 0, 'value']);
-    if (!empty($lng_value) && is_numeric($lng_value)) {
-      $lng = (float) $lng_value;
-    }
-  }
-
-  // Step form (event_wizard_when_where_form): field_location has #parents
-  // field_location_wrapper, so lat/lng are at wrapper[widget][0][latitude].
-  if ($lat === NULL && $form_state->hasValue(['field_location_wrapper', 'widget', 0, 'latitude'])) {
-    $lat_value = $form_state->getValue(['field_location_wrapper', 'widget', 0, 'latitude']);
-    if ($lat_value !== NULL && $lat_value !== '' && is_numeric($lat_value)) {
-      $lat = (float) $lat_value;
-    }
-  }
-  if ($lng === NULL && $form_state->hasValue(['field_location_wrapper', 'widget', 0, 'longitude'])) {
-    $lng_value = $form_state->getValue(['field_location_wrapper', 'widget', 0, 'longitude']);
-    if ($lng_value !== NULL && $lng_value !== '' && is_numeric($lng_value)) {
-      $lng = (float) $lng_value;
-    }
-  }
-  if ($lat === NULL && isset($user_input['field_location_wrapper']['widget'][0]['latitude']) && is_numeric($user_input['field_location_wrapper']['widget'][0]['latitude'])) {
-    $lat = (float) $user_input['field_location_wrapper']['widget'][0]['latitude'];
-  }
-  if ($lng === NULL && isset($user_input['field_location_wrapper']['widget'][0]['longitude']) && is_numeric($user_input['field_location_wrapper']['widget'][0]['longitude'])) {
-    $lng = (float) $user_input['field_location_wrapper']['widget'][0]['longitude'];
-  }
-
-  // Save coordinates to dedicated fields if they exist and we have values.
-  if ($lat !== NULL && $node->hasField('field_location_latitude')) {
-    $node->set('field_location_latitude', $lat);
-    \Drupal::logger('myeventlane_location')->notice('Saved latitude: @lat', ['@lat' => $lat]);
-  }
-  elseif ($lat !== NULL && $node->hasField('field_event_lat')) {
-    $node->set('field_event_lat', (string) $lat);
-    \Drupal::logger('myeventlane_location')->notice('Saved latitude (legacy): @lat', ['@lat' => $lat]);
-  }
-  else {
-    \Drupal::logger('myeventlane_location')->warning('Latitude not saved. Lat: @lat, Has field: @has', [
-      '@lat' => $lat ?? 'NULL',
-      '@has' => $node->hasField('field_location_latitude') ? 'YES' : 'NO',
-    ]);
-  }
-
-  if ($lng !== NULL && $node->hasField('field_location_longitude')) {
-    $node->set('field_location_longitude', $lng);
-    \Drupal::logger('myeventlane_location')->notice('Saved longitude: @lng', ['@lng' => $lng]);
-  }
-  elseif ($lng !== NULL && $node->hasField('field_event_lng')) {
-    $node->set('field_event_lng', (string) $lng);
-    \Drupal::logger('myeventlane_location')->notice('Saved longitude (legacy): @lng', ['@lng' => $lng]);
-  }
-  else {
-    \Drupal::logger('myeventlane_location')->warning('Longitude not saved. Lng: @lng, Has field: @has', [
-      '@lng' => $lng ?? 'NULL',
-      '@has' => $node->hasField('field_location_longitude') ? 'YES' : 'NO',
-    ]);
-  }
-
-  // Save when coordinates were set (wizard form saves before this handler runs).
-  if ($lat !== NULL || $lng !== NULL) {
-    $node->save();
   }
 }
 
@@ -826,98 +614,6 @@ function myeventlane_location_node_view(array &$build, EntityInterface $entity, 
 }
 
 /**
- * Implements hook_entity_presave().
- *
- * Fallback geocoding to ensure latitude/longitude are always populated
- * when an address exists but coordinates are missing.
- */
-function myeventlane_location_entity_presave(EntityInterface $entity): void {
-  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
-    return;
-  }
-
-  if (!$entity->hasField('field_location')) {
-    return;
-  }
-
-  // If coords already exist, do nothing.
-  if (
-    $entity->hasField('field_location_latitude') &&
-    $entity->hasField('field_location_longitude') &&
-    !$entity->get('field_location_latitude')->isEmpty() &&
-    !$entity->get('field_location_longitude')->isEmpty()
-  ) {
-    return;
-  }
-
-  if ($entity->get('field_location')->isEmpty()) {
-    return;
-  }
-
-  $location = $entity->get('field_location')->first()->getValue();
-  if (empty($location)) {
-    return;
-  }
-
-  $parts = array_filter([
-    $location['address_line1'] ?? '',
-    $location['locality'] ?? '',
-    $location['administrative_area'] ?? '',
-    $location['postal_code'] ?? '',
-    $location['country_code'] ?? '',
-  ]);
-
-  if (empty($parts)) {
-    return;
-  }
-
-  /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $provider_manager */
-  $provider_manager = \Drupal::service('myeventlane_location.provider_manager');
-  $settings = $provider_manager->getFrontendSettings();
-
-  if (empty($settings['google_maps_api_key'])) {
-    \Drupal::logger('myeventlane_location')->warning('No Google Maps API key available for fallback geocoding.');
-    return;
-  }
-
-  $query = urlencode(implode(', ', $parts));
-  $url = sprintf(
-    'https://maps.googleapis.com/maps/api/geocode/json?address=%s&key=%s',
-    $query,
-    $settings['google_maps_api_key']
-  );
-
-  $response = @file_get_contents($url);
-  if (!$response) {
-    return;
-  }
-
-  $data = json_decode($response, TRUE);
-  if (empty($data['results'][0]['geometry']['location'])) {
-    return;
-  }
-
-  $coords = $data['results'][0]['geometry']['location'];
-
-  if ($entity->hasField('field_location_latitude')) {
-    $entity->set('field_location_latitude', (float) $coords['lat']);
-  }
-
-  if ($entity->hasField('field_location_longitude')) {
-    $entity->set('field_location_longitude', (float) $coords['lng']);
-  }
-
-  \Drupal::logger('myeventlane_location')->notice(
-    'Fallback geocoded event @nid to @lat,@lng',
-    [
-      '@nid' => $entity->id(),
-      '@lat' => $coords['lat'],
-      '@lng' => $coords['lng'],
-    ]
-  );
-}
-
-/**
  * Hides unused address subfields (organization, given_name, family_name) from all address fields.
  *
  * @param array &$form
@@ -933,7 +629,6 @@ function _myeventlane_location_hide_unused_address_fields(array &$form): void {
       [$field_name],
       ['wizard', 'content', '_venue_wrapper', $field_name],
       ['wizard', 'content', $field_name],
-      ['mel_wizard', 'layout', 'content'],
     ];
 
     foreach ($paths as $path) {

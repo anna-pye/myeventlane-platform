@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\node\NodeInterface;
 
 /**
@@ -130,6 +131,7 @@ final class TicketTypeManager {
     $product->save();
 
     $event->set('field_product_target', ['target_id' => $product->id()]);
+    EventNodeRevisionSave::prepare($event, 'Linked ticket product to event.');
     $event->save();
 
     $this->loggerFactory->get('myeventlane_event')->notice(

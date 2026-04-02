@@ -9,6 +9,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -134,6 +135,7 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
     $this->melPlatformSupportWizardForm->apply($event, $form_state);
 
     $event->setPublished(TRUE);
+    EventNodeRevisionSave::prepare($event, 'Event wizard: published.');
     $event->save();
 
     $this->logger->notice('Event published via wizard: nid=@nid uid=@uid', [

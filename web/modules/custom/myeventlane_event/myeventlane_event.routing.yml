@@ -1,29 +1,5 @@
-# Event creation wizard routes.
-# Create: creates draft event and redirects to basics step.
-myeventlane_event.wizard.create:
-  path: '/vendor/events/create'
-  defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\EventWizardCreateController::createDraft'
-    _title: 'Create event'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
-
-# Edit event via wizard: redirects to basics step.
-myeventlane_event.wizard.edit:
-  path: '/vendor/events/{node}/edit'
-  defaults:
-    _controller: '\Drupal\myeventlane_event\Controller\EventWizardCreateController::edit'
-    _title: 'Edit event'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
-    node: '\d+'
-  options:
-    parameters:
-      node:
-        type: entity:node
-        bundle:
-          - event
-
+# Event step wizard (Form API). Create/edit URLs are myeventlane_event_studio.* only.
+# Wizard steps remain for users with "administer nodes" (support); vendors are redirected to Studio.
 # Wizard step forms (Form API, save on every step).
 myeventlane_event.wizard.basics:
   path: '/vendor/events/{event}/build/basics'

@@ -8,6 +8,7 @@ lifecycle: stable
 dependencies:
   - mel_ticket:mel_ticket
   - myeventlane_core:myeventlane_core
+  - myeventlane_location:myeventlane_location
   - myeventlane_venue:myeventlane_venue
   - geofield:geofield
   - drupal:node

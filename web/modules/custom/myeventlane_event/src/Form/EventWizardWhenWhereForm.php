@@ -59,13 +59,6 @@ final class EventWizardWhenWhereForm extends EventWizardBaseForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
-    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-      'route' => (string) $this->getRouteMatch()->getRouteName(),
-      'event_id' => (int) $event->id(),
-      'form_id' => $this->getFormId(),
-      'canonical' => 1,
-    ]);
 
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_2');
     $form_display->buildForm($event, $form, $form_state);
@@ -126,18 +119,8 @@ final class EventWizardWhenWhereForm extends EventWizardBaseForm {
       }
     }
 
-    if ($this->getEvent()->hasField('field_location')) {
-      $location = $form_state->getValue('field_location');
-      $has_address = FALSE;
-      if (is_array($location) && isset($location[0]['address'])) {
-        $addr = $location[0]['address'] ?? [];
-        $line1 = $addr['address_line1'] ?? '';
-        $locality = $addr['locality'] ?? '';
-        $has_address = trim((string) $line1) !== '' || trim((string) $locality) !== '';
-      }
-      if (!$has_address) {
-        $form_state->setErrorByName('field_location', $this->t('Location is required.'));
-      }
+    if ($this->getEvent()->hasField('field_location') && !$this->wizardLocationSubmitted($form_state)) {
+      $form_state->setErrorByName('field_location', $this->t('Location is required.'));
     }
   }
 

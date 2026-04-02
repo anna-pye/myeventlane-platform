@@ -82,13 +82,6 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $event = $this->getEvent();
-    // TEMP DIAGNOSTIC: remove after vendor workflow consolidation validation.
-    $this->logger->notice('TEMP diagnostics: vendor entrypoint route={route} event_id={event_id} form_id={form_id} canonical_wizard={canonical}', [
-      'route' => (string) $this->getRouteMatch()->getRouteName(),
-      'event_id' => (int) $event->id(),
-      'form_id' => $this->getFormId(),
-      'canonical' => 1,
-    ]);
 
     $title = $this->t('Create event: Review & Publish');
     $steps = $this->buildStepper($event, 'review');

@@ -14,8 +14,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
-use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\node\NodeInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -223,6 +224,9 @@ abstract class EventWizardBaseForm extends FormBase {
       $this->applyImageFromFormState($event, $form_state);
     }
 
+    if ($event->getEntityTypeId() === 'node' && $event->bundle() === 'event') {
+      EventNodeRevisionSave::prepare($event, 'Event wizard: ' . $form_mode . ' step.');
+    }
     $event->save();
   }
 
@@ -312,13 +316,6 @@ abstract class EventWizardBaseForm extends FormBase {
       }
     }
 
-    // field_location (address): always attempt fallback from form state on this
-    // step. applyLocationFromFormState only calls set() when it finds submitted
-    // address deltas; skipping when the entity was non-empty prevented edits to
-    // an existing venue/address from persisting if extractFormValues missed them.
-    if ($event->hasField('field_location')) {
-      $this->applyLocationFromFormState($event, $form_state);
-    }
   }
 
   /**
@@ -468,47 +465,30 @@ abstract class EventWizardBaseForm extends FormBase {
   }
 
   /**
-   * Applies location value from form state when the submitted value has address data.
+   * Whether the wizard submit includes a normalised field_location address row.
    *
-   * Handles both top-level (field_location[0][address]) and widget-wrapped
-   * (field_location[widget][0][address]) form state structures.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event entity.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The form state.
+   * Uses only Form API values (after normalizeFormStateForExtraction); no
+   * user_input fallbacks. Address persistence is left to widgets + JS writer.
    */
-  protected function applyLocationFromFormState(NodeInterface $event, FormStateInterface $form_state): void {
+  protected function wizardLocationSubmitted(FormStateInterface $form_state): bool {
     $raw = $form_state->getValue('field_location');
     if (!is_array($raw)) {
-      $raw = $form_state->getValue(['field_location_wrapper', 'widget']);
+      return FALSE;
     }
-    if (!is_array($raw)) {
-      $raw = NestedArray::getValue($form_state->getUserInput(), ['field_location_wrapper', 'widget'], $exists);
-      $raw = $exists && is_array($raw) ? $raw : NULL;
-    }
-    if (!is_array($raw)) {
-      $raw = NestedArray::getValue($form_state->getUserInput(), ['field_location'], $exists);
-      $raw = $exists && is_array($raw) ? $raw : NULL;
-    }
-    if (!is_array($raw)) {
-      return;
-    }
-
     if (isset($raw['widget']) && is_array($raw['widget'])) {
       $raw = $raw['widget'];
     }
-
-    $address_values = [];
-    foreach ($raw as $delta => $item) {
-      if (is_numeric($delta) && isset($item['address']) && is_array($item['address'])) {
-        $address_values[] = $item['address'];
-      }
+    $first = $raw[0] ?? NULL;
+    if (!is_array($first)) {
+      return FALSE;
     }
-
-    if ($address_values !== []) {
-      $event->set('field_location', $address_values);
+    $addr = $first['address'] ?? [];
+    if (!is_array($addr)) {
+      return FALSE;
     }
+    $line1 = trim((string) ($addr['address_line1'] ?? ''));
+    $locality = trim((string) ($addr['locality'] ?? ''));
+    return $line1 !== '' || $locality !== '';
   }
 
   /**

@@ -13,6 +13,11 @@ use Psr\Log\LoggerInterface;
  * Retrieves help article excerpts for vendor AI context.
  *
  * Queries help_article nodes with audience vendor or public.
+ *
+ * @deprecated in myeventlane_vendor_ai — use
+ *   \Drupal\myeventlane_help_shared\Service\UnifiedHelpRetriever instead.
+ *   Service id myeventlane_vendor_ai.help_retriever is retained for backward
+ *   compatibility only; no core call sites should depend on this class.
  */
 final class HelpArticleRetriever {
 

@@ -41,7 +41,7 @@ final class VendorEventSettingsController extends VendorConsoleBaseController {
     $header_actions = [
       [
         'label' => $this->t('Edit Event'),
-        'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $event_id])->toString(),
+        'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event_id])->toString(),
         'class' => 'mel-btn mel-btn--primary',
       ],
       [

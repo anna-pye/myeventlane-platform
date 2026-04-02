@@ -60,6 +60,24 @@ final class EventTicketsBuilder {
   }
 
   /**
+   * HTML name attribute for a nested element (matches Form API rendering).
+   *
+   * @param list<string|int> $segments
+   *   Path segments under the builder root (same order as valuePath()).
+   */
+  private function formElementFullName(FormStateInterface $form_state, string ...$segments): string {
+    $path = $this->valuePath($form_state, ...$segments);
+    if ($path === []) {
+      return '';
+    }
+    $head = (string) array_shift($path);
+    foreach ($path as $segment) {
+      $head .= '[' . $segment . ']';
+    }
+    return $head;
+  }
+
+  /**
    * Builds the ticket builder UI into an existing parent form subtree.
    */
   public function build(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
@@ -75,7 +93,6 @@ final class EventTicketsBuilder {
       $form['builder_shell'] = [
         '#type' => 'container',
         '#attributes' => [
-          'id' => self::BUILDER_WRAPPER_ID,
           'class' => ['mel-ticket-builder', 'mel-stack', 'mel-stack--lg'],
         ],
       ];
@@ -99,7 +116,6 @@ final class EventTicketsBuilder {
     $form['builder_shell'] = [
       '#type' => 'container',
       '#attributes' => [
-        'id' => self::BUILDER_WRAPPER_ID,
         'class' => ['mel-ticket-builder', 'mel-stack', 'mel-stack--lg'],
       ],
     ];
@@ -112,14 +128,14 @@ final class EventTicketsBuilder {
     $form['builder_shell']['header']['title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => $this->t('Ticket types'),
+      '#value' => $this->t('Tickets'),
       '#attributes' => ['class' => ['mel-ticket-builder__title']],
     ];
 
     $form['builder_shell']['header']['summary'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Manage ticket tiers in one place. Paid tiers stay in sync with checkout; buyers never see product or variation IDs.'),
+      '#value' => $this->t('Add RSVP, paid, or external tiers — paid tiers stay in sync with checkout.'),
       '#attributes' => ['class' => ['mel-ticket-builder__summary', 'description']],
     ];
 
@@ -129,20 +145,48 @@ final class EventTicketsBuilder {
 
     $form['builder_shell']['controls'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-ticket-controls']],
+      '#attributes' => ['class' => ['mel-ticket-controls', 'mel-ticket-controls--primary']],
     ];
 
-    $form['builder_shell']['controls']['begin_add'] = [
+    $form['builder_shell']['controls']['begin_add_rsvp'] = [
       '#type' => 'submit',
-      '#value' => $this->t('+ Add ticket'),
-      '#name' => 'ticket_begin_add',
+      '#value' => $this->t('+ Add free RSVP'),
+      '#name' => 'ticket_begin_add_rsvp',
       '#submit' => ['::handleAction'],
       '#ajax' => [
         'callback' => '::ajaxRebuildTicketBuilder',
         'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
       ],
       '#limit_validation_errors' => [],
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__rsvp']],
+      '#access' => !$adding_new,
+    ];
+
+    $form['builder_shell']['controls']['begin_add_paid'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('+ Add paid ticket'),
+      '#name' => 'ticket_begin_add_paid',
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__paid']],
+      '#access' => !$adding_new,
+    ];
+
+    $form['builder_shell']['controls']['begin_add_external'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('+ External ticket link'),
+      '#name' => 'ticket_begin_add_external',
+      '#submit' => ['::handleAction'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildTicketBuilder',
+        'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
+      ],
+      '#limit_validation_errors' => [],
+      '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-ticket-controls__external']],
       '#access' => !$adding_new,
     ];
 
@@ -211,6 +255,7 @@ final class EventTicketsBuilder {
             $is_editing ? 'is-editing' : 'is-view',
           ],
           'data-ticket-id' => (string) $tid,
+          'data-mel-ticket-kind' => $ticket->getTicketKind(),
         ],
       ];
 
@@ -444,6 +489,9 @@ final class EventTicketsBuilder {
     try {
       match (TRUE) {
         $name === 'ticket_begin_add' => $this->beginAdd($form_state),
+        $name === 'ticket_begin_add_rsvp' => $this->beginAddWithKind($form_state, 'rsvp'),
+        $name === 'ticket_begin_add_paid' => $this->beginAddWithKind($form_state, 'paid'),
+        $name === 'ticket_begin_add_external' => $this->beginAddWithKind($form_state, 'external'),
         $name === 'ticket_cancel_add' => $this->cancelAdd($form_state),
         $name === 'ticket_create' => $this->createTicket($form_state, $event),
         $name === 'ticket_save_sync' => $this->saveAndSync($event),
@@ -469,6 +517,7 @@ final class EventTicketsBuilder {
       $this->messenger->addError($this->t('Ticket update failed: @message', ['@message' => $e->getMessage()]));
     }
 
+    // Full form rebuild so EventFormAlter can re-apply ticket-driven #access on ops fields.
     $form_state->setRebuild();
   }
 
@@ -478,10 +527,15 @@ final class EventTicketsBuilder {
   private function buildNewTicketCard(NodeInterface $event, FormStateInterface $form_state): array {
     $currency = $this->ticketTypeManager->getDefaultCurrencyCodeForEvent($event);
 
+    $prefill = (string) ($form_state->get('mel_ticket_prefill_kind') ?: 'paid');
+
+    $ticket_kind_input = ':input[name="' . $this->formElementFullName($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind') . '"]';
+
     return [
       '#type' => 'container',
       '#attributes' => [
         'class' => ['mel-card', 'mel-ticket-card', 'mel-ticket-card--new', 'is-editing'],
+        'data-mel-ticket-kind' => $prefill,
       ],
       'header' => [
         '#type' => 'html_tag',
@@ -513,7 +567,8 @@ final class EventTicketsBuilder {
             'rsvp' => $this->t('RSVP'),
             'external' => $this->t('External'),
           ],
-          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind')) ?? 'paid'),
+          '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'ticket_kind'))
+            ?? (string) ($form_state->get('mel_ticket_prefill_kind') ?: 'paid')),
         ],
         'price_amount' => [
           '#type' => 'number',
@@ -521,6 +576,11 @@ final class EventTicketsBuilder {
           '#step' => 0.01,
           '#min' => 0,
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'price_amount')) ?? ''),
+          '#states' => [
+            'visible' => [
+              $ticket_kind_input => ['value' => 'paid'],
+            ],
+          ],
         ],
         'price_currency' => [
           '#type' => 'textfield',
@@ -528,17 +588,36 @@ final class EventTicketsBuilder {
           '#size' => 4,
           '#maxlength' => 3,
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'price_currency')) ?? $currency),
+          '#states' => [
+            'visible' => [
+              $ticket_kind_input => ['value' => 'paid'],
+            ],
+          ],
         ],
         'capacity' => [
           '#type' => 'number',
           '#title' => $this->t('Capacity'),
           '#min' => 1,
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'capacity')) ?? ''),
+          '#states' => [
+            'visible' => [
+              $ticket_kind_input => [
+                ['value' => 'paid'],
+                'or',
+                ['value' => 'rsvp'],
+              ],
+            ],
+          ],
         ],
         'external_uri' => [
           '#type' => 'url',
           '#title' => $this->t('External URL'),
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'external_uri')) ?? ''),
+          '#states' => [
+            'visible' => [
+              $ticket_kind_input => ['value' => 'external'],
+            ],
+          ],
         ],
         'status' => [
           '#type' => 'checkbox',
@@ -592,7 +671,13 @@ final class EventTicketsBuilder {
       ? (string) (int) $ticket->get('capacity')->value
       : (string) $this->t('—');
 
-    $type_line = (string) $this->t('Type: @type', ['@type' => strtoupper($kind)]);
+    $metrics = $this->tierAnalytics->buildTierMetrics($ticket);
+    $sold = (int) $metrics['sold'];
+    $activity_line = match ($kind) {
+      'rsvp' => (string) $this->t('@count going', ['@count' => (string) $sold]),
+      'paid' => (string) $this->t('@count sold', ['@count' => (string) $sold]),
+      default => (string) $this->t('External ticket'),
+    };
     $capacity_line = (string) $this->t('Capacity: @cap', ['@cap' => $capacity_display]);
 
     $highlight_capacity = $ticket_status === TicketStatusService::STATUS_SOLD_OUT
@@ -629,7 +714,7 @@ final class EventTicketsBuilder {
     ]);
 
     $card['meta'] = [
-      '#markup' => '<ul class="' . Html::escape('mel-ticket-card__meta') . '"><li>' . Html::escape($type_line) . '</li><li' . $capacity_li_attr . '>' . Html::escape($capacity_line) . '</li></ul>',
+      '#markup' => '<ul class="' . Html::escape('mel-ticket-card__meta') . '"><li>' . Html::escape($activity_line) . '</li><li' . $capacity_li_attr . '>' . Html::escape($capacity_line) . '</li></ul>',
     ];
 
     if ($ticket_status === TicketStatusService::STATUS_SOLD_OUT) {
@@ -721,12 +806,24 @@ final class EventTicketsBuilder {
   }
 
   private function beginAdd(FormStateInterface $form_state): void {
+    $form_state->set('mel_ticket_prefill_kind', NULL);
+    $form_state->set('mel_ticket_adding_new', TRUE);
+    $form_state->set('editing_ticket_id', NULL);
+  }
+
+  /**
+   * Opens the new-ticket card with a suggested tier kind (still editable).
+   */
+  private function beginAddWithKind(FormStateInterface $form_state, string $kind): void {
+    $allowed = ['rsvp', 'paid', 'external'];
+    $form_state->set('mel_ticket_prefill_kind', in_array($kind, $allowed, TRUE) ? $kind : 'paid');
     $form_state->set('mel_ticket_adding_new', TRUE);
     $form_state->set('editing_ticket_id', NULL);
   }
 
   private function cancelAdd(FormStateInterface $form_state): void {
     $form_state->set('mel_ticket_adding_new', FALSE);
+    $form_state->set('mel_ticket_prefill_kind', NULL);
   }
 
   private function beginInlineEdit(FormStateInterface $form_state, string $name): void {
@@ -745,6 +842,7 @@ final class EventTicketsBuilder {
     $this->lifecycle->createAttachAndSync($event, $payload);
     $this->messenger->addStatus($this->t('Ticket created.'));
     $form_state->set('mel_ticket_adding_new', FALSE);
+    $form_state->set('mel_ticket_prefill_kind', NULL);
   }
 
   private function saveInlineEdit(FormStateInterface $form_state, NodeInterface $event, string $name): void {
@@ -1210,7 +1308,7 @@ final class EventTicketsBuilder {
       return Html::escape((string) $this->t('—'));
     }
     if ($kind === 'rsvp') {
-      return Html::escape((string) $this->t('RSVP'));
+      return Html::escape((string) $this->t('$0'));
     }
     return Html::escape((string) $this->t('External'));
   }

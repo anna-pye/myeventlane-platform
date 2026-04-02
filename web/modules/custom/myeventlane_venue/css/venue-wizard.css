@@ -52,6 +52,26 @@
   background: #faf5ff;
 }
 
+/* Reset venue / address (vendor event builder) */
+.mel-change-venue-wrap {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px dashed #d4d4d8;
+  border-radius: 8px;
+}
+
+.mel-change-venue-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #52525b;
+}
+
+.mel-change-venue-wrap .js-mel-change-venue {
+  margin: 0;
+}
+
 /* Existing venue container */
 .mel-venue-existing-container {
   padding: 1rem;
@@ -202,11 +222,6 @@
 
 .pac-item-selected {
   background: #f3f0ff;
-}
-
-/* Hide manual location fields when venue is selected (backup for #states) */
-.mel-manual-location-fields.js-hide {
-  display: none !important;
 }
 
 /* Venue section info text */

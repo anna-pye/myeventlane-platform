@@ -9,7 +9,7 @@
 (function (Drupal, once) {
   Drupal.behaviors.melRsvpForm = {
     attach(context) {
-      once('mel-rsvp-form', '.mel-rsvp', context).forEach((root) => {
+      once('mel-rsvp-form', '.mel-rsvp, .mel-rsvp-public-form', context).forEach((root) => {
         const textareas = root.querySelectorAll('textarea');
         textareas.forEach((ta) => {
           ta.classList.add('mel-rsvp__textarea--compact');
@@ -21,6 +21,46 @@
         if (actions) {
           actions.style.paddingBottom = 'calc(12px + env(safe-area-inset-bottom))';
         }
+
+        root.addEventListener('input', (e) => {
+          const target = e.target;
+          if (!(target instanceof Element) || !target.matches('[name^="attendees"]')) {
+            return;
+          }
+          const card = target.closest('.mel-attendee-card');
+          if (card) {
+            card.classList.add('is-complete');
+          }
+        });
+
+        root.addEventListener('change', (e) => {
+          const target = e.target;
+          if (!(target instanceof Element) || target.getAttribute('name') !== 'donation_choice') {
+            return;
+          }
+          const btn = root.querySelector('.mel-rsvp-cta button, .mel-rsvp-cta input[type="submit"]');
+          if (!btn) {
+            return;
+          }
+          if ('value' in btn) {
+            btn.value = 'Confirm RSVP + Support 💛';
+          }
+          btn.textContent = 'Confirm RSVP + Support 💛';
+        });
+
+        setTimeout(() => {
+          const donation = root.querySelector('.mel-donation-card');
+          if (donation instanceof Element) {
+            donation.animate(
+              [
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.03)' },
+                { transform: 'scale(1)' }
+              ],
+              { duration: 400, easing: 'ease-out' }
+            );
+          }
+        }, 1200);
       });
     }
   };

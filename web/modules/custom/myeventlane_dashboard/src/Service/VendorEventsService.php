@@ -8,6 +8,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 
 /**
  * Builds the dashboard "Your events" list.
@@ -23,6 +24,7 @@ final class VendorEventsService implements VendorEventsServiceInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorMetricsService $metrics,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
   ) {}
 
   /**
@@ -49,8 +51,10 @@ final class VendorEventsService implements VendorEventsServiceInterface {
     $query->sort('created', 'DESC');
     $query->range(0, 10);
 
-    $nids = $query->execute();
-    if (empty($nids)) {
+    // Before: entity query result (possibly keyed); mixed ID scalars.
+    // After: clean int list for loadMultiple().
+    $nids = $this->entityIdNormalizer->normalizeNodeIds(array_values($query->execute()));
+    if ($nids === []) {
       return [
         'items' => [],
         'all_url' => Url::fromUserInput('/vendor/events')->toString(),
@@ -98,7 +102,7 @@ final class VendorEventsService implements VendorEventsServiceInterface {
         'menu' => [
           [
             'label' => 'Edit',
-            'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $nid])->toString(),
+            'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => (int) $nid])->toString(),
           ],
         ],
       ];

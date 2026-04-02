@@ -8,6 +8,7 @@ vendor_venues:
   dependencies:
     - core/drupal
     - core/jquery
+    - myeventlane_location/mel_location
 
 quick_create:
   version: VERSION
@@ -36,6 +37,7 @@ venue_wizard:
     - core/once
     - core/drupal.ajax
     - core/drupal.dialog.ajax
+    - myeventlane_location/mel_location
 
 venue_page:
   version: VERSION

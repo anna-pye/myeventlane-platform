@@ -13,6 +13,7 @@ dependencies:
     - field.field.commerce_store.online.field_vendor_reference
   module:
     - address
+    - myeventlane_location
     - path
 id: commerce_store.online.default
 targetEntityType: commerce_store
@@ -20,7 +21,7 @@ bundle: online
 mode: default
 content:
   address:
-    type: address_default
+    type: myeventlane_location_address_default
     weight: 4
     region: content
     settings: {  }

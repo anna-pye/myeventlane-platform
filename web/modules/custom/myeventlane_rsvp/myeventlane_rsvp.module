@@ -41,6 +41,8 @@ function myeventlane_rsvp_mail($key, &$message, $params) {
         if (!empty($params['event_location'])) {
           $body[] = t('Location: @location', ['@location' => $params['event_location']]);
         }
+        $guests = max(1, (int) ($params['guests'] ?? 1));
+        $body[] = t("You've reserved @count spot(s).", ['@count' => $guests]);
 
         $body[] = '';
         $body[] = t('Your ticket is attached to this email. You can also add this event to your calendar using the attached file.');
@@ -89,4 +91,33 @@ function myeventlane_rsvp_mail($key, &$message, $params) {
       $message['body'] = $body;
       break;
   }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_rsvp_theme($existing, $type, $theme, $path): array {
+  return [
+    'mel_rsvp_thankyou' => [
+      'variables' => [
+        'event' => NULL,
+        'submission' => NULL,
+        'attendee_name' => NULL,
+        'attendee_email' => NULL,
+        'donation' => NULL,
+        'guests' => 1,
+        'event_url' => NULL,
+        'checkout_url' => NULL,
+        'is_payment_pending' => FALSE,
+        'donation_order_id' => NULL,
+        'donation_checkout_url' => NULL,
+        'donation_completed' => FALSE,
+        'donation_pending' => FALSE,
+        'can_add_post_rsvp_contribution' => FALSE,
+        'cancel_url' => NULL,
+      ],
+      'template' => 'mel-rsvp-thankyou',
+      'path' => $path . '/templates',
+    ],
+  ];
 }

@@ -13,6 +13,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_ai\Service\AiUsageTracker;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_growth\Service\GrowthInsightService;
@@ -25,6 +26,8 @@ use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_domain_events\ProjectionReadModel\VendorMetricsReadModel;
+use Drupal\myeventlane_event_studio\DTO\MelEventData;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor_analytics\Service\VendorKpiService;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
@@ -45,6 +48,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * The entity type manager.
    */
   protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * Normalizes entity IDs before loadMultiple().
+   */
+  protected EntityIdNormalizer $entityIdNormalizer;
+
+  /**
+   * Event read model for vendor UI (no node entities to Twig).
+   */
+  protected EventRepository $eventRepository;
 
   /**
    * RSVP stats service.
@@ -127,6 +140,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
+    EntityIdNormalizer $entity_id_normalizer,
+    EventRepository $event_repository,
     BoostStatusService $boost_status,
     TicketSalesService $ticket_sales,
     VendorKpiService $vendor_kpi_service,
@@ -145,6 +160,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
+    $this->entityIdNormalizer = $entity_id_normalizer;
+    $this->eventRepository = $event_repository;
     $this->boostStatus = $boost_status;
     $this->ticketSales = $ticket_sales;
     $this->vendorKpiService = $vendor_kpi_service;
@@ -171,6 +188,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_core.entity_id_normalizer'),
+      $container->get('myeventlane_event_studio.repository'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('myeventlane_vendor_analytics.vendor_kpi'),
@@ -210,7 +229,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     // Load vendor's events once for all queries.
     $userEvents = $this->getUserEvents($userId, $vendor);
-    $eventNodes = $this->loadEventNodes($userEvents);
+    $eventNodes = $this->loadMelDashboardEvents($userEvents);
 
     // Build all dashboard data.
     $kpis = $this->buildKpiCards($eventNodes, $vendor);
@@ -527,22 +546,25 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
-   * Loads event nodes for known IDs.
+   * Loads Mel event DTOs for known IDs (vendor read path; no node loadMultiple here).
    *
    * @param array<int, int|string> $eventIds
    *   Event IDs.
    *
-   * @return array<int, \Drupal\node\NodeInterface>
-   *   Loaded event nodes.
+   * @return list<MelEventData>
    */
-  private function loadEventNodes(array $eventIds): array {
-    if (empty($eventIds)) {
+  private function loadMelDashboardEvents(array $eventIds): array {
+    if ($eventIds === []) {
+      return [];
+    }
+
+    $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+    if ($eventIds === []) {
       return [];
     }
 
     try {
-      $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($eventIds);
-      return array_values(array_filter($nodes, static fn($node): bool => $node instanceof NodeInterface));
+      return $this->eventRepository->loadMany($eventIds);
     }
     catch (\Throwable) {
       return [];
@@ -823,7 +845,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     $publishedNodes = array_values(array_filter(
       $eventNodes,
-      static fn(NodeInterface $node): bool => $node->isPublished()
+      static fn($e): bool => $e instanceof MelEventData && $e->published
     ));
 
     $vendorId = ($vendor && method_exists($vendor, 'id')) ? (int) $vendor->id() : 0;
@@ -837,16 +859,19 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $last30DaysRevenue = 0.0;
     $thirtyDaysAgo = strtotime('-30 days');
 
-    foreach ($publishedNodes as $node) {
-      $eventId = (int) $node->id();
+    foreach ($publishedNodes as $eventDto) {
+      if (!$eventDto instanceof MelEventData) {
+        continue;
+      }
+      $eventId = $eventDto->id;
       if (!$useReadModel) {
         try {
-          $salesSummary = $this->ticketSales->getSalesSummary($node);
+          $salesSummary = $this->ticketSales->getSalesSummaryForEventId($eventId);
           $eventRevenue = (float) ($salesSummary['gross_raw'] ?? 0.0);
           $totalRevenue += $eventRevenue;
           $ticketsSold += (int) ($salesSummary['tickets_sold'] ?? 0);
 
-          if (method_exists($node, 'getChangedTime') && (int) $node->getChangedTime() >= (int) $thirtyDaysAgo) {
+          if ($eventDto->changed >= (int) $thirtyDaysAgo) {
             $last30DaysRevenue += $eventRevenue;
           }
         }
@@ -865,7 +890,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     if (!$useReadModel) {
       $activeEvents = $this->getUpcomingEventsCount(array_map(
-        static fn(NodeInterface $node): int => (int) $node->id(),
+        static fn(MelEventData $e): int => $e->id,
         $publishedNodes
       ));
     }
@@ -990,66 +1015,37 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     try {
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $nodes = $nodeStorage->loadMultiple($userEvents);
+      $normalizedEvents = $this->entityIdNormalizer->normalizeNodeIds(array_values($userEvents));
+      $melEvents = $normalizedEvents === [] ? [] : $this->eventRepository->loadMany($normalizedEvents);
     }
     catch (\Exception $e) {
       // Entity storage may fail during container rebuilds.
       return [];
     }
 
-    if (empty($nodes)) {
+    if ($melEvents === []) {
       return [];
     }
 
     $events = [];
 
-    foreach ($nodes as $node) {
-      if (!$node instanceof NodeInterface) {
+    foreach ($melEvents as $dto) {
+      if (!$dto instanceof MelEventData) {
         continue;
       }
 
-      $eventId = (int) $node->id();
-      $eventImageUrl = $this->extractEventImageUrl($node);
+      $eventId = $dto->id;
+      $eventImageUrl = $dto->image_url;
 
-      // Get event date.
-      $startDate = '';
-      $startTimestamp = 0;
-      $endTimestamp = 0;
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $dateItem = $node->get('field_event_start');
-        if ($dateItem->date) {
-          $startDate = $dateItem->date->format('M j, Y');
-          $startTimestamp = $dateItem->date->getTimestamp();
-        }
-        elseif (!empty($dateItem->value)) {
-          $startDate = date('M j, Y', strtotime($dateItem->value));
-          $startTimestamp = strtotime($dateItem->value);
-        }
-      }
-      if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
-        $endItem = $node->get('field_event_end');
-        if ($endItem->date) {
-          $endTimestamp = $endItem->date->getTimestamp();
-        }
-        elseif (!empty($endItem->value)) {
-          $endTimestamp = strtotime($endItem->value);
-        }
-      }
+      $startDate = $dto->start_timestamp > 0 ? date('M j, Y', $dto->start_timestamp) : '';
+      $startTimestamp = $dto->start_timestamp;
+      $endTimestamp = $dto->end_timestamp;
 
-      // Get venue name.
-      $venue = '';
-      if ($node->hasField('field_event_venue') && !$node->get('field_event_venue')->isEmpty()) {
-        $venue = $node->get('field_event_venue')->value;
-      }
-      elseif ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
-        $venue = $node->get('field_location')->value;
-      }
+      $venue = $dto->venue_label;
 
-      // Get status.
       $status = 'draft';
       $statusLabel = 'Draft';
-      if ($node->isPublished()) {
+      if ($dto->published) {
         if ($startTimestamp > 0 && $startTimestamp < time()) {
           $status = 'past';
           $statusLabel = 'Past';
@@ -1060,14 +1056,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         }
       }
 
-      // Authoritative lifecycle state for semantic theming.
-      $eventState = $this->eventStateResolver->resolveState($node);
+      $eventState = $dto->lifecycle_state;
 
-      // Get revenue and ticket counts using services (avoids duplicate calculations).
       $salesSummary = [];
       try {
         if ($this->ticketSales) {
-          $salesSummary = $this->ticketSales->getSalesSummary($node);
+          $salesSummary = $this->ticketSales->getSalesSummaryForEventId($eventId);
         }
       }
       catch (\Exception $e) {
@@ -1086,22 +1080,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         // Service may fail, use default 0.
       }
 
-      // STAGE B: Capacity, % filled, sold-out (EventCapacityService, optional).
-      $capacity = NULL;
+      $capacity = $dto->capacity;
       $pctFilled = NULL;
-      $isSoldOut = FALSE;
-      if ($this->capacityService) {
-        try {
-          $capacity = $this->capacityService->getCapacityTotal($node);
-          $isSoldOut = $this->capacityService->isSoldOut($node);
-          if ($capacity !== NULL && $capacity > 0) {
-            $filled = $ticketsSold + $rsvps;
-            $pctFilled = (float) round($filled / $capacity * 100, 1);
-          }
-        }
-        catch (\Exception $e) {
-          // Capacity service may fail; leave capacity/pct_filled null, is_sold_out false.
-        }
+      $isSoldOut = $dto->is_sold_out;
+      if ($capacity !== NULL && $capacity > 0) {
+        $filled = $ticketsSold + $rsvps;
+        $pctFilled = (float) round($filled / $capacity * 100, 1);
       }
       // Bar width for progress (0–100); no math in Twig.
       $barWidth = NULL;
@@ -1119,7 +1103,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if ($isSoldOut) {
         $statusBadge = 'sold-out';
       }
-      elseif ($node->isPublished()) {
+      elseif ($dto->published) {
         $statusBadge = $startTimestamp > time() ? 'upcoming' : 'past';
       }
       $statusBadgeLabels = [
@@ -1165,7 +1149,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
 
       $isBoosted = !empty($boostData['active']);
-      $isPublished = $node->isPublished();
+      $isPublished = $dto->published;
       $isEligible = !empty($boostData['eligible']);
 
       // Build boost button data with proper state handling.
@@ -1186,13 +1170,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $boostWizardUrl = Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $eventId])->toString();
       }
 
-      $isSeriesTemplate = $node->hasField('field_is_series_template')
-        && !$node->get('field_is_series_template')->isEmpty()
-        && (bool) $node->get('field_is_series_template')->value;
+      $isSeriesTemplate = $dto->is_series_template;
 
       $eventRow = [
         'id' => $eventId,
-        'title' => $node->label(),
+        'title' => $dto->title,
         'image' => $eventImageUrl,
         'is_series_template' => $isSeriesTemplate,
         'venue' => $venue,
@@ -1222,8 +1204,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'rsvp' => $stats,
         'boost' => $boost,
         'boost_wizard_url' => $boostWizardUrl,
-        'view_url' => $node->toUrl()->toString(),
-        'edit_url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => $eventId])->toString(),
+        'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $eventId])->toString(),
+        'edit_url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $eventId])->toString(),
         'manage_url' => '/vendor/events/' . $eventId . '/overview',
         'tickets_url' => '/vendor/events/' . $eventId . '/tickets',
         'analytics_url' => '/vendor/analytics/event/' . $eventId,
@@ -1238,7 +1220,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'tickets_sold' => $ticketsSold,
           'capacity' => $capacity,
           'percent_sold' => $percentSold,
-          'is_published' => $node->isPublished(),
+          'is_published' => $dto->published,
           'boost_allowed' => $boost['allowed'],
           'boost_url' => $boost['url'],
           'boost_wizard_url' => $boostWizardUrl,
@@ -1462,62 +1444,50 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       return $notifications;
     }
 
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $nodes = $nodeStorage->loadMultiple($userEvents);
+    $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($userEvents));
+    $melList = $normalized === [] ? [] : $this->eventRepository->loadMany($normalized);
     $now = time();
     $threeDaysFromNow = $now + (3 * 24 * 60 * 60);
 
-    foreach ($nodes as $node) {
-      if (!$node instanceof NodeInterface) {
+    foreach ($melList as $dto) {
+      if (!$dto instanceof MelEventData) {
         continue;
       }
 
-      // Check for events starting soon.
-      if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-        $dateItem = $node->get('field_event_start');
-        $startTimestamp = 0;
-        if ($dateItem->date) {
-          $startTimestamp = $dateItem->date->getTimestamp();
-        }
-        elseif (!empty($dateItem->value)) {
-          $startTimestamp = strtotime($dateItem->value);
-        }
+      $startTimestamp = $dto->start_timestamp;
 
-        if ($startTimestamp > $now && $startTimestamp <= $threeDaysFromNow) {
-          $daysUntil = ceil(($startTimestamp - $now) / 86400);
-          $notifications[] = [
-            'type' => 'info',
-            'icon' => 'calendar',
-            'message' => t('@title starts in @days day(s)', [
-              '@title' => $node->label(),
-              '@days' => $daysUntil,
-            ]),
-            'url' => '/vendor/events/' . $node->id() . '/overview',
-          ];
-        }
+      if ($startTimestamp > $now && $startTimestamp <= $threeDaysFromNow) {
+        $daysUntil = ceil(($startTimestamp - $now) / 86400);
+        $notifications[] = [
+          'type' => 'info',
+          'icon' => 'calendar',
+          'message' => t('@title starts in @days day(s)', [
+            '@title' => $dto->title,
+            '@days' => $daysUntil,
+          ]),
+          'url' => '/vendor/events/' . $dto->id . '/overview',
+        ];
       }
 
-      // Check for missing event image.
-      if ($node->hasField('field_event_image') && $node->get('field_event_image')->isEmpty()) {
+      if (!$dto->has_cover_image) {
         $notifications[] = [
           'type' => 'warning',
           'icon' => 'image',
           'message' => t('@title is missing a cover image', [
-            '@title' => $node->label(),
+            '@title' => $dto->title,
           ]),
-          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $node->id()])->toString(),
+          'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $dto->id])->toString(),
         ];
       }
 
-      // Check for draft events.
-      if (!$node->isPublished()) {
+      if (!$dto->published) {
         $notifications[] = [
           'type' => 'neutral',
           'icon' => 'edit',
           'message' => t('@title is still in draft', [
-            '@title' => $node->label(),
+            '@title' => $dto->title,
           ]),
-          'url' => Url::fromRoute('myeventlane_event.wizard.edit', ['node' => (int) $node->id()])->toString(),
+          'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $dto->id])->toString(),
         ];
       }
     }
@@ -1586,7 +1556,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     return [
       [
         'label' => 'Create Event',
-        'url' => Url::fromRoute('myeventlane_event.wizard.create')->toString(),
+        'url' => Url::fromRoute('myeventlane_event_studio.create')->toString(),
         'icon' => 'plus',
         'style' => 'primary',
       ],
@@ -1736,6 +1706,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       return [];
     }
 
+    $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+    if ($eventIds === []) {
+      return [];
+    }
+
     $eventTitles = [];
     foreach ($eventRows as $row) {
       if (!empty($row['id']) && !empty($row['title'])) {
@@ -1792,7 +1767,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           ->sort('created', 'DESC')
           ->range(0, 2)
           ->execute();
-        foreach ($rsvpStorage->loadMultiple($rsvpIds) as $rsvp) {
+        $rsvpIds = $this->entityIdNormalizer->normalizeEntityIds(array_values($rsvpIds));
+        foreach (($rsvpIds === [] ? [] : $rsvpStorage->loadMultiple($rsvpIds)) as $rsvp) {
           $eventId = (int) ($rsvp->hasField('event_id') ? $rsvp->get('event_id')->target_id : 0);
           $items[] = [
             'timestamp' => (int) ($rsvp->hasField('created') ? $rsvp->get('created')->value : time()),
@@ -1818,19 +1794,20 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ->sort('changed', 'DESC')
         ->range(0, 2)
         ->execute();
-      foreach ($nodeStorage->loadMultiple($editedIds) as $node) {
-        if (!$node instanceof NodeInterface) {
+      $editedIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($editedIds));
+      foreach (($editedIds === [] ? [] : $this->eventRepository->loadMany($editedIds)) as $edited) {
+        if (!$edited instanceof MelEventData) {
           continue;
         }
-        if ((int) $node->getChangedTime() <= (int) $node->getCreatedTime()) {
+        if ($edited->changed <= $edited->created) {
           continue;
         }
-        $eventId = (int) $node->id();
+        $eventId = $edited->id;
         $items[] = [
-          'timestamp' => (int) $node->getChangedTime(),
+          'timestamp' => $edited->changed,
           'type' => 'neutral',
           'message' => (string) $this->t('Recent event update: @event.', [
-            '@event' => $node->label(),
+            '@event' => $edited->title,
           ]),
           'url' => '/vendor/events/' . $eventId . '/overview',
         ];
@@ -1851,7 +1828,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           ->sort('checked_in_at', 'DESC')
           ->range(0, 2)
           ->execute();
-        foreach ($ticketStorage->loadMultiple($ticketIds) as $ticket) {
+        $ticketIds = $this->entityIdNormalizer->normalizeEntityIds(array_values($ticketIds));
+        foreach (($ticketIds === [] ? [] : $ticketStorage->loadMultiple($ticketIds)) as $ticket) {
           $eventId = (int) ($ticket->hasField('event_id') ? $ticket->get('event_id')->target_id : 0);
           $items[] = [
             'timestamp' => (int) ($ticket->hasField('checked_in_at') ? $ticket->get('checked_in_at')->value : time()),
@@ -1909,20 +1887,20 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'type' => 'info',
         'title' => (string) $this->t('Ready for your first launch'),
         'message' => (string) $this->t('Create your first event and we will guide you through publishing.'),
-        'url' => $this->safeRouteUrl('myeventlane_event.wizard.create'),
+        'url' => $this->safeRouteUrl('myeventlane_event_studio.create'),
         'link_label' => (string) $this->t('Create event'),
       ];
     }
 
     foreach ($eventNodes as $event) {
-      if (!$event instanceof NodeInterface) {
+      if (!$event instanceof MelEventData) {
         continue;
       }
 
-      $eventTitle = $event->label();
-      $eventId = (int) $event->id();
+      $eventTitle = $event->title;
+      $eventId = $event->id;
 
-      if ($event->hasField('field_product_target') && $event->get('field_product_target')->isEmpty()) {
+      if ($event->needs_ticket_product) {
         $alerts[] = [
           'type' => 'warning',
           'title' => (string) $this->t('Ticket setup required'),
@@ -1932,7 +1910,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ];
       }
 
-      if ($event->hasField('field_event_image') && $event->get('field_event_image')->isEmpty()) {
+      if (!$event->has_cover_image) {
         $alerts[] = [
           'type' => 'warning',
           'title' => (string) $this->t('Event image missing'),
@@ -1942,7 +1920,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ];
       }
 
-      if (!$event->isPublished()) {
+      if (!$event->published) {
         $alerts[] = [
           'type' => 'info',
           'title' => (string) $this->t('Publish pending'),
@@ -2136,6 +2114,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         ->range(0, 10)
         ->execute();
       if (empty($ids)) {
+        return [];
+      }
+
+      $ids = $this->entityIdNormalizer->normalizeEntityIds(array_values($ids));
+      if ($ids === []) {
         return [];
       }
 

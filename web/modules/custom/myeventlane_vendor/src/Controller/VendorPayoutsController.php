@@ -10,6 +10,8 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -29,6 +31,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     MessengerInterface $messenger,
     private readonly TicketSalesService $ticketSalesService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityIdNormalizer $entityIdNormalizer,
+    private readonly EventRepository $eventRepository,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -43,6 +47,8 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       $container->get('messenger'),
       $container->get('myeventlane_vendor.service.ticket_sales'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_core.entity_id_normalizer'),
+      $container->get('myeventlane_event_studio.repository'),
     );
   }
 
@@ -115,21 +121,20 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         ->condition('uid', $userId)
         ->execute();
 
-      if (empty($eventIds)) {
+      $normalized = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+      if ($normalized === []) {
         return [];
       }
 
-      // Load events for titles.
-      $events = $nodeStorage->loadMultiple($eventIds);
       $eventTitles = [];
-      foreach ($events as $event) {
-        $eventTitles[$event->id()] = $event->label();
+      foreach ($this->eventRepository->loadMany($normalized) as $dto) {
+        $eventTitles[$dto->id] = $dto->title;
       }
 
       // Get order items for these events.
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
       $orderItems = $orderItemStorage->loadByProperties([
-        'field_target_event' => array_values($eventIds),
+        'field_target_event' => $normalized,
       ]);
 
       // Group by order and get order details.

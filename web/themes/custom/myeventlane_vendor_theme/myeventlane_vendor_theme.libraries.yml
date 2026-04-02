@@ -79,3 +79,11 @@ mel_notifications:
     - core/once
     - myeventlane_notifications/user_experience
 
+# Node add event: header Save draft is outside <form>; delegate to real submit.
+vendor_event_form_page:
+  js:
+    js/vendor-event-form-page.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+

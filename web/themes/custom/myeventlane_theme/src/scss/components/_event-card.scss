@@ -610,3 +610,165 @@
   background: rgba(255, 255, 255, 0.92);
   color: mel.$mel-ds-color-text;
 }
+
+// Featured carousel rail — premium lift (homepage front_featured_events)
+.mel-featured-carousel .mel-event-card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-featured-carousel .mel-event-card:hover {
+    transform: translateY(-6px) scale(1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-featured-carousel .mel-event-card {
+    transition: none;
+  }
+
+  .mel-featured-carousel .mel-event-card:hover {
+    transform: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Featured hero slide (full-bleed premium rail)
+// ---------------------------------------------------------------------------
+
+.mel-event-hero-card-article {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.mel-event-hero-card {
+  position: relative;
+  display: block;
+  height: 420px;
+  border-radius: 20px;
+  overflow: hidden;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: mel.$mel-ds-shadow-soft;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.mel-event-hero-card:hover,
+.mel-event-hero-card:active {
+  color: #fff;
+  text-decoration: none;
+}
+
+.mel-event-hero-card:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px mel.$mel-ds-color-accent,
+    mel.$mel-ds-shadow-hover;
+}
+
+.mel-event-hero-card__image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.mel-event-hero-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.mel-event-hero-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--mel-peach, #ffd6c9) 0%, var(--mel-lilac, #e6d9ff) 100%);
+}
+
+.mel-event-hero-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mel-event-hero-card__content {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  z-index: 2;
+  color: #fff;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.mel-event-hero-card__content h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.mel-event-hero-card__meta {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.mel-event-hero-card__price {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.mel-event-hero-card__content .mel-price--free {
+  color: #b8f5c8;
+}
+
+.mel-event-hero-card__content .mel-price--paid {
+  color: #fff;
+}
+
+.mel-event-hero-card__content .mel-btn--cta {
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-featured-hero__slide .mel-event-hero-card:hover {
+    transform: translateY(-4px);
+    box-shadow: mel.$mel-ds-shadow-hover;
+  }
+
+  .mel-featured-hero__slide .mel-event-hero-card:hover .mel-event-hero-card__image img {
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-hero-card {
+    transition: none;
+  }
+
+  .mel-event-hero-card__image img {
+    transition: none;
+  }
+
+  .mel-featured-hero__slide .mel-event-hero-card:hover {
+    transform: none;
+  }
+
+  .mel-featured-hero__slide .mel-event-hero-card:hover .mel-event-hero-card__image img {
+    transform: none;
+  }
+}

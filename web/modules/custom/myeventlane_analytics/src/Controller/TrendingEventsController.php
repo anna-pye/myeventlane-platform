@@ -6,12 +6,15 @@ namespace Drupal\myeventlane_analytics\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_analytics\Service\TrendingScoreService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Controller for trending events on the front page.
+ *
+ * @deprecated Not registered in routing; no known callers. Prefer Views
+ *   (e.g. mel_home_events, front rails) or remove in a dedicated cleanup.
  */
 final class TrendingEventsController extends ControllerBase {
 

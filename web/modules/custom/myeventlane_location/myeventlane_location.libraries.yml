@@ -1,3 +1,10 @@
+mel_location:
+  js:
+    js/mel-location.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+
 address_autocomplete:
   js:
     js/address-autocomplete.js: {}
@@ -8,6 +15,7 @@ address_autocomplete:
     - core/drupal
     - core/jquery
     - core/once
+    - myeventlane_location/mel_location
 
 event_map:
   js:
