@@ -1,0 +1,14 @@
+# Staging AU (*.myeventlane.com.au, including *.staging.myeventlane.com.au) —
+# shared session across apex / vendor / admin on the same registrable suffix.
+# cookie_secure is applied at runtime by Drupal\Core\Session\SessionConfiguration
+# when the request is HTTPS (reverse_proxy + X-Forwarded-Proto must be correct).
+parameters:
+  session.storage.options:
+    gc_probability: 1
+    gc_divisor: 100
+    gc_maxlifetime: 200000
+    cookie_lifetime: 2000000
+    cookie_samesite: Lax
+    name_suffix: ''
+    cookie_httponly: true
+    cookie_domain: '.myeventlane.com.au'

@@ -1,0 +1,12 @@
+# Loaded via settings.mel_shared_session.php when running under DDEV.
+# Full session.storage.options (Drupal requires the whole array when overriding).
+parameters:
+  session.storage.options:
+    gc_probability: 1
+    gc_divisor: 100
+    gc_maxlifetime: 200000
+    cookie_lifetime: 2000000
+    cookie_samesite: Lax
+    name_suffix: ''
+    cookie_httponly: true
+    cookie_domain: '.myeventlane.ddev.site'

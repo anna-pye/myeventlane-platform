@@ -40,6 +40,9 @@ web/sites/*/private/
 ############################################
 web/sites/*/*settings*.php
 web/sites/*/*services*.yml
+# Ship MEL multi-host session YAML + loader with the repo (staging/prod depend on these).
+!web/sites/default/mel.session*.yml
+!web/sites/default/settings.mel_shared_session.php
 
 ############################################
 # Config sync temp (cookie import script)
