@@ -1,12 +1,26 @@
 # MyEventLane Vendor Theme Libraries
-# Built with Vite; outputs live in dist/.
+# Built with Vite; outputs live in dist/ (main.css / main.js — not style.css / app.js).
 
-global-styling:
+# Canonical global bundle for vendor pages (attached via info.yml + page_attachments_alter).
+global:
   css:
     theme:
       dist/main.css: {}
   js:
     dist/main.js: { attributes: { type: module } }
+  dependencies:
+    - core/drupal
+    - core/once
+
+# Backward-compatible alias: other libraries and modules may depend on this name.
+global-styling:
+  dependencies:
+    - myeventlane_vendor_theme/global
+
+# Internal dashboard footer accordion (replaces myeventlane_theme/footer-internal on vendor).
+footer-internal:
+  js:
+    js/footer-accordion.js: {}
   dependencies:
     - core/drupal
     - core/once
@@ -86,4 +100,3 @@ vendor_event_form_page:
   dependencies:
     - core/drupal
     - core/once
-

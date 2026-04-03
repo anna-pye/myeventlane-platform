@@ -1,7 +1,7 @@
 /**
  * @file
  * MyEventLane v2 CSS custom properties for vendor theme.
- * Scoped to .mel-vendor-theme to avoid leaking into other themes.
+ * Scoped to .mel-vendor (body) to avoid leaking when assets are mis-attached.
  *
  * Values mapped from:
  * - tokens/_colors.scss (ml-vendor-bg, ml-vendor-card, ml-vendor-border, etc.)
@@ -10,7 +10,7 @@
  * - tokens/_radii.scss (radius-md, etc.)
  */
 
-.mel-vendor-theme {
+.mel-vendor {
   --mel-bg: #F7F8FA;
   --mel-surface: #ffffff;
   --mel-surface-2: #F3F4F6;

@@ -1,11 +1,12 @@
 name: MyEventLane Vendor Theme
 type: theme
 description: 'Vendor console theme for dual-domain experience - Humanitix/Eventbrite quality UI'
+# Drupal 11: use stable9 (Classy is not shipped in core for D11).
 base theme: stable9
 core_version_requirement: ^11
 
 libraries:
-  - myeventlane_vendor_theme/global-styling
+  - myeventlane_vendor_theme/global
   - myeventlane_vendor_theme/vendor-workspace
 
 # Only define regions we actually use in our custom layout
@@ -19,4 +20,3 @@ regions:
   vendor_footer_left: 'Vendor Footer Left'
   vendor_footer_right: 'Vendor Footer Right'
   vendor_footer_legal: 'Vendor Footer Legal'
-

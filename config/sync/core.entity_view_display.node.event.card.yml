@@ -14,6 +14,11 @@ targetEntityType: node
 bundle: event
 mode: card
 content:
+  content_moderation_control:
+    settings: {  }
+    third_party_settings: {  }
+    weight: -20
+    region: content
   field_event_image:
     type: image
     label: hidden
@@ -49,6 +54,8 @@ hidden:
   field_accessibility_directions: true
   field_accessibility_entry: true
   field_accessibility_parking: true
+  field_age_policy: true
+  field_age_policy_note: true
   field_age_restriction: true
   field_attendee_questions: true
   field_cancel_reason: true
@@ -67,6 +74,7 @@ hidden:
   field_event_state: true
   field_event_state_override: true
   field_event_store: true
+  field_event_summary: true
   field_event_type: true
   field_event_vendor: true
   field_external_url: true
@@ -76,6 +84,11 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
+  field_mel_sup_amt: true
+  field_mel_sup_chk: true
+  field_mel_sup_mode: true
+  field_mel_sup_oid: true
+  field_mel_sup_pct: true
   field_product_target: true
   field_promo_expires: true
   field_promoted: true

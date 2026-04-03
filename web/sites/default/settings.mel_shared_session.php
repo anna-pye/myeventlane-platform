@@ -49,6 +49,9 @@ $mel_trusted_staging_prod = [
   '^myeventlane\.com$',
   '^vendor\.myeventlane\.com$',
   '^admin\.myeventlane\.com$',
+  '^myeventlane\.com\.au$',
+  '^vendor\.myeventlane\.com\.au$',
+  '^admin\.myeventlane\.com\.au$',
 ];
 
 if (getenv('IS_DDEV_PROJECT') === 'true') {
@@ -67,8 +70,10 @@ if (getenv('IS_DDEV_PROJECT') === 'true') {
   $mel_session_services_file = __DIR__ . '/mel.session.ddev.yml';
 }
 elseif ($mel_host !== '' || $mel_http_host_direct !== '') {
-  // Staging AU: must run before .com checks. HTTP_HOST + forwarded host so YAML
-  // loads when either is correct (avoids anonymous user on vendor when X-Forwarded-Host is wrong).
+  // Staging AU: must run before .com / production .com.au checks. HTTP_HOST +
+  // forwarded host so YAML loads when either is correct (avoids anonymous user
+  // on vendor when X-Forwarded-Host is wrong). Substring matches
+  // *.staging.myeventlane.com.au (e.g. vendor.staging...).
   if (str_contains($mel_http_host_direct, 'staging.myeventlane.com.au')
     || str_contains($mel_host, 'staging.myeventlane.com.au')) {
     $mel_session_services_file = __DIR__ . '/mel.session.staging-au.yml';
@@ -81,8 +86,21 @@ elseif ($mel_host !== '' || $mel_http_host_direct !== '') {
   ) {
     $mel_session_services_file = __DIR__ . '/mel.session.staging-com.yml';
   }
-  elseif (preg_match('/(^|\.)myeventlane\.com$/', $mel_host) && !str_contains($mel_host, '.staging.')) {
+  elseif (
+    (preg_match('/(^|\.)myeventlane\.com$/', $mel_host)
+      || preg_match('/(^|\.)myeventlane\.com$/', $mel_http_host_direct))
+    && !str_contains($mel_host, '.staging.')
+    && !str_contains($mel_http_host_direct, '.staging.')
+  ) {
     $mel_session_services_file = __DIR__ . '/mel.session.production.yml';
+  }
+  elseif (
+    (preg_match('/(^|\.)myeventlane\.com\.au$/', $mel_host)
+      || preg_match('/(^|\.)myeventlane\.com\.au$/', $mel_http_host_direct))
+    && !str_contains($mel_host, '.staging.')
+    && !str_contains($mel_http_host_direct, '.staging.')
+  ) {
+    $mel_session_services_file = __DIR__ . '/mel.session.production-au.yml';
   }
 }
 

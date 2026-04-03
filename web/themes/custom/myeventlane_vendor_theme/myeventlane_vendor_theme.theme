@@ -19,6 +19,61 @@ use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
 /**
+ * Implements hook_page_attachments_alter().
+ *
+ * Themes do not implement hook_page_attachments(); this alter strips accidental
+ * public-theme libraries on vendor paths only, when the vendor theme is active.
+ *
+ * @see https://api.drupal.org/api/drupal/core!lib!Drupal!Core!Render!theme.api.php/function/hook_page_attachments_alter
+ */
+function myeventlane_vendor_theme_page_attachments_alter(array &$attachments): void {
+  $request = \Drupal::request();
+  $path = $request->getPathInfo();
+
+  if (!str_starts_with($path, '/vendor')) {
+    return;
+  }
+
+  $active_theme = \Drupal::theme()->getActiveTheme()->getName();
+  if ($active_theme !== 'myeventlane_vendor_theme') {
+    return;
+  }
+
+  /** @var list<string> Future: myeventlane_theme/* library IDs to allow through (not enabled until populated). */
+  $allowed = [];
+
+  if (!isset($attachments['#attached']['library']) || !is_array($attachments['#attached']['library'])) {
+    $attachments['#attached']['library'] = [];
+  }
+
+  $attachments['#attached']['library'] = array_values(array_filter(
+    $attachments['#attached']['library'],
+    static function ($library) use ($allowed): bool {
+      if (!is_string($library)) {
+        return TRUE;
+      }
+      if (!str_starts_with($library, 'myeventlane_theme/')) {
+        return TRUE;
+      }
+      return in_array($library, $allowed, TRUE);
+    }
+  ));
+
+  $global_library = 'myeventlane_vendor_theme/global';
+  if (!in_array($global_library, $attachments['#attached']['library'], TRUE)) {
+    $attachments['#attached']['library'][] = $global_library;
+  }
+
+  \Drupal::logger('mel_theme_debug')->notice(
+    'Vendor isolation active on @path with theme @theme',
+    [
+      '@path' => $path,
+      '@theme' => $active_theme,
+    ]
+  );
+}
+
+/**
  * Implements hook_preprocess().
  *
  * Applies MEL language standardisation to vendor-facing display text.
@@ -71,7 +126,6 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
       'is_admin' => FALSE,
     ];
   }
-  $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
 
   // Event node add form: staff/support only. Vendors use Event Studio (myeventlane_event_studio.create).
   try {
@@ -384,7 +438,8 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
  * Implements hook_preprocess_html().
  */
 function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
-  // Add vendor theme body class.
+  // Vendor UI scope: matches SCSS (.mel-vendor) and legacy token hook (.mel-vendor-theme).
+  $variables['attributes']['class'][] = 'mel-vendor';
   $variables['attributes']['class'][] = 'mel-vendor-theme';
 
   // Event step wizard pages: body class for layout (e.g. full-width content).

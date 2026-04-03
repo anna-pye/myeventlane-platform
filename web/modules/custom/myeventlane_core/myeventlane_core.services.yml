@@ -69,11 +69,27 @@ services:
   myeventlane_core.vendor_domain_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\VendorDomainSubscriber
     arguments:
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $currentUser: '@current_user'
+      $configFactory: '@config.factory'
+      $loggerFactory: '@logger.factory'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_core.vendor_logout_redirect_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\VendorLogoutRedirectSubscriber
+    arguments:
       - '@myeventlane_core.domain_detector'
-      - '@current_route_match'
+      - '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_core.vendor_post_login_redirect_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\VendorPostLoginRedirectSubscriber
+    arguments:
       - '@current_user'
-      - '@config.factory'
-      - '@logger.factory'
+      - '@myeventlane_core.domain_detector'
+      - '@logger.channel.myeventlane_core'
     tags:
       - { name: event_subscriber }
 

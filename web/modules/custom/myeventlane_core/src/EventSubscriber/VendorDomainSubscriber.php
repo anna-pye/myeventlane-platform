@@ -6,8 +6,8 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -18,7 +18,6 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly DomainDetector $domainDetector,
-    private readonly RouteMatchInterface $routeMatch,
     private readonly AccountProxyInterface $currentUser,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
@@ -43,7 +42,7 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     // --------------------------------------------------
     // ENVIRONMENT DETECTION
     // --------------------------------------------------
-    $environment = \Drupal::service('settings')->get('mel_environment', 'production');
+    $environment = Settings::get('mel_environment', 'production');
 
     // --------------------------------------------------
     // LOCAL ENVIRONMENT GUARD (DDEV)
@@ -115,6 +114,11 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
     if ($is_vendor_route && !$is_vendor_domain) {
 
       if (!$this->currentUser->isAuthenticated()) {
+        $this->loggerFactory->get('vendor_domain_diagnostic')->warning('Blocked redirect due to anonymous session', [
+          'host' => $host,
+          'path' => $path,
+          'environment' => $environment,
+        ]);
         return;
       }
 

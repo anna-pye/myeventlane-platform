@@ -1,344 +1,349 @@
-.mel-topbar {
-  height: 56px;
-  border-bottom: 1px solid #e7e9f1;
-  background: #ffffff;
-}
-
-.mel-vendor-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
-  height: calc(100vh - 56px);
-  padding: 16px;
-  background: #f7f8fc;
-}
-
-.mel-workspace--with-sidebar {
-  grid-template-columns: 300px minmax(0, 1fr) 320px;
-}
-
-.mel-sidebar,
-.mel-canvas,
-.mel-inspector {
-  overflow: auto;
-  min-width: 0;
-}
-
-.mel-panel {
-  border: 1px solid #e7e9f1;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.04);
-}
-
-.mel-studio {
-  display: block;
-}
-
-.mel-studio-navigator {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-  padding: 14px;
-}
-
-.mel-studio__navigator-head {
-  display: grid;
-  gap: 10px;
-}
-
-.mel-section-title {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.mel-studio-nav-search {
-  width: 100%;
-  border: 1px solid #d5d9e5;
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.mel-studio__navigator-list {
-  display: grid;
-  gap: 10px;
-}
-
-.mel-event-list {
-  display: grid;
-  gap: 10px;
-}
-
-.mel-event-card {
-  width: 100%;
-  border: 1px solid #e4e8f2;
-  border-radius: 12px;
-  padding: 10px;
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 10px;
-  text-align: left;
-  background: #ffffff;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.mel-event-card:hover {
-  border-color: #cad0e0;
-}
-
-.mel-event-card.is-selected {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
-}
-
-.mel-event-thumb {
-  width: 72px;
-  height: 58px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #e2e8f0;
-}
-
-.mel-event-thumb img,
-.mel-event-thumb-placeholder {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.mel-event-title {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.mel-event-meta {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.mel-event-metrics {
-  margin-top: 6px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  color: #1f2937;
-  font-size: 12px;
-}
-
-.mel-event-status {
-  margin-top: 8px;
-  display: inline-flex;
-  width: fit-content;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  background: #eef2ff;
-  color: #3730a3;
-}
-
-.mel-studio-canvas {
-  display: grid;
-  gap: 14px;
-}
-
-.mel-studio-canvas__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-}
-
-.mel-editor-kicker {
-  margin: 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.mel-editor-title {
-  margin: 4px 0 0;
-  font-size: 24px;
-}
-
-.mel-editor-header-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.mel-studio-command-center {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  padding: 14px;
-}
-
-.mel-studio-command-metric {
-  background: #f8f9ff;
-  border: 1px solid #e5e8f6;
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.mel-studio-command-metric span {
-  display: block;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.mel-studio-command-metric strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 20px;
-}
-
-.mel-studio-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px;
-}
-
-.mel-studio-tab {
-  border: 1px solid #d5d9e5;
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-
-.mel-studio-tab.is-active {
-  border-color: #4f46e5;
-  color: #3730a3;
-  background: #eef2ff;
-}
-
-.mel-editor {
-  padding: 14px;
-  min-height: 460px;
-}
-
-.mel-editor-status {
-  min-height: 20px;
-  color: #334155;
-  margin-bottom: 10px;
-}
-
-.mel-editor-status.is-error {
-  color: #b91c1c;
-}
-
-.mel-editor-status.is-success {
-  color: #0f766e;
-}
-
-.mel-editor-panel {
-  display: none;
-}
-
-.mel-editor-panel.is-active {
-  display: block;
-}
-
-.mel-field-group {
-  margin-bottom: 14px;
-  display: grid;
-  gap: 6px;
-}
-
-.mel-field-group label {
-  font-size: 13px;
-  color: #334155;
-}
-
-.mel-field-group input,
-.mel-field-group textarea,
-.mel-field-group select {
-  border: 1px solid #d5d9e5;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: #ffffff;
-}
-
-.mel-panel-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.mel-studio-inspector {
-  padding: 14px;
-  position: sticky;
-  top: 0;
-}
-
-.mel-inspector-block + .mel-inspector-block {
-  margin-top: 18px;
-}
-
-.mel-inspector-block h3 {
-  margin: 0 0 10px;
-  font-size: 14px;
-}
-
-.mel-inspector-checklist {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 6px;
-}
-
-.mel-inspector-checklist li {
-  color: #475569;
-}
-
-.mel-inspector-checklist li.is-complete {
-  color: #0f766e;
-}
-
-.mel-inspector-checklist li.is-missing {
-  color: #b45309;
-}
-
-.mel-inspector-actions {
-  display: grid;
-  gap: 8px;
-}
-
-.is-disabled {
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-@media (max-width: 1280px) {
+/**
+ * Event Studio workspace — scoped to .mel-vendor for isolation.
+ */
+.mel-vendor {
+  .mel-topbar {
+    height: 56px;
+    border-bottom: 1px solid #e7e9f1;
+    background: #ffffff;
+  }
+  
+  .mel-vendor-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    height: calc(100vh - 56px);
+    padding: 16px;
+    background: #f7f8fc;
+  }
+  
   .mel-workspace--with-sidebar {
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 300px minmax(0, 1fr) 320px;
   }
-
-  .mel-vendor-workspace:not(.mel-workspace--with-sidebar) {
-    grid-template-columns: minmax(0, 1fr);
+  
+  .mel-sidebar,
+  .mel-canvas,
+  .mel-inspector {
+    overflow: auto;
+    min-width: 0;
   }
-
-  .mel-vendor-insights {
-    grid-column: 1 / -1;
+  
+  .mel-panel {
+    border: 1px solid #e7e9f1;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.04);
   }
-}
-
-@media (max-width: 960px) {
-  .mel-vendor-workspace,
-  .mel-workspace--with-sidebar {
-    grid-template-columns: 1fr;
-    height: auto;
+  
+  .mel-studio {
+    display: block;
   }
-
+  
+  .mel-studio-navigator {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    padding: 14px;
+  }
+  
+  .mel-studio__navigator-head {
+    display: grid;
+    gap: 10px;
+  }
+  
+  .mel-section-title {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  
+  .mel-studio-nav-search {
+    width: 100%;
+    border: 1px solid #d5d9e5;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  
+  .mel-studio__navigator-list {
+    display: grid;
+    gap: 10px;
+  }
+  
+  .mel-event-list {
+    display: grid;
+    gap: 10px;
+  }
+  
+  .mel-event-card {
+    width: 100%;
+    border: 1px solid #e4e8f2;
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+    text-align: left;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .mel-event-card:hover {
+    border-color: #cad0e0;
+  }
+  
+  .mel-event-card.is-selected {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.16);
+  }
+  
+  .mel-event-thumb {
+    width: 72px;
+    height: 58px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e2e8f0;
+  }
+  
+  .mel-event-thumb img,
+  .mel-event-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .mel-event-title {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  
+  .mel-event-meta {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+  }
+  
+  .mel-event-metrics {
+    margin-top: 6px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: #1f2937;
+    font-size: 12px;
+  }
+  
+  .mel-event-status {
+    margin-top: 8px;
+    display: inline-flex;
+    width: fit-content;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: #eef2ff;
+    color: #3730a3;
+  }
+  
+  .mel-studio-canvas {
+    display: grid;
+    gap: 14px;
+  }
+  
+  .mel-studio-canvas__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+  }
+  
+  .mel-editor-kicker {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+  }
+  
+  .mel-editor-title {
+    margin: 4px 0 0;
+    font-size: 24px;
+  }
+  
+  .mel-editor-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
   .mel-studio-command-center {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+  }
+  
+  .mel-studio-command-metric {
+    background: #f8f9ff;
+    border: 1px solid #e5e8f6;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  
+  .mel-studio-command-metric span {
+    display: block;
+    color: #64748b;
+    font-size: 12px;
+  }
+  
+  .mel-studio-command-metric strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 20px;
+  }
+  
+  .mel-studio-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+  
+  .mel-studio-tab {
+    border: 1px solid #d5d9e5;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  
+  .mel-studio-tab.is-active {
+    border-color: #4f46e5;
+    color: #3730a3;
+    background: #eef2ff;
+  }
+  
+  .mel-editor {
+    padding: 14px;
+    min-height: 460px;
+  }
+  
+  .mel-editor-status {
+    min-height: 20px;
+    color: #334155;
+    margin-bottom: 10px;
+  }
+  
+  .mel-editor-status.is-error {
+    color: #b91c1c;
+  }
+  
+  .mel-editor-status.is-success {
+    color: #0f766e;
+  }
+  
+  .mel-editor-panel {
+    display: none;
+  }
+  
+  .mel-editor-panel.is-active {
+    display: block;
+  }
+  
+  .mel-field-group {
+    margin-bottom: 14px;
+    display: grid;
+    gap: 6px;
+  }
+  
+  .mel-field-group label {
+    font-size: 13px;
+    color: #334155;
+  }
+  
+  .mel-field-group input,
+  .mel-field-group textarea,
+  .mel-field-group select {
+    border: 1px solid #d5d9e5;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #ffffff;
+  }
+  
+  .mel-panel-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .mel-studio-inspector {
+    padding: 14px;
+    position: sticky;
+    top: 0;
+  }
+  
+  .mel-inspector-block + .mel-inspector-block {
+    margin-top: 18px;
+  }
+  
+  .mel-inspector-block h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+  }
+  
+  .mel-inspector-checklist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+  }
+  
+  .mel-inspector-checklist li {
+    color: #475569;
+  }
+  
+  .mel-inspector-checklist li.is-complete {
+    color: #0f766e;
+  }
+  
+  .mel-inspector-checklist li.is-missing {
+    color: #b45309;
+  }
+  
+  .mel-inspector-actions {
+    display: grid;
+    gap: 8px;
+  }
+  
+  .is-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  
+  @media (max-width: 1280px) {
+    .mel-workspace--with-sidebar {
+      grid-template-columns: 280px minmax(0, 1fr);
+    }
+  
+    .mel-vendor-workspace:not(.mel-workspace--with-sidebar) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  
+    .mel-vendor-insights {
+      grid-column: 1 / -1;
+    }
+  }
+  
+  @media (max-width: 960px) {
+    .mel-vendor-workspace,
+    .mel-workspace--with-sidebar {
+      grid-template-columns: 1fr;
+      height: auto;
+    }
+  
+    .mel-studio-command-center {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 }

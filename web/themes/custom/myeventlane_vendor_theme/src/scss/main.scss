@@ -3,104 +3,91 @@
  * Main SCSS entry point for MyEventLane Vendor Theme.
  *
  * Humanitix/Eventbrite quality vendor console with clean, professional design.
- * Uses Inter/Nunito fonts, navy sidebar, and coral accents.
+ * Component/layout rules are loaded under .mel-vendor for isolation.
  */
 
+@use 'sass:meta';
+
 // ============================================================================
-// DESIGN TOKENS
+// DESIGN TOKENS (Sass-only + custom properties on .mel-vendor)
 // ============================================================================
 
-@use 'tokens/colors';
-@use 'tokens/typography';
-@use 'tokens/spacing';
-@use 'tokens/breakpoints';
-@use 'tokens/shadows';
-@use 'tokens/radii';
 @use './root-tokens';
 
-// ============================================================================
-// BASE STYLES
-// ============================================================================
-
+// Base reset uses body.mel-vendor (must not be nested inside .mel-vendor {}).
 @use 'base/reset';
-@use 'base/forms';
 
 // ============================================================================
-// LAYOUT
+// SCOPED STYLES (.mel-vendor …)
 // ============================================================================
 
-@use 'layout/container';
-@use 'layout/grid';
-@use 'layout/two-column';
-@use 'layout/navigation';
-@use 'layout/header';
-@use 'layout/sidebar-help';
+.mel-vendor {
+  @include meta.load-css('base/forms');
+  @include meta.load-css('layout/container');
+  @include meta.load-css('layout/grid');
+  @include meta.load-css('layout/two-column');
+  @include meta.load-css('layout/navigation');
+  @include meta.load-css('layout/header');
+  @include meta.load-css('layout/sidebar-help');
 
-// ============================================================================
-// COMPONENTS
-// ============================================================================
+  @include meta.load-css('components/buttons');
+  @include meta.load-css('components/cards');
+  @include meta.load-css('components/tables');
+  @include meta.load-css('components/tabs');
+  @include meta.load-css('components/tooltips');
+  @include meta.load-css('components/forms');
+  @include meta.load-css('components/kpi-cards');
+  @include meta.load-css('components/attendees-kpi-bar');
+  @include meta.load-css('components/attendees-event-card');
+  @include meta.load-css('components/mel-checkin');
+  @include meta.load-css('components/charts');
+  @include meta.load-css('components/badges');
+  @include meta.load-css('components/lists');
+  @include meta.load-css('components/upload');
+  @include meta.load-css('components/inline-actions');
+  @include meta.load-css('components/empty-states');
+  @include meta.load-css('components/console');
+  @include meta.load-css('components/workspace');
+  @include meta.load-css('components/mel-workspace-percent');
+  @include meta.load-css('components/event-form');
+  @include meta.load-css('components/stripe-panel');
+  @include meta.load-css('components/best-event');
+  @include meta.load-css('components/notifications');
+  @include meta.load-css('components/event-table');
+  @include meta.load-css('components/account-summary');
+  @include meta.load-css('components/quick-actions');
+  @include meta.load-css('components/vendor-alert');
+  @include meta.load-css('components/pro-grace-banner');
+  @include meta.load-css('components/vendor-kpi-strip');
+  @include meta.load-css('components/vendor-event-performance');
+  @include meta.load-css('components/onboarding-panel');
+  @include meta.load-css('components/onboarding-flow');
+  @include meta.load-css('components/auth');
+  @include meta.load-css('components/vendor-order-view');
+  @include meta.load-css('components/boost-metrics');
+  @include meta.load-css('components/mel-event-settings');
+  @include meta.load-css('components/mel-event-overview');
+  @include meta.load-css('components/insights');
+  @include meta.load-css('components/mel-vendor-events');
+  @include meta.load-css('components/footer');
+  @include meta.load-css('components/mel-header-footer');
+  @include meta.load-css('components/wizard');
+  @include meta.load-css('components/support');
+  @include meta.load-css('components/help-assistant');
+  @include meta.load-css('components/refund');
+  @include meta.load-css('components/ai-panels');
+  @include meta.load-css('components/klaro-consent');
 
-@use 'components/buttons';
-@use 'components/cards';
-@use 'components/tables';
-@use 'components/tabs';
-@use 'components/tooltips';
-@use 'components/forms' as form-components;
-@use 'components/kpi-cards';
-@use 'components/attendees-kpi-bar';
-@use 'components/attendees-event-card';
-@use 'components/mel-checkin';
-@use 'components/charts';
-@use 'components/badges';
-@use 'components/lists';
-@use 'components/upload';
-@use 'components/inline-actions';
-@use 'components/empty-states';
-@use 'components/console';
-@use 'components/workspace';
-@use 'components/mel-workspace-percent';
-@use 'components/event-form' as event-form-components;
-@use 'components/stripe-panel';
-@use 'components/best-event';
-@use 'components/notifications';
-@use 'components/event-table';
-@use 'components/account-summary';
-@use 'components/quick-actions';
-@use 'components/vendor-alert';
-@use 'components/pro-grace-banner';
-@use 'components/vendor-kpi-strip';
-@use 'components/vendor-event-performance';
-@use 'components/onboarding-panel';
-@use 'components/onboarding-flow';
-@use 'components/auth';
-@use 'components/vendor-order-view';
-@use 'components/boost-metrics';
-@use 'components/mel-event-settings';
-@use 'components/mel-event-overview';
-@use 'components/insights';
-@use 'components/mel-vendor-events';
-@use 'components/footer';
-@use 'components/mel-header-footer';
-@use 'components/wizard';
-@use 'components/support';
-@use 'components/help-assistant';
-@use 'components/refund';
-@use 'components/ai-panels';
-@use 'components/klaro-consent';
-@use '../../../myeventlane_theme/src/scss/components/vendor-events';
-@use '../../../myeventlane_theme/src/scss/components/vendor-studio-editor';
-@use '../../../myeventlane_theme/src/scss/components/studio-inspector';
-// Help Centre partial (includes .mel-ai-suggestions for event wizard).
-@use '../../../myeventlane_theme/src/scss/components/help-centre';
+  // Shared partials from the public theme (SCSS only — no public CSS library).
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/vendor-events');
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/vendor-studio-editor');
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/studio-inspector');
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/help-centre');
 
-// ============================================================================
-// PAGE-SPECIFIC STYLES
-// ============================================================================
-
-@use 'pages/dashboard';
-@use 'pages/dashboard-mel-support';
-@use 'pages/event-form';
-@use 'pages/analytics';
-@use 'pages/mel-dashboard';
-@use 'pages/settings';
-
+  @include meta.load-css('pages/dashboard');
+  @include meta.load-css('pages/dashboard-mel-support');
+  @include meta.load-css('pages/event-form');
+  @include meta.load-css('pages/analytics');
+  @include meta.load-css('pages/mel-dashboard');
+  @include meta.load-css('pages/settings');
+}

@@ -1,13 +1,19 @@
 /**
  * @file
  * Base reset styles for vendor theme.
+ *
+ * Scoped to body.mel-vendor so rules do not compete with the public theme if both
+ * ever load (they should not on /vendor/* after isolation).
  */
 
 @use '../tokens/colors' as *;
 @use '../tokens/typography' as *;
 @use '../tokens/spacing' as *;
 
-* {
+body.mel-vendor,
+body.mel-vendor *,
+body.mel-vendor *::before,
+body.mel-vendor *::after {
   box-sizing: border-box;
 }
 
@@ -17,7 +23,7 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+body.mel-vendor {
   font-family: $font-family-sans;
   font-size: $font-size-base;
   line-height: $line-height-normal;
@@ -27,8 +33,7 @@ body {
   padding: 0;
 }
 
-// Headings
-h1, h2, h3, h4, h5, h6 {
+body.mel-vendor :where(h1, h2, h3, h4, h5, h6) {
   font-family: $heading-font-family;
   font-weight: $heading-font-weight;
   line-height: $line-height-tight;
@@ -37,15 +42,14 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: $spacing-4;
 }
 
-h1 { font-size: $font-size-4xl; }
-h2 { font-size: $font-size-3xl; }
-h3 { font-size: $font-size-2xl; }
-h4 { font-size: $font-size-xl; }
-h5 { font-size: $font-size-lg; }
-h6 { font-size: $font-size-base; }
+body.mel-vendor h1 { font-size: $font-size-4xl; }
+body.mel-vendor h2 { font-size: $font-size-3xl; }
+body.mel-vendor h3 { font-size: $font-size-2xl; }
+body.mel-vendor h4 { font-size: $font-size-xl; }
+body.mel-vendor h5 { font-size: $font-size-lg; }
+body.mel-vendor h6 { font-size: $font-size-base; }
 
-// Links
-a {
+body.mel-vendor a {
   color: $primary;
   text-decoration: none;
   transition: color 0.15s ease-in-out;
@@ -57,17 +61,13 @@ a {
   }
 }
 
-// Lists
-ul, ol {
+body.mel-vendor :where(ul, ol) {
   margin: 0;
   padding-left: $spacing-6;
 }
 
-// Images
-img {
+body.mel-vendor img {
   max-width: 100%;
   height: auto;
   display: block;
 }
-
-

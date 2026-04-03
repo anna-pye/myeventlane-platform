@@ -3,7 +3,7 @@
  * @file
  * HTML template for MyEventLane Vendor Theme.
  *
- * This is the outermost template - controls the entire HTML document.
+ * Body classes (e.g. mel-vendor) are set in myeventlane_vendor_theme_preprocess_html().
  */
 #}
 <!DOCTYPE html>
@@ -14,7 +14,7 @@
     <css-placeholder token="{{ placeholder_token|raw }}">
     <js-placeholder token="{{ placeholder_token|raw }}">
   </head>
-  <body{{ attributes.addClass('mel-vendor-theme') }}>
+  <body{{ attributes }}>
     {#
       Privileged users see the admin toolbar. We don't want to hide that.
       But we DO want to hide any menu blocks that appear.
@@ -28,20 +28,3 @@
     <js-bottom-placeholder token="{{ placeholder_token|raw }}">
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
