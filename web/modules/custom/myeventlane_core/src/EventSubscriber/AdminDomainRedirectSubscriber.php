@@ -53,6 +53,13 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
     $request = $event->getRequest();
     $path = $request->getPathInfo();
 
+    // Do not touch auth or console paths (session-safe; mirrors vendor domain).
+    if (str_starts_with($path, '/user/') || $path === '/user' ||
+        str_starts_with($path, '/admin/') || $path === '/admin' ||
+        str_starts_with($path, '/vendor/') || $path === '/vendor') {
+      return;
+    }
+
     // Redirect root path to admin dashboard.
     // Also handle front page route matches.
     if ($path === '/' || $path === '' || $request->attributes->get('_route') === '<front>') {

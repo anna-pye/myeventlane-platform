@@ -290,3 +290,8 @@ services:
       - '@request_stack'
     tags:
       - { name: controller.service_arguments }
+
+  myeventlane_vendor.theme.negotiator:
+    class: Drupal\myeventlane_vendor\Theme\VendorThemeNegotiator
+    tags:
+      - { name: theme_negotiator, priority: 200 }

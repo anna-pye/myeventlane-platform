@@ -57,15 +57,9 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    if ($routeName === 'user.login' && $method === 'POST') {
-      $this->rateLimiter->enforce(
-        'myeventlane_launch.login_attempt',
-        $this->rateLimiter->buildIdentifier($request, 'login'),
-        5,
-        60
-      );
-      return;
-    }
+    // Do not rate-limit user.login POST here. Core already flood-controls failed
+    // logins (user.failed_login_*); a pre-form cap counted every POST and locked
+    // out legitimate users on shared IPs / retries without adding real security.
 
     if ($routeName === 'myeventlane_rsvp.public_rsvp_form' && $method === 'POST') {
       $this->rateLimiter->enforce(

@@ -11,45 +11,68 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Access check for vendor console routes.
  *
- * Allows access for:
- * - Administrators (UID 1 or has 'administer site configuration')
- * - Users with 'access vendor console' permission.
+ * Permission-based only (no hostname).
  */
 final class VendorConsoleAccess {
 
   /**
+   * Cache contexts for all outcomes.
+   *
+   * @var array<string>
+   */
+  private const CACHE_CONTEXTS = [
+    'user.permissions',
+    'user.roles',
+    'session',
+  ];
+
+  /**
    * Checks access for vendor console routes.
-   *
-   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
-   *   The route match.
-   * @param \Drupal\Core\Session\AccountInterface $account
-   *   The account to check access for.
-   *
-   * @return \Drupal\Core\Access\AccessResultInterface
-   *   The access result.
    */
   public static function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+    $request = \Drupal::requestStack()->getCurrentRequest();
+    $host = $request?->getHost() ?? '';
+    $path = $request?->getPathInfo() ?? '';
+
     $route_name = $route_match->getRouteName();
 
-    // ALWAYS allow vendor onboarding routes.
-    // This prevents a deadlock where Stripe onboarding is blocked
-    // by the vendor console access gate itself.
+    // Allow onboarding routes always.
     if ($route_name === 'myeventlane_vendor.onboard' || str_starts_with((string) $route_name, 'myeventlane_vendor.onboard.')) {
-      return AccessResult::allowed()->cachePerUser();
+      self::logDecision($account, $host, $path, 'allowed_onboarding');
+      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
-    // Administrators always have access.
-    if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
-      return AccessResult::allowed()->cachePerPermissions();
+    // Block anonymous.
+    if ($account->isAnonymous()) {
+      self::logDecision($account, $host, $path, 'forbidden_anonymous');
+      return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
-    // Users with vendor console permission.
+    // Allow with permission.
     if ($account->hasPermission('access vendor console')) {
-      return AccessResult::allowed()->cachePerPermissions();
+      self::logDecision($account, $host, $path, 'allowed');
+      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
-    \Drupal::logger('vendor_access')->warning('VendorConsoleAccess: FORBIDDEN for UID @uid (no permission)', ['@uid' => $account->id()]);
-    return AccessResult::forbidden()->cachePerPermissions();
+    // Default deny.
+    self::logDecision($account, $host, $path, 'forbidden_no_permission');
+    return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
+  }
+
+  /**
+   * Temporary structured logging.
+   */
+  private static function logDecision(AccountInterface $account, string $host, string $path, string $decision): void {
+    \Drupal::logger('mel_vendor_access_debug')->notice(
+      'VendorConsoleAccess uid=@uid host=@host path=@path decision=@decision',
+      [
+        '@uid' => (string) $account->id(),
+        '@host' => $host,
+        '@path' => $path,
+        '@decision' => $decision,
+      ]
+    );
   }
 
 }
+

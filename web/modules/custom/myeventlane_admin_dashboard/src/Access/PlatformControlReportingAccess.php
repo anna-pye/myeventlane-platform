@@ -17,9 +17,21 @@ use Drupal\Core\Session\AccountInterface;
 final class PlatformControlReportingAccess {
 
   /**
+   * @var array<string>
+   */
+  private const CACHE_CONTEXTS = [
+    'user.permissions',
+    'user.roles',
+    'session',
+  ];
+
+  /**
    * Access for the main Reports tab (/admin/myeventlane/reports).
    */
   public static function accessPlatformReportsTab(AccountInterface $account): AccessResult {
+    if ($account->isAnonymous()) {
+      return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
+    }
     return static::pccOr($account, 'view myeventlane reports');
   }
 
@@ -27,17 +39,20 @@ final class PlatformControlReportingAccess {
    * Access for myeventlane_reporting admin sections (vendors/events/finance/overview).
    */
   public static function accessAdminReportingConsole(AccountInterface $account): AccessResult {
+    if ($account->isAnonymous()) {
+      return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
+    }
     return static::pccOr($account, 'view admin reports');
   }
 
   private static function pccOr(AccountInterface $account, string $fallbackPermission): AccessResult {
     if ($account->hasPermission('access myeventlane platform control centre')) {
-      return AccessResult::allowed()->cachePerPermissions();
+      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
     if ($account->hasPermission($fallbackPermission)) {
-      return AccessResult::allowed()->cachePerPermissions();
+      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
-    return AccessResult::forbidden()->cachePerPermissions();
+    return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
   }
 
 }

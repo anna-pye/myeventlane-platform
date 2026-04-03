@@ -145,15 +145,6 @@ services:
       - '@entity_type.manager'
       - '@cache.data'
 
-  myeventlane_core.vendor_session_bootstrap_subscriber:
-    class: Drupal\myeventlane_core\EventSubscriber\VendorSessionBootstrapSubscriber
-    arguments:
-      - '@current_user'
-      - '@session_manager'
-      - '@myeventlane_core.domain_detector'
-    tags:
-      - { name: event_subscriber }
-
   myeventlane_core.staging_security_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\StagingSecuritySubscriber
     arguments: ['@config.factory']

@@ -5,7 +5,7 @@ myeventlane_admin_dashboard.platform_control:
     _controller: 'myeventlane_admin_dashboard.admin_dashboard_controller:dashboard'
     _title: 'Platform Control Centre'
   requirements:
-    _permission: 'access myeventlane platform control centre'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\AdminConsoleAccess::access'
   options:
     _admin_route: TRUE
 
@@ -15,7 +15,7 @@ myeventlane_admin_dashboard.platform_studio:
     _controller: 'myeventlane_admin_dashboard.platform_control_centre_controller:studio'
     _title: 'Admin Studio'
   requirements:
-    _permission: 'access myeventlane platform control centre'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\AdminConsoleAccess::access'
   options:
     _admin_route: TRUE
 
@@ -25,7 +25,7 @@ myeventlane_admin_dashboard.review_approve_deploy:
     _form: '\Drupal\myeventlane_admin_dashboard\Form\AdminApproveDeployEventForm'
     _title: 'Approve and Deploy Event'
   requirements:
-    _permission: 'access myeventlane platform control centre'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\AdminConsoleAccess::access'
     node: '\d+'
   options:
     _admin_route: TRUE
