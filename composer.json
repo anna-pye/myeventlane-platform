@@ -95,6 +95,9 @@
     },
     "extra": {
         "patches": {
+            "drupal/gin_login": {
+                "Drupal 11: use FileExtension/FileIsImage upload validators": "patches/gin-login-drupal11-upload-validators.patch"
+            },
             "drupal/core": {
                 "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch",
                 "Fix mb_strtolower(null) deprecation in config entity query Condition": "patches/drupal-core-config-entity-query-null-condition.patch"
