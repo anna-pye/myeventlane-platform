@@ -2795,15 +2795,27 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
   $view_mode = $variables['view_mode'] ?? 'full';
   if ($view_mode === 'full') {
     $content = $variables['content'] ?? [];
-    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()
-      && is_array($content) && isset($content['field_event_image']) && is_array($content['field_event_image'])) {
-      $variables['hero_image'] = $content['field_event_image'];
+    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
+      if (is_array($content) && isset($content['field_event_image']) && is_array($content['field_event_image'])) {
+        $variables['hero_image'] = $content['field_event_image'];
+      }
+      else {
+        try {
+          $variables['hero_image'] = $node->get('field_event_image')->view('full');
+        }
+        catch (\Throwable $e) {
+          \Drupal::logger('myeventlane_theme')->error(
+            'Event full hero: could not build field_event_image render array for node @nid: @message',
+            ['@nid' => (string) $node->id(), '@message' => $e->getMessage()]
+          );
+        }
+      }
     }
 
     $cat = $variables['mel_category_label'] ?? NULL;
-    if (is_string($cat)) {
-      $cat = trim($cat);
-      $variables['category_label'] = $cat !== '' ? $cat : NULL;
+    if ($cat !== NULL && $cat !== '') {
+      $trimmed = trim((string) $cat);
+      $variables['category_label'] = $trimmed !== '' ? $trimmed : NULL;
     }
 
     // Match listing featured card: "D j M, g:ia" (see card_time_range in preprocess_node).

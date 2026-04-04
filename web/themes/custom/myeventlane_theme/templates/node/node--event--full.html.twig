@@ -31,21 +31,21 @@
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
     <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
       <div class="mel-event-hero__media">
-        {% if hero_image %}
-          {{ hero_image }}
+        {% if content.field_event_image %}
+          {{ content.field_event_image }}
         {% else %}
           <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
         {% endif %}
       </div>
       <div class="mel-event-hero__overlay" aria-hidden="true"></div>
-      {% if category_label %}
+      {% if mel_category_label %}
         <div class="mel-event-hero__chip">
           <span class="mel-pill mel-pill--category mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ category_label }}</span>
+            <span class="mel-pill__label">{{ mel_category_label }}</span>
           </span>
         </div>
       {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
-        <div class="mel-event-hero__chip">
+        <div class="mel-event-hero__chip mel-event-hero__chip--field">
           {{ content.field_category }}
         </div>
       {% endif %}
