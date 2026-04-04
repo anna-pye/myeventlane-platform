@@ -41,7 +41,7 @@
         "drupal/fullcalendar_view": "^5.2",
         "drupal/geofield": "^10.3",
         "drupal/gin": "^5.0",
-        "drupal/gin_login": "2.1.x-dev@dev",
+        "drupal/gin_login": "2.1",
         "drupal/gin_toolbar": "^3.0",
         "drupal/honeypot": "^2.2",
         "drupal/image_widget_crop": "^3.0",
