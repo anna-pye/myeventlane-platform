@@ -53,19 +53,50 @@
   img {
     width: 100%;
   }
-
-  // Reuses .mel-event-hero-card__overlay from components/_event-card.scss (featured hero / carousel).
 }
 
 .mel-event-hero-card__image--placeholder {
   min-height: 220px;
 }
 
+// Event full hero: gradient must sit above the photo. Field template may emit <img> or <picture>
+// only; without an explicit stacking order, some themes paint the bitmap above the overlay sibling.
+.mel-event--v2 .mel-event-hero-card__image-wrap {
+  display: block;
+
+  > img,
+  > picture {
+    position: relative;
+    z-index: 0;
+    display: block;
+    width: 100%;
+  }
+
+  > picture img {
+    display: block;
+    width: 100%;
+  }
+
+  .mel-event-hero-card__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    // Same treatment as featured hero slide (components/_event-card.scss).
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(0, 0, 0, 0.2) 45%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
+  }
+}
+
 .mel-event-hero-card__badge {
   position: absolute;
   top: space-tokens.mel-space(3);
   left: space-tokens.mel-space(3);
-  z-index: 2;
+  z-index: 3;
 }
 
 .mel-event-hero-card__title-wrap {
@@ -73,7 +104,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 2;
+  z-index: 3;
   padding: space-tokens.mel-space(4);
 }
 
