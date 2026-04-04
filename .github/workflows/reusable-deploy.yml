@@ -1,0 +1,137 @@
+name: Reusable deploy (SSH)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: staging or production (for logging and GitHub Environment)
+        type: string
+        required: true
+      ssh_host:
+        description: SSH host (from secret)
+        type: string
+        required: true
+      ssh_user:
+        description: SSH user (from secret)
+        type: string
+        required: true
+      app_path:
+        description: Absolute app path on server (e.g. /home/mel/staging)
+        type: string
+        required: true
+      site_uri:
+        description: Base URL for Drush --uri and smoke tests
+        type: string
+        required: true
+      artifact_name:
+        description: Artifact name from reusable-build or staging run
+        type: string
+        required: true
+      run_updatedb:
+        description: Run drush updb -y (dangerous; default off)
+        type: boolean
+        default: false
+      run_cim:
+        description: Run drush cim -y (dangerous; default off)
+        type: boolean
+        default: false
+      smoke_strict:
+        description: Stricter smoke-test.sh checks for production
+        type: boolean
+        default: false
+      artifact_source_run_id:
+        description: If set, download artifact from this workflow run id (production reuse)
+        type: string
+        default: ""
+    secrets:
+      ssh_private_key:
+        description: Private key for SSH (full PEM)
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Clean checkout (scripts only)
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          sparse-checkout: |
+            scripts/deploy
+          sparse-checkout-cone-mode: false
+
+      - name: Download artifact (this run)
+        if: ${{ inputs.artifact_source_run_id == '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+
+      - name: Download artifact (staging run)
+        if: ${{ inputs.artifact_source_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          run-id: ${{ inputs.artifact_source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ssh_private_key }}
+
+      - name: Add SSH known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ inputs.ssh_host }}" >> ~/.ssh/known_hosts
+
+      - name: Upload tarball and deploy script
+        env:
+          SSH_HOST: ${{ inputs.ssh_host }}
+          SSH_USER: ${{ inputs.ssh_user }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(mel-release-*.tar.gz)
+          if [[ ${#files[@]} -ne 1 ]]; then
+            echo "Expected exactly one mel-release-*.tar.gz in workspace"
+            ls -la
+            exit 1
+          fi
+          ARCHIVE_LOCAL="${files[0]}"
+          REMOTE_NAME="mel-upload-${{ github.run_id }}-${{ github.run_attempt }}.tar.gz"
+          echo "REMOTE_NAME=$REMOTE_NAME" >> "$GITHUB_ENV"
+          scp -o BatchMode=yes "$ARCHIVE_LOCAL" "${SSH_USER}@${SSH_HOST}:/tmp/${REMOTE_NAME}"
+          scp -o BatchMode=yes scripts/deploy/remote-deploy.sh "${SSH_USER}@${SSH_HOST}:/tmp/remote-deploy-${{ github.run_id }}.sh"
+
+      - name: Run remote deploy
+        env:
+          SSH_HOST: ${{ inputs.ssh_host }}
+          SSH_USER: ${{ inputs.ssh_user }}
+          APP_PATH: ${{ inputs.app_path }}
+          SITE_URI: ${{ inputs.site_uri }}
+          RUN_UPDATEDB: ${{ inputs.run_updatedb == true && '1' || '0' }}
+          RUN_CIM: ${{ inputs.run_cim == true && '1' || '0' }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" \
+            "chmod +x /tmp/remote-deploy-${{ github.run_id }}.sh && \
+             export APP_PATH=$(printf '%q' "$APP_PATH") && \
+             export DEPLOY_ARCHIVE=/tmp/$REMOTE_NAME && \
+             export SITE_URI=$(printf '%q' "$SITE_URI") && \
+             export RUN_UPDATEDB=$RUN_UPDATEDB && \
+             export RUN_CIM=$RUN_CIM && \
+             /tmp/remote-deploy-${{ github.run_id }}.sh"
+          ssh -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" "rm -f /tmp/remote-deploy-${{ github.run_id }}.sh"
+
+      - name: Smoke test (from runner)
+        env:
+          SITE_URI: ${{ inputs.site_uri }}
+          SMOKE_STRICT: ${{ inputs.smoke_strict == true && '1' || '0' }}
+        run: |
+          chmod +x scripts/deploy/smoke-test.sh
+          scripts/deploy/smoke-test.sh "$SITE_URI" "$SMOKE_STRICT"

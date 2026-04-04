@@ -1,0 +1,34 @@
+name: Deploy staging
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable-build.yml
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: staging
+      ssh_host: ${{ secrets.STAGING_SSH_HOST }}
+      ssh_user: ${{ secrets.STAGING_SSH_USER }}
+      app_path: ${{ vars.STAGING_APP_PATH }}
+      site_uri: ${{ vars.STAGING_SITE_URI }}
+      artifact_name: ${{ needs.build.outputs.artifact_name }}
+      run_updatedb: ${{ vars.STAGING_DRUSH_UPDATEDB == 'true' }}
+      run_cim: ${{ vars.STAGING_DRUSH_CIM == 'true' }}
+      smoke_strict: false
+    secrets:
+      ssh_private_key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}

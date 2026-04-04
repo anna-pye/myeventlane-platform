@@ -1,0 +1,89 @@
+name: PR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ci-pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, gd, curl, zip, intl, pdo_mysql
+          coverage: none
+          tools: composer
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Composer validate
+        run: composer validate --no-check-publish --strict
+
+      - name: Composer install (fail on lock drift)
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          LOG=$(mktemp)
+          if ! composer install --prefer-dist --no-progress --no-interaction 2>&1 | tee "$LOG"; then
+            echo "::error::composer install failed"
+            exit 1
+          fi
+          if grep -Ei 'lock file is not up to date|not up to date with the latest changes in composer\.json|composer\.lock is not up to date' "$LOG"; then
+            echo "::error::composer.lock is out of sync with composer.json — run composer update locally"
+            exit 1
+          fi
+
+      - name: PHP syntax lint (custom code)
+        run: |
+          set -euo pipefail
+          find web/modules/custom web/themes/custom -type f -name '*.php' -print0 | while IFS= read -r -d '' f; do
+            php -l "$f" >/dev/null
+          done
+          echo "PHP lint OK"
+
+      - name: YAML lint
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user yamllint
+          export PATH="$HOME/.local/bin:$PATH"
+          yamllint -d "{extends: default, rules: {line-length: {max: 500}, document-start: disable, truthy: disable}}" \
+            config/sync \
+            .github \
+            web/modules/custom \
+            web/themes/custom
+
+      - name: Minimal settings.php for Drush (CI only)
+        run: |
+          if [ ! -f web/sites/default/settings.php ]; then
+            cp web/sites/default/default.settings.php web/sites/default/settings.php
+          fi
+
+      - name: Twig lint (Drush)
+        run: vendor/bin/drush --root=web twig:lint modules/custom themes/custom
+
+      - name: npm ci and build (root Vite)
+        if: ${{ hashFiles('package.json') != '' }}
+        run: |
+          npm ci
+          npm run build

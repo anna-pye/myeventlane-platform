@@ -1,0 +1,51 @@
+name: Rollback production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Release folder name under releases/ (empty = previous release)
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout deploy scripts
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          sparse-checkout: |
+            scripts/deploy
+          sparse-checkout-cone-mode: false
+
+      - name: Start ssh-agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+
+      - name: Add SSH known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PRODUCTION_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload and run rollback.sh
+        env:
+          SSH_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          SSH_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          APP_PATH: ${{ vars.PRODUCTION_APP_PATH }}
+          SITE_URI: ${{ vars.PRODUCTION_SITE_URI }}
+          RELEASE_ID: ${{ inputs.release_id }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/deploy/rollback.sh
+          scp -o BatchMode=yes scripts/deploy/rollback.sh "${SSH_USER}@${SSH_HOST}:/tmp/rollback-${{ github.run_id }}.sh"
+          ssh -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" \
+            "chmod +x /tmp/rollback-${{ github.run_id }}.sh && \
+             /tmp/rollback-${{ github.run_id }}.sh $(printf '%q' "$APP_PATH") $(printf '%q' "$SITE_URI") $(printf '%q' "$RELEASE_ID")"
+          ssh -o BatchMode=yes "${SSH_USER}@${SSH_HOST}" "rm -f /tmp/rollback-${{ github.run_id }}.sh"

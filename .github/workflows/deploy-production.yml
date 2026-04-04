@@ -1,0 +1,65 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Run ID of the successful staging deploy job (same artifact, no rebuild)
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  resolve-artifact:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.pick.outputs.name }}
+    steps:
+      - name: Resolve mel-release artifact from staging run
+        id: pick
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = parseInt(`${{ inputs.source_run_id }}`, 10);
+            if (!Number.isFinite(runId) || runId <= 0) {
+              core.setFailed('Invalid source_run_id');
+              return;
+            }
+            const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
+              per_page: 100,
+            });
+            const hits = data.artifacts.filter((a) => a.name.startsWith('mel-release-'));
+            hits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const hit = hits[0];
+            if (!hit) {
+              core.setFailed(`No mel-release-* artifact on workflow run ${runId}`);
+              return;
+            }
+            core.setOutput('name', hit.name);
+
+  deploy:
+    needs: resolve-artifact
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: production
+      ssh_host: ${{ secrets.PRODUCTION_SSH_HOST }}
+      ssh_user: ${{ secrets.PRODUCTION_SSH_USER }}
+      app_path: ${{ vars.PRODUCTION_APP_PATH }}
+      site_uri: ${{ vars.PRODUCTION_SITE_URI }}
+      artifact_name: ${{ needs.resolve-artifact.outputs.artifact_name }}
+      run_updatedb: ${{ vars.PRODUCTION_DRUSH_UPDATEDB == 'true' }}
+      run_cim: ${{ vars.PRODUCTION_DRUSH_CIM == 'true' }}
+      smoke_strict: true
+      artifact_source_run_id: ${{ inputs.source_run_id }}
+    secrets:
+      ssh_private_key: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}

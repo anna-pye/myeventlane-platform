@@ -1,0 +1,56 @@
+name: Reusable build (artifact)
+
+on:
+  workflow_call:
+    outputs:
+      artifact_name:
+        description: Uploaded artifact name for deploy workflows
+        value: ${{ jobs.build.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+    steps:
+      - name: Clean checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, gd, curl, zip, intl, pdo_mysql
+          coverage: none
+          tools: composer
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Make deploy scripts executable
+        run: chmod +x scripts/deploy/build.sh
+
+      - name: Build artifact via scripts/deploy/build.sh
+        run: scripts/deploy/build.sh mel-release-${{ github.sha }}.tar.gz
+
+      - name: Artifact metadata
+        id: meta
+        run: echo "artifact_name=mel-release-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mel-release-${{ github.sha }}
+          path: mel-release-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+          retention-days: 90
