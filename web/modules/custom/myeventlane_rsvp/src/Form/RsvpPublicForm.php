@@ -406,7 +406,7 @@ final class RsvpPublicForm extends FormBase {
     ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('✨ Reserve my spot'),
+      '#value' => $this->t('Reserve my spot'),
       '#button_type' => 'primary',
       '#attributes' => [
         'class' => [

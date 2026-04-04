@@ -2980,8 +2980,9 @@ function myeventlane_theme_preprocess_form__myeventlane_commerce_rsvp_booking_fo
 /**
  * Implements hook_preprocess_HOOK() for the event booking page layout.
  *
- * Adds optional field render arrays for richer left-column context. Does not
- * change Commerce or ticket validation logic.
+ * Adds optional field render arrays for richer left-column context. Supplies
+ * the same hero tokens as node--event--full (featured-style). Does not change
+ * Commerce or ticket validation logic.
  */
 function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables): void {
   $variables['event_title'] = $variables['title'] ?? '';
@@ -2998,14 +2999,96 @@ function myeventlane_theme_preprocess_myeventlane_event_book(array &$variables):
   $variables['mel_signal_trust_label'] = NULL;
   $variables['mel_signal_urgency_label'] = NULL;
 
+  $variables['label'] = $variables['title'] ?? '';
+  $variables['hero_image'] = NULL;
+  $variables['category_label'] = NULL;
+  $variables['mel_category_label'] = NULL;
+  $variables['mel_category_slug'] = 'default';
+  $variables['hero_datetime'] = NULL;
+  $variables['hero_venue'] = NULL;
+  $variables['hero_status'] = NULL;
+  $variables['hero_status_modifier'] = 'default';
+
   $event = $variables['event'] ?? NULL;
   if (!$event instanceof NodeInterface) {
     return;
   }
 
+  $variables['label'] = $event->label();
+
   if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
-    $variables['event_image'] = $event->get('field_event_image')->view('default');
+    try {
+      $variables['hero_image'] = $event->get('field_event_image')->view('full');
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->error(
+        'Event book hero: could not build field_event_image for node @nid: @message',
+        ['@nid' => (string) $event->id(), '@message' => $e->getMessage()]
+      );
+    }
   }
+  $variables['event_image'] = !empty($variables['hero_image']) ? $variables['hero_image'] : [];
+
+  $variables['mel_category_label'] = NULL;
+  $variables['mel_category_slug'] = 'default';
+  if ($event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {
+    $refs = $event->get('field_category')->referencedEntities();
+    if (!empty($refs)) {
+      $term = reset($refs);
+      if ($term instanceof TermInterface) {
+        $variables['mel_category_label'] = $term->label();
+        $variables['mel_category_slug'] = function_exists('_myeventlane_theme_get_category_slug')
+          ? _myeventlane_theme_get_category_slug($term)
+          : str_replace([' ', '&', '+'], ['-', 'and', ''], strtolower($term->label()));
+      }
+    }
+  }
+  $trimmed_cat = $variables['mel_category_label'] ? trim((string) $variables['mel_category_label']) : '';
+  $variables['category_label'] = $trimmed_cat !== '' ? $trimmed_cat : NULL;
+
+  $mel_event_state = 'scheduled';
+  if (\Drupal::hasService('myeventlane_event_state.resolver')) {
+    $mel_event_state = (string) \Drupal::service('myeventlane_event_state.resolver')->resolveState($event);
+  }
+  $cta_type_book = EventCtaResolver::CTA_NONE;
+  if (\Drupal::hasService('myeventlane_event.cta_resolver')) {
+    $cta_type_book = \Drupal::service('myeventlane_event.cta_resolver')->getCtaType($event);
+  }
+
+  if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+    $start_value = $event->get('field_event_start')->value;
+    if ($start_value && ($start_ts = strtotime((string) $start_value))) {
+      $hero_datetime = date('D j M, g:ia', $start_ts);
+      if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
+        $end_raw = (string) $event->get('field_event_end')->value;
+        if ($end_raw !== '' && ($end_ts = strtotime($end_raw))) {
+          $hero_datetime .= ' – ' . date('g:ia', $end_ts);
+        }
+      }
+      $variables['hero_datetime'] = $hero_datetime;
+    }
+  }
+
+  $variables['hero_venue'] = _myeventlane_theme_event_hero_venue_name($event);
+  $variables['hero_status'] = _myeventlane_theme_event_hero_status_public($mel_event_state);
+  $badge_for_modifier = _myeventlane_theme_get_event_badge_text($event);
+  $card_type = 'none';
+  if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+    $et = $event->get('field_event_type')->value;
+    if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
+      $card_type = $et;
+    }
+  }
+  $variables['hero_status_modifier'] = match (TRUE) {
+    in_array($mel_event_state, ['cancelled'], TRUE) => 'cancelled',
+    $mel_event_state === 'ended' => 'ended',
+    $mel_event_state === 'sold_out' => 'sold-out',
+    $mel_event_state === 'scheduled' && $cta_type_book === EventCtaResolver::CTA_PAID => 'scheduled',
+    $card_type === 'external' => 'external',
+    $badge_for_modifier === 'FREE' => 'free',
+    is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+    default => 'default',
+  };
 
   if ($event->hasField('body') && !$event->get('body')->isEmpty()) {
     $body = $event->get('body')->first();

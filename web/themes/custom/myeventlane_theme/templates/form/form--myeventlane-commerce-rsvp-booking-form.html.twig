@@ -26,13 +26,9 @@
     {{ element.event_id }}
     {{ element.product_id }}
     {{ element.variation_id }}
-    {% if element.mel_help_rsvp_after is defined %}
-      {{ element.mel_help_rsvp_after }}
-    {% endif %}
 
     <div class="mel-rsvp-sidebar">
       <div class="mel-rsvp-card">
-        <h3 class="mel-rsvp-title">{{ 'RSVP free'|t }}</h3>
         {% if element.intro %}
           <div class="mel-rsvp-intro">
             {{ element.intro }}
@@ -99,7 +95,8 @@
         {# Any other alter-added elements; keeps them inside the single form. #}
         {{ element|without(
           'form_build_id', 'form_token', 'form_id', 'event_id', 'product_id', 'variation_id',
-          'mel_help_rsvp_after', 'intro', 'first_name', 'last_name', 'name', 'email', 'phone', 'guests',
+          'mel_help_rsvp_after',
+          'intro', 'first_name', 'last_name', 'name', 'email', 'phone', 'guests',
           'attendee_details', 'optional_details', 'accessibility_needs',
           'legal_consent', 'donation_section', 'donation_unavailable', 'donation_amount', 'actions'
         ) }}
