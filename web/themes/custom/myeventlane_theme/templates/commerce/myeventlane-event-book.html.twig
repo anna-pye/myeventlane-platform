@@ -101,45 +101,8 @@
       </ul>
     </div>
 
-    {% set mel_has_booking_signals =
-      mel_signal_is_community
-      or mel_signal_booked_count is not null
-      or mel_signal_remaining_spots is not null
-      or mel_signal_urgency_label
-      or mel_signal_trust_label
-    %}
-    {% if mel_has_booking_signals %}
-      <section class="mel-booking-signals" aria-label="{{ 'Booking signals'|t }}">
-        <div class="mel-booking-signals__list">
-          {% if mel_signal_is_community %}
-            <span class="mel-booking-signals__pill mel-booking-signals__pill--community">{{ '✨ Community-powered event'|t }}</span>
-          {% endif %}
-          {% if mel_signal_remaining_spots is not null and mel_signal_remaining_spots <= 10 %}
-            <span class="mel-booking-signals__pill mel-booking-signals__pill--urgency">{{ '🔥 Only @count spots left'|t({'@count': mel_signal_remaining_spots}) }}</span>
-          {% elseif mel_signal_urgency_label %}
-            <span class="mel-booking-signals__pill mel-booking-signals__pill--urgency">{{ mel_signal_urgency_label }}</span>
-          {% endif %}
-          {% if mel_signal_booked_count is not null and mel_signal_booked_count > 0 %}
-            <span class="mel-booking-signals__pill mel-booking-signals__pill--booked">{{ '🎟️ @count people already booked'|t({'@count': mel_signal_booked_count}) }}</span>
-          {% endif %}
-          {% if mel_signal_trust_label %}
-            <span class="mel-booking-signals__pill mel-booking-signals__pill--trust">{{ mel_signal_trust_label }}</span>
-          {% endif %}
-        </div>
-      </section>
-    {% endif %}
-
-    {# CONTENT — context + decision #}
+    {# CONTENT — ticket / RSVP decision (no duplicate long-form body; trust strip above). #}
     <div class="mel-booking-container">
-      {% if event_description is defined and event_description is not empty %}
-        <div class="mel-event-description-card">
-          <h3 class="mel-event-description-card__title" id="mel-event-book-about">{{ 'About this event'|t }}</h3>
-          <div class="mel-event-description-card__body" aria-labelledby="mel-event-book-about">
-            {{ event_description }}
-          </div>
-        </div>
-      {% endif %}
-
       <div class="mel-booking-layout{% if event_mode != 'paid' %} mel-booking-layout--single{% endif %}">
         <div class="mel-booking-layout__main">
           <div class="mel-ticket-panel mel-event-book__form" aria-labelledby="mel-ticket-panel-title">

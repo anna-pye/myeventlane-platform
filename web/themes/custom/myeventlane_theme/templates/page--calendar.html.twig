@@ -27,8 +27,10 @@
       <div class="mel-empty mel-empty--calendar" role="status">
         <h2 class="mel-empty__title">{{ 'Nothing on the calendar yet'|t }}</h2>
         <p class="mel-empty__text">{{ 'When events are published with dates, they appear here. Browse the marketplace for what’s on near you.'|t }}</p>
+        <p class="mel-empty__text mel-empty__text--secondary">{{ 'Try exploring featured events or browsing by category from the homepage.'|t }}</p>
         <p class="mel-empty__actions">
           <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+          <a class="mel-link mel-empty__link-home" href="{{ path('<front>') }}">{{ 'Featured on homepage'|t }}</a>
         </p>
       </div>
     {% else %}

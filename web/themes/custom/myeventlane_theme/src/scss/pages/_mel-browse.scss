@@ -217,6 +217,25 @@
     line-height: 1.5;
     color: mel.$mel-ds-color-muted;
   }
+
+  .mel-empty__next {
+    margin: mel.$mel-ds-space-md 0 0;
+    font-family: mel.$mel-ds-font-main;
+    font-size: mel.$mel-ds-font-body;
+    line-height: 1.5;
+    color: mel.$mel-ds-color-muted;
+
+    a {
+      color: mel.$mel-ds-color-accent;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+
+      &:hover {
+        text-decoration-thickness: 2px;
+      }
+    }
+  }
 }
 
 .mel-category-browse__intro {

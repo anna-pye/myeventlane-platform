@@ -145,7 +145,7 @@ textarea,
   color: colors.$mel-color-text;
   background: colors.$mel-color-surface;
   border: 2px solid colors.$mel-color-border;
-  border-radius: radii.$mel-radius-md;
+  border-radius: 12px;
   resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 

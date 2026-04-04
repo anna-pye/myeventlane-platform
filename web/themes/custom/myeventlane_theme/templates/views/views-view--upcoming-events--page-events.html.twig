@@ -18,8 +18,10 @@
     </div>
   </aside>
 
-  <main class="mel-browse__results">
+  <div class="mel-browse__results" role="region" aria-labelledby="mel-browse-results-title">
     <a href="#mel-browse-filters" class="mel-filter-button mel-btn mel-btn-secondary">{{ 'Filter'|t }}</a>
+
+    <h2 id="mel-browse-results-title" class="visually-hidden">{{ 'Upcoming events'|t }}</h2>
 
     {% if mel_browse_result_count is defined %}
       <p class="mel-browse-results-count" role="status">
@@ -39,9 +41,16 @@
       <div class="mel-empty mel-empty--browse" role="status">
         <h3 class="mel-empty__title">{{ 'No events found'|t }}</h3>
         <p class="mel-empty__text">{{ 'Try adjusting your filters or browse a different category.'|t }}</p>
+        <p class="mel-empty__next">
+          <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Clear filters (all events)'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('view.upcoming_events.page_this_weekend') }}">{{ 'This weekend'|t }}</a>
+          <span aria-hidden="true"> · </span>
+          <a href="{{ path('<front>') }}">{{ 'Featured on homepage'|t }}</a>
+        </p>
       </div>
     {% endif %}
 
     {{ pager }}
-  </main>
+  </div>
 </div>
