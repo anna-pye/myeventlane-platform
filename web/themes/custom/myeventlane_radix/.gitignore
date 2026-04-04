@@ -1,5 +1,4 @@
-# Build outputs
-dist/
+# Build outputs (dist/ is committed so staging/prod match DDEV builds without npm)
 css/
 *.css.map
 
