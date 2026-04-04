@@ -27,8 +27,103 @@
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.mel-event-hero-card__media {
+// Hero image stack: media (z1) → overlay (z2) → content (z3). Meta bar below unchanged.
+.mel-event-hero {
   position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.mel-event-hero__media {
+  position: relative;
+  z-index: 1;
+  line-height: 0;
+}
+
+.mel-event-hero__media img {
+  display: block;
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+}
+
+.mel-event-hero__media picture {
+  display: block;
+}
+
+.mel-event-hero__media picture img {
+  display: block;
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+}
+
+.mel-event-hero__placeholder {
+  width: 100%;
+  height: 360px;
+  background: linear-gradient(
+    135deg,
+    rgba(colors.$mel-color-primary, 0.18) 0%,
+    rgba(colors.$mel-color-secondary, 0.12) 55%,
+    rgba(colors.$mel-color-accent, 0.12) 100%
+  );
+}
+
+.mel-event-hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(36, 48, 58, 0.08) 0%,
+    rgba(36, 48, 58, 0.62) 72%,
+    rgba(36, 48, 58, 0.82) 100%
+  );
+}
+
+.mel-event-hero__content {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  z-index: 3;
+  color: #fff;
+}
+
+.mel-event-hero__chip {
+  margin-bottom: 10px;
+}
+
+.mel-event-hero__title {
+  margin: 0 0 8px;
+  font-size: clamp(32px, 5vw, 64px);
+  line-height: 1.02;
+  font-weight: 700;
+}
+
+.mel-event-hero__datetime {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.mel-event-hero__venue {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+.mel-event-hero__status {
+  margin-top: 8px;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #f26d5b;
 }
 
 .mel-event-hero-card__image,

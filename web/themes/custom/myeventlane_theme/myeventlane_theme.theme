@@ -2138,6 +2138,47 @@ function _myeventlane_theme_mel_help_search_page_title(): string {
 }
 
 /**
+ * Venue name line for event full hero (entity reference, then free-text name).
+ *
+ * Does not fall back to address/locality so the hero stays a venue title, not a
+ * geo summary (the meta card handles full location).
+ */
+function _myeventlane_theme_event_hero_venue_name(NodeInterface $node): ?string {
+  if ($node->bundle() !== 'event') {
+    return NULL;
+  }
+  if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue_entity = $node->get('field_venue')->entity;
+    if ($venue_entity) {
+      $name = trim((string) $venue_entity->label());
+      if ($name !== '') {
+        return $name;
+      }
+    }
+  }
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $name = trim((string) $node->get('field_venue_name')->value);
+    return $name !== '' ? $name : NULL;
+  }
+  return NULL;
+}
+
+/**
+ * Resolved public state label for the event full hero overlay.
+ *
+ * Uses the same resolved state as listings (@see myeventlane_event_preprocess_node).
+ */
+function _myeventlane_theme_event_hero_status_public(string $state): ?TranslatableMarkup {
+  return match ($state) {
+    'ended' => new TranslatableMarkup('Ended'),
+    'cancelled' => new TranslatableMarkup('Cancelled'),
+    'sold_out' => new TranslatableMarkup('Sold out'),
+    'archived' => new TranslatableMarkup('Archived'),
+    default => NULL,
+  };
+}
+
+/**
  * Single-line primary location label for event cards and summaries.
  *
  * Order: referenced venue entity label, field_venue_name, then locality (or line1)
@@ -2742,6 +2783,48 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
       }
       $variables['mel_organiser'] = $organiser;
     }
+  }
+
+  // Event full hero overlay: formatted strings only (field names verified in config).
+  $variables['category_label'] = NULL;
+  $variables['hero_datetime'] = NULL;
+  $variables['hero_venue'] = NULL;
+  $variables['hero_status'] = NULL;
+  $view_mode = $variables['view_mode'] ?? 'full';
+  if ($view_mode === 'full') {
+    $cat = $variables['mel_category_label'] ?? NULL;
+    if (is_string($cat)) {
+      $cat = trim($cat);
+      $variables['category_label'] = $cat !== '' ? $cat : NULL;
+    }
+
+    if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+      /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+      $date_formatter = \Drupal::service('date.formatter');
+      $start_raw = (string) $node->get('field_event_start')->value;
+      $start_ts = strtotime($start_raw);
+      if ($start_ts !== FALSE) {
+        $date_part = $date_formatter->format($start_ts, 'custom', 'D j M');
+        $start_time = $date_formatter->format($start_ts, 'custom', 'g:ia');
+        $hero_datetime = $date_part . ', ' . $start_time;
+        if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+          $end_raw = (string) $node->get('field_event_end')->value;
+          if ($end_raw !== '') {
+            $end_ts = strtotime($end_raw);
+            if ($end_ts !== FALSE) {
+              $hero_datetime .= ' – ' . $date_formatter->format($end_ts, 'custom', 'g:ia');
+            }
+          }
+        }
+        $variables['hero_datetime'] = $hero_datetime;
+      }
+    }
+
+    $venue_name = _myeventlane_theme_event_hero_venue_name($node);
+    $variables['hero_venue'] = $venue_name;
+
+    $resolved_state = (string) ($variables['mel_event_state'] ?? '');
+    $variables['hero_status'] = _myeventlane_theme_event_hero_status_public($resolved_state);
   }
 }
 

@@ -28,34 +28,42 @@
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
   <div class="mel-container">
-    {# Hero card: render field via display (no manual file URLs). Only when field has value. #}
+    {# Hero: active template is node--event--full; strings from preprocess (hero_*, category_label). #}
     <section class="mel-event-hero-card" aria-labelledby="mel-event-title">
-      <div class="mel-event-hero-card__media">
-        {% if content.field_event_image is defined and node.hasField('field_event_image') and not node.field_event_image.isEmpty %}
-          <div class="mel-event-hero-card__image-wrap">
+      <div class="mel-event-hero">
+        <div class="mel-event-hero__media">
+          {% if content.field_event_image is defined and node.hasField('field_event_image') and not node.field_event_image.isEmpty %}
             {{ content.field_event_image }}
-            <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
-          </div>
-        {% else %}
-          <div class="mel-event-hero-card__image mel-event-hero-card__image--placeholder" aria-hidden="true"></div>
-        {% endif %}
-
-        <div class="mel-event-hero-card__badge">
-          {% if mel_category_label is defined and mel_category_label %}
-            <span class="mel-pill mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}">{{ mel_category_label }}</span>
-          {% elseif content.field_category is defined %}
-            {{ content.field_category }}
+          {% else %}
+            <div class="mel-event-hero__placeholder" aria-hidden="true"></div>
           {% endif %}
         </div>
 
-        <div class="mel-event-hero-card__title-wrap">
-          <h1 id="mel-event-title" class="mel-event-hero-card__title">{{ label }}</h1>
-          {% if content.field_event_summary is defined and content.field_event_summary %}
-            <div class="mel-event-hero-card__summary">
-              {{ content.field_event_summary }}
+        <div class="mel-event-hero__overlay" aria-hidden="true"></div>
+
+        <div class="mel-event-hero__content">
+          {% if category_label %}
+            <div class="mel-event-hero__chip">
+              <span class="mel-pill mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}">{{ category_label }}</span>
             </div>
-          {% elseif node.hasField('field_event_summary') and not node.field_event_summary.isEmpty %}
-            <p class="mel-event-hero-card__summary">{{ node.field_event_summary.value }}</p>
+          {% elseif content.field_category is defined and content.field_category|render|striptags|trim %}
+            <div class="mel-event-hero__chip">
+              {{ content.field_category }}
+            </div>
+          {% endif %}
+
+          <h1 id="mel-event-title" class="mel-event-hero__title">{{ label }}</h1>
+
+          {% if hero_datetime %}
+            <div class="mel-event-hero__datetime">{{ hero_datetime }}</div>
+          {% endif %}
+
+          {% if hero_venue %}
+            <div class="mel-event-hero__venue">{{ hero_venue }}</div>
+          {% endif %}
+
+          {% if hero_status %}
+            <div class="mel-event-hero__status">{{ hero_status }}</div>
           {% endif %}
         </div>
       </div>
