@@ -46,28 +46,19 @@
 }
 
 .mel-event-hero-card__image-wrap {
+  position: relative;
   width: 100%;
   line-height: 0;
 
   img {
     width: 100%;
   }
+
+  // Reuses .mel-event-hero-card__overlay from components/_event-card.scss (featured hero / carousel).
 }
 
 .mel-event-hero-card__image--placeholder {
   min-height: 220px;
-}
-
-.mel-event-hero-card__media::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.0) 45%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  pointer-events: none;
 }
 
 .mel-event-hero-card__badge {
@@ -236,17 +227,26 @@
 }
 
 .mel-event-share__link {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+// Share targets: circular peach wash + SVG glyphs (not flat colour blocks).
+.mel-event-share .mel-social {
+  width: 40px;
+  height: 40px;
+  border-radius: radii.$mel-radius-full;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, colors.$mel-color-secondary 12%, #fff);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: shadows.$mel-shadow-sm;
-  text-decoration: none;
-  color: colors.$mel-color-text;
+  color: colors.$mel-color-navy;
   transition:
     transform var(--mel-motion-fast) var(--mel-ease-out),
     box-shadow var(--mel-motion-fast) var(--mel-ease-out),
@@ -256,25 +256,41 @@
     &:hover {
       box-shadow: shadows.$mel-shadow-md;
       transform: translateY(-1px);
+      background: color-mix(in srgb, colors.$mel-color-secondary 18%, #fff);
     }
   }
 
   &:focus-visible {
-    outline: none;
     box-shadow: colors.$mel-focus-ring;
   }
 }
 
-.mel-event-share__icon {
+.mel-event-share .mel-icon {
   width: 18px;
   height: 18px;
-  border-radius: 6px;
-  background: rgba(colors.$mel-color-primary, 0.8);
+  flex-shrink: 0;
+  color: colors.$mel-color-navy;
+
+  path {
+    vector-effect: non-scaling-stroke;
+  }
 }
 
-.mel-event-share__icon--email { background: colors.$mel-color-navy; }
-.mel-event-share__icon--facebook { background: rgba(24, 119, 242, 0.9); }
-.mel-event-share__icon--x { background: rgba(0, 0, 0, 0.75); }
+.mel-event-location__venue {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-event-location__address {
+  margin-top: 2px;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.35;
+}
+
+.mel-event-meta--venue .mel-event-location__address {
+  margin-top: 4px;
+}
 
 .mel-info-row {
   display: grid;

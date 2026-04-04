@@ -34,6 +34,7 @@
         {% if content.field_event_image is defined and node.hasField('field_event_image') and not node.field_event_image.isEmpty %}
           <div class="mel-event-hero-card__image-wrap">
             {{ content.field_event_image }}
+            <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
           </div>
         {% else %}
           <div class="mel-event-hero-card__image mel-event-hero-card__image--placeholder" aria-hidden="true"></div>
@@ -110,17 +111,28 @@
           </div>
         {% endif %}
 
-        {% set display_venue = mel_venue|default('')|trim %}
         {% set display_address = mel_address|default('')|trim %}
-        {# Match node--event--default: show row when the field has data, not only when preprocess strings are non-empty. #}
         {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
-        {% if display_venue is not empty or display_address is not empty or has_field_location %}
+        {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+        {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+        {% set venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+        {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
+        {% set has_address = display_address is not empty or has_field_location %}
+        {% if venue_line is not empty or has_address %}
           <div class="mel-event-meta mel-event-meta--venue">
             <span class="mel-event-meta__icon mel-event-meta__icon--location" aria-hidden="true"></span>
-            <div class="mel-event-meta__text">
-              <div class="mel-event-meta__primary">{{ display_venue }}</div>
-              {% if display_address is not empty or has_field_location %}
-                <div class="mel-event-meta__secondary">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% elseif display_address is not empty %}{{ display_address }}{% endif %}</div>
+            <div class="mel-event-meta__text mel-event-location">
+              {% if venue_line is not empty %}
+                <div class="mel-event-location__venue">{{ venue_line }}</div>
+              {% endif %}
+              {% if has_address %}
+                <div class="mel-event-location__address">
+                  {% if location_has_markup %}
+                    {{ content.field_location }}
+                  {% elseif display_address is not empty %}
+                    {{ display_address }}
+                  {% endif %}
+                </div>
               {% endif %}
             </div>
           </div>
@@ -165,50 +177,25 @@
           </div>
         {% endif %}
 
-        {% if mel_organiser is defined and mel_organiser and mel_organiser.name %}
-          <section class="mel-organiser-card mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-organiser-card-title">
-            <div class="mel-organiser-card__inner">
-              {% if mel_organiser.logo_url %}
-                <div class="mel-organiser-card__avatar">
-                  <img src="{{ mel_organiser.logo_url }}" alt="" width="64" height="64" loading="lazy" class="mel-organiser-card__img" />
-                </div>
-              {% else %}
-                <div class="mel-organiser-card__avatar mel-organiser-card__avatar--fallback" aria-hidden="true">
-                  <span class="mel-organiser-card__initial">{{ mel_organiser.name|slice(0, 1)|upper }}</span>
-                </div>
-              {% endif %}
-              <div class="mel-organiser-card__body">
-                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'Presented by'|t }}</h2>
-                {% if mel_organiser.url %}
-                  <a class="mel-organiser-card__name" href="{{ mel_organiser.url }}">{{ mel_organiser.name }}</a>
-                {% else %}
-                  <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
-                {% endif %}
-                {% if mel_organiser.tagline %}
-                  <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
-                {% else %}
-                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
-                {% endif %}
-              </div>
-            </div>
-          </section>
-        {% endif %}
-
         {# Social share: directly under About the Event; render only when canonical URL exists. #}
         {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
         {% if canonical_url %}
-          <div class="mel-event-share mel-mt-4" aria-label="{{ 'Share'|t }}">
-            <a class="mel-event-share__link" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}">
-              <span class="mel-event-share__icon mel-event-share__icon--email" aria-hidden="true"></span>
-              <span class="visually-hidden">{{ 'Share by email'|t }}</span>
+          <div class="mel-event-share mel-mt-4" role="group" aria-label="{{ 'Share'|t }}">
+            <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </a>
-            <a class="mel-event-share__link" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener">
-              <span class="mel-event-share__icon mel-event-share__icon--facebook" aria-hidden="true"></span>
-              <span class="visually-hidden">{{ 'Share on Facebook'|t }}</span>
+            <a class="mel-event-share__link mel-social" href="https://www.facebook.com/sharer/sharer.php?u={{ canonical_url|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on Facebook'|t }}">
+              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
+              </svg>
             </a>
-            <a class="mel-event-share__link" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener">
-              <span class="mel-event-share__icon mel-event-share__icon--x" aria-hidden="true"></span>
-              <span class="visually-hidden">{{ 'Share on X'|t }}</span>
+            <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X'|t }}">
+              <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
+              </svg>
             </a>
           </div>
         {% endif %}
@@ -359,6 +346,35 @@
           </div>
         {% endif %}
 
+        {% if mel_organiser is defined and mel_organiser and mel_organiser.name %}
+          <section class="mel-organiser-card mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-organiser-card-title">
+            <div class="mel-organiser-card__inner">
+              {% if mel_organiser.logo_url %}
+                <div class="mel-organiser-card__avatar">
+                  <img src="{{ mel_organiser.logo_url }}" alt="" width="64" height="64" loading="lazy" class="mel-organiser-card__img" />
+                </div>
+              {% else %}
+                <div class="mel-organiser-card__avatar mel-organiser-card__avatar--fallback" aria-hidden="true">
+                  <span class="mel-organiser-card__initial">{{ mel_organiser.name|slice(0, 1)|upper }}</span>
+                </div>
+              {% endif %}
+              <div class="mel-organiser-card__body">
+                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'Presented by'|t }}</h2>
+                {% if mel_organiser.url %}
+                  <a class="mel-organiser-card__name" href="{{ mel_organiser.url }}">{{ mel_organiser.name }}</a>
+                {% else %}
+                  <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
+                {% endif %}
+                {% if mel_organiser.tagline %}
+                  <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
+                {% else %}
+                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
         <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
           <ul class="mel-event-support-zone__list">
             <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
@@ -491,18 +507,21 @@
             <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
           </div>
           <div class="mel-card__body">
-            {# Location first: venue, address, map under address. #}
-            {% set info_venue = mel_venue|default('')|trim %}
+            {# Location first: venue name, address (field render), map under address. #}
             {% set info_address = mel_address|default('')|trim %}
             {% set has_field_location = node.hasField('field_location') and not node.field_location.isEmpty %}
-            {% if info_venue or info_address or has_field_location %}
+            {% set has_venue_name = node.hasField('field_venue_name') and not node.field_venue_name.isEmpty %}
+            {% set venue_entity_label = (node.hasField('field_venue') and not node.field_venue.isEmpty and node.field_venue.entity) ? node.field_venue.entity.label : '' %}
+            {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : venue_entity_label|trim %}
+            {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
+            {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
               {% set map_query = '' %}
               {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
                 {% set map_query = mel_lat ~ ',' ~ mel_lng %}
-              {% elseif info_venue is not empty and info_address is not empty %}
-                {% set map_query = info_venue ~ ', ' ~ info_address %}
-              {% elseif info_venue is not empty %}
-                {% set map_query = info_venue %}
+              {% elseif info_venue_line is not empty and info_address is not empty %}
+                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
+              {% elseif info_venue_line is not empty %}
+                {% set map_query = info_venue_line %}
               {% elseif info_address is not empty %}
                 {% set map_query = info_address %}
               {% elseif has_field_location and content.field_location is defined %}
@@ -510,10 +529,18 @@
               {% endif %}
               <div class="mel-info-row">
                 <div class="mel-info-row__label">{{ 'Location'|t }}</div>
-                <div class="mel-info-row__value">
-                  {{ info_venue }}
+                <div class="mel-info-row__value mel-event-location">
+                  {% if info_venue_line is not empty %}
+                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
+                  {% endif %}
                   {% if info_address is not empty or has_field_location %}
-                    <div class="mel-muted">{% if content.field_location is defined and content.field_location|render|striptags|trim %}{{ content.field_location }}{% elseif info_address is not empty %}{{ info_address }}{% endif %}</div>
+                    <div class="mel-event-location__address">
+                      {% if location_has_markup %}
+                        {{ content.field_location }}
+                      {% elseif info_address is not empty %}
+                        {{ info_address }}
+                      {% endif %}
+                    </div>
                   {% endif %}
                   {% if map_query is not empty %}
                     <div class="mel-event-map-embed mel-mt-3">
