@@ -21,10 +21,12 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 use Drupal\file\Entity\File;
+use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Service\EventCtaResolver;
 
 /**
  * Implements hook_preprocess().
@@ -98,6 +100,11 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       'variables' => [
         'drawer_menu' => [],
         'drawer_organiser' => [],
+        'create_event_url' => '/create-event',
+        'mel_cart_url' => '/cart',
+        'mel_cart_item_count' => 0,
+        'mel_cart_count_text' => '',
+        'mel_checkout_url' => '',
       ],
       'template' => 'components/mobile-drawer/mobile-drawer',
     ],
@@ -222,6 +229,9 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
       '#theme' => 'mobile_drawer',
       '#drawer_menu' => $variables['primary_menu'],
       '#drawer_organiser' => $variables['organiser_context'],
+      '#cache' => [
+        'contexts' => ['cart'],
+      ],
     ];
   }
   else {
@@ -354,6 +364,94 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
 function myeventlane_theme_preprocess_mobile_drawer(array &$variables): void {
   $variables['drawer_menu'] = $variables['drawer_menu'] ?? [];
   $variables['drawer_organiser'] = $variables['drawer_organiser'] ?? [];
+  try {
+    $variables['create_event_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+  }
+  catch (\Throwable) {
+    $variables['create_event_url'] = '/create-event';
+  }
+
+  $variables['mel_cart_url'] = '/cart';
+  $variables['mel_cart_item_count'] = 0;
+  $variables['mel_cart_count_text'] = (string) \Drupal::translation()->formatPlural(0, '@count item', '@count items', ['@count' => 0]);
+  $variables['mel_checkout_url'] = '';
+
+  try {
+    $variables['mel_cart_url'] = Url::fromRoute('commerce_cart.page')->toString();
+  }
+  catch (\Throwable) {
+    // Route missing in non-Commerce environments.
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('commerce_cart')) {
+    try {
+      $cart_qty = 0;
+      foreach (\Drupal::service('commerce_cart.cart_provider')->getCarts() as $cart) {
+        foreach ($cart->getItems() as $item) {
+          $cart_qty += (int) $item->getQuantity();
+        }
+      }
+      $variables['mel_cart_item_count'] = $cart_qty;
+      $variables['mel_cart_count_text'] = (string) \Drupal::translation()->formatPlural(
+        $cart_qty,
+        '@count item',
+        '@count items',
+        ['@count' => $cart_qty]
+      );
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->error('Mobile drawer cart count failed: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+
+  if (\Drupal::moduleHandler()->moduleExists('commerce_checkout')) {
+    try {
+      $checkout_url = Url::fromRoute('commerce_checkout.checkout');
+      if ($checkout_url->access(\Drupal::currentUser())) {
+        $variables['mel_checkout_url'] = $checkout_url->toString();
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_theme')->warning('Mobile drawer checkout URL: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_cart_block.
+ */
+function myeventlane_theme_preprocess_commerce_cart_block(array &$variables): void {
+  $variables['mel_checkout_url'] = '';
+  if (!\Drupal::moduleHandler()->moduleExists('commerce_checkout')) {
+    return;
+  }
+  try {
+    $checkout_url = Url::fromRoute('commerce_checkout.checkout');
+    if ($checkout_url->access(\Drupal::currentUser())) {
+      $variables['mel_checkout_url'] = $checkout_url->toString();
+    }
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_theme')->warning('Cart block checkout URL: @message', ['@message' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for commerce_checkout_pane.
+ *
+ * Adds a single shell class for governed checkout SCSS (no markup fork).
+ */
+function myeventlane_theme_preprocess_commerce_checkout_pane(array &$variables): void {
+  if (!isset($variables['elements']) || !is_array($variables['elements'])) {
+    return;
+  }
+  if (!isset($variables['elements']['#attributes']['class'])) {
+    $variables['elements']['#attributes']['class'] = [];
+  }
+  elseif (!is_array($variables['elements']['#attributes']['class'])) {
+    $variables['elements']['#attributes']['class'] = [$variables['elements']['#attributes']['class']];
+  }
+  $variables['elements']['#attributes']['class'][] = 'mel-checkout-pane-shell';
 }
 
 /**
@@ -385,11 +483,19 @@ function myeventlane_theme_theme_suggestions_form_alter(array &$suggestions, arr
  */
 function myeventlane_theme_theme_suggestions_commerce_checkout_form(array $variables): array {
   $suggestions = [];
-  $step_id = $variables['form']['#step_id'] ?? NULL;
+  $form = $variables['form'] ?? [];
+  $step_id = $form['#step_id'] ?? NULL;
   if ($step_id === 'complete') {
-    $suggestions[] = 'commerce_checkout_form__complete';
+    // Complete + visible sidebar: use commerce_checkout_form__with_sidebar only (Commerce + below).
+    // Avoid competing __complete vs __with_sidebar suggestions on the same step.
+    if (!isset($form['sidebar']) || !Element::isVisibleElement($form['sidebar'])) {
+      $suggestions[] = 'commerce_checkout_form__complete';
+    }
+    return $suggestions;
   }
-  elseif ($step_id !== NULL) {
+  if ($step_id !== NULL
+    && isset($form['sidebar'])
+    && Element::isVisibleElement($form['sidebar'])) {
     $suggestions[] = 'commerce_checkout_form__with_sidebar';
   }
   return $suggestions;
@@ -496,6 +602,37 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         ? $first_event->toUrl('canonical', ['absolute' => TRUE])->toString()
         : '';
       $variables['mel_logged_in'] = \Drupal::currentUser()->isAuthenticated();
+
+      // Paid vs free/zero-total: honest labels on confirmation (Twig-safe booleans/strings).
+      $total_price = $order->getTotalPrice();
+      $variables['mel_confirm_paid'] = $total_price instanceof Price && !$total_price->isZero();
+
+      $ticket_like_count = 0;
+      foreach ($order->getItems() as $item) {
+        if (!in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+          $ticket_like_count++;
+        }
+      }
+      $variables['mel_confirmation_has_tickets'] = $ticket_like_count > 0;
+
+      $donation_sum = NULL;
+      foreach ($order->getItems() as $item) {
+        if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE)) {
+          $tp = $item->getTotalPrice();
+          if ($tp instanceof Price && !$tp->isZero()) {
+            $donation_sum = $donation_sum === NULL ? $tp : $donation_sum->add($tp);
+          }
+        }
+      }
+      $variables['mel_donation_total_formatted'] = NULL;
+      if ($donation_sum instanceof Price && !$donation_sum->isZero()) {
+        /** @var \Drupal\commerce_price\CurrencyFormatter $currency_formatter */
+        $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
+        $variables['mel_donation_total_formatted'] = $currency_formatter->format(
+          $donation_sum->getNumber(),
+          $donation_sum->getCurrencyCode()
+        );
+      }
 
       // Attach copy-link JS when share block is present.
       if ($variables['mel_event_url']) {
@@ -638,6 +775,13 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
  * and ensure page__front wins.
  */
 function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, array $variables): void {
+  // Full calendar view: ensure page--calendar + preprocess_page__calendar run (path-based
+  // suggestions can miss this display; without it calendar_events stays unset).
+  $route = \Drupal::routeMatch()->getRouteName();
+  if ($route === 'view.events_calendar.page_calendar') {
+    $suggestions[] = 'page__calendar';
+  }
+
   if (!\Drupal::service('path.matcher')->isFrontPage()) {
     return;
   }
@@ -1384,15 +1528,10 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       'event_home_card',
     ];
     if (in_array($view_mode, $card_view_modes, TRUE)) {
-      // Card image URL: priority A) event image, B) category placeholder, C) default placeholder
+      // Listing cards: real image only; missing image uses CSS gradient (no text-bearing assets).
       $card_image_url = $event_image_url;
-      $is_placeholder = FALSE;
-      if (!$card_image_url && $placeholder_url) {
-        $card_image_url = $placeholder_url;
-        $is_placeholder = TRUE;
-      }
-      // Styled derivatives for listing cards (matches image styles on view displays).
-      if (!$is_placeholder && $event_image_uri) {
+      $is_placeholder = !$event_image_url;
+      if ($event_image_uri) {
         $style_storage = \Drupal::entityTypeManager()->getStorage('image_style');
         $styled_modes = [
           'teaser',
@@ -1416,6 +1555,9 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
           }
         }
       }
+      else {
+        $card_image_url = NULL;
+      }
       $variables['mel_card_image_url'] = $card_image_url;
       $variables['mel_card_is_placeholder'] = $is_placeholder;
 
@@ -1429,8 +1571,52 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['mel_category_name'] = $category_label;
       $variables['mel_category_slug'] = $category_slug;
 
-      // Badge text: FREE, price, or "Tickets"
+      // Badge text: FREE, price, or "Tickets" (internal; external omits).
       $variables['mel_card_badge_text'] = _myeventlane_theme_get_event_badge_text($node);
+
+      $card_type = 'none';
+      if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+        $et = $node->get('field_event_type')->value;
+        if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
+          $card_type = $et;
+        }
+      }
+      $variables['card_type'] = $card_type;
+
+      $state = (string) ($variables['mel_event_state'] ?? '');
+      $cta_type = (string) ($variables['cta_type'] ?? 'none');
+      $variables['card_status_primary'] = _myeventlane_theme_event_card_status_primary($node, $variables['mel_card_badge_text'], $state, $cta_type);
+      $variables['card_status_secondary'] = NULL;
+      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
+        $ec_sched = $variables['event_cta'] ?? [];
+        $variables['card_status_secondary'] = trim((string) ($ec_sched['label'] ?? ''));
+      }
+      $ec = $variables['event_cta'] ?? [];
+      $cta_label = trim((string) ($ec['label'] ?? ''));
+      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
+        $cta_label = (string) t('View details');
+      }
+      elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
+        $cta_label = (string) t('View details');
+      }
+      elseif ($cta_label === '') {
+        $cta_label = (string) t('View details');
+      }
+      $variables['card_cta_label'] = $cta_label;
+
+      $badge_for_modifier = $variables['mel_card_badge_text'];
+      $variables['card_status_modifier'] = match (TRUE) {
+        in_array($state, ['cancelled'], TRUE) => 'cancelled',
+        $state === 'ended' => 'ended',
+        $state === 'sold_out' => 'sold-out',
+        $state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
+        $card_type === 'external' => 'external',
+        $badge_for_modifier === 'FREE' => 'free',
+        is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+        default => 'default',
+      };
+
+      $variables['is_promoted'] = $node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value;
 
       // Poster cards: compact overlay pill (Free / Tickets / $$).
       $variables['mel_poster_price_pill'] = NULL;
@@ -1461,8 +1647,8 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       }
       $variables['mel_card_when'] = $when_text;
 
-      // Venue/location (where): venue entity, then venue name, then address locality.
-      $variables['mel_card_where'] = _myeventlane_theme_event_primary_location_label($node);
+      // Discovery cards: venue / locality only (no street dump).
+      $variables['mel_card_where'] = _myeventlane_theme_event_card_location_label($node);
 
       // card_* variables for event-card and teaser templates (they use card_* not mel_*).
       $variables['card_url'] = $variables['mel_card_url'];
@@ -1472,15 +1658,6 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       $variables['card_time_range'] = $when_text;
       $variables['card_location'] = $variables['mel_card_where'];
       $variables['card_price_label'] = $variables['mel_card_badge_text'] ?? '';
-
-      $card_type = 'none';
-      if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
-        $et = $node->get('field_event_type')->value;
-        if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
-          $card_type = $et === 'external' ? 'paid' : $et;
-        }
-      }
-      $variables['card_type'] = $card_type;
 
       if ($category_label !== NULL && $category_url !== NULL) {
         $variables['card_category'] = ['label' => $category_label, 'url' => $category_url];
@@ -1545,6 +1722,83 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
 }
 
 /**
+ * Single-line location for discovery cards (no street line fallback).
+ *
+ * Order: referenced venue entity label, field_venue_name, then locality (+ admin)
+ * from field_location only.
+ */
+function _myeventlane_theme_event_card_location_label(NodeInterface $node): ?string {
+  if ($node->bundle() !== 'event') {
+    return NULL;
+  }
+  if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue_entity = $node->get('field_venue')->entity;
+    if ($venue_entity) {
+      $name = trim((string) $venue_entity->label());
+      if ($name !== '') {
+        return $name;
+      }
+    }
+  }
+  if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
+    $name = trim((string) $node->get('field_venue_name')->value);
+    if ($name !== '') {
+      return $name;
+    }
+  }
+  if ($node->hasField('field_location') && !$node->get('field_location')->isEmpty()) {
+    $location_item = $node->get('field_location')->first();
+    if ($location_item) {
+      $locality = $location_item->get('locality')->getValue();
+      $administrative_area = $location_item->get('administrative_area')->getValue();
+      if ($locality) {
+        $where_text = $locality;
+        if ($administrative_area) {
+          $where_text .= ', ' . $administrative_area;
+        }
+        return $where_text;
+      }
+    }
+  }
+  return NULL;
+}
+
+/**
+ * Primary status line for public event cards (price / availability), plain text.
+ */
+function _myeventlane_theme_event_card_status_primary(NodeInterface $node, ?string $badge_text, string $state, string $cta_type): ?string {
+  if (in_array($state, ['cancelled'], TRUE)) {
+    return (string) t('Cancelled');
+  }
+  if ($state === 'ended') {
+    return (string) t('Ended');
+  }
+  if ($state === 'sold_out') {
+    return (string) t('Sold out');
+  }
+  if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
+    return (string) t('On sale soon');
+  }
+  $event_type = NULL;
+  if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+    $event_type = $node->get('field_event_type')->value;
+  }
+  if ($event_type === 'external') {
+    return (string) t('External ticketing');
+  }
+  if ($badge_text === 'FREE') {
+    return (string) t('Free · RSVP');
+  }
+  if (is_string($badge_text) && str_starts_with($badge_text, '$')) {
+    return $badge_text;
+  }
+  if ($badge_text === 'Tickets') {
+    return (string) t('Paid tickets');
+  }
+  return NULL;
+}
+
+/**
  * Helper function to compute event badge text from event type and price.
  *
  * @param \Drupal\node\NodeInterface $node
@@ -1561,6 +1815,10 @@ function _myeventlane_theme_get_event_badge_text(\Drupal\node\NodeInterface $nod
   $event_type = NULL;
   if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
     $event_type = $node->get('field_event_type')->value;
+  }
+
+  if ($event_type === 'external') {
+    return NULL;
   }
 
   // RSVP or "both" with free price → "FREE"
@@ -1593,7 +1851,7 @@ function _myeventlane_theme_get_event_badge_text(\Drupal\node\NodeInterface $nod
   }
 
   // Paid or "both" without price info → "Tickets"
-  if (in_array($event_type, ['paid', 'both', 'external'], TRUE)) {
+  if (in_array($event_type, ['paid', 'both'], TRUE)) {
     return 'Tickets';
   }
 
@@ -1800,6 +2058,12 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
       }
     }
     $variables['mel_browse_active_filters'] = $active;
+    $total = $view->total_rows;
+    if ($total === NULL) {
+      $result = $view->result ?? [];
+      $total = is_countable($result) ? count($result) : 0;
+    }
+    $variables['mel_browse_result_count'] = (int) $total;
   }
 
   // Only process views on taxonomy term pages.
@@ -2128,6 +2392,19 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     return;
   }
 
+  // Checkout: sidebar panes skip commerce_checkout_pane theme; add shell class
+  // so governed SCSS applies (presentation only, no pane logic changes).
+  if (str_starts_with($form_id, 'commerce_checkout_flow_') && isset($form['sidebar']) && is_array($form['sidebar'])) {
+    foreach (Element::children($form['sidebar']) as $key) {
+      if (!isset($form['sidebar'][$key]['#attributes']['class'])) {
+        $form['sidebar'][$key]['#attributes']['class'] = [];
+      }
+      elseif (!is_array($form['sidebar'][$key]['#attributes']['class'])) {
+        $form['sidebar'][$key]['#attributes']['class'] = [$form['sidebar'][$key]['#attributes']['class']];
+      }
+      $form['sidebar'][$key]['#attributes']['class'][] = 'mel-checkout-pane-shell';
+    }
+  }
 
   // Event node forms.
   if (in_array($form_id, ['node_event_form', 'node_event_edit_form'])) {
@@ -2425,6 +2702,47 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     'longitude' => $variables['mel_lng'],
     'title' => $node->label(),
   ];
+
+  // Public organiser trust data for Event Full (field_event_vendor → myeventlane_vendor).
+  $variables['mel_organiser'] = NULL;
+  if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
+    $vendor = $node->get('field_event_vendor')->entity;
+    if ($vendor && $vendor->getEntityTypeId() === 'myeventlane_vendor') {
+      $organiser = [
+        'name' => $vendor->label(),
+        'url' => NULL,
+        'logo_url' => NULL,
+        'tagline' => NULL,
+      ];
+      if ($vendor->hasField('field_tagline') && !$vendor->get('field_tagline')->isEmpty()) {
+        $tag = trim((string) $vendor->get('field_tagline')->value);
+        $organiser['tagline'] = $tag !== '' ? $tag : NULL;
+      }
+      elseif ($vendor->hasField('field_summary') && !$vendor->get('field_summary')->isEmpty()) {
+        $sum = trim((string) $vendor->get('field_summary')->value);
+        $organiser['tagline'] = $sum !== '' ? (string) Unicode::truncate($sum, 140, TRUE, TRUE) : NULL;
+      }
+      try {
+        $vurl = Url::fromRoute('entity.myeventlane_vendor.canonical', ['myeventlane_vendor' => $vendor->id()]);
+        if ($vurl->access(\Drupal::currentUser())) {
+          $organiser['url'] = $vurl->setAbsolute(FALSE)->toString();
+        }
+      }
+      catch (\Throwable) {
+      }
+      foreach (['field_vendor_logo', 'field_logo_image'] as $logo_field) {
+        if ($vendor->hasField($logo_field) && !$vendor->get($logo_field)->isEmpty()) {
+          $files = $vendor->get($logo_field)->referencedEntities();
+          $file = !empty($files) ? reset($files) : NULL;
+          if ($file instanceof File) {
+            $organiser['logo_url'] = $file_url_generator->generateAbsoluteString($file->getFileUri());
+            break;
+          }
+        }
+      }
+      $variables['mel_organiser'] = $organiser;
+    }
+  }
 }
 
 /**

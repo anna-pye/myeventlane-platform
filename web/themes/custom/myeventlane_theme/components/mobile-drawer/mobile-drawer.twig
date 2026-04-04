@@ -1,22 +1,40 @@
 {#
 /**
- * @component Mobile Drawer
+ * @component Mobile Drawer (design mirror — runtime uses templates/components/…)
  *
  * Variables:
  * - drawer_menu (primary links)
  * - drawer_organiser (organiser links/context)
+ * - create_event_url (optional; gateway URL)
+ * - mel_cart_url, mel_cart_item_count, mel_cart_count_text, mel_checkout_url
  */
 #}
-
 <details class="mobile-drawer">
-  <summary class="mobile-drawer__toggle" aria-label="Open menu">
+  <summary class="mobile-drawer__toggle" aria-label="{{ 'Open menu'|t }}">
     <span class="mobile-drawer__icon" aria-hidden="true">☰</span>
-    <span class="mobile-drawer__label">Menu</span>
+    <span class="mobile-drawer__label">{{ 'Menu'|t }}</span>
   </summary>
 
-  <div class="mobile-drawer__panel" role="dialog" aria-label="Site menu">
+  <div class="mobile-drawer__panel" role="dialog" aria-label="{{ 'Site menu'|t }}">
     <div class="mobile-drawer__section">
       {{ drawer_menu }}
+    </div>
+
+    <div class="mobile-drawer__divider" aria-hidden="true"></div>
+    <div class="mobile-drawer__section mobile-drawer__section--cart">
+      <h2 class="mobile-drawer__section-title">{{ 'Cart'|t }}</h2>
+      <a href="{{ mel_cart_url }}" class="mobile-drawer__cart-link">
+        <span class="mobile-drawer__cart-label">{{ 'View cart'|t }}</span>
+        <span class="mobile-drawer__cart-count">{{ mel_cart_count_text }}</span>
+      </a>
+      {% if mel_checkout_url and mel_cart_item_count > 0 %}
+        <a href="{{ mel_checkout_url }}" class="mobile-drawer__checkout-link">{{ 'Checkout'|t }}</a>
+      {% endif %}
+      <nav class="mel-checkout-trust-nav mel-checkout-trust-nav--mini mobile-drawer__trust" aria-label="{{ 'Help with cart and checkout'|t }}">
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+        <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+      </nav>
     </div>
 
     {% if drawer_organiser %}
@@ -25,5 +43,16 @@
         {{ drawer_organiser }}
       </div>
     {% endif %}
+
+    <div class="mobile-drawer__divider" aria-hidden="true"></div>
+    <div class="mobile-drawer__section mobile-drawer__section--cta">
+      <a href="{{ create_event_url|default('/create-event') }}" class="mobile-drawer__create-event">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        {{ 'Create event'|t }}
+      </a>
+    </div>
   </div>
 </details>

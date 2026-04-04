@@ -8,6 +8,8 @@
  * - No CDN JS/CSS in Twig.
  *
  * Calendar UI should be provided by placed blocks/views and theme assets.
+ * When no published events with dates exist, show an intentional empty state
+ * (preprocess sets calendar_events in myeventlane_theme.theme).
  */
 #}
 
@@ -21,8 +23,18 @@
       show_categories: false
     } only %}
 
-    <div class="mel-content mel-content--calendar">
-      {{ page.content }}
-    </div>
+    {% if calendar_events is defined and calendar_events is empty %}
+      <div class="mel-empty mel-empty--calendar" role="status">
+        <h2 class="mel-empty__title">{{ 'Nothing on the calendar yet'|t }}</h2>
+        <p class="mel-empty__text">{{ 'When events are published with dates, they appear here. Browse the marketplace for what’s on near you.'|t }}</p>
+        <p class="mel-empty__actions">
+          <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+        </p>
+      </div>
+    {% else %}
+      <div class="mel-content mel-content--calendar">
+        {{ page.content }}
+      </div>
+    {% endif %}
   </div>
 {% endblock %}

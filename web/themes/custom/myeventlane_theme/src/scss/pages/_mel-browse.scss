@@ -68,6 +68,15 @@
   color: mel.$mel-ds-color-muted;
 }
 
+.mel-browse-results-count {
+  margin: 0 0 12px;
+  font-family: mel.$mel-ds-font-main;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: mel.$mel-ds-color-text;
+}
+
 .mel-category-strip {
   display: flex;
   gap: 8px;

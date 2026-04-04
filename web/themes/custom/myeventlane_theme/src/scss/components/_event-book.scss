@@ -222,6 +222,41 @@
   }
 }
 
+.mel-booking-v2 .mel-booking-help-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: spacing.mel-space(1) spacing.mel-space(2);
+  margin: 0 0 spacing.mel-space(4);
+  font-size: typography.mel-font-size(sm);
+}
+
+.mel-booking-v2 .mel-booking-help-links__a {
+  color: colors.$mel-color-primary;
+  font-weight: typography.$mel-font-medium;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+
+  &:hover {
+    color: color.adjust(colors.$mel-color-primary, $lightness: -8%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$mel-color-primary;
+    outline-offset: 2px;
+    border-radius: radii.$mel-radius-sm;
+  }
+}
+
+.mel-booking-v2 .mel-booking-help-links__sep {
+  color: colors.$mel-color-text-muted;
+  user-select: none;
+}
+
 // ---------------------------------------------------------------------------
 // Booking signals (real-data only)
 // ---------------------------------------------------------------------------

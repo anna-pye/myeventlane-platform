@@ -18,9 +18,15 @@
   <main class="mel-browse__results">
     <a href="#mel-browse-filters" class="mel-filter-button mel-btn mel-btn-secondary">{{ 'Filter'|t }}</a>
 
+    {% if mel_browse_result_count is defined %}
+      <p class="mel-browse-results-count" role="status">
+        {{ '@count events'|t({'@count': mel_browse_result_count}) }}
+      </p>
+    {% endif %}
+
     {% if mel_browse_active_filters|default(false) %}
       <div class="mel-active-filters" role="status">
-        {{ 'Showing filtered results'|t }}
+        {{ 'Filters applied — showing matching results.'|t }}
       </div>
     {% endif %}
 

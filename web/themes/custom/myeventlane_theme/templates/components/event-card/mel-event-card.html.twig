@@ -1,10 +1,10 @@
 {#
 /**
  * @file
- * Single MEL event card — variants: standard, featured, compact, featured_hero.
+ * Canonical MEL public event card — variants: standard, featured, compact, featured_hero.
  *
- * Node listings: preprocess sets card_* (see myeventlane_theme_preprocess_node).
- * Views field rows: map title, url, image, date_full, location, category, etc.
+ * Node listings: preprocess supplies card_* (myeventlane_theme_preprocess_node).
+ * Views field rows: pass title, url, image, date_full, location, category, ticket_type, etc.
  */
 #}
 {% set variant = variant|default('standard') %}
@@ -14,8 +14,23 @@
 {% set _img_alt = card_image_alt|default(_title) %}
 {% set _time = card_time_range|default(date_full|default('')) %}
 {% set _loc = card_location|default(location|default('')) %}
-{% set _price = card_price_label|default('') %}
 {% set _type = card_type|default(ticket_type|default('paid')) %}
+
+{% set _status_primary = card_status_primary|default('') %}
+{% set _status_secondary = card_status_secondary|default('') %}
+{% set _status_mod = card_status_modifier|default('default') %}
+
+{% set _cta = card_cta_label|default('') %}
+{% if _cta == '' %}
+  {% if _type == 'rsvp' %}
+    {% set _cta = 'RSVP free'|t %}
+  {% elseif _type == 'external' %}
+    {% set _cta = 'External tickets'|t %}
+  {% else %}
+    {% set _cta = 'Buy tickets'|t %}
+  {% endif %}
+{% endif %}
+
 {% set is_promoted = is_promoted|default(false) %}
 {% set is_past = is_past|default(false) %}
 {% set _low_stock = card_is_low_stock|default(false) %}
@@ -27,60 +42,53 @@
 {% endif %}
 {% set category_class = category_slug is defined and category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
 
-{% set _badge_label = 'Get tickets'|t %}
-{% if _type == 'rsvp' or (_price|default('')|upper == 'FREE') %}
-  {% set _badge_label = 'RSVP'|t %}
-{% elseif _type == 'external' %}
-  {% set _badge_label = 'Book'|t %}
+{# One image-area badge: category first, else Featured when promoted. #}
+{% set _image_badge_label = null %}
+{% if _category and _category.label %}
+  {% set _image_badge_label = _category.label %}
+{% elseif is_promoted %}
+  {% set _image_badge_label = 'Featured'|t %}
 {% endif %}
 
-{% set _body_cta = (_price|default('')|upper == 'FREE') ? 'Save your spot'|t : 'View tickets'|t %}
-
 {% if variant == 'featured_hero' %}
-  {% set is_free = (_price|default('')|upper == 'FREE') or (_type == 'rsvp') %}
-  {% set _hero_cta = is_free ? ('Save your spot'|t) : ('Get tickets'|t) %}
   {% if attributes is defined and attributes %}
   <article{{ attributes.addClass('mel-event-hero-card-article') }}>
   {% else %}
   <article class="mel-event-hero-card-article">
   {% endif %}
-    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _hero_cta }}">
+    <a href="{{ _url }}" class="mel-event-hero-card" aria-label="{{ _title ~ ' — ' ~ _cta }}">
       <div class="mel-event-hero-card__image">
         {% if _img %}
-          <img
-            src="{{ _img }}"
-            alt="{{ _img_alt }}"
-            loading="eager"
-            decoding="async"
-          />
+          <img src="{{ _img }}" alt="{{ _img_alt }}" loading="eager" decoding="async" />
         {% else %}
           <div class="mel-event-hero-card__placeholder" aria-hidden="true"></div>
         {% endif %}
         <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
+        {% if _image_badge_label %}
+          <span class="mel-event-hero-card__badge mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
+            <span class="mel-pill__label">{{ _image_badge_label }}</span>
+          </span>
+        {% endif %}
       </div>
 
       <div class="mel-event-hero-card__content">
-        <h2>{{ _title }}</h2>
+        <h2 class="mel-event-hero-card__title">{{ _title }}</h2>
 
-        {% if _time or _loc %}
-          <div class="mel-event-hero-card__meta">
-            {% if _time %}{{ _time }}{% endif %}
-            {% if _time and _loc %} • {% endif %}
-            {% if _loc %}{{ _loc }}{% endif %}
-          </div>
+        {% if _time %}
+          <p class="mel-event-hero-card__when">{{ _time }}</p>
+        {% endif %}
+        {% if _loc %}
+          <p class="mel-event-hero-card__where">{{ _loc }}</p>
         {% endif %}
 
-        {% if _price %}
-          <div class="mel-event-hero-card__price">
-            {% if _price == 'FREE' %}
-              <span class="mel-price--free">{{ 'Free'|t }}</span>
-            {% else %}
-              <span class="mel-price--paid">{{ _price }}</span>
-            {% endif %}
-          </div>
+        {% if _status_primary %}
+          <p class="mel-event-hero-card__status mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
+        {% endif %}
+        {% if _status_secondary %}
+          <p class="mel-event-hero-card__status-note">{{ _status_secondary }}</p>
         {% endif %}
 
-        <span class="mel-btn mel-btn--cta">{{ _hero_cta }}</span>
+        <span class="mel-btn mel-btn--cta mel-event-hero-card__cta-chip" aria-hidden="true">{{ _cta }}</span>
       </div>
     </a>
   </article>
@@ -99,7 +107,7 @@
 {% else %}
 <article class="{{ card_classes|join(' ') }}">
 {% endif %}
-  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title }}">
+  <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}">
     <div class="mel-event-card__image">
       {% if _img %}
         <img
@@ -114,89 +122,55 @@
       {% endif %}
 
       {% if variant == 'featured' %}
-        <div class="mel-event-card__overlay" aria-hidden="true"></div>
-        {% if _category and _category.label %}
-          <span class="mel-event-card__category-pill mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ _category.label }}</span>
-          </span>
-        {% endif %}
-        <span class="mel-event-card__tag" aria-hidden="true">{{ 'Featured'|t }}</span>
-        <div class="mel-event-card__cta" aria-hidden="true">{{ _badge_label }}</div>
-      {% else %}
-        {% if _category and _category.label %}
-          <span class="mel-event-card__category-pill mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
-            <span class="mel-pill__label">{{ _category.label }}</span>
-          </span>
-        {% endif %}
+        <div class="mel-event-card__overlay mel-event-card__overlay--featured" aria-hidden="true"></div>
+      {% endif %}
 
-        {% if is_promoted %}
-          <div class="mel-featured-badge" role="note" aria-label="{{ 'Featured event'|t }}">
-            <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
-            <span class="mel-featured-badge__text">{{ 'Featured'|t }}</span>
-          </div>
-        {% endif %}
-
-        {% if variant != 'compact' and variant != 'standard' %}
-          <span class="mel-card-badge" aria-hidden="true">{{ _badge_label }}</span>
-        {% endif %}
+      {% if _image_badge_label %}
+        <span class="mel-event-card__image-badge mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
+          <span class="mel-pill__label">{{ _image_badge_label }}</span>
+        </span>
       {% endif %}
     </div>
 
-    <div class="mel-event-card__content">
+    <div class="mel-event-card__body mel-event-card__content">
       <h3 class="mel-event-card__title">{{ _title }}</h3>
 
-      <div class="mel-event-card__meta">
-        {% if _time %}
-          <div class="mel-event-card__meta-item">{{ _time }}</div>
-        {% endif %}
+      {% if _time %}
+        <p class="mel-event-card__when">{{ _time }}</p>
+      {% endif %}
+
+      <div class="mel-event-card__location-slot"{% if not _loc %} aria-hidden="true"{% endif %}>
         {% if _loc %}
-          <div class="mel-event-card__meta-item mel-event-card__meta-item--location">
-            <span class="mel-event-card__location">
-              <span class="mel-event-card__location-pin" aria-hidden="true">&#128205;</span>{{ _loc }}
-            </span>
-          </div>
-        {% endif %}
-        {% if variant == 'featured' and _price %}
-          <div class="mel-event-card__meta-item mel-event-card__meta-item--price">{{ _price }}</div>
+          <p class="mel-event-card__location">{{ _loc }}</p>
+        {% else %}
+          <p class="mel-event-card__location mel-event-card__location--empty">&nbsp;</p>
         {% endif %}
       </div>
 
-      {% if variant == 'standard' %}
-        {% if _price %}
-          <div class="mel-event-card__price">
-            {% if _price == 'FREE' %}
-              <span class="mel-price--free">{{ 'Free'|t }}</span>
-            {% else %}
-              <span class="mel-price--paid">{{ _price }}</span>
-            {% endif %}
-          </div>
-        {% endif %}
-        <div class="mel-event-card__cta mel-event-card__cta--body" aria-hidden="true">{{ _body_cta }}</div>
-        {% if _low_stock %}
-          <span class="mel-event-card__urgency">{{ 'Selling fast'|t }}</span>
-        {% endif %}
-        {% if _attendance %}
-          <span class="mel-event-card__social">{{ '@count going'|t({'@count': _attendance}) }}</span>
-        {% endif %}
+      {% if _status_primary or _status_secondary %}
+        <div class="mel-event-card__status-row">
+          {% if _status_primary %}
+            <p class="mel-event-card__status mel-event-card__status--{{ _status_mod }}">{{ _status_primary }}</p>
+          {% endif %}
+          {% if _status_secondary %}
+            <p class="mel-event-card__status-secondary">{{ _status_secondary }}</p>
+          {% endif %}
+        </div>
       {% endif %}
 
-      {% if variant == 'compact' %}
-        {% if _price %}
-          <div class="mel-event-card__price">
-            {% if _price == 'FREE' %}
-              <span class="mel-price--free">{{ 'Free'|t }}</span>
-            {% else %}
-              <span class="mel-price--paid">{{ _price }}</span>
-            {% endif %}
-          </div>
-        {% endif %}
-        <div class="mel-event-card__cta mel-event-card__cta--body" aria-hidden="true">{{ _body_cta }}</div>
-        {% if _low_stock %}
-          <span class="mel-event-card__urgency">{{ 'Selling fast'|t }}</span>
-        {% endif %}
-        {% if _attendance %}
-          <span class="mel-event-card__social">{{ '@count going'|t({'@count': _attendance}) }}</span>
-        {% endif %}
+      <div class="mel-event-card__cta-row">
+        <span class="mel-event-card__cta-chip" aria-hidden="true">{{ _cta }}</span>
+      </div>
+
+      {% if _low_stock or _attendance %}
+        <div class="mel-event-card__tertiary">
+          {% if _low_stock %}
+            <span class="mel-event-card__urgency">{{ 'Selling fast'|t }}</span>
+          {% endif %}
+          {% if _attendance %}
+            <span class="mel-event-card__social">{{ '@count going'|t({'@count': _attendance}) }}</span>
+          {% endif %}
+        </div>
       {% endif %}
     </div>
   </a>

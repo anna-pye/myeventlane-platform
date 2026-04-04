@@ -3,6 +3,10 @@
 // ==========================================================================
 // Compact global header (desktop + mobile).
 // Uses BEM: .site-header, .site-header__inner, etc.
+//
+// Duplicated chrome on staging is usually from Layout Builder / block regions
+// (e.g. branding + menu blocks in content) — page.html.twig only renders
+// {{ site_header }} once. Desktop nav is hidden below 900px; drawer below.
 
 .site-header {
   position: relative;

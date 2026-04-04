@@ -69,6 +69,12 @@ final class CheckoutUxAttacher {
     }
 
     $built = $this->groupedSummaryBuilder->build($order);
+    // Avoid replacing the summary with an empty theme: the pane wrapper would
+    // still render as a blank glass card above other checkout content.
+    if ($built['grouped_items'] === []) {
+      return;
+    }
+
     $form['sidebar']['order_summary']['#attributes']['class'][] = 'mel-checkout-summary-pane';
     $form['sidebar']['order_summary']['summary'] = [
       '#theme' => 'mel_checkout_order_summary_grouped',

@@ -352,51 +352,7 @@
   margin-bottom: spacing.mel-space(5);
 }
 
-// ---------------------------------------------------------------------------
-// Mini Cart (Header Dropdown)
-// ---------------------------------------------------------------------------
-
-.mel-mini-cart {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  width: 360px;
-  max-height: 480px;
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  box-shadow: shadows.$mel-shadow-lg;
-  overflow: hidden;
-  z-index: 100;
-}
-
-.mel-mini-cart-header {
-  padding: spacing.mel-space(4);
-  border-bottom: 1px solid colors.$mel-color-border;
-  font-weight: typography.$mel-font-semibold;
-}
-
-.mel-mini-cart-items {
-  max-height: 300px;
-  overflow-y: auto;
-  padding: spacing.mel-space(3);
-}
-
-.mel-mini-cart-item {
-  display: flex;
-  gap: spacing.mel-space(3);
-  padding: spacing.mel-space(2);
-  border-radius: radii.$mel-radius-md;
-
-  &:hover {
-    background: colors.$mel-color-bg;
-  }
-}
-
-.mel-mini-cart-footer {
-  padding: spacing.mel-space(4);
-  border-top: 1px solid colors.$mel-color-border;
-  background: colors.$mel-color-bg;
-}
+// Mini cart styles live in commerce/_commerce.scss (single source).
 
 // ---------------------------------------------------------------------------
 // Cart Badge (Icon Counter)

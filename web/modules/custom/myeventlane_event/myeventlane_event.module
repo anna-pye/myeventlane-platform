@@ -14,6 +14,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
+use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\Core\Render\Element;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -826,7 +827,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
   $variables['mel_categories'] = $categories;
 
-  // CTA and state: mutual exclusivity (paid | rsvp | none). Logic in service only.
+  // CTA and state: mutual exclusivity (paid | rsvp | external | none). Logic in service only.
   $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
   $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
 
@@ -871,6 +872,10 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     if ($node->get('field_event_type')->value === 'rsvp') {
       $variables['mel_tickets_from'] = t('Free');
     }
+  }
+  // Off-platform ticketing: do not show Commerce "Tickets from" in the sidebar.
+  if ($variables['cta_type'] === EventCtaResolver::CTA_EXTERNAL) {
+    $variables['mel_tickets_from'] = NULL;
   }
 }
 

@@ -1,18 +1,16 @@
 {#
 /**
  * @file
- * Theme override for checkout form with sidebar.
+ * Theme override for checkout form with sidebar (MEL governed shell).
  *
- * When step is 'complete' and order_entity is available, renders our custom
- * confirmation page. Otherwise uses compact MEL checkout layout:
- * - Payment → Your details → Ticket holders → CTA (guided flow)
- * - Sidebar: Grouped summary only (event-based)
+ * Complete step: layout regions for confirmation + summary + actions.
+ * Other steps: trust nav, grid, pane sections, summary aside.
  */
 #}
+<div class="mel-checkout-shell">
 {% if form['#step_id'] is defined and form['#step_id'] == 'complete' and order_entity %}
-  {# Custom completion page: main content + sidebar + actions #}
-  <div class="layout-checkout-form clearfix mel-checkout mel-checkout--complete">
-    <div class="layout-region layout-region-checkout-main">
+  <div class="layout-checkout-form clearfix mel-checkout mel-checkout--complete mel-checkout-complete-layout">
+    <div class="layout-region layout-region-checkout-main mel-checkout-complete-layout__main">
       {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
         order_entity: order_entity,
         order_totals: order_totals|default(null),
@@ -23,22 +21,27 @@
         mel_event_url: mel_event_url|default(''),
         mel_logged_in: mel_logged_in|default(false),
         mel_contextual_help_checkout_confirmation: mel_contextual_help_checkout_confirmation|default(null),
+        mel_confirm_paid: mel_confirm_paid|default(false),
+        mel_confirmation_has_tickets: mel_confirmation_has_tickets|default(false),
+        mel_donation_total_formatted: mel_donation_total_formatted|default(null),
       } %}
     </div>
-    <div class="layout-region layout-region-checkout-secondary">
-      <h3>{% trans %}Booking summary{% endtrans %}</h3>
+    <div class="layout-region layout-region-checkout-secondary mel-checkout-complete-layout__secondary">
+      <h3 class="mel-checkout-summary-heading">{% trans %}Booking summary{% endtrans %}</h3>
       {{ form.sidebar }}
     </div>
-    <div class="layout-region layout-region-checkout-footer">
+    <div class="layout-region layout-region-checkout-footer mel-checkout-complete-layout__footer">
       {{ form.actions }}
     </div>
   </div>
 {% else %}
-  {# Compact checkout flow: payment first, guided sections, grouped summary only #}
-  <div class="mel-checkout">
+  {# mel-checkout--compact-flow: QA hook + SCSS anchor for compact density (any Commerce flow). #}
+  <div class="mel-checkout mel-checkout--compact-flow">
     {% if title %}
       <h1 class="mel-checkout__title">{{ title }}</h1>
     {% endif %}
+
+    <p class="mel-checkout-mode-hint">{{ 'Review your details and complete your booking. Card payment only runs when your order includes a priced ticket.'|t }}</p>
 
     {% if form.progress %}
       <div class="mel-checkout__progress">
@@ -46,17 +49,17 @@
       </div>
     {% endif %}
 
-    <div class="mel-checkout__main">
+    <div class="mel-checkout__grid mel-checkout__grid--sidebar-flow">
+      <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
-        {# Hidden form elements (required for submission) #}
         {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
 
-        {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
-          {# Card is rendered in the summary column when possible. #}
-        {% elseif mel_help_checkout_refund is defined and mel_help_checkout_refund %}
-          <div class="mel-contextual-help mel-contextual-help--checkout">
-            {{ mel_help_checkout_refund }}
-          </div>
+        {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
+          {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+            <div class="mel-contextual-help mel-contextual-help--checkout">
+              {{ mel_help_checkout_refund }}
+            </div>
+          {% endif %}
         {% endif %}
         {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
           {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
@@ -71,7 +74,6 @@
           </div>
         {% endif %}
 
-        {# Payment section (first for trust + focus) #}
         {% if form.payment_information is defined %}
           <div class="mel-checkout-section mel-checkout-section--payment">
             <h3 class="mel-checkout-heading">{{ 'Payment'|t }}</h3>
@@ -79,7 +81,6 @@
           </div>
         {% endif %}
 
-        {# Your details #}
         {% if form.mel_buyer_details is defined or form.mel_donation is defined or form.mel_legal_consent is defined %}
           <div class="mel-checkout-section mel-checkout-section--details">
             <h3 class="mel-checkout-heading">{{ 'Your details'|t }}</h3>
@@ -89,7 +90,6 @@
           </div>
         {% endif %}
 
-        {# Ticket holders #}
         {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
           <div class="mel-checkout-section mel-checkout-section--attendees">
             <h3 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h3>
@@ -97,33 +97,53 @@
           </div>
         {% endif %}
 
-        {# CTA: strong primary action + reassurance #}
         {% if form.actions %}
           <div class="mel-checkout-section mel-checkout-section--cta">
             <div class="mel-checkout-cta">
               {{ form.actions }}
-              <div class="mel-checkout-cta__note">{{ 'You won\'t be charged yet'|t }}</div>
+              <div class="mel-checkout-cta__note">
+                {% if form.payment_information is defined %}
+                  {{ 'Payment is processed securely when you continue.'|t }}
+                {% else %}
+                  {{ 'No card payment is required for this order.'|t }}
+                {% endif %}
+              </div>
+              <p class="mel-checkout-cta__recovery">
+                <a class="mel-checkout-cta__recovery-link mel-util-link" href="{{ path('myeventlane_support.page') }}">{{ 'Something wrong? Contact support'|t }}</a>
+              </p>
+              <nav class="mel-checkout-support-foot" aria-label="{{ 'Help and support'|t }}">
+                <a class="mel-util-link mel-util-link--support" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+                <span class="mel-checkout-support-foot__sep" aria-hidden="true">·</span>
+                <a class="mel-util-link mel-util-link--support" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+              </nav>
             </div>
           </div>
         {% endif %}
       </div>
 
-      {# Sidebar: grouped summary only — hide when empty #}
       {% if form.sidebar is defined %}
         {% set sidebar_content = form.sidebar|render %}
         {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) %}
-          <aside class="mel-checkout__summary">
-            {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
-              <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
-                {{ mel_contextual_help_checkout }}
+          <aside class="mel-checkout__aside mel-checkout__summary" aria-label="{{ 'Order summary and help'|t }}">
+            <div class="mel-checkout__summary-inner">
+              {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
+                <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card mel-checkout__summary-region">
+                  {{ mel_contextual_help_checkout }}
+                </div>
+              {% endif %}
+              <div class="mel-checkout__summary-region mel-checkout__summary-region--order">
+                {{ sidebar_content }}
               </div>
-            {% endif %}
-            {{ sidebar_content }}
-            {% if form.mel_checkout_confidence is defined %}
-              {{ form.mel_checkout_confidence }}
-            {% endif %}
+              {% if form.mel_checkout_confidence is defined %}
+                <div class="mel-checkout__summary-region mel-checkout__summary-region--trust">
+                  {{ form.mel_checkout_confidence }}
+                </div>
+              {% endif %}
+            </div>
           </aside>
         {% endif %}
       {% endif %}
+    </div>
   </div>
 {% endif %}
+</div>

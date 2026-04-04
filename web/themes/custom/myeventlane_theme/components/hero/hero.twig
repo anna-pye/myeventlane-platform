@@ -4,8 +4,26 @@
  *
  * Variables:
  * - popular_tags: optional array of { name, url } for category shortcuts
+ * - mel_hero_desktop_url, mel_hero_mobile_url: from preprocess_page (journey/home PNGs when present)
+ * - mel_hero_hide_on_mobile: hide art on small viewports (Page Visuals)
+ * - directory: theme path segment (Drupal page variable)
+ *
+ * One primary CTA above the fold: Explore events (button). Secondary link is text-style
+ * and points to create-event gateway (login + organiser onboarding + event studio) —
+ * label matches that action; see myeventlane_vendor.create_event_gateway.
+ *
+ * For organiser help articles only (no duplicate create flow), use Help Centre e.g.
+ * myeventlane_help_centre.organisers_index (/help/organisers) from body copy or footer.
+ *
+ * Hero art: prefers responsive PNG URLs from PHP; falls back to a dedicated
+ * text-free abstract SVG (not the event placeholder asset).
  */
 #}
+
+{% set hero_desktop = mel_hero_desktop_url|default(null) %}
+{% set hero_mobile = mel_hero_mobile_url|default(null) %}
+{% set hero_hide_mobile = mel_hero_hide_on_mobile|default(false) %}
+{% set hero_fallback_src = base_path ~ directory ~ '/images/mel/hero/mel-hero-home-abstract.svg' %}
 
 <section class="mel-section hero mel-section--hero mel-section--full" aria-labelledby="mel-hero-headline">
   <div class="hero__inner mel-container mel-container--wide">
@@ -21,8 +39,8 @@
         <a class="mel-btn mel-btn--primary hero__cta hero__cta--primary" href="{{ path('view.upcoming_events.page_events') }}">
           {{ 'Explore events'|t }}
         </a>
-        <a class="mel-btn mel-btn-secondary hero__cta hero__cta--secondary" href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}">
-          {{ 'Create event'|t }}
+        <a class="mel-link hero__cta hero__cta--secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">
+          {{ 'Create your event'|t }}
         </a>
       </div>
 
@@ -36,8 +54,37 @@
       {% endif %}
     </div>
 
-    <div class="hero__visual" aria-hidden="true">
-      <div class="hero__visual-inner"></div>
+    <div class="hero__visual{% if hero_hide_mobile %} mel-home-hero__art--hide-mobile{% endif %}" aria-hidden="true">
+      <div class="hero__visual-inner">
+        {% if hero_desktop or hero_mobile %}
+          <picture>
+            {% if hero_mobile %}
+              <source media="(max-width: 767px)" srcset="{{ hero_mobile }}">
+            {% endif %}
+            <img
+              class="hero__visual-img"
+              src="{{ hero_desktop ?: hero_mobile }}"
+              alt=""
+              width="1200"
+              height="675"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
+        {% else %}
+          <img
+            class="hero__visual-img hero__visual-img--fallback"
+            src="{{ hero_fallback_src }}"
+            alt=""
+            width="960"
+            height="540"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        {% endif %}
+      </div>
     </div>
   </div>
 </section>

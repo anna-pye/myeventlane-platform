@@ -5,6 +5,7 @@
  * BEM classes: mel-support-*, mel-escalation-*
  */
 
+@use 'sass:color';
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/radii' as *;
@@ -64,7 +65,7 @@
 
     &:hover,
     &:focus {
-      color: darken($ml-vendor-slate, 15%);
+      color: color.adjust($ml-vendor-slate, $lightness: -15%);
     }
   }
 }
@@ -91,8 +92,10 @@
 
     &:hover,
     &:focus {
-      background: darken($ml-color-accent, 8%);
-      border-color: darken($ml-color-accent, 8%);
+      $accent-hover: color.adjust($ml-color-accent, $lightness: -8%);
+
+      background: $accent-hover;
+      border-color: $accent-hover;
       color: #fff;
     }
   }

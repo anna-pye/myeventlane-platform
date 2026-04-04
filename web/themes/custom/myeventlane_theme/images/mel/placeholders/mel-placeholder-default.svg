@@ -21,5 +21,4 @@
     <circle cx="415" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
     <circle cx="465" cy="265" r="14" fill="#ffffff" opacity="0.55"/>
   </g>
-  <text x="50%" y="420" text-anchor="middle" font-size="28" fill="#ffffff" opacity="0.9" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">No image yet. Your event still slaps.</text>
 </svg>

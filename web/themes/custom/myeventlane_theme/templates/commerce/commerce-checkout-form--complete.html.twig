@@ -1,16 +1,12 @@
 {#
 /**
  * @file
- * Theme override for checkout completion step.
+ * Theme override for checkout completion step (no Commerce sidebar on this step).
  *
- * Replaces the default Commerce completion form output with the enhanced
- * confirmation page (events, tickets, donations, calendar, etc.).
- *
- * Available variables:
- * - form: The checkout form (not used; we render custom completion content).
- * - order_entity: The order entity (from preprocess).
+ * Wraps confirmation in mel-checkout-shell for consistent width and message adjacency.
  */
 #}
+<div class="mel-checkout-shell mel-checkout-shell--complete">
 {% if order_entity %}
   {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
     order_entity: order_entity,
@@ -21,10 +17,14 @@
     mel_calendar_links: mel_calendar_links|default({}),
     mel_event_url: mel_event_url|default(''),
     mel_logged_in: mel_logged_in|default(false),
+    mel_contextual_help_checkout_confirmation: mel_contextual_help_checkout_confirmation|default(null),
+    mel_confirm_paid: mel_confirm_paid|default(false),
+    mel_confirmation_has_tickets: mel_confirmation_has_tickets|default(false),
+    mel_donation_total_formatted: mel_donation_total_formatted|default(null),
   } %}
 {% else %}
-  {# Fallback if order not available #}
   <div class="mel-checkout mel-checkout--complete">
     {{ form }}
   </div>
 {% endif %}
+</div>

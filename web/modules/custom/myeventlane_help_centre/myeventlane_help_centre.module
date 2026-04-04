@@ -34,7 +34,7 @@ function myeventlane_help_centre_theme(): array {
         'faq_listing' => [],
         'ia_sections' => [],
         'help_assistant_page_url' => '/help#mel-help-assistant',
-        'contact_support_url' => '/support/tickets',
+        'contact_support_url' => '/help',
         'mel_support_layer' => NULL,
       ],
       'template' => 'help-centre-home',
@@ -209,18 +209,36 @@ function _myeventlane_help_centre_vendor_help_url(): string {
 }
 
 /**
- * Resolves customer support tickets URL for Help Centre links.
+ * Resolves customer support URL for Help Centre links.
+ *
+ * Escalation ticket routes require "view own escalation"; anonymous and most
+ * signed-in attendees should land on the public Help Centre instead of 403.
  */
 function _myeventlane_help_centre_contact_support_url(): string {
+  $account = \Drupal::currentUser();
+  if ($account->isAuthenticated() && $account->hasPermission('view own escalation')) {
+    try {
+      return Url::fromRoute('myeventlane_escalations_portal.customer_support_tickets')->toString();
+    }
+    catch (\Throwable) {
+      try {
+        return Url::fromRoute('myeventlane_escalations_portal.customer_support')->toString();
+      }
+      catch (\Throwable) {
+        // Fall through to public help.
+      }
+    }
+  }
+
   try {
-    return Url::fromRoute('myeventlane_escalations_portal.customer_support_tickets')->toString();
+    return Url::fromRoute('myeventlane_help_centre.home')->toString();
   }
   catch (\Throwable) {
     try {
-      return Url::fromRoute('myeventlane_escalations_portal.customer_support')->toString();
+      return Url::fromRoute('myeventlane_support.page')->toString();
     }
     catch (\Throwable) {
-      return '/support/tickets';
+      return '/help';
     }
   }
 }
@@ -462,7 +480,7 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
           '#type' => 'link',
           '#title' => t('Need help? Open the Help Assistant'),
           '#url' => $url,
-          '#attributes' => ['class' => ['mel-checkout-help-assistant-link']],
+          '#attributes' => ['class' => ['mel-checkout-help-assistant-link', 'mel-util-link']],
         ];
       }
     }
@@ -659,6 +677,9 @@ function myeventlane_help_centre_preprocess_node(array &$variables): void {
   $contact_support_href = htmlspecialchars($variables['mel_contact_support_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $variables['mel_help_support_panel'] = [
     '#markup' => '<section class="mel-help-support-panel"><h2>' . t('Still need help?') . '</h2><p>' . t('If this article did not resolve it, contact support and include your booking or event details.') . '</p><p><a class="mel-help-support-panel__link" href="' . $contact_support_href . '">' . t('Contact support') . '</a></p></section>',
+    '#cache' => [
+      'contexts' => ['user.permissions'],
+    ],
   ];
   $variables['mel_help_cta'] = NULL;
   if ($node->hasField('field_help_cta_label') && !$node->get('field_help_cta_label')->isEmpty() && $node->hasField('field_help_cta_link') && !$node->get('field_help_cta_link')->isEmpty()) {

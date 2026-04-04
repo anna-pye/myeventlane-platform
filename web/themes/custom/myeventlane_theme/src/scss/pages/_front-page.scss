@@ -74,24 +74,17 @@
 // ---------------------------------------------------------------------------
 
 @media (hover: hover) and (pointer: fine) {
-  .mel-page--home .mel-event-card:hover .mel-event-card__cta--body {
+  .mel-page--home .mel-event-card:hover .mel-event-card__cta-chip {
     background: color-mix(in srgb, mel.$mel-ds-color-primary 16%, mel.$mel-ds-color-surface);
     border-color: color-mix(in srgb, mel.$mel-ds-color-primary 40%, transparent);
     color: mel.$mel-ds-color-text;
   }
 
-  .mel-page--home .mel-event-card:hover .mel-event-card__image .mel-event-card__cta {
+  .mel-page--home .mel-event-card--featured:hover .mel-event-card__cta-chip {
     background: mel.$mel-ds-color-primary;
     color: #fff;
     border-color: transparent;
     box-shadow: 0 4px 14px color-mix(in srgb, mel.$mel-ds-color-primary 35%, transparent);
-  }
-
-  .mel-page--home .mel-event-card--featured:hover .mel-event-card__image .mel-event-card__cta {
-    background: #fff;
-    color: mel.$mel-ds-color-primary;
-    border-color: rgba(41, 50, 65, 0.12);
-    box-shadow: mel.$mel-ds-shadow-soft;
   }
 }
 

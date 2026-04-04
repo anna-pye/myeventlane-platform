@@ -114,27 +114,15 @@
       <div class="mel-container mel-container--wide">
         <div class="mel-host-cta">
           <div class="mel-host-cta__copy">
-            <h2 id="mel-host-cta-title" class="mel-host-cta__title">{{ 'Empowering event creators everywhere.'|t }}</h2>
+            <h2 id="mel-host-cta-title" class="mel-host-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
             <p class="mel-host-cta__text">
-              {{ 'Create a free RSVP or ticketed event, reach your audience, and manage it all in one place.'|t }}
+              {{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}
             </p>
           </div>
           <div class="mel-host-cta__actions">
-            <a class="mel-btn mel-btn--cta" href="{{ path('entity.node.add_form', {'node_type': 'event'}) }}">{{ 'Create event'|t }}</a>
-            <a class="mel-btn mel-btn-secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'How hosting works'|t }}</a>
+            <a class="mel-btn mel-btn--cta" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Create event'|t }}</a>
+            <a class="mel-btn mel-btn-secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Host help'|t }}</a>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="mel-section mel-section--final-cta mel-section--full" aria-labelledby="mel-final-cta-title">
-      <div class="mel-container mel-container--wide">
-        <div class="mel-final-cta">
-          <h2 id="mel-final-cta-title" class="mel-final-cta__title">{{ 'Ready to host your next event?'|t }}</h2>
-          <p class="mel-final-cta__text">
-            {{ 'List for free, sell tickets with transparent fees, and grow your community on MyEventLane.'|t }}
-          </p>
-          <a class="mel-btn mel-btn--cta mel-final-cta__btn" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Start hosting'|t }}</a>
         </div>
       </div>
     </section>

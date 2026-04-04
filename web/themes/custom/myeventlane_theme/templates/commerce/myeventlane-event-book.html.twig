@@ -39,7 +39,17 @@
         </div>
 
         <div class="mel-booking-hero__content">
-          <p class="mel-booking-hero__eyebrow">{{ 'Book this event'|t }}</p>
+          <p class="mel-booking-hero__eyebrow">
+            {% if event_mode == 'rsvp' %}
+              {{ 'Reserve your spot'|t }}
+            {% elseif event_mode == 'paid' %}
+              {{ 'Buy tickets'|t }}
+            {% elseif event_mode == 'external' %}
+              {{ 'Get tickets'|t }}
+            {% else %}
+              {{ 'Book this event'|t }}
+            {% endif %}
+          </p>
           <h1 class="mel-booking-hero__title">{{ event_title }}</h1>
 
           <div class="mel-booking-hero__meta mel-event-meta" role="group" aria-label="{{ 'When and where'|t }}">
@@ -72,11 +82,25 @@
 
     <div class="mel-booking-trust-strip" role="presentation">
       <ul class="mel-booking-trust-strip__list">
-        <li class="mel-booking-trust-strip__item">{{ 'Secure checkout'|t }}</li>
-        <li class="mel-booking-trust-strip__item">{{ 'Review before payment'|t }}</li>
-        <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
+        {% if event_mode == 'paid' %}
+          <li class="mel-booking-trust-strip__item">{{ 'Secure checkout'|t }}</li>
+          <li class="mel-booking-trust-strip__item">{{ 'Review before payment'|t }}</li>
+          <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
+        {% elseif event_mode == 'rsvp' %}
+          <li class="mel-booking-trust-strip__item">{{ 'Free RSVP — no payment on this step'|t }}</li>
+          <li class="mel-booking-trust-strip__item">{{ 'Review your details before you confirm'|t }}</li>
+          <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
+        {% else %}
+          <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
+        {% endif %}
       </ul>
     </div>
+
+    <nav class="mel-booking-help-links" aria-label="{{ 'Help and support'|t }}">
+      <a class="mel-booking-help-links__a" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+      <span class="mel-booking-help-links__sep" aria-hidden="true">·</span>
+      <a class="mel-booking-help-links__a" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+    </nav>
 
     {% set mel_has_booking_signals =
       mel_signal_is_community

@@ -15,17 +15,16 @@
 
 {# Promoted / Boosted flag (data already managed by Boost system). #}
 {% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
-{% set event_type_key = (node.hasField('field_event_type') and not node.field_event_type.isEmpty) ? (node.field_event_type.value|default('')) : '' %}
-{% set event_type_label = '' %}
-{% if event_type_key == 'rsvp' %}
-  {% set event_type_label = 'RSVP (Free)'|t %}
-{% elseif event_type_key == 'paid' %}
-  {% set event_type_label = 'Paid (Ticketed)'|t %}
-{% elseif event_type_key == 'both' %}
-  {% set event_type_label = 'Both (Free + Paid)'|t %}
-{% elseif event_type_key == 'external' %}
-  {% set event_type_label = 'External link'|t %}
+{# Registration status chip: cta_type + labels aligned with EventCtaResolver and public event cards. #}
+{% set mel_mode_chip = '' %}
+{% if cta_type is defined and cta_type == 'paid' %}
+  {% set mel_mode_chip = 'Paid tickets'|t %}
+{% elseif cta_type is defined and cta_type == 'rsvp' %}
+  {% set mel_mode_chip = 'Free · RSVP'|t %}
+{% elseif cta_type is defined and cta_type == 'external' %}
+  {% set mel_mode_chip = 'External ticketing'|t %}
 {% endif %}
+{% set mel_cta_is_external = cta_type is defined and cta_type == 'external' %}
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
   <div class="mel-container">
@@ -131,7 +130,7 @@
       <div class="mel-event-meta-bar__cta">
         {% if event_cta and event_cta.label %}
           {% if event_cta.url %}
-            <a class="mel-btn mel-btn--cta mel-btn--pill" href="{{ event_cta.url }}">{{ event_cta.label }}</a>
+            <a class="mel-btn mel-btn--cta mel-btn--pill" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ event_cta.label }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
           {% else %}
             <button class="mel-btn mel-btn--cta mel-btn--pill" type="button" disabled aria-disabled="true">
               {{ event_cta.label }}
@@ -153,16 +152,47 @@
 
     <div class="mel-event-layout">
       <div class="mel-event-layout__main">
-        <div class="mel-card mel-card--surface">
-          <div class="mel-card__header">
-            <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
-          </div>
-          <div class="mel-card__body">
-            {% if content.body is defined %}
+        {% set body_render = (content.body is defined) ? (content.body|render) : '' %}
+        {% set body_plain = body_render|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
+        {% if body_plain %}
+          <div class="mel-card mel-card--surface">
+            <div class="mel-card__header">
+              <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
+            </div>
+            <div class="mel-card__body">
               {{ content.body }}
-            {% endif %}
+            </div>
           </div>
-        </div>
+        {% endif %}
+
+        {% if mel_organiser is defined and mel_organiser and mel_organiser.name %}
+          <section class="mel-organiser-card mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-organiser-card-title">
+            <div class="mel-organiser-card__inner">
+              {% if mel_organiser.logo_url %}
+                <div class="mel-organiser-card__avatar">
+                  <img src="{{ mel_organiser.logo_url }}" alt="" width="64" height="64" loading="lazy" class="mel-organiser-card__img" />
+                </div>
+              {% else %}
+                <div class="mel-organiser-card__avatar mel-organiser-card__avatar--fallback" aria-hidden="true">
+                  <span class="mel-organiser-card__initial">{{ mel_organiser.name|slice(0, 1)|upper }}</span>
+                </div>
+              {% endif %}
+              <div class="mel-organiser-card__body">
+                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'Presented by'|t }}</h2>
+                {% if mel_organiser.url %}
+                  <a class="mel-organiser-card__name" href="{{ mel_organiser.url }}">{{ mel_organiser.name }}</a>
+                {% else %}
+                  <span class="mel-organiser-card__name">{{ mel_organiser.name }}</span>
+                {% endif %}
+                {% if mel_organiser.tagline %}
+                  <p class="mel-organiser-card__tagline">{{ mel_organiser.tagline }}</p>
+                {% else %}
+                  <p class="mel-organiser-card__tagline mel-organiser-card__tagline--muted">{{ 'Events on MyEventLane'|t }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
 
         {# Social share: directly under About the Event; render only when canonical URL exists. #}
         {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
@@ -329,6 +359,15 @@
           </div>
         {% endif %}
 
+        <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
+          <ul class="mel-event-support-zone__list">
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/privacy">{{ 'Privacy'|t }}</a></li>
+            <li><a class="mel-event-support-zone__link" href="/terms">{{ 'Terms'|t }}</a></li>
+          </ul>
+        </nav>
+
         {% set cancellation_html = (content.field_cancellation_policy is defined and content.field_cancellation_policy) ? (content.field_cancellation_policy|render) : '' %}
         {% set cancellation_text = cancellation_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
@@ -414,7 +453,17 @@
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
         <div class="mel-card mel-card--surface mel-card--sticky">
           <div class="mel-card__header">
-            <h2 class="mel-card__title">{{ 'Tickets'|t }}</h2>
+            <h2 class="mel-card__title">
+              {% if cta_type is defined and cta_type == 'rsvp' %}
+                {{ 'RSVP'|t }}
+              {% elseif cta_type is defined and cta_type == 'paid' %}
+                {{ 'Tickets'|t }}
+              {% elseif cta_type is defined and cta_type == 'external' %}
+                {{ 'External tickets'|t }}
+              {% else %}
+                {{ 'Registration'|t }}
+              {% endif %}
+            </h2>
           </div>
           <div class="mel-card__body">
             {% if mel_tickets_from is defined and mel_tickets_from %}
@@ -422,9 +471,9 @@
                 {{ mel_tickets_from }}
               </p>
             {% endif %}
-            {% if event_type_label %}
+            {% if mel_mode_chip %}
               <div class="mel-mb-2" aria-label="{{ 'Registration type'|t }}">
-                <span class="mel-chip mel-chip--sm mel-chip--filled">{{ event_type_label }}</span>
+                <span class="mel-chip mel-chip--sm mel-chip--filled">{{ mel_mode_chip }}</span>
               </div>
             {% endif %}
 
@@ -432,16 +481,7 @@
               {{ content.field_product_target }}
             {% endif %}
 
-            {% if event_cta and event_cta.label %}
-              {% if event_cta.url %}
-                <a class="mel-btn mel-btn--cta mel-btn--pill mel-btn--full" href="{{ event_cta.url }}">{{ event_cta.label }}</a>
-              {% else %}
-                <button class="mel-btn mel-btn--cta mel-btn--pill mel-btn--full" type="button" disabled aria-disabled="true">
-                  {{ event_cta.label }}
-                </button>
-              {% endif %}
-            {% endif %}
-
+            {# Primary CTA lives in the meta bar above; sidebar stays summary-only (no duplicate button). #}
           </div>
         </div>
 
@@ -529,7 +569,7 @@
   {% if event_cta and event_cta.label %}
     <div class="mel-mobile-cta" role="region" aria-label="{{ 'Ticket actions'|t }}">
       {% if event_cta.url %}
-        <a class="mel-mobile-cta__button" href="{{ event_cta.url }}">{{ event_cta.label }}</a>
+        <a class="mel-mobile-cta__button" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ event_cta.label }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
       {% else %}
         <button class="mel-mobile-cta__button" type="button" disabled aria-disabled="true">{{ event_cta.label }}</button>
       {% endif %}

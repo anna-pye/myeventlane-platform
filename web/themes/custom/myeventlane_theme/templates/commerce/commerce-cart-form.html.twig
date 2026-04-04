@@ -9,11 +9,17 @@
 #}
 
 <div class="mel-cart">
+  <nav class="mel-checkout-trust-nav mel-cart-trust-nav" aria-label="{{ 'Help and support'|t }}">
+    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+    <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+  </nav>
+
   {# Cart Items #}
   <div class="mel-cart-items">
     <div class="mel-cart-header">
       <h1 class="mel-cart-title">
-        {{ 'Your Cart'|t }}
+        {{ 'Your cart'|t }}
         {% if form['#order_items']|length > 0 %}
           <span class="mel-cart-count">({{ form['#order_items']|length }} {{ form['#order_items']|length == 1 ? 'item'|t : 'items'|t }})</span>
         {% endif %}
@@ -23,7 +29,6 @@
     {% if form['#order_items']|length > 0 %}
       {# Group items by event for better UX and accessibility #}
       {% if grouped_items is defined and grouped_items|length > 0 %}
-        {# Render event groups with headings #}
         {% for event_id, group in grouped_items %}
           <section class="mel-cart-event-group" data-event-id="{{ event_id }}">
             <h2 class="mel-cart-event-title">
@@ -48,28 +53,31 @@
             {% endif %}
           </section>
         {% endfor %}
-        
-        {# Items without event (shouldn't happen, but handle gracefully) #}
+
         {% if items_without_event is defined and items_without_event|length > 0 %}
           <section class="mel-cart-event-group">
             <h2 class="mel-cart-event-title">
-              {{ 'Other Items'|t }}
+              {{ 'Other items'|t }}
             </h2>
           </section>
         {% endif %}
       {% endif %}
-      
-      {# Render Commerce's table (items are grouped visually via CSS based on event data) #}
+
       <div class="mel-cart-items-table"{% if item_event_map is defined %} data-item-event-map="{{ item_event_map|json_encode }}"{% endif %}>
         {{ form.header }}
         {{ form.output }}
       </div>
     {% else %}
-      <div class="mel-cart-empty">
-        <div class="mel-cart-empty-icon">🛒</div>
-        <h2 class="mel-cart-empty-title">{{ 'Your cart is empty'|t }}</h2>
-        <p class="mel-cart-empty-text">{{ 'No worries — browse events and add tickets when you\'re ready.'|t }}</p>
-        <a href="/events" class="mel-btn mel-btn-primary">{{ 'Browse Events'|t }}</a>
+      <div class="mel-cart-empty mel-cart-empty--inline">
+        <div class="mel-cart-empty__visual" aria-hidden="true"></div>
+        <h2 class="mel-cart-empty__title">{{ 'Your cart is empty'|t }}</h2>
+        <p class="mel-cart-empty__text">{{ "When you're ready, browse events and add tickets in a few taps."|t }}</p>
+        <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-cart-empty__cta">{{ 'Browse events'|t }}</a>
+        <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-empty__support" aria-label="{{ 'Help and support'|t }}">
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+          <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+        </nav>
       </div>
     {% endif %}
   </div>
@@ -77,7 +85,7 @@
   {# Cart Summary Sidebar #}
   {% if form['#order_items']|length > 0 %}
     <aside class="mel-cart-summary">
-      <h2 class="mel-cart-summary-title">{{ 'Order Summary'|t }}</h2>
+      <h2 class="mel-cart-summary-title">{{ 'Order summary'|t }}</h2>
 
       <div class="mel-cart-summary-lines">
         {% if form.totals is defined %}
@@ -98,14 +106,13 @@
         {{ form.actions }}
       </div>
 
-      <p class="mel-checkout-security">{{ 'You can review your order before paying.'|t }}</p>
-      <p class="mel-checkout-security mel-checkout-security--lock">{{ 'Your payment details are secure.'|t }}</p>
+      <p class="mel-checkout-security">{{ 'Review your order on the next step before any payment.'|t }}</p>
+      <p class="mel-checkout-security mel-checkout-security--lock">{{ 'Card details are encrypted in transit.'|t }}</p>
+      <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-summary__support" aria-label="{{ 'Help with checkout'|t }}">
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+        <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+        <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+      </nav>
     </aside>
   {% endif %}
 </div>
-
-
-
-
-
-

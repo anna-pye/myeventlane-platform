@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Theme override for checkout progress (when enabled on a flow).
+ *
+ * Adds .checkout-progress--mel for scoped styling inside .mel-checkout__progress.
+ */
+#}
+<ol class="checkout-progress checkout-progress--mel clearfix">
+  {% for step in steps %}
+    <li class="checkout-progress--step checkout-progress--step__{{ step.position }}">{{ step.label }}</li>
+  {% endfor %}
+</ol>

@@ -14,6 +14,7 @@ use Drupal\node\NodeInterface;
  * Mutual exclusivity rule:
  * - paid: Render Paid Ticket UI only. Do NOT render RSVP.
  * - rsvp: Render RSVP UI only. Do NOT render Paid Ticket UI.
+ * - external: External booking link only.
  * - none: Neutral placeholder. No CTA.
  *
  * Logic lives in controller/service. Twig receives only cta_type and
@@ -33,6 +34,7 @@ final class EventCtaResolver {
 
   public const CTA_PAID = 'paid';
   public const CTA_RSVP = 'rsvp';
+  public const CTA_EXTERNAL = 'external';
   public const CTA_NONE = 'none';
 
   /**
@@ -55,7 +57,7 @@ final class EventCtaResolver {
    *   The event node.
    *
    * @return string
-   *   One of: self::CTA_PAID, self::CTA_RSVP, self::CTA_NONE.
+   *   One of: self::CTA_PAID, self::CTA_RSVP, self::CTA_EXTERNAL, self::CTA_NONE.
    */
   public function getCtaType(NodeInterface $event): string {
     if ($event->bundle() !== 'event') {
@@ -63,6 +65,10 @@ final class EventCtaResolver {
     }
 
     $mode = $this->modeManager->getEffectiveMode($event);
+
+    if ($mode === EventModeManager::MODE_EXTERNAL) {
+      return self::CTA_EXTERNAL;
+    }
 
     // Mutual exclusivity: one active CTA only.
     if (in_array($mode, [EventModeManager::MODE_PAID, EventModeManager::MODE_BOTH], TRUE)) {
@@ -106,21 +112,21 @@ final class EventCtaResolver {
       if ($ctaType === self::CTA_RSVP) {
         $avail = $this->modeManager->getRsvpAvailability($event);
         if (isset($avail['spots_remaining']) && $avail['spots_remaining'] === 0) {
-          $base['label'] = 'Join Waitlist';
+          $base['label'] = (string) \t('Join waitlist');
           $base['url'] = Url::fromRoute('myeventlane_event_attendees.waitlist_signup', ['node' => $event->id()])->toString();
           $base['disabled'] = FALSE;
         }
         else {
-          $base['label'] = 'Sold Out';
+          $base['label'] = (string) \t('Sold out');
         }
       }
       else {
-        $base['label'] = 'Sold Out';
+        $base['label'] = (string) \t('Sold out');
       }
       return $base;
     }
 
-    if ($state === 'scheduled') {
+    if ($state === 'scheduled' && $ctaType === self::CTA_PAID) {
       $salesStart = $this->stateResolver->getSalesStart($event);
       $formatted = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
       $base['helper'] = $formatted;
@@ -135,11 +141,19 @@ final class EventCtaResolver {
 
     $bookUrl = Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()]);
 
+    if ($ctaType === self::CTA_EXTERNAL) {
+      $external = $this->getExternalUrlString($event);
+      $base['label'] = (string) \t('External tickets');
+      $base['url'] = $external;
+      $base['disabled'] = $external === NULL;
+      return $base;
+    }
+
     if ($ctaType === self::CTA_PAID) {
       $avail = $this->modeManager->getTicketAvailability($event);
       $base['remaining'] = $avail['remaining'] ?? NULL;
       if ($avail['available']) {
-        $base['label'] = (string) \t('Buy Tickets');
+        $base['label'] = (string) \t('Buy tickets');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
         if ($base['remaining'] !== NULL && $base['remaining'] > 0 && $base['remaining'] <= self::LOW_AVAILABILITY_THRESHOLD) {
@@ -158,7 +172,7 @@ final class EventCtaResolver {
       $avail = $this->modeManager->getRsvpAvailability($event);
       $base['remaining'] = $avail['spots_remaining'] ?? NULL;
       if ($avail['available']) {
-        $base['label'] = (string) \t('RSVP Now');
+        $base['label'] = (string) \t('RSVP free');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
         if ($base['remaining'] !== NULL && $base['remaining'] > 0 && $base['remaining'] <= self::LOW_AVAILABILITY_THRESHOLD) {
@@ -166,12 +180,12 @@ final class EventCtaResolver {
         }
       }
       elseif (isset($avail['spots_remaining']) && $avail['spots_remaining'] === 0) {
-        $base['label'] = (string) \t('Join Waitlist');
+        $base['label'] = (string) \t('Join waitlist');
         $base['url'] = Url::fromRoute('myeventlane_event_attendees.waitlist_signup', ['node' => $event->id()])->toString();
         $base['disabled'] = FALSE;
       }
       else {
-        $base['label'] = (string) \t('RSVP');
+        $base['label'] = (string) \t('RSVP free');
         $base['url'] = $bookUrl->toString();
         $base['disabled'] = FALSE;
       }
@@ -188,7 +202,7 @@ final class EventCtaResolver {
    *   The event node.
    *
    * @return bool
-   *   TRUE if a CTA is available (paid, rsvp, or waitlist).
+   *   TRUE if a CTA is available (paid, rsvp, external, or waitlist).
    */
   public function isBookable(NodeInterface $event): bool {
     $cta = $this->getResolvedCta($event);
@@ -196,6 +210,17 @@ final class EventCtaResolver {
       return FALSE;
     }
     return !$cta['disabled'] && $cta['url'] !== NULL;
+  }
+
+  /**
+   * Returns the external booking URL for the event, if configured.
+   */
+  private function getExternalUrlString(NodeInterface $event): ?string {
+    if (!$event->hasField('field_external_url') || $event->get('field_external_url')->isEmpty()) {
+      return NULL;
+    }
+    $link = $event->get('field_external_url')->first();
+    return $link?->getUrl()?->toString();
   }
 
 }

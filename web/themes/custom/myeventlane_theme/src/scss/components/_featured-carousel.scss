@@ -142,14 +142,17 @@
     // Hide CTA / badge / editorial chrome (carousel uses glass overlay copy)
     .mel-event-card__image .mel-event-card__cta,
     .mel-event-card__cta--body,
+    .mel-event-card__cta-row,
+    .mel-event-card__cta-chip,
     .mel-event-card__overlay,
     .mel-event-card__tag,
     .mel-card-badge {
       display: none !important;
     }
 
-    // Hide category pill
-    .mel-event-card__category-pill {
+    // Hide category / featured pill on image (copy lives in glass panel)
+    .mel-event-card__category-pill,
+    .mel-event-card__image-badge {
       display: none !important;
     }
 
@@ -256,6 +259,34 @@
         0 2px 8px rgba(255, 255, 255, 0.6);
     }
 
+    .mel-event-card__when,
+    .mel-event-card__location,
+    .mel-event-card__status-row,
+    .mel-event-card__status-secondary {
+      position: relative;
+      z-index: 2;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      color: #000 !important;
+      margin: 0 0 6px 0 !important;
+      text-shadow:
+        0 1px 4px rgba(255, 255, 255, 0.9),
+        0 2px 8px rgba(255, 255, 255, 0.6);
+    }
+
+    .mel-event-card__status-row {
+      margin-bottom: 8px !important;
+    }
+
+    .mel-event-card__status {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+    }
+
+    .mel-event-card__location-slot {
+      min-height: 0 !important;
+    }
+
     // Featured label
     .mel-event-card__content .mel-event-card__title::before {
       content: 'FEATURED · PLATFORM PICK';
@@ -295,6 +326,15 @@
     }
 
     .mel-event-card--light-bg .mel-event-card__meta {
+      color: #000 !important;
+      text-shadow:
+        0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    .mel-event-card--light-bg .mel-event-card__when,
+    .mel-event-card--light-bg .mel-event-card__location,
+    .mel-event-card--light-bg .mel-event-card__status-row,
+    .mel-event-card--light-bg .mel-event-card__status-secondary {
       color: #000 !important;
       text-shadow:
         0 1px 2px rgba(255, 255, 255, 0.5);

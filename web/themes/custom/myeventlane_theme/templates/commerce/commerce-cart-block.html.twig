@@ -1,36 +1,56 @@
 {#
 /**
  * @file
- * Theme override for the cart block.
+ * Theme override for the Commerce cart block (header).
  *
  * Available variables:
- * - count: The number of items in the cart.
- * - count_text: The textual representation of the cart count.
- * - url: The cart page URL.
- * - content: The cart block content (dropdown).
+ * - count: Item quantity in cart.
+ * - count_text: Formatted count label from Commerce (e.g. "3 items").
+ * - url: Cart page URL.
+ * - content: Dropdown body (cart view), when the block is configured for dropdown.
+ * - links: Legacy Commerce footer links (redundant with explicit CTAs; omitted).
+ * - dropdown: Whether dropdown mode is enabled (from block config).
+ * - mel_checkout_url: Checkout entry URL when the user may access checkout (preprocess).
  */
 #}
-
 <div{{ attributes.addClass('mel-cart-block') }}>
-  <a href="{{ url }}" class="mel-cart-block-link mel-cart-badge" title="{{ 'View cart'|t }}">
+  <a href="{{ url }}"
+     class="mel-cart-block-link mel-cart-badge"
+     title="{{ 'View cart'|t }}"
+     aria-label="{{ 'Shopping cart, @items'|t({'@items': count_text}) }}">
     <svg class="mel-cart-block-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     {% if count > 0 %}
-      <span class="mel-cart-badge-count" aria-label="{{ count_text }}">{{ count }}</span>
+      <span class="mel-cart-badge-count" aria-hidden="true">{{ count }}</span>
     {% endif %}
-    <span class="visually-hidden">{{ count_text }}</span>
   </a>
 
   {% if content %}
-    <div class="mel-mini-cart">
-      {{ content }}
+    <div id="mel-mini-cart-panel" class="mel-mini-cart" role="region" aria-label="{{ 'Cart preview'|t }}" tabindex="-1">
+      <div class="mel-mini-cart-header">
+        <span class="mel-mini-cart-header__title">{{ 'Your cart'|t }}</span>
+        <span class="mel-mini-cart-header__count">{{ count_text }}</span>
+      </div>
+      <div class="mel-mini-cart-items">
+        {{ content }}
+      </div>
+      <div class="mel-mini-cart-footer">
+        {% if count > 0 and mel_checkout_url %}
+          <div class="mel-mini-cart-footer__ctas">
+            <a href="{{ url }}" class="mel-mini-cart-btn mel-mini-cart-btn--secondary">{{ 'View cart'|t }}</a>
+            <a href="{{ mel_checkout_url }}" class="mel-mini-cart-btn mel-mini-cart-btn--primary">{{ 'Checkout'|t }}</a>
+          </div>
+        {% else %}
+          <a href="{{ url }}" class="mel-mini-cart-btn mel-mini-cart-btn--primary mel-mini-cart-btn--full">{{ 'View cart'|t }}</a>
+        {% endif %}
+        <p class="mel-mini-cart-hint">{{ 'Card payment only applies when your order includes a priced ticket.'|t }}</p>
+        <nav class="mel-checkout-trust-nav mel-checkout-trust-nav--mini" aria-label="{{ 'Help with cart and checkout'|t }}">
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+          <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+          <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+        </nav>
+      </div>
     </div>
   {% endif %}
 </div>
-
-
-
-
-
-

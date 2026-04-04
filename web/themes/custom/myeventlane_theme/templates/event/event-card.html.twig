@@ -1,9 +1,14 @@
 {#
 /**
  * @file
- * Views field-row bridge → unified MEL event card.
+ * Views field-row bridge → canonical MEL event card (same anatomy as node-driven cards).
  */
 #}
+{% set _tt = ticket_type|default('paid')|striptags|trim|lower %}
+{% set _cta_fallback = _tt == 'rsvp' ? 'RSVP free'|t : (_tt == 'external' ? 'External tickets'|t : 'Buy tickets'|t) %}
+{% set _status_primary = _tt == 'rsvp' ? 'Free · RSVP'|t : (_tt == 'external' ? 'External ticketing'|t : (_tt == 'paid' or _tt == 'both' ? 'Paid tickets'|t : '')) %}
+{% set _status_mod = _tt == 'external' ? 'external' : (_tt == 'rsvp' ? 'free' : 'default') %}
+{% set _tl = ticket_label|default('')|striptags|trim %}
 {% include '@myeventlane_theme/components/event-card/mel-event-card.html.twig' with {
   variant: 'standard',
   card_title: title|default(''),
@@ -14,6 +19,9 @@
   card_location: location|default(''),
   card_category: (category is defined and category) ? { label: category, url: null } : null,
   category_slug: category_slug|default(''),
-  card_type: ticket_type|default('paid'),
+  card_type: _tt,
+  card_cta_label: _tl ? _tl : _cta_fallback,
+  card_status_primary: _status_primary,
+  card_status_modifier: _status_mod,
   is_promoted: is_promoted|default(false),
 } %}

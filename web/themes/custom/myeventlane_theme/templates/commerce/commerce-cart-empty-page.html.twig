@@ -3,20 +3,19 @@
  * @file
  * Theme override for Commerce empty cart page.
  *
- * MEL branded empty state: image, headline, supporting text, CTA.
+ * MEL empty state: gradient visual (no dependency on raster art), trust nav, recovery CTA.
  *
  * @see commerce/modules/cart/templates/commerce-cart-empty-page.html.twig
  */
 #}
 <div class="mel-cart-empty">
-  <img
-    src="{{ base_path ~ directory }}/images/mel-empty-cart.png"
-    alt=""
-    class="mel-cart-empty__image"
-    width="520"
-    height="auto"
-  />
+  <div class="mel-cart-empty__visual" aria-hidden="true"></div>
   <h1 class="mel-cart-empty__title">{{ 'Your cart is empty'|t }}</h1>
-  <p class="mel-cart-empty__text">{{ 'No rush — explore events and add tickets whenever you\'re ready.'|t }}</p>
-  <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-cart-empty__cta">{{ 'Browse Events'|t }}</a>
+  <p class="mel-cart-empty__text">{{ "When you're ready, browse events and add tickets in a few taps."|t }}</p>
+  <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-cart-empty__cta">{{ 'Browse events'|t }}</a>
+  <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-empty__support" aria-label="{{ 'Help and support'|t }}">
+    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+    <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
+    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+  </nav>
 </div>
