@@ -842,3 +842,59 @@
     transform: none;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Event full page hero — reuse featured_hero (mel-event-card) stack via @extend
+// (templates/node/node--event--full.html.twig).
+// ---------------------------------------------------------------------------
+
+.mel-event--v2 .mel-event-hero--featured-style {
+  @extend .mel-event-hero-card;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__media {
+  @extend .mel-event-hero-card__image;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__overlay {
+  @extend .mel-event-hero-card__overlay;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip {
+  @extend .mel-event-hero-card__badge;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__content {
+  @extend .mel-event-hero-card__content;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__title {
+  @extend .mel-event-hero-card__title;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__datetime {
+  @extend .mel-event-hero-card__when;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__venue {
+  @extend .mel-event-hero-card__where;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__status {
+  @extend .mel-event-hero-card__status;
+}
+
+// Multi-value field_event_image: split row like a single hero band (featured uses one img).
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__media {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+
+  > img,
+  > picture {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    height: 100%;
+  }
+}

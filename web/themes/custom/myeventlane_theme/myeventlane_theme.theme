@@ -2785,46 +2785,66 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     }
   }
 
-  // Event full hero overlay: formatted strings only (field names verified in config).
+  // Event full hero: same data patterns as featured_hero cards (field names from config).
   $variables['category_label'] = NULL;
+  $variables['hero_image'] = NULL;
   $variables['hero_datetime'] = NULL;
   $variables['hero_venue'] = NULL;
   $variables['hero_status'] = NULL;
+  $variables['hero_status_modifier'] = 'default';
   $view_mode = $variables['view_mode'] ?? 'full';
   if ($view_mode === 'full') {
+    $content = $variables['content'] ?? [];
+    if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()
+      && is_array($content) && isset($content['field_event_image']) && is_array($content['field_event_image'])) {
+      $variables['hero_image'] = $content['field_event_image'];
+    }
+
     $cat = $variables['mel_category_label'] ?? NULL;
     if (is_string($cat)) {
       $cat = trim($cat);
       $variables['category_label'] = $cat !== '' ? $cat : NULL;
     }
 
+    // Match listing featured card: "D j M, g:ia" (see card_time_range in preprocess_node).
     if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-      /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
-      $date_formatter = \Drupal::service('date.formatter');
-      $start_raw = (string) $node->get('field_event_start')->value;
-      $start_ts = strtotime($start_raw);
-      if ($start_ts !== FALSE) {
-        $date_part = $date_formatter->format($start_ts, 'custom', 'D j M');
-        $start_time = $date_formatter->format($start_ts, 'custom', 'g:ia');
-        $hero_datetime = $date_part . ', ' . $start_time;
+      $start_value = $node->get('field_event_start')->value;
+      if ($start_value && ($start_ts = strtotime((string) $start_value))) {
+        $hero_datetime = date('D j M, g:ia', $start_ts);
         if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
           $end_raw = (string) $node->get('field_event_end')->value;
-          if ($end_raw !== '') {
-            $end_ts = strtotime($end_raw);
-            if ($end_ts !== FALSE) {
-              $hero_datetime .= ' – ' . $date_formatter->format($end_ts, 'custom', 'g:ia');
-            }
+          if ($end_raw !== '' && ($end_ts = strtotime($end_raw))) {
+            $hero_datetime .= ' – ' . date('g:ia', $end_ts);
           }
         }
         $variables['hero_datetime'] = $hero_datetime;
       }
     }
 
-    $venue_name = _myeventlane_theme_event_hero_venue_name($node);
-    $variables['hero_venue'] = $venue_name;
+    $variables['hero_venue'] = _myeventlane_theme_event_hero_venue_name($node);
 
     $resolved_state = (string) ($variables['mel_event_state'] ?? '');
     $variables['hero_status'] = _myeventlane_theme_event_hero_status_public($resolved_state);
+
+    $cta_type = (string) ($variables['cta_type'] ?? 'none');
+    $badge_for_modifier = _myeventlane_theme_get_event_badge_text($node);
+    $card_type = 'none';
+    if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+      $et = $node->get('field_event_type')->value;
+      if (in_array($et, ['rsvp', 'paid', 'both', 'external'], TRUE)) {
+        $card_type = $et;
+      }
+    }
+    $variables['hero_status_modifier'] = match (TRUE) {
+      in_array($resolved_state, ['cancelled'], TRUE) => 'cancelled',
+      $resolved_state === 'ended' => 'ended',
+      $resolved_state === 'sold_out' => 'sold-out',
+      $resolved_state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID => 'scheduled',
+      $card_type === 'external' => 'external',
+      $badge_for_modifier === 'FREE' => 'free',
+      is_string($badge_for_modifier) && str_starts_with($badge_for_modifier, '$') => 'paid',
+      default => 'default',
+    };
   }
 }
 
