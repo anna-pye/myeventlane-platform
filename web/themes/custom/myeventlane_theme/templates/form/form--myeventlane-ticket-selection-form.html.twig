@@ -13,10 +13,6 @@
   {{ form.form_id }}
 
   <div class="mel-booking-form__stack">
-    {% if form.mel_help_ticket_matrix is defined %}
-      {{ form.mel_help_ticket_matrix }}
-    {% endif %}
-
     {{ form.waitlist_offer_banner }}
     {{ form.sold_out }}
 
@@ -35,20 +31,12 @@
   </div>
 
   {% if form.actions is defined %}
-    <div class="mel-booking__cta" role="region" aria-labelledby="mel-booking-cta-heading">
+    <div class="mel-booking__cta" role="region" aria-label="{{ 'Add tickets to cart'|t }}">
       <div class="mel-mobile-booking-bar" data-mel-mobile-booking-bar>
         <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
         <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
       </div>
-      <h3 class="mel-booking__cta-heading" id="mel-booking-cta-heading">{{ 'Ready to continue?'|t }}</h3>
-      <p class="mel-booking__cta-lead mel-text--muted">{{ 'Review your tickets, then add them to your cart.'|t }}</p>
-      <ul class="mel-booking-reassurance" aria-label="{{ 'Before you continue'|t }}">
-        <li class="mel-booking-reassurance__item">{{ 'You can review before payment.'|t }}</li>
-        <li class="mel-booking-reassurance__item">{{ 'Tickets are added to your cart first.'|t }}</li>
-        <li class="mel-booking-reassurance__item">{{ 'Secure checkout on the next step.'|t }}</li>
-      </ul>
       {{ form.actions }}
-      <p class="mel-booking__cta-reassurance mel-text--muted">{{ 'No charge until you complete checkout.'|t }}</p>
     </div>
   {% endif %}
 </form>

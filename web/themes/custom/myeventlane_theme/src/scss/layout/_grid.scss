@@ -113,3 +113,47 @@
   gap: spacing.mel-space(5);
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
+
+// ---------------------------------------------------------------------------
+// Event full page — single container + two-column layout (node--event--full)
+// ---------------------------------------------------------------------------
+
+.mel-container.mel-container--event {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.mel-event-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.mel-event-layout__main {
+  max-width: 720px;
+  min-width: 0;
+}
+
+.mel-event-layout__side {
+  position: sticky;
+  top: 100px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .mel-event-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .mel-event-layout__side {
+    order: -1;
+  }
+}

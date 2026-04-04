@@ -143,7 +143,7 @@ final class EventCtaResolver {
 
     if ($ctaType === self::CTA_EXTERNAL) {
       $external = $this->getExternalUrlString($event);
-      $base['label'] = (string) \t('External tickets');
+      $base['label'] = (string) \t('View details');
       $base['url'] = $external;
       $base['disabled'] = $external === NULL;
       return $base;

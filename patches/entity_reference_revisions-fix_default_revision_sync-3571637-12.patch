@@ -1,0 +1,54 @@
+diff --git a/src/Plugin/Field/FieldType/EntityReferenceRevisionsItem.php b/src/Plugin/Field/FieldType/EntityReferenceRevisionsItem.php
+index 6df2d9c..1e903ee 100644
+--- a/src/Plugin/Field/FieldType/EntityReferenceRevisionsItem.php
++++ b/src/Plugin/Field/FieldType/EntityReferenceRevisionsItem.php
+@@ -270,6 +270,7 @@ class EntityReferenceRevisionsItem extends EntityReferenceItem implements Option
+     parent::preSave();
+ 
+     $is_affected = TRUE;
++    $set_new_revision = FALSE;
+     if (!$has_new) {
+       // Create a new revision if it is a composite entity in a host with a new
+       // revision.
+@@ -316,10 +317,23 @@ class EntityReferenceRevisionsItem extends EntityReferenceItem implements Option
+           }
+         }
+ 
++        // Drupal 11.x enforces that an existing default revision cannot be
++        // saved as a non-default revision without creating a new revision.
++        // If the entity was loaded as the default revision and is being saved
++        // as non-default (e.g., when the host is saved as a draft), we must
++        // create a new revision. The isDefaultRevision state is kept as-is
++        // to match the host's revision state.
++        // @see https://www.drupal.org/project/drupal/issues/3499181
++        // @see https://www.drupal.org/project/inline_entity_form/issues/3532374
++        if (!$this->entity->isNewRevision() && $this->entity->wasDefaultRevision() && !$this->entity->isDefaultRevision()) {
++          $this->entity->setNewRevision(TRUE);
++          $set_new_revision = TRUE;
++        }
++
+         $this->entity->save();
+       }
+     }
+-    if ($this->entity && $is_affected) {
++    if ($this->entity && ($is_affected || $set_new_revision)) {
+       $this->target_revision_id = $this->entity->getRevisionId();
+     }
+   }
+@@ -390,7 +404,15 @@ class EntityReferenceRevisionsItem extends EntityReferenceItem implements Option
+     if ($needs_save) {
+       // Check if any of the keys has changed, save it, do not create a new
+       // revision.
+-      $entity->setNewRevision(FALSE);
++      // Drupal 11.x enforces that an existing default revision cannot be
++      // saved as a non-default revision without creating a new revision.
++      // @see https://www.drupal.org/project/drupal/issues/3499181
++      if ($entity->wasDefaultRevision() && !$entity->isDefaultRevision()) {
++        $entity->setNewRevision(TRUE);
++      }
++      else {
++        $entity->setNewRevision(FALSE);
++      }
+       $entity->save();
+     }
+   }

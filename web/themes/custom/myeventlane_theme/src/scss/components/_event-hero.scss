@@ -1,35 +1,246 @@
+// ==========================================================================
+// Event hero (legacy wrapper + Event Full premium featured-style overrides)
+// ==========================================================================
+// Event Full v2 hero: imported after _event-card so these rules override @extend.
+
 .mel-event-hero-wrapper {
   width: 100vw;
   margin-left: calc(50% - 50vw);
+
+  .mel-event-hero {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    border-radius: 24px;
+  }
+
+  .mel-event-hero__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mel-event-hero__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.15),
+      rgba(0, 0, 0, 0.45)
+    );
+    color: #fff;
+  }
 }
 
-.mel-event-hero {
-  position: relative;
-  height: 420px;
-  overflow: hidden;
-  border-radius: 24px;
+// ---------------------------------------------------------------------------
+// Event Full — premium glass hero (templates/node/node--event--full.html.twig)
+// ---------------------------------------------------------------------------
+
+@keyframes melHeroFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.mel-event-hero__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+// Taller than the old fixed 420px band on wide layouts → closer to 16:9 photo framing, less crop/zoom.
+.mel-event--v2 .mel-event-hero--featured-style {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  min-height: 240px;
 }
 
-.mel-event-hero__overlay {
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__overlay {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 2rem;
-  background: linear-gradient(
-    to bottom,
-    rgba(0,0,0,0.15),
-    rgba(0,0,0,0.45)
-  );
+  z-index: 2;
+  pointer-events: none;
+
+  background:
+    radial-gradient(ellipse 1200px 42% at 0% 100%, rgba(36, 48, 58, 0.55) 0%, rgba(36, 48, 58, 0) 60%),
+    linear-gradient(180deg, rgba(36, 48, 58, 0.05) 0%, rgba(36, 48, 58, 0.78) 100%);
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__glass {
+  display: inline-block;
+  max-width: 560px;
+  padding: 16px 18px;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px rgba(36, 48, 58, 0.18);
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__content {
+  max-width: 560px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__content {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: melHeroFade 420ms ease-out forwards;
+    animation-delay: 80ms;
+  }
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__title {
+  margin: 0 0 8px;
+  font-size: clamp(32px, 4.5vw, 56px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
   color: #fff;
+  text-shadow: 0 8px 24px rgba(36, 48, 58, 0.35);
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__datetime {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 4px 12px rgba(36, 48, 58, 0.28);
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__venue {
+  font-size: 17px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+// Positioning only on wrapper — glass + padding live on the pill.
+// Global `.mel-pill--category { position: absolute }` (_event-card.scss) takes the pill out of
+// flow, so the chip had no intrinsic width and collapsed (label clipped to ~"Fo").
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 3;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  transform: none !important;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip .mel-pill.mel-pill--category {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip .mel-pill {
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 16px;
+  min-height: 36px;
+  box-sizing: border-box;
+  align-items: center;
+
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #24303a;
+
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.12);
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip .mel-pill:hover {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.12);
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field {
+  margin: 0;
+}
+
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__chip--field .field__item a {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 8px 16px;
+  min-height: 36px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  color: #24303a;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Avoid default scale-up (slight blur); keep hover motion minimal.
+.mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__media img {
+  transform: scale(1);
+  transition: transform 400ms ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mel-event--v2 .mel-event-hero--featured-style:hover .mel-event-hero__media img {
+    transform: scale(1.02);
+  }
+}
+
+@media (max-width: 768px) {
+  .mel-event--v2 .mel-event-hero--featured-style {
+    aspect-ratio: 4 / 3;
+    min-height: 220px;
+    height: auto;
+  }
+
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__content {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__title {
+    font-size: 26px;
+  }
+
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__glass {
+    padding: 12px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__content {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__media img {
+    transform: none;
+    transition: none;
+  }
 }

@@ -8,11 +8,20 @@
 
 {% if mel_browse_category_name %}
   <p class="mel-category-browse__intro">
-    {{ 'Explore events in @name.'|t({'@name': mel_browse_category_name}) }}
+    {{ 'Browse events in @name.'|t({'@name': mel_browse_category_name}) }}
   </p>
 {% endif %}
 
-{% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: view.current_display } %}
+{% if mel_browse_result_count is defined %}
+  <p class="mel-browse-results-count mel-browse-results-count--category" role="status">
+    {{ '@count events'|t({'@count': mel_browse_result_count}) }}
+  </p>
+{% endif %}
+
+{% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with {
+  display_id: view.current_display,
+  mel_browse_active_filters: mel_browse_active_filters|default(false),
+} %}
 
 {{ exposed }}
 
