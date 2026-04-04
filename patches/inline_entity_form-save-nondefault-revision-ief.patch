@@ -1,0 +1,20 @@
+diff --git a/src/Form/EntityInlineForm.php b/src/Form/EntityInlineForm.php
+--- a/src/Form/EntityInlineForm.php
++++ b/src/Form/EntityInlineForm.php
+@@ -295,6 +295,16 @@
+    * {@inheritdoc}
+    */
+   public function save(EntityInterface $entity) {
++    if ($entity instanceof ContentEntityInterface) {
++      $entity_type = $entity->getEntityType();
++      if ($entity_type->isRevisionable()
++        && !$entity->isNew()
++        && !$entity->isNewRevision()
++        && $entity->wasDefaultRevision()
++        && !$entity->isDefaultRevision()) {
++        $entity->setNewRevision(TRUE);
++      }
++    }
+     $entity->save();
+   }
+ 

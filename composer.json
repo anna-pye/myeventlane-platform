@@ -98,6 +98,12 @@
             "drupal/core": {
                 "Fix FormatterBase third_party_settings null TypeError with Layout Builder": "patches/drupal-core-formatter-third-party-settings.patch",
                 "Fix mb_strtolower(null) deprecation in config entity query Condition": "patches/drupal-core-config-entity-query-null-condition.patch"
+            },
+            "drupal/entity_reference_revisions": {
+                "3571637: Composite entity save as non-default revision (Drupal 11)": "patches/entity_reference_revisions-fix_default_revision_sync-3571637-12.patch"
+            },
+            "drupal/inline_entity_form": {
+                "IEF: new revision when default-loaded entity saved non-default (workspaces/paragraphs)": "patches/inline_entity_form-save-nondefault-revision-ief.patch"
             }
         },
         "drupal-scaffold": {

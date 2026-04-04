@@ -27,7 +27,7 @@
 {% set mel_cta_is_external = cta_type is defined and cta_type == 'external' %}
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
-  <div class="mel-container">
+  <div class="mel-container mel-container--event">
     {# Hero: node--event--full — same stack as homepage featured_hero (mel-event-card variant). #}
     <section class="mel-event-hero mel-event-hero--featured-style" aria-labelledby="mel-event-title">
       <div class="mel-event-hero__media">
@@ -50,21 +50,23 @@
         </div>
       {% endif %}
       <div class="mel-event-hero__content">
-        <h1 class="mel-event-hero__title" id="mel-event-title">{{ label }}</h1>
-        {% if hero_datetime %}
-          <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
-        {% endif %}
-        {% if hero_venue %}
-          <p class="mel-event-hero__venue">{{ hero_venue }}</p>
-        {% endif %}
-        {% if hero_status %}
-          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ hero_status_modifier|default('default') }}">{{ hero_status }}</p>
-        {% endif %}
+        <div class="mel-event-hero__glass">
+          <h1 class="mel-event-hero__title" id="mel-event-title">{{ node.label|title }}</h1>
+          {% if hero_datetime %}
+            <p class="mel-event-hero__datetime">{{ hero_datetime }}</p>
+          {% endif %}
+          {% if hero_venue %}
+            <p class="mel-event-hero__venue">{{ hero_venue }}</p>
+          {% endif %}
+          {% if hero_status %}
+            <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ hero_status_modifier|default('default') }}">{{ hero_status }}</p>
+          {% endif %}
+        </div>
       </div>
     </section>
 
     {# Meta row + CTA #}
-    <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
+    <section class="mel-event-meta-bar mel-event-meta-card" aria-label="{{ 'Event summary'|t }}">
       <div class="mel-event-meta-bar__items">
         {% if is_promoted and not (mel_category_label is defined and mel_category_label) %}
           <div class="mel-event-meta">
@@ -171,7 +173,7 @@
         {% if body_plain %}
           <div class="mel-card mel-card--surface">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'About the Event'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'About the Event'|t }}</h2>
             </div>
             <div class="mel-card__body">
               {{ content.body }}
@@ -182,8 +184,8 @@
         {# Social share: directly under About the Event; render only when canonical URL exists. #}
         {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
         {% if canonical_url %}
-          <div class="mel-event-share mel-mt-4" role="group" aria-label="{{ 'Share'|t }}">
-            <a class="mel-event-share__link mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+          <div class="mel-event-share" role="group" aria-label="{{ 'Share'|t }}">
+            <a class="mel-event-share__link mel-social" href="mailto:?subject={{ node.label|title|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
               <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                 <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
                 <path d="m4.6 7.2 6.65 4.55a1.25 1.25 0 0 0 1.4 0L19.4 7.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
@@ -194,7 +196,7 @@
                 <path fill="currentColor" d="M13.5 22v-9.2h3.1l.5-3.6H13.5V7.3c0-1 .3-1.7 1.8-1.7h1.9V2.1C16.6 2 15.5 2 14.3 2c-2.8 0-4.7 1.7-4.7 4.8v2.4H6v3.6h3.6V22h3.9Z"/>
               </svg>
             </a>
-            <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X'|t }}">
+            <a class="mel-event-share__link mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ node.label|title|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X'|t }}">
               <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
                 <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>
               </svg>
@@ -221,9 +223,9 @@
         {% endif %}
 
         {% if highlights|length %}
-          <div class="mel-card mel-card--surface mel-card--highlights mel-mt-5" aria-label="{{ 'Highlights'|t }}">
+          <div class="mel-card mel-card--surface mel-card--highlights" aria-label="{{ 'Highlights'|t }}">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Highlights'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'Highlights'|t }}</h2>
             </div>
             <div class="mel-card__body">
               <ul class="mel-event-highlights" role="list">
@@ -265,9 +267,9 @@
         {% set expect_text = expect_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {% if expect_text %}
-          <div class="mel-card mel-card--surface mel-card--expect mel-mt-5">
+          <div class="mel-card mel-card--surface mel-card--expect">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'What to expect'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'What to expect'|t }}</h2>
             </div>
             <div class="mel-card__body">
               {{ expect_html }}
@@ -281,9 +283,9 @@
           or (content.field_accessibility_entry is defined and content.field_accessibility_entry)
           or (content.field_accessibility_parking is defined and content.field_accessibility_parking)
         %}
-          <div class="mel-card mel-card--surface mel-mt-5">
+          <div class="mel-card mel-card--surface">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Accessibility'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'Accessibility'|t }}</h2>
             </div>
             <div class="mel-card__body">
               {% if node.hasField('field_accessibility') and not node.field_accessibility.isEmpty %}
@@ -349,7 +351,7 @@
         {% endif %}
 
         {% if mel_organiser is defined and mel_organiser and mel_organiser.name %}
-          <section class="mel-organiser-card mel-card mel-card--surface mel-mt-5" aria-labelledby="mel-organiser-card-title">
+          <section class="mel-organiser-card mel-card mel-card--surface" aria-labelledby="mel-organiser-card-title">
             <div class="mel-organiser-card__inner">
               {% if mel_organiser.logo_url %}
                 <div class="mel-organiser-card__avatar">
@@ -361,7 +363,7 @@
                 </div>
               {% endif %}
               <div class="mel-organiser-card__body">
-                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title">{{ 'Presented by'|t }}</h2>
+                <h2 id="mel-organiser-card-title" class="mel-organiser-card__title mel-section-title">{{ 'Presented by'|t }}</h2>
                 {% if mel_organiser.url %}
                   <a class="mel-organiser-card__name" href="{{ mel_organiser.url }}">{{ mel_organiser.name }}</a>
                 {% else %}
@@ -377,7 +379,7 @@
           </section>
         {% endif %}
 
-        <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
+        <nav class="mel-event-support-zone" aria-label="{{ 'Help and policies'|t }}">
           <ul class="mel-event-support-zone__list">
             <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
             <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a></li>
@@ -390,9 +392,9 @@
         {% set cancellation_text = cancellation_html|replace({'&nbsp;': ' ', '&#160;': ' '})|striptags|trim %}
 
         {% if (mel_refund_policy_text is defined and mel_refund_policy_text) or cancellation_text %}
-          <div class="mel-card mel-card--surface mel-mt-5">
+          <div class="mel-card mel-card--surface">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Policies'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'Policies'|t }}</h2>
             </div>
             <div class="mel-card__body">
               {% if mel_refund_policy_text is defined and mel_refund_policy_text %}
@@ -415,9 +417,9 @@
         {% if (node.hasField('field_contact_email') and not node.field_contact_email.isEmpty)
           or (node.hasField('field_contact_phone') and not node.field_contact_phone.isEmpty)
         %}
-          <div class="mel-card mel-card--surface mel-mt-5">
+          <div class="mel-card mel-card--surface">
             <div class="mel-card__header">
-              <h2 class="mel-card__title">{{ 'Contact'|t }}</h2>
+              <h2 class="mel-card__title mel-section-title">{{ 'Contact'|t }}</h2>
             </div>
             <div class="mel-card__body">
               {% if node.hasField('field_contact_email') and not node.field_contact_email.isEmpty %}
@@ -456,9 +458,9 @@
               {{ drupal_view('upcoming_events', 'related_by_category', primary_category_tid, node.id()) }}
             {% endset %}
             {% if related_events_markup|trim %}
-              <section class="mel-event-related mel-mt-5" aria-labelledby="mel-event-related-heading">
+              <section class="mel-event-related" aria-labelledby="mel-event-related-heading">
                 <div class="mel-section-head">
-                  <h2 id="mel-event-related-heading" class="mel-section-head__title">{{ 'More in @category'|t({'@category': primary_category_name}) }}</h2>
+                  <h2 id="mel-event-related-heading" class="mel-section-head__title mel-section-title">{{ 'More in @category'|t({'@category': primary_category_name}) }}</h2>
                   <a class="mel-link" href="{{ path('view.upcoming_events.page_category', {'arg_0': primary_category_tid}) }}">{{ 'View all'|t }}</a>
                 </div>
                 {{ related_events_markup }}
@@ -468,10 +470,10 @@
         {% endif %}
       </div>
 
-      <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
-        <div class="mel-card mel-card--surface mel-card--sticky">
+      <aside class="mel-event-layout__side" aria-label="{{ 'Tickets and event information'|t }}">
+        <div class="mel-card mel-card--surface">
           <div class="mel-card__header">
-            <h2 class="mel-card__title">
+            <h2 class="mel-card__title mel-section-title">
               {% if cta_type is defined and cta_type == 'rsvp' %}
                 {{ 'RSVP free'|t }}
               {% elseif cta_type is defined and cta_type == 'paid' %}
@@ -504,9 +506,9 @@
         </div>
 
         {# Event Information: Location first (with map under address), then Category, Age Suitability. #}
-        <div class="mel-card mel-card--surface mel-mt-5">
+        <div class="mel-card mel-card--surface">
           <div class="mel-card__header">
-            <h2 class="mel-card__title">{{ 'Event Information'|t }}</h2>
+            <h2 class="mel-card__title mel-section-title">{{ 'Event Information'|t }}</h2>
           </div>
           <div class="mel-card__body">
             {# Location first: venue name, address (field render), map under address. #}
@@ -545,12 +547,11 @@
                     </div>
                   {% endif %}
                   {% if map_query is not empty %}
-                    <div class="mel-event-map-embed mel-mt-3">
+                    <div class="mel-event-map-embed">
                       <iframe
                         src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
                         width="100%"
                         height="200"
-                        style="border:0; border-radius: 10px;"
                         allowfullscreen
                         loading="lazy"
                         referrerpolicy="no-referrer-when-downgrade"

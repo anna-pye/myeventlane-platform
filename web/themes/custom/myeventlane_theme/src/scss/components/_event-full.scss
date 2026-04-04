@@ -19,13 +19,10 @@
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 }
 
-// Spacing between featured-style hero and meta bar (hero chrome = .mel-event-hero-card via @extend in _event-card.scss).
-.mel-event--v2 .mel-event-hero--featured-style {
-  margin-bottom: space-tokens.mel-space(2);
-}
+// Hero → meta rhythm: see pages/_event.scss (.mel-container--event).
 
 .mel-event-meta-bar {
-  margin-top: space-tokens.mel-space(2);
+  margin-top: 0;
   background: colors.$mel-color-surface;
   border-radius: radii.$mel-radius-xl;
   box-shadow: shadows.$mel-shadow-md;
@@ -115,17 +112,6 @@
   line-height: 1.2;
 }
 
-.mel-event-layout {
-  margin-top: space-tokens.mel-space(5);
-  display: grid;
-  gap: space-tokens.mel-space(5);
-
-  @include breakpoints.mel-break(lg) {
-    grid-template-columns: minmax(0, 1fr) 360px;
-    align-items: start;
-  }
-}
-
 .mel-card--surface {
   border-radius: radii.$mel-radius-xl;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -134,8 +120,9 @@
 }
 
 .mel-card--sticky {
-  position: sticky;
-  top: space-tokens.mel-space(4);
+  // Sticky column is .mel-event-layout__side; avoid nested sticky offsets.
+  position: static;
+  top: auto;
 }
 
 .mel-btn--pill {
@@ -152,7 +139,7 @@
   display: flex;
   gap: space-tokens.mel-space(2);
   align-items: center;
-  margin-top: space-tokens.mel-space(4);
+  margin-top: 0;
 }
 
 .mel-event-share__link {
@@ -536,20 +523,8 @@
 }
 
 // ---------------------------------------------------------------------------
-// Event Layout (Two-Column) - Mobile-First
+// Legacy flex layout (non–event-full grid)
 // ---------------------------------------------------------------------------
-
-.mel-event-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-
-  @media (min-width: 900px) {
-    grid-template-columns: 1.4fr 0.6fr;
-    gap: 28px;
-    align-items: start;
-  }
-}
 
 // Legacy support for existing flex-based layout
 .mel-event-layout--flex {
@@ -773,7 +748,7 @@
 }
 
 .event-cta {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .event-location,
