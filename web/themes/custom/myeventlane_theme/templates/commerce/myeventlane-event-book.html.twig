@@ -8,7 +8,7 @@
  *
  * Variables: event_title, event_date, event_location, hero_url, event_image,
  * event_description, event_summary_excerpt, mel_booking_host_label,
- * matrix_form, rsvp_form, event_mode, recommended_events, etc.
+ * matrix_form, rsvp_form, event_mode, etc.
  */
 #}
 <div class="mel-booking-v2 mel-booking mel-event-book" data-event-mode="{{ event_mode }}">
@@ -45,9 +45,9 @@
             {% elseif event_mode == 'paid' %}
               {{ 'Buy tickets'|t }}
             {% elseif event_mode == 'external' %}
-              {{ 'Get tickets'|t }}
+              {{ 'View details'|t }}
             {% else %}
-              {{ 'Book this event'|t }}
+              {{ 'View details'|t }}
             {% endif %}
           </p>
           <h1 class="mel-booking-hero__title">{{ event_title }}</h1>
@@ -87,20 +87,19 @@
           <li class="mel-booking-trust-strip__item">{{ 'Review before payment'|t }}</li>
           <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
         {% elseif event_mode == 'rsvp' %}
-          <li class="mel-booking-trust-strip__item">{{ 'Free RSVP — no payment on this step'|t }}</li>
+          <li class="mel-booking-trust-strip__item">{{ 'RSVP free — no payment on this step'|t }}</li>
           <li class="mel-booking-trust-strip__item">{{ 'Review your details before you confirm'|t }}</li>
           <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
         {% else %}
           <li class="mel-booking-trust-strip__item">{{ 'Hosted on MyEventLane'|t }}</li>
         {% endif %}
+        <li class="mel-booking-trust-strip__item mel-booking-trust-strip__item--help">
+          <a class="mel-booking-trust-strip__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+          <span class="mel-booking-trust-strip__sep" aria-hidden="true">·</span>
+          <a class="mel-booking-trust-strip__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
+        </li>
       </ul>
     </div>
-
-    <nav class="mel-booking-help-links" aria-label="{{ 'Help and support'|t }}">
-      <a class="mel-booking-help-links__a" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
-      <span class="mel-booking-help-links__sep" aria-hidden="true">·</span>
-      <a class="mel-booking-help-links__a" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
-    </nav>
 
     {% set mel_has_booking_signals =
       mel_signal_is_community
@@ -143,27 +142,21 @@
 
       <div class="mel-booking-layout{% if event_mode != 'paid' %} mel-booking-layout--single{% endif %}">
         <div class="mel-booking-layout__main">
-          {% if event_mode == 'paid' %}
-            <p class="mel-booking-confidence mel-text--muted">
-              {{ "Pick the option that feels right for you - you can review everything before checkout."|t }}
-            </p>
-          {% endif %}
-
           <div class="mel-ticket-panel mel-event-book__form" aria-labelledby="mel-ticket-panel-title">
             <h2 class="mel-ticket-panel__title" id="mel-ticket-panel-title">
               {% if event_mode == 'paid' %}
                 {{ 'Choose your tickets'|t }}
               {% elseif event_mode == 'rsvp' %}
-                {{ 'RSVP for this event'|t }}
+                {{ 'RSVP free'|t }}
               {% elseif event_mode == 'external' %}
-                {{ 'Get tickets'|t }}
+                {{ 'View details'|t }}
               {% else %}
-                {{ 'Registration'|t }}
+                {{ 'View details'|t }}
               {% endif %}
             </h2>
 
             {% if event_mode == 'paid' %}
-              <p class="mel-ticket-panel__lead">{{ "Pick the option that feels right for you - you can review everything before checkout."|t }}</p>
+              <p class="mel-ticket-panel__lead">{{ 'You can review everything before you continue to checkout.'|t }}</p>
             {% endif %}
 
             <div class="mel-ticket-panel__body mel-event-book__form-body">
@@ -203,7 +196,7 @@
                 </div>
               </div>
               <footer class="mel-booking-summary__footer">
-                <p class="mel-booking-summary__cta-note">{{ 'Tickets are added to your cart first — secure checkout on the next step.'|t }}</p>
+                <p class="mel-booking-summary__cta-note">{{ 'Tickets go to your cart first — continue to checkout when you are ready.'|t }}</p>
               </footer>
             </div>
           </aside>
@@ -211,17 +204,5 @@
       </div>
     </div>
 
-    {% if recommended_events %}
-      <section class="mel-event-book__recommendations" aria-labelledby="mel-event-book-recommendations-title">
-        <header class="mel-event-book__recommendations-head">
-          <h2 class="mel-event-book__recommendations-title" id="mel-event-book-recommendations-title">
-            {{ 'More events'|t }}
-          </h2>
-        </header>
-        <div class="mel-event-book__recommendations-body">
-          {{ recommended_events }}
-        </div>
-      </section>
-    {% endif %}
   </div>
 </div>

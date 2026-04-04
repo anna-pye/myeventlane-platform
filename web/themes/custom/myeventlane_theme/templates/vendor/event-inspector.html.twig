@@ -26,7 +26,7 @@
       <span>60%</span>
     </div>
 
-    <div>RSVPs {{ event.rsvps|default(event.rsvp_count|default(142)) }}</div>
+    <div>{{ 'RSVPs'|t }} {{ event.rsvps|default(event.rsvp_count|default(0)) }}</div>
     <div>Revenue ${{ event.revenue|default(3420) }}</div>
   </section>
 

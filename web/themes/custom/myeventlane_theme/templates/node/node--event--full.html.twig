@@ -63,7 +63,7 @@
     {# Meta row + CTA #}
     <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
       <div class="mel-event-meta-bar__items">
-        {% if is_promoted %}
+        {% if is_promoted and not (mel_category_label is defined and mel_category_label) %}
           <div class="mel-event-meta">
             <span class="mel-featured-badge mel-featured-badge--inline" role="note" aria-label="{{ 'Featured event'|t }}">
               <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
@@ -455,13 +455,13 @@
           <div class="mel-card__header">
             <h2 class="mel-card__title">
               {% if cta_type is defined and cta_type == 'rsvp' %}
-                {{ 'RSVP'|t }}
+                {{ 'RSVP free'|t }}
               {% elseif cta_type is defined and cta_type == 'paid' %}
-                {{ 'Tickets'|t }}
+                {{ 'Buy tickets'|t }}
               {% elseif cta_type is defined and cta_type == 'external' %}
-                {{ 'External tickets'|t }}
+                {{ 'View details'|t }}
               {% else %}
-                {{ 'Registration'|t }}
+                {{ 'View details'|t }}
               {% endif %}
             </h2>
           </div>

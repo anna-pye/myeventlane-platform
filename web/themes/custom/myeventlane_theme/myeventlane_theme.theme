@@ -2034,7 +2034,7 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
     }
   }
 
-  if ($view->id() === 'upcoming_events' && $view->current_display === 'page_events') {
+  if ($view->id() === 'upcoming_events' && in_array($view->current_display, ['page_events', 'page_category', 'page_today', 'page_this_weekend', 'page_free'], TRUE)) {
     $request = \Drupal::request();
     $query_all = $request->query->all();
     $active = FALSE;

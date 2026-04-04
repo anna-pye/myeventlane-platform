@@ -8,6 +8,7 @@
  */
 #}
 {% set d = display_id|default('page_events') %}
+{% set mel_browse_active_filters = mel_browse_active_filters|default(false) %}
 <div class="mel-browse-filters__intro">
   <h2 class="mel-browse-filters__heading visually-hidden">{{ 'Filter events'|t }}</h2>
   <p class="mel-browse-filters__lede">{{ 'Refine by date, category, ticket type, and more.'|t }}</p>
@@ -15,5 +16,5 @@
 
 <div class="mel-browse-filters__when" role="group" aria-labelledby="mel-browse-filters-when-label">
   <p id="mel-browse-filters-when-label" class="mel-browse-filters__label">{{ 'When'|t }}</p>
-  {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: d } %}
+  {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: d, mel_browse_active_filters: mel_browse_active_filters } %}
 </div>

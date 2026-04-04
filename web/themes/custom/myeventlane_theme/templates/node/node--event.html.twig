@@ -82,17 +82,17 @@
           <div class="mel-event__actions">
             {# CTA based on event type #}
             {% set cta_url = '#' %}
-            {% set cta_label = 'Get tickets' %}
+            {% set cta_label = 'Buy tickets' %}
             {% if node.hasField('field_event_type') and not node.field_event_type.isEmpty %}
               {% set event_type = node.field_event_type.value %}
               {% if event_type == 'rsvp' %}
-                {% set cta_label = 'RSVP' %}
+                {% set cta_label = 'RSVP free' %}
                 {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
               {% elseif event_type == 'both' %}
-                {% set cta_label = 'Get tickets' %}
+                {% set cta_label = 'Buy tickets' %}
                 {% set cta_url = url('myeventlane_commerce.event_book', {'node': node.id}) %}
               {% elseif event_type == 'external' and node.hasField('field_external_url') and not node.field_external_url.isEmpty %}
-                {% set cta_label = 'Book' %}
+                {% set cta_label = 'View details' %}
                 {% set external_url = node.field_external_url[0].url %}
                 {% set cta_url = external_url %}
               {% endif %}

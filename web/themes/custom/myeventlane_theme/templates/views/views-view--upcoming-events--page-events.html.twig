@@ -8,7 +8,10 @@
 
 <div class="mel-browse__layout">
   <aside id="mel-browse-filters" class="mel-browse__filters" aria-label="{{ 'Filters'|t }}">
-    {% include '@myeventlane_theme/components/browse/mel-browse-filters.twig' with { display_id: view.current_display } %}
+    {% include '@myeventlane_theme/components/browse/mel-browse-filters.twig' with {
+      display_id: view.current_display,
+      mel_browse_active_filters: mel_browse_active_filters|default(false),
+    } %}
     <div class="mel-filter-panel">
       <h3 class="mel-filter-panel__title">{{ 'Filter events'|t }}</h3>
       {{ exposed }}

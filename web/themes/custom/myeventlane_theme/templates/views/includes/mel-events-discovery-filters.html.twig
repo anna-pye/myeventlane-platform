@@ -8,6 +8,7 @@
  */
 #}
 {% set d = display_id|default('') %}
+{% set mel_show_filter_reset = mel_browse_active_filters|default(false) %}
 <nav class="mel-events-date-filters" aria-label="{{ 'When'|t }}">
   <a
     href="{{ path('view.upcoming_events.page_events') }}"
@@ -25,4 +26,10 @@
     href="{{ path('view.upcoming_events.page_free') }}"
     class="mel-events-date-filters__pill{% if d == 'page_free' %} is-active{% endif %}"
   >{{ 'Free & RSVP'|t }}</a>
+  {% if mel_show_filter_reset and d == 'page_events' %}
+    <a
+      href="{{ path('view.upcoming_events.page_events') }}"
+      class="mel-events-date-filters__pill mel-events-date-filters__pill--reset"
+    >{{ 'Reset filters'|t }}</a>
+  {% endif %}
 </nav>

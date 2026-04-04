@@ -5,7 +5,7 @@
  */
 #}
 {% set _tt = ticket_type|default('paid')|striptags|trim|lower %}
-{% set _cta_fallback = _tt == 'rsvp' ? 'RSVP free'|t : (_tt == 'external' ? 'External tickets'|t : 'Buy tickets'|t) %}
+{% set _cta_fallback = _tt == 'rsvp' ? 'RSVP free'|t : (_tt == 'external' ? 'View details'|t : 'Buy tickets'|t) %}
 {% set _status_primary = _tt == 'rsvp' ? 'Free · RSVP'|t : (_tt == 'external' ? 'External ticketing'|t : (_tt == 'paid' or _tt == 'both' ? 'Paid tickets'|t : '')) %}
 {% set _status_mod = _tt == 'external' ? 'external' : (_tt == 'rsvp' ? 'free' : 'default') %}
 {% set _tl = ticket_label|default('')|striptags|trim %}

@@ -212,6 +212,37 @@
     background: color.adjust(colors.$mel-color-secondary, $lightness: 8%);
     box-shadow: 0 0 0 2px rgba(colors.$mel-color-secondary, 0.25);
   }
+
+  &--help {
+    padding-left: 0;
+
+    &::before {
+      display: none;
+    }
+  }
+}
+
+.mel-booking-v2 .mel-booking-trust-strip__link {
+  color: colors.$mel-color-primary;
+  font-weight: typography.$mel-font-semibold;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+
+  &:hover {
+    color: color.adjust(colors.$mel-color-primary, $lightness: -8%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid colors.$mel-color-primary;
+    outline-offset: 2px;
+    border-radius: radii.$mel-radius-sm;
+  }
+}
+
+.mel-booking-v2 .mel-booking-trust-strip__sep {
+  margin: 0 spacing.mel-space(1);
+  color: colors.$mel-color-text-muted;
+  user-select: none;
 }
 
 @include breakpoints.mel-break(sm, max) {
