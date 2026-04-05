@@ -6,6 +6,7 @@ SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-/tmp/artifact.tar.gz}"
 RUN_UPDB="${RUN_UPDB:-0}"
 RUN_CIM="${RUN_CIM:-0}"
+THEME_PATH_RELATIVE="web/themes/custom/myeventlane_theme"
 
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 RELEASE_PATH="$APP_PATH/releases/$TIMESTAMP"
@@ -66,6 +67,31 @@ vendor/bin/drush cr --uri="$SITE_URI" || true
 # Switch release
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
+cd "$CURRENT_PATH"
+
+# Theme build
+THEME_PATH="$CURRENT_PATH/$THEME_PATH_RELATIVE"
+
+if [ ! -d "$THEME_PATH" ]; then
+  echo "Theme directory not found: $THEME_PATH"
+  exit 1
+fi
+
+if [ ! -f "$THEME_PATH/package.json" ]; then
+  echo "Theme package.json not found: $THEME_PATH/package.json"
+  exit 1
+fi
+
+if [ ! -f "$THEME_PATH/package-lock.json" ]; then
+  echo "Theme package-lock.json not found: $THEME_PATH/package-lock.json"
+  exit 1
+fi
+
+echo "Building theme assets in: $THEME_PATH"
+cd "$THEME_PATH"
+rm -rf dist
+npm ci
+npm run build
 cd "$CURRENT_PATH"
 
 # Optional updates (disabled by default)
