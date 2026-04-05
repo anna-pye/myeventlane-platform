@@ -48,16 +48,6 @@ jobs:
         shell: bash
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress
 
-      - name: Install root Node dependencies
-        if: ${{ hashFiles('package.json') != '' }}
-        shell: bash
-        run: npm ci
-
-      - name: Build root Node assets
-        if: ${{ hashFiles('package.json') != '' }}
-        shell: bash
-        run: npm run build
-
       - name: Install theme Node dependencies
         if: ${{ hashFiles('web/themes/custom/myeventlane_theme/package.json') != '' }}
         shell: bash
@@ -69,6 +59,15 @@ jobs:
         shell: bash
         working-directory: web/themes/custom/myeventlane_theme
         run: npm run build
+
+      - name: Install root Node dependencies
+        if: ${{ hashFiles('package.json') != '' }}
+        shell: bash
+        run: npm ci
+
+      # Repo-root `npm run build` uses ./vite.config.js with the same theme entry but
+      # resolves packages from the repo root, so deps like swiper (installed only under
+      # the theme) fail. Production assets are built in the theme steps above.
 
       - name: Set artifact metadata
         id: meta
