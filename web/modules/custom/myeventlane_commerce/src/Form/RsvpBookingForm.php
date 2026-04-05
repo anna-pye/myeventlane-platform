@@ -139,7 +139,7 @@ final class RsvpBookingForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('🎉 Reserve my spot'),
+      '#value' => $this->t('Reserve my spot'),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--xl'],
       ],

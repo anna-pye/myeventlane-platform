@@ -1,121 +1,78 @@
-// ==========================================================================
-// Color Tokens
-// ==========================================================================
-// Central color palette for MyEventLane.
-// Pastel-forward with high contrast for text and CTAs.
-
 @use 'sass:color';
 
-// ---------------------------------------------------------------------------
-// Background & Surface
-// ---------------------------------------------------------------------------
+$mel-color-bg: #fff9f5;
+$mel-color-surface: #ffffff;
+$mel-color-surface-alt: #fdf1ec;
+$mel-color-overlay: rgba(36, 48, 58, 0.38);
+$mel-color-on-primary: #ffffff;
 
-$mel-color-bg: #faf7fb;              // Page background - soft lavender tint
-$mel-color-surface: #ffffff;          // Cards, modals, elevated surfaces
-$mel-color-surface-alt: #f5f0f7;      // Alternate surface - slightly darker
-$mel-color-overlay: rgba(16, 12, 34, 0.38); // Overlay for drawers/modals (AA-friendly)
-$mel-color-on-primary: #ffffff;       // Text on primary surfaces
+$mel-color-primary: #f26d5b;
+$mel-color-primary-hover: #e55c49;
+$mel-color-primary-active: #cf4f3d;
 
-// ---------------------------------------------------------------------------
-// Accent Colors
-// ---------------------------------------------------------------------------
-// Primary palette (MEL v2 UI reference)
-// Primary CTA is lavender-purple; coral is used as a supporting accent.
+$mel-color-accent: #7c83fd;
+$mel-color-accent-hover: #676ee6;
+$mel-color-accent-active: #555dd4;
 
-$mel-color-primary: #6c7ef2;          // Lavender purple - primary CTA
-$mel-color-primary-hover: #5f70e6;    // Hover
-$mel-color-primary-active: #5464d9;   // Active/pressed
+$mel-color-navy: #24303a;
+$mel-color-blue: $mel-color-accent;
+$mel-color-orange: #f5a04c;
+$mel-color-cream: $mel-color-bg;
+$mel-color-grey-light: $mel-color-surface-alt;
 
-$mel-color-navy: #293241;             // Navy - text and dark elements
-$mel-color-blue: #6c7ef2;             // Blue - accents
-$mel-color-orange: #f5a04c;           // Orange - highlights
-$mel-color-cream: #fef5ec;            // Cream - backgrounds
-$mel-color-grey-light: #f4f4f4;       // Light grey - subtle backgrounds
+$mel-color-secondary: $mel-color-accent;
+$mel-color-secondary-hover: $mel-color-accent-hover;
+$mel-color-secondary-active: $mel-color-accent-active;
+$mel-color-accent-alt: color.mix($mel-color-accent, #ffffff, 12%);
 
-$mel-color-secondary: #f26d5b;        // Coral - secondary/accent
-$mel-color-secondary-hover: #e85a4d;
-$mel-color-secondary-active: #d14a3d;
+$mel-color-highlight: $mel-color-primary;
+$mel-color-highlight-hover: $mel-color-primary-hover;
+$mel-color-highlight-active: $mel-color-primary-active;
 
-$mel-color-accent: #ffd46f;           // Soft yellow - highlights, badges (legacy)
-$mel-color-accent-alt: #70d6c4;       // Aqua/teal - optional accent (legacy)
+$mel-color-momentum: $mel-color-primary;
+$mel-color-momentum-hover: $mel-color-primary-hover;
+$mel-color-momentum-active: $mel-color-primary-active;
 
-// Semantic aliases (design authority):
-// - Primary system color remains lavender ($mel-color-primary).
-// - Coral is an accent for emphasis / momentum (Featured / Popular / Trending).
-$mel-color-highlight: $mel-color-secondary;
-$mel-color-highlight-hover: $mel-color-secondary-hover;
-$mel-color-highlight-active: $mel-color-secondary-active;
-
-$mel-color-momentum: $mel-color-secondary;
-$mel-color-momentum-hover: $mel-color-secondary-hover;
-$mel-color-momentum-active: $mel-color-secondary-active;
-
-// Legacy aliases (for backward compatibility)
 $mel-color-accent-1: $mel-color-primary;
-$mel-color-accent-2: $mel-color-secondary;
-$mel-color-accent-3: $mel-color-accent;
+$mel-color-accent-2: $mel-color-accent;
+$mel-color-accent-3: $mel-color-orange;
 $mel-color-accent-4: $mel-color-accent-alt;
 
-// ---------------------------------------------------------------------------
-// Text Colors
-// ---------------------------------------------------------------------------
+$mel-color-text: #24303a;
+$mel-color-text-muted: #5b6670;
+$mel-color-text-light: #7a838b;
+$mel-color-text-inverse: #ffffff;
 
-$mel-color-text: #293241;             // Primary text - navy matching style guide
-$mel-color-text-muted: #5c5c6f;       // Secondary/meta text
-$mel-color-text-light: #8888a0;       // Tertiary/placeholder text
-$mel-color-text-inverse: #ffffff;     // Text on dark/colored backgrounds
+$mel-color-border: #e9e3de;
+$mel-color-border-strong: color.scale($mel-color-border, $lightness: -16%);
 
-// ---------------------------------------------------------------------------
-// Border Colors
-// ---------------------------------------------------------------------------
+$mel-color-success: #22c55e;
+$mel-color-success-bg: #dcfce7;
+$mel-color-error: #ef4444;
+$mel-color-error-bg: #fee2e2;
+$mel-color-warning: #f59e0b;
+$mel-color-warning-bg: #fef3c7;
+$mel-color-info: #3b82f6;
+$mel-color-info-bg: #dbeafe;
 
-$mel-color-border: rgba(0, 0, 0, 0.1);
-$mel-color-border-strong: rgba(0, 0, 0, 0.2);
+$mel-color-pastel-lavender: color.mix($mel-color-accent, #ffffff, 14%);
+$mel-color-pastel-pink: color.mix($mel-color-primary, #ffffff, 14%);
+$mel-color-pastel-mint: color.mix($mel-color-accent-alt, #ffffff, 35%);
+$mel-color-pastel-peach: color.mix($mel-color-primary, #ffffff, 18%);
+$mel-color-pastel-sky: color.mix($mel-color-accent, #ffffff, 10%);
+$mel-color-pastel-bg: $mel-color-bg;
 
-// ---------------------------------------------------------------------------
-// State Colors
-// ---------------------------------------------------------------------------
-
-$mel-color-success: #22c55e;          // Green - success messages
-$mel-color-success-bg: #dcfce7;       // Light green background
-$mel-color-error: #ef4444;            // Red - errors, destructive
-$mel-color-error-bg: #fee2e2;         // Light red background
-$mel-color-warning: #f59e0b;          // Amber - warnings
-$mel-color-warning-bg: #fef3c7;       // Light amber background
-$mel-color-info: #3b82f6;             // Blue - informational
-$mel-color-info-bg: #dbeafe;          // Light blue background
-
-// ---------------------------------------------------------------------------
-// Pastel Visual System (Melbourne-inspired)
-// ---------------------------------------------------------------------------
-// Soft, approachable pastels for global UI. These do NOT affect event cards.
-
-$mel-color-pastel-lavender: #ece5f3;
-$mel-color-pastel-pink: #fce4ec;
-$mel-color-pastel-mint: #e3f5ec;
-$mel-color-pastel-peach: #fde8d8;
-$mel-color-pastel-sky: #e3f0fa;
-$mel-color-pastel-bg: #f8f4fb;          // Global page background
-
-// Glass surfaces (NOT applied to event cards)
 $mel-glass-bg: rgba(255, 255, 255, 0.68);
 $mel-glass-bg-strong: rgba(255, 255, 255, 0.82);
 $mel-glass-border-color: rgba(255, 255, 255, 0.45);
-$mel-glass-shadow: 0 8px 32px rgba(100, 80, 140, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-
-// ---------------------------------------------------------------------------
-// Focus & Accessibility
-// ---------------------------------------------------------------------------
+$mel-glass-shadow: 0 8px 32px rgba(36, 48, 58, 0.08);
 
 $mel-focus-ring-color: $mel-color-primary;
 $mel-focus-ring-offset: 2px;
 $mel-focus-ring-width: 3px;
-$mel-focus-ring: 0 0 0 $mel-focus-ring-offset $mel-color-surface,
-                 0 0 0 ($mel-focus-ring-offset + $mel-focus-ring-width) $mel-focus-ring-color;
-
-// ---------------------------------------------------------------------------
-// Focus Mixins
-// ---------------------------------------------------------------------------
+$mel-focus-ring:
+  0 0 0 $mel-focus-ring-offset $mel-color-surface,
+  0 0 0 ($mel-focus-ring-offset + $mel-focus-ring-width) $mel-focus-ring-color;
 
 @mixin mel-focus-ring {
   outline: none;

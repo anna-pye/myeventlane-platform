@@ -1,0 +1,127 @@
+name: Reusable Build
+
+on:
+  workflow_call:
+    outputs:
+      artifact_name:
+        description: Deployable artifact name
+        value: ${{ jobs.build.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build deployable artifact
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+
+    env:
+      ARTIFACT_NAME: myeventlane-${{ github.sha }}
+      HUSKY: 0
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, curl, zip, intl, gd, pdo_mysql
+          coverage: none
+          tools: composer
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: |
+            **/package-lock.json
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Install Node dependencies and build assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t package_files < <(
+            find . \
+              -type f \
+              -name package.json \
+              -not -path './.git/*' \
+              -not -path './.ddev/*' \
+              -not -path './node_modules/*' \
+              -not -path './vendor/*' \
+              | sort
+          )
+
+          if [ "${#package_files[@]}" -eq 0 ]; then
+            echo "No package.json files found."
+            exit 0
+          fi
+
+          for package_file in "${package_files[@]}"; do
+            package_dir="$(dirname "$package_file")"
+
+            if [ ! -f "$package_dir/package-lock.json" ]; then
+              echo "Missing package-lock.json in $package_dir"
+              exit 1
+            fi
+
+            echo "Building Node project in $package_dir"
+
+            pushd "$package_dir" >/dev/null
+            npm ci
+
+            if node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts.build ? 0 : 1)"; then
+              npm run build
+            else
+              echo "No build script in $package_dir, skipping npm run build."
+            fi
+
+            popd >/dev/null
+          done
+
+      - name: Set artifact metadata
+        id: meta
+        run: echo "artifact_name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Package release artifact
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive_path="$RUNNER_TEMP/${ARTIFACT_NAME}.tar.gz"
+
+          tar \
+            --exclude='.git' \
+            --exclude='.ddev' \
+            --exclude='node_modules' \
+            --exclude='*/node_modules' \
+            --exclude='tests' \
+            --exclude='*/tests' \
+            --exclude='web/sites/*/files' \
+            --exclude='web/sites/*/files/*' \
+            --exclude='web/sites/*/private' \
+            --exclude='web/sites/*/private/*' \
+            --exclude='web/sites/*/settings*.php' \
+            --exclude='web/sites/*/services*.yml' \
+            -czf "$archive_path" .
+
+          echo "artifact_path=$archive_path" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ steps.package.outputs.artifact_path }}
+          if-no-files-found: error
+          retention-days: 14

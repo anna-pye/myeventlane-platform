@@ -169,7 +169,19 @@ final class RsvpPublicForm extends FormBase {
       return $form;
     }
 
-    $guest_default = $this->resolveGuestCount($form_state);
+    $guest_default = max(1, min(10, (int) $this->resolveGuestCount($form_state)));
+    $people_submitted = $form_state->getValue('people');
+    if ($people_submitted !== NULL && $people_submitted !== '' && is_numeric($people_submitted)) {
+      $visible_guests = max(1, min(10, (int) $people_submitted));
+    }
+    else {
+      $visible_guests = $guest_default;
+    }
+
+    $people_options = [1 => $this->t('Just me')];
+    for ($n = 2; $n <= 10; $n++) {
+      $people_options[$n] = $this->t('@count people', ['@count' => $n]);
+    }
 
     $form['intent'] = [
       '#type' => 'container',
@@ -187,19 +199,20 @@ final class RsvpPublicForm extends FormBase {
     ];
     $form['people'] = [
       '#prefix' => '<div class="mel-step-label">' . $this->t('Step 1: Who is coming') . '</div>',
-      '#type' => 'radios',
-      '#title' => $this->t('Who is coming?'),
-      '#description' => $this->t('Bring your people — it’s better together'),
-      '#options' => [
-        1 => $this->t('Just me'),
-        2 => $this->t('2 people'),
-        3 => $this->t('3 people'),
-        4 => $this->t('4 people'),
-      ],
-      '#default_value' => min(4, $guest_default),
-      '#attributes' => ['class' => ['mel-guest-selector', 'mel-chip-group']],
+      '#type' => 'select',
+      '#title' => $this->t('How many people are you bringing?'),
+      '#description' => $this->t('Include yourself in the total. We only ask for details for each person.'),
+      '#options' => $people_options,
+      '#default_value' => $visible_guests,
+      '#attributes' => ['class' => ['mel-guest-selector', 'mel-input', 'mel-select']],
       '#wrapper_attributes' => ['class' => ['mel-card', 'mel-card--intent-choices']],
       '#weight' => -19,
+      '#ajax' => [
+        'callback' => '::ajaxRebuildAttendees',
+        'wrapper' => 'mel-rsvp-attendees-ajax-wrapper',
+        'event' => 'change',
+      ],
+      '#limit_validation_errors' => [],
     ];
 
     $form['details'] = [
@@ -227,30 +240,30 @@ final class RsvpPublicForm extends FormBase {
     ];
 
     $form['details']['quantity'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Number of people'),
-      '#min' => 1,
-      '#max' => 10,
-      '#default_value' => $guest_default,
-      '#required' => TRUE,
-      '#weight' => 5,
+      '#type' => 'hidden',
+      '#value' => (string) $visible_guests,
       '#parents' => ['quantity'],
-      '#attributes' => ['class' => ['mel-input', 'mel-rsvp-quantity']],
+      '#weight' => 5,
     ];
 
-    $form['details']['attendees_intro'] = [
-      '#markup' => '<p class="mel-muted mel-attendees__intro">Bring your people</p>',
-      '#weight' => 4,
-    ];
+    if ($visible_guests > 1) {
+      $form['details']['attendees_intro'] = [
+        '#markup' => '<p class="mel-muted mel-attendees__intro">' . $this->t('Add a name and email for each guest.') . '</p>',
+        '#weight' => 4,
+      ];
+    }
 
     $form['details']['attendees'] = [
       '#type' => 'container',
       '#tree' => TRUE,
-      '#attributes' => ['class' => ['mel-attendees']],
+      '#attributes' => [
+        'id' => 'mel-rsvp-attendees-ajax-wrapper',
+        'class' => ['mel-attendees'],
+      ],
       '#weight' => 6,
     ];
 
-    for ($i = 0; $i < 10; $i++) {
+    for ($i = 0; $i < $visible_guests; $i++) {
       $card = [
         '#type' => 'container',
         '#attributes' => [
@@ -264,7 +277,7 @@ final class RsvpPublicForm extends FormBase {
         '#tag' => 'h4',
         '#value' => $i === 0
           ? $this->t('You 🧑')
-          : $this->t('Guest @number 🎟️', ['@number' => $i]),
+          : $this->t('Guest @number 🎟️', ['@number' => $i + 1]),
       ];
       $card['status'] = [
         '#markup' => $i === 0
@@ -274,7 +287,7 @@ final class RsvpPublicForm extends FormBase {
       $card['meta'] = [
         '#markup' => '<div class="mel-attendee-meta">🎉 Ticket locked in</div>',
       ];
-      if ($i === 0) {
+      if ($i === 0 && $visible_guests > 1) {
         $card['copy_all'] = [
           '#type' => 'checkbox',
           '#title' => $this->t('Use these details for everyone'),
@@ -393,7 +406,7 @@ final class RsvpPublicForm extends FormBase {
     ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('✨ Reserve my spot'),
+      '#value' => $this->t('Reserve my spot'),
       '#button_type' => 'primary',
       '#attributes' => [
         'class' => [
@@ -412,7 +425,19 @@ final class RsvpPublicForm extends FormBase {
     return $form;
   }
 
+  /**
+   * AJAX callback: refresh attendee name/email fields for selected party size.
+   */
+  public function ajaxRebuildAttendees(array &$form, FormStateInterface $form_state): array {
+    return $form['details']['attendees'];
+  }
+
   public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $people_raw = $form_state->getValue('people');
+    if ($people_raw !== NULL && $people_raw !== '' && is_numeric($people_raw)) {
+      $form_state->setValue('quantity', max(1, min(10, (int) $people_raw)));
+    }
+
     $guestCount = $this->resolveGuestCount($form_state);
     if ($guestCount < 1 || $guestCount > 10) {
       $form_state->setErrorByName('quantity', $this->t('Number of attendees must be between 1 and 10.'));
@@ -494,7 +519,6 @@ final class RsvpPublicForm extends FormBase {
       $donationAmount = number_format($donationAmount, 2, '.', '');
     }
 
-    $this->logger->notice('Terms value: @v', ['@v' => print_r($form_state->getValue('terms'), TRUE)]);
     if (!$form_state->getValue('terms')) {
       $form_state->setErrorByName('terms', $this->t('You must agree before continuing.'));
     }

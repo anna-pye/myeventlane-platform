@@ -1,50 +1,78 @@
-// ==========================================================================
-// Generic Card Component
-// ==========================================================================
-// Base card styles for various content types.
-
+@use '../tokens/breakpoints';
 @use '../tokens/colors';
-@use '../tokens/typography';
-@use '../tokens/spacing';
 @use '../tokens/radii';
 @use '../tokens/shadows';
-@use '../tokens/breakpoints';
-
-// ---------------------------------------------------------------------------
-// Base Card
-// ---------------------------------------------------------------------------
+@use '../tokens/spacing';
+@use '../tokens/typography';
 
 .mel-card {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  box-shadow: shadows.$mel-shadow-sm;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
-
-  @include breakpoints.mel-break(md, max) {
-    padding: 0;
-  }
+  background: colors.$mel-color-surface;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+  box-shadow: shadows.$mel-shadow-1;
 }
 
-.mel-card-body {
-  padding: spacing.mel-space(4);
+.mel-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
+.mel-card__media {
+  position: relative;
+  overflow: hidden;
+  background: colors.$mel-color-surface-alt;
+}
+
+.mel-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mel-card__media--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  color: colors.$mel-color-text-muted;
+  background: linear-gradient(135deg, var(--mel-peach) 0%, var(--mel-lilac) 100%);
+}
+
+.mel-card__header,
 .mel-card-header {
-  padding: spacing.mel-space(4);
+  padding: spacing.mel-space(5);
   border-bottom: 1px solid colors.$mel-color-border;
 }
 
-.mel-card-footer {
-  padding: spacing.mel-space(3) spacing.mel-space(4);
-  border-top: 1px solid colors.$mel-color-border;
-  background: colors.$mel-color-bg;
+.mel-card__body,
+.mel-card-body {
+  padding: spacing.mel-space(5);
 }
 
+.mel-card__footer,
+.mel-card-footer {
+  padding: spacing.mel-space(4) spacing.mel-space(5);
+  border-top: 1px solid colors.$mel-color-border;
+  background: colors.$mel-color-surface-alt;
+}
+
+.mel-card__title,
 .mel-card-title {
+  margin: 0;
+  color: colors.$mel-color-text;
   font-size: typography.mel-font-size(lg);
   font-weight: typography.$mel-font-bold;
-  margin: 0 0 spacing.mel-space(2) 0;
-  color: colors.$mel-color-text;
+  line-height: typography.$mel-leading-tight;
+}
+
+.mel-card__header .mel-card__title,
+.mel-card-header .mel-card-title {
+  margin-bottom: spacing.mel-space(2);
 }
 
 .mel-card-text {
@@ -53,182 +81,118 @@
   line-height: typography.$mel-leading-relaxed;
 }
 
-// ---------------------------------------------------------------------------
-// Card Variants
-// ---------------------------------------------------------------------------
-
-// Hoverable card
-.mel-card--hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: shadows.$mel-shadow-md;
-  }
+.mel-card--surface {
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-2;
 }
 
-// Bordered card (no shadow)
 .mel-card--bordered {
   box-shadow: none;
-  border: 1px solid colors.$mel-color-border;
 }
 
-// Flat card (no shadow, no border)
 .mel-card--flat {
+  background: colors.$mel-color-surface-alt;
   box-shadow: none;
-  background: colors.$mel-color-bg;
 }
 
-// Compact card
-.mel-card--compact {
-  .mel-card-body,
-  .mel-card-header,
-  .mel-card-footer {
-    padding: spacing.mel-space(3);
+.mel-card--hover {
+  transition:
+    transform var(--mel-motion-fast) var(--mel-ease),
+    box-shadow var(--mel-motion-fast) var(--mel-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-card--hover:hover {
+    transform: translateY(-2px);
+    box-shadow: shadows.$mel-shadow-2;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Card with Image
-// ---------------------------------------------------------------------------
+.mel-card--sticky {
+  position: sticky;
+  top: spacing.mel-space(4);
+}
+
+.mel-card--compact .mel-card__header,
+.mel-card--compact .mel-card__body,
+.mel-card--compact .mel-card__footer,
+.mel-card--compact .mel-card-header,
+.mel-card--compact .mel-card-body,
+.mel-card--compact .mel-card-footer {
+  padding: spacing.mel-space(4);
+}
 
 .mel-card-image {
-  width: 100%;
-  height: 200px;
   overflow: hidden;
   background: colors.$mel-color-surface-alt;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 }
 
-// ---------------------------------------------------------------------------
-// Horizontal Card
-// ---------------------------------------------------------------------------
+.mel-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .mel-card--horizontal {
   @include breakpoints.mel-break(md) {
     display: flex;
-
-    .mel-card-image {
-      width: 200px;
-      height: auto;
-      flex-shrink: 0;
-    }
-
-    .mel-card-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
   }
 }
 
-// ---------------------------------------------------------------------------
-// Stats Card
-// ---------------------------------------------------------------------------
+.mel-card--horizontal .mel-card-image {
+  @include breakpoints.mel-break(md) {
+    width: 12.5rem;
+    flex-shrink: 0;
+  }
+}
 
 .mel-card-stat {
+  padding: spacing.mel-space(6);
   text-align: center;
-  padding: spacing.mel-space(5);
 }
 
 .mel-card-stat-value {
+  margin-bottom: spacing.mel-space(2);
+  color: colors.$mel-color-primary;
   font-size: typography.mel-font-size(3xl);
   font-weight: typography.$mel-font-extrabold;
-  color: colors.$mel-color-primary;
   line-height: 1;
-  margin-bottom: spacing.mel-space(2);
 }
 
 .mel-card-stat-label {
-  font-size: typography.mel-font-size(sm);
   color: colors.$mel-color-text-muted;
-  text-transform: uppercase;
+  font-size: typography.mel-font-size(sm);
   letter-spacing: typography.$mel-tracking-wide;
+  text-transform: uppercase;
 }
-
-// ---------------------------------------------------------------------------
-// Feature Card (for dashboard widgets)
-// ---------------------------------------------------------------------------
 
 .mel-card-feature {
   display: flex;
   align-items: flex-start;
-  gap: spacing.mel-space(3);
-  padding: spacing.mel-space(4);
+  gap: spacing.mel-space(4);
+  padding: spacing.mel-space(5);
 }
 
 .mel-card-feature-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: radii.$mel-radius-md;
-  background: colors.$mel-color-accent;
   display: flex;
+  width: 3rem;
+  height: 3rem;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: typography.mel-font-size(xl);
+  border-radius: radii.$mel-radius-md;
+  background: color-mix(in srgb, colors.$mel-color-accent 16%, #fff);
+  color: colors.$mel-color-accent;
 }
 
 .mel-card-feature-content {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-// ---------------------------------------------------------------------------
-// Wizard Section Cards
-// ---------------------------------------------------------------------------
-
 .mel-card--wizard-section {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  box-shadow: shadows.$mel-shadow-md;
-  padding: 0;
-  overflow: hidden;
   margin-bottom: spacing.mel-space(4);
-
-  @include breakpoints.mel-break(sm, max) {
-    border-radius: radii.$mel-radius-md;
-    margin-bottom: spacing.mel-space(3);
-  }
-
-  .mel-card__header {
-    padding: spacing.mel-space(5) spacing.mel-space(5) spacing.mel-space(4);
-    border-bottom: 1px solid colors.$mel-color-border;
-
-    @include breakpoints.mel-break(sm, max) {
-      padding: spacing.mel-space(4) spacing.mel-space(4) spacing.mel-space(3);
-    }
-  }
-
-  .mel-card__title {
-    font-size: typography.mel-font-size(xl);
-    font-weight: typography.$mel-font-bold;
-    margin: 0 0 spacing.mel-space(2) 0;
-    color: colors.$mel-color-text;
-    line-height: typography.$mel-leading-tight;
-
-    @include breakpoints.mel-break(sm, max) {
-      font-size: typography.mel-font-size(lg);
-    }
-  }
-
-  .mel-card__help {
-    color: colors.$mel-color-text-muted;
-    font-size: typography.mel-font-size(base);
-    line-height: typography.$mel-leading-relaxed;
-    margin: 0;
-  }
-
-  .mel-card__body {
-    padding: spacing.mel-space(5);
-
-    @include breakpoints.mel-break(sm, max) {
-      padding: spacing.mel-space(4);
-    }
-  }
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-2;
 }

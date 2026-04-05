@@ -60,6 +60,14 @@
     border-color: rgba(108, 126, 242, 0.45);
     color: var(--mel-navy, #293241);
   }
+
+  &--reset {
+    border-style: dashed;
+
+    &:hover {
+      border-color: rgba(242, 109, 91, 0.55);
+    }
+  }
 }
 
 // Views exposed: category + accessibility

@@ -11,8 +11,11 @@
 // ---------------------------------------------------------------------------
 // Core values: colors, typography, spacing, etc.
 
-// CSS Custom Properties (single source of truth)
-@use 'tokens';
+// Canonical MEL token bridge (single source of truth)
+@use 'base/tokens' as baseTokens;
+
+// CSS Custom Properties compatibility layer + utility classes
+@use 'tokens' as tokens;
 
 // Sass tokens (for mixins, functions, and calculations)
 @use 'tokens/colors';
@@ -78,6 +81,7 @@
 @use 'components/mel-header-footer';
 @use 'components/panels';
 @use 'components/hero';
+@use 'components/event-hero';
 @use 'components/home-hero';
 @use 'components/featured-events';
 @use 'components/event-grid';

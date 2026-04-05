@@ -1,8 +1,9 @@
-$mel-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-$mel-shadow-md: 0 2px 4px rgba(0,0,0,0.08);
-$mel-shadow-lg: 0 4px 12px rgba(0,0,0,0.12);
-
-// Pastel visual system — softer, warmer shadows for glass panels
-$mel-shadow-glass: 0 8px 32px rgba(100, 80, 140, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-$mel-shadow-glass-hover: 0 12px 40px rgba(100, 80, 140, 0.12), 0 4px 10px rgba(0, 0, 0, 0.05);
-$mel-shadow-pastel: 0 6px 24px rgba(140, 110, 180, 0.1);
+$mel-shadow-sm: 0 2px 8px rgba(36, 48, 58, 0.06);
+$mel-shadow-md: 0 6px 18px rgba(36, 48, 58, 0.08);
+$mel-shadow-lg: 0 12px 28px rgba(36, 48, 58, 0.12);
+$mel-shadow-1: $mel-shadow-sm;
+$mel-shadow-2: $mel-shadow-md;
+$mel-shadow-3: $mel-shadow-lg;
+$mel-shadow-glass: 0 8px 32px rgba(36, 48, 58, 0.08);
+$mel-shadow-glass-hover: 0 12px 28px rgba(36, 48, 58, 0.12);
+$mel-shadow-pastel: $mel-shadow-md;

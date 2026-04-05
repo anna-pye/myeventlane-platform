@@ -4,10 +4,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "vite preview"
+    "start": "vite preview",
+    "prepare": "husky",
+    "mel:hero-check": "cd web/themes/custom/myeventlane_theme && npm run check:hero",
+    "mel:build": "cd web/themes/custom/myeventlane_theme && npm run build",
+    "mel:lint": "cd web/themes/custom/myeventlane_theme && npm run check:hero && npm run lint:css"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "postcss-scss": "^4.0.9",
     "sass-embedded": "^1.93.3",
+    "stylelint": "^17.6.0",
+    "stylelint-config-standard": "^40.0.0",
     "vite": "^7.3.1"
   },
   "dependencies": {
