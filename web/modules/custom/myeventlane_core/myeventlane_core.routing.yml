@@ -101,3 +101,13 @@ myeventlane_core.error_404:
     _title: 'Page not found'
   requirements:
     _access: 'TRUE'
+
+# Deploy and load-balancer probe (plain 200 / 503; works during maintenance).
+myeventlane_core.health:
+  path: '/health'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\HealthController::health'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE

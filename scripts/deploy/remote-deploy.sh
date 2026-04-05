@@ -31,8 +31,6 @@ if [ ! -d "$RELEASE_PATH/web" ]; then
   exit 1
 fi
 
-set -euo pipefail
-
 echo "== MEL deploy asset validation =="
 
 ASSET_DIR="$RELEASE_PATH/web/themes/custom/myeventlane_theme/dist/assets"
@@ -53,8 +51,10 @@ if [ ! -d "$ASSET_DIR" ]; then
 fi
 
 # 3. Validate exactly ONE main CSS file
-CSS_FILES=$(ls $ASSET_DIR/main*.css 2>/dev/null || true)
-CSS_COUNT=$(echo "$CSS_FILES" | wc -w | tr -d ' ')
+shopt -s nullglob
+
+CSS_FILES=("$ASSET_DIR"/main*.css)
+CSS_COUNT=${#CSS_FILES[@]}
 
 if [ "$CSS_COUNT" -ne 1 ]; then
   echo "ERROR: Expected exactly 1 main*.css file, found $CSS_COUNT"
@@ -62,18 +62,19 @@ if [ "$CSS_COUNT" -ne 1 ]; then
   exit 1
 fi
 
-echo "CSS OK: $CSS_FILES"
+echo "CSS OK: ${CSS_FILES[0]}"
 
 # 4. Validate JS assets exist
-JS_FILES=$(ls $ASSET_DIR/*.js 2>/dev/null || true)
+JS_FILES=("$ASSET_DIR"/*.js)
+JS_COUNT=${#JS_FILES[@]}
 
-if [ -z "$JS_FILES" ]; then
+if [ "$JS_COUNT" -eq 0 ]; then
   echo "ERROR: No JS assets found"
   exit 1
 fi
 
 echo "JS OK:"
-echo "$JS_FILES"
+printf '%s\n' "${JS_FILES[@]}"
 
 # 5. Ensure no unexpected file types
 INVALID_FILES=$(find "$ASSET_DIR" -type f ! -name "*.css" ! -name "*.js" ! -name "*.map")
@@ -93,6 +94,8 @@ shasum -c dist-checksums.txt
 echo "Checksum verification passed"
 
 echo "== MEL deploy asset validation complete =="
+
+shopt -u nullglob
 
 # Files (shared)
 rm -rf "$DEFAULT_PATH/files"
@@ -126,10 +129,26 @@ fi
 vendor/bin/drush sset system.maintenance_mode 1 --uri="$SITE_URI" || true
 vendor/bin/drush cr --uri="$SITE_URI" || true
 
+PREVIOUS_RELEASE=""
+if [ -L "$CURRENT_PATH" ]; then
+  PREVIOUS_RELEASE="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
+fi
+
 # Switch release
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
+
+echo "Running post-deploy health check..."
+if ! curl -fsS --max-time 30 "$SITE_URI/health" > /dev/null; then
+  echo "ERROR: Health check failed for $SITE_URI/health"
+  if [ -n "$PREVIOUS_RELEASE" ] && [ -d "$PREVIOUS_RELEASE" ] && [ "$PREVIOUS_RELEASE" != "$RELEASE_PATH" ]; then
+    echo "Rolling back current symlink to $PREVIOUS_RELEASE"
+    ln -sfn "$PREVIOUS_RELEASE" "$CURRENT_PATH"
+  fi
+  exit 1
+fi
+echo "Health check passed"
 
 # Theme assets are built in CI and verified above; do not rebuild on the server.
 
@@ -149,3 +168,11 @@ vendor/bin/drush cr --uri="$SITE_URI"
 
 echo "Release deployed: $RELEASE_PATH"
 echo "Current points to: $(readlink -f "$CURRENT_PATH")"
+
+# Retain the five most recent releases (best-effort cleanup).
+if compgen -G "$APP_PATH/releases/*" > /dev/null; then
+  mapfile -t _mel_old_releases < <(ls -dt "$APP_PATH/releases"/* | tail -n +6)
+  if [ "${#_mel_old_releases[@]}" -gt 0 ]; then
+    rm -rf "${_mel_old_releases[@]}"
+  fi
+fi
