@@ -48,16 +48,6 @@ jobs:
         shell: bash
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress
 
-      - name: Install root Node dependencies
-        if: ${{ hashFiles('package.json') != '' }}
-        shell: bash
-        run: npm ci
-
-      - name: Build root Node assets
-        if: ${{ hashFiles('package.json') != '' }}
-        shell: bash
-        run: npm run build
-
       - name: Install theme Node dependencies
         if: ${{ hashFiles('web/themes/custom/myeventlane_theme/package.json') != '' }}
         shell: bash
@@ -68,6 +58,16 @@ jobs:
         if: ${{ hashFiles('web/themes/custom/myeventlane_theme/package.json') != '' }}
         shell: bash
         working-directory: web/themes/custom/myeventlane_theme
+        run: npm run build
+
+      - name: Install root Node dependencies
+        if: ${{ hashFiles('package.json') != '' }}
+        shell: bash
+        run: npm ci
+
+      - name: Build root Node assets
+        if: ${{ hashFiles('package.json') != '' }}
+        shell: bash
         run: npm run build
 
       - name: Set artifact metadata
