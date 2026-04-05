@@ -174,7 +174,7 @@
 }
 
 .mel-booking-v2 .mel-booking-summary__empty[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .mel-booking-v2 .mel-booking-summary__empty-line {
@@ -246,7 +246,7 @@
 }
 
 .mel-booking-v2 .mel-booking-summary__subtotal[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .mel-booking-v2 .mel-booking-summary__subtotal-value {
@@ -485,12 +485,12 @@
   }
 
   .mel-ticket-selection .mel-event-title {
-    position: absolute !important;
-    height: 1px !important;
-    width: 1px !important;
-    overflow: hidden !important;
-    clip: rect(1px, 1px, 1px, 1px) !important;
-    white-space: nowrap !important;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .mel-ticket-row {
@@ -579,7 +579,7 @@
   }
 
   .mel-ticket-row__selection-badge[hidden] {
-    display: none !important;
+    display: none;
   }
 
   .mel-ticket-label {
@@ -745,10 +745,7 @@
   position: sticky;
   bottom: 0;
   z-index: 6;
-  margin-top: spacing.mel-space(4);
-  margin-left: calc(-1 * #{spacing.mel-space(5)});
-  margin-right: calc(-1 * #{spacing.mel-space(5)});
-  margin-bottom: calc(-1 * #{spacing.mel-space(5)});
+  margin: spacing.mel-space(4) calc(-1 * #{spacing.mel-space(5)}) calc(-1 * #{spacing.mel-space(5)});
   padding: spacing.mel-space(3) spacing.mel-space(5);
   padding-bottom: calc(#{spacing.mel-space(3)} + env(safe-area-inset-bottom, 0));
   background: color.adjust(colors.$mel-color-surface, $lightness: -1%);

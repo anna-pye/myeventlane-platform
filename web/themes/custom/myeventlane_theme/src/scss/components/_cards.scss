@@ -182,7 +182,7 @@
   justify-content: center;
   flex-shrink: 0;
   border-radius: radii.$mel-radius-md;
-  background: color-mix(in srgb, colors.$mel-color-accent 16%, white);
+  background: color-mix(in srgb, colors.$mel-color-accent 16%, #fff);
   color: colors.$mel-color-accent;
 }
 

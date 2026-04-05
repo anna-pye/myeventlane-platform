@@ -1,6 +1,6 @@
 :root {
   --mel-color-bg: #fff9f5;
-  --mel-color-surface: #ffffff;
+  --mel-color-surface: #fff;
   --mel-color-surface-soft: #fdf1ec;
   --mel-color-primary: #f26d5b;
   --mel-color-primary-hover: #e55c49;
@@ -12,7 +12,7 @@
   --mel-color-text-secondary: #5b6670;
   --mel-color-border: #e9e3de;
   --mel-color-overlay: rgba(36, 48, 58, 0.38);
-  --mel-color-on-primary: #ffffff;
+  --mel-color-on-primary: #fff;
 
   --mel-radius-sm: 12px;
   --mel-radius-md: 16px;
@@ -57,11 +57,11 @@
   --mel-navy: var(--mel-color-text);
   --mel-cream: var(--mel-color-bg);
   --mel-grey-light: var(--mel-color-surface-soft);
-  --mel-peach: color-mix(in srgb, var(--mel-color-primary) 18%, white);
-  --mel-lilac: color-mix(in srgb, var(--mel-color-accent) 18%, white);
-  --mel-mint: color-mix(in srgb, var(--mel-color-accent) 12%, white);
-  --mel-sky: color-mix(in srgb, var(--mel-color-accent) 8%, white);
-  --mel-butter: color-mix(in srgb, var(--mel-color-primary) 14%, white);
+  --mel-peach: color-mix(in srgb, var(--mel-color-primary) 18%, #fff);
+  --mel-lilac: color-mix(in srgb, var(--mel-color-accent) 18%, #fff);
+  --mel-mint: color-mix(in srgb, var(--mel-color-accent) 12%, #fff);
+  --mel-sky: color-mix(in srgb, var(--mel-color-accent) 8%, #fff);
+  --mel-butter: color-mix(in srgb, var(--mel-color-primary) 14%, #fff);
   --mel-focus: var(--mel-color-primary);
 
   --mel-radius-1: var(--mel-radius-sm);
@@ -89,6 +89,6 @@
   --mel-section-space-lg: var(--mel-space-7);
   --mel-section-divider-opacity: 0.2;
   --mel-max: 1320px;
-  --mel-header-bg: linear-gradient(90deg, color-mix(in srgb, var(--mel-color-primary) 14%, white), color-mix(in srgb, var(--mel-color-accent) 16%, white));
+  --mel-header-bg: linear-gradient(90deg, color-mix(in srgb, var(--mel-color-primary) 14%, #fff), color-mix(in srgb, var(--mel-color-accent) 16%, #fff));
   --mel-footer-bg: var(--mel-color-bg);
 }

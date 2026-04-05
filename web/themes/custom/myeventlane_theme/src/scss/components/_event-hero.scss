@@ -55,7 +55,7 @@
   height: 100%;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25) 0%, transparent 48%),
-    linear-gradient(145deg, color-mix(in srgb, colors.$mel-color-primary 24%, white) 0%, color-mix(in srgb, colors.$mel-color-accent 20%, white) 100%);
+    linear-gradient(145deg, color-mix(in srgb, colors.$mel-color-primary 24%, #fff) 0%, color-mix(in srgb, colors.$mel-color-accent 20%, #fff) 100%);
 }
 
 .mel-event--v2 .mel-event-hero--featured-style .mel-event-hero__overlay,
