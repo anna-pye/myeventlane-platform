@@ -34,10 +34,10 @@
 }
 
 // --------------------------------------------------------------------------
-// Hero Section
+// Hero Section (node--event.html.twig: .mel-event--detail only; not v2 full)
 // --------------------------------------------------------------------------
 
-.mel-event-hero {
+.mel-event--detail .mel-event-hero {
   position: relative;
   width: 100%;
   margin-bottom: 0;
@@ -651,10 +651,8 @@
   }
 }
 
-// Gradient wave at bottom of hero
-.mel-event-hero__content {
-  position: relative;
-
+// Gradient wave at bottom of hero (detail layout only — not v2 full)
+.mel-event--detail .mel-event-hero__content {
   &::after {
     content: '';
     position: absolute;

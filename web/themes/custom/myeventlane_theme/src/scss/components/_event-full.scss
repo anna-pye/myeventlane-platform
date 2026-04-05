@@ -19,89 +19,9 @@
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
 }
 
-.mel-event-hero-card {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-xl;
-  box-shadow: shadows.$mel-shadow-lg;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.mel-event-hero-card__media {
-  position: relative;
-}
-
-.mel-event-hero-card__image,
-.mel-event-hero-card__image-wrap img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  background: linear-gradient(
-    135deg,
-    rgba(colors.$mel-color-primary, 0.18) 0%,
-    rgba(colors.$mel-color-secondary, 0.12) 55%,
-    rgba(colors.$mel-color-accent, 0.12) 100%
-  );
-}
-
-.mel-event-hero-card__image-wrap {
-  width: 100%;
-  line-height: 0;
-
-  img {
-    width: 100%;
-  }
-}
-
-.mel-event-hero-card__image--placeholder {
-  min-height: 220px;
-}
-
-.mel-event-hero-card__media::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.0) 45%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  pointer-events: none;
-}
-
-.mel-event-hero-card__badge {
-  position: absolute;
-  top: space-tokens.mel-space(3);
-  left: space-tokens.mel-space(3);
-  z-index: 2;
-}
-
-.mel-event-hero-card__title-wrap {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  padding: space-tokens.mel-space(4);
-}
-
-.mel-event-hero-card__title {
-  margin: 0;
-  color: colors.$mel-color-text-inverse;
-  font-weight: typography.$mel-font-extrabold;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-}
-
-.mel-event-hero-card__summary {
-  margin: space-tokens.mel-space(2) 0 0 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: typography.mel-font-size(base);
-  line-height: 1.5;
-  max-width: 60ch;
+// Spacing between featured-style hero and meta bar (hero chrome = .mel-event-hero-card via @extend in _event-card.scss).
+.mel-event--v2 .mel-event-hero--featured-style {
+  margin-bottom: space-tokens.mel-space(2);
 }
 
 .mel-event-meta-bar {
@@ -206,22 +126,6 @@
   }
 }
 
-.mel-card--surface {
-  border-radius: radii.$mel-radius-xl;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: shadows.$mel-shadow-md;
-  background: colors.$mel-color-surface;
-}
-
-.mel-card--sticky {
-  position: sticky;
-  top: space-tokens.mel-space(4);
-}
-
-.mel-btn--pill {
-  border-radius: radii.$mel-radius-full;
-}
-
 .mel-btn--full {
   display: inline-flex;
   width: 100%;
@@ -236,17 +140,26 @@
 }
 
 .mel-event-share__link {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+// Share targets: circular peach wash + SVG glyphs (not flat colour blocks).
+.mel-event-share .mel-social {
+  width: 40px;
+  height: 40px;
+  border-radius: radii.$mel-radius-full;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, colors.$mel-color-secondary 12%, #fff);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: shadows.$mel-shadow-sm;
-  text-decoration: none;
-  color: colors.$mel-color-text;
+  color: colors.$mel-color-navy;
   transition:
     transform var(--mel-motion-fast) var(--mel-ease-out),
     box-shadow var(--mel-motion-fast) var(--mel-ease-out),
@@ -256,25 +169,41 @@
     &:hover {
       box-shadow: shadows.$mel-shadow-md;
       transform: translateY(-1px);
+      background: color-mix(in srgb, colors.$mel-color-secondary 18%, #fff);
     }
   }
 
   &:focus-visible {
-    outline: none;
     box-shadow: colors.$mel-focus-ring;
   }
 }
 
-.mel-event-share__icon {
+.mel-event-share .mel-icon {
   width: 18px;
   height: 18px;
-  border-radius: 6px;
-  background: rgba(colors.$mel-color-primary, 0.8);
+  flex-shrink: 0;
+  color: colors.$mel-color-navy;
+
+  path {
+    vector-effect: non-scaling-stroke;
+  }
 }
 
-.mel-event-share__icon--email { background: colors.$mel-color-navy; }
-.mel-event-share__icon--facebook { background: rgba(24, 119, 242, 0.9); }
-.mel-event-share__icon--x { background: rgba(0, 0, 0, 0.75); }
+.mel-event-location__venue {
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+}
+
+.mel-event-location__address {
+  margin-top: 2px;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.35;
+}
+
+.mel-event-meta--venue .mel-event-location__address {
+  margin-top: 4px;
+}
 
 .mel-info-row {
   display: grid;
@@ -492,118 +421,6 @@
 }
 
 // ---------------------------------------------------------------------------
-// Hero Section (Glass Treatment)
-// ---------------------------------------------------------------------------
-
-.mel-event-hero {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-
-  &__placeholder {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    min-height: 50vh;
-    background: linear-gradient(
-      135deg,
-      rgba(colors.$mel-color-secondary, 0.15) 0%,
-      rgba(colors.$mel-color-primary, 0.12) 50%,
-      rgba(colors.$mel-color-accent, 0.1) 100%
-    );
-  }
-
-  &__placeholder-inner {
-    width: 100%;
-    height: 100%;
-    min-height: 300px;
-  }
-
-  &__media {
-    position: relative;
-    width: 100%;
-    height: 50vh;
-    min-height: 300px;
-    max-height: 600px;
-    overflow: hidden;
-
-    @include breakpoints.mel-break(md) {
-      height: 60vh;
-      min-height: 400px;
-    }
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-  }
-
-  &__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(colors.$mel-color-secondary, 0.2) 0%,
-      rgba(colors.$mel-color-primary, 0.15) 100%
-    );
-    pointer-events: none;
-    z-index: 1;
-
-    // Micro-interaction 1: Hero glass fade-in (only if motion allowed)
-    @media (prefers-reduced-motion: no-preference) {
-      opacity: 0;
-      transform: translateY(10px);
-      animation: mel-hero-fade-in var(--mel-motion-fast) var(--mel-ease-out) forwards;
-    }
-
-    @keyframes mel-hero-fade-in {
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  }
-
-  &__content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: space-tokens.mel-space(4);
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.7) 0%,
-      rgba(0, 0, 0, 0.4) 50%,
-      transparent 100%
-    );
-    color: colors.$mel-color-text-inverse;
-    z-index: 2;
-
-    @include breakpoints.mel-break(md) {
-      padding: space-tokens.mel-space(6);
-    }
-  }
-
-  &__title {
-    font-size: typography.mel-font-size(2xl);
-    font-weight: typography.$mel-font-extrabold;
-    line-height: 1.2;
-    margin: 0 0 space-tokens.mel-space(3) 0;
-    color: colors.$mel-color-text-inverse;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-
-    @include breakpoints.mel-break(md) {
-      font-size: typography.mel-font-size(4xl);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Status Badge
 // ---------------------------------------------------------------------------
 
@@ -644,39 +461,6 @@
 }
 
 // ---------------------------------------------------------------------------
-// Event Meta Chips (Glass Panel)
-// ---------------------------------------------------------------------------
-
-.mel-event-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: space-tokens.mel-space(2);
-  margin-top: space-tokens.mel-space(3);
-  padding: space-tokens.mel-space(4);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: radii.$mel-radius-md;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-
-  .mel-chip {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: colors.$mel-color-text-inverse;
-    backdrop-filter: blur(5px);
-
-    &--purple {
-      background: rgba(colors.$mel-color-secondary, 0.3);
-      border-color: rgba(colors.$mel-color-secondary, 0.5);
-    }
-  }
-
-  .mel-chip__icon {
-    font-size: 1em;
-    flex-shrink: 0;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Status Banner
 // ---------------------------------------------------------------------------
 
@@ -702,22 +486,6 @@
   }
 }
 
-// ---------------------------------------------------------------------------
-// Event Layout (Two-Column) - Mobile-First
-// ---------------------------------------------------------------------------
-
-.mel-event-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 18px;
-
-  @media (min-width: 900px) {
-    grid-template-columns: 1.4fr 0.6fr;
-    gap: 28px;
-    align-items: start;
-  }
-}
-
 // Legacy support for existing flex-based layout
 .mel-event-layout--flex {
   display: flex;
@@ -739,47 +507,6 @@
   display: flex;
   flex-direction: column;
   gap: space-tokens.mel-space(4);
-}
-
-// ---------------------------------------------------------------------------
-// Cards (Main Content)
-// ---------------------------------------------------------------------------
-// Reusing .mel-card from _cards.scss with event-specific styling
-
-.mel-event-main .mel-card {
-  background: colors.$mel-color-surface;
-  border-radius: radii.$mel-radius-lg;
-  box-shadow: shadows.$mel-shadow-sm;
-  overflow: hidden;
-  padding: space-tokens.mel-space(4);
-
-  // Micro-interaction 2: Card hover lift (only on hover-capable devices)
-  @media (hover: hover) {
-    @media (prefers-reduced-motion: no-preference) {
-      transition:
-        transform var(--mel-motion-fast) var(--mel-ease-out),
-        box-shadow var(--mel-motion-fast) var(--mel-ease-out);
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: shadows.$mel-shadow-md;
-      }
-    }
-  }
-
-  h2 {
-    font-size: typography.mel-font-size(xl);
-    font-weight: typography.$mel-font-bold;
-    margin: 0 0 space-tokens.mel-space(3) 0;
-    color: colors.$mel-color-text;
-  }
-
-  h3 {
-    font-size: typography.mel-font-size(lg);
-    font-weight: typography.$mel-font-semibold;
-    margin: 0 0 space-tokens.mel-space(2) 0;
-    color: colors.$mel-color-text;
-  }
 }
 
 .mel-helper {
@@ -972,30 +699,6 @@
     );
     border-radius: radii.$mel-radius-full;
     transition: width 0.3s ease;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Organiser
-// ---------------------------------------------------------------------------
-
-.mel-event-main .mel-card {
-  .mel-organiser {
-    display: flex;
-    flex-direction: column;
-    gap: space-tokens.mel-space(2);
-
-    &__name {
-      font-size: typography.mel-font-size(lg);
-      font-weight: typography.$mel-font-semibold;
-      color: colors.$mel-color-text;
-    }
-
-    &__trust {
-      font-size: typography.mel-font-size(sm);
-      color: colors.$mel-color-text-muted;
-      margin: 0;
-    }
   }
 }
 

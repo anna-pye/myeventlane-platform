@@ -28,7 +28,7 @@
         <span class="mobile-drawer__cart-count">{{ mel_cart_count_text }}</span>
       </a>
       {% if mel_checkout_url and mel_cart_item_count > 0 %}
-        <a href="{{ mel_checkout_url }}" class="mobile-drawer__checkout-link">{{ 'Checkout'|t }}</a>
+        <a href="{{ mel_checkout_url }}" class="mobile-drawer__checkout-link">{{ 'Continue to checkout'|t }}</a>
       {% endif %}
       <nav class="mel-checkout-trust-nav mel-checkout-trust-nav--mini mobile-drawer__trust" aria-label="{{ 'Help with cart and checkout'|t }}">
         <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>

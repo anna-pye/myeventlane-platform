@@ -9,9 +9,8 @@
 {% extends "page.html.twig" %}
 
 {% block content %}
-  <main id="main-content" class="mel-main" role="main">
-    <div class="mel-content">
-      {{ page.content }}
-    </div>
-  </main>
+  {# Parent page.html.twig already wraps content in <main id="main-content">; avoid nested mains. #}
+  <div class="mel-content mel-content--event-full">
+    {{ page.content }}
+  </div>
 {% endblock %}

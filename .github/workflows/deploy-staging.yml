@@ -1,0 +1,71 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    name: Build staging artifact
+    uses: ./.github/workflows/reusable-build.yml
+
+  deploy:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    environment: staging
+
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: ./artifact
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add staging host to known_hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload artifact to staging server
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp \
+            ./artifact/${{ needs.build.outputs.artifact_name }}.tar.gz \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
+
+      - name: Run remote deploy script
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
+          set -euo pipefail
+
+          temp_dir="$(mktemp -d)"
+          tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
+
+          APP_PATH=~/staging \
+          SITE_URI="https://staging.myeventlane.com.au" \
+          ARTIFACT_PATH="/tmp/artifact.tar.gz" \
+          bash "$temp_dir/scripts/deploy/remote-deploy.sh"
+
+          rm -rf "$temp_dir"
+          EOF

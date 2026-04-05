@@ -1,40 +1,34 @@
-// ==========================================================================
-// MEL design system — Sass tokens (Phase 1)
-// ==========================================================================
-// Used by layout + event card variants. Complements CSS custom properties
-// in tokens/_index (loaded as @use 'tokens').
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/spacing';
+@use '../tokens/typography';
 
-// Colors
-$mel-ds-color-primary: #f26d5b;
-$mel-ds-color-accent: #6e7ef2;
-$mel-ds-color-bg: #fef5ec;
-$mel-ds-color-surface: #ffffff;
-$mel-ds-color-text: #293241;
-$mel-ds-color-muted: #888888;
+$mel-ds-color-primary: colors.$mel-color-primary;
+$mel-ds-color-accent: colors.$mel-color-accent;
+$mel-ds-color-bg: colors.$mel-color-bg;
+$mel-ds-color-surface: colors.$mel-color-surface;
+$mel-ds-color-text: colors.$mel-color-text;
+$mel-ds-color-muted: colors.$mel-color-text-muted;
 
-// Spacing scale
-$mel-ds-space-xs: 4px;
-$mel-ds-space-sm: 8px;
-$mel-ds-space-md: 12px;
-$mel-ds-space-lg: 16px;
-$mel-ds-space-xl: 24px;
-$mel-ds-space-2xl: 32px;
-$mel-ds-space-3xl: 48px;
+$mel-ds-space-xs: spacing.mel-space(1);
+$mel-ds-space-sm: spacing.mel-space(2);
+$mel-ds-space-md: spacing.mel-space(3);
+$mel-ds-space-lg: spacing.mel-space(4);
+$mel-ds-space-xl: spacing.mel-space(5);
+$mel-ds-space-2xl: spacing.mel-space(6);
+$mel-ds-space-3xl: spacing.mel-space(7);
 
-// Typography
-$mel-ds-font-main: 'Nunito', sans-serif;
+$mel-ds-font-main: typography.$mel-font-family;
+$mel-ds-font-h1: typography.mel-font-size(4xl);
+$mel-ds-font-h2: typography.mel-font-size(3xl);
+$mel-ds-font-h3: typography.mel-font-size(xl);
+$mel-ds-font-body: typography.mel-font-size(base);
+$mel-ds-font-small: typography.mel-font-size(sm);
 
-$mel-ds-font-h1: 36px;
-$mel-ds-font-h2: 28px;
-$mel-ds-font-h3: 20px;
-$mel-ds-font-body: 16px;
-$mel-ds-font-small: 14px;
+$mel-ds-radius-sm: radii.$mel-radius-sm;
+$mel-ds-radius-md: radii.$mel-radius-md;
+$mel-ds-radius-lg: radii.$mel-radius-lg;
 
-// Radius
-$mel-ds-radius-sm: 12px;
-$mel-ds-radius-md: 16px;
-$mel-ds-radius-lg: 20px;
-
-// Shadow
-$mel-ds-shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.06);
-$mel-ds-shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.1);
+$mel-ds-shadow-soft: shadows.$mel-shadow-sm;
+$mel-ds-shadow-hover: shadows.$mel-shadow-md;

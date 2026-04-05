@@ -277,9 +277,18 @@ function myeventlane_commerce_theme(): array {
     'myeventlane_event_book' => [
       'variables' => [
         'title' => NULL,
+        'label' => NULL,
         'event_date_text' => '',
         'venue_text' => '',
         'hero_url' => '',
+        'hero_image' => NULL,
+        'category_label' => NULL,
+        'mel_category_label' => NULL,
+        'mel_category_slug' => 'default',
+        'hero_datetime' => NULL,
+        'hero_venue' => NULL,
+        'hero_status' => NULL,
+        'hero_status_modifier' => 'default',
         'matrix_form' => [],
         'rsvp_form' => [],
         'is_rsvp' => FALSE,
@@ -316,25 +325,8 @@ function myeventlane_commerce_theme(): array {
  *   Template variables.
  */
 function myeventlane_commerce_preprocess_myeventlane_event_book(array &$variables): void {
+  // Booking UX: keep the page focused on the active event (no "More events" upsell).
   $variables['recommended_events'] = [];
-
-  // Only attempt to embed recommendations if Views is available.
-  if (!function_exists('views_embed_view')) {
-    return;
-  }
-
-  $event = $variables['event'] ?? NULL;
-  if (!$event instanceof \Drupal\node\NodeInterface) {
-    return;
-  }
-
-  // Reuse existing recommendations View, if present.
-  // Pass the current event ID as an argument (ignored unless the View is configured
-  // with a contextual filter).
-  $render = views_embed_view('front_recommended_events', 'block_1', (string) $event->id());
-  if (is_array($render)) {
-    $variables['recommended_events'] = $render;
-  }
 }
 
 /**

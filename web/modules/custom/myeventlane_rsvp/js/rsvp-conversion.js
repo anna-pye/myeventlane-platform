@@ -16,7 +16,7 @@
   Drupal.behaviors.melRsvpConversion = {
     attach(context) {
       getForms(context, 'melRsvpConversionAttached').forEach((form) => {
-        const selector = form.querySelectorAll('input[name="people"]');
+        const selector = form.querySelectorAll('input[name="people"], select[name="people"]');
         const guestsInput = form.querySelector('input[name="quantity"]');
         const chipGroups = form.querySelectorAll('.mel-chip-group');
         const attendeeCards = form.querySelectorAll('.mel-attendee-card');
@@ -96,12 +96,17 @@
         };
 
         const getRequestedAttendeeCount = () => {
+          const peopleSelect = form.querySelector('select[name="people"]');
+          if (peopleSelect instanceof HTMLSelectElement) {
+            const v = parseInt(peopleSelect.value || '1', 10);
+            return Math.max(1, Math.min(10, Number.isFinite(v) ? v : 1));
+          }
           let value = parseInt(guestsInput?.value || '1', 10);
           if (!Number.isFinite(value)) {
             value = 1;
           }
           selector.forEach((el) => {
-            if (el.checked) {
+            if (el instanceof HTMLInputElement && el.checked) {
               value = parseInt(el.value || '1', 10) || value;
             }
           });
@@ -135,9 +140,16 @@
           if (!guestsInput) {
             return;
           }
+          const peopleSelect = form.querySelector('select[name="people"]');
+          if (peopleSelect instanceof HTMLSelectElement) {
+            const selected = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
+            guestsInput.value = String(selected);
+            // Party-size field list is rebuilt via Form API AJAX; do not toggle legacy cards.
+            return;
+          }
           let selected = 1;
           selector.forEach((el) => {
-            if (el.checked) {
+            if (el instanceof HTMLInputElement && el.checked) {
               selected = parseInt(el.value, 10) || 1;
             }
           });
@@ -229,6 +241,11 @@
         };
 
         const getCount = () => {
+          const peopleSelect = form.querySelector('select[name="people"]');
+          if (peopleSelect instanceof HTMLSelectElement) {
+            const v = parseInt(peopleSelect.value || '1', 10);
+            return Math.max(1, Math.min(10, Number.isFinite(v) ? v : 1));
+          }
           const peopleChecked = form.querySelector('input[name="people"]:checked');
           const peopleValue = peopleChecked ? parseInt(peopleChecked.value || '1', 10) : NaN;
           const quantityInput = form.querySelector('input[name="quantity"]');

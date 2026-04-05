@@ -46,9 +46,13 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="mel-vendor-directory__empty">
-      <p>{{ 'No organisers found yet.'|t }}</p>
-      <a href="/vendor/onboard" class="mel-btn mel-btn-primary">{{ 'Become a Vendor'|t }}</a>
+    <div class="mel-vendor-directory__empty mel-empty mel-empty--vendors" role="status">
+      <h2 class="mel-empty__title">{{ 'No organisers listed yet'|t }}</h2>
+      <p class="mel-empty__text">{{ 'When organisers publish on MyEventLane, they appear here. You can still browse events on the marketplace.'|t }}</p>
+      <p class="mel-empty__next">
+        <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
+        <a class="mel-link" href="{{ path('<front>') }}">{{ 'Back to homepage'|t }}</a>
+      </p>
     </div>
   {% endif %}
 </div>
