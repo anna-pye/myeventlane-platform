@@ -124,6 +124,9 @@ web/themes/custom/**/tmp/
 # Archives & junk
 ############################################
 *.zip
+# Local system / cloud links
+OneDrive
+OneDrive/
 vendor.bak
 
 ############################################
