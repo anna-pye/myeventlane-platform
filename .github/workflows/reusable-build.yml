@@ -44,6 +44,18 @@ jobs:
             package-lock.json
             web/themes/custom/myeventlane_theme/package-lock.json
 
+      - name: Log Node and npm versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -v
+          npm -v
+
+      - name: Install root Node dependencies
+        if: ${{ hashFiles('package.json') != '' }}
+        shell: bash
+        run: npm ci
+
       - name: Install Composer dependencies
         shell: bash
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress
@@ -60,14 +72,86 @@ jobs:
         working-directory: web/themes/custom/myeventlane_theme
         run: npm run build
 
-      - name: Install root Node dependencies
-        if: ${{ hashFiles('package.json') != '' }}
-        shell: bash
-        run: npm ci
+      # Repo-root `npm run build` is not used here: theme Vite resolves deps from the
+      # theme package. Production assets and dist-checksums.txt come from the theme build.
 
-      # Repo-root `npm run build` uses ./vite.config.js with the same theme entry but
-      # resolves packages from the repo root, so deps like swiper (installed only under
-      # the theme) fail. Production assets are built in the theme steps above.
+      - name: Generate theme dist checksum manifest
+        if: ${{ hashFiles('web/themes/custom/myeventlane_theme/package.json') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ASSET_DIR="web/themes/custom/myeventlane_theme/dist/assets"
+          MANIFEST="dist-checksums.txt"
+
+          echo "== MEL checksum generation =="
+
+          # 1. Ensure clean dist (prevents stale artifacts)
+          echo "Cleaning dist directory..."
+          rm -rf web/themes/custom/myeventlane_theme/dist
+
+          # 2. Rebuild (must already have run, but enforce consistency)
+          echo "Rebuilding theme..."
+          cd web/themes/custom/myeventlane_theme
+          npm run build
+          cd - > /dev/null
+
+          # 3. Validate asset directory exists
+          if [ ! -d "$ASSET_DIR" ]; then
+            echo "ERROR: Asset directory missing: $ASSET_DIR"
+            exit 1
+          fi
+
+          # 4. Validate exactly ONE main CSS file
+          CSS_FILES=$(ls $ASSET_DIR/main*.css 2>/dev/null || true)
+          CSS_COUNT=$(echo "$CSS_FILES" | wc -w | tr -d ' ')
+
+          if [ "$CSS_COUNT" -ne 1 ]; then
+            echo "ERROR: Expected exactly 1 main*.css file, found $CSS_COUNT"
+            ls -la $ASSET_DIR
+            exit 1
+          fi
+
+          echo "CSS OK: $CSS_FILES"
+
+          # 5. Validate JS assets exist
+          JS_FILES=$(ls $ASSET_DIR/*.js 2>/dev/null || true)
+
+          if [ -z "$JS_FILES" ]; then
+            echo "ERROR: No JS assets found in $ASSET_DIR"
+            exit 1
+          fi
+
+          echo "JS OK:"
+          echo "$JS_FILES"
+
+          # 6. Ensure no unexpected file types (hard guard)
+          INVALID_FILES=$(find $ASSET_DIR -type f ! -name "*.css" ! -name "*.js" ! -name "*.map")
+
+          if [ -n "$INVALID_FILES" ]; then
+            echo "ERROR: Unexpected files in dist/assets:"
+            echo "$INVALID_FILES"
+            exit 1
+          fi
+
+          # 7. Generate checksum manifest (repo-root-relative paths)
+          echo "Generating checksum manifest..."
+
+          rm -f "$MANIFEST"
+
+          shasum $ASSET_DIR/main*.css > "$MANIFEST"
+          shasum $ASSET_DIR/*.js >> "$MANIFEST"
+
+          echo "Manifest created:"
+          cat "$MANIFEST"
+
+          # 8. Final sanity check
+          if [ ! -s "$MANIFEST" ]; then
+            echo "ERROR: Manifest file is empty"
+            exit 1
+          fi
+
+          echo "== MEL checksum generation complete =="
 
       - name: Set artifact metadata
         id: meta
