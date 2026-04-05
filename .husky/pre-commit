@@ -1,1 +1,9 @@
-npm test
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "→ MEL: lint + build"
+
+npm run mel:lint || exit 1
+npm run mel:build || exit 1
+
+ddev drush cr || exit 1
