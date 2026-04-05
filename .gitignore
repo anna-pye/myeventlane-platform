@@ -13,7 +13,7 @@
 ############################################
 /node_modules/
 /web/themes/custom/*/node_modules/
-/web/themes/custom/*/dist/
+/web/themes/custom/**/dist/
 /build/
 /.npm-cache/
 
