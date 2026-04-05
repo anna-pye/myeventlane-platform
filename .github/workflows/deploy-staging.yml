@@ -11,7 +11,6 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   build:
@@ -21,6 +20,7 @@ jobs:
   deploy:
     name: Deploy to staging
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs:
       - build
     environment: staging
@@ -49,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           scp \
-            ./artifact/${{ needs.build.outputs.artifact_name }}.tar.gz \
+            ./artifact/artifact.tar.gz \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
 
       - name: Run remote deploy script
@@ -58,14 +58,12 @@ jobs:
           set -euo pipefail
           ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
           set -euo pipefail
-
           temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz' EXIT
           tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
-
-          APP_PATH=~/staging \
+          cd "$temp_dir"
+          APP_PATH="$HOME/staging" \
           SITE_URI="https://staging.myeventlane.com.au" \
           ARTIFACT_PATH="/tmp/artifact.tar.gz" \
-          bash "$temp_dir/scripts/deploy/remote-deploy.sh"
-
-          rm -rf "$temp_dir"
+          bash scripts/deploy/remote-deploy.sh
           EOF
