@@ -6,7 +6,6 @@ SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-/tmp/artifact.tar.gz}"
 RUN_UPDB="${RUN_UPDB:-0}"
 RUN_CIM="${RUN_CIM:-0}"
-THEME_PATH_RELATIVE="web/themes/custom/myeventlane_theme"
 
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 RELEASE_PATH="$APP_PATH/releases/$TIMESTAMP"
@@ -31,6 +30,69 @@ if [ ! -d "$RELEASE_PATH/web" ]; then
   echo "Invalid artifact: web/ not found"
   exit 1
 fi
+
+set -euo pipefail
+
+echo "== MEL deploy asset validation =="
+
+ASSET_DIR="$RELEASE_PATH/web/themes/custom/myeventlane_theme/dist/assets"
+MANIFEST="$RELEASE_PATH/dist-checksums.txt"
+
+# 1. Validate manifest exists
+if [ ! -f "$MANIFEST" ]; then
+  echo "ERROR: Missing checksum manifest at $MANIFEST"
+  exit 1
+fi
+
+echo "Manifest found"
+
+# 2. Validate asset directory exists
+if [ ! -d "$ASSET_DIR" ]; then
+  echo "ERROR: Asset directory missing: $ASSET_DIR"
+  exit 1
+fi
+
+# 3. Validate exactly ONE main CSS file
+CSS_FILES=$(ls $ASSET_DIR/main*.css 2>/dev/null || true)
+CSS_COUNT=$(echo "$CSS_FILES" | wc -w | tr -d ' ')
+
+if [ "$CSS_COUNT" -ne 1 ]; then
+  echo "ERROR: Expected exactly 1 main*.css file, found $CSS_COUNT"
+  ls -la "$ASSET_DIR"
+  exit 1
+fi
+
+echo "CSS OK: $CSS_FILES"
+
+# 4. Validate JS assets exist
+JS_FILES=$(ls $ASSET_DIR/*.js 2>/dev/null || true)
+
+if [ -z "$JS_FILES" ]; then
+  echo "ERROR: No JS assets found"
+  exit 1
+fi
+
+echo "JS OK:"
+echo "$JS_FILES"
+
+# 5. Ensure no unexpected file types
+INVALID_FILES=$(find "$ASSET_DIR" -type f ! -name "*.css" ! -name "*.js" ! -name "*.map")
+
+if [ -n "$INVALID_FILES" ]; then
+  echo "ERROR: Unexpected files in dist/assets:"
+  echo "$INVALID_FILES"
+  exit 1
+fi
+
+# 6. Run checksum verification (repo-root-relative paths)
+cd "$RELEASE_PATH"
+
+echo "Running checksum verification..."
+shasum -c dist-checksums.txt
+
+echo "Checksum verification passed"
+
+echo "== MEL deploy asset validation complete =="
 
 # Files (shared)
 rm -rf "$DEFAULT_PATH/files"
@@ -69,30 +131,7 @@ ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
 
-# Theme build
-THEME_PATH="$CURRENT_PATH/$THEME_PATH_RELATIVE"
-
-if [ ! -d "$THEME_PATH" ]; then
-  echo "Theme directory not found: $THEME_PATH"
-  exit 1
-fi
-
-if [ ! -f "$THEME_PATH/package.json" ]; then
-  echo "Theme package.json not found: $THEME_PATH/package.json"
-  exit 1
-fi
-
-if [ ! -f "$THEME_PATH/package-lock.json" ]; then
-  echo "Theme package-lock.json not found: $THEME_PATH/package-lock.json"
-  exit 1
-fi
-
-echo "Building theme assets in: $THEME_PATH"
-cd "$THEME_PATH"
-rm -rf dist
-npm ci
-npm run build
-cd "$CURRENT_PATH"
+# Theme assets are built in CI and verified above; do not rebuild on the server.
 
 # Optional updates (disabled by default)
 if [ "$RUN_UPDB" = "1" ]; then
