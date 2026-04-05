@@ -126,22 +126,6 @@
   }
 }
 
-.mel-card--surface {
-  border-radius: radii.$mel-radius-xl;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: shadows.$mel-shadow-md;
-  background: colors.$mel-color-surface;
-}
-
-.mel-card--sticky {
-  position: sticky;
-  top: space-tokens.mel-space(4);
-}
-
-.mel-btn--pill {
-  border-radius: radii.$mel-radius-full;
-}
-
 .mel-btn--full {
   display: inline-flex;
   width: 100%;

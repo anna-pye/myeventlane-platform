@@ -6,15 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "prepare": "husky"
+    "start": "vite preview",
+    "lint:css": "stylelint \"src/scss/{base/_tokens.scss,base/_forms.scss,layout/_container.scss,layout/_grid.scss,components/_buttons.scss,components/_cards.scss,components/_event-hero.scss,components/_event-card.scss,components/_event-full.scss,components/_event-book.scss,utilities/_motion.scss}\"",
+    "check:hero": "node ../../../../check-mel-hero-variants.mjs"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "husky": "^9.1.7",
+    "postcss-scss": "^4.0.9",
     "postcss": "^8.4.33",
     "sass": "^1.77.0",
     "sass-embedded": "^1.93.3",
+    "stylelint": "^17.6.0",
+    "stylelint-config-standard": "^40.0.0",
     "vite": "^7.3.0"
   },
   "dependencies": {

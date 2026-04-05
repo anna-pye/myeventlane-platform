@@ -85,8 +85,10 @@ input[type="datetime-local"],
   color: colors.$mel-color-text;
   background: colors.$mel-color-surface;
   border: 2px solid colors.$mel-color-border;
-  border-radius: 12px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: radii.$mel-radius-sm;
+  transition:
+    border-color var(--mel-motion-fast) var(--mel-ease),
+    box-shadow var(--mel-motion-fast) var(--mel-ease);
 
   &::placeholder {
     color: colors.$mel-color-text-light;
@@ -97,10 +99,8 @@ input[type="datetime-local"],
   }
 
   &:focus {
-    outline: 2px solid #f26d5b;
-    outline-offset: 2px;
-    border-color: colors.$mel-color-border-strong;
-    box-shadow: none;
+    @include colors.mel-focus-ring;
+    border-color: colors.$mel-color-primary;
   }
 
   &:disabled {
@@ -116,7 +116,7 @@ input[type="datetime-local"],
     background: rgba(colors.$mel-color-error, 0.06);
 
     &:focus {
-      outline-color: #f26d5b;
+      @include colors.mel-focus-ring;
     }
   }
 
@@ -145,9 +145,11 @@ textarea,
   color: colors.$mel-color-text;
   background: colors.$mel-color-surface;
   border: 2px solid colors.$mel-color-border;
-  border-radius: 12px;
+  border-radius: radii.$mel-radius-sm;
   resize: vertical;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color var(--mel-motion-fast) var(--mel-ease),
+    box-shadow var(--mel-motion-fast) var(--mel-ease);
 
   &::placeholder {
     color: colors.$mel-color-text-light;
@@ -158,9 +160,8 @@ textarea,
   }
 
   &:focus {
-    outline: none;
-    border-color: colors.$mel-color-secondary;
-    box-shadow: 0 0 0 3px rgba(colors.$mel-color-secondary, 0.15);
+    @include colors.mel-focus-ring;
+    border-color: colors.$mel-color-primary;
   }
 }
 
@@ -183,20 +184,20 @@ select,
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   border: 2px solid colors.$mel-color-border;
-  border-radius: 12px;
+  border-radius: radii.$mel-radius-sm;
   appearance: none;
   cursor: pointer;
-  transition: border-color 0.15s ease;
+  transition:
+    border-color var(--mel-motion-fast) var(--mel-ease),
+    box-shadow var(--mel-motion-fast) var(--mel-ease);
 
   &:hover {
     border-color: colors.$mel-color-border-strong;
   }
 
   &:focus {
-    outline: 2px solid #f26d5b;
-    outline-offset: 2px;
-    border-color: colors.$mel-color-border-strong;
-    box-shadow: none;
+    @include colors.mel-focus-ring;
+    border-color: colors.$mel-color-primary;
   }
 }
 

@@ -1,115 +1,102 @@
-// ==========================================================================
-// Grid System — MEL single source (MEL v2)
-// ==========================================================================
-
-@use '../tokens/spacing';
 @use '../tokens/breakpoints';
-
-// ---------------------------------------------------------------------------
-// Listing grids
-// ---------------------------------------------------------------------------
+@use '../tokens/spacing';
 
 .mel-grid {
   display: grid;
+  gap: spacing.mel-space(4);
 }
 
 .mel-grid--events,
 .mel-grid.mel-grid--events {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
 }
 
 .mel-grid--featured,
 .mel-grid.mel-grid--featured {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: spacing.mel-space(5);
 }
-
-/* CRITICAL: prevent dev mode override issues */
-.mel-page .mel-grid.mel-grid--events {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.mel-page .mel-grid.mel-grid--featured {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 12-column layout (explicit opt-in)
-// ---------------------------------------------------------------------------
 
 @include breakpoints.mel-break(md) {
   .mel-grid--cols-12 {
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
-  .mel-col-1  { grid-column: span 1; }
-  .mel-col-2  { grid-column: span 2; }
-  .mel-col-3  { grid-column: span 3; }
-  .mel-col-4  { grid-column: span 4; }
-  .mel-col-5  { grid-column: span 5; }
-  .mel-col-6  { grid-column: span 6; }
-  .mel-col-7  { grid-column: span 7; }
-  .mel-col-8  { grid-column: span 8; }
-  .mel-col-9  { grid-column: span 9; }
-  .mel-col-10 { grid-column: span 10; }
-  .mel-col-11 { grid-column: span 11; }
-  .mel-col-12 { grid-column: span 12; }
+  .mel-col-1,
+  .mel-col-span-1 {
+    grid-column: span 1;
+  }
 
-  .mel-col-span-1  { grid-column: span 1; }
-  .mel-col-span-2  { grid-column: span 2; }
-  .mel-col-span-3  { grid-column: span 3; }
-  .mel-col-span-4  { grid-column: span 4; }
-  .mel-col-span-5  { grid-column: span 5; }
-  .mel-col-span-6  { grid-column: span 6; }
-  .mel-col-span-7  { grid-column: span 7; }
-  .mel-col-span-8  { grid-column: span 8; }
-  .mel-col-span-9  { grid-column: span 9; }
-  .mel-col-span-10 { grid-column: span 10; }
-  .mel-col-span-11 { grid-column: span 11; }
-  .mel-col-span-12 { grid-column: span 12; }
+  .mel-col-2,
+  .mel-col-span-2 {
+    grid-column: span 2;
+  }
+
+  .mel-col-3,
+  .mel-col-span-3 {
+    grid-column: span 3;
+  }
+
+  .mel-col-4,
+  .mel-col-span-4 {
+    grid-column: span 4;
+  }
+
+  .mel-col-5,
+  .mel-col-span-5 {
+    grid-column: span 5;
+  }
+
+  .mel-col-6,
+  .mel-col-span-6 {
+    grid-column: span 6;
+  }
+
+  .mel-col-7,
+  .mel-col-span-7 {
+    grid-column: span 7;
+  }
+
+  .mel-col-8,
+  .mel-col-span-8 {
+    grid-column: span 8;
+  }
+
+  .mel-col-9,
+  .mel-col-span-9 {
+    grid-column: span 9;
+  }
+
+  .mel-col-10,
+  .mel-col-span-10 {
+    grid-column: span 10;
+  }
+
+  .mel-col-11,
+  .mel-col-span-11 {
+    grid-column: span 11;
+  }
+
+  .mel-col-12,
+  .mel-col-span-12 {
+    grid-column: span 12;
+  }
 }
-
-// ---------------------------------------------------------------------------
-// Auto-fit helpers (non–event-listing)
-// ---------------------------------------------------------------------------
 
 .mel-grid-auto {
   display: grid;
   gap: spacing.mel-space(4);
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
 }
 
 .mel-grid-auto-sm {
   display: grid;
   gap: spacing.mel-space(3);
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr));
 }
 
 .mel-grid-auto-lg {
   display: grid;
   gap: spacing.mel-space(5);
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
 }

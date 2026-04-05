@@ -1,29 +1,24 @@
-// ==========================================================================
-// Spacing Tokens
-// ==========================================================================
-// 8px grid system for consistent spacing throughout the theme.
-// All values are multiples of 8px to align with MyEventLane v2 style guide.
-
 @use 'sass:map';
 
 $mel-space: (
   0: 0,
-  1: 0.5rem,   // 8px
-  2: 1rem,     // 16px
-  3: 1.5rem,   // 24px
-  4: 2rem,     // 32px
-  5: 2.5rem,   // 40px
-  6: 3rem,     // 48px
-  7: 4rem,     // 64px
-  8: 5rem,     // 80px
-  9: 6rem,     // 96px
-  10: 8rem     // 128px
+  1: 0.25rem,
+  2: 0.5rem,
+  3: 0.75rem,
+  4: 1rem,
+  5: 1.5rem,
+  6: 2rem,
+  7: 3rem,
+  8: 4rem,
+  9: 5rem,
+  10: 6rem
 );
 
 @function mel-space($key) {
   @if map.has-key($mel-space, $key) {
     @return map.get($mel-space, $key);
   }
+
   @warn "Unknown spacing key `#{$key}`. Available: #{map.keys($mel-space)}";
-  @return map.get($mel-space, 2); // Default to 16px
+  @return map.get($mel-space, 4);
 }

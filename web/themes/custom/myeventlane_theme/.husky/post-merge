@@ -1,4 +1,0 @@
-#!/bin/sh
-
-echo "→ MEL: rebuilding after merge"
-npm run buildø
