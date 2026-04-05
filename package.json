@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run mel:build",
     "start": "vite preview",
     "prepare": "husky",
     "mel:hero-check": "cd web/themes/custom/myeventlane_theme && npm run check:hero",
