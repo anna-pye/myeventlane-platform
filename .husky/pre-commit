@@ -1,6 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "→ MEL: lint + build"
 
 npm run mel:lint || exit 1
