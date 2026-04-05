@@ -12,45 +12,41 @@
 # Node / Vite
 ############################################
 /node_modules/
-/dist/
+/web/themes/custom/*/node_modules/
+/web/themes/custom/*/dist/
 /build/
 /.npm-cache/
-web/themes/custom/**/node_modules/
 
 ############################################
 # Drupal core & contrib (Composer-managed)
 ############################################
-web/core/
-web/modules/contrib/
-web/themes/contrib/
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
 
 ############################################
 # Drupal files (generated content)
 ############################################
-web/sites/*/files/styles/
-web/sites/*/files/simpletest/
-web/sites/*/files/sync/
-web/sites/*/files/php/
-web/sites/*/files/js/
-web/sites/*/files/css/
-web/sites/*/private/
+/web/sites/*/files/
+/web/sites/*/private/
 
 ############################################
 # Drupal sensitive configuration
 ############################################
-web/sites/*/*settings*.php
-web/sites/*/*services*.yml
-# Ship MEL multi-host session YAML + loader with the repo (staging/prod depend on these).
+/web/sites/*/*settings*.php
+/web/sites/*/*services*.yml
+
+# Allow MEL session config (required in repo)
 !web/sites/default/mel.session*.yml
 !web/sites/default/settings.mel_shared_session.php
 
 ############################################
-# Config sync temp (cookie import script)
+# Config sync temp
 ############################################
-config/sync/.cookie-backup/
+/config/sync/.cookie-backup/
 
 ############################################
-# Database dumps & backups (sensitive)
+# Database dumps & backups
 ############################################
 *.sql
 *.sql.gz
@@ -112,7 +108,7 @@ settings.local.*
 logs/
 
 ############################################
-# Local development & scratch
+# Local development scratch
 ############################################
 web/modules/custom/**/scripts/local/
 web/modules/custom/**/scratch/
@@ -121,15 +117,13 @@ web/themes/custom/**/scratch/
 web/themes/custom/**/tmp/
 
 ############################################
-# Archives & local junk
+# Archives & junk
 ############################################
 *.zip
-OneDrive
-OneDrive/
 vendor.bak
 
 ############################################
-# Server-specific / staging / deployment
+# Server / staging artefacts
 ############################################
 mel@*
 *.gz.enc
@@ -138,29 +132,8 @@ staging-*.conf
 drush/sites/staging.site.yml
 
 ############################################
-# IDE / editor (local only — not for staging)
+# Cursor / AI tooling
 ############################################
-.cursor/
-.cursorrules
-.cursor-view-modes.md
-.cursor-scss.md
-.cursor-system.md
-CURSOR_GIT_RULES.md
-
-############################################
-# Historical audit / phase docs (deprecated)
-############################################
-PHASE*.md
-*_AUDIT_*.md
-*_SUMMARY.md
-FINAL_*.md
-DEBUG_*.md
-IMPLEMENTATION_*.md
-TEST_RESULTS.md
-
-# -------------------------
-# AI / Assistant artefacts
-# -------------------------
 .cursor/
 .cursorrules
 .cursor-*.md
@@ -170,20 +143,20 @@ TEST_RESULTS.md
 .ai-output/
 .ai-notes/
 
-# -------------------------
-# Audit / summaries / notes
-# -------------------------
+############################################
+# Audit / generated docs
+############################################
 *_SUMMARY.md
 *_REPORT.md
-*_AUDIT.md
-*_DIAGNOSTIC*.md
+*_AUDIT*.md
 *_DEBUG*.md
 *_FIX*.md
 *_NOTES*.md
+*_DIAGNOSTIC*.md
 
-# -------------------------
-# Local scripts & temp
-# -------------------------
+############################################
+# Temp / local
+############################################
 tmp/
 memory/
 docs/internal/
