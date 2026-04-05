@@ -1,0 +1,28 @@
+diff --git a/src/Form/GinLoginConfigurationForm.php b/src/Form/GinLoginConfigurationForm.php
+index 0760d5c..0b0fd73 100644
+--- a/src/Form/GinLoginConfigurationForm.php
++++ b/src/Form/GinLoginConfigurationForm.php
+@@ -117,8 +117,8 @@ class GinLoginConfigurationForm extends ConfigFormBase {
+       '#title' => $this->t('Upload image'),
+       '#description' => $this->t("If you don't have direct file access to the server, use this field to upload your logo."),
+       '#upload_validators' => [
+-        'file_validate_extensions' => [
+-          'png gif jpg jpeg apng webp avif svg',
++        'FileExtension' => [
++          'extensions' => 'png gif jpg jpeg apng webp avif svg',
+         ],
+       ],
+     ];
+@@ -153,9 +153,9 @@ class GinLoginConfigurationForm extends ConfigFormBase {
+       '#title' => $this->t('Upload image'),
+       '#description' => $this->t("If you don't have direct file access to the server, use this field to upload your brand image."),
+       '#upload_validators' => [
+-        'file_validate_is_image' => [],
+-        'file_validate_extensions' => [
+-          'png gif jpg jpeg apng webp avif',
++        'FileIsImage' => [],
++        'FileExtension' => [
++          'extensions' => 'png gif jpg jpeg apng webp avif',
+         ],
+       ],
+     ];
