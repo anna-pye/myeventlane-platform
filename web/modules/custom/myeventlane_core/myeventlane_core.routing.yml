@@ -101,3 +101,12 @@ myeventlane_core.error_404:
     _title: 'Page not found'
   requirements:
     _access: 'TRUE'
+
+myeventlane_core.health:
+  path: '/health'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\HealthController::check'
+  requirements:
+    _access: 'TRUE'
+  options:
+    _maintenance_access: TRUE
