@@ -32,52 +32,66 @@ jobs:
           name: ${{ needs.build.outputs.artifact_name }}
           path: ./artifact
 
-      # ✅ HARD CHECK — fail early if secret missing
-      - name: Validate SSH key exists
+      - name: Debug artifact
+        shell: bash
         run: |
-          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
-            echo "ERROR: SSH_PRIVATE_KEY is empty"
+          set -euo pipefail
+          ls -lah ./artifact
+          if [ ! -f ./artifact/artifact.tar.gz ]; then
+            echo "ERROR: ./artifact/artifact.tar.gz not found"
             exit 1
           fi
 
       - name: Write SSH key
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Add staging host to known_hosts
+      - name: Validate SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+
+      - name: Add known_hosts
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Debug SSH config
+        shell: bash
+        run: |
+          echo "USER: ${{ secrets.SSH_USER }}"
+          echo "HOST: ${{ secrets.SSH_HOST }}"
+
       - name: Test SSH connection
-        run: |
-          set -euo pipefail
-          echo "Testing SSH connection..."
-          ssh -o StrictHostKeyChecking=no \
-              -i ~/.ssh/id_ed25519 \
-              "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-              "echo CONNECTED"
-
-      - name: Upload artifact to staging server
-        run: |
-          set -euo pipefail
-          scp -i ~/.ssh/id_ed25519 \
-            ./artifact/artifact.tar.gz \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
-
-      - name: Run remote deploy script
+        shell: bash
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_ed25519 \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "echo CONNECTED"
+
+      - name: Upload artifact to staging server
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_ed25519 ./artifact/artifact.tar.gz "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
+
+      - name: Run remote deploy script
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
           set -euo pipefail
 
           temp_dir="$(mktemp -d)"
-          trap 'rm -rf "$temp_dir"' EXIT
+          trap 'rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz' EXIT
 
           echo "Extracting artifact..."
           tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
@@ -90,5 +104,16 @@ jobs:
           ARTIFACT_PATH="$temp_dir" \
           bash scripts/deploy/remote-deploy.sh
 
-          rm -f /tmp/artifact.tar.gz
           EOF
+      - name: Inspect artifact contents
+          shell: bash
+          run: |
+            set -euo pipefail
+            echo "Listing artifact files:"
+            tar -tzf ./artifact/artifact.tar.gz | grep remote-deploy.sh || true
+
+      - name: Verify release
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "ls -lt ~/staging/releases"
