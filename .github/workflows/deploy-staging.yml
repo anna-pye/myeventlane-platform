@@ -32,40 +32,48 @@ jobs:
           name: ${{ needs.build.outputs.artifact_name }}
           path: ./artifact
 
-      - name: Start SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
+      # ✅ HARD CHECK — fail early if secret missing
+      - name: Validate SSH key exists
+        run: |
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "ERROR: SSH_PRIVATE_KEY is empty"
+            exit 1
+          fi
 
-      - name: Test SSH connection
-        shell: bash
+      - name: Write SSH key
         run: |
           set -euo pipefail
-          echo "Testing SSH connection..."
-          ssh -o StrictHostKeyChecking=no \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            "echo 'SSH OK from $(hostname)'"   
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
 
       - name: Add staging host to known_hosts
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Upload artifact to staging server
-        shell: bash
+      - name: Test SSH connection
         run: |
           set -euo pipefail
-          scp \
+          echo "Testing SSH connection..."
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/id_ed25519 \
+              "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+              "echo CONNECTED"
+
+      - name: Upload artifact to staging server
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_ed25519 \
             ./artifact/artifact.tar.gz \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
 
       - name: Run remote deploy script
-        shell: bash
         run: |
           set -euo pipefail
-          ssh "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
           set -euo pipefail
 
           temp_dir="$(mktemp -d)"
