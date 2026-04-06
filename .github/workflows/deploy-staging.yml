@@ -42,6 +42,13 @@ jobs:
             exit 1
           fi
 
+      - name: Inspect artifact contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Listing artifact files:"
+          tar -tzf ./artifact/artifact.tar.gz | grep remote-deploy.sh || true
+
       - name: Write SSH key
         shell: bash
         run: |
@@ -81,39 +88,37 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          scp -i ~/.ssh/id_ed25519 ./artifact/artifact.tar.gz "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
+          scp -i ~/.ssh/id_ed25519 ./artifact/artifact.tar.gz \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
 
       - name: Run remote deploy script
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'EOF'
-          set -euo pipefail
 
-          temp_dir="$(mktemp -d)"
-          trap 'rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz' EXIT
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << 'EOF'
+set -euo pipefail
 
-          echo "Extracting artifact..."
-          tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
+temp_dir="$(mktemp -d)"
+trap 'rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz' EXIT
 
-          echo "Running deploy..."
-          cd "$temp_dir"
+echo "Extracting artifact..."
+tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
 
-          APP_PATH="$HOME/staging" \
-          SITE_URI="https://staging.myeventlane.com.au" \
-          ARTIFACT_PATH="$temp_dir" \
-          bash scripts/deploy/remote-deploy.sh
+echo "Running deploy..."
+cd "$temp_dir"
 
-          EOF
-      - name: Inspect artifact contents
-          shell: bash
-          run: |
-            set -euo pipefail
-            echo "Listing artifact files:"
-            tar -tzf ./artifact/artifact.tar.gz | grep remote-deploy.sh || true
+APP_PATH="$HOME/staging" \
+SITE_URI="https://staging.myeventlane.com.au" \
+ARTIFACT_PATH="$temp_dir" \
+bash scripts/deploy/remote-deploy.sh
+
+EOF
 
       - name: Verify release
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" "ls -lt ~/staging/releases"
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "ls -lt ~/staging/releases"
