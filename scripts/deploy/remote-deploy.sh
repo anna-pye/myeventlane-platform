@@ -109,9 +109,10 @@ if [ -f "$SHARED_PATH/settings.php" ]; then
   fi
 fi
 
+# Do not symlink settings.local.php: it is DDEV-only in this project and must
+# never override staging/production trusted hosts or domains from shared/.
 if [ -f "$SHARED_PATH/settings.local.php" ]; then
-  rm -f "$DEFAULT_PATH/settings.local.php"
-  ln -sfn "$SHARED_PATH/settings.local.php" "$DEFAULT_PATH/settings.local.php"
+  echo "WARNING: $SHARED_PATH/settings.local.php exists but is never symlinked (DDEV-only). Remove it from shared to avoid operator confusion." >&2
 fi
 
 if [ -f "$SHARED_PATH/services.yml" ]; then
