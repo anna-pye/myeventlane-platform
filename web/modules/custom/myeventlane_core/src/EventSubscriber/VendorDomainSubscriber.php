@@ -177,9 +177,15 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
 
   /**
    * Fails loudly if active domain config still references DDEV outside DDEV.
+   *
+   * Skipped for CLI so Drush can repair misconfiguration (HTTP remains blocked).
    */
   private function assertDomainSettingsNotLeakingDdev(): void {
     if (getenv('IS_DDEV_PROJECT') === 'true') {
+      return;
+    }
+
+    if (\PHP_SAPI === 'cli') {
       return;
     }
 
