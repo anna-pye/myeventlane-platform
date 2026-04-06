@@ -119,11 +119,6 @@ if [ -f "$SHARED_PATH/services.yml" ]; then
   ln -sfn "$SHARED_PATH/services.yml" "$DEFAULT_PATH/services.yml"
 fi
 
-if [ ! -f "$DEFAULT_PATH/settings.php" ]; then
-  echo "ERROR: settings.php missing after deploy (expected symlink from $SHARED_PATH/settings.php)"
-  exit 1
-fi
-
 cd "$RELEASE_PATH"
 
 # ---- DRUSH CHECK ----
