@@ -7,7 +7,7 @@ consentModal:
   privacyPolicy:
     name: 'Privacy Policy'
     text: "To learn more, please read our {privacyPolicy}.\r\n"
-    url: '/privacy'
+    url: 'internal:/privacy'
 consentNotice:
   title: 'Use of personal data and cookies'
   changeDescription: 'There were changes since your last visit, please update your consent.'
