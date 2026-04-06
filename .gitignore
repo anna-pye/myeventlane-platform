@@ -18,11 +18,7 @@
 ############################################
 /node_modules/
 /web/themes/custom/*/node_modules/
-<<<<<<< HEAD
 /web/themes/custom/**/dist/
-=======
-/web/themes/custom/*/dist/
->>>>>>> 312d2744 (fix: correct gitignore for CI/CD safe deploy)
 /build/
 /.npm-cache/
 

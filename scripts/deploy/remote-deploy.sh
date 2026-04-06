@@ -20,7 +20,7 @@ mkdir -p "$SHARED_PATH/files"
 
 # ---- CRITICAL FIX: validate directory, not file ----
 if [ -z "$ARTIFACT_PATH" ] || [ ! -d "$ARTIFACT_PATH" ]; then
-  echo "Artifact directory not found or empty: $ARTIFACT_PATH"
+  echo "Artifact directory not found"
   exit 1
 fi
 
@@ -30,10 +30,10 @@ echo "Copying artifact contents..."
 cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/
 
 # ---- SAFETY CHECK (prevents bad deploys) ----
-if [ ! -f "$RELEASE_PATH/web/index.php" ]; then
-  echo "Invalid artifact: missing web/index.php"
+[ -f "$RELEASE_PATH/web/index.php" ] || {
+  echo "Invalid artifact structure"
   exit 1
-fi
+}
 
 echo "== MEL deploy asset validation =="
 
