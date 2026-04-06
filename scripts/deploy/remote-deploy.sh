@@ -119,6 +119,14 @@ if [ -f "$SHARED_PATH/services.yml" ]; then
   ln -sfn "$SHARED_PATH/services.yml" "$DEFAULT_PATH/services.yml"
 fi
 
+# CI packages exclude web/sites/*/settings.php; Drush steps need $databases['default'].
+# Staging must provide ~/staging/shared/settings.php (symlinked above). Skip only for custom flows.
+if [ "${SKIP_DB_SETTINGS_CHECK:-0}" != "1" ] && [ ! -f "$DEFAULT_PATH/settings.php" ]; then
+  echo "ERROR: $DEFAULT_PATH/settings.php is missing. The build artifact does not include settings.php."
+  echo "Create $SHARED_PATH/settings.php defining \$databases['default']['default'], then redeploy."
+  exit 1
+fi
+
 cd "$RELEASE_PATH"
 
 # ---- DRUSH CHECK ----
