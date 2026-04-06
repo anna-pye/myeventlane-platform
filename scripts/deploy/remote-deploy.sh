@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_PATH="${APP_PATH:-$HOME/staging}"
 SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
-ARTIFACT_PATH="${ARTIFACT_PATH:-/tmp/artifact.tar.gz}"
+ARTIFACT_PATH="${ARTIFACT_PATH:-}"
 RUN_UPDB="${RUN_UPDB:-0}"
 RUN_CIM="${RUN_CIM:-0}"
 
@@ -18,20 +18,22 @@ echo "Deploying release: $TIMESTAMP"
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
 
-if [ ! -f "$ARTIFACT_PATH" ]; then
-  echo "Artifact not found: $ARTIFACT_PATH"
+# ---- CRITICAL FIX: validate directory, not file ----
+if [ -z "$ARTIFACT_PATH" ] || [ ! -d "$ARTIFACT_PATH" ]; then
+  echo "Artifact directory not found or empty: $ARTIFACT_PATH"
   exit 1
 fi
 
 mkdir -p "$RELEASE_PATH"
-tar -xzf "$ARTIFACT_PATH" -C "$RELEASE_PATH"
 
-if [ ! -d "$RELEASE_PATH/web" ]; then
-  echo "Invalid artifact: web/ not found"
+echo "Copying artifact contents..."
+cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/
+
+# ---- SAFETY CHECK (prevents bad deploys) ----
+if [ ! -f "$RELEASE_PATH/web/index.php" ]; then
+  echo "Invalid artifact: missing web/index.php"
   exit 1
 fi
-
-set -euo pipefail
 
 echo "== MEL deploy asset validation =="
 
@@ -53,7 +55,7 @@ if [ ! -d "$ASSET_DIR" ]; then
 fi
 
 # 3. Validate exactly ONE main CSS file
-CSS_FILES=$(ls $ASSET_DIR/main*.css 2>/dev/null || true)
+CSS_FILES=$(ls "$ASSET_DIR"/main*.css 2>/dev/null || true)
 CSS_COUNT=$(echo "$CSS_FILES" | wc -w | tr -d ' ')
 
 if [ "$CSS_COUNT" -ne 1 ]; then
@@ -65,7 +67,7 @@ fi
 echo "CSS OK: $CSS_FILES"
 
 # 4. Validate JS assets exist
-JS_FILES=$(ls $ASSET_DIR/*.js 2>/dev/null || true)
+JS_FILES=$(ls "$ASSET_DIR"/*.js 2>/dev/null || true)
 
 if [ -z "$JS_FILES" ]; then
   echo "ERROR: No JS assets found"
@@ -84,22 +86,20 @@ if [ -n "$INVALID_FILES" ]; then
   exit 1
 fi
 
-# 6. Run checksum verification (repo-root-relative paths)
+# 6. Checksum verification
 cd "$RELEASE_PATH"
 
 echo "Running checksum verification..."
 shasum -c dist-checksums.txt
 
 echo "Checksum verification passed"
-
 echo "== MEL deploy asset validation complete =="
 
-# Files (shared)
+# ---- SHARED FILES ----
 rm -rf "$DEFAULT_PATH/files"
 ln -sfn "$SHARED_PATH/files" "$DEFAULT_PATH/files"
 chmod -R 775 "$SHARED_PATH/files"
 
-# Settings (shared if present)
 if [ -f "$SHARED_PATH/settings.php" ]; then
   rm -f "$DEFAULT_PATH/settings.php"
   ln -sfn "$SHARED_PATH/settings.php" "$DEFAULT_PATH/settings.php"
@@ -117,23 +117,22 @@ fi
 
 cd "$RELEASE_PATH"
 
+# ---- DRUSH CHECK ----
 if [ ! -x "vendor/bin/drush" ]; then
   echo "Drush not found in artifact"
   exit 1
 fi
 
-# Maintenance mode ON
+# ---- MAINTENANCE MODE ----
 vendor/bin/drush sset system.maintenance_mode 1 --uri="$SITE_URI" || true
 vendor/bin/drush cr --uri="$SITE_URI" || true
 
-# Switch release
+# ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
 
-# Theme assets are built in CI and verified above; do not rebuild on the server.
-
-# Optional updates (disabled by default)
+# ---- OPTIONAL UPDATES ----
 if [ "$RUN_UPDB" = "1" ]; then
   vendor/bin/drush updb -y --uri="$SITE_URI"
 fi
@@ -142,7 +141,7 @@ if [ "$RUN_CIM" = "1" ]; then
   vendor/bin/drush cim -y --uri="$SITE_URI"
 fi
 
-# Finalise
+# ---- FINALISE ----
 vendor/bin/drush cr --uri="$SITE_URI"
 vendor/bin/drush sset system.maintenance_mode 0 --uri="$SITE_URI"
 vendor/bin/drush cr --uri="$SITE_URI"
