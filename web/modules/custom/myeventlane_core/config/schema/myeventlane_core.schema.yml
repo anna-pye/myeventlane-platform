@@ -4,7 +4,7 @@ myeventlane_core.settings:
   mapping:
     platform_fee_percent:
       type: float
-      label: 'Platform fee percentage (0-100, e.g. 5 for 5%)'
+      label: 'Platform fee percentage (0-100, e.g. 1.5 for 1.5%)'
     stripe_fee_percent:
       type: float
       label: 'Stripe application fee percentage (e.g. 3 for 3%)'

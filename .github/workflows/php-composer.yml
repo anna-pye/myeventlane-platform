@@ -16,6 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify config/sync has no DDEV hostnames
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -rE 'ddev\.site' config/sync --include='*.yml' --include='*.yaml' 2>/dev/null | grep -q .; then
+            echo "::error::config/sync must not contain ddev.site (use staging/production hosts or relative URLs)."
+            grep -rE 'ddev\.site' config/sync --include='*.yml' --include='*.yaml' || true
+            exit 1
+          fi
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:

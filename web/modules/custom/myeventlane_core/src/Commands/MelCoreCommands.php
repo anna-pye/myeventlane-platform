@@ -1,0 +1,92 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_core\Commands;
+
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
+use Drush\Commands\DrushCommands;
+
+/**
+ * Core MyEventLane Drush commands (environment sanity).
+ */
+final class MelCoreCommands extends DrushCommands {
+
+  public function __construct(
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {
+    parent::__construct();
+  }
+
+  /**
+   * Validates active config for DDEV leakage, platform fee range, and domain/env alignment.
+   *
+   * @command mel:healthcheck
+   * @usage drush mel:healthcheck
+   *   Run MyEventLane environment sanity checks (read-only except exit code).
+   *
+   * @return int
+   *   0 if OK, 1 if failures.
+   */
+  public function healthcheck(): int {
+    $failures = 0;
+    $isDdev = getenv('IS_DDEV_PROJECT') === 'true';
+
+    $domainCfg = $this->configFactory->get('myeventlane_core.domain_settings');
+    foreach (['public_domain', 'vendor_domain', 'admin_domain'] as $key) {
+      $val = (string) $domainCfg->get($key);
+      if ($val !== '' && str_contains(strtolower($val), 'ddev.site') && !$isDdev) {
+        $this->io()->error("Active config {$key} references ddev.site outside DDEV: {$val}");
+        $failures++;
+      }
+    }
+
+    $feeRaw = $this->configFactory->get('myeventlane_core.settings')->get('platform_fee_percent');
+    $fee = PlatformFeeDefaults::normalizePercent($feeRaw);
+    $this->io()->writeln(sprintf('platform_fee_percent (normalized): %s', $fee));
+
+    $appEnv = strtolower((string) (getenv('APP_ENV') ?: ''));
+
+    if (in_array($appEnv, ['production', 'prod'], TRUE)) {
+      $expect = [
+        'public_domain' => 'https://myeventlane.com.au',
+        'vendor_domain' => 'https://vendor.myeventlane.com.au',
+        'admin_domain' => 'https://admin.myeventlane.com.au',
+      ];
+      foreach ($expect as $k => $expected) {
+        $actual = (string) $domainCfg->get($k);
+        if ($actual !== $expected) {
+          $this->io()->error("APP_ENV=production expects {$k}={$expected}, got {$actual}.");
+          $failures++;
+        }
+      }
+    }
+    elseif (in_array($appEnv, ['staging', 'stage'], TRUE)) {
+      $expect = [
+        'public_domain' => 'https://staging.myeventlane.com.au',
+        'vendor_domain' => 'https://vendor.staging.myeventlane.com.au',
+        'admin_domain' => 'https://admin.staging.myeventlane.com.au',
+      ];
+      foreach ($expect as $k => $expected) {
+        $actual = (string) $domainCfg->get($k);
+        if ($actual !== $expected) {
+          $this->io()->error("APP_ENV=staging expects {$k}={$expected}, got {$actual}.");
+          $failures++;
+        }
+      }
+    }
+    else {
+      $this->io()->note('APP_ENV not set to production|staging — skipping strict domain trio assertion.');
+    }
+
+    if ($failures > 0) {
+      $this->io()->error("mel:healthcheck failed with {$failures} error(s).");
+      return 1;
+    }
+
+    $this->io()->success('mel:healthcheck passed.');
+    return 0;
+  }
+
+}

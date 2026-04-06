@@ -119,6 +119,7 @@ jobs:
             'cd "$temp_dir"' \
             '' \
             'APP_PATH="$HOME/staging" \' \
+            'APP_ENV=staging \' \
             'SITE_URI="https://staging.myeventlane.com.au" \' \
             'ARTIFACT_PATH="$temp_dir" \' \
             'bash scripts/deploy/remote-deploy.sh' \
