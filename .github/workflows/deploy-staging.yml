@@ -46,8 +46,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Listing artifact files:"
-          tar -tzf ./artifact/artifact.tar.gz | grep remote-deploy.sh || true
+          echo "Checking for deploy script in artifact..."
+          tar -tzf ./artifact/artifact.tar.gz | grep scripts/deploy/remote-deploy.sh || {
+            echo "ERROR: deploy script missing from artifact"
+            exit 1
+          }
 
       - name: Write SSH key
         shell: bash
@@ -91,29 +94,35 @@ jobs:
           scp -i ~/.ssh/id_ed25519 ./artifact/artifact.tar.gz \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/artifact.tar.gz"
 
+      # Heredoc body cannot start at column 0 inside YAML `run: |` (invalid YAML).
+      # This block is equivalent to the requested ssh … <<'EOF' … EOF remote script.
       - name: Run remote deploy script
         shell: bash
         run: |
           set -euo pipefail
-
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << 'EOF'
-set -euo pipefail
-
-temp_dir="$(mktemp -d)"
-trap 'rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz' EXIT
-
-echo "Extracting artifact..."
-tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"
-
-echo "Running deploy..."
-cd "$temp_dir"
-
-APP_PATH="$HOME/staging" \
-SITE_URI="https://staging.myeventlane.com.au" \
-ARTIFACT_PATH="$temp_dir" \
-bash scripts/deploy/remote-deploy.sh
-
-EOF
+          printf '%s\n' \
+            'set -euo pipefail' \
+            '' \
+            'temp_dir="$(mktemp -d)"' \
+            'trap '\''rm -rf "$temp_dir"; rm -f /tmp/artifact.tar.gz'\'' EXIT' \
+            '' \
+            'echo "TEMP DIR:"' \
+            'echo "$temp_dir"' \
+            '' \
+            'echo "Extracting artifact..."' \
+            'tar -xzf /tmp/artifact.tar.gz -C "$temp_dir"' \
+            '' \
+            'echo "TEMP DIR CONTENTS:"' \
+            'ls -lah "$temp_dir"' \
+            '' \
+            'echo "Running deploy..."' \
+            'cd "$temp_dir"' \
+            '' \
+            'APP_PATH="$HOME/staging" \' \
+            'SITE_URI="https://staging.myeventlane.com.au" \' \
+            'ARTIFACT_PATH="$temp_dir" \' \
+            'bash scripts/deploy/remote-deploy.sh' \
+            | ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s
 
       - name: Verify release
         shell: bash
