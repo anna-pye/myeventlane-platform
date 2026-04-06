@@ -103,6 +103,10 @@ chmod -R 775 "$SHARED_PATH/files"
 if [ -f "$SHARED_PATH/settings.php" ]; then
   rm -f "$DEFAULT_PATH/settings.php"
   ln -sfn "$SHARED_PATH/settings.php" "$DEFAULT_PATH/settings.php"
+  if [ ! -f "$DEFAULT_PATH/settings.php" ]; then
+    echo "ERROR: settings.php missing after deploy"
+    exit 1
+  fi
 fi
 
 if [ -f "$SHARED_PATH/settings.local.php" ]; then
