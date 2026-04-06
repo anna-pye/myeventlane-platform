@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -356,8 +357,11 @@ final class VendorDetailController extends ControllerBase implements ContainerIn
       // Attendee module may not be available.
     }
 
-    // Calculate platform fees and net revenue.
-    $platform_fee_rate = 0.05;
+    // Calculate platform fees and net revenue (aligned with myeventlane_core.settings).
+    $fee_percent = PlatformFeeDefaults::normalizePercent(
+      $this->config('myeventlane_core.settings')->get('platform_fee_percent')
+    );
+    $platform_fee_rate = $fee_percent / 100;
     $platform_fees = $total_revenue * $platform_fee_rate;
     $net_revenue = $total_revenue - $platform_fees;
 

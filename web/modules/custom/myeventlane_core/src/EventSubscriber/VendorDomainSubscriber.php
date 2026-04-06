@@ -34,6 +34,8 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    $this->assertDomainSettingsNotLeakingDdev();
+
     $request = $event->getRequest();
     $path = $request->getPathInfo();
     $host = $request->getHost();
@@ -169,6 +171,27 @@ final class VendorDomainSubscriber implements EventSubscriberInterface {
         ]);
 
         $event->setResponse(new TrustedRedirectResponse($public_url, 302));
+      }
+    }
+  }
+
+  /**
+   * Fails loudly if active domain config still references DDEV outside DDEV.
+   */
+  private function assertDomainSettingsNotLeakingDdev(): void {
+    if (getenv('IS_DDEV_PROJECT') === 'true') {
+      return;
+    }
+
+    $cfg = $this->configFactory->get('myeventlane_core.domain_settings');
+    foreach (['public_domain', 'vendor_domain', 'admin_domain'] as $key) {
+      $val = (string) $cfg->get($key);
+      if ($val !== '' && str_contains(strtolower($val), 'ddev.site')) {
+        throw new \RuntimeException(sprintf(
+          'myeventlane_core.domain_settings.%s must not reference ddev.site outside DDEV (effective value: %s).',
+          $key,
+          $val
+        ));
       }
     }
   }

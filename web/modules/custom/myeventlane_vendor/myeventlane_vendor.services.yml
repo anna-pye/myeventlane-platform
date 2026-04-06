@@ -72,6 +72,7 @@ services:
       - '@database'
       - '@logger.factory'
       - '@myeventlane_vendor.subscription'
+      - '@config.factory'
 
   myeventlane_vendor.subscription:
     class: Drupal\myeventlane_vendor\Service\VendorSubscriptionService

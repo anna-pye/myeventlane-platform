@@ -6,10 +6,12 @@ namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\Price;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -30,6 +32,7 @@ final class TicketSalesService {
     private readonly Connection $database,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly VendorSubscriptionService $subscriptionService,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -675,7 +678,10 @@ final class TicketSalesService {
       // Commerce may not be available.
     }
 
-    $feeRate = 0.05;
+    $feePercent = PlatformFeeDefaults::normalizePercent(
+      $this->configFactory->get('myeventlane_core.settings')->get('platform_fee_percent')
+    );
+    $feeRate = $feePercent / 100;
     $fees = $totalGross * $feeRate;
     $net = $totalGross - $fees;
 

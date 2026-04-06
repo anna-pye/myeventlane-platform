@@ -1,0 +1,7 @@
+services:
+  myeventlane_core.commands:
+    class: Drupal\myeventlane_core\Commands\MelCoreCommands
+    arguments:
+      - '@config.factory'
+    tags:
+      - { name: drush.command }

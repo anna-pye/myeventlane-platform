@@ -9,6 +9,7 @@ use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -33,8 +34,6 @@ final class PlatformSummaryAggregator {
   private const WINDOW_DAYS = 90;
 
   private const DEFAULT_CURRENCY = 'AUD';
-
-  private const DEFAULT_FEE_PERCENT = 5.0;
 
   private const RESOLVED_STATUSES = ['resolved', 'closed'];
 
@@ -65,7 +64,9 @@ final class PlatformSummaryAggregator {
     }
 
     $currency = $this->getDefaultCurrency();
-    $feePercent = (float) ($this->configFactory->get('myeventlane_core.settings')->get('platform_fee_percent') ?? self::DEFAULT_FEE_PERCENT);
+    $feePercent = PlatformFeeDefaults::normalizePercent(
+      $this->configFactory->get('myeventlane_core.settings')->get('platform_fee_percent')
+    );
     $feeRate = $feePercent / 100;
 
     $end_day = (int) strtotime('today midnight');

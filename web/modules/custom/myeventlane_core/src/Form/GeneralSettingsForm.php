@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_core\Form;
 use Drupal\Core\Datetime\TimeZoneFormHelper;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 
 /**
  * General settings form for MyEventLane platform.
@@ -86,8 +87,8 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $form['payments']['platform_fee_percent'] = [
       '#type' => 'number',
       '#title' => $this->t('Platform fee percentage'),
-      '#description' => $this->t('Percentage applied to ticket subtotals (excludes donations and Boost). For example, 5 applies a 5% platform fee. Set to 0 to disable.'),
-      '#default_value' => (string) ($config->get('platform_fee_percent') ?? 5),
+      '#description' => $this->t('Percentage applied to ticket subtotals (excludes donations and Boost). For example, 1.5 applies a 1.5% platform fee. Set to 0 to disable.'),
+      '#default_value' => (string) PlatformFeeDefaults::normalizePercent($config->get('platform_fee_percent')),
       '#min' => 0,
       '#max' => 100,
       '#step' => 0.5,
@@ -134,8 +135,12 @@ final class GeneralSettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $v = $form_state->getValue(['payments', 'platform_fee_percent']);
-    $platform_fee_percent = is_numeric($v) ? (float) $v : 5;
-    $platform_fee_percent = max(0, min(100, $platform_fee_percent));
+    $existing_fee = PlatformFeeDefaults::normalizePercent(
+      $this->config('myeventlane_core.settings')->get('platform_fee_percent')
+    );
+    $platform_fee_percent = is_numeric($v)
+      ? PlatformFeeDefaults::normalizePercent($v)
+      : $existing_fee;
 
     $v = $form_state->getValue(['payments', 'stripe_fee_percent']);
     $stripe_fee_percent = is_numeric($v) ? (float) $v : 3;

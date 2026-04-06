@@ -10,11 +10,14 @@ use Drupal\commerce_order\Entity\OrderItemType;
 use Drupal\commerce_order\Entity\OrderType;
 use Drupal\commerce_price\Entity\Currency;
 use Drupal\commerce_price\Price;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_analytics\Service\OrderItemClassifier;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_vendor\Service\VendorSubscriptionService;
 use Drupal\node\Entity\Node;
@@ -76,12 +79,24 @@ final class EventOverviewSalesSummaryTest extends KernelTestBase {
     $this->ensureOrderItemTargetEventField();
     $this->ensureRefundLogTable();
 
+    $coreSettings = $this->createMock(ImmutableConfig::class);
+    $coreSettings->method('get')
+      ->willReturnCallback(static function (string $key, $default = NULL) {
+        return $key === 'platform_fee_percent' ? PlatformFeeDefaults::DEFAULT_PLATFORM_FEE_PERCENT : $default;
+      });
+
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')
+      ->with('myeventlane_core.settings')
+      ->willReturn($coreSettings);
+
     $this->service = new TicketSalesService(
       $this->container->get('entity_type.manager'),
       new OrderItemClassifier(),
       $this->container->get('database'),
       $this->container->get('logger.factory'),
       $this->createMock(VendorSubscriptionService::class),
+      $configFactory,
     );
   }
 

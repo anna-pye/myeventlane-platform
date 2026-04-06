@@ -11,6 +11,7 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_price\RounderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_core\PlatformFeeDefaults;
 
 /**
  * Applies a configurable platform fee (% of ticket subtotal) to orders.
@@ -70,7 +71,7 @@ final class PlatformFeeOrderProcessor implements OrderProcessorInterface {
       return;
     }
 
-    $percent = (float) ($settings->get('platform_fee_percent') ?? 5);
+    $percent = PlatformFeeDefaults::normalizePercent($settings->get('platform_fee_percent'));
 
     if ($percent <= 0) {
       return;

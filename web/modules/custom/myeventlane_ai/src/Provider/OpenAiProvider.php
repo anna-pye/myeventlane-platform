@@ -13,8 +13,9 @@ use Psr\Log\LoggerInterface;
 /**
  * Minimal OpenAI-compatible Chat Completions provider.
  *
- * NOTE: Secrets are read from settings.php ONLY:
- * $settings['myeventlane_ai']['api_key'] = '...';
+ * API key resolution order:
+ * 1. MEL_OPENAI_API_KEY environment variable (preferred for all environments).
+ * 2. $settings['myeventlane_ai']['api_key'] from settings.php (optional fallback).
  */
 final class OpenAiProvider implements AiProviderInterface {
 
@@ -53,9 +54,15 @@ final class OpenAiProvider implements AiProviderInterface {
     $max_tokens = (int) ($options['max_tokens'] ?? $config->get('openai.max_tokens') ?? 600);
     $temperature = (float) ($options['temperature'] ?? $config->get('openai.temperature') ?? 0.2);
 
-    $api_key = (string) (Settings::get('myeventlane_ai')['api_key'] ?? '');
+    $api_key = (string) (getenv('MEL_OPENAI_API_KEY') ?: '');
     if ($api_key === '') {
-      return AiResult::error('Missing myeventlane_ai.api_key in settings.php', '', $this->getName(), $model);
+      $from_settings = Settings::get('myeventlane_ai');
+      if (is_array($from_settings)) {
+        $api_key = (string) ($from_settings['api_key'] ?? '');
+      }
+    }
+    if ($api_key === '') {
+      return AiResult::error('Missing OpenAI API key: set MEL_OPENAI_API_KEY or $settings[\'myeventlane_ai\'][\'api_key\']', '', $this->getName(), $model);
     }
 
     $messages = $options['_messages'] ?? NULL;

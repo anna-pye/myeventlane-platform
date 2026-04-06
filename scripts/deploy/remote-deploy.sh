@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain cset.
+# Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
+
 APP_PATH="${APP_PATH:-$HOME/staging}"
 SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-}"
@@ -145,6 +148,18 @@ ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
 
+# ---- CONFIG SYNC SANITY (before cim) ----
+CONFIG_SYNC_DIR="$CURRENT_PATH/config/sync"
+if [ -d "$CONFIG_SYNC_DIR" ]; then
+  if grep -rE 'ddev\.site' "$CONFIG_SYNC_DIR" --include='*.yml' --include='*.yaml' 2>/dev/null | grep -q .; then
+    echo "ERROR: DDEV hostname found in config/sync — fix export before deploy." >&2
+    grep -rE 'ddev\.site' "$CONFIG_SYNC_DIR" --include='*.yml' --include='*.yaml' >&2 || true
+    exit 1
+  fi
+else
+  echo "WARNING: config/sync missing at $CONFIG_SYNC_DIR (skipping ddev grep)." >&2
+fi
+
 # ---- OPTIONAL UPDATES ----
 if [ "$RUN_UPDB" = "1" ]; then
   vendor/bin/drush updb -y --uri="$SITE_URI"
@@ -152,6 +167,46 @@ fi
 
 if [ "$RUN_CIM" = "1" ]; then
   vendor/bin/drush cim -y --uri="$SITE_URI"
+fi
+
+# ---- DOMAIN ENFORCEMENT (after cim; runs every deploy) ----
+# Prevents production from keeping staging hosts from sync; idempotent on staging.
+mel_resolve_deploy_mode() {
+  local app_raw="${APP_ENV:-}"
+  local app_lc
+  app_lc=$(printf '%s' "$app_raw" | tr '[:upper:]' '[:lower:]')
+  case "$app_lc" in
+    production|prod) echo production; return ;;
+    staging|stage) echo staging; return ;;
+  esac
+  case "${SITE_URI:-}" in
+    *staging*) echo staging; return ;;
+  esac
+  case "${SITE_URI:-}" in
+    *myeventlane.com.au*)
+      case "${SITE_URI:-}" in
+        *staging*) echo staging; return ;;
+        *) echo production; return ;;
+      esac
+      ;;
+  esac
+  echo ""
+}
+
+MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
+
+if [ "$MEL_DEPLOY_MODE" = "production" ]; then
+  echo "Applying production domain settings (APP_ENV/SITE_URI → production)..."
+  vendor/bin/drush cset myeventlane_core.domain_settings public_domain 'https://myeventlane.com.au' -y --uri="$SITE_URI"
+  vendor/bin/drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.myeventlane.com.au' -y --uri="$SITE_URI"
+  vendor/bin/drush cset myeventlane_core.domain_settings admin_domain 'https://admin.myeventlane.com.au' -y --uri="$SITE_URI"
+elif [ "$MEL_DEPLOY_MODE" = "staging" ]; then
+  echo "Applying staging domain settings (APP_ENV/SITE_URI → staging)..."
+  vendor/bin/drush cset myeventlane_core.domain_settings public_domain 'https://staging.myeventlane.com.au' -y --uri="$SITE_URI"
+  vendor/bin/drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+  vendor/bin/drush cset myeventlane_core.domain_settings admin_domain 'https://admin.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+else
+  echo "NOTICE: Skipping automatic domain cset (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
 fi
 
 # ---- FINALISE ----
