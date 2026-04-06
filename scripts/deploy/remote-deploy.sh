@@ -103,6 +103,10 @@ chmod -R 775 "$SHARED_PATH/files"
 if [ -f "$SHARED_PATH/settings.php" ]; then
   rm -f "$DEFAULT_PATH/settings.php"
   ln -sfn "$SHARED_PATH/settings.php" "$DEFAULT_PATH/settings.php"
+  if [ ! -f "$DEFAULT_PATH/settings.php" ]; then
+    echo "ERROR: settings.php missing after deploy"
+    exit 1
+  fi
 fi
 
 if [ -f "$SHARED_PATH/settings.local.php" ]; then
@@ -113,6 +117,11 @@ fi
 if [ -f "$SHARED_PATH/services.yml" ]; then
   rm -f "$DEFAULT_PATH/services.yml"
   ln -sfn "$SHARED_PATH/services.yml" "$DEFAULT_PATH/services.yml"
+fi
+
+if [ ! -f "$DEFAULT_PATH/settings.php" ]; then
+  echo "ERROR: settings.php missing after deploy (expected symlink from $SHARED_PATH/settings.php)"
+  exit 1
 fi
 
 cd "$RELEASE_PATH"
