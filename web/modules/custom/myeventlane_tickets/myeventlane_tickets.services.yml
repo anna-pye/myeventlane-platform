@@ -19,6 +19,13 @@ services:
       '@logger.factory'
     ]
 
+  myeventlane_tickets.order_paid_subscriber:
+    class: Drupal\myeventlane_tickets\EventSubscriber\OrderPaidSubscriber
+    arguments:
+      - '@myeventlane_tickets.ticket_issuer'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_tickets.ticket_assignment_token:
     class: Drupal\myeventlane_tickets\Service\TicketAssignmentTokenService
 
