@@ -85,7 +85,9 @@ final class TicketIssuer {
       return $node instanceof NodeInterface ? $node : NULL;
     }
 
-    $product = method_exists($purchased_entity, 'getProduct') ? $purchased_entity->getProduct() : NULL;
+    $product = $purchased_entity !== NULL && method_exists($purchased_entity, 'getProduct')
+      ? $purchased_entity->getProduct()
+      : NULL;
     if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
       $node = $product->get('field_event')->entity;
       return $node instanceof NodeInterface ? $node : NULL;
