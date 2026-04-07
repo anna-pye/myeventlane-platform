@@ -1732,6 +1732,35 @@ function myeventlane_help_centre_update_10031(): string {
 }
 
 /**
+ * Syncs last-installed field storage schema for field_help_status with config.
+ *
+ * Resolves "Entity/field definitions" status errors when the active
+ * field.storage.node.field_help_status definition no longer matches the
+ * recorded schema (e.g. after config import or core field schema changes).
+ */
+function myeventlane_help_centre_update_10032(): string {
+  $logger = \Drupal::logger('myeventlane_help_centre');
+  $storage = FieldStorageConfig::loadByName('node', 'field_help_status');
+  if (!$storage) {
+    $logger->warning('update_10032: node.field_help_status storage not found; skipped.');
+    return 'Skipped: field_help_status storage is not present.';
+  }
+
+  try {
+    \Drupal::entityDefinitionUpdateManager()->updateFieldStorageDefinition($storage);
+  }
+  catch (\Throwable $e) {
+    $logger->error('update_10032: failed to apply field storage definition update for field_help_status: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    throw $e;
+  }
+
+  $logger->notice('update_10032: applied entity definition update for node.field_help_status.');
+  return 'Applied entity definition update for node.field_help_status (synced installed field schema).';
+}
+
+/**
  * Maps help_audience taxonomy term labels to field_audience list values.
  *
  * Unknown labels are ignored so custom terms do not silently become public.
