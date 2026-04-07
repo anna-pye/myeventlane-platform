@@ -30,7 +30,7 @@ function myeventlane_vendor_theme_page_attachments_alter(array &$attachments): v
   $request = \Drupal::request();
   $path = $request->getPathInfo();
 
-  if (!str_starts_with($path, '/vendor')) {
+  if (!_myeventlane_vendor_theme_is_vendor_scoped_path($path)) {
     return;
   }
 
@@ -71,6 +71,27 @@ function myeventlane_vendor_theme_page_attachments_alter(array &$attachments): v
       '@theme' => $active_theme,
     ]
   );
+}
+
+/**
+ * Paths where vendor theme should strip conflicting public-theme assets.
+ *
+ * Includes /vendor/* and core user auth paths served on the vendor host.
+ */
+function _myeventlane_vendor_theme_is_vendor_scoped_path(string $path): bool {
+  if (str_starts_with($path, '/vendor')) {
+    return TRUE;
+  }
+  $auth = ['/user/login', '/user/register', '/user/password'];
+  foreach ($auth as $prefix) {
+    if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
+      return TRUE;
+    }
+  }
+  if (str_starts_with($path, '/user/reset')) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -301,12 +322,15 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     }
   }
 
-  // Build logout link.
-  $variables['page']['logout_link'] = [
-    '#type' => 'link',
-    '#title' => t('Log out'),
-    '#url' => \Drupal\Core\Url::fromRoute('user.logout'),
-  ];
+  // Log out only when signed in (avoid anonymous login page showing Log out).
+  $variables['page']['logout_link'] = NULL;
+  if ($current_user->isAuthenticated()) {
+    $variables['page']['logout_link'] = [
+      '#type' => 'link',
+      '#title' => t('Log out'),
+      '#url' => \Drupal\Core\Url::fromRoute('user.logout'),
+    ];
+  }
 
   // Build user menu for header.
   if ($current_user->isAuthenticated()) {
