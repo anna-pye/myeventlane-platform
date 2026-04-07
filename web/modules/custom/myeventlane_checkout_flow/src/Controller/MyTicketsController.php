@@ -218,7 +218,7 @@ final class MyTicketsController extends ControllerBase {
         continue;
       }
 
-      // Extract event from order item (field_target_event or product/variation).
+      // Same event resolution as TicketIssuer (variation/product field_event, then field_target_event).
       $event = $this->resolveEventFromOrderItem($item);
 
       // Build ticket item data. Use product variation label as ticket name.
@@ -324,33 +324,32 @@ final class MyTicketsController extends ControllerBase {
   }
 
   /**
-   * Resolves the event node for a ticket order item.
+   * Resolves event node from order item.
    *
-   * Aligns with \Drupal\myeventlane_tickets\Ticket\TicketIssuer::resolveEventFromOrderItem
-   * so My Tickets shows the same event context as issuance and receipts.
+   * Mirrors \Drupal\myeventlane_tickets\Ticket\TicketIssuer::resolveEventFromOrderItem
+   * (same precedence and instanceof-only checks) so My Tickets matches issuance.
    */
-  private function resolveEventFromOrderItem($item): ?NodeInterface {
-    if (!$item instanceof OrderItemInterface) {
-      return NULL;
-    }
-    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
-      $node = $item->get('field_target_event')->entity;
-      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
-    }
-    $purchased_entity = $item->getPurchasedEntity();
+  private function resolveEventFromOrderItem(OrderItemInterface $order_item): ?NodeInterface {
+    $purchased_entity = $order_item->getPurchasedEntity();
     if ($purchased_entity && $purchased_entity->hasField('field_event') && !$purchased_entity->get('field_event')->isEmpty()) {
       $node = $purchased_entity->get('field_event')->entity;
-      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+      return $node instanceof NodeInterface ? $node : NULL;
     }
-    $product = $purchased_entity && method_exists($purchased_entity, 'getProduct')
+
+    $product = $purchased_entity !== NULL && method_exists($purchased_entity, 'getProduct')
       ? $purchased_entity->getProduct()
       : NULL;
     if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
       $node = $product->get('field_event')->entity;
-      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+      return $node instanceof NodeInterface ? $node : NULL;
     }
+
+    if ($order_item->hasField('field_target_event') && !$order_item->get('field_target_event')->isEmpty()) {
+      $node = $order_item->get('field_target_event')->entity;
+      return $node instanceof NodeInterface ? $node : NULL;
+    }
+
     return NULL;
   }
 
 }
-
