@@ -53,6 +53,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             web/themes/custom/myeventlane_theme/package-lock.json
+            web/themes/custom/myeventlane_vendor_theme/package-lock.json
 
       - name: Install root Node dependencies
         if: ${{ hashFiles('package.json') != '' }}
@@ -98,6 +99,26 @@ jobs:
           shasum $ASSET_DIR/*.js >> "$MANIFEST"
 
           [ -s "$MANIFEST" ] || exit 1
+
+      # Vendor console theme: dist/ is gitignored; without this step the artifact
+      # ships without dist/main.css + main.js and vendor.* domains render unstyled.
+      - name: Install vendor theme Node dependencies
+        if: ${{ hashFiles('web/themes/custom/myeventlane_vendor_theme/package.json') != '' }}
+        working-directory: web/themes/custom/myeventlane_vendor_theme
+        run: npm ci
+
+      - name: Build vendor theme assets
+        if: ${{ hashFiles('web/themes/custom/myeventlane_vendor_theme/package.json') != '' }}
+        working-directory: web/themes/custom/myeventlane_vendor_theme
+        run: npm run build
+
+      - name: Validate vendor theme dist
+        if: ${{ hashFiles('web/themes/custom/myeventlane_vendor_theme/package.json') != '' }}
+        run: |
+          set -euo pipefail
+          test -f web/themes/custom/myeventlane_vendor_theme/dist/main.css
+          test -f web/themes/custom/myeventlane_vendor_theme/dist/main.js
+          test -f web/themes/custom/myeventlane_vendor_theme/dist/vendor-wizard.css
 
       - name: Set artifact metadata
         id: meta
