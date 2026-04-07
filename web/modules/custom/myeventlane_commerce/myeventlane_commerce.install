@@ -13,3 +13,16 @@ function myeventlane_commerce_update_10001(): void {
   // Intentionally no schema changes.
   \Drupal::logger('myeventlane_commerce')->notice('Ran update 10001.');
 }
+
+/**
+ * Disable Commerce core order receipt; MyEventLane uses myeventlane_messaging.
+ */
+function myeventlane_commerce_update_10002(): void {
+  $config = \Drupal::configFactory()->getEditable('commerce_order.commerce_order_type.default');
+  if ($config->isNew()) {
+    return;
+  }
+  $config->set('sendReceipt', FALSE);
+  $config->set('receiptSubject', '');
+  $config->save();
+}

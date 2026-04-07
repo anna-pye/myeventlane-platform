@@ -2942,19 +2942,10 @@ function myeventlane_theme_preprocess_commerce_cart_empty_page(array &$variables
  * Uses theme logo setting or fallback to theme default logo.
  */
 function myeventlane_theme_preprocess_mimemail_message(array &$variables): void {
-  $theme_settings = \Drupal::service(\Drupal\Core\Extension\ThemeSettingsProvider::class);
-  $default_theme = \Drupal::config('system.theme')->get('default');
-  $theme_logo = $theme_settings->getSetting('logo.url', $default_theme);
-
-  if ($theme_logo !== NULL && $theme_logo !== '') {
-    $variables['logo_path'] = $theme_logo;
-    return;
-  }
-
-  $extension_list = \Drupal::service('extension.list.theme');
-  $theme_path = $extension_list->getPath($default_theme ?: 'myeventlane_theme');
-  $base_url = \Drupal::request()->getSchemeAndHttpHost() . \Drupal::request()->getBasePath();
-  $variables['logo_path'] = rtrim($base_url, '/') . '/' . $theme_path . '/images/logo.svg';
+  // Shared resolver skips SVG and builds absolute URLs (see myeventlane_messaging).
+  $variables['logo_path'] = function_exists('myeventlane_messaging_email_branding_logo_url')
+    ? myeventlane_messaging_email_branding_logo_url()
+    : '';
 }
 
 /**

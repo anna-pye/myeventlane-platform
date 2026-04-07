@@ -28,6 +28,10 @@ services:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver
     arguments: ['@entity_type.manager']
 
+  myeventlane_checkout_flow.my_tickets_order_access:
+    class: Drupal\myeventlane_checkout_flow\Access\MyTicketsOrderAccess
+    arguments: ['@entity_type.manager']
+
   logger.channel.myeventlane_checkout_flow:
     parent: logger.channel_base
     arguments: ['myeventlane_checkout_flow']

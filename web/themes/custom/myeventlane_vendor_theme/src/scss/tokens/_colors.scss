@@ -146,24 +146,3 @@ $mel-ws-border-soft: rgba(44, 62, 80, 0.08);
 $mel-ws-shadow-soft: rgba(0, 0, 0, 0.06);
 $mel-ws-purple-tint: rgba(110, 126, 242, 0.12);
 $mel-ws-purple-border: rgba(110, 126, 242, 0.2);
-
-// ============================================================================
-// EXPORTS (for JavaScript access)
-// ============================================================================
-
-:export {
-  vendorNavy: $ml-vendor-navy;
-  vendorSlate: $ml-vendor-slate;
-  vendorBg: $ml-vendor-bg;
-  accentCoral: $ml-accent-coral;
-  accentGreen: $ml-accent-green;
-  accentYellow: $ml-accent-yellow;
-  primary: $primary;
-  primaryDark: $primary-dark;
-  textPrimary: $text-primary;
-  textSecondary: $text-secondary;
-  chartPrimary: $chart-primary;
-  chartSecondary: $chart-secondary;
-  chartTertiary: $chart-tertiary;
-}
-

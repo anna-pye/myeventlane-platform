@@ -43,7 +43,7 @@ class RsvpMailer {
         return;
       }
 
-      $email = $submission->getEmail();
+      $email = trim((string) ($submission->getEmail() ?? ''));
       $name = $submission->getAttendeeName() ?? $submission->get('name')->value ?? '';
       $event_nid = $submission->getEventId() ?? $event->id();
       $guests = $submission->hasField('quantity')
@@ -61,7 +61,7 @@ class RsvpMailer {
         return;
       }
 
-      $email = $submission['email'] ?? '';
+      $email = trim((string) ($submission['email'] ?? ''));
       $name = $submission['name'] ?? '';
       $event_nid = $submission['event_nid'] ?? $event->id();
       $guests = max(1, (int) ($submission['quantity'] ?? $submission['guests'] ?? 1));

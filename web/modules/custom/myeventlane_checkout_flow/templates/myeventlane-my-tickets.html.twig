@@ -89,10 +89,10 @@
     </div>
   {% endif %}
 
-  {# Past Events #}
+  {# Past Events — open by default when there are no upcoming orders so purchases are visible. #}
   {% if past_orders|length > 0 %}
     <div class="mel-section mel-mt-6">
-      <details class="mel-past-events">
+      <details class="mel-past-events"{{ upcoming_orders|length == 0 ? ' open' : '' }}>
         <summary class="mel-section-title">
           <h2>Past Events ({{ past_orders|length }})</h2>
         </summary>
@@ -149,7 +149,8 @@
       <div class="mel-card">
         <div class="mel-card-body" style="text-align: center; padding: 40px;">
           <p class="mel-empty-message">
-            You haven't purchased any tickets yet.
+            You haven't purchased any tickets yet, or your order is on a different account.
+            Purchases only appear here when you are logged in as the same user who completed checkout.
           </p>
           <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-primary mel-mt-4">
             Browse Events

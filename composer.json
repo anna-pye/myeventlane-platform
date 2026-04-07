@@ -63,6 +63,7 @@
     "drupal/twbstools": "^2.1",
     "drupal/twig_tweak": "^3.4",
     "drush/drush": "^13.7",
+    "endroid/qr-code": "^6.0",
     "mglaman/drupal-check": "^1.5",
     "phpoffice/phpspreadsheet": "^5.3",
     "psy/psysh": "^0.12.19",
