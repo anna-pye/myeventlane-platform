@@ -94,6 +94,15 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_core.vendor_host_auth_redirect_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\VendorHostAuthRedirectSubscriber
+    arguments:
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $currentUser: '@current_user'
+      $logger: '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_core.vendor_theme_negotiator:
     class: Drupal\myeventlane_core\Theme\VendorThemeNegotiator
     arguments:
