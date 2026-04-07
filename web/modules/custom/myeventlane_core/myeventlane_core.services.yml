@@ -87,9 +87,10 @@ services:
   myeventlane_core.vendor_post_login_redirect_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\VendorPostLoginRedirectSubscriber
     arguments:
-      - '@current_user'
-      - '@myeventlane_core.domain_detector'
-      - '@logger.channel.myeventlane_core'
+      $currentUser: '@current_user'
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $configFactory: '@config.factory'
+      $logger: '@logger.channel.myeventlane_core'
     tags:
       - { name: event_subscriber }
 
