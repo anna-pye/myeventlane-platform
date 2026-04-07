@@ -98,6 +98,17 @@ shasum -c dist-checksums.txt
 echo "Checksum verification passed"
 echo "== MEL deploy asset validation complete =="
 
+# Vendor console theme (myeventlane_vendor_theme): dist/ is gitignored and must
+# be produced in CI. Missing files mean vendor.* pages load without global CSS/JS.
+VENDOR_DIST="$RELEASE_PATH/web/themes/custom/myeventlane_vendor_theme/dist"
+if [ ! -f "$VENDOR_DIST/main.css" ] || [ ! -f "$VENDOR_DIST/main.js" ]; then
+  echo "ERROR: Vendor theme dist missing (expected $VENDOR_DIST/main.css and main.js)."
+  echo "The deploy artifact must be built with the reusable-build workflow (vendor theme npm run build)."
+  ls -la "$VENDOR_DIST" 2>/dev/null || echo "(dist directory missing)"
+  exit 1
+fi
+echo "Vendor theme dist OK"
+
 # ---- SHARED FILES ----
 rm -rf "$DEFAULT_PATH/files"
 ln -sfn "$SHARED_PATH/files" "$DEFAULT_PATH/files"

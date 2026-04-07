@@ -1,27 +1,151 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @file
- * Install and uninstall for MyEventLane Auth.
- *
- * Field field_mel_account_type is provided via config/install and created
- * when the module is installed. No role assignment is performed on registration.
- * This hook performs a safety check only; config remains the source of truth.
+ * Install, update and uninstall hooks for myeventlane_auth.
  */
 
-use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field\Entity\FieldConfig;
+use Drupal\Core\Database\Database;
 
 /**
- * Implements hook_install().
+ * Implements hook_schema().
  */
-function myeventlane_auth_install(): void {
-  $storage = FieldStorageConfig::loadByName('user', 'field_mel_account_type');
-  $field = FieldConfig::loadByName('user', 'user', 'field_mel_account_type');
-  if (!$storage || !$field) {
-    \Drupal::logger('myeventlane_auth')->warning(
-      'MyEventLane Auth: field_mel_account_type storage or instance missing after install. Config/install may not have been applied. Enable config import or reinstall the module.'
-    );
-    return;
-  }
+function myeventlane_auth_schema(): array {
+  $schema['mel_auth_authorization_code'] = [
+    'description' => 'One-time OAuth2 authorization codes (hashed).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'code_hash' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'SHA-256 hex hash of the plaintext code.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'client_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'redirect_uri' => [
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => TRUE,
+      ],
+      'code_challenge' => [
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => FALSE,
+        'description' => 'PKCE S256 challenge (base64url), if used.',
+      ],
+      'code_challenge_method' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when the code expires.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'used' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '1 if consumed (prevents replay).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'code_hash' => ['code_hash'],
+    ],
+    'indexes' => [
+      'expires' => ['expires'],
+      'uid' => ['uid'],
+    ],
+  ];
+
+  $schema['mel_auth_refresh_token'] = [
+    'description' => 'Hashed refresh tokens with rotation families.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'token_hash' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'family_id' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Stable id for a refresh chain (rotation).',
+      ],
+      'parent_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Previous row id in rotation chain.',
+      ],
+      'expires' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'last_used' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'revoked' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'token_hash' => ['token_hash'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'family_id' => ['family_id'],
+      'expires' => ['expires'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function myeventlane_auth_uninstall(): void {
+  $db = Database::getConnection();
+  $db->schema()->dropTable('mel_auth_authorization_code');
+  $db->schema()->dropTable('mel_auth_refresh_token');
 }

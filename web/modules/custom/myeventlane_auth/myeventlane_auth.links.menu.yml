@@ -1,0 +1,6 @@
+myeventlane_auth.settings:
+  title: 'MyEventLane SSO'
+  description: 'Configure cross-domain SSO (auth codes, JWT access, refresh tokens).'
+  parent: system.admin_config_system
+  route_name: myeventlane_auth.settings
+  weight: 25

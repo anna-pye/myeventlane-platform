@@ -1,0 +1,74 @@
+services:
+  logger.channel.myeventlane_auth:
+    parent: logger.channel_base
+    arguments: ['myeventlane_auth']
+
+  myeventlane_auth.auth_redirect_validator:
+    class: Drupal\myeventlane_auth\Service\AuthRedirectValidator
+    arguments:
+      - '@config.factory'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.oauth_client_repository:
+    class: Drupal\myeventlane_auth\Service\OAuthClientRepository
+    arguments:
+      - '@config.factory'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.jwt_hs256:
+    class: Drupal\myeventlane_auth\Utility\JwtHs256
+
+  myeventlane_auth.token_issuer:
+    class: Drupal\myeventlane_auth\Service\TokenIssuer
+    arguments:
+      - '@myeventlane_auth.jwt_hs256'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_auth'
+      - '@entity_type.manager'
+
+  myeventlane_auth.token_grant_service:
+    class: Drupal\myeventlane_auth\Service\TokenGrantService
+    arguments:
+      - '@myeventlane_auth.oauth_client_repository'
+      - '@myeventlane_auth.auth_redirect_validator'
+      - '@myeventlane_auth.authorization_code_manager'
+      - '@myeventlane_auth.refresh_token_manager'
+      - '@myeventlane_auth.token_issuer'
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.authorization_code_manager:
+    class: Drupal\myeventlane_auth\Service\AuthorizationCodeManager
+    arguments:
+      - '@database'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.refresh_token_manager:
+    class: Drupal\myeventlane_auth\Service\RefreshTokenManager
+    arguments:
+      - '@database'
+      - '@config.factory'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.cors_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\MelAuthCorsSubscriber
+    arguments:
+      - '@myeventlane_auth.auth_redirect_validator'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_auth.vendor_sso_redirect_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\VendorSsoRedirectSubscriber
+    arguments:
+      - '@config.factory'
+      - '@current_user'
+      - '@logger.channel.myeventlane_auth'
+      - '@module_handler'
+    tags:
+      - { name: event_subscriber }

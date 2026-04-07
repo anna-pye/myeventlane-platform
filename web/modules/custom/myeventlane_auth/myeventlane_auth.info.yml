@@ -1,9 +1,9 @@
-name: 'MyEventLane Auth'
+name: 'MyEventLane Auth (SSO)'
 type: module
-description: 'Branded login and registration UX. Curates user forms, account type choice, and Gin Login styling for MyEventLane.'
-package: MyEventLane
+description: 'OAuth2-style SSO for MyEventLane: auth domain login, authorization codes, JWT access tokens, hashed refresh tokens with rotation.'
+package: 'MyEventLane'
 core_version_requirement: ^11
-lifecycle: stable
-
+configure: myeventlane_auth.settings
 dependencies:
   - drupal:user
+  - drupal:system

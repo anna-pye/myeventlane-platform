@@ -1,0 +1,4 @@
+administer myeventlane auth:
+  title: 'Administer MyEventLane SSO'
+  description: 'Configure OAuth clients, redirect allowlists, and SSO behaviour.'
+  restrict access: true
