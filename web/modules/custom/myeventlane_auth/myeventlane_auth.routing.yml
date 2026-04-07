@@ -1,0 +1,72 @@
+myeventlane_auth.login:
+  path: '/auth/login'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\AuthController::login'
+    _title: 'Sign in'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.authorize:
+  path: '/auth/authorize'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\AuthController::authorize'
+    _title: 'Authorize'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+myeventlane_auth.logout:
+  path: '/auth/logout'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\AuthController::logout'
+    _title: 'Sign out'
+  methods: [GET, POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+
+myeventlane_auth.token:
+  path: '/auth/token'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\TokenController::token'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.refresh:
+  path: '/auth/refresh'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\TokenController::refresh'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.me:
+  path: '/auth/me'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\TokenController::me'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.revoke:
+  path: '/auth/revoke'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\TokenController::revoke'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.settings:
+  path: '/admin/config/system/myeventlane-auth'
+  defaults:
+    _form: '\Drupal\myeventlane_auth\Form\SettingsForm'
+    _title: 'MyEventLane SSO (Auth)'
+  requirements:
+    _permission: 'administer myeventlane auth'
+
+myeventlane_auth.vendor_sso_callback:
+  path: '/vendor/sso/callback'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\VendorSsoCallbackController::callback'
+  requirements:
+    _access: 'TRUE'

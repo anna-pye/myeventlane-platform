@@ -1,0 +1,14 @@
+auth_base_url: ''
+access_token_ttl: 900
+refresh_token_ttl: 2592000
+authorization_code_ttl: 600
+refresh_cookie_name: mel_auth_rt
+refresh_cookie_path: /auth
+vendor_sso_redirect_enabled: false
+vendor_sso_client_id: vendor
+vendor_sso_callback_path: '/vendor/sso/callback'
+vendor_sso_success_path: '/vendor/dashboard'
+vendor_sso_redirect_hosts: {  }
+allowed_redirect_hosts: {  }
+allowed_cors_origins: {  }
+oauth_clients: {  }
