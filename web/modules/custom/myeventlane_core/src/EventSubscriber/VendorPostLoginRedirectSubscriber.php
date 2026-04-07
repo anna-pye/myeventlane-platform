@@ -4,31 +4,36 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Fixes post-login redirect when LocalRedirectResponse rejects the destination host.
+ * Fixes post-login redirect when cross-host destinations are rejected.
  *
- * RedirectResponseSubscriber turns destination into an absolute URL using the
- * current request host. LocalRedirectResponse then allows it only if the host
- * matches router.request_context complete base URL (exact match). Multi-host
- * installs (vendor.* vs apex) often end up with mismatched hosts; setTargetUrl
- * throws, the failure is swallowed, and the browser stays on /user/login. The
- * session is already authenticated, but user.login requires anonymous access,
- * so the user sees an access failure instead of the dashboard.
+ * Redirect handling may build a redirect whose target is still /user/login
+ * (e.g. destination points at vendor.* while login POST happened on staging.*).
+ * The session cookie is often set on that response, but the browser follows a
+ * bad Location header, so the user lands on an anonymous-only route while
+ * authenticated — appearing as "lost session" on the next hop.
+ *
+ * Runs on every app host (public, vendor, admin): copies Set-Cookie onto a
+ * TrustedRedirectResponse to a destination that is limited to configured MEL
+ * domain hosts and path-based routing (/vendor → vendor_domain, etc.).
  */
 final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly DomainDetector $domainDetector,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -41,7 +46,7 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
   }
 
   /**
-   * Replaces a stuck /user/login redirect with a trusted vendor URL when needed.
+   * Replaces a stuck /user/login redirect with a trusted URL when needed.
    */
   public function onResponse(ResponseEvent $event): void {
     if (!$event->isMainRequest()) {
@@ -61,10 +66,6 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    if (!$this->domainDetector->isVendorDomain()) {
-      return;
-    }
-
     $response = $event->getResponse();
     if (!$response instanceof RedirectResponse) {
       return;
@@ -75,19 +76,8 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
       return;
     }
 
-    $path = '/vendor/dashboard';
-    $destination = $request->query->get('destination');
-    if (is_string($destination) && str_starts_with($destination, '/') && !str_starts_with($destination, '//')) {
-      $path = $destination;
-    }
-
-    try {
-      $url = $this->domainDetector->buildDomainUrl($path, 'vendor');
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Vendor post-login redirect failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
+    $url = $this->resolveTrustedPostLoginUrl($request);
+    if ($url === NULL) {
       return;
     }
 
@@ -96,7 +86,118 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
       $fixed->headers->setCookie($cookie);
     }
 
+    $this->logger->notice('Adjusted post-login redirect away from stuck /user/login to @url', [
+      '@url' => $url,
+    ]);
+
     $event->setResponse($fixed);
+  }
+
+  private function resolveTrustedPostLoginUrl(Request $request): ?string {
+    $destination = $request->request->get('destination');
+    if (!is_string($destination) || $destination === '') {
+      $destination = $request->query->get('destination');
+    }
+
+    if (is_string($destination) && $destination !== '') {
+      if (str_starts_with($destination, '//')) {
+        return NULL;
+      }
+      if (preg_match('#^https?://#i', $destination)) {
+        return $this->trustedAbsoluteUrl($destination);
+      }
+      if (str_starts_with($destination, '/')) {
+        return $this->buildUrlForInternalPath($destination);
+      }
+      return NULL;
+    }
+
+    if ($this->domainDetector->isVendorDomain()) {
+      try {
+        return $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Vendor post-login default redirect failed: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        return NULL;
+      }
+    }
+
+    if ($this->domainDetector->isAdminDomain()) {
+      try {
+        return $this->domainDetector->buildDomainUrl('/admin/myeventlane', 'admin');
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Admin post-login default redirect failed: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        return NULL;
+      }
+    }
+
+    try {
+      return $this->domainDetector->buildDomainUrl('/', 'public');
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Public post-login default redirect failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
+  private function trustedAbsoluteUrl(string $url): ?string {
+    $parts = parse_url($url);
+    if ($parts === FALSE || empty($parts['scheme']) || empty($parts['host'])) {
+      return NULL;
+    }
+    $host = strtolower((string) $parts['host']);
+    if (!in_array($host, $this->getTrustedMelHosts(), TRUE)) {
+      $this->logger->warning('Rejected post-login absolute destination host @host', [
+        '@host' => $host,
+      ]);
+      return NULL;
+    }
+    return $url;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function getTrustedMelHosts(): array {
+    $cfg = $this->configFactory->get('myeventlane_core.domain_settings');
+    $hosts = [];
+    foreach (['public_domain', 'vendor_domain', 'admin_domain'] as $key) {
+      $raw = trim((string) $cfg->get($key));
+      if ($raw === '') {
+        continue;
+      }
+      $h = parse_url($raw, PHP_URL_HOST);
+      if (is_string($h) && $h !== '') {
+        $hosts[] = strtolower($h);
+      }
+    }
+    return array_values(array_unique($hosts));
+  }
+
+  private function buildUrlForInternalPath(string $path): ?string {
+    try {
+      if (str_starts_with($path, '/vendor') || $path === '/vendor') {
+        return $this->domainDetector->buildDomainUrl($path, 'vendor');
+      }
+      if (str_starts_with($path, '/admin')) {
+        return $this->domainDetector->buildDomainUrl($path, 'admin');
+      }
+      return $this->domainDetector->buildDomainUrl($path, 'public');
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Post-login path redirect failed for @path: @message', [
+        '@path' => $path,
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
 }
