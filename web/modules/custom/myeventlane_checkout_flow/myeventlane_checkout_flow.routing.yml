@@ -15,7 +15,7 @@ myeventlane_checkout_flow.order_detail:
     _controller: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::orderDetail'
     _title_callback: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::orderDetailTitle'
   requirements:
-    _entity_access: 'commerce_order.view'
+    _custom_access: 'myeventlane_checkout_flow.my_tickets_order_access:access'
     commerce_order: \d+
   options:
     parameters:

@@ -5,18 +5,32 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_checkout_flow\Controller;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\node\NodeInterface;
+use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Controller for "My Tickets" self-service experience.
  */
 final class MyTicketsController extends ControllerBase {
+
+  /**
+   * Order workflow states that represent a finished purchase for My Tickets.
+   *
+   * @var list<string>
+   */
+  private const COMPLETED_ORDER_STATES = [
+    'placed',
+    'completed',
+    'fulfilled',
+    'fulfillment',
+  ];
 
   /**
    * Constructs MyTicketsController.
@@ -89,13 +103,26 @@ final class MyTicketsController extends ControllerBase {
       ];
     }
 
-    // Load orders for current user.
+    // Load orders: owned by uid, or guest checkout (uid 0) with matching email.
     $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
-    $orderIds = $orderStorage->getQuery()
+    $query = $orderStorage->getQuery()
       ->accessCheck(TRUE)
-      ->condition('uid', $currentUser->id())
-      ->condition('state', ['placed', 'completed', 'fulfilled'], 'IN')
+      ->condition('state', self::COMPLETED_ORDER_STATES, 'IN');
+
+    $or = $query->orConditionGroup();
+    $or->condition('uid', $currentUser->id());
+    $userEmail = trim((string) $currentUser->getEmail());
+    if ($userEmail !== '') {
+      $guestGroup = $query->andConditionGroup();
+      $guestGroup->condition('uid', 0);
+      $guestGroup->condition('mail', $userEmail);
+      $or->condition($guestGroup);
+    }
+    $query->condition($or);
+
+    $orderIds = $query
       ->sort('placed', 'DESC')
+      ->sort('order_id', 'DESC')
       ->execute();
 
     $orders = !empty($orderIds) ? $orderStorage->loadMultiple($orderIds) : [];
@@ -136,8 +163,6 @@ final class MyTicketsController extends ControllerBase {
    *   A render array for the order detail page.
    */
   public function orderDetail(OrderInterface $commerce_order): array {
-    // Access control: Commerce handles this via entity access.
-    // If user doesn't have access, they'll get a 403.
     $orderData = $this->buildOrderData($commerce_order, TRUE);
 
     $cacheTags = ['commerce_order:' . $commerce_order->id()];
@@ -193,11 +218,8 @@ final class MyTicketsController extends ControllerBase {
         continue;
       }
 
-      // Extract event from order item.
-      $event = NULL;
-      if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
-        $event = $item->get('field_target_event')->entity;
-      }
+      // Extract event from order item (field_target_event or product/variation).
+      $event = $this->resolveEventFromOrderItem($item);
 
       // Build ticket item data. Use product variation label as ticket name.
       $ticketItem = [
@@ -210,6 +232,9 @@ final class MyTicketsController extends ControllerBase {
       // Extract attendees if details requested.
       if ($includeDetails && $item->hasField('field_ticket_holder') && !$item->get('field_ticket_holder')->isEmpty()) {
         foreach ($item->get('field_ticket_holder')->referencedEntities() as $paragraph) {
+          if (!$paragraph instanceof ParagraphInterface) {
+            continue;
+          }
           $first_name = $paragraph->hasField('field_first_name') && !$paragraph->get('field_first_name')->isEmpty()
             ? $paragraph->get('field_first_name')->value : '';
           $last_name = $paragraph->hasField('field_last_name') && !$paragraph->get('field_last_name')->isEmpty()
@@ -276,6 +301,13 @@ final class MyTicketsController extends ControllerBase {
       }
     }
 
+    // If we have ticket lines but could not resolve any event (missing
+    // field_target_event), do not bury the order under "past" only — show it
+    // in the upcoming section so the buyer still sees the purchase.
+    if (!$hasUpcomingEvents && $ticketItems !== [] && $events === []) {
+      $hasUpcomingEvents = TRUE;
+    }
+
     return [
       'order' => $order,
       'order_id' => $order->id(),
@@ -291,4 +323,34 @@ final class MyTicketsController extends ControllerBase {
     ];
   }
 
+  /**
+   * Resolves the event node for a ticket order item.
+   *
+   * Aligns with \Drupal\myeventlane_tickets\Ticket\TicketIssuer::resolveEventFromOrderItem
+   * so My Tickets shows the same event context as issuance and receipts.
+   */
+  private function resolveEventFromOrderItem($item): ?NodeInterface {
+    if (!$item instanceof OrderItemInterface) {
+      return NULL;
+    }
+    if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
+      $node = $item->get('field_target_event')->entity;
+      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+    }
+    $purchased_entity = $item->getPurchasedEntity();
+    if ($purchased_entity && $purchased_entity->hasField('field_event') && !$purchased_entity->get('field_event')->isEmpty()) {
+      $node = $purchased_entity->get('field_event')->entity;
+      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+    }
+    $product = $purchased_entity && method_exists($purchased_entity, 'getProduct')
+      ? $purchased_entity->getProduct()
+      : NULL;
+    if ($product && $product->hasField('field_event') && !$product->get('field_event')->isEmpty()) {
+      $node = $product->get('field_event')->entity;
+      return ($node instanceof NodeInterface && $node->bundle() === 'event') ? $node : NULL;
+    }
+    return NULL;
+  }
+
 }
+

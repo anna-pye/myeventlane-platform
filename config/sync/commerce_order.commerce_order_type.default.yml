@@ -24,6 +24,6 @@ showOrderEditLinks: true
 numberPattern: order_default
 refresh_mode: always
 refresh_frequency: 300
-sendReceipt: true
+sendReceipt: false
 receiptBcc: ''
-receiptSubject: 'Your receipt for [commerce_order:order_items]'
+receiptSubject: ''

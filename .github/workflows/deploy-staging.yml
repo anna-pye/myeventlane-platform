@@ -16,6 +16,9 @@ jobs:
   build:
     name: Build staging artifact
     uses: ./.github/workflows/reusable-build.yml
+    with:
+      # Pin checkout to the exact commit that triggered this run (avoids wrong-tree / stale builds).
+      ref: ${{ github.sha }}
 
   deploy:
     name: Deploy to staging
