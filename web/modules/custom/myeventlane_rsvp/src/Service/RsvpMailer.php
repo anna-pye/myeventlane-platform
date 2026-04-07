@@ -71,7 +71,7 @@ class RsvpMailer {
       return;
     }
 
-    if ($email === '') {
+    if (!is_string($email) || $email === '') {
       $this->log('warning', 'RSVP confirmation skipped: no email address for event @event', [
         '@event' => $event->id(),
       ]);
