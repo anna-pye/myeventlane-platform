@@ -16,6 +16,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Launch hardening subscriber for order completion.
+ *
+ * Does not send customer email; checkout analytics and ticket issuance checks
+ * only. Order confirmation email is queued by myeventlane_messaging.
  */
 final class LaunchOrderCompletedSubscriber implements EventSubscriberInterface {
 

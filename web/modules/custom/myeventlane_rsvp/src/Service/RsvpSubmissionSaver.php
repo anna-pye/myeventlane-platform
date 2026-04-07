@@ -3,7 +3,10 @@
 namespace Drupal\myeventlane_rsvp\Service;
 
 /**
+ * Legacy RSVP persistence helper (incomplete / unused in routes).
  *
+ * @deprecated Superseded by RsvpSubmissionManager / RsvpPublicForm and
+ *   myeventlane_messaging for confirmations. Do not use for new code.
  */
 final class RsvpSubmissionSaver {
 

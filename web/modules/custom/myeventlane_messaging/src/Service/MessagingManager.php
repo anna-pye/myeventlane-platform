@@ -32,9 +32,12 @@ final class MessagingManager {
    * @var string[]
    */
   private const TRANSACTIONAL_TEMPLATES = [
+    // @deprecated assign_tickets_buyer: no queue() callers; buyer flow uses order_confirmation + ticket assignment.
     'assign_tickets_buyer',
     'boost_confirmation',
-    'order_receipt',
+    'order_confirmation',
+    'rsvp_confirmation',
+    'rsvp_vendor_copy',
     'vendor_event_cancellation',
     'vendor_event_important_change',
     'vendor_event_update',
@@ -420,7 +423,11 @@ final class MessagingManager {
       'html' => $body,
       'langcode' => $message->langcode,
       'attachments' => $opts['attachments'] ?? [],
+      'mel_template_key' => $type,
     ];
+    if ($orderId !== NULL) {
+      $params['mel_order_id'] = $orderId;
+    }
     if (!empty($brand['from_name'])) {
       $params['from_name'] = $brand['from_name'];
     }

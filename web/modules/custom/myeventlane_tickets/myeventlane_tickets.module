@@ -105,9 +105,7 @@ function myeventlane_tickets_entity_update(EntityInterface $entity): void {
 function myeventlane_tickets_mail($key, &$message, $params): void {
   switch ($key) {
     case 'ticket_ready':
-      $message['subject'] = t('Your ticket for @event is ready!', [
-        '@event' => $params['event_title'] ?? 'the event',
-      ]);
+      $message['subject'] = t('Your ticket is ready 🎟');
 
       $body = [];
       $body[] = t('Hi @name,', ['@name' => $params['holder_name'] ?? 'there']);

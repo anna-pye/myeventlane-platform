@@ -177,7 +177,7 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     ])->save();
 
     $resolver = $this->container->get('myeventlane_pro.vendor_comms_resolver');
-    $body = $resolver->resolveBody($store, 'order_receipt', [
+    $body = $resolver->resolveBody($store, 'order_confirmation', [
       'first_name' => 'Chris',
       'order_total' => '19.00',
     ]);
@@ -188,7 +188,7 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     $this->assertStringNotContainsString('onclick=', (string) $body);
 
     $store = $this->transitionStoreToInactivePro($store);
-    $inactive = $resolver->resolveBody($store, 'order_receipt', [
+    $inactive = $resolver->resolveBody($store, 'order_confirmation', [
       'first_name' => 'Chris',
       'order_total' => '19.00',
     ]);

@@ -1,3 +1,4 @@
+# @deprecated No queue() callers; retained for legacy config. Buyer email is order_confirmation + per-holder ticket mail.
 enabled: true
 subject: 'Assign your tickets – {{ event_title|default("your event") }}'
 body_html: |

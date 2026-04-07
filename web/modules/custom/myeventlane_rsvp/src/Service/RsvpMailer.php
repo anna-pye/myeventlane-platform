@@ -5,63 +5,25 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Mail\MailManagerInterface;
-use Drupal\myeventlane_pro\Service\VendorCommsResolver;
+use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
 use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Sends RSVP confirmation emails with ticket attachments.
+ * Queues RSVP confirmation (and optional vendor copy) via MessagingManager.
  */
 class RsvpMailer {
 
-  /**
-   * The mail manager.
-   */
-  protected MailManagerInterface $mailManager;
-
-  /**
-   * The config factory.
-   */
-  protected ConfigFactoryInterface $configFactory;
-
-  /**
-   * The logger.
-   */
-  protected ?LoggerInterface $logger;
-
-  /**
-   * Constructs RsvpMailer.
-   */
   public function __construct(
-    MailManagerInterface $mailManager,
-    ConfigFactoryInterface $configFactory,
-    EntityTypeManagerInterface $entityTypeManager,
-    ?VendorCommsResolver $vendorCommsResolver = NULL,
-    ?LoggerInterface $logger = NULL,
-  ) {
-    $this->mailManager = $mailManager;
-    $this->configFactory = $configFactory;
-    $this->entityTypeManager = $entityTypeManager;
-    $this->vendorCommsResolver = $vendorCommsResolver;
-    $this->logger = $logger;
-  }
+    private readonly ConfigFactoryInterface $configFactory,
+    private readonly MessagingManager $messagingManager,
+    private readonly ?LoggerInterface $logger = NULL,
+  ) {}
 
   /**
-   * Entity type manager.
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
-   * Optional Pro vendor comms resolver.
-   */
-  protected ?VendorCommsResolver $vendorCommsResolver = NULL;
-
-  /**
-   * Sends a confirmation email for an RSVP submission.
+   * Queues a confirmation email for an RSVP submission.
    *
    * @param \Drupal\myeventlane_rsvp\Entity\RsvpSubmission|array $submission
    *   The RSVP submission entity or an array with submission data.
@@ -69,7 +31,6 @@ class RsvpMailer {
    *   The event node (optional, will be loaded from submission if not provided).
    */
   public function sendConfirmation($submission, ?NodeInterface $event = NULL): void {
-    // Handle RsvpSubmission entity.
     if ($submission instanceof RsvpSubmission) {
       if (!$event) {
         $event = $submission->getEvent();
@@ -88,8 +49,8 @@ class RsvpMailer {
       $guests = $submission->hasField('quantity')
         ? max(1, (int) ($submission->get('quantity')->value ?? 1))
         : ($submission->hasField('guests') ? max(1, (int) ($submission->get('guests')->value ?? 1)) : 1);
+      $submission_id = (int) $submission->id();
     }
-    // Handle legacy array format.
     elseif (is_array($submission)) {
       if (!$event) {
         $event = Node::load($submission['event_nid'] ?? NULL);
@@ -104,12 +65,13 @@ class RsvpMailer {
       $name = $submission['name'] ?? '';
       $event_nid = $submission['event_nid'] ?? $event->id();
       $guests = max(1, (int) ($submission['quantity'] ?? $submission['guests'] ?? 1));
+      $submission_id = (int) ($submission['rsvp_submission_id'] ?? $submission['id'] ?? 0);
     }
     else {
       return;
     }
 
-    if (empty($email)) {
+    if ($email === '') {
       $this->log('warning', 'RSVP confirmation skipped: no email address for event @event', [
         '@event' => $event->id(),
       ]);
@@ -117,78 +79,99 @@ class RsvpMailer {
     }
 
     $config = $this->configFactory->get('myeventlane_rsvp.settings');
+    $langcode = $config->get('langcode') ?? 'en';
 
-    // Format event date for display.
     $event_date = '';
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
       $start_timestamp = strtotime($event->get('field_event_start')->value);
       $event_date = date('F j, Y \a\t g:i A', $start_timestamp);
     }
 
-    // Format location.
     $event_location = $this->formatEventLocation($event);
 
-    $params = [
-      'event_title' => $event->label(),
-      'event_date' => $event_date,
-      'event_location' => $event_location,
-      'name' => $name,
-      'email' => $email,
-      'guests' => $guests,
-      'event_nid' => $event_nid,
-      'attachments' => [],
-    ];
-
-    if ($this->vendorCommsResolver instanceof VendorCommsResolver) {
-      $store = $this->resolveStoreFromEvent($event);
-      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
-        $override = $this->vendorCommsResolver->resolveBody($store, 'rsvp_confirmation', [
-          'event_title' => $event->label(),
-          'event_date' => $event_date,
-          'event_location' => $event_location,
-          'first_name' => $name,
-        ]);
-        if (is_string($override) && $override !== '') {
-          $params['override_body_html'] = $override;
-        }
-      }
-    }
-
-    // Generate ticket PDF attachment.
+    $attachments = [];
     $ticketAttachment = $this->generateTicketAttachment($submission, $event);
     if ($ticketAttachment) {
-      $params['attachments'][] = $ticketAttachment;
+      $attachments[] = $ticketAttachment;
     }
-
-    // Generate ICS calendar attachment.
     $icsAttachment = $this->generateIcsAttachment($event);
     if ($icsAttachment) {
-      $params['attachments'][] = $icsAttachment;
+      $attachments[] = $icsAttachment;
     }
 
-    // Send confirmation to attendee.
-    $this->mailManager->mail(
-      'myeventlane_rsvp',
-      'rsvp_confirmation',
-      $email,
-      $config->get('langcode') ?? 'en',
-      $params
-    );
+    $context = [
+      'first_name' => $name !== '' ? $name : 'there',
+      'event_title' => $event->label(),
+      'event_name' => $event->label(),
+      'event_date' => $event_date,
+      'event_location' => $event_location,
+      'guests' => $guests,
+      'event_id' => (int) $event_nid,
+      'attendee_email' => $email,
+    ];
+    if ($submission_id > 0) {
+      $context['submission_id'] = $submission_id;
+    }
 
-    $this->log('info', 'RSVP confirmation sent to @email for event @event', [
-      '@email' => $email,
-      '@event' => $event->label(),
-    ]);
+    $opts = [
+      'langcode' => $langcode,
+      'attachments' => $attachments,
+    ];
 
-    // Optionally send vendor copy.
+    try {
+      $queued_id = $this->messagingManager->queue('rsvp_confirmation', $email, $context, $opts);
+      if ($queued_id === NULL) {
+        $this->log('info', 'RSVP confirmation queue skipped (duplicate idempotent or empty) for @email event @event', [
+          '@email' => $email,
+          '@event' => $event->label(),
+          'event_id' => (int) $event_nid,
+          'submission_id' => $submission_id > 0 ? $submission_id : NULL,
+          'template_key' => 'rsvp_confirmation',
+        ]);
+      }
+      else {
+        $this->log('info', 'RSVP confirmation queued for @email for event @event', [
+          '@email' => $email,
+          '@event' => $event->label(),
+          'message_id' => $queued_id,
+        ]);
+      }
+    }
+    catch (\Throwable $e) {
+      $this->log('error', 'RSVP confirmation queue failed: @message', [
+        '@message' => $e->getMessage(),
+        'event_id' => (int) $event_nid,
+        'submission_id' => $submission_id > 0 ? $submission_id : NULL,
+        'template_key' => 'rsvp_confirmation',
+      ]);
+      throw $e;
+    }
+
     if ($config->get('send_vendor_copy') && $event->getOwner()?->getEmail()) {
-      $this->mailManager->mail(
-        'myeventlane_rsvp',
-        'rsvp_vendor_copy',
-        $event->getOwner()->getEmail(),
-        $config->get('langcode') ?? 'en',
-        $params
-      );
+      $vendorEmail = (string) $event->getOwner()->getEmail();
+      $vendorContext = [
+        'event_title' => $event->label(),
+        'event_date' => $event_date,
+        'event_location' => $event_location,
+        'attendee_name' => $name !== '' ? $name : 'Guest',
+        'attendee_email' => $email,
+        'event_id' => (int) $event_nid,
+      ];
+      if ($submission_id > 0) {
+        $vendorContext['submission_id'] = $submission_id;
+      }
+      try {
+        $this->messagingManager->queue('rsvp_vendor_copy', $vendorEmail, $vendorContext, [
+          'langcode' => $langcode,
+        ]);
+      }
+      catch (\Throwable $e) {
+        $this->log('warning', 'RSVP vendor copy queue failed: @message', [
+          '@message' => $e->getMessage(),
+          'event_id' => (int) $event_nid,
+          'template_key' => 'rsvp_vendor_copy',
+        ]);
+      }
     }
   }
 
@@ -257,12 +240,6 @@ class RsvpMailer {
 
   /**
    * Formats event location for display.
-   *
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return string
-   *   Formatted location string.
    */
   protected function formatEventLocation(NodeInterface $event): string {
     if (!$event->hasField('field_location') || $event->get('field_location')->isEmpty()) {
@@ -292,31 +269,11 @@ class RsvpMailer {
 
   /**
    * Logs a message.
-   *
-   * @param string $level
-   *   Log level.
-   * @param string $message
-   *   Message.
-   * @param array $context
-   *   Context.
    */
   protected function log(string $level, string $message, array $context = []): void {
     if ($this->logger) {
       $this->logger->$level($message, $context);
     }
-  }
-
-  /**
-   * Resolves store from event node.
-   */
-  protected function resolveStoreFromEvent(NodeInterface $event): ?\Drupal\commerce_store\Entity\StoreInterface {
-    if ($event->hasField('field_event_store') && !$event->get('field_event_store')->isEmpty()) {
-      $store = $event->get('field_event_store')->entity;
-      if ($store instanceof \Drupal\commerce_store\Entity\StoreInterface) {
-        return $store;
-      }
-    }
-    return NULL;
   }
 
 }

@@ -98,9 +98,11 @@ final class TicketMailer {
       return TRUE;
     }
 
-    $this->logger->error('Ticket ready email failed for ticket @id to @email.', [
+    $this->logger->error('Ticket ready email failed for ticket @id to @email (template ticket_ready).', [
       '@id' => (string) $ticket->id(),
       '@email' => $holder_email,
+      'template_key' => 'ticket_ready',
+      'ticket_id' => (int) $ticket->id(),
     ]);
     return FALSE;
   }

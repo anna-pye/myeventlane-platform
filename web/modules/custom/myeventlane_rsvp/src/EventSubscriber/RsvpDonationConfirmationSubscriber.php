@@ -17,9 +17,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Sends RSVP confirmation email when an rsvp_donation order is placed or paid.
  *
- * Listens to both place transition and ORDER_PAID so confirmation is sent
+ * Listens to both place transition and ORDER_PAID so confirmation is queued
  * regardless of thank-you page access or Stripe redirect flow. Idempotent:
- * submission status check prevents duplicate emails.
+ * email is sent only when the submission transitions to confirmed (not when
+ * already confirmed), and MessagingManager::queue dedupes identical payloads.
  */
 final class RsvpDonationConfirmationSubscriber implements EventSubscriberInterface {
 
@@ -101,24 +102,26 @@ final class RsvpDonationConfirmationSubscriber implements EventSubscriberInterfa
       }
 
       $current = (string) $submission->get('status')->value;
-      if ($current !== 'confirmed') {
-        $submission->set('status', 'confirmed');
-        $submission->save();
+      if ($current === 'confirmed') {
+        break;
+      }
 
-        try {
-          $this->mailer->sendConfirmation($submission, $eventNode);
-          $this->logger->info('RSVP confirmation sent for donation order @order_id, submission @sid', [
-            '@order_id' => $order->id(),
-            '@sid' => $sid,
-          ]);
-        }
-        catch (\Throwable $e) {
-          $this->logger->warning('RSVP confirmation email failed after donation checkout: @msg', [
-            '@msg' => $e->getMessage(),
-            'order_id' => $order->id(),
-            'submission_id' => $sid,
-          ]);
-        }
+      $submission->set('status', 'confirmed');
+      $submission->save();
+
+      try {
+        $this->mailer->sendConfirmation($submission, $eventNode);
+        $this->logger->info('RSVP confirmation queued for donation order @order_id, submission @sid', [
+          '@order_id' => $order->id(),
+          '@sid' => $sid,
+        ]);
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('RSVP confirmation queue failed after donation checkout: @msg', [
+          '@msg' => $e->getMessage(),
+          'order_id' => $order->id(),
+          'submission_id' => $sid,
+        ]);
       }
       break;
     }

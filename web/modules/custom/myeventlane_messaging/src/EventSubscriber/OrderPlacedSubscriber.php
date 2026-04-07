@@ -19,10 +19,10 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Sends an order receipt when an order is placed.
+ * Queues order confirmation when an order is placed.
  *
  * Includes:
- * - Branded HTML receipt email
+ * - Branded HTML confirmation (order_confirmation template)
  * - Calendar (.ics) attachments (one per event)
  * - Clear separation of tickets vs donations
  * - Dedicated boost confirmation email for boost-only orders.
@@ -71,10 +71,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Queues the order receipt email with ICS attachments.
+   * Queues the order confirmation email with ICS attachments.
    *
    * Detects boost-only orders and sends a dedicated boost confirmation
-   * template instead of the generic order receipt.
+   * template instead of the generic order confirmation.
    *
    * @param \Drupal\state_machine\Event\WorkflowTransitionEvent $event
    *   The workflow transition event.
@@ -110,7 +110,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $this->sendOrderReceipt($order, $mail);
+    $this->sendOrderConfirmation($order, $mail);
   }
 
   /**
@@ -159,10 +159,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
     if (empty($boostItems)) {
       $this->logger->error(
-        'Boost-only order @order_id has no extractable boost items. Falling back to generic receipt.',
+        'Boost-only order @order_id has no extractable boost items. Falling back to generic order confirmation.',
         ['@order_id' => $orderId, 'order_id' => $orderId]
       );
-      $this->sendOrderReceipt($order, $mail);
+      $this->sendOrderConfirmation($order, $mail);
       return;
     }
 
@@ -302,14 +302,14 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Sends the standard order receipt email (for ticket/donation orders).
+   * Queues the standard order confirmation email (for ticket/donation orders).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
    * @param string $mail
    *   The recipient email.
    */
-  private function sendOrderReceipt(OrderInterface $order, string $mail): void {
+  private function sendOrderConfirmation(OrderInterface $order, string $mail): void {
     $orderId = (int) $order->id();
     $customer = $order->getCustomer();
     $first_name = $customer ? $customer->getDisplayName() : 'there';
@@ -318,6 +318,8 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $events = $this->extractEvents($order);
     $ticket_items = $this->extractTicketItems($order);
     $donation_total = $this->calculateDonationTotal($order);
+    $has_tickets = $ticket_items !== [];
+    $tickets_need_assignment = $has_tickets && $this->ticketItemsNeedAssignment($ticket_items);
 
     $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
 
@@ -358,7 +360,8 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
       // Add tickets download link for the email template.
       'tickets_url' => $tickets_url,
-      'has_tickets' => !empty($ticket_items),
+      'has_tickets' => $has_tickets,
+      'tickets_need_assignment' => $tickets_need_assignment,
     ];
     if ($primaryEventId !== NULL) {
       $context['event_id'] = $primaryEventId;
@@ -369,34 +372,65 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
     // Queue email with attachments.
     try {
-      $this->messagingManager->queue('order_receipt', $mail, $context, [
+      $this->messagingManager->queue('order_confirmation', $mail, $context, [
         'langcode' => $order->language()->getId(),
         'attachments' => $attachments,
       ]);
 
       $this->logger->info(
-        'Order receipt queued for order @order_id to @email',
+        'Order confirmation queued for order @order_id to @email',
         [
           '@order_id' => $orderId,
           '@email' => $mail,
           'order_id' => $orderId,
           'event_id' => $primaryEventId,
-          'message_type' => 'order_receipt',
+          'message_type' => 'order_confirmation',
         ]
       );
     }
     catch (\Exception $e) {
       $this->logger->error(
-        'Failed to queue order receipt for order @order_id: @message',
+        'Failed to queue order confirmation for order @order_id: @message',
         [
           '@order_id' => $orderId,
           '@message' => $e->getMessage(),
           'order_id' => $orderId,
           'event_id' => $primaryEventId,
-          'message_type' => 'order_receipt',
+          'message_type' => 'order_confirmation',
         ]
       );
     }
+  }
+
+  /**
+   * Whether any ticket line still needs holder assignment (PDF/QR emailed per holder).
+   *
+   * @param array $ticket_items
+   *   Order items (ticket lines).
+   *
+   * @return bool
+   *   TRUE if at least one item has no holder paragraphs or no holder email.
+   */
+  private function ticketItemsNeedAssignment(array $ticket_items): bool {
+    foreach ($ticket_items as $item) {
+      if (!$item->hasField('field_ticket_holder') || $item->get('field_ticket_holder')->isEmpty()) {
+        return TRUE;
+      }
+      $has_holder_email = FALSE;
+      foreach ($item->get('field_ticket_holder')->referencedEntities() as $paragraph) {
+        if ($paragraph instanceof ParagraphInterface
+          && $paragraph->hasField('field_email')
+          && !$paragraph->get('field_email')->isEmpty()
+          && trim((string) $paragraph->get('field_email')->value) !== '') {
+          $has_holder_email = TRUE;
+          break;
+        }
+      }
+      if (!$has_holder_email) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**

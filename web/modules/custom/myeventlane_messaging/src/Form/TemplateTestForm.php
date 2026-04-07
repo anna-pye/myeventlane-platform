@@ -160,7 +160,7 @@ final class TemplateTestForm extends FormBase {
 
     // Template-specific context.
     $specific = match ($template) {
-      'order_receipt' => [
+      'order_confirmation', 'order_receipt' => [
         'events' => [
           [
             'title' => 'Test Event',
@@ -179,7 +179,14 @@ final class TemplateTestForm extends FormBase {
             ],
           ],
         ],
-        'donation_total' => 0,
+        'donation_total' => NULL,
+        'tickets_need_assignment' => FALSE,
+      ],
+      'rsvp_confirmation' => [
+        'guests' => 1,
+        'event_date' => 'January 30, 2026 at 7:00 PM',
+        'event_location' => '123 Test St',
+        'attendee_email' => 'test@example.com',
       ],
       default => [],
     };
