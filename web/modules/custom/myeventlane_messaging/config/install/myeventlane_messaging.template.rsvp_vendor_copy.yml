@@ -1,0 +1,15 @@
+enabled: true
+subject: 'New RSVP: {{ event_title|default("your event") }}'
+body_html: |
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; padding: 24px;">
+      <p style="color: #34495e; font-size: 16px;">A new RSVP was received for <strong>{{ event_title }}</strong>.</p>
+      <p style="color: #34495e; font-size: 15px;">Attendee: {{ attendee_name }} ({{ attendee_email }})</p>
+      {% if event_date %}
+        <p style="color: #34495e; font-size: 14px;"><strong>Event:</strong> {{ event_date }}{% if event_location %} — {{ event_location }}{% endif %}</p>
+      {% endif %}
+    </div>
+  </div>
+utm:
+  enable: false
+  params: { }

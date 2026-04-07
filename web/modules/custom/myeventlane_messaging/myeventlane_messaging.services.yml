@@ -23,6 +23,7 @@ services:
     class: Drupal\myeventlane_messaging\Service\Delivery\DrupalMailProvider
     arguments:
       - '@plugin.manager.mail'
+      - '@logger.channel.myeventlane_messaging'
 
   myeventlane_messaging.delivery_provider_manager:
     class: Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager

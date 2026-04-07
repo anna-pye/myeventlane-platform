@@ -128,21 +128,21 @@ final class MessagingGuardrailTest extends KernelTestBase {
   /**
    * Order receipts must render with and without donations (no exceptions).
    */
-  public function testOrderReceiptRendersWithAndWithoutDonations(): void {
-    $path = $this->moduleTemplatePath('myeventlane_messaging', 'order_receipt');
+  public function testOrderConfirmationRendersWithAndWithoutDonations(): void {
+    $path = $this->moduleTemplatePath('myeventlane_messaging', 'order_confirmation');
     $data = Yaml::decode((string) file_get_contents($path));
     $this->assertIsArray($data);
     $this->assertArrayHasKey('body_html', $data);
 
-    $base = $this->contextForTemplateKey('order_receipt');
+    $base = $this->contextForTemplateKey('order_confirmation');
     $noDonation = $base;
-    $noDonation['donation_total'] = 0;
+    $noDonation['donation_total'] = NULL;
     $noDonationHtml = $this->renderer->renderString((string) $data['body_html'], $noDonation);
     $this->assertIsString($noDonationHtml);
     $this->assertNotSame('', $noDonationHtml);
 
     $withDonation = $base;
-    $withDonation['donation_total'] = 10;
+    $withDonation['donation_total'] = '$10.00';
     $withDonationHtml = $this->renderer->renderString((string) $data['body_html'], $withDonation);
     $this->assertIsString($withDonationHtml);
     $this->assertNotSame('', $withDonationHtml);
@@ -211,7 +211,8 @@ final class MessagingGuardrailTest extends KernelTestBase {
   private function attendeeFacingTemplateKeys(): array {
     return [
       // Transactional attendee emails.
-      'order_receipt',
+      'order_confirmation',
+      'rsvp_confirmation',
       'cart_abandoned',
       'event_reminder',
       'event_reminder_7d',
@@ -261,9 +262,8 @@ final class MessagingGuardrailTest extends KernelTestBase {
       'unsubscribe_url' => NULL,
     ];
 
-    if ($key === 'order_receipt') {
+    if ($key === 'order_confirmation') {
       return $base + [
-        // Order receipt includes arrays.
         'events' => [
           [
             'title' => 'Test Event',
@@ -289,10 +289,19 @@ final class MessagingGuardrailTest extends KernelTestBase {
             ],
           ],
         ],
-        // Donation_total in this template is compared numerically.
-        'donation_total' => 0,
+        'donation_total' => NULL,
         'total_paid' => '$10.00',
         'event_name' => 'Test Event',
+        'tickets_need_assignment' => FALSE,
+      ];
+    }
+
+    if ($key === 'rsvp_confirmation') {
+      return $base + [
+        'guests' => 2,
+        'event_date' => 'Jan 1, 2026 at 10:00 AM',
+        'event_location' => '123 Test St',
+        'attendee_email' => 'test@example.test',
       ];
     }
 

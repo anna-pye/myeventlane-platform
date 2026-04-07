@@ -122,7 +122,10 @@ final class TemplateListController extends ControllerBase {
    */
   private function getCategory(string $key): string {
     $transactional = [
-      'order_receipt',
+      'order_confirmation',
+      'rsvp_confirmation',
+      'rsvp_vendor_copy',
+      'boost_confirmation',
       'vendor_event_cancellation',
       'vendor_event_important_change',
       'vendor_event_update',
@@ -155,7 +158,10 @@ final class TemplateListController extends ControllerBase {
    */
   private function getLabel(string $key): string {
     $labels = [
-      'order_receipt' => $this->t('Order receipt'),
+      'order_confirmation' => $this->t('Order confirmation'),
+      'rsvp_confirmation' => $this->t('RSVP confirmation'),
+      'rsvp_vendor_copy' => $this->t('RSVP vendor copy'),
+      'boost_confirmation' => $this->t('Boost confirmation'),
       'vendor_event_cancellation' => $this->t('Event cancellation'),
       'vendor_event_important_change' => $this->t('Important change'),
       'vendor_event_update' => $this->t('Event update'),

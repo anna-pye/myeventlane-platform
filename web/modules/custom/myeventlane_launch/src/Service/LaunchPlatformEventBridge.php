@@ -32,28 +32,24 @@ final class LaunchPlatformEventBridge {
       return;
     }
 
-    $subject = 'Your ticket confirmation';
-    $body = 'Your order has been confirmed. Order #' . $orderId . '.';
-    $this->emailSender->queueEmail('ticket_confirmation', $recipient, $subject, $body, [
+    // Disabled: handled by myeventlane_messaging unified flow (OrderPlacedSubscriber).
+    $this->logger->info('Launch event bridge skipped duplicate ticket confirmation email for order {order_id} (unified messaging).', [
       'order_id' => $orderId,
     ]);
-
-    $this->logger->info('Launch event bridge queued ticket confirmation email for order {order_id}.', [
-      'order_id' => $orderId,
-    ]);
+    return;
   }
 
   /**
    * Handles RSVP-created bridge actions.
+   *
+   * @deprecated Replaced by myeventlane_messaging (RsvpMailer via MessagingManager::queue).
+   *   Retained for API compatibility; no longer sends email.
    */
   public function onRsvpCreated(string $email, int $eventId): void {
-    $this->emailSender->queueEmail(
-      'rsvp_confirmation',
-      $email,
-      'Your RSVP is confirmed',
-      'Your RSVP is confirmed for event #' . $eventId . '.',
-      ['event_id' => $eventId]
-    );
+    // Disabled: handled by myeventlane_messaging unified RSVP flow.
+    $this->logger->notice('Launch event bridge onRsvpCreated skipped (unified messaging); event {event_id}.', [
+      'event_id' => $eventId,
+    ]);
   }
 
   /**

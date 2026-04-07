@@ -196,3 +196,52 @@ function myeventlane_messaging_update_10002(): void {
     $config->save();
   }
 }
+
+/**
+ * Migrate order_receipt template to order_confirmation; ship RSVP templates.
+ */
+function myeventlane_messaging_update_10003(): void {
+  $cf = \Drupal::configFactory();
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging');
+
+  $old_name = 'myeventlane_messaging.template.order_receipt';
+  $new_name = 'myeventlane_messaging.template.order_confirmation';
+  $old = $cf->getEditable($old_name);
+  $new = $cf->getEditable($new_name);
+  if (!$old->isNew() && $new->isNew()) {
+    $new->setData($old->getRawData());
+    $new->save();
+    $old->delete();
+  }
+  elseif ($new->isNew()) {
+    _myeventlane_messaging_import_shipped_template_file($module_path, 'order_confirmation');
+  }
+
+  foreach (['rsvp_confirmation', 'rsvp_vendor_copy'] as $template_key) {
+    $cfg = $cf->getEditable('myeventlane_messaging.template.' . $template_key);
+    if ($cfg->isNew()) {
+      _myeventlane_messaging_import_shipped_template_file($module_path, $template_key);
+    }
+  }
+}
+
+/**
+ * Imports config from a module-shipped install YAML into active config.
+ */
+function _myeventlane_messaging_import_shipped_template_file(string $module_path, string $template_key): void {
+  $file = $module_path . '/config/install/myeventlane_messaging.template.' . $template_key . '.yml';
+  if (!is_readable($file)) {
+    return;
+  }
+  $raw = file_get_contents($file);
+  if ($raw === FALSE) {
+    return;
+  }
+  $data = \Drupal\Component\Serialization\Yaml::decode($raw);
+  if (!is_array($data)) {
+    return;
+  }
+  $editable = \Drupal::configFactory()->getEditable('myeventlane_messaging.template.' . $template_key);
+  $editable->setData($data);
+  $editable->save();
+}

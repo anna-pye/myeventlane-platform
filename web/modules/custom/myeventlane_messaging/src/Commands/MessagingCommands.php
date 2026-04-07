@@ -100,13 +100,13 @@ final class MessagingCommands extends DrushCommands {
    * Queues a test message (canonical command name).
    *
    * @param string $template
-   *   The template key (e.g. order_receipt, boost_reminder).
+   *   The template key (e.g. order_confirmation, boost_reminder).
    * @param string $email
    *   The recipient email.
    *
    * @command myeventlane:messaging:test
    * @aliases mel-msg-test-template
-   * @usage drush myeventlane:messaging:test order_receipt you@example.com
+   * @usage drush myeventlane:messaging:test order_confirmation you@example.com
    */
   public function messagingTest(string $template, string $email): void {
     \Drupal::service('myeventlane_messaging.manager')->queue($template, $email, [

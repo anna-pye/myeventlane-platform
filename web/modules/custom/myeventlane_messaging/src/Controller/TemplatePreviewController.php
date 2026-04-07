@@ -158,7 +158,7 @@ final class TemplatePreviewController extends ControllerBase {
 
     // Template-specific context.
     $specific = match ($template) {
-      'order_receipt' => [
+      'order_confirmation', 'order_receipt' => [
         'events' => [
           [
             'title' => 'Sample Event',
@@ -178,7 +178,14 @@ final class TemplatePreviewController extends ControllerBase {
             ],
           ],
         ],
-        'donation_total' => 0,
+        'donation_total' => NULL,
+        'tickets_need_assignment' => FALSE,
+      ],
+      'rsvp_confirmation' => [
+        'guests' => 2,
+        'event_date' => 'January 30, 2026 at 7:00 PM',
+        'event_location' => '123 Main St',
+        'attendee_email' => 'john.doe@example.com',
       ],
       default => [],
     };

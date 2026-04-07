@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_messaging\Service\Delivery;
 
 use Drupal\Core\Mail\MailManagerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Delivery provider using Drupal plugin.manager.mail.
@@ -16,9 +17,12 @@ final class DrupalMailProvider implements DeliveryProviderInterface {
    *
    * @param \Drupal\Core\Mail\MailManagerInterface $mailManager
    *   The mail manager.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   Logger channel for delivery failures.
    */
   public function __construct(
     private readonly MailManagerInterface $mailManager,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -75,7 +79,20 @@ final class DrupalMailProvider implements DeliveryProviderInterface {
       $messageParams,
     );
 
-    return !empty($result['result']);
+    if (!empty($result['result'])) {
+      return TRUE;
+    }
+
+    $templateKey = (string) ($params['mel_template_key'] ?? 'generic');
+    $orderId = $params['mel_order_id'] ?? NULL;
+    $this->logger->error('DrupalMailProvider: mail send failed for recipient @email (template @template).', [
+      '@email' => $to,
+      '@template' => $templateKey,
+      'recipient' => $to,
+      'template_key' => $templateKey,
+      'order_id' => is_numeric($orderId) ? (int) $orderId : NULL,
+    ]);
+    return FALSE;
   }
 
 }
