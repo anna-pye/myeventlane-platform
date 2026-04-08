@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -25,12 +24,15 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * bad Location header, so the user lands on an anonymous-only route while
  * authenticated — appearing as "lost session" on the next hop.
  *
- * When force_redirects is enabled, core may send users to public /vendor/* or
- * /admin/* first; the next request bounces to the vendor/admin host. If the
- * session cookie is not yet sent on that subdomain hop, the vendor gate sends
- * them back to public login — a redirect loop. Rewriting the first post-login
- * Location to the canonical vendor/admin URL (TrustedRedirectResponse) avoids
- * the intermediate public console hop.
+ * When login completes on the public host but the destination is a vendor/admin
+ * console path, core may issue Location to the public URL first; the next
+ * request is then bounced to the vendor host by domain routing. If the session
+ * cookie is not applied on that subdomain hop (timing, browser, or proxy),
+ * VendorConsoleGateRedirectSubscriber sees an anonymous hit and sends the user
+ * back to public login — a loop. Rewriting the first post-login Location to the
+ * canonical vendor/admin URL (TrustedRedirectResponse) avoids the intermediate
+ * public console hop. This applies whenever public and vendor hosts differ, not
+ * only when force_redirects is enabled.
  *
  * Runs on every app host (public, vendor, admin): copies Set-Cookie onto a
  * TrustedRedirectResponse to a destination that is limited to configured MEL
@@ -43,7 +45,6 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     private readonly DomainDetector $domainDetector,
     private readonly LoggerInterface $logger,
     private readonly MelDestinationNormalizer $destinationNormalizer,
-    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -110,17 +111,14 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
   }
 
   /**
-   * TRUE when the browser would hit public host for a console path but trusted
-   * target is the configured vendor/admin host (force_redirects multi-domain).
+   * TRUE when the redirect would land on a different host than the trusted URL
+   * for the same /vendor/* or /admin/* path (avoids a follow-up hop that can
+   * lose the session on the vendor host).
    *
    * Relative redirect targets (path-only Location) have no host in parse_url();
    * the current request host is used so cross-host detection still works.
    */
   private function shouldRewriteCrossHostConsoleRedirect(string $currentTarget, string $trustedTarget, Request $request): bool {
-    if (!(bool) $this->configFactory->get('myeventlane_core.domain_settings')->get('force_redirects')) {
-      return FALSE;
-    }
-
     $c = parse_url($currentTarget);
     $t = parse_url($trustedTarget);
     if ($c === FALSE || $t === FALSE) {
