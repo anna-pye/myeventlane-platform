@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\MelDestinationNormalizer;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -33,8 +33,8 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly DomainDetector $domainDetector,
-    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
+    private readonly MelDestinationNormalizer $destinationNormalizer,
   ) {}
 
   /**
@@ -104,10 +104,10 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
         return NULL;
       }
       if (preg_match('#^https?://#i', $destination)) {
-        return $this->trustedAbsoluteUrl($destination);
+        return $this->destinationNormalizer->validateTrustedAbsoluteUrl($destination, $request->getHost());
       }
       if (str_starts_with($destination, '/')) {
-        return $this->buildUrlForInternalPath($destination);
+        return $this->destinationNormalizer->absoluteFromInternalPathPostLogin($destination);
       }
       return NULL;
     }
@@ -141,59 +141,6 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     }
     catch (\Throwable $e) {
       $this->logger->error('Public post-login default redirect failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-      return NULL;
-    }
-  }
-
-  private function trustedAbsoluteUrl(string $url): ?string {
-    $parts = parse_url($url);
-    if ($parts === FALSE || empty($parts['scheme']) || empty($parts['host'])) {
-      return NULL;
-    }
-    $host = strtolower((string) $parts['host']);
-    if (!in_array($host, $this->getTrustedMelHosts(), TRUE)) {
-      $this->logger->warning('Rejected post-login absolute destination host @host', [
-        '@host' => $host,
-      ]);
-      return NULL;
-    }
-    return $url;
-  }
-
-  /**
-   * @return list<string>
-   */
-  private function getTrustedMelHosts(): array {
-    $cfg = $this->configFactory->get('myeventlane_core.domain_settings');
-    $hosts = [];
-    foreach (['public_domain', 'vendor_domain', 'admin_domain'] as $key) {
-      $raw = trim((string) $cfg->get($key));
-      if ($raw === '') {
-        continue;
-      }
-      $h = parse_url($raw, PHP_URL_HOST);
-      if (is_string($h) && $h !== '') {
-        $hosts[] = strtolower($h);
-      }
-    }
-    return array_values(array_unique($hosts));
-  }
-
-  private function buildUrlForInternalPath(string $path): ?string {
-    try {
-      if (str_starts_with($path, '/vendor') || $path === '/vendor') {
-        return $this->domainDetector->buildDomainUrl($path, 'vendor');
-      }
-      if (str_starts_with($path, '/admin')) {
-        return $this->domainDetector->buildDomainUrl($path, 'admin');
-      }
-      return $this->domainDetector->buildDomainUrl($path, 'public');
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Post-login path redirect failed for @path: @message', [
-        '@path' => $path,
         '@message' => $e->getMessage(),
       ]);
       return NULL;

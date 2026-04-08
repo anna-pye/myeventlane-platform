@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Validates login ?destination= values for organiser (vendor host) flows.
@@ -15,9 +14,8 @@ use Psr\Log\LoggerInterface;
 final class VendorLoginDestinationNormalizer {
 
   public function __construct(
-    private readonly DomainDetector $domainDetector,
     private readonly ConfigFactoryInterface $configFactory,
-    private readonly LoggerInterface $logger,
+    private readonly MelDestinationNormalizer $destinationNormalizer,
   ) {}
 
   /**
@@ -30,7 +28,7 @@ final class VendorLoginDestinationNormalizer {
     }
 
     if (preg_match('#^https?://#i', $raw)) {
-      $normalized = $this->trustAbsoluteUrl($raw);
+      $normalized = $this->destinationNormalizer->validateTrustedAbsoluteUrl($raw, NULL);
       if ($normalized === NULL) {
         return NULL;
       }
@@ -39,52 +37,12 @@ final class VendorLoginDestinationNormalizer {
 
     $pathOnly = str_contains($raw, '?') ? strstr($raw, '?', TRUE) : $raw;
     $pathOnly = '/' . ltrim((string) $pathOnly, '/');
-    try {
-      $domainType = (str_starts_with($pathOnly, '/vendor') || $pathOnly === '/create-event') ? 'vendor' : 'public';
-      $absolute = $this->domainDetector->buildDomainUrl($pathOnly, $domainType);
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Vendor login destination build failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
+    $absolute = $this->destinationNormalizer->absoluteFromInternalPathVendorPublicSplit($pathOnly);
+    if ($absolute === NULL) {
       return NULL;
     }
 
     return $this->isOrganiserDestinationUrl($absolute) ? $absolute : NULL;
-  }
-
-  private function trustAbsoluteUrl(string $url): ?string {
-    $parts = parse_url($url);
-    if ($parts === FALSE || empty($parts['scheme']) || empty($parts['host'])) {
-      return NULL;
-    }
-    $host = strtolower((string) $parts['host']);
-    if (!in_array($host, $this->trustedHosts(), TRUE)) {
-      $this->logger->warning('Rejected vendor login destination host @host', [
-        '@host' => $host,
-      ]);
-      return NULL;
-    }
-    return $url;
-  }
-
-  /**
-   * @return list<string>
-   */
-  private function trustedHosts(): array {
-    $cfg = $this->configFactory->get('myeventlane_core.domain_settings');
-    $hosts = [];
-    foreach (['public_domain', 'vendor_domain', 'admin_domain'] as $key) {
-      $raw = trim((string) $cfg->get($key));
-      if ($raw === '') {
-        continue;
-      }
-      $h = parse_url($raw, PHP_URL_HOST);
-      if (is_string($h) && $h !== '') {
-        $hosts[] = strtolower($h);
-      }
-    }
-    return array_values(array_unique($hosts));
   }
 
   private function isOrganiserDestinationUrl(string $absoluteUrl): bool {

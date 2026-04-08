@@ -7,11 +7,15 @@ namespace Drupal\myeventlane_vendor\Access;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_core\MelVendorOrganiserRole;
 
 /**
  * Access check for vendor console routes.
  *
- * Permission-based only (no hostname).
+ * Allows users with the "access vendor console" permission or the "vendor"
+ * organiser role (config: user.role.vendor). The role check matches the gate
+ * subscriber so organiser accounts are not denied when permission resolution
+ * lags role assignment.
  */
 final class VendorConsoleAccess {
 
@@ -54,6 +58,12 @@ final class VendorConsoleAccess {
       return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
+    // Allow organiser role (same trust boundary as the permission on that role).
+    if ($account->hasRole(MelVendorOrganiserRole::MACHINE_NAME)) {
+      self::logDecision($account, $host, $path, 'allowed_vendor_role');
+      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
+    }
+
     // Default deny.
     self::logDecision($account, $host, $path, 'forbidden_no_permission');
     return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
@@ -75,4 +85,3 @@ final class VendorConsoleAccess {
   }
 
 }
-
