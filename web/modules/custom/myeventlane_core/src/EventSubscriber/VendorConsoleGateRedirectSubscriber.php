@@ -1,0 +1,127 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\myeventlane_core\EventSubscriber;
+
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\KernelEvents;
+
+/**
+ * Sends vendor-console traffic to public login when there is no organiser session.
+ *
+ * Without this, anonymous users see a 403 on /vendor/dashboard, and
+ * ticket-buyer sessions never reach PublicVendorLoginConflictSubscriber (which
+ * only runs on public /user/login). Redirect preserves the vendor URL as
+ * ?destination= so post-login returns to the console.
+ */
+final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterface {
+
+  public function __construct(
+    private readonly DomainDetector $domainDetector,
+    private readonly AccountProxyInterface $currentUser,
+    private readonly LoggerInterface $logger,
+  ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents(): array {
+    return [KernelEvents::REQUEST => ['onRequest', 32]];
+  }
+
+  public function onRequest(RequestEvent $event): void {
+    if (!$event->isMainRequest() || \PHP_SAPI === 'cli') {
+      return;
+    }
+
+    $request = $event->getRequest();
+    if (!in_array($request->getMethod(), ['GET', 'HEAD'], TRUE)) {
+      return;
+    }
+
+    if ($request->isXmlHttpRequest()) {
+      return;
+    }
+
+    if (!$this->domainDetector->isVendorDomain()) {
+      return;
+    }
+
+    $path = $request->getPathInfo();
+    if (!$this->isVendorConsolePath($path)) {
+      return;
+    }
+
+    try {
+      $returnUrl = $this->buildSelfReturnUrl($request);
+      if ($returnUrl === NULL) {
+        return;
+      }
+
+      if ($this->currentUser->isAnonymous()) {
+        $target = $this->domainDetector->buildDomainUrl('/user/login', 'public');
+        $target .= '?' . http_build_query(['destination' => $returnUrl], '', '&', PHP_QUERY_RFC3986);
+        $this->logger->notice('Vendor console: redirecting anonymous user to public login for path @path.', [
+          '@path' => $path,
+        ]);
+        $event->setResponse(new TrustedRedirectResponse($target, 302));
+        return;
+      }
+
+      if ($this->currentUser->hasPermission('access vendor console')) {
+        return;
+      }
+
+      $base = $this->domainDetector->buildDomainUrl('/user/switch-for-organiser', 'public');
+      $target = $base . '?' . http_build_query(['destination' => $returnUrl], '', '&', PHP_QUERY_RFC3986);
+      $this->logger->notice('Vendor console: redirecting customer session to organiser switch for path @path.', [
+        '@path' => $path,
+      ]);
+      $event->setResponse(new TrustedRedirectResponse($target, 302));
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('VendorConsoleGateRedirectSubscriber failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Vendor public profile is /vendor/{numeric}; onboarding stays on vendor host.
+   */
+  private function isVendorConsolePath(string $path): bool {
+    if ($path === '/vendor' || $path === '') {
+      return FALSE;
+    }
+    // Handled by myeventlane_vendor.login_alias → user.login (not console 403).
+    if ($path === '/vendor/login') {
+      return FALSE;
+    }
+    if (preg_match('#^/vendor/\d+$#', $path)) {
+      return FALSE;
+    }
+    if (str_starts_with($path, '/vendor/onboard')) {
+      return FALSE;
+    }
+    return str_starts_with($path, '/vendor');
+  }
+
+  /**
+   * Full URL back to this vendor request (destination after login).
+   */
+  private function buildSelfReturnUrl(Request $request): ?string {
+    $uri = $request->getRequestUri();
+    if (!str_starts_with($uri, '/')) {
+      return NULL;
+    }
+    return $request->getSchemeAndHttpHost() . $uri;
+  }
+
+}

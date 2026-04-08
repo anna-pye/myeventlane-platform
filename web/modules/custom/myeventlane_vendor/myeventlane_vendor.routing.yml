@@ -42,6 +42,14 @@ entity.myeventlane_vendor.delete_form:
   options:
     _admin_route: TRUE
 
+# Reserve /vendor/login so it is not matched as /vendor/{slug} with slug "login" (404).
+myeventlane_vendor.login_alias:
+  path: '/vendor/login'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\VendorLoginAliasController::loginAlias'
+  requirements:
+    _access: 'TRUE'
+
 # Vendor canonical (public) route with analytics.
 entity.myeventlane_vendor.canonical:
   path: '/vendor/{myeventlane_vendor}'
