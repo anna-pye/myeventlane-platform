@@ -12,8 +12,8 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Builds the canonical browser entry URL for OAuth: /auth/login on the auth host.
  *
- * OAuth "state" MUST be generated only here so CSRF/session correlation is not
- * duplicated in subscribers or controllers. Callers must not pass prebuilt state.
+ * OAuth "state" is HMAC-signed (VendorSsoStateSigner) so the vendor callback does
+ * not depend on a PHP session cookie surviving the round trip from the auth host.
  */
 final class MelAuthLoginUrlBuilder {
 
@@ -22,15 +22,11 @@ final class MelAuthLoginUrlBuilder {
     private readonly AuthRedirectValidator $authRedirectValidator,
     private readonly LoggerChannelInterface $logger,
     private readonly DomainDetector $domainDetector,
+    private readonly VendorSsoStateSigner $stateSigner,
   ) {}
 
   /**
-   * Builds vendor SSO login URL, generates state, stores session keys for callback.
-   *
-   * Correlation ID is reused when a prior OAuth attempt on this session is still
-   * within TTL, the redirect_uri matches this build, and state is in flight
-   * (avoids breaking trace continuity on duplicate redirects; new redirect target
-   * forces a new correlation).
+   * Builds vendor SSO login URL with signed state (session-independent).
    *
    * @return string|null
    *   Absolute URL to auth host /auth/login, or NULL if misconfigured or redirect
@@ -41,8 +37,6 @@ final class MelAuthLoginUrlBuilder {
     $configuredBase = rtrim((string) $config->get('auth_base_url'), '/');
     $authBase = $configuredBase;
     if ($authBase === '') {
-      // Never use the vendor host as the auth base: /auth/* routes must hit the
-      // same Drupal app as the public site. Prefer configured public_domain.
       try {
         $authBase = rtrim($this->domainDetector->buildDomainUrl('/', 'public'), '/');
         $this->logger->notice('Vendor SSO: auth_base_url empty; using myeventlane_core public_domain as auth base (@base).', [
@@ -77,45 +71,18 @@ final class MelAuthLoginUrlBuilder {
       return NULL;
     }
 
-    $session = $request->getSession();
-    $now = MelAuthOAuthSession::requestTime($request);
-
-    // State is generated only in this service; never accept external state.
-    $state = bin2hex(random_bytes(24));
-
-    // Reuse correlation ID within TTL if in-flight state targets the same redirect_uri.
-    $existingCor = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
-    $storedRedirectUri = (string) $session->get(MelAuthOAuthSession::KEY_REDIRECT_URI, '');
-    $createdRaw = $session->get(MelAuthOAuthSession::KEY_STATE_CREATED);
-    $createdTs = is_numeric($createdRaw) ? (int) $createdRaw : 0;
-    $sameRedirectUri = $storedRedirectUri !== ''
-      && hash_equals(
-        $this->normalizeRedirectUriForComparison($storedRedirectUri),
-        $this->normalizeRedirectUriForComparison($callbackUrl)
-      );
-    $reuseCorrelation = $existingCor !== ''
-      && $sameRedirectUri
-      && $createdTs > 0
-      && ($now - $createdTs) <= MelAuthOAuthSession::STATE_TTL_SECONDS
-      && $session->has(MelAuthOAuthSession::KEY_STATE);
-
-    if ($reuseCorrelation) {
-      $correlationId = $existingCor;
-      $this->logger->debug('Vendor SSO login URL rebuilt (correlation_id=@cid).', [
-        '@cid' => $correlationId,
-      ]);
+    $correlationId = bin2hex(random_bytes(6));
+    try {
+      $state = $this->stateSigner->create($callbackUrl, $clientId, $correlationId);
     }
-    else {
-      $correlationId = bin2hex(random_bytes(6));
-      $this->logger->notice('Vendor SSO login URL built (correlation_id=@cid).', [
-        '@cid' => $correlationId,
-      ]);
+    catch (\RuntimeException $e) {
+      $this->logger->error('Vendor SSO login URL skipped: @message', ['@message' => $e->getMessage()]);
+      return NULL;
     }
 
-    $session->set(MelAuthOAuthSession::KEY_STATE, $state);
-    $session->set(MelAuthOAuthSession::KEY_STATE_CREATED, $now);
-    $session->set(MelAuthOAuthSession::KEY_REDIRECT_URI, $callbackUrl);
-    $session->set(MelAuthOAuthSession::KEY_CORRELATION_ID, $correlationId);
+    $this->logger->notice('Vendor SSO login URL built (correlation_id=@cid).', [
+      '@cid' => $correlationId,
+    ]);
 
     $query = [
       'response_type' => 'code',
@@ -125,41 +92,6 @@ final class MelAuthLoginUrlBuilder {
     ];
 
     return $authBase . '/auth/login?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
-  }
-
-  /**
-   * Normalizes redirect_uri values so harmless differences do not break reuse.
-   *
-   * Lowercases scheme and host, drops default ports, trims path trailing slashes
-   * (except root), preserves query, strips fragments.
-   */
-  private function normalizeRedirectUriForComparison(string $url): string {
-    $url = trim($url);
-    if ($url === '') {
-      return '';
-    }
-    $parts = parse_url($url);
-    if ($parts === FALSE || empty($parts['scheme']) || empty($parts['host'])) {
-      return $url;
-    }
-    $scheme = strtolower((string) $parts['scheme']);
-    $host = strtolower((string) $parts['host']);
-    $portPart = '';
-    if (!empty($parts['port'])) {
-      $p = (int) $parts['port'];
-      $default = ($scheme === 'https') ? 443 : (($scheme === 'http') ? 80 : 0);
-      if ($p !== $default) {
-        $portPart = ':' . $p;
-      }
-    }
-    $path = isset($parts['path']) ? (string) $parts['path'] : '';
-    $path = '/' . ltrim($path, '/');
-    $path = rtrim($path, '/');
-    if ($path === '') {
-      $path = '/';
-    }
-    $query = isset($parts['query']) && (string) $parts['query'] !== '' ? '?' . $parts['query'] : '';
-    return $scheme . '://' . $host . $portPart . $path . $query;
   }
 
 }
