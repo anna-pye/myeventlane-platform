@@ -66,6 +66,15 @@ services:
       - '@request_stack'
       - '@config.factory'
 
+  myeventlane_core.mel_destination_normalizer:
+    class: Drupal\myeventlane_core\Service\MelDestinationNormalizer
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@config.factory'
+      - '@module_handler'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_core'
+
   myeventlane_core.vendor_domain_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\VendorDomainSubscriber
     arguments:
@@ -89,8 +98,8 @@ services:
     arguments:
       $currentUser: '@current_user'
       $domainDetector: '@myeventlane_core.domain_detector'
-      $configFactory: '@config.factory'
       $logger: '@logger.channel.myeventlane_core'
+      $destinationNormalizer: '@myeventlane_core.mel_destination_normalizer'
     tags:
       - { name: event_subscriber }
 
@@ -100,15 +109,15 @@ services:
       $domainDetector: '@myeventlane_core.domain_detector'
       $currentUser: '@current_user'
       $logger: '@logger.channel.myeventlane_core'
+      $destinationNormalizer: '@myeventlane_core.mel_destination_normalizer'
     tags:
       - { name: event_subscriber }
 
   myeventlane_core.vendor_login_destination_normalizer:
     class: Drupal\myeventlane_core\Service\VendorLoginDestinationNormalizer
     arguments:
-      - '@myeventlane_core.domain_detector'
-      - '@config.factory'
-      - '@logger.channel.myeventlane_core'
+      $configFactory: '@config.factory'
+      $destinationNormalizer: '@myeventlane_core.mel_destination_normalizer'
 
   myeventlane_core.public_vendor_login_conflict_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\PublicVendorLoginConflictSubscriber

@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\MelVendorOrganiserRole;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -21,6 +22,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * ticket-buyer sessions never reach PublicVendorLoginConflictSubscriber (which
  * only runs on public /user/login). Redirect preserves the vendor URL as
  * ?destination= so post-login returns to the console.
+ *
+ * Priority 33 runs after VendorSsoRedirectSubscriber (34) but before Symfony's
+ * RouterListener (32) so console redirects are applied before route access runs.
  */
 final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterface {
 
@@ -35,7 +39,7 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    return [KernelEvents::REQUEST => ['onRequest', 32]];
+    return [KernelEvents::REQUEST => ['onRequest', 33]];
   }
 
   public function onRequest(RequestEvent $event): void {
@@ -85,7 +89,7 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
         return;
       }
 
-      if ($this->currentUser->hasPermission('access vendor console')) {
+      if ($this->currentUser->hasPermission('access vendor console') || $this->currentUser->hasRole(MelVendorOrganiserRole::MACHINE_NAME)) {
         return;
       }
 

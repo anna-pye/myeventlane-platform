@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\MelDestinationNormalizer;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +30,7 @@ final class VendorHostAuthRedirectSubscriber implements EventSubscriberInterface
     private readonly DomainDetector $domainDetector,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
+    private readonly MelDestinationNormalizer $destinationNormalizer,
   ) {}
 
   /**
@@ -96,6 +98,8 @@ final class VendorHostAuthRedirectSubscriber implements EventSubscriberInterface
    */
   private function normalizeDestination(Request $request): string {
     $raw = $request->query->get('destination');
+    $requestHost = $request->getHost();
+
     if (!is_string($raw) || $raw === '') {
       return $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
     }
@@ -103,12 +107,21 @@ final class VendorHostAuthRedirectSubscriber implements EventSubscriberInterface
       return $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
     }
     if (preg_match('#^https?://#i', $raw)) {
-      return $raw;
+      $trusted = $this->destinationNormalizer->validateTrustedAbsoluteUrl($raw, $requestHost);
+      if ($trusted !== NULL) {
+        return $trusted;
+      }
+      return $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
     }
+
     $pathOnly = str_contains($raw, '?') ? strstr($raw, '?', TRUE) : $raw;
     $pathOnly = '/' . ltrim((string) $pathOnly, '/');
-    $domainType = (str_starts_with($pathOnly, '/vendor') || $pathOnly === '/create-event') ? 'vendor' : 'public';
-    return $this->domainDetector->buildDomainUrl($pathOnly, $domainType);
+    $built = $this->destinationNormalizer->absoluteFromInternalPathVendorPublicSplit($pathOnly);
+    if ($built !== NULL) {
+      return $built;
+    }
+
+    return $this->domainDetector->buildDomainUrl('/vendor/dashboard', 'vendor');
   }
 
 }
