@@ -7,10 +7,10 @@ namespace Drupal\myeventlane_core;
 /**
  * Machine name for the organiser (vendor) Drupal user role.
  *
- * Single source of truth for checks that treat the organiser role like
- * "access vendor console" (gate, route access, controller asserts).
+ * Single source of truth for the role ID used with vendor-console trust checks.
  *
  * @see user.role.vendor
+ * @see \Drupal\myeventlane_core\VendorConsoleTrust
  */
 final class MelVendorOrganiserRole {
 
