@@ -1,9 +1,26 @@
-# Do not inline `type: ignore` under myeventlane_auth.settings.mapping — Drupal's
-# schema merge can leave a stray `type` key in the inner mapping and break cim
-# with "its `type` key contains a string". Use this named alias instead.
+# Per-client row under oauth_clients (key = client_id). Matches SettingsForm /
+# OAuthClientRepository — not a sequence of { client_id, client_secret, … }.
+myeventlane_auth.oauth_client_row:
+  type: mapping
+  label: 'OAuth client'
+  mapping:
+    secret_hash:
+      type: string
+      label: 'Password hash for client secret'
+    redirect_uri_prefixes:
+      type: sequence
+      label: 'Redirect URI prefixes'
+      sequence:
+        type: string
+        label: 'Prefix'
+
+# client_id => row. Wildcard key documents dynamic OAuth client IDs.
 myeventlane_auth.oauth_clients_data:
-  type: ignore
+  type: mapping
   label: 'OAuth confidential clients'
+  mapping:
+    '*':
+      type: myeventlane_auth.oauth_client_row
 
 myeventlane_auth.settings:
   type: config_object
@@ -11,60 +28,47 @@ myeventlane_auth.settings:
   mapping:
     auth_base_url:
       type: string
-      label: 'Auth site base URL (e.g. https://auth.staging.myeventlane.com.au)'
+      label: 'Auth site base URL'
     jwt_issuer:
       type: string
-      label: 'JWT issuer (iss) — optional; defaults to auth_base_url when empty'
+      label: 'JWT issuer'
     jwt_audience:
       type: string
-      label: 'JWT audience (aud) — optional; when set, tokens must include this aud'
+      label: 'JWT audience'
     access_token_ttl:
       type: integer
-      label: 'Access token TTL in seconds (300–900 typical)'
+      label: 'Access token TTL'
     refresh_token_ttl:
       type: integer
-      label: 'Refresh token TTL in seconds (7–30 days)'
+      label: 'Refresh token TTL'
     authorization_code_ttl:
       type: integer
-      label: 'Authorization code TTL in seconds'
+      label: 'Authorization code TTL'
     refresh_cookie_name:
       type: string
-      label: 'HttpOnly refresh cookie name (auth host only)'
     refresh_cookie_path:
       type: string
-      label: 'Path scope for refresh cookie'
     refresh_cookie_domain:
       type: string
-      label: 'Optional cookie Domain (e.g. .staging.myeventlane.com.au) for cross-subdomain refresh cookie'
     vendor_sso_redirect_enabled:
       type: boolean
-      label: 'Send anonymous /vendor/* requests to auth login (vendor host only)'
     vendor_sso_client_id:
       type: string
-      label: 'OAuth client_id used for vendor SSO redirect'
     vendor_sso_callback_path:
       type: string
-      label: 'Path on vendor host for OAuth redirect (must match token exchange redirect_uri)'
     vendor_sso_success_path:
       type: string
-      label: 'Post-login redirect path on vendor host'
     vendor_sso_redirect_hosts:
       type: sequence
-      label: 'Extra hostnames treated as vendor SSO hosts'
       sequence:
         type: string
-        label: 'Hostname'
     allowed_redirect_hosts:
       type: sequence
-      label: 'Allowed redirect_uri hosts (hostname only)'
       sequence:
         type: string
-        label: 'Hostname'
     allowed_cors_origins:
       type: sequence
-      label: 'Allowed Origin values for /auth/* CORS'
       sequence:
         type: string
-        label: 'Origin URL'
     oauth_clients:
       type: myeventlane_auth.oauth_clients_data
