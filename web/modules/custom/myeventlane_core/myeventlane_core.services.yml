@@ -100,7 +100,6 @@ services:
       $domainDetector: '@myeventlane_core.domain_detector'
       $logger: '@logger.channel.myeventlane_core'
       $destinationNormalizer: '@myeventlane_core.mel_destination_normalizer'
-      $configFactory: '@config.factory'
     tags:
       - { name: event_subscriber }
 
