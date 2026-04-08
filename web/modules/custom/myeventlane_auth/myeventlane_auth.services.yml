@@ -10,6 +10,13 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_auth'
 
+  myeventlane_auth.login_url_builder:
+    class: Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder
+    arguments:
+      - '@config.factory'
+      - '@myeventlane_auth.auth_redirect_validator'
+      - '@logger.channel.myeventlane_auth'
+
   myeventlane_auth.oauth_client_repository:
     class: Drupal\myeventlane_auth\Service\OAuthClientRepository
     arguments:
@@ -70,5 +77,13 @@ services:
       - '@current_user'
       - '@logger.channel.myeventlane_auth'
       - '@module_handler'
+      - '@myeventlane_auth.login_url_builder'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_auth.auth_login_fail_count_reset_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\AuthLoginFailCountResetSubscriber
+    arguments:
+      - '@myeventlane_core.domain_detector'
     tags:
       - { name: event_subscriber }

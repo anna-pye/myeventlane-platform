@@ -7,3 +7,4 @@ configure: myeventlane_auth.settings
 dependencies:
   - drupal:user
   - drupal:system
+  - myeventlane_core:myeventlane_core

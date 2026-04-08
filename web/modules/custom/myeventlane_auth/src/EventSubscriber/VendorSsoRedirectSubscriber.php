@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -23,6 +24,7 @@ final class VendorSsoRedirectSubscriber implements EventSubscriberInterface {
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerChannelInterface $logger,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly MelAuthLoginUrlBuilder $loginUrlBuilder,
   ) {}
 
   /**
@@ -60,29 +62,10 @@ final class VendorSsoRedirectSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $authBase = rtrim((string) $config->get('auth_base_url'), '/');
-    if ($authBase === '') {
-      $this->logger->error('vendor_sso_redirect_enabled is TRUE but auth_base_url is empty.');
+    $loginUrl = $this->loginUrlBuilder->buildVendorSsoLoginUrl($request);
+    if ($loginUrl === NULL) {
       return;
     }
-    $clientId = (string) $config->get('vendor_sso_client_id');
-    if ($clientId === '') {
-      return;
-    }
-
-    $callbackUrl = $request->getSchemeAndHttpHost() . ($callbackPath !== '' ? $callbackPath : '/vendor/sso/callback');
-    $state = bin2hex(random_bytes(24));
-    $session = $request->getSession();
-    $session->set('myeventlane_auth.oauth_state', $state);
-    $session->set('myeventlane_auth.oauth_redirect_uri', $callbackUrl);
-
-    $query = [
-      'response_type' => 'code',
-      'client_id' => $clientId,
-      'redirect_uri' => $callbackUrl,
-      'state' => $state,
-    ];
-    $loginUrl = $authBase . '/auth/login?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
 
     $this->logger->notice('Redirecting anonymous vendor request to auth SSO login.');
 
