@@ -1,26 +1,11 @@
-# Per-client row under oauth_clients (key = client_id). Matches SettingsForm /
-# OAuthClientRepository — not a sequence of { client_id, client_secret, … }.
-myeventlane_auth.oauth_client_row:
-  type: mapping
-  label: 'OAuth client'
-  mapping:
-    secret_hash:
-      type: string
-      label: 'Password hash for client secret'
-    redirect_uri_prefixes:
-      type: sequence
-      label: 'Redirect URI prefixes'
-      sequence:
-        type: string
-        label: 'Prefix'
-
-# client_id => row. Wildcard key documents dynamic OAuth client IDs.
+# oauth_clients is stored as client_id => { secret_hash, redirect_uri_prefixes }.
+# Do NOT use inline `type: ignore`, `type: mapping` with `'*':`, or nested mapping
+# under myeventlane_auth.settings.mapping — Drupal's merge breaks Mapping::__construct
+# ("its `type` key contains a string") on Config::save() and drush cim.
+# A top-level named type extending core `ignore` is the supported escape hatch.
 myeventlane_auth.oauth_clients_data:
-  type: mapping
+  type: ignore
   label: 'OAuth confidential clients'
-  mapping:
-    '*':
-      type: myeventlane_auth.oauth_client_row
 
 myeventlane_auth.settings:
   type: config_object
@@ -46,29 +31,42 @@ myeventlane_auth.settings:
       label: 'Authorization code TTL'
     refresh_cookie_name:
       type: string
+      label: 'Cookie name'
     refresh_cookie_path:
       type: string
+      label: 'Cookie path'
     refresh_cookie_domain:
       type: string
+      label: 'Cookie Domain (optional)'
     vendor_sso_redirect_enabled:
       type: boolean
+      label: 'Redirect anonymous /vendor/* traffic to auth login'
     vendor_sso_client_id:
       type: string
+      label: 'Vendor OAuth client ID'
     vendor_sso_callback_path:
       type: string
+      label: 'Vendor callback path'
     vendor_sso_success_path:
       type: string
+      label: 'Post-SSO redirect path (vendor host)'
     vendor_sso_redirect_hosts:
       type: sequence
+      label: 'Extra vendor hostnames'
       sequence:
         type: string
+        label: 'Vendor hostname'
     allowed_redirect_hosts:
       type: sequence
+      label: 'Allowed redirect_uri hosts'
       sequence:
         type: string
+        label: 'Hostname'
     allowed_cors_origins:
       type: sequence
+      label: 'Allowed CORS origins'
       sequence:
         type: string
+        label: 'Origin URL'
     oauth_clients:
       type: myeventlane_auth.oauth_clients_data
