@@ -68,9 +68,9 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
       }
 
       if ($this->currentUser->isAnonymous()) {
-        // When vendor SSO redirect is enabled, VendorSsoRedirectSubscriber (priority 31)
-        // owns the anonymous redirect. Do not override its response; if it did not set one,
-        // fall through to legacy public login (e.g. misconfigured auth_base_url).
+        // When vendor SSO redirect is enabled, VendorSsoRedirectSubscriber (priority 34)
+        // runs before this subscriber and sets the /auth/login redirect. Do not override.
+        // If it did not set one, fall through to legacy public login (e.g. misconfigured allowlist).
         $authSettings = $this->configFactory->get('myeventlane_auth.settings');
         if ((bool) $authSettings->get('vendor_sso_redirect_enabled') && $event->hasResponse()) {
           return;
@@ -120,7 +120,25 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
     if (str_starts_with($path, '/vendor/onboard')) {
       return FALSE;
     }
+    // OAuth return: anonymous must hit VendorSsoCallbackController with ?code= (not redirected away).
+    if ($this->pathIsVendorSsoCallback($path)) {
+      return FALSE;
+    }
     return str_starts_with($path, '/vendor');
+  }
+
+  /**
+   * Matches myeventlane_auth vendor SSO callback route (configurable path).
+   */
+  private function pathIsVendorSsoCallback(string $path): bool {
+    $configured = trim((string) $this->configFactory->get('myeventlane_auth.settings')->get('vendor_sso_callback_path'));
+    if ($configured === '') {
+      $configured = '/vendor/sso/callback';
+    }
+    if (!str_starts_with($configured, '/')) {
+      $configured = '/' . $configured;
+    }
+    return str_starts_with($path, $configured);
   }
 
   /**

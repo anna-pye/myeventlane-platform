@@ -31,7 +31,9 @@ final class VendorSsoRedirectSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents(): array {
-    return [KernelEvents::REQUEST => ['onKernelRequest', 31]];
+    // Before VendorConsoleGateRedirectSubscriber (32): set SSO redirect first so the gate
+    // sees hasResponse() and does not overwrite with public /user/login when SSO is enabled.
+    return [KernelEvents::REQUEST => ['onKernelRequest', 34]];
   }
 
   public function onKernelRequest(RequestEvent $event): void {
