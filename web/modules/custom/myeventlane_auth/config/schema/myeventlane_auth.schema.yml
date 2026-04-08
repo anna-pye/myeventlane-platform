@@ -1,3 +1,10 @@
+# Do not inline `type: ignore` under myeventlane_auth.settings.mapping — Drupal's
+# schema merge can leave a stray `type` key in the inner mapping and break cim
+# with "its `type` key contains a string". Use this named alias instead.
+myeventlane_auth.oauth_clients_data:
+  type: ignore
+  label: 'OAuth confidential clients'
+
 myeventlane_auth.settings:
   type: config_object
   label: 'MyEventLane SSO settings'
@@ -59,7 +66,5 @@ myeventlane_auth.settings:
       sequence:
         type: string
         label: 'Origin URL'
-    # Dynamic client_id => row. Use core type `ignore` (not `mapping`) so nested
-    # merge does not break cim; `ignore` skips deep validation of this subtree.
     oauth_clients:
-      type: ignore
+      type: myeventlane_auth.oauth_clients_data
