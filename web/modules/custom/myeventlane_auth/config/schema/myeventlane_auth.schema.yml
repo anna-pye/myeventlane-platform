@@ -59,6 +59,7 @@ myeventlane_auth.settings:
       sequence:
         type: string
         label: 'Origin URL'
-    # Dynamic client_id => row; avoid type: mapping here (nested Mapping merge breaks cim).
+    # Dynamic client_id => row. Use core type `ignore` (not `mapping`) so nested
+    # merge does not break cim; `ignore` skips deep validation of this subtree.
     oauth_clients:
-      type: undefined
+      type: ignore
