@@ -51,6 +51,27 @@ function myeventlane_auth_user_logout(AccountInterface $account): void {
 }
 
 /**
+ * Resolves destination for the login form hidden field.
+ *
+ * On validation failure the form is rebuilt on the same POST; the URL often
+ * has no ?destination=, but the prior submission still carries destination in
+ * the request body / user input.
+ */
+function myeventlane_auth_user_login_destination_for_form(FormStateInterface $form_state): ?string {
+  $request = \Drupal::request();
+  foreach ([$request->query->get('destination'), $request->request->get('destination')] as $candidate) {
+    if (is_string($candidate) && $candidate !== '') {
+      return $candidate;
+    }
+  }
+  $input = $form_state->getUserInput();
+  if (is_array($input) && isset($input['destination']) && is_string($input['destination']) && $input['destination'] !== '') {
+    return $input['destination'];
+  }
+  return NULL;
+}
+
+/**
  * Implements hook_form_FORM_ID_alter() for user_login_form.
  */
 function myeventlane_auth_form_user_login_form_alter(&$form, FormStateInterface $form_state, $form_id): void {
@@ -63,8 +84,8 @@ function myeventlane_auth_form_user_login_form_alter(&$form, FormStateInterface 
   if (!empty($form['destination'])) {
     return;
   }
-  $raw = \Drupal::request()->query->get('destination');
-  if (!is_string($raw) || $raw === '') {
+  $raw = myeventlane_auth_user_login_destination_for_form($form_state);
+  if ($raw === NULL) {
     return;
   }
   $form['destination'] = [
