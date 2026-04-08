@@ -54,7 +54,8 @@ myeventlane_auth.settings:
       type: mapping
       label: 'OAuth clients (client_id => settings)'
       mapping:
-        type: myeventlane_auth.oauth_client_entry
+        '*':
+          type: myeventlane_auth.oauth_client_entry
 
 myeventlane_auth.oauth_client_entry:
   type: mapping

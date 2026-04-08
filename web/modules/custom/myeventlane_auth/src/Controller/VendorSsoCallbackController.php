@@ -7,13 +7,13 @@ namespace Drupal\myeventlane_auth\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
+use Drupal\myeventlane_auth\Service\MelAuthOAuthSession;
 use Drupal\myeventlane_auth\Service\TokenGrantService;
 use Drupal\myeventlane_auth\Service\TokenIssuer;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Vendor-host OAuth callback: exchanges code using server-side client secret.
@@ -32,40 +32,98 @@ final class VendorSsoCallbackController extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static(
+    $instance = new static(
       $container->get('myeventlane_auth.token_grant_service'),
-      $container->get('myeventlane_auth.token_issuer')
+      $container->get('myeventlane_auth.token_issuer'),
     );
+    $instance->setMessenger($container->get('messenger'));
+    return $instance;
   }
 
   public function callback(Request $request): Response {
     $session = $request->getSession();
-    $expectedState = (string) $session->get('myeventlane_auth.oauth_state', '');
-    $redirectUri = (string) $session->get('myeventlane_auth.oauth_redirect_uri', '');
-    $session->remove('myeventlane_auth.oauth_state');
-    $session->remove('myeventlane_auth.oauth_redirect_uri');
+    $now = MelAuthOAuthSession::requestTime($request);
+
+    $expectedState = (string) $session->get(MelAuthOAuthSession::KEY_STATE, '');
+    $redirectUri = (string) $session->get(MelAuthOAuthSession::KEY_REDIRECT_URI, '');
+    $stateCreatedRaw = $session->get(MelAuthOAuthSession::KEY_STATE_CREATED);
+    $stateCreatedTs = is_numeric($stateCreatedRaw) ? (int) $stateCreatedRaw : 0;
 
     $state = (string) $request->query->get('state', '');
-    if ($expectedState === '' || $redirectUri === '' || !hash_equals($expectedState, $state)) {
-      $this->getLogger('myeventlane_auth')->warning('Vendor SSO callback rejected: invalid or missing state.');
-      throw new AccessDeniedHttpException('Invalid SSO state.');
+
+    // Validate state fully before any single-use clear (malformed requests keep session intact until fail()).
+    if ($expectedState === '' || $redirectUri === '') {
+      return $this->fail(
+        $request,
+        'invalid_or_missing_state',
+        'Vendor SSO callback rejected: missing session state or redirect_uri.',
+        $redirectUri,
+        '',
+      );
     }
+
+    if ($state === '') {
+      return $this->fail(
+        $request,
+        'invalid_or_missing_state',
+        'Vendor SSO callback rejected: missing state query parameter.',
+        $redirectUri,
+        '',
+      );
+    }
+
+    if (!hash_equals($expectedState, $state)) {
+      return $this->fail(
+        $request,
+        'state_mismatch',
+        'Vendor SSO callback rejected: state mismatch (tabs, session, or race).',
+        $redirectUri,
+        (string) $this->config('myeventlane_auth.settings')->get('vendor_sso_client_id'),
+      );
+    }
+
+    if ($stateCreatedTs < 1 || ($now - $stateCreatedTs) > MelAuthOAuthSession::STATE_TTL_SECONDS) {
+      $config = $this->config('myeventlane_auth.settings');
+      $clientIdForLog = (string) $config->get('vendor_sso_client_id');
+      return $this->fail(
+        $request,
+        'state_expired',
+        'Vendor SSO callback rejected: state expired.',
+        $redirectUri,
+        $clientIdForLog,
+      );
+    }
+
+    // Single-use: only after state is fully valid.
+    MelAuthOAuthSession::clearOAuthState($session);
 
     $code = (string) $request->query->get('code', '');
-    if ($code === '') {
-      throw new AccessDeniedHttpException('Missing authorization code.');
-    }
-
     $config = $this->config('myeventlane_auth.settings');
     $clientId = (string) $config->get('vendor_sso_client_id');
+
+    if ($code === '') {
+      return $this->fail(
+        $request,
+        'missing_code',
+        'Vendor SSO callback: missing authorization code.',
+        $redirectUri,
+        $clientId,
+      );
+    }
+
     if ($clientId === '') {
-      throw new AccessDeniedHttpException('SSO client is not configured.');
+      return $this->fail($request, 'missing_client_id', 'Vendor SSO callback: vendor_sso_client_id is not configured.', $redirectUri, '');
     }
 
     $clientSecret = $this->resolveMachineClientSecret($clientId);
     if ($clientSecret === '') {
-      $this->getLogger('myeventlane_auth')->error('Missing machine client secret for SSO (settings.myeventlane_auth.client_secrets).');
-      throw new AccessDeniedHttpException('SSO is not configured.');
+      return $this->fail(
+        $request,
+        'missing_client_secret',
+        'Missing machine client secret for SSO (settings.myeventlane_auth.client_secrets).',
+        $redirectUri,
+        $clientId,
+      );
     }
 
     $tokens = $this->tokenGrantService->grantFromAuthorizationCode(
@@ -76,31 +134,95 @@ final class VendorSsoCallbackController extends ControllerBase {
       NULL
     );
     if ($tokens === NULL) {
-      $this->getLogger('myeventlane_auth')->error('Vendor SSO token exchange failed.');
-      throw new AccessDeniedHttpException('Token exchange failed.');
+      return $this->fail($request, 'token_exchange_failed', 'Vendor SSO token exchange failed.', $redirectUri, $clientId);
     }
 
     $user = $this->tokenIssuer->loadUserFromAccessToken($tokens['access_token']);
     if ($user === NULL) {
-      throw new AccessDeniedHttpException('Could not resolve user from access token.');
+      return $this->fail(
+        $request,
+        'user_from_token_failed',
+        'Vendor SSO: could not resolve user from access token.',
+        $redirectUri,
+        $clientId,
+      );
     }
 
-    $session->set('myeventlane_auth.sso_tokens', [
+    $session->set(MelAuthOAuthSession::KEY_SSO_TOKENS, [
       'access_token' => $tokens['access_token'],
       'refresh_token' => $tokens['refresh_token'],
       'expires_in' => $tokens['expires_in'],
-      'obtained' => $request->server->get('REQUEST_TIME', time()),
+      'obtained' => $now,
     ]);
 
     user_login_finalize($user);
 
-    $this->getLogger('myeventlane_auth')->notice('Vendor SSO completed for uid @uid.', ['@uid' => (string) $user->id()]);
+    // Correlation must be read before clearForSuccess() (it removes KEY_CORRELATION_ID).
+    $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+    MelAuthOAuthSession::clearForSuccess($session);
+
+    $logContext = ['@uid' => (string) $user->id()];
+    if ($correlationId !== '') {
+      $logContext['correlation_id'] = $correlationId;
+    }
+    $this->getLogger('myeventlane_auth')->notice('Vendor SSO completed for uid @uid.', $logContext);
 
     $path = (string) $config->get('vendor_sso_success_path');
     if ($path === '') {
       $path = '/vendor/dashboard';
     }
     return new RedirectResponse(Url::fromUserInput($path, ['absolute' => TRUE])->toString(), 302);
+  }
+
+  /**
+   * Clears OAuth session data, logs with context, shows a generic message, redirects.
+   */
+  private function fail(
+    Request $request,
+    string $reasonCode,
+    string $logMessage,
+    string $redirectUri,
+    string $clientId,
+  ): Response {
+    $session = $request->getSession();
+    // Correlation must be read before clearForFailure() (it removes KEY_CORRELATION_ID).
+    $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+
+    MelAuthOAuthSession::clearForFailure($session);
+
+    $failCount = (int) $session->get(MelAuthOAuthSession::KEY_FAIL_COUNT, 0);
+    $failCount++;
+    $session->set(MelAuthOAuthSession::KEY_FAIL_COUNT, $failCount);
+
+    $logContext = [
+      '@message' => $logMessage,
+      'reason_code' => $reasonCode,
+    ];
+    if ($clientId !== '') {
+      $logContext['client_id'] = $clientId;
+    }
+    if ($redirectUri !== '') {
+      $logContext['redirect_uri'] = $redirectUri;
+    }
+    if ($correlationId !== '') {
+      $logContext['correlation_id'] = $correlationId;
+    }
+    $this->getLogger('myeventlane_auth')->error('@message', $logContext);
+
+    $this->messenger()->addError($this->t("We couldn't complete sign-in. Please try again."));
+
+    // After repeated failures, stop sending users back to /vendor/dashboard (avoids SSO retry loops).
+    $query = [];
+    if ($failCount < 2) {
+      $query['destination'] = '/vendor/dashboard';
+    }
+
+    $url = Url::fromRoute('user.login', [], [
+      'absolute' => TRUE,
+      'query' => $query,
+    ])->toString();
+
+    return new RedirectResponse($url, 302);
   }
 
   private function resolveMachineClientSecret(string $clientId): string {
