@@ -149,3 +149,22 @@ function myeventlane_auth_uninstall(): void {
   $db->schema()->dropTable('mel_auth_authorization_code');
   $db->schema()->dropTable('mel_auth_refresh_token');
 }
+
+/**
+ * Add JWT issuer/audience and refresh cookie domain settings.
+ */
+function myeventlane_auth_update_11001(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_auth.settings');
+  $defaults = [
+    'jwt_issuer' => '',
+    'jwt_audience' => '',
+    'refresh_cookie_domain' => '',
+  ];
+  foreach ($defaults as $key => $value) {
+    if ($config->get($key) === NULL) {
+      $config->set($key, $value);
+    }
+  }
+  $config->save();
+  return 'MyEventLane Auth: added jwt_issuer, jwt_audience, and refresh_cookie_domain configuration keys.';
+}
