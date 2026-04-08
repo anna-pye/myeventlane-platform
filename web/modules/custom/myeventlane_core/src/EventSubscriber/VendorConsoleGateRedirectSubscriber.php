@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -27,6 +28,7 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
     private readonly DomainDetector $domainDetector,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -66,6 +68,14 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
       }
 
       if ($this->currentUser->isAnonymous()) {
+        // When vendor SSO redirect is enabled, VendorSsoRedirectSubscriber (priority 31)
+        // owns the anonymous redirect. Do not override its response; if it did not set one,
+        // fall through to legacy public login (e.g. misconfigured auth_base_url).
+        $authSettings = $this->configFactory->get('myeventlane_auth.settings');
+        if ((bool) $authSettings->get('vendor_sso_redirect_enabled') && $event->hasResponse()) {
+          return;
+        }
+
         $target = $this->domainDetector->buildDomainUrl('/user/login', 'public');
         $target .= '?' . http_build_query(['destination' => $returnUrl], '', '&', PHP_QUERY_RFC3986);
         $this->logger->notice('Vendor console: redirecting anonymous user to public login for path @path.', [

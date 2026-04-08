@@ -126,6 +126,7 @@ services:
       $domainDetector: '@myeventlane_core.domain_detector'
       $currentUser: '@current_user'
       $logger: '@logger.channel.myeventlane_core'
+      $configFactory: '@config.factory'
     tags:
       - { name: event_subscriber }
 
