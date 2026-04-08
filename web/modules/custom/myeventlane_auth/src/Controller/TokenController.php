@@ -154,7 +154,7 @@ final class TokenController extends ControllerBase {
         return $this->oauthError('invalid_token', 'Invalid access token.', 401);
       }
       $this->refreshTokenManager->revokeAllForUser((int) $user->id());
-      $this->getLogger('myeventlane_auth')->notice('Revoked all refresh tokens for uid @u via /auth/revoke.', ['@u' => (string) $user->id()]);
+      $this->getLogger('myeventlane_auth')->notice('Audit: revoked all refresh tokens for uid @u via /auth/revoke.', ['@u' => (string) $user->id()]);
       return new JsonResponse(['revoked' => TRUE], 200);
     }
     $clientId = (string) $request->request->get('client_id', '');
@@ -167,6 +167,9 @@ final class TokenController extends ControllerBase {
       return $this->oauthError('invalid_client', 'Invalid client credentials.', 401);
     }
     $ok = $this->refreshTokenManager->revokeByPlaintext($refresh);
+    if ($ok) {
+      $this->getLogger('myeventlane_auth')->notice('Audit: refresh token revoked via /auth/revoke.');
+    }
     return new JsonResponse(['revoked' => $ok], $ok ? 200 : 400);
   }
 
@@ -190,17 +193,24 @@ final class TokenController extends ControllerBase {
     }
     $ttl = (int) $config->get('refresh_token_ttl');
     if ($ttl < 86400) {
-      $ttl = 2592000;
+      $ttl = 86400;
+    }
+    if ($ttl > 86400 * 90) {
+      $ttl = 86400 * 90;
     }
     $expire = $request->server->get('REQUEST_TIME', time()) + $ttl;
     $secure = $request->isSecure();
     $sameSite = $secure ? Cookie::SAMESITE_NONE : NULL;
+    $domain = trim((string) $config->get('refresh_cookie_domain'));
+    if ($domain === '') {
+      $domain = NULL;
+    }
     $response->headers->setCookie(new Cookie(
       $name,
       $plainRefresh,
       $expire,
       $path,
-      NULL,
+      $domain,
       $secure,
       TRUE,
       FALSE,

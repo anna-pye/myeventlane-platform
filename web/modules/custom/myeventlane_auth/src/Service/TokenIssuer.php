@@ -43,6 +43,14 @@ final class TokenIssuer {
       'exp' => $now + $ttl,
       'jti' => bin2hex(random_bytes(16)),
     ];
+    $issuer = $this->effectiveJwtIssuer();
+    if ($issuer !== '') {
+      $claims['iss'] = $issuer;
+    }
+    $audience = $this->effectiveJwtAudience();
+    if ($audience !== '') {
+      $claims['aud'] = $audience;
+    }
     $token = $this->jwt->encode($claims, $secret);
     $this->logger->notice('Issued access JWT uid=@uid exp=@exp', [
       '@uid' => (string) $user->id(),
@@ -52,7 +60,7 @@ final class TokenIssuer {
   }
 
   /**
-   * Validates bearer JWT and loads the user.
+   * Validates bearer JWT and loads the user (issuer/audience enforced when configured).
    */
   public function loadUserFromAccessToken(string $jwtString): ?UserInterface {
     $secret = myeventlane_auth_signing_key();
@@ -60,9 +68,37 @@ final class TokenIssuer {
       $this->logger->error('Access JWT validation skipped: signing key not configured.');
       return NULL;
     }
-    $payload = $this->jwt->decode($jwtString, $secret);
+    $now = $this->time->getRequestTime();
+    $payload = $this->jwt->decode($jwtString, $secret, $now);
     if ($payload === NULL) {
       return NULL;
+    }
+    $expectedIssuer = $this->effectiveJwtIssuer();
+    if ($expectedIssuer !== '') {
+      if (($payload['iss'] ?? '') !== $expectedIssuer) {
+        $this->logger->warning('Access JWT rejected: issuer mismatch.');
+        return NULL;
+      }
+    }
+    $expectedAudience = $this->effectiveJwtAudience();
+    if ($expectedAudience !== '') {
+      $aud = $payload['aud'] ?? NULL;
+      $audOk = FALSE;
+      if (is_string($aud) && hash_equals($expectedAudience, $aud)) {
+        $audOk = TRUE;
+      }
+      elseif (is_array($aud)) {
+        foreach ($aud as $a) {
+          if (is_string($a) && hash_equals($expectedAudience, $a)) {
+            $audOk = TRUE;
+            break;
+          }
+        }
+      }
+      if (!$audOk) {
+        $this->logger->warning('Access JWT rejected: audience mismatch.');
+        return NULL;
+      }
     }
     $uid = isset($payload['sub']) ? (int) $payload['sub'] : 0;
     if ($uid < 1) {
@@ -73,6 +109,26 @@ final class TokenIssuer {
       return NULL;
     }
     return $user;
+  }
+
+  /**
+   * Canonical issuer string for JWTs (auth host); empty if not configured.
+   */
+  private function effectiveJwtIssuer(): string {
+    $config = $this->configFactory->get('myeventlane_auth.settings');
+    $issuer = trim((string) $config->get('jwt_issuer'));
+    if ($issuer !== '') {
+      return rtrim($issuer, '/');
+    }
+    $base = trim((string) $config->get('auth_base_url'));
+    return $base !== '' ? rtrim($base, '/') : '';
+  }
+
+  /**
+   * Expected audience claim; empty disables aud claim and related validation.
+   */
+  private function effectiveJwtAudience(): string {
+    return trim((string) $this->configFactory->get('myeventlane_auth.settings')->get('jwt_audience'));
   }
 
 }

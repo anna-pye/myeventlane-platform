@@ -35,9 +35,27 @@ final class SettingsForm extends ConfigFormBase {
     $form['auth_base_url'] = [
       '#type' => 'url',
       '#title' => $this->t('Auth site base URL'),
-      '#description' => $this->t('Canonical URL for the dedicated auth host (e.g. https://auth.staging.myeventlane.com.au). Used for vendor SSO redirects.'),
+      '#description' => $this->t('Canonical URL for the dedicated auth host (e.g. https://staging.myeventlane.com.au). Used for vendor SSO redirects and as default JWT issuer when JWT issuer is empty.'),
       '#default_value' => $config->get('auth_base_url'),
       '#required' => FALSE,
+    ];
+
+    $form['jwt'] = [
+      '#type' => 'details',
+      '#title' => $this->t('JWT access tokens (iss / aud)'),
+      '#open' => TRUE,
+    ];
+    $form['jwt']['jwt_issuer'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('JWT issuer (iss)'),
+      '#description' => $this->t('Optional. When set, access tokens include this iss and validation requires a match. Leave empty to derive from Auth site base URL when that field is set.'),
+      '#default_value' => $config->get('jwt_issuer') ?? '',
+    ];
+    $form['jwt']['jwt_audience'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('JWT audience (aud)'),
+      '#description' => $this->t('Optional. When set, access tokens include this aud claim and validation requires a match. Recommended for production (e.g. myeventlane).'),
+      '#default_value' => $config->get('jwt_audience') ?? '',
     ];
 
     $form['token_ttl'] = [
@@ -84,6 +102,12 @@ final class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('refresh_cookie_path'),
       '#required' => TRUE,
     ];
+    $form['cookie']['refresh_cookie_domain'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Cookie Domain (optional)'),
+      '#description' => $this->t('For cross-subdomain refresh cookies, set the registrable domain (e.g. .staging.myeventlane.com.au). Leave empty for host-only cookies.'),
+      '#default_value' => $config->get('refresh_cookie_domain') ?? '',
+    ];
 
     $form['allowlists'] = [
       '#type' => 'details',
@@ -126,6 +150,7 @@ final class SettingsForm extends ConfigFormBase {
     $form['vendor_sso']['vendor_sso_success_path'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Post-SSO redirect path (vendor host)'),
+      '#description' => $this->t('Must be a site-relative path starting with / (e.g. /vendor/dashboard). External URLs are not allowed.'),
       '#default_value' => $config->get('vendor_sso_success_path'),
     ];
     $form['vendor_sso']['vendor_sso_redirect_hosts'] = [
@@ -185,11 +210,14 @@ final class SettingsForm extends ConfigFormBase {
     $editable = $this->configFactory->getEditable('myeventlane_auth.settings');
     $editable
       ->set('auth_base_url', trim((string) $form_state->getValue('auth_base_url')))
+      ->set('jwt_issuer', trim((string) $form_state->getValue('jwt_issuer')))
+      ->set('jwt_audience', trim((string) $form_state->getValue('jwt_audience')))
       ->set('access_token_ttl', (int) $form_state->getValue('access_token_ttl'))
       ->set('refresh_token_ttl', (int) $form_state->getValue('refresh_token_ttl'))
       ->set('authorization_code_ttl', (int) $form_state->getValue('authorization_code_ttl'))
       ->set('refresh_cookie_name', trim((string) $form_state->getValue('refresh_cookie_name')))
       ->set('refresh_cookie_path', trim((string) $form_state->getValue('refresh_cookie_path')))
+      ->set('refresh_cookie_domain', trim((string) $form_state->getValue('refresh_cookie_domain')))
       ->set('vendor_sso_redirect_enabled', (bool) $form_state->getValue('vendor_sso_redirect_enabled'))
       ->set('vendor_sso_client_id', trim((string) $form_state->getValue('vendor_sso_client_id')))
       ->set('vendor_sso_callback_path', trim((string) $form_state->getValue('vendor_sso_callback_path')))

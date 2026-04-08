@@ -148,13 +148,6 @@ final class VendorSsoCallbackController extends ControllerBase {
       );
     }
 
-    $session->set(MelAuthOAuthSession::KEY_SSO_TOKENS, [
-      'access_token' => $tokens['access_token'],
-      'refresh_token' => $tokens['refresh_token'],
-      'expires_in' => $tokens['expires_in'],
-      'obtained' => $now,
-    ]);
-
     user_login_finalize($user);
 
     // Correlation must be read before clearForSuccess() (it removes KEY_CORRELATION_ID).
@@ -165,13 +158,10 @@ final class VendorSsoCallbackController extends ControllerBase {
     if ($correlationId !== '') {
       $logContext['correlation_id'] = $correlationId;
     }
-    $this->getLogger('myeventlane_auth')->notice('Vendor SSO completed for uid @uid.', $logContext);
+    $this->getLogger('myeventlane_auth')->notice('Audit: vendor SSO completed for uid @uid.', $logContext);
 
-    $path = (string) $config->get('vendor_sso_success_path');
-    if ($path === '') {
-      $path = '/vendor/dashboard';
-    }
-    return new RedirectResponse(Url::fromUserInput($path, ['absolute' => TRUE])->toString(), 302);
+    $path = $this->sanitizeVendorInternalPath((string) $config->get('vendor_sso_success_path'));
+    return new RedirectResponse(Url::fromUri('internal:' . $path, ['absolute' => TRUE])->toString(), 302);
   }
 
   /**
@@ -207,7 +197,7 @@ final class VendorSsoCallbackController extends ControllerBase {
     if ($correlationId !== '') {
       $logContext['correlation_id'] = $correlationId;
     }
-    $this->getLogger('myeventlane_auth')->error('@message', $logContext);
+    $this->getLogger('myeventlane_auth')->error('Audit: vendor SSO failure — @message', $logContext);
 
     $this->messenger()->addError($this->t("We couldn't complete sign-in. Please try again."));
 
@@ -232,6 +222,26 @@ final class VendorSsoCallbackController extends ControllerBase {
     }
     $secrets = $root['client_secrets'];
     return isset($secrets[$clientId]) && is_string($secrets[$clientId]) ? $secrets[$clientId] : '';
+  }
+
+  /**
+   * Restricts configured success path to a safe internal path (no open redirects).
+   */
+  private function sanitizeVendorInternalPath(string $path): string {
+    $path = trim($path);
+    if ($path === '') {
+      return '/vendor/dashboard';
+    }
+    if (strlen($path) > 512) {
+      return '/vendor/dashboard';
+    }
+    if (!str_starts_with($path, '/') || str_starts_with($path, '//')) {
+      return '/vendor/dashboard';
+    }
+    if (str_contains($path, '://') || str_contains($path, "\0") || str_contains($path, "\n")) {
+      return '/vendor/dashboard';
+    }
+    return $path;
   }
 
 }
