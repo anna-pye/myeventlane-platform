@@ -7,8 +7,8 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\myeventlane_core\MelVendorOrganiserRole;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -89,7 +89,7 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
         return;
       }
 
-      if ($this->currentUser->hasPermission('access vendor console') || $this->currentUser->hasRole(MelVendorOrganiserRole::MACHINE_NAME)) {
+      if (VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser)) {
         return;
       }
 

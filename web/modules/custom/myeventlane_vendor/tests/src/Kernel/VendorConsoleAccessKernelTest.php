@@ -7,6 +7,7 @@ namespace Drupal\Tests\myeventlane_vendor\Kernel;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_core\MelVendorOrganiserRole;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\myeventlane_vendor\Access\VendorConsoleAccess;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
@@ -14,6 +15,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
+ * Vendor console route access (VendorConsoleAccess) for /vendor/dashboard.
+ *
+ * Scenarios mirror VendorConsoleTrust plus anonymous denial; gate redirects are
+ * covered by VendorConsoleGateRedirectSubscriberKernelTest.
+ *
  * @coversDefaultClass \Drupal\myeventlane_vendor\Access\VendorConsoleAccess
  *
  * @group myeventlane_vendor
@@ -45,53 +51,67 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
   }
 
   /**
+   * Anonymous user: access denied (browser flow redirects via gate subscriber).
+   *
    * @covers ::access
    */
   public function testAnonymousDenied(): void {
     $this->pushDashboardRequest();
     $route_match = $this->dashboardRouteMatch();
     $anon = User::getAnonymousUser();
+    $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($anon));
     $result = VendorConsoleAccess::access($route_match, $anon);
     $this->assertTrue($result->isForbidden());
     $this->popRequest();
   }
 
   /**
+   * Authenticated buyer without vendor role or console permission → forbidden.
+   *
    * @covers ::access
    */
   public function testAuthenticatedBuyerWithoutConsolePermissionOrVendorRoleDenied(): void {
     $this->pushDashboardRequest();
     $user = $this->createUserWithRoles(['authenticated']);
+    $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
     $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isForbidden());
     $this->popRequest();
   }
 
   /**
+   * Vendor role only → allowed.
+   *
    * @covers ::access
    */
   public function testAuthenticatedUserWithVendorRoleOnlyAllowed(): void {
     $this->ensureVendorRoleExists();
     $this->pushDashboardRequest();
     $user = $this->createUserWithRoles(['authenticated', MelVendorOrganiserRole::MACHINE_NAME]);
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
     $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
   }
 
   /**
+   * access vendor console permission only → allowed.
+   *
    * @covers ::access
    */
   public function testAuthenticatedUserWithAccessVendorConsolePermissionOnlyAllowed(): void {
     $this->ensureConsolePermissionRole();
     $this->pushDashboardRequest();
     $user = $this->createUserWithRoles(['authenticated', 'console_perm_only']);
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
     $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
   }
 
   /**
+   * Site admin + vendor role → allowed.
+   *
    * @covers ::access
    */
   public function testAuthenticatedAdminPlusVendorRoleAllowed(): void {
@@ -99,6 +119,7 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
     $this->ensureVendorRoleExists();
     $this->pushDashboardRequest();
     $user = $this->createUserWithRoles(['authenticated', 'site_admin', MelVendorOrganiserRole::MACHINE_NAME]);
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
     $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
