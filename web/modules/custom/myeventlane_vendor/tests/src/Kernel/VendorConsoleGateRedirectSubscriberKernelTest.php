@@ -65,6 +65,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
     $this->assertStringContainsString('public.example.com', (string) $location);
     $this->assertStringContainsString('/user/login', (string) $location);
     $this->assertStringContainsString('destination=', (string) $location);
+    $this->assertStringContainsString('destination=%2Fvendor%2Fdashboard', (string) $location);
 
     $this->container->get('request_stack')->pop();
   }

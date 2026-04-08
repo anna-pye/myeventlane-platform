@@ -146,14 +146,25 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
   }
 
   /**
-   * Full URL back to this vendor request (destination after login).
+   * Internal path (+ query) for ?destination= after public login.
+   *
+   * Core UserLoginForm only continues the destination flow when "destination"
+   * is present in the POST body; many clients POST to /user/login without the
+   * original query string. Using an internal path (not an absolute vendor URL)
+   * also lets RedirectResponseSubscriber build a same-host Location header;
+   * authenticated users are then moved to the vendor host by domain routing.
    */
   private function buildSelfReturnUrl(Request $request): ?string {
-    $uri = $request->getRequestUri();
-    if (!str_starts_with($uri, '/')) {
+    $path = $request->getPathInfo();
+    if ($path === '' || $path === '/') {
       return NULL;
     }
-    return $request->getSchemeAndHttpHost() . $uri;
+    $query = $request->query->all();
+    unset($query['destination']);
+    if ($query === []) {
+      return $path;
+    }
+    return $path . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
   }
 
 }

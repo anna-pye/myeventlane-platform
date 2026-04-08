@@ -55,6 +55,23 @@ function myeventlane_auth_user_logout(AccountInterface $account): void {
  */
 function myeventlane_auth_form_user_login_form_alter(&$form, FormStateInterface $form_state, $form_id): void {
   $form['#validate'][] = 'myeventlane_auth_user_login_form_validate_audit';
+
+  // UserLoginForm::submitForm() only honours destination when it is in the POST
+  // body ($request->request). A ?destination= query on GET is often dropped on
+  // POST (no hidden field, form posts to /user/login without query), so core
+  // falls back to entity.user.canonical → /my-account for MEL flows.
+  if (!empty($form['destination'])) {
+    return;
+  }
+  $raw = \Drupal::request()->query->get('destination');
+  if (!is_string($raw) || $raw === '') {
+    return;
+  }
+  $form['destination'] = [
+    '#type' => 'hidden',
+    '#value' => $raw,
+    '#weight' => -100,
+  ];
 }
 
 /**
