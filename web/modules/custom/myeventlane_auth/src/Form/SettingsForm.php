@@ -35,7 +35,7 @@ final class SettingsForm extends ConfigFormBase {
     $form['auth_base_url'] = [
       '#type' => 'url',
       '#title' => $this->t('Auth site base URL'),
-      '#description' => $this->t('Canonical URL for the dedicated auth host (e.g. https://staging.myeventlane.com.au). Used for vendor SSO redirects and as default JWT issuer when JWT issuer is empty.'),
+      '#description' => $this->t('Must be the base URL of this Drupal site (same codebase as the public site). Example: https://staging.myeventlane.com.au. A separate hostname (e.g. auth.) only works if the web server serves this same installation there; otherwise /auth/login returns 404. Leave empty to use myeventlane_core public_domain. Used for vendor SSO redirects and as default JWT issuer when JWT issuer is empty.'),
       '#default_value' => $config->get('auth_base_url'),
       '#required' => FALSE,
     ];
