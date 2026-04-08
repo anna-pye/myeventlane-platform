@@ -91,7 +91,7 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     }
 
     $stuckOnLogin = str_contains($target, '/user/login');
-    $crossHostConsole = $this->shouldRewriteCrossHostConsoleRedirect($target, $trusted);
+    $crossHostConsole = $this->shouldRewriteCrossHostConsoleRedirect($target, $trusted, $request);
     if (!$stuckOnLogin && !$crossHostConsole) {
       return;
     }
@@ -112,8 +112,11 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
   /**
    * TRUE when the browser would hit public host for a console path but trusted
    * target is the configured vendor/admin host (force_redirects multi-domain).
+   *
+   * Relative redirect targets (path-only Location) have no host in parse_url();
+   * the current request host is used so cross-host detection still works.
    */
-  private function shouldRewriteCrossHostConsoleRedirect(string $currentTarget, string $trustedTarget): bool {
+  private function shouldRewriteCrossHostConsoleRedirect(string $currentTarget, string $trustedTarget, Request $request): bool {
     if (!(bool) $this->configFactory->get('myeventlane_core.domain_settings')->get('force_redirects')) {
       return FALSE;
     }
@@ -136,9 +139,12 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     }
 
     $ch = strtolower((string) ($c['host'] ?? ''));
+    if ($ch === '') {
+      $ch = strtolower($request->getHost());
+    }
     $th = strtolower((string) ($t['host'] ?? ''));
 
-    return $ch !== '' && $th !== '' && $ch !== $th;
+    return $th !== '' && $ch !== '' && $ch !== $th;
   }
 
   /**
