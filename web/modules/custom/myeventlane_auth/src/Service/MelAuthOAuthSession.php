@@ -18,8 +18,6 @@ final class MelAuthOAuthSession {
 
   public const KEY_REDIRECT_URI = 'myeventlane_auth.oauth_redirect_uri';
 
-  public const KEY_SSO_TOKENS = 'myeventlane_auth.sso_tokens';
-
   public const KEY_FAIL_COUNT = 'myeventlane_auth.sso_fail_count';
 
   /**
@@ -63,7 +61,6 @@ final class MelAuthOAuthSession {
    */
   public static function clearForFailure(SessionInterface $session): void {
     self::clearOAuthState($session);
-    self::clearSsoTokens($session);
     $session->remove(self::KEY_CORRELATION_ID);
   }
 
@@ -76,13 +73,6 @@ final class MelAuthOAuthSession {
     self::clearOAuthState($session);
     $session->remove(self::KEY_FAIL_COUNT);
     $session->remove(self::KEY_CORRELATION_ID);
-  }
-
-  /**
-   * Clears stored SSO tokens (e.g. on callback failure before login).
-   */
-  private static function clearSsoTokens(SessionInterface $session): void {
-    $session->remove(self::KEY_SSO_TOKENS);
   }
 
 }

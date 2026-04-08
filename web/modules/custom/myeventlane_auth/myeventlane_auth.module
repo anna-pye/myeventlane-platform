@@ -7,6 +7,9 @@ declare(strict_types=1);
  * MyEventLane SSO (OAuth2-style) for cross-subdomain authentication.
  */
 
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\user\UserInterface;
 use Drupal\Core\Site\Settings;
 
 /**
@@ -25,6 +28,42 @@ function myeventlane_auth_cron(): void {
     ->condition('revoked', 1)
     ->condition('expires', $now - (90 * 24 * 60 * 60), '<')
     ->execute();
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function myeventlane_auth_user_login(UserInterface $account): void {
+  \Drupal::logger('myeventlane_auth')->notice('Audit: login success uid=@uid.', [
+    '@uid' => (string) $account->id(),
+  ]);
+}
+
+/**
+ * Implements hook_user_logout().
+ */
+function myeventlane_auth_user_logout(AccountInterface $account): void {
+  if ($account->isAuthenticated()) {
+    \Drupal::logger('myeventlane_auth')->notice('Audit: logout uid=@uid.', [
+      '@uid' => (string) $account->id(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for user_login_form.
+ */
+function myeventlane_auth_form_user_login_form_alter(&$form, FormStateInterface $form_state, $form_id): void {
+  $form['#validate'][] = 'myeventlane_auth_user_login_form_validate_audit';
+}
+
+/**
+ * Logs failed credential checks (runs after core validators).
+ */
+function myeventlane_auth_user_login_form_validate_audit(array &$form, FormStateInterface $form_state): void {
+  if (!$form_state->get('uid')) {
+    \Drupal::logger('myeventlane_auth')->warning('Audit: login failed (credentials or flood).');
+  }
 }
 
 /**

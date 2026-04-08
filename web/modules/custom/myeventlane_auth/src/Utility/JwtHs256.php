@@ -33,7 +33,8 @@ final class JwtHs256 {
    * @return array<string, mixed>|null
    *   Payload claims or NULL if invalid/expired.
    */
-  public function decode(string $jwt, string $secret): ?array {
+  public function decode(string $jwt, string $secret, ?int $now = NULL): ?array {
+    $now = $now ?? time();
     $parts = explode('.', $jwt);
     if (count($parts) !== 3) {
       return NULL;
@@ -52,7 +53,6 @@ final class JwtHs256 {
     if (!is_array($payload)) {
       return NULL;
     }
-    $now = time();
     if (isset($payload['nbf']) && $now < (int) $payload['nbf']) {
       return NULL;
     }

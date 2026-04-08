@@ -5,6 +5,12 @@ myeventlane_auth.settings:
     auth_base_url:
       type: string
       label: 'Auth site base URL (e.g. https://auth.staging.myeventlane.com.au)'
+    jwt_issuer:
+      type: string
+      label: 'JWT issuer (iss) — optional; defaults to auth_base_url when empty'
+    jwt_audience:
+      type: string
+      label: 'JWT audience (aud) — optional; when set, tokens must include this aud'
     access_token_ttl:
       type: integer
       label: 'Access token TTL in seconds (300–900 typical)'
@@ -20,6 +26,9 @@ myeventlane_auth.settings:
     refresh_cookie_path:
       type: string
       label: 'Path scope for refresh cookie'
+    refresh_cookie_domain:
+      type: string
+      label: 'Optional cookie Domain (e.g. .staging.myeventlane.com.au) for cross-subdomain refresh cookie'
     vendor_sso_redirect_enabled:
       type: boolean
       label: 'Send anonymous /vendor/* requests to auth login (vendor host only)'

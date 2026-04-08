@@ -72,9 +72,11 @@ final class AuthController extends ControllerBase {
       throw new BadRequestHttpException('Unknown client_id.');
     }
     if (!$this->redirectValidator->isRedirectUriAllowed($redirectUri)) {
+      $this->getLogger('myeventlane_auth')->warning('Audit: authorize rejected — redirect_uri not allowlisted.');
       throw new BadRequestHttpException('redirect_uri is not allowed.');
     }
     if (!$this->redirectValidator->matchesClientRedirectPrefixes($clientId, $redirectUri)) {
+      $this->getLogger('myeventlane_auth')->warning('Audit: authorize rejected — redirect_uri prefix mismatch for client @id.', ['@id' => $clientId]);
       throw new BadRequestHttpException('redirect_uri does not match client configuration.');
     }
     $challenge = $params['code_challenge'] ?? NULL;
@@ -104,9 +106,14 @@ final class AuthController extends ControllerBase {
     $config = $this->config('myeventlane_auth.settings');
     $uid = (int) $this->currentUser()->id();
     $this->refreshTokenManager->revokeAllForUser($uid);
+    $this->getLogger('myeventlane_auth')->notice('Audit: auth-host logout for uid @uid.', ['@uid' => (string) $uid]);
 
     $cookieName = (string) $config->get('refresh_cookie_name');
     $cookiePath = (string) $config->get('refresh_cookie_path');
+    $cookieDomain = trim((string) $config->get('refresh_cookie_domain'));
+    if ($cookieDomain === '') {
+      $cookieDomain = NULL;
+    }
     $response = new RedirectResponse(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString(), 302);
     $secure = $request->isSecure();
     $response->headers->setCookie(new Cookie(
@@ -114,7 +121,7 @@ final class AuthController extends ControllerBase {
       'deleted',
       $request->server->get('REQUEST_TIME', time()) - 3600,
       $cookiePath,
-      NULL,
+      $cookieDomain,
       $secure,
       TRUE,
       FALSE,
