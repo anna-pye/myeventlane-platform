@@ -49,7 +49,6 @@ final class VendorSsoCallbackController extends ControllerBase {
 
   public function callback(Request $request): Response {
     $session = $request->getSession();
-    $now = MelAuthOAuthSession::requestTime($request);
 
     $state = (string) $request->query->get('state', '');
     $code = (string) $request->query->get('code', '');
@@ -78,6 +77,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: client_id does not match configuration.',
           $verified['redirect_uri'],
           $configuredClientId,
+          $verified['correlation_id'],
         );
       }
       $redirectUri = $verified['redirect_uri'];
@@ -90,6 +90,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: redirect_uri not allowlisted.',
           $redirectUri,
           $configuredClientId,
+          $correlationId,
         );
       }
       if (!$this->redirectValidator->matchesClientRedirectPrefixes($verified['client_id'], $redirectUri)) {
@@ -99,11 +100,13 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: redirect_uri prefix mismatch.',
           $redirectUri,
           $configuredClientId,
+          $correlationId,
         );
       }
       $usedSignedState = TRUE;
     }
     else {
+      $now = MelAuthOAuthSession::requestTime($request);
       $expectedState = (string) $session->get(MelAuthOAuthSession::KEY_STATE, '');
       $redirectUri = (string) $session->get(MelAuthOAuthSession::KEY_REDIRECT_URI, '');
       $stateCreatedRaw = $session->get(MelAuthOAuthSession::KEY_STATE_CREATED);
@@ -117,6 +120,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: missing session state or redirect_uri (legacy flow).',
           $redirectUri,
           $configuredClientId,
+          $correlationId !== '' ? $correlationId : NULL,
         );
       }
 
@@ -127,6 +131,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: missing state query parameter.',
           $redirectUri,
           $configuredClientId,
+          $correlationId !== '' ? $correlationId : NULL,
         );
       }
 
@@ -137,6 +142,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: state mismatch (tabs, session, or race).',
           $redirectUri,
           $configuredClientId,
+          $correlationId !== '' ? $correlationId : NULL,
         );
       }
 
@@ -147,6 +153,7 @@ final class VendorSsoCallbackController extends ControllerBase {
           'Vendor SSO callback rejected: state expired.',
           $redirectUri,
           $configuredClientId,
+          $correlationId !== '' ? $correlationId : NULL,
         );
       }
 
@@ -204,9 +211,6 @@ final class VendorSsoCallbackController extends ControllerBase {
 
     user_login_finalize($user);
 
-    if (!$usedSignedState) {
-      $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
-    }
     MelAuthOAuthSession::clearForSuccess($session);
 
     $logContext = ['@uid' => (string) $user->id()];
@@ -228,13 +232,15 @@ final class VendorSsoCallbackController extends ControllerBase {
     string $logMessage,
     string $redirectUri,
     string $clientId,
+    ?string $correlationOverride = NULL,
   ): Response {
     $session = $request->getSession();
-    if ($correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '')) {
-      // Used for legacy flow; signed flow may not have session keys.
+    if ($correlationOverride !== NULL) {
+      $correlationId = $correlationOverride;
     }
-
-    $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+    else {
+      $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+    }
 
     MelAuthOAuthSession::clearForFailure($session);
 

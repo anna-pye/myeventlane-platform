@@ -10,6 +10,12 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_auth'
 
+  myeventlane_auth.vendor_sso_state_signer:
+    class: Drupal\myeventlane_auth\Service\VendorSsoStateSigner
+    arguments:
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_auth'
+
   myeventlane_auth.login_url_builder:
     class: Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder
     arguments:
@@ -17,6 +23,7 @@ services:
       - '@myeventlane_auth.auth_redirect_validator'
       - '@logger.channel.myeventlane_auth'
       - '@myeventlane_core.domain_detector'
+      - '@myeventlane_auth.vendor_sso_state_signer'
 
   myeventlane_auth.oauth_client_repository:
     class: Drupal\myeventlane_auth\Service\OAuthClientRepository
