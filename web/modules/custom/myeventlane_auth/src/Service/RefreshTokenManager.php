@@ -22,6 +22,22 @@ final class RefreshTokenManager {
   ) {}
 
   /**
+   * Normalized refresh token lifetime for DB rows and HttpOnly cookies (must match).
+   *
+   * Clamps config refresh_token_ttl to 1–90 days inclusive.
+   */
+  public function getNormalizedRefreshTokenTtlSeconds(): int {
+    $ttl = (int) $this->configFactory->get('myeventlane_auth.settings')->get('refresh_token_ttl');
+    if ($ttl < 86400) {
+      $ttl = 86400;
+    }
+    if ($ttl > 86400 * 90) {
+      $ttl = 86400 * 90;
+    }
+    return $ttl;
+  }
+
+  /**
    * Creates the first refresh token in a new family chain.
    *
    * @return array{plain: string, family_id: string}
@@ -152,10 +168,7 @@ final class RefreshTokenManager {
     $plain = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
     $hash = hash('sha256', $plain);
     $now = $this->time->getRequestTime();
-    $ttl = (int) $this->configFactory->get('myeventlane_auth.settings')->get('refresh_token_ttl');
-    if ($ttl < 86400 || $ttl > 86400 * 90) {
-      $ttl = 2592000;
-    }
+    $ttl = $this->getNormalizedRefreshTokenTtlSeconds();
     $expires = $now + $ttl;
 
     $this->database->insert('mel_auth_refresh_token')

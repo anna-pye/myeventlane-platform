@@ -14,7 +14,6 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Token, refresh, userinfo, and revocation endpoints.
@@ -191,13 +190,7 @@ final class TokenController extends ControllerBase {
     if ($name === '' || $path === '') {
       return;
     }
-    $ttl = (int) $config->get('refresh_token_ttl');
-    if ($ttl < 86400) {
-      $ttl = 86400;
-    }
-    if ($ttl > 86400 * 90) {
-      $ttl = 86400 * 90;
-    }
+    $ttl = $this->refreshTokenManager->getNormalizedRefreshTokenTtlSeconds();
     $expire = $request->server->get('REQUEST_TIME', time()) + $ttl;
     $secure = $request->isSecure();
     $sameSite = $secure ? Cookie::SAMESITE_NONE : NULL;
