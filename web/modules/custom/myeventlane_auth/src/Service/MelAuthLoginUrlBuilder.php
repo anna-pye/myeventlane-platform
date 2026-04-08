@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_auth\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -20,6 +21,7 @@ final class MelAuthLoginUrlBuilder {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly AuthRedirectValidator $authRedirectValidator,
     private readonly LoggerChannelInterface $logger,
+    private readonly DomainDetector $domainDetector,
   ) {}
 
   /**
@@ -39,10 +41,20 @@ final class MelAuthLoginUrlBuilder {
     $configuredBase = rtrim((string) $config->get('auth_base_url'), '/');
     $authBase = $configuredBase;
     if ($authBase === '') {
-      $authBase = $request->getSchemeAndHttpHost();
-      $this->logger->warning('myeventlane_auth.settings auth_base_url is empty; using current request host as auth base (@host). Configure auth_base_url for production.', [
-        '@host' => $authBase,
-      ]);
+      // Never use the vendor host as the auth base: /auth/* routes must hit the
+      // same Drupal app as the public site. Prefer configured public_domain.
+      try {
+        $authBase = rtrim($this->domainDetector->buildDomainUrl('/', 'public'), '/');
+        $this->logger->notice('Vendor SSO: auth_base_url empty; using myeventlane_core public_domain as auth base (@base).', [
+          '@base' => $authBase,
+        ]);
+      }
+      catch (\Throwable $e) {
+        $authBase = $request->getSchemeAndHttpHost();
+        $this->logger->warning('myeventlane_auth.settings auth_base_url is empty and public_domain is missing or invalid; using current request host (@host). Set auth_base_url or myeventlane_core.domain_settings.public_domain.', [
+          '@host' => $authBase,
+        ]);
+      }
     }
 
     $clientId = (string) $config->get('vendor_sso_client_id');

@@ -16,6 +16,7 @@ services:
       - '@config.factory'
       - '@myeventlane_auth.auth_redirect_validator'
       - '@logger.channel.myeventlane_auth'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_auth.oauth_client_repository:
     class: Drupal\myeventlane_auth\Service\OAuthClientRepository
