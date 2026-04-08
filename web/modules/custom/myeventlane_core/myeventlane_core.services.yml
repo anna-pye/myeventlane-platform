@@ -103,6 +103,32 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_core.vendor_login_destination_normalizer:
+    class: Drupal\myeventlane_core\Service\VendorLoginDestinationNormalizer
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@config.factory'
+      - '@logger.channel.myeventlane_core'
+
+  myeventlane_core.public_vendor_login_conflict_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\PublicVendorLoginConflictSubscriber
+    arguments:
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $currentUser: '@current_user'
+      $normalizer: '@myeventlane_core.vendor_login_destination_normalizer'
+      $logger: '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_core.vendor_console_gate_redirect_subscriber:
+    class: Drupal\myeventlane_core\EventSubscriber\VendorConsoleGateRedirectSubscriber
+    arguments:
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $currentUser: '@current_user'
+      $logger: '@logger.channel.myeventlane_core'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_core.vendor_theme_negotiator:
     class: Drupal\myeventlane_core\Theme\VendorThemeNegotiator
     arguments:

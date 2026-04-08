@@ -110,3 +110,12 @@ myeventlane_core.health:
     _access: 'TRUE'
   options:
     _maintenance_access: TRUE
+
+# Log out ticket-buyer session so organiser can use /user/login (vendor destination).
+myeventlane_core.organiser_login_switch:
+  path: '/user/switch-for-organiser'
+  defaults:
+    _controller: '\Drupal\myeventlane_core\Controller\OrganiserLoginSwitchController::switchAccount'
+    _title: 'Switch account'
+  requirements:
+    _user_is_logged_in: 'TRUE'
