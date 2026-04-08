@@ -17,6 +17,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Core uses an absolute redirect to the front route (/home), which often resolves
  * to the public hostname and/or a cacheable page, so users still appear signed in
  * on the vendor host. Session destruction already ran; this only fixes Location.
+ *
+ * Do not add ?destination= to that URL: the login route redirects authenticated
+ * users to destination; a queued /vendor/dashboard caused users to bounce straight
+ * back to the console after logout.
  */
 final class VendorLogoutRedirectSubscriber implements EventSubscriberInterface {
 
@@ -56,10 +60,7 @@ final class VendorLogoutRedirectSubscriber implements EventSubscriberInterface {
     }
 
     try {
-      $login = $this->domainDetector->buildDomainUrl(
-        '/user/login?destination=' . rawurlencode('/vendor/dashboard'),
-        'vendor'
-      );
+      $login = $this->domainDetector->buildDomainUrl('/user/login', 'vendor');
     }
     catch (\Throwable $e) {
       $this->logger->error('Vendor logout redirect skipped: @message', [

@@ -161,7 +161,14 @@ final class VendorSsoCallbackController extends ControllerBase {
     }
 
     if ($configuredClientId === '') {
-      return $this->fail($request, 'missing_client_id', 'Vendor SSO callback: vendor_sso_client_id is not configured.', $redirectUri, '');
+      return $this->fail(
+        $request,
+        'missing_client_id',
+        'Vendor SSO callback: vendor_sso_client_id is not configured.',
+        $redirectUri,
+        '',
+        $correlationId !== '' ? $correlationId : NULL,
+      );
     }
 
     $clientId = $configuredClientId;
@@ -173,6 +180,7 @@ final class VendorSsoCallbackController extends ControllerBase {
         'Vendor SSO callback: missing authorization code.',
         $redirectUri,
         $clientId,
+        $correlationId !== '' ? $correlationId : NULL,
       );
     }
 
@@ -184,6 +192,7 @@ final class VendorSsoCallbackController extends ControllerBase {
         'Missing machine client secret for SSO (settings.myeventlane_auth.client_secrets).',
         $redirectUri,
         $clientId,
+        $correlationId !== '' ? $correlationId : NULL,
       );
     }
 
@@ -195,7 +204,14 @@ final class VendorSsoCallbackController extends ControllerBase {
       NULL
     );
     if ($tokens === NULL) {
-      return $this->fail($request, 'token_exchange_failed', 'Vendor SSO token exchange failed.', $redirectUri, $clientId);
+      return $this->fail(
+        $request,
+        'token_exchange_failed',
+        'Vendor SSO token exchange failed.',
+        $redirectUri,
+        $clientId,
+        $correlationId !== '' ? $correlationId : NULL,
+      );
     }
 
     $user = $this->tokenIssuer->loadUserFromAccessToken($tokens['access_token']);
@@ -206,6 +222,7 @@ final class VendorSsoCallbackController extends ControllerBase {
         'Vendor SSO: could not resolve user from access token.',
         $redirectUri,
         $clientId,
+        $correlationId !== '' ? $correlationId : NULL,
       );
     }
 
