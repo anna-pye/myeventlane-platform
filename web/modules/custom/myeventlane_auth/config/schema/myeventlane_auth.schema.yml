@@ -1,3 +1,11 @@
+# Resolved as the type of myeventlane_auth.settings:oauth_clients (do not inline
+# `type: mapping` under settings.mapping — merge can leave `type` inside the inner
+# mapping and break \Drupal\Core\Config\Schema\Mapping::__construct).
+myeventlane_auth.oauth_clients_map:
+  type: mapping
+  label: 'OAuth confidential clients'
+  mapping: {}
+
 myeventlane_auth.settings:
   type: config_object
   label: 'MyEventLane SSO settings'
@@ -59,8 +67,5 @@ myeventlane_auth.settings:
       sequence:
         type: string
         label: 'Origin URL'
-    # client_id => { secret_hash, redirect_uri_prefixes }. Empty mapping: keys use undefined typing.
     oauth_clients:
-      type: mapping
-      label: 'OAuth confidential clients'
-      mapping: {}
+      type: myeventlane_auth.oauth_clients_map
