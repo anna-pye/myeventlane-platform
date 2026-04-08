@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_auth\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -71,7 +71,7 @@ final class VendorSsoRedirectSubscriber implements EventSubscriberInterface {
 
     $this->logger->notice('Redirecting anonymous vendor request to auth SSO login.');
 
-    $event->setResponse(new RedirectResponse($loginUrl, 302));
+    $event->setResponse(new TrustedRedirectResponse($loginUrl, 302));
   }
 
   private function isVendorHost(string $host): bool {

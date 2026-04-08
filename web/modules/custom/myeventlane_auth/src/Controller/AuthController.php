@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_auth\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Url;
 use Drupal\myeventlane_auth\Service\AuthRedirectValidator;
 use Drupal\myeventlane_auth\Service\AuthorizationCodeManager;
@@ -96,7 +97,8 @@ final class AuthController extends ControllerBase {
       'code' => $plain,
       'state' => $params['state'],
     ], '', '&', PHP_QUERY_RFC3986);
-    return new RedirectResponse($target, 302);
+    // Client redirect_uri is often another host (e.g. vendor subdomain); must be trusted.
+    return new TrustedRedirectResponse($target, 302);
   }
 
   /**
