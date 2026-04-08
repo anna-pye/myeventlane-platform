@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -24,6 +25,13 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * bad Location header, so the user lands on an anonymous-only route while
  * authenticated — appearing as "lost session" on the next hop.
  *
+ * When force_redirects is enabled, core may send users to public /vendor/* or
+ * /admin/* first; the next request bounces to the vendor/admin host. If the
+ * session cookie is not yet sent on that subdomain hop, the vendor gate sends
+ * them back to public login — a redirect loop. Rewriting the first post-login
+ * Location to the canonical vendor/admin URL (TrustedRedirectResponse) avoids
+ * the intermediate public console hop.
+ *
  * Runs on every app host (public, vendor, admin): copies Set-Cookie onto a
  * TrustedRedirectResponse to a destination that is limited to configured MEL
  * domain hosts and path-based routing (/vendor → vendor_domain, etc.).
@@ -35,6 +43,7 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     private readonly DomainDetector $domainDetector,
     private readonly LoggerInterface $logger,
     private readonly MelDestinationNormalizer $destinationNormalizer,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -46,7 +55,7 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
   }
 
   /**
-   * Replaces a stuck /user/login redirect with a trusted URL when needed.
+   * Replaces fragile post-login redirects with a trusted absolute URL.
    */
   public function onResponse(ResponseEvent $event): void {
     if (!$event->isMainRequest()) {
@@ -72,25 +81,74 @@ final class VendorPostLoginRedirectSubscriber implements EventSubscriberInterfac
     }
 
     $target = $response->getTargetUrl();
-    if (!str_contains($target, '/user/login')) {
+    $trusted = $this->resolveTrustedPostLoginUrl($request);
+    if ($trusted === NULL) {
       return;
     }
 
-    $url = $this->resolveTrustedPostLoginUrl($request);
-    if ($url === NULL) {
+    if ($target === $trusted) {
       return;
     }
 
-    $fixed = new TrustedRedirectResponse($url, $response->getStatusCode());
+    $stuckOnLogin = str_contains($target, '/user/login');
+    $crossHostConsole = $this->shouldRewriteCrossHostConsoleRedirect($target, $trusted);
+    if (!$stuckOnLogin && !$crossHostConsole) {
+      return;
+    }
+
+    $fixed = new TrustedRedirectResponse($trusted, $response->getStatusCode());
     foreach ($response->headers->getCookies() as $cookie) {
       $fixed->headers->setCookie($cookie);
     }
 
-    $this->logger->notice('Adjusted post-login redirect away from stuck /user/login to @url', [
-      '@url' => $url,
+    $this->logger->notice('Adjusted post-login redirect to trusted URL @url (was @prev).', [
+      '@url' => $trusted,
+      '@prev' => $target,
     ]);
 
     $event->setResponse($fixed);
+  }
+
+  /**
+   * TRUE when the browser would hit public host for a console path but trusted
+   * target is the configured vendor/admin host (force_redirects multi-domain).
+   */
+  private function shouldRewriteCrossHostConsoleRedirect(string $currentTarget, string $trustedTarget): bool {
+    if (!(bool) $this->configFactory->get('myeventlane_core.domain_settings')->get('force_redirects')) {
+      return FALSE;
+    }
+
+    $c = parse_url($currentTarget);
+    $t = parse_url($trustedTarget);
+    if ($c === FALSE || $t === FALSE) {
+      return FALSE;
+    }
+
+    $cp = $c['path'] ?? '';
+    if (!str_starts_with($cp, '/vendor') && !str_starts_with($cp, '/admin')) {
+      return FALSE;
+    }
+
+    $locCurrent = $this->urlPathAndQueryFragment($c);
+    $locTrusted = $this->urlPathAndQueryFragment($t);
+    if ($locCurrent !== $locTrusted) {
+      return FALSE;
+    }
+
+    $ch = strtolower((string) ($c['host'] ?? ''));
+    $th = strtolower((string) ($t['host'] ?? ''));
+
+    return $ch !== '' && $th !== '' && $ch !== $th;
+  }
+
+  /**
+   * @param array<string, mixed> $parts
+   */
+  private function urlPathAndQueryFragment(array $parts): string {
+    $path = $parts['path'] ?? '';
+    $q = isset($parts['query']) ? '?' . $parts['query'] : '';
+    $frag = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
+    return $path . $q . $frag;
   }
 
   private function resolveTrustedPostLoginUrl(Request $request): ?string {
