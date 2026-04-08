@@ -7,9 +7,11 @@ namespace Drupal\myeventlane_auth\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
+use Drupal\myeventlane_auth\Service\AuthRedirectValidator;
 use Drupal\myeventlane_auth\Service\MelAuthOAuthSession;
 use Drupal\myeventlane_auth\Service\TokenGrantService;
 use Drupal\myeventlane_auth\Service\TokenIssuer;
+use Drupal\myeventlane_auth\Service\VendorSsoStateSigner;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,14 +20,17 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Vendor-host OAuth callback: exchanges code using server-side client secret.
  *
- * Establishes a Drupal session on the vendor host (vendor-scoped cookie) after
- * a successful SSO exchange on the auth host.
+ * Establishes a Drupal session on the vendor host after a successful SSO exchange.
+ * OAuth state is validated via HMAC (VendorSsoStateSigner) or, during rollout, legacy
+ * server session keys.
  */
 final class VendorSsoCallbackController extends ControllerBase {
 
   public function __construct(
     private readonly TokenGrantService $tokenGrantService,
     private readonly TokenIssuer $tokenIssuer,
+    private readonly VendorSsoStateSigner $stateSigner,
+    private readonly AuthRedirectValidator $redirectValidator,
   ) {}
 
   /**
@@ -35,6 +40,8 @@ final class VendorSsoCallbackController extends ControllerBase {
     $instance = new static(
       $container->get('myeventlane_auth.token_grant_service'),
       $container->get('myeventlane_auth.token_issuer'),
+      $container->get('myeventlane_auth.vendor_sso_state_signer'),
+      $container->get('myeventlane_auth.auth_redirect_validator'),
     );
     $instance->setMessenger($container->get('messenger'));
     return $instance;
@@ -44,62 +51,113 @@ final class VendorSsoCallbackController extends ControllerBase {
     $session = $request->getSession();
     $now = MelAuthOAuthSession::requestTime($request);
 
-    $expectedState = (string) $session->get(MelAuthOAuthSession::KEY_STATE, '');
-    $redirectUri = (string) $session->get(MelAuthOAuthSession::KEY_REDIRECT_URI, '');
-    $stateCreatedRaw = $session->get(MelAuthOAuthSession::KEY_STATE_CREATED);
-    $stateCreatedTs = is_numeric($stateCreatedRaw) ? (int) $stateCreatedRaw : 0;
-
     $state = (string) $request->query->get('state', '');
-
-    // Validate state fully before any single-use clear (malformed requests keep session intact until fail()).
-    if ($expectedState === '' || $redirectUri === '') {
-      return $this->fail(
-        $request,
-        'invalid_or_missing_state',
-        'Vendor SSO callback rejected: missing session state or redirect_uri.',
-        $redirectUri,
-        '',
-      );
-    }
-
-    if ($state === '') {
-      return $this->fail(
-        $request,
-        'invalid_or_missing_state',
-        'Vendor SSO callback rejected: missing state query parameter.',
-        $redirectUri,
-        '',
-      );
-    }
-
-    if (!hash_equals($expectedState, $state)) {
-      return $this->fail(
-        $request,
-        'state_mismatch',
-        'Vendor SSO callback rejected: state mismatch (tabs, session, or race).',
-        $redirectUri,
-        (string) $this->config('myeventlane_auth.settings')->get('vendor_sso_client_id'),
-      );
-    }
-
-    if ($stateCreatedTs < 1 || ($now - $stateCreatedTs) > MelAuthOAuthSession::STATE_TTL_SECONDS) {
-      $config = $this->config('myeventlane_auth.settings');
-      $clientIdForLog = (string) $config->get('vendor_sso_client_id');
-      return $this->fail(
-        $request,
-        'state_expired',
-        'Vendor SSO callback rejected: state expired.',
-        $redirectUri,
-        $clientIdForLog,
-      );
-    }
-
-    // Single-use: only after state is fully valid.
-    MelAuthOAuthSession::clearOAuthState($session);
-
     $code = (string) $request->query->get('code', '');
     $config = $this->config('myeventlane_auth.settings');
-    $clientId = (string) $config->get('vendor_sso_client_id');
+    $configuredClientId = (string) $config->get('vendor_sso_client_id');
+
+    $redirectUri = '';
+    $correlationId = '';
+    $usedSignedState = FALSE;
+
+    if ($state !== '' && str_contains($state, '.')) {
+      $verified = $this->stateSigner->verify($state);
+      if ($verified === NULL) {
+        return $this->fail(
+          $request,
+          'signed_state_invalid',
+          'Vendor SSO callback rejected: invalid or tampered signed state.',
+          '',
+          $configuredClientId,
+        );
+      }
+      if ($configuredClientId === '' || !hash_equals($configuredClientId, $verified['client_id'])) {
+        return $this->fail(
+          $request,
+          'client_id_mismatch',
+          'Vendor SSO callback rejected: client_id does not match configuration.',
+          $verified['redirect_uri'],
+          $configuredClientId,
+        );
+      }
+      $redirectUri = $verified['redirect_uri'];
+      $correlationId = $verified['correlation_id'];
+      if (!$this->redirectValidator->isRedirectUriAllowed($redirectUri)) {
+        $this->getLogger('myeventlane_auth')->warning('Audit: vendor SSO signed state redirect_uri failed allowlist.');
+        return $this->fail(
+          $request,
+          'redirect_not_allowed',
+          'Vendor SSO callback rejected: redirect_uri not allowlisted.',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+      if (!$this->redirectValidator->matchesClientRedirectPrefixes($verified['client_id'], $redirectUri)) {
+        return $this->fail(
+          $request,
+          'redirect_prefix_mismatch',
+          'Vendor SSO callback rejected: redirect_uri prefix mismatch.',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+      $usedSignedState = TRUE;
+    }
+    else {
+      $expectedState = (string) $session->get(MelAuthOAuthSession::KEY_STATE, '');
+      $redirectUri = (string) $session->get(MelAuthOAuthSession::KEY_REDIRECT_URI, '');
+      $stateCreatedRaw = $session->get(MelAuthOAuthSession::KEY_STATE_CREATED);
+      $stateCreatedTs = is_numeric($stateCreatedRaw) ? (int) $stateCreatedRaw : 0;
+      $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+
+      if ($expectedState === '' || $redirectUri === '') {
+        return $this->fail(
+          $request,
+          'invalid_or_missing_state',
+          'Vendor SSO callback rejected: missing session state or redirect_uri (legacy flow).',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+
+      if ($state === '') {
+        return $this->fail(
+          $request,
+          'invalid_or_missing_state',
+          'Vendor SSO callback rejected: missing state query parameter.',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+
+      if (!hash_equals($expectedState, $state)) {
+        return $this->fail(
+          $request,
+          'state_mismatch',
+          'Vendor SSO callback rejected: state mismatch (tabs, session, or race).',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+
+      if ($stateCreatedTs < 1 || ($now - $stateCreatedTs) > MelAuthOAuthSession::STATE_TTL_SECONDS) {
+        return $this->fail(
+          $request,
+          'state_expired',
+          'Vendor SSO callback rejected: state expired.',
+          $redirectUri,
+          $configuredClientId,
+        );
+      }
+
+      MelAuthOAuthSession::clearOAuthState($session);
+    }
+
+    if ($configuredClientId === '') {
+      return $this->fail($request, 'missing_client_id', 'Vendor SSO callback: vendor_sso_client_id is not configured.', $redirectUri, '');
+    }
+
+    $clientId = $configuredClientId;
 
     if ($code === '') {
       return $this->fail(
@@ -109,10 +167,6 @@ final class VendorSsoCallbackController extends ControllerBase {
         $redirectUri,
         $clientId,
       );
-    }
-
-    if ($clientId === '') {
-      return $this->fail($request, 'missing_client_id', 'Vendor SSO callback: vendor_sso_client_id is not configured.', $redirectUri, '');
     }
 
     $clientSecret = $this->resolveMachineClientSecret($clientId);
@@ -150,8 +204,9 @@ final class VendorSsoCallbackController extends ControllerBase {
 
     user_login_finalize($user);
 
-    // Correlation must be read before clearForSuccess() (it removes KEY_CORRELATION_ID).
-    $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+    if (!$usedSignedState) {
+      $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
+    }
     MelAuthOAuthSession::clearForSuccess($session);
 
     $logContext = ['@uid' => (string) $user->id()];
@@ -175,7 +230,10 @@ final class VendorSsoCallbackController extends ControllerBase {
     string $clientId,
   ): Response {
     $session = $request->getSession();
-    // Correlation must be read before clearForFailure() (it removes KEY_CORRELATION_ID).
+    if ($correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '')) {
+      // Used for legacy flow; signed flow may not have session keys.
+    }
+
     $correlationId = (string) $session->get(MelAuthOAuthSession::KEY_CORRELATION_ID, '');
 
     MelAuthOAuthSession::clearForFailure($session);
@@ -201,7 +259,6 @@ final class VendorSsoCallbackController extends ControllerBase {
 
     $this->messenger()->addError($this->t("We couldn't complete sign-in. Please try again."));
 
-    // After repeated failures, stop sending users back to /vendor/dashboard (avoids SSO retry loops).
     $query = [];
     if ($failCount < 2) {
       $query['destination'] = '/vendor/dashboard';
