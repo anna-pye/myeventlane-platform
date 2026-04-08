@@ -59,6 +59,8 @@ myeventlane_auth.settings:
       sequence:
         type: string
         label: 'Origin URL'
-    # Dynamic client_id keys; nested mapping with '*' breaks Drupal 11 schema validation on cim.
+    # client_id => { secret_hash, redirect_uri_prefixes }. Empty mapping: keys use undefined typing.
     oauth_clients:
-      type: ignore
+      type: mapping
+      label: 'OAuth confidential clients'
+      mapping: {}

@@ -117,13 +117,13 @@ final class SettingsForm extends ConfigFormBase {
     $form['allowlists']['allowed_redirect_hosts'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Allowed redirect_uri hosts'),
-      '#description' => $this->t('One hostname per line (no scheme). Merged with myeventlane_core domain hosts when that module is enabled.'),
+      '#description' => $this->t('One hostname per line (no scheme). URLs are accepted and normalized to the host. Merged with myeventlane_core domain hosts when that module is enabled.'),
       '#default_value' => implode("\n", $config->get('allowed_redirect_hosts') ?: []),
     ];
     $form['allowlists']['allowed_cors_origins'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Allowed CORS origins'),
-      '#description' => $this->t('Full Origin URLs, one per line (e.g. https://vendor.staging.myeventlane.com.au).'),
+      '#description' => $this->t('Full Origin URLs, one per line (e.g. https://vendor.staging.myeventlane.com.au). Lines without a valid http(s) URL are ignored.'),
       '#default_value' => implode("\n", $config->get('allowed_cors_origins') ?: []),
     ];
 
@@ -156,7 +156,7 @@ final class SettingsForm extends ConfigFormBase {
     $form['vendor_sso']['vendor_sso_redirect_hosts'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Extra vendor hostnames'),
-      '#description' => $this->t('One per line. Vendor domain from myeventlane_core is included automatically when present.'),
+      '#description' => $this->t('One per line. URLs are normalized to the host. Vendor domain from myeventlane_core is included automatically when present.'),
       '#default_value' => implode("\n", $config->get('vendor_sso_redirect_hosts') ?: []),
     ];
 
@@ -199,9 +199,35 @@ final class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $hosts = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $form_state->getValue('allowed_redirect_hosts')))));
-    $origins = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $form_state->getValue('allowed_cors_origins')))));
-    $vendorHosts = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) $form_state->getValue('vendor_sso_redirect_hosts')))));
+    $hostLines = preg_split('/\R/', (string) $form_state->getValue('allowed_redirect_hosts'));
+    $hosts = [];
+    foreach (is_array($hostLines) ? $hostLines : [] as $line) {
+      $h = $this->normalizeHostnameLine((string) $line);
+      if ($h !== NULL) {
+        $hosts[] = $h;
+      }
+    }
+    $hosts = array_values(array_unique($hosts));
+
+    $originLines = preg_split('/\R/', (string) $form_state->getValue('allowed_cors_origins'));
+    $origins = [];
+    foreach (is_array($originLines) ? $originLines : [] as $line) {
+      $o = $this->normalizeCorsOriginLine((string) $line);
+      if ($o !== NULL) {
+        $origins[] = $o;
+      }
+    }
+    $origins = array_values(array_unique($origins));
+
+    $vendorHostLines = preg_split('/\R/', (string) $form_state->getValue('vendor_sso_redirect_hosts'));
+    $vendorHosts = [];
+    foreach (is_array($vendorHostLines) ? $vendorHostLines : [] as $line) {
+      $h = $this->normalizeHostnameLine((string) $line);
+      if ($h !== NULL) {
+        $vendorHosts[] = $h;
+      }
+    }
+    $vendorHosts = array_values(array_unique($vendorHosts));
 
     $clientId = trim((string) $form_state->getValue('oauth_client_id'));
     $secret = (string) $form_state->getValue('oauth_client_secret');
@@ -244,6 +270,52 @@ final class SettingsForm extends ConfigFormBase {
     $editable->set('oauth_clients', $clients)->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Normalizes a hostname line (host only, lowercase).
+   */
+  private function normalizeHostnameLine(string $line): ?string {
+    $line = trim($line);
+    if ($line === '') {
+      return NULL;
+    }
+    if (str_contains($line, '://')) {
+      $host = parse_url($line, PHP_URL_HOST);
+      return is_string($host) && $host !== '' ? strtolower($host) : NULL;
+    }
+    $line = strtolower($line);
+    $slash = strpos($line, '/');
+    if ($slash !== FALSE) {
+      $line = substr($line, 0, $slash);
+    }
+    return $line !== '' ? $line : NULL;
+  }
+
+  /**
+   * Normalizes to a single Origin string (scheme + host [:port]).
+   */
+  private function normalizeCorsOriginLine(string $line): ?string {
+    $line = trim($line);
+    if ($line === '') {
+      return NULL;
+    }
+    if (!preg_match('#^https?://#i', $line)) {
+      return NULL;
+    }
+    $parts = parse_url($line);
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+      return NULL;
+    }
+    $scheme = strtolower((string) $parts['scheme']);
+    if ($scheme !== 'http' && $scheme !== 'https') {
+      return NULL;
+    }
+    $origin = $scheme . '://' . strtolower((string) $parts['host']);
+    if (isset($parts['port'])) {
+      $origin .= ':' . (int) $parts['port'];
+    }
+    return $origin;
   }
 
 }
