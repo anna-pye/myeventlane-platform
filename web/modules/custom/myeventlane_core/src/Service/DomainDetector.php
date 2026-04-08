@@ -138,20 +138,65 @@ final class DomainDetector {
   }
 
   /**
+   * Hostnames to consider for domain matching.
+   *
+   * Behind reverse proxies, Request::getHost() follows X-Forwarded-Host. Some
+   * stacks send the public apex for every vhost; the browser Host header at
+   * the edge can still be vendor.* / admin.* and must be honoured so console
+   * gates and redirects run on the correct host.
+   *
+   * @return list<string>
+   */
+  private function hostnameCandidatesForMatching(): array {
+    $request = $this->getRequest();
+    if ($request === NULL) {
+      return [];
+    }
+
+    $out = [];
+    $fromRequest = strtolower($request->getHost());
+    if ($fromRequest !== '') {
+      $out[] = $fromRequest;
+    }
+
+    $raw = $request->server->get('HTTP_HOST');
+    if (is_string($raw) && $raw !== '') {
+      $raw = strtolower((string) preg_replace('/:\d+$/', '', $raw));
+      if ($raw !== '' && !in_array($raw, $out, TRUE)) {
+        $out[] = $raw;
+      }
+    }
+
+    return $out;
+  }
+
+  /**
    * Checks whether the current hostname matches a configured domain.
    */
   private function isMatchingConfiguredDomain(string $config_key, string $prefix): bool {
-    $hostname = $this->getCurrentHostname();
-    if ($hostname === NULL) {
+    $candidates = $this->hostnameCandidatesForMatching();
+    if ($candidates === []) {
       return FALSE;
     }
 
     $configured = $this->getConfiguredDomainHost($config_key);
     if ($configured === NULL) {
-      return str_starts_with($hostname, $prefix);
+      foreach ($candidates as $hostname) {
+        if (str_starts_with($hostname, $prefix)) {
+          return TRUE;
+        }
+      }
+      return FALSE;
     }
 
-    return $hostname === $configured;
+    $configured = strtolower($configured);
+    foreach ($candidates as $hostname) {
+      if ($hostname === $configured) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
@@ -195,7 +240,7 @@ final class DomainDetector {
     }
 
     $host = parse_url($value, PHP_URL_HOST);
-    return is_string($host) ? $host : NULL;
+    return is_string($host) ? strtolower($host) : NULL;
   }
 
 }
