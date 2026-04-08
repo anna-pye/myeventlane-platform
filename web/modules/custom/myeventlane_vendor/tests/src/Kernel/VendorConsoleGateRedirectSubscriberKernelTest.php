@@ -7,6 +7,7 @@ namespace Drupal\Tests\myeventlane_vendor\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_core\EventSubscriber\VendorConsoleGateRedirectSubscriber;
 use Drupal\myeventlane_core\MelVendorOrganiserRole;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,9 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
+ * Vendor host gate: anonymous → public login; buyer → organiser switch;
+ * trusted console users pass through. Trust matches VendorConsoleTrust.
+ *
  * @coversDefaultClass \Drupal\myeventlane_core\EventSubscriber\VendorConsoleGateRedirectSubscriber
  *
  * @group myeventlane_vendor
@@ -81,6 +85,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
     ]);
     $user->addRole('authenticated');
     $user->save();
+    $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
 
     $this->container->get('account_switcher')->switchTo($user);
 
@@ -112,6 +117,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
     $user->addRole('authenticated');
     $user->addRole(MelVendorOrganiserRole::MACHINE_NAME);
     $user->save();
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
 
     $this->container->get('account_switcher')->switchTo($user);
 
@@ -139,6 +145,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
     $user->addRole('authenticated');
     $user->addRole('console_perm_only');
     $user->save();
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
 
     $this->container->get('account_switcher')->switchTo($user);
 
@@ -154,7 +161,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
   }
 
   /**
-   * Site admin + vendor role → no gate redirect (admin path matches allow branch via permission or role).
+   * Site admin + vendor role → no gate redirect (trusted via role).
    */
   public function testAuthenticatedAdminPlusVendorNoGateRedirect(): void {
     $this->ensureSiteAdminRole();
@@ -168,6 +175,7 @@ final class VendorConsoleGateRedirectSubscriberKernelTest extends KernelTestBase
     $user->addRole('site_admin');
     $user->addRole(MelVendorOrganiserRole::MACHINE_NAME);
     $user->save();
+    $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
 
     $this->container->get('account_switcher')->switchTo($user);
 

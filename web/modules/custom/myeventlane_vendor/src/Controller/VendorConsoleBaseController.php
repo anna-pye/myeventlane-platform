@@ -9,8 +9,8 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Drupal\myeventlane_core\MelVendorOrganiserRole;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -51,7 +51,7 @@ abstract class VendorConsoleBaseController {
     }
 
     // Permission or organiser role (aligned with VendorConsoleAccess::access).
-    if (!$this->currentUser->hasPermission('access vendor console') && !$this->currentUser->hasRole(MelVendorOrganiserRole::MACHINE_NAME)) {
+    if (!VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser)) {
       throw new AccessDeniedHttpException('You are not authorized to access this page.');
     }
 
