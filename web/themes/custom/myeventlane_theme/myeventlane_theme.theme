@@ -517,24 +517,51 @@ function _myeventlane_theme_commerce_order_from_route(): ?OrderInterface {
 }
 
 /**
+ * Whether the order is a natural free-RSVP checkout (list-price $0 tickets only).
+ *
+ * Distinguishes true RSVP products from orders that reach $0 via promotions
+ * (e.g. 100% off a paid variation), where "Confirm RSVP" would mislead.
+ */
+function _myeventlane_theme_order_is_natural_zero_price_rsvp(OrderInterface $order): bool {
+  $has_ticket_variation = FALSE;
+  foreach ($order->getItems() as $item) {
+    if (in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+      continue;
+    }
+    $purchased = $item->getPurchasedEntity();
+    if (!$purchased instanceof ProductVariationInterface) {
+      continue;
+    }
+    $has_ticket_variation = TRUE;
+    $list_price = $purchased->getPrice();
+    if ($list_price === NULL || !$list_price->isZero()) {
+      return FALSE;
+    }
+  }
+  return $has_ticket_variation;
+}
+
+/**
  * Implements hook_preprocess_HOOK() for commerce_checkout_form.
  */
 function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables): void {
   $step_id = $variables['form']['#step_id'] ?? NULL;
 
-  $variables['mel_checkout_is_free_order'] = FALSE;
   if (($step_id ?? '') !== 'complete') {
     $order_param = _myeventlane_theme_commerce_order_from_route();
     if ($order_param instanceof OrderInterface) {
       $total_price = $order_param->getTotalPrice();
-      if ($total_price !== NULL) {
-        $variables['mel_checkout_is_free_order'] = $total_price->isZero();
-      }
-      // Primary CTA from order total only (avoids stale labels when payment pane is AJAX-hidden).
+      // Primary CTA from order total + variation list prices (avoids stale labels when
+      // payment pane is AJAX-hidden; RSVP label only for inherently free tickets).
       $form = &$variables['form'];
       if (isset($form['actions']['next']) && $total_price !== NULL) {
         if ($total_price->isZero()) {
-          $form['actions']['next']['#value'] = t('Confirm RSVP');
+          if (_myeventlane_theme_order_is_natural_zero_price_rsvp($order_param)) {
+            $form['actions']['next']['#value'] = t('Confirm RSVP');
+          }
+          else {
+            $form['actions']['next']['#value'] = t('Complete order');
+          }
         }
         else {
           $form['actions']['next']['#value'] = t('Pay now');

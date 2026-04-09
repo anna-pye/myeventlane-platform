@@ -149,6 +149,8 @@
         const getRequestedAttendeeCount = () => {
           const select = form.querySelector('select[name="people"]');
 
+          // Select elements have no `checked`; the chip/radio path below must not run alone
+          // or count stays 1 and PENDING_ATTR never matches after AJAX (copy-all stalls).
           if (select instanceof HTMLSelectElement) {
             const v = parseInt(select.value || '1', 10);
             return Math.max(1, Math.min(MAX, v || 1));
