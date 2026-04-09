@@ -63,18 +63,19 @@ services:
       - '@myeventlane_messaging.utm_linker'
       - '@myeventlane_messaging.vendor_brand_resolver'
       - '@?myeventlane_pro.vendor_comms_resolver'
-      - '@?myeventlane_tickets.order_confirmation_pdf_attachments'
+      - '@myeventlane_messaging.order_confirmation_attachment_resolver'
 
   myeventlane_messaging.order_confirmation_queue:
     class: Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder
     arguments:
-      - '@entity_type.manager'
-      - '@?myeventlane_core.ticket_label_resolver'
-      - '@file_url_generator'
-      - '@myeventlane_messaging.manager'
-      - '@logger.channel.myeventlane_messaging'
-      - '@myeventlane_core.domain_detector'
-      - '@?myeventlane_rsvp.ics_generator'
+      $entityTypeManager: '@entity_type.manager'
+      $ticketLabelResolver: '@?myeventlane_core.ticket_label_resolver'
+      $fileUrlGenerator: '@file_url_generator'
+      $messagingManager: '@myeventlane_messaging.manager'
+      $logger: '@logger.channel.myeventlane_messaging'
+      $domainDetector: '@myeventlane_core.domain_detector'
+      $time: '@datetime.time'
+      $icsGenerator: '@?myeventlane_rsvp.ics_generator'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
@@ -131,9 +132,32 @@ services:
   myeventlane_messaging.order_placed_subscriber:
     class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
     arguments:
-      - '@myeventlane_messaging.manager'
-      - '@logger.channel.myeventlane_messaging'
-      - '@myeventlane_messaging.order_confirmation_queue'
+      $messagingManager: '@myeventlane_messaging.manager'
+      $logger: '@logger.channel.myeventlane_messaging'
+      $orderConfirmationQueue: '@myeventlane_messaging.order_confirmation_queue'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_messaging.order_paid_invoice_subscriber:
+    class: Drupal\myeventlane_messaging\EventSubscriber\OrderPaidInvoiceSubscriber
+    arguments:
+      $messagingManager: '@myeventlane_messaging.manager'
+      $logger: '@logger.channel.myeventlane_messaging'
+      $dateFormatter: '@date.formatter'
+      $currencyFormatter: '@commerce_price.currency_formatter'
+      $time: '@datetime.time'
+      $entityTypeManager: '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_messaging.order_paid_confirmation_pdf_recovery_subscriber:
+    class: Drupal\myeventlane_messaging\EventSubscriber\OrderPaidConfirmationPdfRecoverySubscriber
+    arguments:
+      $orderConfirmationQueue: '@myeventlane_messaging.order_confirmation_queue'
+      $messageStorage: '@myeventlane_messaging.message_storage'
+      $entityTypeManager: '@entity_type.manager'
+      $state: '@state'
+      $logger: '@logger.channel.myeventlane_messaging'
     tags:
       - { name: event_subscriber }
 
