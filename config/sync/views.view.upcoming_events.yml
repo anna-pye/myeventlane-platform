@@ -5,6 +5,7 @@ dependencies:
   config:
     - core.entity_view_mode.node.teaser
     - field.storage.node.field_category
+    - field.storage.node.field_event_end
     - field.storage.node.field_event_state
     - field.storage.node.field_event_type
     - node.type.event
@@ -308,13 +309,15 @@ display:
             remember: false
             multiple: false
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -322,7 +325,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -335,6 +338,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -399,6 +413,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       style:
         type: default
         options:
@@ -608,13 +627,15 @@ display:
             remember: false
             multiple: false
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -622,7 +643,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -635,6 +656,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -699,6 +731,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -912,13 +949,15 @@ display:
             remember: false
             multiple: false
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -926,7 +965,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -939,6 +978,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -971,6 +1021,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -1230,15 +1285,15 @@ display:
               anonymous: anonymous
               authenticated: authenticated
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
           entity_type: node
-          entity_field: field_event_start
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -1246,7 +1301,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -1259,6 +1314,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_event_type:
           id: field_event_type
           table: node__field_event_type
@@ -1355,6 +1421,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -1579,13 +1650,15 @@ display:
             remember: false
             multiple: false
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -1593,7 +1666,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -1606,6 +1679,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_event_type:
           id: field_event_type
           table: node__field_event_type
@@ -1683,6 +1767,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -1924,6 +2013,46 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 2
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -1988,6 +2117,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -2229,6 +2363,46 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
+          plugin_id: datetime
+          operator: '>='
+          value:
+            min: ''
+            max: ''
+            value: now
+            type: offset
+          group: 2
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -2293,6 +2467,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       row:
         type: 'entity:node'
         options:
@@ -2552,13 +2731,15 @@ display:
             remember: false
             multiple: false
           is_grouped: false
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
+        field_event_end_value:
+          id: field_event_end_value
+          table: node__field_event_end
+          field: field_event_end_value
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_end
           plugin_id: datetime
           operator: '>='
           value:
@@ -2566,7 +2747,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -2579,6 +2760,17 @@ display:
             remember: false
             multiple: false
           is_grouped: false
+        mel_event_no_end_upcoming:
+          id: mel_event_no_end_upcoming
+          table: node_field_data
+          field: mel_event_no_end_upcoming
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          plugin_id: mel_event_no_end_upcoming
+          group: 2
+          exposed: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -2611,6 +2803,11 @@ display:
           hierarchy: false
           limit: true
           error_message: true
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
+          2: OR
       defaults:
         empty: false
         pager: false
