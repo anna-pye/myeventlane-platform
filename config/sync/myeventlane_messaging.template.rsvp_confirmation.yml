@@ -19,6 +19,6 @@ body_html: |
 utm:
   enable: true
   params:
-    utm_source: 'email'
-    utm_medium: 'transactional'
-    utm_campaign: 'rsvp_confirmation'
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: rsvp_confirmation
