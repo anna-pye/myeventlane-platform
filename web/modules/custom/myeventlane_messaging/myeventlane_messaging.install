@@ -245,3 +245,14 @@ function _myeventlane_messaging_import_shipped_template_file(string $module_path
   $editable->setData($data);
   $editable->save();
 }
+
+/**
+ * Import order_invoice messaging template for existing installations.
+ */
+function myeventlane_messaging_update_10004(): void {
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_messaging');
+  $cfg = \Drupal::configFactory()->getEditable('myeventlane_messaging.template.order_invoice');
+  if ($cfg->isNew()) {
+    _myeventlane_messaging_import_shipped_template_file($module_path, 'order_invoice');
+  }
+}

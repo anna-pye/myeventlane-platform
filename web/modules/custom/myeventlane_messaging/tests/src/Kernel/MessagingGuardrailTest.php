@@ -212,6 +212,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
     return [
       // Transactional attendee emails.
       'order_confirmation',
+      'order_invoice',
       'rsvp_confirmation',
       'cart_abandoned',
       'event_reminder',
@@ -293,6 +294,32 @@ final class MessagingGuardrailTest extends KernelTestBase {
         'total_paid' => '$10.00',
         'event_name' => 'Test Event',
         'tickets_need_assignment' => FALSE,
+      ];
+    }
+
+    if ($key === 'order_invoice') {
+      return $base + [
+        'invoice_date' => 'Jan 1, 2026',
+        'line_items' => [
+          [
+            'title' => 'General Admission',
+            'quantity' => 1,
+            'unit_price' => '$10.00',
+            'line_total' => '$10.00',
+          ],
+        ],
+        'fee_lines' => [
+          ['label' => 'Processing fee', 'amount' => '$1.00'],
+        ],
+        'tax_lines' => [
+          ['label' => 'GST', 'amount' => '$1.00'],
+        ],
+        'events' => [
+          ['title' => 'Test Event'],
+        ],
+        'total_paid' => '$12.00',
+        'order_total' => '$12.00',
+        'event_name' => 'Test Event',
       ];
     }
 

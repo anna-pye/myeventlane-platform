@@ -41,6 +41,13 @@ services:
   myeventlane_messaging.utm_linker:
     class: Drupal\myeventlane_messaging\Service\UtmLinker
 
+  myeventlane_messaging.order_confirmation_attachment_resolver:
+    class: Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_messaging'
+      - '@?myeventlane_tickets.ticket_pdf_generator'
+
   myeventlane_messaging.manager:
     class: Drupal\myeventlane_messaging\Service\MessagingManager
     arguments:
@@ -56,6 +63,7 @@ services:
       - '@myeventlane_messaging.utm_linker'
       - '@myeventlane_messaging.vendor_brand_resolver'
       - '@?myeventlane_pro.vendor_comms_resolver'
+      - '@?myeventlane_messaging.order_confirmation_attachment_resolver'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
@@ -118,5 +126,16 @@ services:
       - '@myeventlane_messaging.manager'
       - '@logger.channel.myeventlane_messaging'
       - '@myeventlane_core.domain_detector'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_messaging.order_paid_invoice_subscriber:
+    class: Drupal\myeventlane_messaging\EventSubscriber\OrderPaidInvoiceSubscriber
+    arguments:
+      - '@myeventlane_messaging.manager'
+      - '@logger.channel.myeventlane_messaging'
+      - '@date.formatter'
+      - '@commerce_price.currency_formatter'
+      - '@datetime.time'
     tags:
       - { name: event_subscriber }
