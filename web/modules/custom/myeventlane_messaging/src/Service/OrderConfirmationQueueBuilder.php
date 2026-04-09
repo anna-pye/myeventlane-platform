@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_messaging\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
@@ -27,7 +26,6 @@ final class OrderConfirmationQueueBuilder {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
-    private readonly TimeInterface $time,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -98,7 +96,7 @@ final class OrderConfirmationQueueBuilder {
       $context['event_id'] = $primaryEventId;
     }
     if ($isResend) {
-      $context['resend_id'] = $this->time->getRequestTime();
+      $context['resend_id'] = uniqid('resend_', TRUE);
     }
 
     $attachments = $this->generateIcsAttachments($events);

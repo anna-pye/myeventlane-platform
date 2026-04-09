@@ -74,7 +74,6 @@ services:
       $messagingManager: '@myeventlane_messaging.manager'
       $logger: '@logger.channel.myeventlane_messaging'
       $domainDetector: '@myeventlane_core.domain_detector'
-      $time: '@datetime.time'
       $icsGenerator: '@?myeventlane_rsvp.ics_generator'
 
   myeventlane_messaging.scheduler.boost:
