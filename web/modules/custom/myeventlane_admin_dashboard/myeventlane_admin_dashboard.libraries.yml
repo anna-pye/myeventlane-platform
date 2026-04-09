@@ -24,3 +24,10 @@ sidebar_nav:
   css:
     theme:
       css/sidebar-nav.css: {}
+
+# Global orders table (PCC /admin/myeventlane/orders).
+admin_orders_table:
+  version: VERSION
+  css:
+    theme:
+      css/admin-orders-view.css: {}

@@ -16,6 +16,12 @@ myeventlane_admin_dashboard.vendors_tab:
   title: 'Vendors'
   base_route: myeventlane_admin_dashboard.platform_control
 
+myeventlane_admin_dashboard.orders_tab:
+  route_name: view.vendor_orders.admin_orders
+  title: 'Orders'
+  base_route: myeventlane_admin_dashboard.platform_control
+  weight: 25
+
 myeventlane_admin_dashboard.escalations_tab:
   route_name: entity.escalation.collection
   title: 'Escalations'

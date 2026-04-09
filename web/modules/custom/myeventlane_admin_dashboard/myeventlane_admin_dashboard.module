@@ -25,6 +25,7 @@ function _myeventlane_admin_dashboard_is_pcc_route(?string $route_name): bool {
     'myeventlane_admin_dashboard.platform_studio',
     'myeventlane_admin_dashboard.financials',
     'myeventlane_admin_dashboard.vendors',
+    'view.vendor_orders.admin_orders',
     'myeventlane_admin_dashboard.payouts',
     'myeventlane_admin_dashboard.reports',
     'myeventlane_admin_dashboard.payout_batches',
@@ -236,6 +237,19 @@ function myeventlane_admin_dashboard_theme(): array {
 }
 
 /**
+ * Implements hook_preprocess_views_view().
+ */
+function myeventlane_admin_dashboard_preprocess_views_view(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof \Drupal\views\ViewExecutable) {
+    return;
+  }
+  if ($view->id() === 'vendor_orders' && $view->current_display === 'admin_orders') {
+    $variables['#attached']['library'][] = 'myeventlane_admin_dashboard/admin_orders_table';
+  }
+}
+
+/**
  * Implements hook_menu_local_tasks_alter().
  *
  * Hides PCC tabs the current user lacks permission to view.
@@ -245,6 +259,7 @@ function myeventlane_admin_dashboard_menu_local_tasks_alter(array &$data, string
   $tab_permissions = [
     'myeventlane_admin_dashboard.financials_tab' => 'view myeventlane financials',
     'myeventlane_admin_dashboard.vendors_tab' => 'view myeventlane vendors',
+    'myeventlane_admin_dashboard.orders_tab' => 'administer myeventlane messaging',
     'myeventlane_admin_dashboard.escalations_tab' => 'view myeventlane escalations',
     'myeventlane_admin_dashboard.payouts_tab' => 'view myeventlane payouts',
     'myeventlane_admin_dashboard.reports_tab' => 'view myeventlane reports',
