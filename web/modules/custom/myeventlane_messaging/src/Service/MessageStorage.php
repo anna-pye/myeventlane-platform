@@ -118,6 +118,35 @@ final class MessageStorage {
   }
 
   /**
+   * Sent order_confirmation rows for a commerce order (recipient + serialized order_id).
+   *
+   * @return object[]
+   *   Rows with context as array; ordered by sent ascending (0 first).
+   */
+  public function findSentOrderConfirmationsForOrder(int $orderId, string $recipient): array {
+    if ($orderId < 1 || $recipient === '') {
+      return [];
+    }
+    $serializedOrderIdMarker = 's:8:"order_id";i:' . $orderId . ';';
+    $q = $this->connection->select('myeventlane_message', 'm')
+      ->fields('m')
+      ->condition('m.template', 'order_confirmation')
+      ->condition('m.recipient', $recipient)
+      ->condition('m.status', 'sent')
+      ->condition('m.context', '%' . $this->connection->escapeLike($serializedOrderIdMarker) . '%', 'LIKE')
+      ->orderBy('m.sent', 'ASC')
+      ->orderBy('m.created', 'ASC');
+
+    $rows = $q->execute()->fetchAll();
+    $out = [];
+    foreach ($rows as $r) {
+      $r->context = $r->context ? unserialize($r->context, ['allowed_classes' => FALSE]) : [];
+      $out[] = $r;
+    }
+    return $out;
+  }
+
+  /**
    * Updates message status and related fields.
    *
    * @param string $id

@@ -265,6 +265,9 @@ final class MessagingGuardrailTest extends KernelTestBase {
 
     if ($key === 'order_confirmation') {
       return $base + [
+        'order_id' => 1001,
+        'tickets_url' => 'https://example.test/my-tickets/order/1001#tickets',
+        'has_tickets' => TRUE,
         'events' => [
           [
             'title' => 'Test Event',

@@ -34,6 +34,10 @@ final class ResendOrderConfirmationAccess implements AccessInterface {
    * Access for resending order confirmation for a commerce order.
    */
   public function check(OrderInterface $order, AccountInterface $account): AccessResultInterface {
+    if ($account->hasPermission('administer myeventlane messaging')) {
+      return AccessResult::allowed()->cachePerPermissions();
+    }
+
     if ($account->hasPermission('resend order confirmation emails')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
