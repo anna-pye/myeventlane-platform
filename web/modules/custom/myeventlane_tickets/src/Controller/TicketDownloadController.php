@@ -136,7 +136,10 @@ final class TicketDownloadController extends ControllerBase {
     if ($ticketIds) {
       /** @var \Drupal\myeventlane_tickets\Entity\Ticket[] $candidates */
       $candidates = $ticketStorage->loadMultiple($ticketIds);
-      $attendeeEmail = strtolower(trim((string) ($attendee->get('email')->value ?? '')));
+      $attendeeEmail = '';
+      if ($attendee->hasField('email') && !$attendee->get('email')->isEmpty()) {
+        $attendeeEmail = strtolower(trim((string) $attendee->get('email')->value));
+      }
       foreach ($candidates as $candidate) {
         if ($candidate->get('holder_email')->isEmpty()) {
           continue;
