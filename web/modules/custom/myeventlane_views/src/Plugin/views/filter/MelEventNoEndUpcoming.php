@@ -58,9 +58,17 @@ final class MelEventNoEndUpcoming extends FilterPluginBase {
       return;
     }
 
+    // Compare "now" to stored datetimes using the same SQL shaping as core's
+    // datetime Views filter (see \Drupal\datetime\Plugin\views\filter\Date::opSimple()).
+    //
+    // For getDateField($x, $string_date = TRUE), drivers pass $x through or wrap it
+    // (e.g. PostgreSQL: TO_TIMESTAMP($x, ...)). The value must be a valid SQL
+    // expression: a column reference or a quoted literal. An unquoted
+    // Y-m-d\TH:i:s string is not valid SQL in DATE_FORMAT/TO_TIMESTAMP and would
+    // produce malformed queries; core therefore concatenates single quotes here.
     $timezone = date_default_timezone_get();
     $value = new DateTimePlus('now', new \DateTimeZone($timezone));
-    $formatted_literal = "'" . $this->dateFormatter->format(
+    $quoted_storage_now = "'" . $this->dateFormatter->format(
       $value->getTimestamp(),
       'custom',
       DateTimeItemInterface::DATETIME_STORAGE_FORMAT,
@@ -68,7 +76,7 @@ final class MelEventNoEndUpcoming extends FilterPluginBase {
     ) . "'";
 
     $value_sql = $query->getDateFormat(
-      $query->getDateField($formatted_literal, TRUE, TRUE),
+      $query->getDateField($quoted_storage_now, TRUE, TRUE),
       DateTimeItemInterface::DATETIME_STORAGE_FORMAT,
       TRUE
     );
