@@ -19,7 +19,8 @@
         const selector = form.querySelectorAll('input[name="people"], select[name="people"]');
         const guestsInput = form.querySelector('input[name="quantity"]');
         const chipGroups = form.querySelectorAll('.mel-chip-group');
-        const attendeeCards = form.querySelectorAll('.mel-attendee-card');
+        /** Re-query after AJAX replaces the attendees wrapper (stale NodeList otherwise). */
+        const getAttendeeCards = () => form.querySelectorAll('.mel-attendee-card');
         const copyAllCheckbox = form.querySelector('.mel-copy-all');
 
         const upgradeChipMarkup = (group) => {
@@ -80,7 +81,7 @@
           }
           const firstName = form.querySelector('[name="attendees[0][name]"]');
           const firstEmail = form.querySelector('[name="attendees[0][email]"]');
-          attendeeCards.forEach((card, i) => {
+          getAttendeeCards().forEach((card, i) => {
             if (i === 0) {
               return;
             }
@@ -114,8 +115,24 @@
         };
 
         const updateAttendeeCards = (shouldScroll) => {
+          const peopleSelect = form.querySelector('select[name="people"]');
+          if (peopleSelect instanceof HTMLSelectElement) {
+            // Card count matches the select via Form API rebuild + AJAX; DOM has no extra rows.
+            getAttendeeCards().forEach((card) => {
+              card.classList.add('is-visible');
+            });
+            const count = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
+            if (count > 1 && shouldScroll) {
+              form.querySelector('.mel-attendees')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+            }
+            return;
+          }
+
           const value = getRequestedAttendeeCount();
-          attendeeCards.forEach((card, index) => {
+          getAttendeeCards().forEach((card, index) => {
             if (index < value) {
               card.style.display = 'block';
               requestAnimationFrame(() => {
@@ -144,7 +161,8 @@
           if (peopleSelect instanceof HTMLSelectElement) {
             const selected = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
             guestsInput.value = String(selected);
-            // Party-size field list is rebuilt via Form API AJAX; do not toggle legacy cards.
+            // Drupal AJAX replaces the attendee wrapper; keep quantity in sync for POST.
+            updateAttendeeCards(true);
             return;
           }
           let selected = 1;

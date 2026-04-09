@@ -1,31 +1,79 @@
 {#
 /**
  * @file
- * RSVP public form wrapper (event book page when no $0 Commerce product).
+ * Public RSVP form — structured conversion path (event book / RSVP block).
  *
- * IMPORTANT:
- * - Use {{ children }} for the form subtree. Do not render the full element as
- *   "form" — that re-invokes the form theme and nests <form> tags, which breaks
- *   browser submission and legal consent POST data.
- * - Styling and sticky CTA use CSS/JS targeting .form-actions.
+ * Use `element` (the form root render array). Do not render the root as `form`
+ * inside <form> — that can re-invoke the form theme and nest <form> tags.
  *
- * Available variables (see system form.html.twig / FormPreprocess::preprocessForm):
- * - attributes: Form element attributes.
- * - children: Pre-rendered child elements of the form.
+ * Order: (1) You’re going → (2) Who is coming → (3) Guest details → (4) Confirm.
+ * Alter-added elements (e.g. mel_help_rsvp_after) are printed explicitly or
+ * via |without() so they stay inside this single <form>.
  */
 #}
 <form{{ attributes }}>
-  <div class="mel-rsvp">
-    <div class="mel-rsvp__shell">
-      <div class="mel-rsvp__card">
-        <div class="mel-rsvp__content">
-          {{ children }}
+  {% if element is defined and element is iterable %}
+    {{ element.form_build_id }}
+    {{ element.form_token }}
+    {{ element.form_id }}
+    {{ element.event_id }}
+
+    <div class="mel-rsvp">
+      <div class="mel-rsvp__shell">
+        <div class="mel-rsvp__card">
+          <div class="mel-rsvp__content">
+            {% if element.mel_help_rsvp_after is defined %}
+              <div class="mel-rsvp__help mel-rsvp__help--top" role="note">
+                {{ element.mel_help_rsvp_after }}
+              </div>
+            {% endif %}
+
+            <section class="mel-rsvp__step mel-rsvp__step--intent">
+              {{ element.intent }}
+            </section>
+
+            <section class="mel-rsvp__step mel-rsvp__step--who">
+              {{ element.people }}
+            </section>
+
+            <section class="mel-rsvp__step mel-rsvp__step--details">
+              {{ element.details }}
+            </section>
+
+            {% if element.donation is defined %}
+              <section class="mel-rsvp__step mel-rsvp__step--donation">
+                {{ element.donation }}
+              </section>
+            {% endif %}
+
+            {{ element.optional }}
+
+            {% if element.accessibility is defined %}
+              {{ element.accessibility }}
+            {% endif %}
+
+            <section class="mel-rsvp__step mel-rsvp__step--confirm">
+              {{ element.legal }}
+            </section>
+
+            <div class="mel-rsvp__cta">
+              {{ element.actions }}
+            </div>
+
+            {{ element|without(
+              'form_build_id', 'form_token', 'form_id', 'event_id',
+              'mel_help_rsvp_after',
+              'intent', 'people', 'details', 'donation', 'optional', 'accessibility', 'legal', 'actions'
+            ) }}
+          </div>
+        </div>
+
+        <div class="mel-rsvp__fineprint" aria-hidden="true">
+          {{ 'We respect your privacy. Your details are used only for event administration.'|t }}
         </div>
       </div>
-
-      <div class="mel-rsvp__fineprint" aria-hidden="true">
-        {{ 'We respect your privacy. Your details are used only for event administration.'|t }}
-      </div>
     </div>
-  </div>
+  {% else %}
+    {{ children }}
+  {% endif %}
 </form>

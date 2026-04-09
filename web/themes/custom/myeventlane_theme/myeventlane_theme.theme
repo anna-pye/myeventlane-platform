@@ -2952,15 +2952,11 @@ function myeventlane_theme_preprocess_mimemail_message(array &$variables): void 
  * Implements hook_preprocess_HOOK() for RSVP forms.
  *
  * Attaches accordion JS for Accessibility + Support collapsible sections.
- * Do not set $variables['form'] to the root element — use {{ children }} in the
- * form template (see form--myeventlane-rsvp-public-form.html.twig).
+ * The RSVP public form template uses explicit `element.KEY` rendering (see
+ * form--myeventlane-rsvp-public-form.html.twig); do not set the root as `form`
+ * and render {{ form }} inside the <form> tag.
  */
 function myeventlane_theme_preprocess_form__myeventlane_rsvp_public_form(array &$variables): void {
-  // Do not set $variables['form'] = $variables['element']. Rendering the full
-  // element in Twig re-invokes the form theme and can nest <form> tags, which
-  // invalidates the DOM and breaks POST (e.g. legal_consent appears unchecked).
-  // Use {{ children }} in form--myeventlane-rsvp-public-form.html.twig (see
-  // FormPreprocess::preprocessForm()).
   $variables['#attached']['library'][] = 'myeventlane_theme/rsvp_sidebar';
 }
 
