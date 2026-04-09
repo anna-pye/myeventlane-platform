@@ -340,3 +340,16 @@ function myeventlane_admin_dashboard_update_10004(): void {
     $schema->createTable('myeventlane_payout_batch_item', $full['myeventlane_payout_batch_item']);
   }
 }
+
+/**
+ * Installs the vendor_orders View when absent (e.g. envs that never imported config/sync).
+ *
+ * Required for the PCC Orders page (myeventlane_admin_dashboard.orders).
+ */
+function myeventlane_admin_dashboard_update_10005(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('view');
+  if ($storage->load('vendor_orders') !== NULL) {
+    return;
+  }
+  \Drupal::service('config.installer')->installDefaultConfig('module', 'myeventlane_admin_dashboard');
+}
