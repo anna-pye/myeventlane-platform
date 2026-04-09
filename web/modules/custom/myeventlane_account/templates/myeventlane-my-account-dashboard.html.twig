@@ -5,7 +5,6 @@
  *
  * Variables:
  * - display_name: User display name for greeting.
- * - logo_url: URL to MEL logo for header.
  * - avatar_url: URL to user picture (empty if none).
  * - avatar_initials: Fallback initials for avatar.
  * - upcoming_tickets: Array of upcoming ticket event data (max 3).
@@ -37,15 +36,8 @@
 
     {# Main content #}
     <main class="mel-my-account__main">
-      {# Header row: logo, welcome, avatar #}
+      {# Welcome + avatar (global site_header already provides branding). #}
       <header class="mel-my-account__header">
-        <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
-          {% if logo_url %}
-            <img src="{{ logo_url }}" alt="" width="32" height="32" />
-          {% else %}
-            <span class="mel-my-account__logo-text">MyEventLane</span>
-          {% endif %}
-        </a>
         <h1 class="mel-my-account__welcome">
           {{ 'Welcome, @name!'|t({'@name': display_name}) }}
         </h1>

@@ -129,12 +129,12 @@
 }
 
 // ---------------------------------------------------------------------------
-// Header row — logo, welcome, avatar
+// Header row — welcome + avatar (site header supplies global branding)
 // ---------------------------------------------------------------------------
 
 .mel-my-account__header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: spacing.mel-space(4);
   margin-bottom: spacing.mel-space(6);

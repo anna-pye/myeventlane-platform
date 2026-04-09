@@ -228,9 +228,7 @@ display:
       display_extenders: {  }
       path: calendar
       menu:
-        type: normal
-        title: Calendar
-        weight: 0
+        type: none
     cache_metadata:
       max-age: -1
       contexts:

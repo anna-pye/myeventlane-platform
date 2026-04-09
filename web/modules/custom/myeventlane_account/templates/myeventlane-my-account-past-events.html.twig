@@ -5,7 +5,6 @@
  *
  * Variables:
  * - display_name: User display name (for header).
- * - logo_url: URL to MEL logo.
  * - avatar_url: URL to user picture.
  * - avatar_initials: Fallback initials.
  * - past_events: Array of past event data.
@@ -35,15 +34,7 @@
 
     {# Main content #}
     <main class="mel-my-account__main">
-      {# Header row #}
       <header class="mel-my-account__header">
-        <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
-          {% if logo_url %}
-            <img src="{{ logo_url }}" alt="" width="32" height="32" />
-          {% else %}
-            <span class="mel-my-account__logo-text">MyEventLane</span>
-          {% endif %}
-        </a>
         <h1 class="mel-my-account__welcome">{{ 'Past Events'|t }}</h1>
         <div class="mel-my-account__avatar" aria-hidden="true">
           {% if avatar_url %}
