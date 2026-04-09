@@ -318,7 +318,6 @@ final class MessagingGuardrailTest extends KernelTestBase {
           ['title' => 'Test Event'],
         ],
         'total_paid' => '$12.00',
-        'order_total' => '$12.00',
         'event_name' => 'Test Event',
       ];
     }

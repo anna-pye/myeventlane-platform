@@ -69,7 +69,7 @@ final class VendorCommsResolver {
           'first_name' => (string) ($context['first_name'] ?? $context['name'] ?? 'there'),
         ],
         'order' => [
-          'total' => (string) ($context['order_total'] ?? ''),
+          'total' => (string) ($context['order_total'] ?? $context['total_paid'] ?? ''),
         ],
         'ticket' => [
           'type' => (string) ($context['ticket_type'] ?? ''),
