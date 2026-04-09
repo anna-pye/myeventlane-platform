@@ -2,7 +2,7 @@
   Event orders list.
   Variables: event, orders (array of rows with order_number, placed_date,
   purchaser_name, purchaser_email, ticket_count, net_sales, fees, total,
-  status, view_link).
+  status, view_link, resend_link).
 #}
 {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
   <div class="mel-contextual-help mel-contextual-help--vendor-console">
@@ -28,7 +28,7 @@
         <div>{{ 'Total'|t }}</div>
         <div>{{ 'Status'|t }}</div>
         <div>{{ 'Refund'|t }}</div>
-        <div>{{ 'View'|t }}</div>
+        <div>{{ 'Actions'|t }}</div>
       </div>
       <div class="mel-table__body">
         {% for row in orders %}
@@ -65,8 +65,9 @@
                 {% endif %}
               {% endif %}
             </div>
-            <div data-label="{{ 'View'|t }}">
+            <div data-label="{{ 'Actions'|t }}" class="mel-inline-actions">
               <a href="{{ row.view_link.url }}" class="mel-link">{{ row.view_link.label }}</a>
+              {{ row.resend_link }}
             </div>
           </div>
         {% endfor %}
@@ -84,7 +85,7 @@
             <div class="mel-text--bold" data-label="{{ 'Total'|t }}">{{ totals.total }}</div>
             <div data-label="{{ 'Status'|t }}"></div>
             <div data-label="{{ 'Refund'|t }}"></div>
-            <div data-label="{{ 'View'|t }}"></div>
+            <div data-label="{{ 'Actions'|t }}"></div>
           </div>
         </div>
       {% endif %}

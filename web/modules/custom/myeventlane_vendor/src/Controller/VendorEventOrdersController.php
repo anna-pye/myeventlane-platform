@@ -432,7 +432,8 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
    *
    * @return array
    *   Row with order_id, order_number, placed_date, purchaser_name,
-   *   purchaser_email, ticket_count, net_sales, fees, total, status, view_link.
+   *   purchaser_email, ticket_count, net_sales, fees, total, status, view_link,
+   *   resend_link.
    */
   private function buildOrderRow(
     OrderInterface $order,
@@ -496,6 +497,18 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'label' => $this->t('View'),
     ];
 
+    $resendLink = [
+      '#type' => 'link',
+      '#title' => $this->t('Resend email'),
+      '#url' => Url::fromRoute(
+        'myeventlane_messaging.resend_order_confirmation',
+        ['commerce_order' => $order->id()]
+      ),
+      '#attributes' => [
+        'class' => ['mel-link', 'mel-link--action'],
+      ],
+    ];
+
     $refundLog = $this->refundProcessor?->getLatestRefundForOrder((int) $order->id(), $eventId);
     $refundStatus = (string) ($refundLog['status'] ?? 'none');
     $refundId = isset($refundLog['id']) ? (int) $refundLog['id'] : 0;
@@ -528,6 +541,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
         'failure_reason' => (string) ($refundLog['failure_reason'] ?? ''),
       ],
       'view_link' => $viewLink,
+      'resend_link' => $resendLink,
       'raw_ticket_count' => $ticketCount,
       'raw_net_sales' => $netSalesNumber,
       'raw_fees' => $feesForEvent,

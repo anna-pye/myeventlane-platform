@@ -6,6 +6,7 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - drupal:views
   - commerce_order:commerce_order
   - myeventlane_analytics:myeventlane_analytics
   - myeventlane_core:myeventlane_core
