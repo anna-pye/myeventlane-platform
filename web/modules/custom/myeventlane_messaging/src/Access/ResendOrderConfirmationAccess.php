@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_tickets\Service\EventAccess;
 use Drupal\node\NodeInterface;
@@ -15,12 +16,19 @@ use Drupal\node\NodeInterface;
 /**
  * Admin permission OR vendor manage-all-events-on-order for resend.
  */
-final class ResendOrderConfirmationAccess {
+final class ResendOrderConfirmationAccess implements AccessInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventAccess $eventAccess,
   ) {}
+
+  /**
+   * Route requirement callback for resend order confirmation.
+   */
+  public function access(OrderInterface $commerce_order, AccountInterface $account): AccessResultInterface {
+    return $this->check($commerce_order, $account);
+  }
 
   /**
    * Access for resending order confirmation for a commerce order.

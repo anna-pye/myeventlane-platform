@@ -25,6 +25,7 @@ myeventlane_messaging.resend_order_confirmation:
     _title: 'Resend order email'
   requirements:
     _user_is_logged_in: 'TRUE'
+    _custom_access: 'myeventlane_messaging.resend_order_access:access'
     commerce_order: \d+
   options:
     parameters:
