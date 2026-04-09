@@ -169,14 +169,8 @@ final class RsvpPublicForm extends FormBase {
       return $form;
     }
 
-    $guest_default = max(1, min(10, (int) $this->resolveGuestCount($form_state)));
-    $people_submitted = $form_state->getValue('people');
-    if ($people_submitted !== NULL && $people_submitted !== '' && is_numeric($people_submitted)) {
-      $visible_guests = max(1, min(10, (int) $people_submitted));
-    }
-    else {
-      $visible_guests = $guest_default;
-    }
+    // AJAX rebuild: getValue('people') is often not set yet; raw user input has the new select value.
+    $visible_guests = $this->resolveVisibleGuestCountForBuild($form_state);
 
     $people_options = [1 => $this->t('Just me')];
     for ($n = 2; $n <= 10; $n++) {
@@ -999,6 +993,27 @@ final class RsvpPublicForm extends FormBase {
       return (bool) $event->get('field_collect_per_ticket')->value;
     }
     return FALSE;
+  }
+
+  /**
+   * Party size used to build attendee field rows (must match AJAX + full submit).
+   *
+   * On AJAX (#ajax change on "people"), buildForm runs before processed values
+   * always reflect the new selection; user input does.
+   */
+  private function resolveVisibleGuestCountForBuild(FormStateInterface $form_state): int {
+    $user_input = $form_state->getUserInput();
+    if (is_array($user_input)) {
+      $raw = $user_input['people'] ?? NULL;
+      if ($raw !== NULL && $raw !== '' && is_numeric($raw)) {
+        return max(1, min(10, (int) $raw));
+      }
+    }
+    $people_submitted = $form_state->getValue('people');
+    if ($people_submitted !== NULL && $people_submitted !== '' && is_numeric($people_submitted)) {
+      return max(1, min(10, (int) $people_submitted));
+    }
+    return max(1, min(10, (int) $this->resolveGuestCount($form_state)));
   }
 
   /**

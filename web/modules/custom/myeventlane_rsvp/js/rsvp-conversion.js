@@ -63,6 +63,8 @@
             const wrapper = input.closest('.form-item');
             if (!wrapper) return;
 
+            // Defensive: AJAX or partial DOM can skip upgradeChipMarkup; chips still need base class.
+            wrapper.classList.add('mel-chip');
             wrapper.classList.toggle('mel-chip--active', input.checked);
           });
         };
@@ -98,16 +100,47 @@
         };
 
         const updateAttendeeCards = (scroll) => {
+          const select = form.querySelector('select[name="people"]');
           const count = getRequestedAttendeeCount();
 
-          getAttendeeCards().forEach((card, i) => {
-            card.classList.toggle('is-hidden', i >= count);
-            card.classList.toggle('is-visible', i < count);
-          });
+          if (select instanceof HTMLSelectElement) {
+            // Form API + AJAX render exactly N cards; never hide extras (avoids guest 2 invisible).
+            getAttendeeCards().forEach((card) => {
+              card.classList.remove('is-hidden');
+              card.classList.add('is-visible');
+            });
+          }
+          else {
+            getAttendeeCards().forEach((card, i) => {
+              card.classList.toggle('is-hidden', i >= count);
+              card.classList.toggle('is-visible', i < count);
+            });
+          }
 
           if (count > 1 && scroll) {
             form.querySelector('.mel-attendees')?.scrollIntoView({ behavior: 'smooth' });
           }
+        };
+
+        const copyFirstAttendeeToAll = () => {
+          if (!copyAllCheckbox || !copyAllCheckbox.checked) {
+            return;
+          }
+          const firstName = form.querySelector('[name="attendees[0][name]"]');
+          const firstEmail = form.querySelector('[name="attendees[0][email]"]');
+          getAttendeeCards().forEach((card, i) => {
+            if (i === 0) {
+              return;
+            }
+            const name = card.querySelector('[name^="attendees"][name$="[name]"]');
+            const email = card.querySelector('[name^="attendees"][name$="[email]"]');
+            if (name) {
+              name.value = firstName?.value || '';
+            }
+            if (email) {
+              email.value = firstEmail?.value || '';
+            }
+          });
         };
 
         const syncGuests = () => {
@@ -117,6 +150,7 @@
           guestsInput.value = String(count);
 
           updateAttendeeCards(true);
+          copyFirstAttendeeToAll();
         };
 
         getSelectorInputs().forEach((el) => {
@@ -127,7 +161,29 @@
 
         if (guestsInput) {
           once('mel-guests', guestsInput).forEach(() => {
-            guestsInput.addEventListener('input', () => updateAttendeeCards(true));
+            guestsInput.addEventListener('input', () => {
+              updateAttendeeCards(true);
+              copyFirstAttendeeToAll();
+            });
+          });
+        }
+
+        if (copyAllCheckbox) {
+          once('mel-rsvp-copy-all', copyAllCheckbox).forEach(() => {
+            copyAllCheckbox.addEventListener('change', copyFirstAttendeeToAll);
+          });
+        }
+
+        const firstNameField = form.querySelector('[name="attendees[0][name]"]');
+        const firstEmailField = form.querySelector('[name="attendees[0][email]"]');
+        if (firstNameField) {
+          once('mel-rsvp-copy-sync-name', firstNameField).forEach(() => {
+            firstNameField.addEventListener('input', copyFirstAttendeeToAll);
+          });
+        }
+        if (firstEmailField) {
+          once('mel-rsvp-copy-sync-email', firstEmailField).forEach(() => {
+            firstEmailField.addEventListener('input', copyFirstAttendeeToAll);
           });
         }
 
