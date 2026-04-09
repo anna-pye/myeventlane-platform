@@ -469,18 +469,17 @@
   min-height: 88px;
 }
 
-/* RSVP attendee cards are controlled by JS visibility. */
+/* Party size is server-rendered (Form API + AJAX); only matching cards exist. */
 .mel-rsvp .mel-attendee-card,
 .mel-rsvp-public-form .mel-attendee-card {
-  display: none;
-  opacity: 0;
-  transform: translateY(10px) scale(0.98);
-  transition: all 0.25s ease;
+  display: block;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .mel-rsvp .mel-attendee-card.is-visible,
 .mel-rsvp-public-form .mel-attendee-card.is-visible {
-  display: block;
   opacity: 1;
   transform: translateY(0) scale(1);
 }

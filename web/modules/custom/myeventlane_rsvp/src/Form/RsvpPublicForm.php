@@ -188,6 +188,10 @@ final class RsvpPublicForm extends FormBase {
       '#attributes' => ['class' => ['mel-intent', 'mel-card', 'mel-card--intent']],
       '#weight' => -20,
     ];
+    $form['intent']['step_label'] = [
+      '#markup' => '<div class="mel-step-label">' . $this->t('Step 1: You’re going') . '</div>',
+      '#weight' => -25,
+    ];
     $form['intent']['heading'] = [
       '#markup' => '<h2 class="mel-card__title">' . $this->t("You're going 🎉") . '</h2>',
     ];
@@ -198,7 +202,7 @@ final class RsvpPublicForm extends FormBase {
       '#attributes' => ['class' => ['mel-intent__sub']],
     ];
     $form['people'] = [
-      '#prefix' => '<div class="mel-step-label">' . $this->t('Step 1: Who is coming') . '</div>',
+      '#prefix' => '<div class="mel-step-label">' . $this->t('Step 2: Who is coming') . '</div>',
       '#type' => 'select',
       '#title' => $this->t('How many people are you bringing?'),
       '#description' => $this->t('Include yourself in the total. We only ask for details for each person.'),
@@ -211,6 +215,11 @@ final class RsvpPublicForm extends FormBase {
         'callback' => '::ajaxRebuildAttendees',
         'wrapper' => 'mel-rsvp-attendees-ajax-wrapper',
         'event' => 'change',
+        'progress' => [
+          'type' => 'throbber',
+        ],
+        'disable-refocus' => TRUE,
+        'effect' => 'none',
       ],
       '#limit_validation_errors' => [],
     ];
@@ -221,13 +230,13 @@ final class RsvpPublicForm extends FormBase {
       '#weight' => 10,
     ];
     $form['details']['step_label'] = [
-      '#markup' => '<div class="mel-step-label">' . $this->t('Step 2: Your details') . '</div>',
+      '#markup' => '<div class="mel-step-label">' . $this->t('Step 3: Guest details') . '</div>',
       '#weight' => -110,
     ];
     $form['details']['heading'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => $this->t('Your details'),
+      '#value' => $this->t('Guest details'),
       '#attributes' => ['class' => ['mel-card__title']],
       '#weight' => -100,
     ];
@@ -278,14 +287,6 @@ final class RsvpPublicForm extends FormBase {
         '#value' => $i === 0
           ? $this->t('You 🧑')
           : $this->t('Guest @number 🎟️', ['@number' => $i + 1]),
-      ];
-      $card['status'] = [
-        '#markup' => $i === 0
-          ? '<div class="mel-attendee-status">' . $this->t('You’re all set 🎟️') . '</div>'
-          : '<div class="mel-attendee-status">' . $this->t('Your friend 🎉') . '</div>',
-      ];
-      $card['meta'] = [
-        '#markup' => '<div class="mel-attendee-meta">🎉 Ticket locked in</div>',
       ];
       if ($i === 0 && $visible_guests > 1) {
         $card['copy_all'] = [
@@ -347,7 +348,7 @@ final class RsvpPublicForm extends FormBase {
       '#weight' => 40,
     ];
     $form['legal']['step_label'] = [
-      '#markup' => '<div class="mel-step-label">' . $this->t('Step 3: Confirm your spot') . '</div>',
+      '#markup' => '<div class="mel-step-label">' . $this->t('Step 4: Confirm your spot') . '</div>',
       '#weight' => -40,
     ];
     $form['legal']['intro'] = [
