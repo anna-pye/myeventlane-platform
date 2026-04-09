@@ -117,11 +117,21 @@
         const updateAttendeeCards = (shouldScroll) => {
           const peopleSelect = form.querySelector('select[name="people"]');
           if (peopleSelect instanceof HTMLSelectElement) {
-            // Card count matches the select via Form API rebuild + AJAX; DOM has no extra rows.
-            getAttendeeCards().forEach((card) => {
-              card.classList.add('is-visible');
-            });
+            // Until Form API + AJAX rebuilds, the DOM may still list rows from the previous
+            // party size; only show cards for the current selection (same as radio path).
             const count = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
+            getAttendeeCards().forEach((card, index) => {
+              if (index < count) {
+                card.style.display = 'block';
+                requestAnimationFrame(() => {
+                  card.classList.add('is-visible');
+                });
+              }
+              else {
+                card.style.display = 'none';
+                card.classList.remove('is-visible');
+              }
+            });
             if (count > 1 && shouldScroll) {
               form.querySelector('.mel-attendees')?.scrollIntoView({
                 behavior: 'smooth',
