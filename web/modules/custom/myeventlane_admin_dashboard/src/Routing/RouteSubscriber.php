@@ -63,9 +63,10 @@ final class RouteSubscriber extends RouteSubscriberBase {
       }
     }
 
-    $ordersView = $collection->get('view.vendor_orders.admin_orders');
-    if ($ordersView !== NULL) {
-      $ordersView->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
+    // Own the orders path via myeventlane_admin_dashboard.orders; drop the Views page route
+    // so local tasks and menu links never depend on view.vendor_orders.admin_orders existing.
+    if ($collection->get('view.vendor_orders.admin_orders') !== NULL) {
+      $collection->remove('view.vendor_orders.admin_orders');
     }
   }
 

@@ -25,7 +25,7 @@ function _myeventlane_admin_dashboard_is_pcc_route(?string $route_name): bool {
     'myeventlane_admin_dashboard.platform_studio',
     'myeventlane_admin_dashboard.financials',
     'myeventlane_admin_dashboard.vendors',
-    'view.vendor_orders.admin_orders',
+    'myeventlane_admin_dashboard.orders',
     'myeventlane_admin_dashboard.payouts',
     'myeventlane_admin_dashboard.reports',
     'myeventlane_admin_dashboard.payout_batches',
