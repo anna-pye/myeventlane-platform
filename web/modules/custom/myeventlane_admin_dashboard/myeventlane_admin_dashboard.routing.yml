@@ -59,6 +59,18 @@ myeventlane_admin_dashboard.vendors:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control
 
+# Orders tab (embeds View vendor_orders / admin_orders; route is module-owned).
+myeventlane_admin_dashboard.orders:
+  path: '/admin/myeventlane/orders'
+  defaults:
+    _controller: '\Drupal\myeventlane_admin_dashboard\Controller\OrdersController::build'
+    _title: 'Orders'
+  requirements:
+    _permission: 'administer myeventlane messaging'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
 # Payouts tab.
 myeventlane_admin_dashboard.payouts:
   path: '/admin/myeventlane/payouts'

@@ -10,6 +10,6 @@ myeventlane_admin_dashboard.platform_control:
 myeventlane_admin_dashboard.orders_menu:
   title: 'Orders'
   description: 'View all platform orders and resend confirmation emails.'
-  route_name: view.vendor_orders.admin_orders
+  route_name: myeventlane_admin_dashboard.orders
   parent: myeventlane_admin_dashboard.platform_control
   weight: 30

@@ -160,4 +160,4 @@ services:
   myeventlane_admin_dashboard.route_subscriber:
     class: Drupal\myeventlane_admin_dashboard\Routing\RouteSubscriber
     tags:
-      - { name: event_subscriber }
+      - { name: event_subscriber, priority: -20 }
