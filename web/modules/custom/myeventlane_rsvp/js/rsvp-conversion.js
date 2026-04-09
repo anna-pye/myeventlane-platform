@@ -1,4 +1,60 @@
 (function (Drupal, once) {
+  const $ = window.jQuery;
+
+  const PENDING_ATTR = 'data-mel-rsvp-pending-guest-copy';
+
+  /**
+   * Copies first attendee name/email to other cards when "copy all" is checked.
+   *
+   * @param {HTMLFormElement} form
+   *   The RSVP public form element.
+   */
+  const copyFirstAttendeeToAll = (form) => {
+    const copyAllCheckbox = form.querySelector('.mel-copy-all');
+    if (!copyAllCheckbox || !copyAllCheckbox.checked) {
+      return;
+    }
+    const firstName = form.querySelector('[name="attendees[0][name]"]');
+    const firstEmail = form.querySelector('[name="attendees[0][email]"]');
+    form.querySelectorAll('.mel-attendee-card').forEach((card, i) => {
+      if (i === 0) {
+        return;
+      }
+      const name = card.querySelector('[name^="attendees"][name$="[name]"]');
+      const email = card.querySelector('[name^="attendees"][name$="[email]"]');
+      if (name) {
+        name.value = firstName?.value || '';
+      }
+      if (email) {
+        email.value = firstEmail?.value || '';
+      }
+    });
+  };
+
+  /**
+   * After #ajax rebuilds attendee rows, run pending copy when DOM matches count.
+   */
+  const runPendingGuestCopyAfterAjax = () => {
+    if (!$) {
+      return;
+    }
+    document.querySelectorAll('.mel-rsvp-public-form[' + PENDING_ATTR + ']').forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) {
+        return;
+      }
+      const raw = form.getAttribute(PENDING_ATTR);
+      const expected = parseInt(raw || '', 10);
+      if (!Number.isFinite(expected) || expected < 1) {
+        form.removeAttribute(PENDING_ATTR);
+        return;
+      }
+      const actual = form.querySelectorAll('.mel-attendee-card').length;
+      if (actual === expected) {
+        form.removeAttribute(PENDING_ATTR);
+        copyFirstAttendeeToAll(form);
+      }
+    });
+  };
 
   const getForms = (context, key) => {
     let roots;
@@ -22,6 +78,13 @@
 
   Drupal.behaviors.melRsvpConversion = {
     attach(context) {
+      if ($) {
+        once('mel-rsvp-guest-copy-ajax', document.documentElement).forEach(() => {
+          // Runs after Drupal Ajax commands and attachBehaviors on the new markup
+          // (see core/misc/ajax.js success → ajaxSuccess).
+          $(document).on('ajaxSuccess.melRsvpGuestCopy', runPendingGuestCopyAfterAjax);
+        });
+      }
 
       getForms(context, 'melRsvpConversionAttached').forEach((form) => {
 
@@ -34,6 +97,9 @@
         const copyAllCheckbox = form.querySelector('.mel-copy-all');
 
         const MAX = drupalSettings?.mel?.maxAttendees || 10;
+
+        const usesPeopleAjax = () =>
+          form.querySelector('select[name="people"]') instanceof HTMLSelectElement;
 
         const upgradeChipMarkup = (group) => {
           group.querySelectorAll('input').forEach((input) => {
@@ -122,27 +188,6 @@
           }
         };
 
-        const copyFirstAttendeeToAll = () => {
-          if (!copyAllCheckbox || !copyAllCheckbox.checked) {
-            return;
-          }
-          const firstName = form.querySelector('[name="attendees[0][name]"]');
-          const firstEmail = form.querySelector('[name="attendees[0][email]"]');
-          getAttendeeCards().forEach((card, i) => {
-            if (i === 0) {
-              return;
-            }
-            const name = card.querySelector('[name^="attendees"][name$="[name]"]');
-            const email = card.querySelector('[name^="attendees"][name$="[email]"]');
-            if (name) {
-              name.value = firstName?.value || '';
-            }
-            if (email) {
-              email.value = firstEmail?.value || '';
-            }
-          });
-        };
-
         const syncGuests = () => {
           if (!guestsInput) return;
 
@@ -150,7 +195,17 @@
           guestsInput.value = String(count);
 
           updateAttendeeCards(true);
-          copyFirstAttendeeToAll();
+
+          if (!copyAllCheckbox || !copyAllCheckbox.checked) {
+            return;
+          }
+          if (usesPeopleAjax()) {
+            // #ajax rebuild runs after this handler; copy only once new cards exist.
+            form.setAttribute(PENDING_ATTR, String(count));
+          }
+          else {
+            copyFirstAttendeeToAll(form);
+          }
         };
 
         getSelectorInputs().forEach((el) => {
@@ -163,14 +218,19 @@
           once('mel-guests', guestsInput).forEach(() => {
             guestsInput.addEventListener('input', () => {
               updateAttendeeCards(true);
-              copyFirstAttendeeToAll();
+              copyFirstAttendeeToAll(form);
             });
           });
         }
 
         if (copyAllCheckbox) {
           once('mel-rsvp-copy-all', copyAllCheckbox).forEach(() => {
-            copyAllCheckbox.addEventListener('change', copyFirstAttendeeToAll);
+            copyAllCheckbox.addEventListener('change', () => {
+              if (!copyAllCheckbox.checked) {
+                form.removeAttribute(PENDING_ATTR);
+              }
+              copyFirstAttendeeToAll(form);
+            });
           });
         }
 
@@ -178,12 +238,12 @@
         const firstEmailField = form.querySelector('[name="attendees[0][email]"]');
         if (firstNameField) {
           once('mel-rsvp-copy-sync-name', firstNameField).forEach(() => {
-            firstNameField.addEventListener('input', copyFirstAttendeeToAll);
+            firstNameField.addEventListener('input', () => copyFirstAttendeeToAll(form));
           });
         }
         if (firstEmailField) {
           once('mel-rsvp-copy-sync-email', firstEmailField).forEach(() => {
-            firstEmailField.addEventListener('input', copyFirstAttendeeToAll);
+            firstEmailField.addEventListener('input', () => copyFirstAttendeeToAll(form));
           });
         }
 

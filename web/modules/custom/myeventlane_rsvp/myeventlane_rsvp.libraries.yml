@@ -21,6 +21,7 @@ rsvp-conversion:
   dependencies:
     - core/drupal
     - core/once
+    - core/jquery
 rsvp-thankyou:
   css:
     theme:

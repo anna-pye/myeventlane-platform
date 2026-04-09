@@ -9,11 +9,7 @@
 #}
 
 <div class="mel-cart">
-  <nav class="mel-checkout-trust-nav mel-cart-trust-nav" aria-label="{{ 'Help and support'|t }}">
-    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
-    <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>
-    <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_support.page') }}">{{ 'Support'|t }}</a>
-  </nav>
+  {# Single help strip: only when cart is empty (full-page empty state has its own). #}
 
   {# Cart Items #}
   <div class="mel-cart-items">
@@ -106,8 +102,14 @@
         {{ form.actions }}
       </div>
 
-      <p class="mel-checkout-security">{{ 'Review your order on the next step before any payment.'|t }}</p>
-      <p class="mel-checkout-security mel-checkout-security--lock">{{ 'Card details are encrypted in transit.'|t }}</p>
+      <div class="mel-cart-trust mel-cart-trust--inline" role="region" aria-label="{{ 'Secure checkout'|t }}">
+        <ul class="mel-cart-trust__list">
+          <li>{{ 'Secure checkout'|t }}</li>
+          <li>{{ 'Payment processed securely'|t }}</li>
+          <li>{{ 'Confirmation email sent'|t }}</li>
+        </ul>
+      </div>
+
       <nav class="mel-checkout-trust-nav mel-cart-trust-nav mel-cart-summary__support" aria-label="{{ 'Help with checkout'|t }}">
         <a class="mel-checkout-trust-nav__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
         <span class="mel-checkout-trust-nav__sep" aria-hidden="true">·</span>

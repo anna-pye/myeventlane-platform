@@ -10,9 +10,11 @@
  */
 #}
 <div{{ attributes.addClass('checkout-order-summary', 'mel-checkout-order-summary') }}>
+  <h2 class="mel-checkout-order-summary__heading visually-hidden">{{ 'Order summary'|t }}</h2>
   {% block order_items %}
     <div class="mel-checkout-order-summary__items">
       <table class="mel-checkout-order-summary__table">
+        <caption class="visually-hidden">{{ 'Tickets and quantities'|t }}</caption>
         <tbody>
           {% for order_item in order_entity.getItems %}
             <tr>

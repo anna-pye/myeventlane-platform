@@ -50,12 +50,11 @@
     <div class="mel-event-info-strip mel-card" role="note">
       {% if event_mode == 'paid' %}
         <span class="mel-event-info-strip__item">{{ 'Secure checkout'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Review before payment'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Hosted on MyEventLane'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Payment processed securely'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Confirmation email sent'|t }}</span>
       {% elseif event_mode == 'rsvp' %}
-        <span class="mel-event-info-strip__item">{{ 'RSVP free — no payment on this step'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Review before you confirm'|t }}</span>
-        <span class="mel-event-info-strip__item">{{ 'Hosted on MyEventLane'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'No payment required'|t }}</span>
+        <span class="mel-event-info-strip__item">{{ 'Your RSVP will be confirmed by email'|t }}</span>
       {% elseif event_mode == 'external' %}
         <span class="mel-event-info-strip__item">{{ 'External ticketing'|t }}</span>
         <span class="mel-event-info-strip__item">{{ 'You will leave this site to buy tickets'|t }}</span>
