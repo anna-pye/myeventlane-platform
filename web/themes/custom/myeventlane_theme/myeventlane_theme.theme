@@ -21,6 +21,7 @@ use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\taxonomy\TermInterface;
 use Drupal\file\Entity\File;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
@@ -502,10 +503,46 @@ function myeventlane_theme_theme_suggestions_commerce_checkout_form(array $varia
 }
 
 /**
+ * Loads the commerce order from the current route (checkout pages).
+ */
+function _myeventlane_theme_commerce_order_from_route(): ?OrderInterface {
+  $order_param = \Drupal::routeMatch()->getParameter('commerce_order');
+  if ($order_param !== NULL && is_scalar($order_param) && is_numeric((string) $order_param)) {
+    $loaded = \Drupal::entityTypeManager()
+      ->getStorage('commerce_order')
+      ->load((string) $order_param);
+    return $loaded instanceof OrderInterface ? $loaded : NULL;
+  }
+  return $order_param instanceof OrderInterface ? $order_param : NULL;
+}
+
+/**
  * Implements hook_preprocess_HOOK() for commerce_checkout_form.
  */
 function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables): void {
   $step_id = $variables['form']['#step_id'] ?? NULL;
+
+  $variables['mel_checkout_is_free_order'] = FALSE;
+  if (($step_id ?? '') !== 'complete') {
+    $order_param = _myeventlane_theme_commerce_order_from_route();
+    if ($order_param instanceof OrderInterface) {
+      $total_price = $order_param->getTotalPrice();
+      if ($total_price !== NULL) {
+        $variables['mel_checkout_is_free_order'] = $total_price->isZero();
+      }
+      // Primary CTA from order total only (avoids stale labels when payment pane is AJAX-hidden).
+      $form = &$variables['form'];
+      if (isset($form['actions']['next']) && $total_price !== NULL) {
+        if ($total_price->isZero()) {
+          $form['actions']['next']['#value'] = t('Confirm RSVP');
+        }
+        else {
+          $form['actions']['next']['#value'] = t('Pay now');
+        }
+      }
+    }
+  }
+
   if ($step_id === 'complete') {
     $form = &$variables['form'];
     // Resolve order: route param, sidebar pane, or view arguments.
@@ -2450,6 +2487,40 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
         $form['sidebar'][$key]['#attributes']['class'] = [$form['sidebar'][$key]['#attributes']['class']];
       }
       $form['sidebar'][$key]['#attributes']['class'][] = 'mel-checkout-pane-shell';
+    }
+  }
+
+  // Checkout: grand total above primary submit — lives in $form['actions'] so it rebuilds with AJAX.
+  if (str_starts_with($form_id, 'commerce_checkout_flow_')
+    && isset($form['actions'])
+    && (($form['#step_id'] ?? '') !== 'complete')
+    && !isset($form['actions']['mel_cta_total'])) {
+    $order = _myeventlane_theme_commerce_order_from_route();
+    if ($order instanceof OrderInterface) {
+      /** @var \Drupal\commerce_order\OrderTotalSummaryInterface $order_total_summary */
+      $order_total_summary = \Drupal::service('commerce_order.order_total_summary');
+      $totals_build = $order_total_summary->buildTotals($order);
+      $summary_total = $totals_build['total'] ?? NULL;
+      if ($summary_total !== NULL) {
+        /** @var \Drupal\commerce_price\CurrencyFormatter $currency_formatter */
+        $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
+        $formatted_total = $currency_formatter->format(
+          $summary_total->getNumber(),
+          $summary_total->getCurrencyCode()
+        );
+        $label = $summary_total->isZero() ? t('Total') : t("You'll pay");
+        $form['actions']['mel_cta_total'] = [
+          '#type' => 'inline_template',
+          '#template' => '<div id="mel-checkout-total-wrapper" class="mel-checkout-total-inline mel-checkout-cta__total" aria-live="polite"><span class="mel-checkout-total-inline__label mel-checkout-cta__total-label">{{ label }}</span><span class="mel-checkout-total-inline__value mel-checkout-cta__total-value">{{ total }}</span></div>',
+          '#context' => [
+            'label' => $label,
+            'total' => $formatted_total,
+          ],
+          '#weight' => -45,
+        ];
+        $form['actions']['mel_cta_total']['#cache']['tags'] = $order->getCacheTags();
+        $form['actions']['mel_cta_total']['#cache']['contexts'] = $order->getCacheContexts();
+      }
     }
   }
 

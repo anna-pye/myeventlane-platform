@@ -89,6 +89,12 @@
         {% if element.donation_amount is defined %}
           {{ element.donation_amount }}
         {% endif %}
+        <div class="mel-rsvp-trust mel-rsvp-trust--compact" role="region" aria-label="{{ 'RSVP confirmation'|t }}">
+          <ul class="mel-rsvp-trust__list">
+            <li>{{ 'No payment required'|t }}</li>
+            <li>{{ 'Your RSVP will be confirmed by email'|t }}</li>
+          </ul>
+        </div>
         <div class="mel-rsvp-submit">
           {{ element.actions }}
         </div>

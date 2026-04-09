@@ -1177,6 +1177,36 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
+/* Total — repeated next to sticky pay CTA (Commerce order total summary; mobile + desktop) */
+.mel-checkout-total-inline,
+.mel-checkout-cta__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(3);
+  padding: spacing.mel-space(3) spacing.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  border: $mel-checkout-border;
+  background: rgba(colors.$mel-color-primary, 0.06);
+  text-align: left;
+}
+
+.mel-checkout-total-inline__label,
+.mel-checkout-cta__total-label {
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-checkout-total-inline__value,
+.mel-checkout-cta__total-value {
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-extrabold;
+  color: colors.$mel-color-primary;
+  font-variant-numeric: tabular-nums;
+}
+
 /* CTA — Premium primary action */
 .mel-checkout-cta {
   margin-top: 8px;

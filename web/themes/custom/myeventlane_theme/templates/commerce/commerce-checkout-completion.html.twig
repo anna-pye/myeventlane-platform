@@ -247,7 +247,11 @@
           {% if order_entity.getCustomerId() %}
             <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
                class="mel-confirmation-button mel-confirmation-button--primary">
-              {{ 'View / download tickets'|t }}
+              {% if mel_confirm_paid %}
+                {{ 'View / download tickets'|t }}
+              {% else %}
+                {{ 'View your RSVP'|t }}
+              {% endif %}
             </a>
           {% else %}
             <div class="mel-confirmation-actions__guest-note">
@@ -272,7 +276,6 @@
         {% if mel_confirmation_has_tickets %}
           {% if mel_logged_in and order_entity.getCustomerId() %}
             <p>{{ 'Your tickets are saved in your account.'|t }}</p>
-            <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-link">{{ 'View my tickets'|t }}</a>
           {% else %}
             <p>{{ 'Your tickets have been sent to your email.'|t }}</p>
           {% endif %}
@@ -311,7 +314,6 @@
           <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>
           <div class="mel-share-actions">
             <button type="button" class="mel-share-copy" data-url="{{ mel_event_url }}">{{ 'Copy event link'|t }}</button>
-            <a href="{{ mel_event_url }}" class="mel-share-view">{{ 'View event page'|t }}</a>
           </div>
         </section>
       {% endif %}
@@ -331,7 +333,6 @@
           {% else %}
             <li class="mel-confirmation-next__item">{{ 'Your order is complete.'|t }}</li>
           {% endif %}
-          <li class="mel-confirmation-next__item">{{ 'We\'ve sent your confirmation details to your email.'|t }}</li>
           <li class="mel-confirmation-next__item">{{ 'Save the date — add to your calendar above if you have not already.'|t }}</li>
           {% if order_entity.getCustomerId() %}
             <li class="mel-confirmation-next__item">{{ 'You can come back to your tickets anytime from My Account.'|t }}</li>
