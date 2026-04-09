@@ -8,8 +8,10 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\commerce_price\CurrencyFormatter;
+use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -29,6 +31,7 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly CurrencyFormatter $currencyFormatter,
     private readonly TimeInterface $time,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -76,12 +79,22 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       $this->messagingManager->queue('order_invoice', $mail, $context, [
         'langcode' => $order->language()->getId(),
       ]);
-      $this->logger->info('Invoice email queued for paid order @order_id to @email', [
+      $ticketCount = $this->countTicketsForOrder($orderId);
+      $expectsTickets = $this->orderHasVariationLineItemsEligibleForTickets($order);
+      $this->logger->info('Invoice email queued for paid order @order_id to @email (myeventlane_ticket count=@ticket_count)', [
         '@order_id' => (string) $orderId,
         '@email' => $mail,
+        '@ticket_count' => (string) $ticketCount,
         'order_id' => $orderId,
         'message_type' => 'order_invoice',
+        'ticket_count' => $ticketCount,
       ]);
+      if ($expectsTickets && $ticketCount < 1) {
+        $this->logger->warning('ORDER_PAID: invoice queued but no myeventlane_ticket rows for order @order_id (expected ticket line items present).', [
+          '@order_id' => (string) $orderId,
+          'order_id' => $orderId,
+        ]);
+      }
     }
     catch (\Throwable $e) {
       $this->logger->error('Failed to queue invoice email for order @order_id: @message', [
@@ -113,7 +126,7 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
     $taxLines = $this->buildAdjustmentLines($order, 'tax', 'Tax');
 
     $totalPrice = $order->getTotalPrice();
-    $totalFormatted = $totalPrice ? $this->currencyFormatter->format($totalPrice) : '';
+    $totalFormatted = $this->formatPrice($totalPrice);
 
     $context = [
       'first_name' => $first_name,
@@ -127,7 +140,6 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       'tax_lines' => $taxLines,
       'events' => $this->formatEventsBrief($events),
       'event_name' => !empty($events) ? reset($events)->label() : 'your event',
-      'order_total' => $totalFormatted,
     ];
 
     if ($primaryEventId !== NULL) {
@@ -190,8 +202,8 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       $out[] = [
         'title' => $item->label(),
         'quantity' => (int) $item->getQuantity(),
-        'unit_price' => $unit ? $this->currencyFormatter->format($unit) : '',
-        'line_total' => $total ? $this->currencyFormatter->format($total) : '',
+        'unit_price' => $this->formatPrice($unit),
+        'line_total' => $this->formatPrice($total),
       ];
     }
     return $out;
@@ -216,10 +228,51 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       }
       $out[] = [
         'label' => $label,
-        'amount' => $this->currencyFormatter->format($amount),
+        'amount' => $this->formatPrice($amount),
       ];
     }
     return $out;
+  }
+
+  /**
+   * Formats a Commerce Price for display (number + currency code).
+   */
+  private function formatPrice(?Price $price): string {
+    if (!$price) {
+      return '';
+    }
+    return $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
+  }
+
+  /**
+   * Counts issued ticket entities for this order (after TicketIssuer runs).
+   */
+  private function countTicketsForOrder(int $orderId): int {
+    if ($orderId < 1 || !$this->entityTypeManager->hasDefinition('myeventlane_ticket')) {
+      return 0;
+    }
+    $query = $this->entityTypeManager->getStorage('myeventlane_ticket')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', $orderId);
+    return (int) $query->count()->execute();
+  }
+
+  /**
+   * True when the order has commerce line items that TicketIssuer attempts.
+   *
+   * Mirrors TicketIssuer: variation purchase, skips boost bundle.
+   */
+  private function orderHasVariationLineItemsEligibleForTickets(OrderInterface $order): bool {
+    foreach ($order->getItems() as $item) {
+      if ($item->bundle() === 'boost') {
+        continue;
+      }
+      $purchased = $item->getPurchasedEntity();
+      if ($purchased && $purchased->getEntityTypeId() === 'commerce_product_variation') {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

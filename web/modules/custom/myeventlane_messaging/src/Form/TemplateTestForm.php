@@ -158,7 +158,7 @@ final class TemplateTestForm extends FormBase {
       'message_body' => '<p>This is a test message from the template test form.</p>',
     ];
 
-    // Template-specific context.
+    // Template-specific context (merged second so it overrides $base keys).
     $specific = match ($template) {
       'order_confirmation', 'order_receipt' => [
         'events' => [
@@ -201,7 +201,7 @@ final class TemplateTestForm extends FormBase {
         'tax_lines' => [
           ['label' => 'GST', 'amount' => '$5.00'],
         ],
-        'order_total' => '$57.00',
+        'total_paid' => '$57.00',
       ],
       'rsvp_confirmation' => [
         'guests' => 1,

@@ -137,5 +137,6 @@ services:
       - '@date.formatter'
       - '@commerce_price.currency_formatter'
       - '@datetime.time'
+      - '@entity_type.manager'
     tags:
       - { name: event_subscriber }
