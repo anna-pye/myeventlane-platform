@@ -1,17 +1,23 @@
 (function (Drupal, once) {
 
   const getForms = (context, key) => {
-    const elements = context.querySelectorAll('.mel-rsvp-public-form');
-    const forms = Array.from(once(key, elements));
-
-    if (context.nodeType === 1 && context.matches('.mel-rsvp-public-form')) {
-      if (!once.filter(key, context).length) {
-        once(key, context);
-        forms.push(context);
-      }
+    let roots;
+    if (
+      context &&
+      context.nodeType === 1 &&
+      typeof context.matches === 'function' &&
+      context.matches('.mel-rsvp-public-form')
+    ) {
+      // Behaviors often receive the form element as context; querySelectorAll does not include self.
+      roots = [context];
     }
-
-    return forms;
+    else if (context && typeof context.querySelectorAll === 'function') {
+      roots = context.querySelectorAll('.mel-rsvp-public-form');
+    }
+    else {
+      roots = [];
+    }
+    return [...once(key, roots)];
   };
 
   Drupal.behaviors.melRsvpConversion = {

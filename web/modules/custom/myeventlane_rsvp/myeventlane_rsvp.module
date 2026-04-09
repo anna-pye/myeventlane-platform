@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Render\Markup;
 
 /**
@@ -90,6 +91,28 @@ function myeventlane_rsvp_mail($key, &$message, $params) {
 
       $message['body'] = $body;
       break;
+  }
+}
+
+/**
+ * Implements hook_block_build_alter().
+ *
+ * Belt-and-suspenders: the RSVP block must not render on the unified book page
+ * (BookController already embeds RsvpPublicForm). Duplicate forms break POST.
+ */
+function myeventlane_rsvp_block_build_alter(array &$build, BlockPluginInterface $block): void {
+  if ($block->getPluginId() !== 'mel_rsvp_form_block') {
+    return;
+  }
+  $route = \Drupal::routeMatch()->getRouteName();
+  $path = \Drupal::service('path.current')->getPath();
+  if ($route === 'myeventlane_commerce.event_book' || preg_match('#^/event/\d+/book/?$#', $path) === 1) {
+    $build = [
+      '#markup' => '',
+      '#cache' => [
+        'contexts' => ['route', 'url.path'],
+      ],
+    ];
   }
 }
 

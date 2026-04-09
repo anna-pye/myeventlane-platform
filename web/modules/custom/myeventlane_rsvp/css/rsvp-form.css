@@ -483,3 +483,8 @@
   opacity: 1;
   transform: translateY(0) scale(1);
 }
+
+.mel-rsvp .mel-attendee-card.is-hidden,
+.mel-rsvp-public-form .mel-attendee-card.is-hidden {
+  display: none;
+}
