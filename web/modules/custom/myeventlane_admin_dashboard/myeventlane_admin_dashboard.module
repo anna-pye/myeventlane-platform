@@ -259,7 +259,7 @@ function myeventlane_admin_dashboard_menu_local_tasks_alter(array &$data, string
   $tab_permissions = [
     'myeventlane_admin_dashboard.financials_tab' => 'view myeventlane financials',
     'myeventlane_admin_dashboard.vendors_tab' => 'view myeventlane vendors',
-    'myeventlane_admin_dashboard.orders_tab' => 'administer myeventlane messaging',
+    'myeventlane_admin_dashboard.orders_tab' => 'access myeventlane platform control centre',
     'myeventlane_admin_dashboard.escalations_tab' => 'view myeventlane escalations',
     'myeventlane_admin_dashboard.payouts_tab' => 'view myeventlane payouts',
     'myeventlane_admin_dashboard.reports_tab' => 'view myeventlane reports',
