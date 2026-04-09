@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_admin_dashboard\Routing;
 
 use Drupal\Core\Routing\RouteSubscriberBase;
+use Drupal\Core\Routing\RoutingEvents;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
@@ -15,6 +16,14 @@ use Symfony\Component\Routing\RouteCollection;
  * so myeventlane_admin_dashboard.reports can use /admin/myeventlane/reports.
  */
 final class RouteSubscriber extends RouteSubscriberBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getSubscribedEvents(): array {
+    $events[RoutingEvents::ALTER] = ['onAlterRoutes', -20];
+    return $events;
+  }
 
   /**
    * Reporting routes that should allow PCC users (not only "view admin reports").
@@ -80,7 +89,7 @@ final class RouteSubscriber extends RouteSubscriberBase {
           '_title' => 'Orders',
         ],
         [
-          '_permission' => 'administer myeventlane messaging',
+          '_permission' => 'access myeventlane platform control centre',
         ]
       );
       $ordersRoute->setOption('_admin_route', TRUE);

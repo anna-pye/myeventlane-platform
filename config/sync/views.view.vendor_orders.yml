@@ -548,7 +548,7 @@ display:
       access:
         type: perm
         options:
-          perm: 'administer myeventlane messaging'
+          perm: 'access myeventlane platform control centre'
       cache:
         type: tag
         options: {  }

@@ -502,7 +502,14 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       '#title' => $this->t('Resend email'),
       '#url' => Url::fromRoute(
         'myeventlane_messaging.resend_order_confirmation',
-        ['commerce_order' => $order->id()]
+        ['commerce_order' => $order->id()],
+        [
+          'query' => [
+            'destination' => Url::fromRoute('myeventlane_vendor.console.event_orders', [
+              'event' => $eventId,
+            ])->toString(),
+          ],
+        ]
       ),
       '#attributes' => [
         'class' => ['mel-link', 'mel-link--action'],

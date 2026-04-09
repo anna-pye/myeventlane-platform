@@ -74,7 +74,7 @@ final class OrdersController extends ControllerBase {
       );
     }
 
-    $build = $executable->executeDisplay();
+    $build = $executable->executeDisplay('admin_orders');
     return $this->adminShellBuilder->wrapStandard(
       $build,
       $this->t('Orders'),
