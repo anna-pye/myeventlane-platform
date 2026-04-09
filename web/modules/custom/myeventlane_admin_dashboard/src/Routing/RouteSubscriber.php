@@ -62,6 +62,11 @@ final class RouteSubscriber extends RouteSubscriberBase {
         $r->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
       }
     }
+
+    $ordersView = $collection->get('view.vendor_orders.admin_orders');
+    if ($ordersView !== NULL) {
+      $ordersView->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
+    }
   }
 
 }

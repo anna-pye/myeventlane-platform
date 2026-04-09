@@ -35,6 +35,7 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
   private const NAV_ITEMS = [
     'myeventlane_admin_dashboard.platform_control' => 'Overview',
     'myeventlane_admin_dashboard.vendors' => 'Vendors',
+    'view.vendor_orders.admin_orders' => 'Orders',
     'myeventlane_reporting.admin.events' => 'Events',
     'myeventlane_reporting.admin.finance' => 'Finance',
     'myeventlane_admin_dashboard.payouts' => 'Payouts',
