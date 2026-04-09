@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Theme;
 
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Theme\ThemeNegotiatorInterface;
 
 /**
@@ -14,12 +13,28 @@ use Drupal\Core\Theme\ThemeNegotiatorInterface;
 final class VendorThemeNegotiator implements ThemeNegotiatorInterface {
 
   /**
+   * Public-site routes that use the myeventlane_vendor.* name but must stay on
+   * the default MEL theme (trust-first public shell, not vendor console chrome).
+   *
+   * @var list<string>
+   */
+  private const PUBLIC_DEFAULT_THEME_ROUTES = [
+    'myeventlane_vendor.create_event_gateway',
+    'myeventlane_vendor.public_list',
+    'myeventlane_vendor.organisers',
+  ];
+
+  /**
    * {@inheritdoc}
    */
   public function applies(RouteMatchInterface $route_match): bool {
     $route_name = $route_match->getRouteName();
 
     if (!$route_name) {
+      return FALSE;
+    }
+
+    if (in_array($route_name, self::PUBLIC_DEFAULT_THEME_ROUTES, TRUE)) {
       return FALSE;
     }
 

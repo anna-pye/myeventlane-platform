@@ -6,7 +6,6 @@
  * Wraps content in the account layout with left sidebar navigation.
  * Variables from myeventlane_account_preprocess_page__account:
  * - account_links: Array of nav links (title, url, active).
- * - logo_url: URL to MEL logo.
  * - avatar_url: URL to user picture.
  * - avatar_initials: Fallback initials.
  * - display_name: User display name.
@@ -36,15 +35,8 @@
 
       {# Main content - div to avoid nested main (page.html.twig already has main) #}
       <div class="mel-my-account__main">
-        {# Header row: logo, welcome, avatar #}
+        {# Header row: welcome + avatar (global site_header already provides branding). #}
         <header class="mel-my-account__header">
-          <a href="{{ path('<front>') }}" class="mel-my-account__logo" aria-label="{{ 'Home'|t }}">
-            {% if logo_url %}
-              <img src="{{ logo_url }}" alt="" width="32" height="32" />
-            {% else %}
-              <span class="mel-my-account__logo-text">MyEventLane</span>
-            {% endif %}
-          </a>
           <h1 class="mel-my-account__welcome">
             {{ 'Welcome, @name!'|t({'@name': display_name}) }}
           </h1>
