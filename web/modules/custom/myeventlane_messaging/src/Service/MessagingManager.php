@@ -14,6 +14,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
 use Drupal\myeventlane_messaging\Service\BrandResolverInterface;
 use Drupal\myeventlane_pro\Service\VendorCommsResolver;
+use Drupal\myeventlane_tickets\Service\OrderConfirmationPdfAttachments;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -93,10 +94,8 @@ final class MessagingManager {
    *   Optional UTM linker (may be NULL if not yet in container).
    * @param \Drupal\myeventlane_messaging\Service\BrandResolverInterface|null $vendorBrandResolver
    *   Optional vendor brand resolver (may be NULL if not yet in container).
-   * @param \Drupal\myeventlane_pro\Service\VendorCommsResolver|null $vendorCommsResolver
-   *   Optional vendor comms resolver (may be NULL if not yet in container).
-   * @param \Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver|null $orderConfirmationAttachmentResolver
-   *   Optional send-time attachments for order confirmation (PDF tickets).
+   * @param \Drupal\myeventlane_tickets\Service\OrderConfirmationPdfAttachments|null $orderConfirmationPdfAttachments
+   *   Optional ticket PDF attachments for order_confirmation sends.
    */
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
@@ -111,7 +110,7 @@ final class MessagingManager {
     private readonly ?UtmLinker $utmLinker = NULL,
     private readonly ?BrandResolverInterface $vendorBrandResolver = NULL,
     private readonly ?VendorCommsResolver $vendorCommsResolver = NULL,
-    private readonly ?OrderConfirmationAttachmentResolver $orderConfirmationAttachmentResolver = NULL,
+    private readonly ?OrderConfirmationPdfAttachments $orderConfirmationPdfAttachments = NULL,
   ) {}
 
   /**
@@ -274,6 +273,20 @@ final class MessagingManager {
 
     $eventId = isset($ctx['event_id']) && is_numeric($ctx['event_id']) ? (int) $ctx['event_id'] : NULL;
     $orderId = isset($ctx['order_id']) && is_numeric($ctx['order_id']) ? (int) $ctx['order_id'] : NULL;
+
+    if ($type === 'order_confirmation' && $orderId !== NULL && $this->orderConfirmationPdfAttachments instanceof OrderConfirmationPdfAttachments) {
+      try {
+        $opts['attachments'] = $this->orderConfirmationPdfAttachments->mergeForOrder($orderId, $opts['attachments'] ?? []);
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Order confirmation PDF merge failed for order @id: @message', [
+          '@id' => (string) $orderId,
+          '@message' => $e->getMessage(),
+          'order_id' => $orderId,
+          'message_id' => $messageId,
+        ]);
+      }
+    }
 
     // Template enabled.
     $conf = $this->configFactory->get("myeventlane_messaging.template.{$type}");

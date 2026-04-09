@@ -9,8 +9,8 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
   - myeventlane_event_attendees:myeventlane_event_attendees
-  - commerce:commerce_order
-  - commerce:commerce_price
+  - commerce_order:commerce_order
+  - myeventlane_tickets:myeventlane_tickets
   - drupal:system
   - drupal:user
   - drupal:node

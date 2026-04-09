@@ -63,7 +63,18 @@ services:
       - '@myeventlane_messaging.utm_linker'
       - '@myeventlane_messaging.vendor_brand_resolver'
       - '@?myeventlane_pro.vendor_comms_resolver'
-      - '@?myeventlane_messaging.order_confirmation_attachment_resolver'
+      - '@?myeventlane_tickets.order_confirmation_pdf_attachments'
+
+  myeventlane_messaging.order_confirmation_queue:
+    class: Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@?myeventlane_core.ticket_label_resolver'
+      - '@file_url_generator'
+      - '@myeventlane_messaging.manager'
+      - '@logger.channel.myeventlane_messaging'
+      - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_rsvp.ics_generator'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
@@ -120,23 +131,14 @@ services:
   myeventlane_messaging.order_placed_subscriber:
     class: Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber
     arguments:
-      - '@entity_type.manager'
-      - '@?myeventlane_core.ticket_label_resolver'
-      - '@file_url_generator'
       - '@myeventlane_messaging.manager'
       - '@logger.channel.myeventlane_messaging'
-      - '@myeventlane_core.domain_detector'
+      - '@myeventlane_messaging.order_confirmation_queue'
     tags:
       - { name: event_subscriber }
 
-  myeventlane_messaging.order_paid_invoice_subscriber:
-    class: Drupal\myeventlane_messaging\EventSubscriber\OrderPaidInvoiceSubscriber
+  myeventlane_messaging.resend_order_access:
+    class: Drupal\myeventlane_messaging\Access\ResendOrderConfirmationAccess
     arguments:
-      - '@myeventlane_messaging.manager'
-      - '@logger.channel.myeventlane_messaging'
-      - '@date.formatter'
-      - '@commerce_price.currency_formatter'
-      - '@datetime.time'
       - '@entity_type.manager'
-    tags:
-      - { name: event_subscriber }
+      - '@myeventlane_tickets.event_access'
