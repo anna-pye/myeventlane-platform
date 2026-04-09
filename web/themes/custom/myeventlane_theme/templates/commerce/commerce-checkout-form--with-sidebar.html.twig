@@ -98,25 +98,33 @@
           </div>
         {% endif %}
 
-        <div class="mel-checkout-trust" role="region" aria-label="{{ 'Secure checkout'|t }}">
-          <ul class="mel-checkout-trust__list">
-            <li>{{ 'Secure checkout'|t }}</li>
-            <li>{{ 'Payment processed securely'|t }}</li>
-            <li>{{ 'Confirmation email sent'|t }}</li>
-          </ul>
-        </div>
+        {% if form.payment_information is defined %}
+          <div class="mel-checkout-trust mel-checkout-trust--paid" role="region" aria-label="{{ 'Secure checkout'|t }}">
+            <ul class="mel-checkout-trust__list">
+              <li>{{ 'Secure checkout'|t }}</li>
+              <li>{{ 'Payment processed securely'|t }}</li>
+              <li>{{ 'Confirmation email sent'|t }}</li>
+            </ul>
+          </div>
+        {% else %}
+          <div class="mel-checkout-trust mel-checkout-trust--free" role="region" aria-label="{{ 'No payment required'|t }}">
+            <ul class="mel-checkout-trust__list">
+              <li>{{ 'No payment required'|t }}</li>
+              <li>{{ 'Your RSVP will be confirmed by email'|t }}</li>
+            </ul>
+          </div>
+        {% endif %}
 
         {% if form.actions %}
           <div class="mel-checkout-section mel-checkout-section--cta">
             <div class="mel-checkout-cta">
+              {% if rendered_totals is defined and rendered_totals.total %}
+                <div class="mel-checkout-total-inline mel-checkout-cta__total" aria-live="polite">
+                  <span class="mel-checkout-total-inline__label mel-checkout-cta__total-label">{{ 'Total'|t }}</span>
+                  <span class="mel-checkout-total-inline__value mel-checkout-cta__total-value">{{ rendered_totals.total }}</span>
+                </div>
+              {% endif %}
               {{ form.actions }}
-              <div class="mel-checkout-cta__note">
-                {% if form.payment_information is defined %}
-                  {{ 'Payment is processed securely when you continue.'|t }}
-                {% else %}
-                  {{ 'No card payment is required for this order.'|t }}
-                {% endif %}
-              </div>
               <p class="mel-checkout-cta__recovery">
                 <a class="mel-checkout-cta__recovery-link mel-util-link" href="{{ path('myeventlane_support.page') }}">{{ 'Something wrong? Contact support'|t }}</a>
               </p>

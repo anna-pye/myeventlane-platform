@@ -308,6 +308,95 @@
   display: flex;
   flex-direction: column;
   gap: spacing.mel-space(3);
+
+  .form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(2);
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  // Checkout stays the only solid primary; Update cart reads as a text action.
+  .form-actions .button--primary,
+  .form-actions [type='submit'].button--primary {
+    order: 2;
+    width: 100%;
+  }
+
+  .form-actions .button:not(.button--primary),
+  .form-actions [type='submit']:not(.button--primary),
+  .form-actions button:not(.button--primary),
+  .form-actions input.form-submit:not(.button--primary) {
+    order: 1;
+    align-self: center;
+    width: auto;
+    min-height: auto;
+    padding: spacing.mel-space(1) spacing.mel-space(2);
+    margin: 0;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: colors.$mel-color-primary !important;
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: colors.$mel-color-secondary !important;
+    }
+  }
+}
+
+// Cart page (body.mel-commerce-cart): commerce/_commerce.scss sets flex:1 on mobile
+// for all cart action buttons — reset so only checkout stays full-width primary.
+@include breakpoints.mel-break(md, max) {
+  .mel-commerce-cart .mel-cart .mel-cart-actions {
+    .form-actions input.form-submit:not(.button--primary),
+    .form-actions button:not(.button--primary) {
+      flex: 0 0 auto !important;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cart trust (aligned with checkout copy; single list, no duplicate paragraphs)
+// ---------------------------------------------------------------------------
+
+.mel-cart-trust--inline {
+  margin-top: spacing.mel-space(3);
+  padding: spacing.mel-space(3);
+  border-radius: radii.$mel-radius-md;
+  border: 1px solid colors.$mel-color-border;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.mel-cart-trust__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.45;
+
+  li {
+    margin: 0;
+    padding-left: 1.35rem;
+    position: relative;
+
+    &::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: colors.$mel-color-success;
+      font-weight: typography.$mel-font-bold;
+    }
+  }
 }
 
 .mel-cart-promo {

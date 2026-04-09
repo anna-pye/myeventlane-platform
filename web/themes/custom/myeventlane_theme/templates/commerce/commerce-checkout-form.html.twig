@@ -4,8 +4,8 @@
  * Checkout shell for Commerce when no sidebar suggestion applies, or complete step with sidebar.
  *
  * Governed wrapper: .mel-checkout-shell scopes layout, messages adjacency, and panes.
- * When the complete step shows a Commerce sidebar, hook suggestions resolve here — mirror
- * the with-sidebar confirmation layout so confirmation + summary stay unified.
+ * Non-complete steps mirror commerce-checkout-form--with-sidebar (pane order + trust + CTA).
+ * When the complete step shows a Commerce sidebar, hook suggestions resolve here.
  */
 #}
 <div class="mel-checkout-shell">
@@ -60,16 +60,20 @@
       <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
 
-        {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
-          {% if form.sidebar is not defined %}
-            <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
-              {{ mel_contextual_help_checkout }}
+        {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout and form.sidebar is not defined %}
+          <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
+            {{ mel_contextual_help_checkout }}
+          </div>
+        {% endif %}
+
+        {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
+
+        {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
+          {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+            <div class="mel-contextual-help mel-contextual-help--checkout">
+              {{ mel_help_checkout_refund }}
             </div>
           {% endif %}
-        {% elseif mel_help_checkout_refund is defined and mel_help_checkout_refund %}
-          <div class="mel-contextual-help mel-contextual-help--checkout">
-            {{ mel_help_checkout_refund }}
-          </div>
         {% endif %}
         {% if not (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) %}
           {% if mel_help_checkout_guide is defined and mel_help_checkout_guide %}
@@ -84,27 +88,56 @@
           </div>
         {% endif %}
 
-        {{ form|without('progress', 'sidebar', 'actions', 'mel_checkout_confidence') }}
+        {% if form.payment_information is defined %}
+          <div class="mel-checkout-section mel-checkout-section--payment">
+            <h3 class="mel-checkout-heading">{{ 'Payment'|t }}</h3>
+            {{ form.payment_information }}
+          </div>
+        {% endif %}
 
-        <div class="mel-checkout-trust" role="region" aria-label="{{ 'Secure checkout'|t }}">
-          <ul class="mel-checkout-trust__list">
-            <li>{{ 'Secure checkout'|t }}</li>
-            <li>{{ 'Payment processed securely'|t }}</li>
-            <li>{{ 'Confirmation email sent'|t }}</li>
-          </ul>
-        </div>
+        {% if form.mel_buyer_details is defined or form.mel_donation is defined or form.mel_legal_consent is defined %}
+          <div class="mel-checkout-section mel-checkout-section--details">
+            <h3 class="mel-checkout-heading">{{ 'Your details'|t }}</h3>
+            {% if form.mel_buyer_details is defined %}{{ form.mel_buyer_details }}{% endif %}
+            {% if form.mel_donation is defined %}{{ form.mel_donation }}{% endif %}
+            {% if form.mel_legal_consent is defined %}{{ form.mel_legal_consent }}{% endif %}
+          </div>
+        {% endif %}
+
+        {% if form.ticket_holder_paragraph is defined and form.ticket_holder_paragraph|render|striptags|trim is not empty %}
+          <div class="mel-checkout-section mel-checkout-section--attendees">
+            <h3 class="mel-checkout-heading">{{ 'Ticket holders'|t }}</h3>
+            {{ form.ticket_holder_paragraph }}
+          </div>
+        {% endif %}
+
+        {% if form.payment_information is defined %}
+          <div class="mel-checkout-trust mel-checkout-trust--paid" role="region" aria-label="{{ 'Secure checkout'|t }}">
+            <ul class="mel-checkout-trust__list">
+              <li>{{ 'Secure checkout'|t }}</li>
+              <li>{{ 'Payment processed securely'|t }}</li>
+              <li>{{ 'Confirmation email sent'|t }}</li>
+            </ul>
+          </div>
+        {% else %}
+          <div class="mel-checkout-trust mel-checkout-trust--free" role="region" aria-label="{{ 'No payment required'|t }}">
+            <ul class="mel-checkout-trust__list">
+              <li>{{ 'No payment required'|t }}</li>
+              <li>{{ 'Your RSVP will be confirmed by email'|t }}</li>
+            </ul>
+          </div>
+        {% endif %}
 
         {% if form.actions %}
           <div class="mel-checkout-section mel-checkout-section--cta">
             <div class="mel-checkout-cta">
+              {% if rendered_totals is defined and rendered_totals.total %}
+                <div class="mel-checkout-total-inline mel-checkout-cta__total" aria-live="polite">
+                  <span class="mel-checkout-total-inline__label mel-checkout-cta__total-label">{{ 'Total'|t }}</span>
+                  <span class="mel-checkout-total-inline__value mel-checkout-cta__total-value">{{ rendered_totals.total }}</span>
+                </div>
+              {% endif %}
               {{ form.actions }}
-              <div class="mel-checkout-cta__note">
-                {% if form.payment_information is defined %}
-                  {{ 'Payment is processed securely when you continue.'|t }}
-                {% else %}
-                  {{ 'No card payment is required for this order.'|t }}
-                {% endif %}
-              </div>
               <p class="mel-checkout-cta__recovery">
                 <a class="mel-checkout-cta__recovery-link mel-util-link" href="{{ path('myeventlane_support.page') }}">{{ 'Something wrong? Contact support'|t }}</a>
               </p>
