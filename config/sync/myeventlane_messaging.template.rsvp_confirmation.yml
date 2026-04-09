@@ -1,0 +1,24 @@
+enabled: true
+subject: 'Your RSVP for {{ event_title|default("the event") }} – confirmed'
+body_html: |
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
+    <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6;">Hi {{ first_name|default('there') }},</p>
+      <p style="color: #34495e; font-size: 16px; line-height: 1.6;">You are confirmed for <strong>{{ event_title }}</strong>.</p>
+      {% if event_date %}
+        <p style="color: #34495e; font-size: 15px;"><strong>When:</strong> {{ event_date }}</p>
+      {% endif %}
+      {% if event_location %}
+        <p style="color: #34495e; font-size: 15px;"><strong>Where:</strong> {{ event_location }}</p>
+      {% endif %}
+      <p style="color: #34495e; font-size: 15px;">Party size: {{ guests|default(1) }}</p>
+      <p style="color: #34495e; font-size: 14px; margin-top: 20px;">Your ticket PDF and calendar file are attached when available.</p>
+      <p style="color: #7f8c8d; font-size: 12px; margin-top: 24px;">Sent to {{ attendee_email }}</p>
+    </div>
+  </div>
+utm:
+  enable: true
+  params:
+    utm_source: 'email'
+    utm_medium: 'transactional'
+    utm_campaign: 'rsvp_confirmation'
