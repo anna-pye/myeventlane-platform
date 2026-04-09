@@ -97,13 +97,23 @@ body_html: |
         </div>
       </div>
 
-      <div style="text-align: center; margin: 24px 0 12px;">
-        {% if order_url %}
-          <a href="{{ order_url }}" style="display: inline-block; background-color: #ff6b9d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 4px;">
-            View your tickets
-          </a>
+      <div style="margin: 28px 0; padding: 22px; background-color: #eef7ff; border-radius: 8px; border: 1px solid #cce5ff;">
+        <p style="color: #1a3a52; font-size: 16px; line-height: 1.55; margin: 0 0 16px 0; text-align: center;">
+          <strong>Your tickets</strong> — PDFs may be attached when they are ready. You can always open your order online and download tickets; no attachment is required.
+        </p>
+        <div style="text-align: center;">
+          {% set download_href = tickets_url|default(order_url) %}
+          {% if download_href %}
+            <a href="{{ download_href }}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 700; font-size: 17px; margin: 4px;">
+              Download your tickets
+            </a>
+          {% endif %}
+        </div>
+        {% if order_url and download_href and download_href != order_url %}
+          <p style="text-align: center; margin: 14px 0 0;"><a href="{{ order_url }}" style="color: #34495e; font-size: 14px;">View order details</a></p>
         {% endif %}
       </div>
+
       <div style="text-align: center; margin: 12px 0 30px;">
         <p style="color: #34495e; font-size: 14px; margin: 0 0 8px 0;"><strong>Add to calendar:</strong> open the attached .ics file, or save it and import into your calendar app.</p>
       </div>

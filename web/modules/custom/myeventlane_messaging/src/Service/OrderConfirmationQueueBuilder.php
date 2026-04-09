@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_messaging\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
@@ -26,6 +27,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
+    private readonly TimeInterface $time,
     private readonly ?object $icsGenerator = NULL,
   ) {}
 
@@ -39,8 +41,11 @@ final class OrderConfirmationQueueBuilder {
    * @param bool $isResend
    *   When TRUE, adds a unique token so MessagingManager idempotency allows a
    *   second send for the same order.
+   *
+   * @return string|null
+   *   Message UUID when queued, NULL when skipped or failed.
    */
-  public function queue(OrderInterface $order, string $mail, bool $isResend = FALSE): void {
+  public function queue(OrderInterface $order, string $mail, bool $isResend = FALSE): ?string {
     $orderId = (int) $order->id();
     $customer = $order->getCustomer();
     $first_name = $customer ? $customer->getDisplayName() : 'there';
@@ -93,13 +98,13 @@ final class OrderConfirmationQueueBuilder {
       $context['event_id'] = $primaryEventId;
     }
     if ($isResend) {
-      $context['resend_id'] = uniqid('resend_', TRUE);
+      $context['resend_id'] = $this->time->getRequestTime();
     }
 
     $attachments = $this->generateIcsAttachments($events);
 
     try {
-      $this->messagingManager->queue('order_confirmation', $mail, $context, [
+      $messageId = $this->messagingManager->queue('order_confirmation', $mail, $context, [
         'langcode' => $order->language()->getId(),
         'attachments' => $attachments,
       ]);
@@ -113,8 +118,11 @@ final class OrderConfirmationQueueBuilder {
           'event_id' => $primaryEventId,
           'message_type' => 'order_confirmation',
           'resend' => $isResend,
+          'message_id' => $messageId,
         ]
       );
+
+      return $messageId;
     }
     catch (\Exception $e) {
       $this->logger->error(
@@ -127,6 +135,7 @@ final class OrderConfirmationQueueBuilder {
           'message_type' => 'order_confirmation',
         ]
       );
+      return NULL;
     }
   }
 

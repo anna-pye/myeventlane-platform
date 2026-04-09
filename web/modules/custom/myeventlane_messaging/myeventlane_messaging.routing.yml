@@ -19,10 +19,10 @@ myeventlane_messaging.settings:
     _admin_route: TRUE
 
 myeventlane_messaging.resend_order_confirmation:
-  path: '/admin/myeventlane/orders/{commerce_order}/resend-email'
+  path: '/admin/myeventlane/orders/{commerce_order}/resend-confirmation'
   defaults:
     _controller: '\Drupal\myeventlane_messaging\Controller\ResendOrderEmailController::resend'
-    _title: 'Resend order email'
+    _title: 'Resend confirmation email'
   requirements:
     _user_is_logged_in: 'TRUE'
     _custom_access: 'myeventlane_messaging.resend_order_access:access'

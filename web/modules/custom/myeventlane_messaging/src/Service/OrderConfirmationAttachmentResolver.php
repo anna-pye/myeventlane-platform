@@ -30,7 +30,8 @@ final class OrderConfirmationAttachmentResolver {
    *   Attachments stored at queue time.
    *
    * @return array<int, array<string, string>>
-   *   Combined list; PDF failures are logged and omitted (email still sends).
+   *   Combined list; PDF or storage failures are logged and omitted (email still
+   *   sends with queued attachments only when merge fails entirely).
    */
   public function mergeOrderConfirmationAttachments(string $template, array $context, array $queuedAttachments): array {
     if ($template !== 'order_confirmation') {
@@ -49,41 +50,51 @@ final class OrderConfirmationAttachmentResolver {
       return $queuedAttachments;
     }
 
-    $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
-    $ids = $storage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('order_id', $orderId)
-      ->sort('id')
-      ->execute();
-    if (!$ids || !is_array($ids)) {
+    try {
+      $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('order_id', $orderId)
+        ->sort('id')
+        ->execute();
+      if (!$ids || !is_array($ids)) {
+        return $queuedAttachments;
+      }
+
+      $tickets = $storage->loadMultiple($ids);
+      $out = $queuedAttachments;
+
+      foreach ($tickets as $ticket) {
+        try {
+          $pdf = $generator->getPdfContentForTicket($ticket);
+          if (!is_array($pdf) || ($pdf['content'] ?? '') === '' || ($pdf['filename'] ?? '') === '') {
+            continue;
+          }
+          $out[] = [
+            'filename' => (string) $pdf['filename'],
+            'content' => (string) $pdf['content'],
+            'mime' => (string) ($pdf['mime'] ?? 'application/pdf'),
+          ];
+        }
+        catch (\Throwable $e) {
+          $this->logger->warning('Order confirmation: ticket PDF not attached for order @order_id: @message', [
+            '@order_id' => (string) $orderId,
+            '@message' => $e->getMessage(),
+            'order_id' => $orderId,
+          ]);
+        }
+      }
+
+      return $out;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Order confirmation: attachment merge failed for order @order_id: @message', [
+        '@order_id' => (string) $orderId,
+        '@message' => $e->getMessage(),
+        'order_id' => $orderId,
+      ]);
       return $queuedAttachments;
     }
-
-    $tickets = $storage->loadMultiple($ids);
-    $out = $queuedAttachments;
-
-    foreach ($tickets as $ticket) {
-      try {
-        $pdf = $generator->getPdfContentForTicket($ticket);
-        if (!is_array($pdf) || ($pdf['content'] ?? '') === '' || ($pdf['filename'] ?? '') === '') {
-          continue;
-        }
-        $out[] = [
-          'filename' => (string) $pdf['filename'],
-          'content' => (string) $pdf['content'],
-          'mime' => (string) ($pdf['mime'] ?? 'application/pdf'),
-        ];
-      }
-      catch (\Throwable $e) {
-        $this->logger->warning('Order confirmation: ticket PDF not attached for order @order_id: @message', [
-          '@order_id' => (string) $orderId,
-          '@message' => $e->getMessage(),
-          'order_id' => $orderId,
-        ]);
-      }
-    }
-
-    return $out;
   }
 
 }
