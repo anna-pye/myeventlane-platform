@@ -1,0 +1,5 @@
+myeventlane_messaging.order_resend:
+  route_name: myeventlane_messaging.resend_order_confirmation
+  title: 'Resend tickets'
+  base_route: entity.commerce_order.canonical
+  weight: 50

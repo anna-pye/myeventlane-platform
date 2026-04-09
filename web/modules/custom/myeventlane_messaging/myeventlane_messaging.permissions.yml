@@ -4,8 +4,6 @@ administer myeventlane messaging:
   description: 'Configure email templates, sender settings, and notification timing.'
   restrict access: TRUE
 
-
-
-
-
-
+resend order confirmation emails:
+  title: 'Resend order confirmation emails'
+  description: 'Queue a duplicate order confirmation email (admin and staff).'

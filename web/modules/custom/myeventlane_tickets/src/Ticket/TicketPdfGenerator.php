@@ -25,13 +25,21 @@ final class TicketPdfGenerator {
    * ⚠️ May represent multiple tickets.
    */
   public function generatePdfForOrderItem(OrderItemInterface $order_item): Response {
-    // Get event from order item.
+    $pdf = $this->getPdfContentForOrderItem($order_item);
+    return $this->renderPdfFromArray($pdf);
+  }
+
+  /**
+   * PDF bytes for attachment (legacy order-item template).
+   *
+   * @return array{content: string, filename: string, mime: string}
+   */
+  public function getPdfContentForOrderItem(OrderItemInterface $order_item): array {
     $event = NULL;
     if ($order_item->hasField('field_target_event') && !$order_item->get('field_target_event')->isEmpty()) {
       $event = $order_item->get('field_target_event')->entity;
     }
 
-    // Fallback: try to get event from product variation.
     if (!$event) {
       $purchasedEntity = $order_item->getPurchasedEntity();
       if ($purchasedEntity && $purchasedEntity->hasField('field_event') && !$purchasedEntity->get('field_event')->isEmpty()) {
@@ -43,7 +51,6 @@ final class TicketPdfGenerator {
       throw new \LogicException('Event not found for order item.');
     }
 
-    // Extract event data.
     $event_title = $event->label();
     $event_start = NULL;
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
@@ -75,7 +82,6 @@ final class TicketPdfGenerator {
       }
     }
 
-    // Get holder name from order item.
     $holderName = '';
     if ($order_item->hasField('field_ticket_holder') && !$order_item->get('field_ticket_holder')->isEmpty()) {
       $ticketHolders = $order_item->get('field_ticket_holder')->referencedEntities();
@@ -87,8 +93,8 @@ final class TicketPdfGenerator {
       }
     }
 
-    // Generate ticket code for legacy.
-    $ticketCode = sprintf('MEL-%d-%d-%d-%s',
+    $ticketCode = sprintf(
+      'MEL-%d-%d-%d-%s',
       $event->id(),
       $order_item->getOrder() ? $order_item->getOrder()->id() : 0,
       $order_item->id(),
@@ -106,7 +112,30 @@ final class TicketPdfGenerator {
       '#legacy' => TRUE,
     ];
 
-    return $this->renderPdf($build, 'tickets-order-item-' . $order_item->id() . '.pdf');
+    $filename = 'tickets-order-item-' . $order_item->id() . '.pdf';
+
+    return [
+      'content' => $this->renderPdfContent($build),
+      'filename' => $filename,
+      'mime' => 'application/pdf',
+    ];
+  }
+
+  /**
+   * Wraps a PDF attachment array as an HTTP download response.
+   *
+   * @param array{content: string, filename: string, mime: string} $pdf
+   *   From getPdfContentForOrderItem or getPdfContentForTicket.
+   */
+  private function renderPdfFromArray(array $pdf): Response {
+    $response = new Response($pdf['content']);
+    $response->headers->set('Content-Type', $pdf['mime'] ?? 'application/pdf');
+    $response->headers->set(
+      'Content-Disposition',
+      ResponseHeaderBag::DISPOSITION_ATTACHMENT . '; filename="' . ($pdf['filename'] ?? 'ticket.pdf') . '"'
+    );
+
+    return $response;
   }
 
   /**

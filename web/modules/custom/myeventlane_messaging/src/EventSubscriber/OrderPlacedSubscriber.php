@@ -5,15 +5,11 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_messaging\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Drupal\myeventlane_core\Service\DomainDetector;
-use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
+use Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder;
 use Drupal\node\NodeInterface;
-use Drupal\paragraphs\ParagraphInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -24,6 +20,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * Includes:
  * - Branded HTML confirmation (order_confirmation template)
  * - Calendar (.ics) attachments (one per event)
+ * - Ticket PDFs merged at send time (see MessagingManager + myeventlane_tickets)
  * - Clear separation of tickets vs donations
  * - Dedicated boost confirmation email for boost-only orders.
  */
@@ -36,29 +33,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
    */
   private const VENDOR_SUPPORT_URL = 'https://myeventlane.com.au/contact';
 
-  /**
-   * Constructs OrderPlacedSubscriber.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager.
-   * @param \Drupal\myeventlane_core\Service\TicketLabelResolver|null $ticketLabelResolver
-   *   The ticket label resolver.
-   * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
-   *   The file URL generator.
-   * @param \Drupal\myeventlane_messaging\Service\MessagingManager $messagingManager
-   *   The messaging manager.
-   * @param \Psr\Log\LoggerInterface $logger
-   *   The logger.
-   * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
-   *   The domain detector (for public-domain customer links).
-   */
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly ?TicketLabelResolver $ticketLabelResolver,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
-    private readonly DomainDetector $domainDetector,
+    private readonly OrderConfirmationQueueBuilder $orderConfirmationQueue,
   ) {}
 
   /**
@@ -104,23 +82,16 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // Route to boost confirmation if this is a boost-only order.
     if ($this->isBoostOnlyOrder($order)) {
       $this->sendBoostConfirmation($order, $mail);
       return;
     }
 
-    $this->sendOrderConfirmation($order, $mail);
+    $this->orderConfirmationQueue->queue($order, $mail, FALSE);
   }
 
   /**
    * Checks if an order contains only boost items (no tickets, no donations).
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return bool
-   *   TRUE if all order items are boost items.
    */
   private function isBoostOnlyOrder(OrderInterface $order): bool {
     $items = $order->getItems();
@@ -139,22 +110,12 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
 
   /**
    * Sends a dedicated boost confirmation email.
-   *
-   * Calculates boost dates from order data (product variation field_boost_days)
-   * rather than reading field_promo_expires from the event, because the boost
-   * has not yet been applied at order-place time (it fires on ORDER_PAID).
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   * @param string $mail
-   *   The recipient email.
    */
   private function sendBoostConfirmation(OrderInterface $order, string $mail): void {
     $orderId = (int) $order->id();
     $customer = $order->getCustomer();
     $first_name = $customer ? $customer->getDisplayName() : 'there';
 
-    // Extract boost details from all boost items in the order.
     $boostItems = $this->extractBoostItems($order);
 
     if (empty($boostItems)) {
@@ -162,14 +123,12 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
         'Boost-only order @order_id has no extractable boost items. Falling back to generic order confirmation.',
         ['@order_id' => $orderId, 'order_id' => $orderId]
       );
-      $this->sendOrderConfirmation($order, $mail);
+      $this->orderConfirmationQueue->queue($order, $mail, FALSE);
       return;
     }
 
-    // Use the first boost item for primary context (most orders have one).
     $primaryBoost = reset($boostItems);
 
-    // Build boost manage URL (link to the boost page for the event).
     $boostManageUrl = NULL;
     if ($primaryBoost['event_id']) {
       try {
@@ -239,16 +198,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
   /**
    * Extracts boost item data from an order.
    *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return array
-   *   Array of boost item data, each with keys:
-   *   - event_id (int|null)
-   *   - event_name (string)
-   *   - boost_days (int)
-   *   - boost_start_date (string): Formatted date.
-   *   - boost_end_date (string): Formatted date.
+   * @return array<int, array<string, mixed>>
    */
   private function extractBoostItems(OrderInterface $order): array {
     $items = [];
@@ -275,7 +225,6 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
         }
       }
 
-      // Get boost duration from the product variation.
       $boostDays = 7;
       $variation = $item->getPurchasedEntity();
       if ($variation && $variation->hasField('field_boost_days') && !$variation->get('field_boost_days')->isEmpty()) {
@@ -285,7 +234,6 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
         }
       }
 
-      // Calculate start and end dates from order placed date.
       $startDate = $orderDate->setTimezone(new \DateTimeZone('Australia/Sydney'));
       $endDate = $startDate->modify(sprintf('+%d days', $boostDays));
 
@@ -301,460 +249,6 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     return $items;
   }
 
-  /**
-   * Queues the standard order confirmation email (for ticket/donation orders).
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   * @param string $mail
-   *   The recipient email.
-   */
-  private function sendOrderConfirmation(OrderInterface $order, string $mail): void {
-    $orderId = (int) $order->id();
-    $customer = $order->getCustomer();
-    $first_name = $customer ? $customer->getDisplayName() : 'there';
-
-    // Extract events, ticket items, and donations from order.
-    $events = $this->extractEvents($order);
-    $ticket_items = $this->extractTicketItems($order);
-    $donation_total = $this->calculateDonationTotal($order);
-    $has_tickets = $ticket_items !== [];
-    $tickets_need_assignment = $has_tickets && $this->ticketItemsNeedAssignment($ticket_items);
-
-    $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
-
-    // Build ticket download URL and order URL on public domain (customer-facing).
-    $order_detail_path = '/my-tickets/order/' . $orderId;
-    $order_url = $this->buildPublicUrl($order_detail_path);
-    $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
-    if (!$order_url) {
-      try {
-        $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-          'commerce_order' => $orderId,
-        ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
-        $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-          'commerce_order' => $orderId,
-        ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
-      }
-      catch (\Exception $e) {
-        $this->logger->warning('Could not generate order/tickets URL: @message', [
-          '@message' => $e->getMessage(),
-        ]);
-        $order_url = NULL;
-        $tickets_url = NULL;
-      }
-    }
-
-    // Build email context.
-    $context = [
-      'first_name' => $first_name,
-      'order_number' => $order->label(),
-      'order_id' => $orderId,
-      // Customer-facing "My Tickets" order detail (not admin order view).
-      'order_url' => $order_url,
-      'order_email' => $mail,
-      'events' => $this->formatEventsForEmail($events),
-      'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
-      'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
-      'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
-      'event_name' => !empty($events) ? reset($events)->label() : 'your event',
-      // Add tickets download link for the email template.
-      'tickets_url' => $tickets_url,
-      'has_tickets' => $has_tickets,
-      'tickets_need_assignment' => $tickets_need_assignment,
-    ];
-    if ($primaryEventId !== NULL) {
-      $context['event_id'] = $primaryEventId;
-    }
-
-    // Generate ICS attachments.
-    $attachments = $this->generateIcsAttachments($events);
-
-    // Queue email with attachments.
-    try {
-      $this->messagingManager->queue('order_confirmation', $mail, $context, [
-        'langcode' => $order->language()->getId(),
-        'attachments' => $attachments,
-      ]);
-
-      $this->logger->info(
-        'Order confirmation queued for order @order_id to @email',
-        [
-          '@order_id' => $orderId,
-          '@email' => $mail,
-          'order_id' => $orderId,
-          'event_id' => $primaryEventId,
-          'message_type' => 'order_confirmation',
-        ]
-      );
-    }
-    catch (\Exception $e) {
-      $this->logger->error(
-        'Failed to queue order confirmation for order @order_id: @message',
-        [
-          '@order_id' => $orderId,
-          '@message' => $e->getMessage(),
-          'order_id' => $orderId,
-          'event_id' => $primaryEventId,
-          'message_type' => 'order_confirmation',
-        ]
-      );
-    }
-  }
-
-  /**
-   * Whether any ticket line still needs holder assignment (PDF/QR emailed per holder).
-   *
-   * @param array $ticket_items
-   *   Order items (ticket lines).
-   *
-   * @return bool
-   *   TRUE if at least one item has no holder paragraphs or no holder email.
-   */
-  private function ticketItemsNeedAssignment(array $ticket_items): bool {
-    foreach ($ticket_items as $item) {
-      if (!$item->hasField('field_ticket_holder') || $item->get('field_ticket_holder')->isEmpty()) {
-        return TRUE;
-      }
-      $has_holder_email = FALSE;
-      foreach ($item->get('field_ticket_holder')->referencedEntities() as $paragraph) {
-        if ($paragraph instanceof ParagraphInterface
-          && $paragraph->hasField('field_email')
-          && !$paragraph->get('field_email')->isEmpty()
-          && trim((string) $paragraph->get('field_email')->value) !== '') {
-          $has_holder_email = TRUE;
-          break;
-        }
-      }
-      if (!$has_holder_email) {
-        return TRUE;
-      }
-    }
-    return FALSE;
-  }
-
-  /**
-   * Extracts unique events from order items.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return array<\Drupal\node\NodeInterface>
-   *   Array of event nodes.
-   */
-  private function extractEvents(OrderInterface $order): array {
-    $events = [];
-    $event_ids = [];
-
-    foreach ($order->getItems() as $item) {
-      // Skip donation and Boost (admin product) items.
-      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
-        continue;
-      }
-
-      if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
-        $event = $item->get('field_target_event')->entity;
-        if ($event instanceof NodeInterface && $event->bundle() === 'event') {
-          $event_id = (int) $event->id();
-          if (!in_array($event_id, $event_ids, TRUE)) {
-            $events[] = $event;
-            $event_ids[] = $event_id;
-          }
-        }
-      }
-    }
-
-    return $events;
-  }
-
-  /**
-   * Extracts ticket items (excludes donations).
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return array
-   *   Array of ticket order items.
-   */
-  private function extractTicketItems(OrderInterface $order): array {
-    $ticket_items = [];
-
-    foreach ($order->getItems() as $item) {
-      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
-        continue;
-      }
-      $ticket_items[] = $item;
-    }
-
-    return $ticket_items;
-  }
-
-  /**
-   * Calculates total donation amount.
-   *
-   * @param \Drupal\commerce_order\Entity\OrderInterface $order
-   *   The order.
-   *
-   * @return float
-   *   Total donation amount.
-   */
-  private function calculateDonationTotal(OrderInterface $order): float {
-    $total = 0.0;
-
-    foreach ($order->getItems() as $item) {
-      if ($this->isDonationItem($item)) {
-        $price = $item->getTotalPrice();
-        if ($price) {
-          $total += (float) $price->getNumber();
-        }
-      }
-    }
-
-    return $total;
-  }
-
-  /**
-   * Checks if an order item is a donation.
-   *
-   * @param object $item
-   *   The order item.
-   *
-   * @return bool
-   *   TRUE if donation, FALSE otherwise.
-   */
-  private function isDonationItem($item): bool {
-    $bundle = $item->bundle();
-    return in_array($bundle, ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE);
-  }
-
-  /**
-   * Formats events for email template.
-   *
-   * @param array<\Drupal\node\NodeInterface> $events
-   *   Event nodes.
-   *
-   * @return array
-   *   Formatted event data.
-   */
-  private function formatEventsForEmail(array $events): array {
-    $formatted = [];
-
-    foreach ($events as $event) {
-      $start_date = NULL;
-      $end_date = NULL;
-      $start_time = NULL;
-      $end_time = NULL;
-      $image_url = NULL;
-
-      if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-        $start_timestamp = strtotime($event->get('field_event_start')->value);
-        $start_date = date('F j, Y', $start_timestamp);
-        $start_time = date('g:i A', $start_timestamp);
-      }
-
-      if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-        $end_timestamp = strtotime($event->get('field_event_end')->value);
-        $end_date = date('F j, Y', $end_timestamp);
-        $end_time = date('g:i A', $end_timestamp);
-      }
-
-      if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
-        $file = $event->get('field_event_image')->entity;
-        if ($file) {
-          $image_url = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
-        }
-      }
-
-      $location = NULL;
-      if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
-        $address_field = $event->get('field_location')->first();
-        if ($address_field) {
-          $location = $this->formatAddressFieldValue($address_field->getValue());
-        }
-      }
-
-      $formatted[] = [
-        'title' => $event->label(),
-        'image_url' => $image_url,
-        'start_date' => $start_date,
-        'end_date' => $end_date,
-        'start_time' => $start_time,
-        'end_time' => $end_time,
-        'venue_name' => $event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()
-          ? $event->get('field_venue_name')->value
-          : NULL,
-        'location' => $location,
-        'contact_email' => $event->hasField('field_contact_email') && !$event->get('field_contact_email')->isEmpty()
-          ? $event->get('field_contact_email')->value
-          : NULL,
-        'contact_phone' => $event->hasField('field_contact_phone') && !$event->get('field_contact_phone')->isEmpty()
-          ? $event->get('field_contact_phone')->value
-          : NULL,
-        'accessibility_contact' => $event->hasField('field_accessibility_contact') && !$event->get('field_accessibility_contact')->isEmpty()
-          ? $event->get('field_accessibility_contact')->value
-          : NULL,
-      ];
-    }
-
-    return $formatted;
-  }
-
-  /**
-   * Formats an Address field value to a single-line string.
-   *
-   * @param array $address
-   *   Address field value array.
-   *
-   * @return string|null
-   *   Formatted string, or NULL when empty.
-   */
-  private function formatAddressFieldValue(array $address): ?string {
-    $parts = [];
-    if (!empty($address['address_line1'])) {
-      $parts[] = $address['address_line1'];
-    }
-    if (!empty($address['address_line2'])) {
-      $parts[] = $address['address_line2'];
-    }
-    if (!empty($address['locality'])) {
-      $parts[] = $address['locality'];
-    }
-    if (!empty($address['administrative_area'])) {
-      $parts[] = $address['administrative_area'];
-    }
-    if (!empty($address['postal_code'])) {
-      $parts[] = $address['postal_code'];
-    }
-
-    $value = trim(implode(', ', $parts));
-    return $value !== '' ? $value : NULL;
-  }
-
-  /**
-   * Formats ticket items for email template.
-   *
-   * @param array $ticket_items
-   *   Ticket order items.
-   *
-   * @return array
-   *   Formatted ticket item data.
-   */
-  private function formatTicketItemsForEmail(array $ticket_items): array {
-    $formatted = [];
-
-    foreach ($ticket_items as $item) {
-      $attendees = [];
-      if ($item->hasField('field_ticket_holder') && !$item->get('field_ticket_holder')->isEmpty()) {
-        foreach ($item->get('field_ticket_holder')->referencedEntities() as $paragraph) {
-          if ($paragraph instanceof ParagraphInterface) {
-            $first_name = $paragraph->hasField('field_first_name') && !$paragraph->get('field_first_name')->isEmpty()
-              ? $paragraph->get('field_first_name')->value : '';
-            $last_name = $paragraph->hasField('field_last_name') && !$paragraph->get('field_last_name')->isEmpty()
-              ? $paragraph->get('field_last_name')->value : '';
-            $email = $paragraph->hasField('field_email') && !$paragraph->get('field_email')->isEmpty()
-              ? $paragraph->get('field_email')->value : '';
-
-            $attendees[] = [
-              'name' => trim($first_name . ' ' . $last_name),
-              'email' => $email,
-            ];
-          }
-        }
-      }
-
-      $price = $item->getTotalPrice();
-      $label = $item->label();
-      if ($this->ticketLabelResolver instanceof TicketLabelResolver) {
-        $label = $this->ticketLabelResolver->getTicketLabel($item);
-      }
-      $formatted[] = [
-        'title' => $label,
-        'quantity' => (int) $item->getQuantity(),
-        'price' => $price ? $this->formatPrice((float) $price->getNumber()) : '$0.00',
-        'attendees' => $attendees,
-      ];
-    }
-
-    return $formatted;
-  }
-
-  /**
-   * Generates ICS attachments for events.
-   *
-   * @param array<\Drupal\node\NodeInterface> $events
-   *   Event nodes.
-   *
-   * @return array
-   *   Array of attachment data for email.
-   */
-  private function generateIcsAttachments(array $events): array {
-    $attachments = [];
-
-    if (!\Drupal::hasService('myeventlane_rsvp.ics_generator')) {
-      return $attachments;
-    }
-
-    $ics_generator = \Drupal::service('myeventlane_rsvp.ics_generator');
-
-    foreach ($events as $event) {
-      try {
-        $ics_content = $ics_generator->generate($event);
-        $filename = 'event-' . $event->id() . '-' . preg_replace('/[^a-z0-9]/i', '-', strtolower($event->label())) . '.ics';
-
-        $attachments[] = [
-          'filename' => $filename,
-          'content' => $ics_content,
-          'mime' => 'text/calendar',
-        ];
-      }
-      catch (\Exception $e) {
-        $this->logger->error(
-          'Failed to generate ICS for event @event_id: @message',
-          [
-            '@event_id' => $event->id(),
-            '@message' => $e->getMessage(),
-            'event_id' => (int) $event->id(),
-          ]
-        );
-      }
-    }
-
-    return $attachments;
-  }
-
-  /**
-   * Builds an absolute URL on the public domain for customer-facing links.
-   *
-   * Ensures email links point to the public site (e.g. myeventlane.ddev.site)
-   * rather than inheriting the organiser/vendor subdomain from the request.
-   *
-   * @param string $path
-   *   Internal path (e.g. '/my-tickets/order/123').
-   *
-   * @return string|null
-   *   Full URL or NULL if domain config is unavailable.
-   */
-  private function buildPublicUrl(string $path): ?string {
-    try {
-      return $this->domainDetector->buildDomainUrl($path, 'public');
-    }
-    catch (\Exception $e) {
-      $this->logger->warning('Could not build public domain URL: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-      return NULL;
-    }
-  }
-
-  /**
-   * Formats a price value.
-   *
-   * @param float $amount
-   *   The amount.
-   *
-   * @return string
-   *   Formatted price string.
-   */
   private function formatPrice(float $amount): string {
     return '$' . number_format($amount, 2);
   }

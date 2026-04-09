@@ -61,3 +61,11 @@ myeventlane_vendor.event_workspace.settings:
   route_name: myeventlane_vendor.console.event_settings
   base_route: myeventlane_vendor.console.event_overview
   weight: 30
+
+myeventlane_vendor.event_order_resend:
+  title: 'Resend tickets'
+  route_name: myeventlane_messaging.resend_order_confirmation
+  base_route: myeventlane_vendor.console.event_order_view
+  weight: 15
+  route_parameters:
+    commerce_order: '{order}'

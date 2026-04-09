@@ -73,6 +73,13 @@ services:
       - '@logger.channel.myeventlane_tickets'
       - '@?myeventlane_rsvp.ics_generator'
 
+  myeventlane_tickets.order_confirmation_pdf_attachments:
+    class: Drupal\myeventlane_tickets\Service\OrderConfirmationPdfAttachments
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.ticket_pdf_generator'
+      - '@logger.channel.myeventlane_tickets'
+
   myeventlane_tickets.event_access:
     class: Drupal\myeventlane_tickets\Service\EventAccess
     arguments: ['@current_user', '@entity_type.manager']
