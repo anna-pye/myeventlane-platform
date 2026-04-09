@@ -1,43 +1,46 @@
 (function (Drupal, once) {
+
   const getForms = (context, key) => {
-    const forms = once(key, '.mel-rsvp-public-form', context);
-    // Fallback for attach() calls where context is the form element itself.
-    if (
-      context instanceof Element
-      && context.matches('.mel-rsvp-public-form')
-      && context.dataset[key] !== '1'
-    ) {
-      context.dataset[key] = '1';
-      forms.push(context);
+    const elements = context.querySelectorAll('.mel-rsvp-public-form');
+    const forms = Array.from(once(key, elements));
+
+    if (context.nodeType === 1 && context.matches('.mel-rsvp-public-form')) {
+      if (!once.filter(key, context).length) {
+        once(key, context);
+        forms.push(context);
+      }
     }
+
     return forms;
   };
 
   Drupal.behaviors.melRsvpConversion = {
     attach(context) {
+
       getForms(context, 'melRsvpConversionAttached').forEach((form) => {
-        const selector = form.querySelectorAll('input[name="people"], select[name="people"]');
+
+        const getSelectorInputs = () =>
+          form.querySelectorAll('input[name="people"], select[name="people"]');
+
         const guestsInput = form.querySelector('input[name="quantity"]');
         const chipGroups = form.querySelectorAll('.mel-chip-group');
-        /** Re-query after AJAX replaces the attendees wrapper (stale NodeList otherwise). */
         const getAttendeeCards = () => form.querySelectorAll('.mel-attendee-card');
         const copyAllCheckbox = form.querySelector('.mel-copy-all');
 
+        const MAX = drupalSettings?.mel?.maxAttendees || 10;
+
         const upgradeChipMarkup = (group) => {
-          const inputs = group.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-          inputs.forEach((input) => {
+          group.querySelectorAll('input').forEach((input) => {
             const wrapper = input.closest('.form-item');
-            if (!wrapper || wrapper.dataset.melChipReady === '1') {
-              return;
-            }
+            if (!wrapper || wrapper.dataset.melChipReady === '1') return;
+
             wrapper.dataset.melChipReady = '1';
             wrapper.classList.add('mel-chip');
-            const label = wrapper.querySelector('label');
-            if (!label) {
-              return;
-            }
 
-            const text = label.textContent ? label.textContent.trim() : '';
+            const label = wrapper.querySelector('label');
+            if (!label) return;
+
+            const text = label.textContent?.trim() || '';
             label.textContent = '';
             label.classList.add('mel-chip__label');
             label.appendChild(input);
@@ -50,149 +53,76 @@
         };
 
         const syncChipGroup = (group) => {
-          const inputs = group.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-          inputs.forEach((input) => {
+          group.querySelectorAll('input').forEach((input) => {
             const wrapper = input.closest('.form-item');
-            if (!wrapper) {
-              return;
-            }
-            wrapper.classList.add('mel-chip');
-            if (input.checked) {
-              wrapper.classList.add('mel-chip--active');
-            }
-            else {
-              wrapper.classList.remove('mel-chip--active');
-            }
+            if (!wrapper) return;
+
+            wrapper.classList.toggle('mel-chip--active', input.checked);
           });
         };
 
         chipGroups.forEach((group) => {
           upgradeChipMarkup(group);
           syncChipGroup(group);
-          const inputs = group.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-          inputs.forEach((input) => {
-            input.addEventListener('change', () => syncChipGroup(group));
+
+          group.querySelectorAll('input').forEach((input) => {
+            once('mel-chip-input', input).forEach(() => {
+              input.addEventListener('change', () => syncChipGroup(group));
+            });
           });
         });
 
-        const copyFirstAttendeeToAll = () => {
-          if (!copyAllCheckbox || !copyAllCheckbox.checked) {
-            return;
-          }
-          const firstName = form.querySelector('[name="attendees[0][name]"]');
-          const firstEmail = form.querySelector('[name="attendees[0][email]"]');
-          getAttendeeCards().forEach((card, i) => {
-            if (i === 0) {
-              return;
-            }
-            const name = card.querySelector('[name^="attendees"][name$="[name]"]');
-            const email = card.querySelector('[name^="attendees"][name$="[email]"]');
-            if (name) {
-              name.value = firstName?.value || '';
-            }
-            if (email) {
-              email.value = firstEmail?.value || '';
-            }
-          });
-        };
-
         const getRequestedAttendeeCount = () => {
-          const peopleSelect = form.querySelector('select[name="people"]');
-          if (peopleSelect instanceof HTMLSelectElement) {
-            const v = parseInt(peopleSelect.value || '1', 10);
-            return Math.max(1, Math.min(10, Number.isFinite(v) ? v : 1));
+          const select = form.querySelector('select[name="people"]');
+
+          if (select instanceof HTMLSelectElement) {
+            const v = parseInt(select.value || '1', 10);
+            return Math.max(1, Math.min(MAX, v || 1));
           }
-          let value = parseInt(guestsInput?.value || '1', 10);
-          if (!Number.isFinite(value)) {
-            value = 1;
-          }
-          selector.forEach((el) => {
-            if (el instanceof HTMLInputElement && el.checked) {
-              value = parseInt(el.value || '1', 10) || value;
+
+          let value = parseInt(guestsInput?.value || '1', 10) || 1;
+
+          getSelectorInputs().forEach((el) => {
+            if (el.checked) {
+              value = parseInt(el.value, 10) || value;
             }
           });
-          return Math.max(1, Math.min(10, value));
+
+          return Math.max(1, Math.min(MAX, value));
         };
 
-        const updateAttendeeCards = (shouldScroll) => {
-          const peopleSelect = form.querySelector('select[name="people"]');
-          if (peopleSelect instanceof HTMLSelectElement) {
-            // Card count matches the select via Form API rebuild + AJAX; DOM has no extra rows.
-            getAttendeeCards().forEach((card) => {
-              card.classList.add('is-visible');
-            });
-            const count = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
-            if (count > 1 && shouldScroll) {
-              form.querySelector('.mel-attendees')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-              });
-            }
-            return;
-          }
+        const updateAttendeeCards = (scroll) => {
+          const count = getRequestedAttendeeCount();
 
-          const value = getRequestedAttendeeCount();
-          getAttendeeCards().forEach((card, index) => {
-            if (index < value) {
-              card.style.display = 'block';
-              requestAnimationFrame(() => {
-                card.classList.add('is-visible');
-              });
-            }
-            else {
-              card.style.display = 'none';
-              card.classList.remove('is-visible');
-            }
+          getAttendeeCards().forEach((card, i) => {
+            card.classList.toggle('is-hidden', i >= count);
+            card.classList.toggle('is-visible', i < count);
           });
 
-          if (value > 1 && shouldScroll) {
-            form.querySelector('.mel-attendees')?.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
+          if (count > 1 && scroll) {
+            form.querySelector('.mel-attendees')?.scrollIntoView({ behavior: 'smooth' });
           }
         };
 
-        const syncGuestsFromIntent = () => {
-          if (!guestsInput) {
-            return;
-          }
-          const peopleSelect = form.querySelector('select[name="people"]');
-          if (peopleSelect instanceof HTMLSelectElement) {
-            const selected = Math.max(1, Math.min(10, parseInt(peopleSelect.value, 10) || 1));
-            guestsInput.value = String(selected);
-            // Drupal AJAX replaces the attendee wrapper; keep quantity in sync for POST.
-            updateAttendeeCards(true);
-            return;
-          }
-          let selected = 1;
-          selector.forEach((el) => {
-            if (el instanceof HTMLInputElement && el.checked) {
-              selected = parseInt(el.value, 10) || 1;
-            }
-          });
-          guestsInput.value = String(Math.max(1, selected));
+        const syncGuests = () => {
+          if (!guestsInput) return;
+
+          const count = getRequestedAttendeeCount();
+          guestsInput.value = String(count);
+
           updateAttendeeCards(true);
-          copyFirstAttendeeToAll();
         };
 
-        selector.forEach((el) => {
-          el.addEventListener('change', syncGuestsFromIntent);
+        getSelectorInputs().forEach((el) => {
+          once('mel-selector', el).forEach(() => {
+            el.addEventListener('change', syncGuests);
+          });
         });
 
         if (guestsInput) {
-          guestsInput.addEventListener('input', () => {
-            updateAttendeeCards(true);
-            copyFirstAttendeeToAll();
+          once('mel-guests', guestsInput).forEach(() => {
+            guestsInput.addEventListener('input', () => updateAttendeeCards(true));
           });
-        }
-
-        if (copyAllCheckbox) {
-          copyAllCheckbox.addEventListener('change', () => {
-            copyFirstAttendeeToAll();
-          });
-          form.querySelector('[name="attendees[0][name]"]')?.addEventListener('input', copyFirstAttendeeToAll);
-          form.querySelector('[name="attendees[0][email]"]')?.addEventListener('input', copyFirstAttendeeToAll);
         }
 
         updateAttendeeCards(false);
@@ -200,138 +130,4 @@
     }
   };
 
-  Drupal.behaviors.melRsvpCta = {
-    attach(context) {
-      getForms(context, 'melRsvpCtaAttached').forEach((form) => {
-        const button = form.querySelector('.mel-sticky-cta .mel-btn')
-          || form.querySelector('.form-actions .mel-btn, .form-actions input[type="submit"], .form-actions button[type="submit"]');
-        if (!button) {
-          return;
-        }
-
-        const setButtonLabel = (label) => {
-          if (button.matches('input[type="submit"], input[type="button"]')) {
-            button.value = label;
-            return;
-          }
-          button.textContent = label;
-        };
-
-        const ensureLabelWrapper = () => {
-          if (button.matches('input[type="submit"], input[type="button"]')) {
-            return null;
-          }
-          let label = button.querySelector('.mel-btn__label');
-          if (label) {
-            return label;
-          }
-          label = document.createElement('span');
-          label.className = 'mel-btn__label';
-          label.textContent = (button.textContent || '').trim();
-          button.textContent = '';
-          button.appendChild(label);
-          button.classList.add('is-visible');
-          return label;
-        };
-
-        const updateCtaText = (newText) => {
-          const label = ensureLabelWrapper();
-          if (!label) {
-            // Fallback path for <input type="submit">: animate container only.
-            button.classList.add('is-updating');
-            setButtonLabel(newText);
-            window.setTimeout(() => {
-              button.classList.remove('is-updating');
-            }, 300);
-            return;
-          }
-
-          button.classList.add('is-fading');
-          window.setTimeout(() => {
-            label.textContent = newText;
-            button.classList.remove('is-fading');
-            button.classList.add('is-visible');
-            button.classList.add('is-updating');
-            window.setTimeout(() => {
-              button.classList.remove('is-updating');
-            }, 300);
-          }, 120);
-        };
-
-        const getCount = () => {
-          const peopleSelect = form.querySelector('select[name="people"]');
-          if (peopleSelect instanceof HTMLSelectElement) {
-            const v = parseInt(peopleSelect.value || '1', 10);
-            return Math.max(1, Math.min(10, Number.isFinite(v) ? v : 1));
-          }
-          const peopleChecked = form.querySelector('input[name="people"]:checked');
-          const peopleValue = peopleChecked ? parseInt(peopleChecked.value || '1', 10) : NaN;
-          const quantityInput = form.querySelector('input[name="quantity"]');
-          const quantityValue = quantityInput ? parseInt(quantityInput.value || '1', 10) : NaN;
-          const count = Number.isFinite(quantityValue) ? quantityValue : peopleValue;
-          return Math.max(1, Math.min(10, Number.isFinite(count) ? count : 1));
-        };
-
-        const getDonationState = () => {
-          const donationEnabled = form.querySelector('input[name="donation_enabled"]');
-          if (!(donationEnabled instanceof HTMLInputElement) || !donationEnabled.checked) {
-            return { enabled: false, suffix: '' };
-          }
-
-          const selectedDonation = form.querySelector('input[name="donation_choice"]:checked');
-          if (!(selectedDonation instanceof HTMLInputElement)) {
-            return { enabled: true, suffix: ' + support' };
-          }
-
-          if (selectedDonation.value === 'other') {
-            const otherInput = form.querySelector('input[name="donation_other"]');
-            const raw = otherInput instanceof HTMLInputElement ? otherInput.value.trim() : '';
-            if (raw === '') {
-              return { enabled: true, suffix: ' + support' };
-            }
-            const parsed = Number(raw);
-            if (!Number.isFinite(parsed) || parsed <= 0) {
-              return { enabled: true, suffix: ' + support' };
-            }
-            const amount = Number.isInteger(parsed)
-              ? String(parsed)
-              : parsed.toFixed(2).replace(/\.00$/, '');
-            return { enabled: true, suffix: ` + $${amount} support` };
-          }
-
-          const preset = Number(selectedDonation.value);
-          if (!Number.isFinite(preset) || preset <= 0) {
-            return { enabled: true, suffix: ' + support' };
-          }
-          const amount = Number.isInteger(preset)
-            ? String(preset)
-            : preset.toFixed(2).replace(/\.00$/, '');
-          return { enabled: true, suffix: ` + $${amount} support` };
-        };
-
-        const updateCta = () => {
-          const count = getCount();
-          const donationState = getDonationState();
-          let baseText = count > 1 ? `🎉 Reserve ${count} spots` : '✨ Reserve my spot';
-          if (donationState.enabled) {
-            baseText = count > 1 ? `💛 Reserve ${count} spots` : '💛 Reserve my spot';
-          }
-          const ctaText = `${baseText}${donationState.suffix}`;
-          updateCtaText(ctaText);
-        };
-
-        form.querySelectorAll('[name="people"], [name="quantity"], [name="donation_enabled"], [name="donation_choice"], [name="donation_other"]').forEach((el) => {
-          el.addEventListener('change', updateCta);
-          el.addEventListener('input', updateCta);
-        });
-
-        // Set initial state once without transition flash.
-        ensureLabelWrapper();
-        const initialCount = getCount();
-        const initialText = initialCount > 1 ? `🎉 Reserve ${initialCount} spots` : '✨ Reserve my spot';
-        setButtonLabel(initialText);
-        button.classList.add('is-visible');
-      });
-    }
-  };
 })(Drupal, once);

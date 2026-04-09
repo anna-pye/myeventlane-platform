@@ -34,6 +34,9 @@
       {{ form.actions }}
     </div>
   </div>
+  {% if form.mel_checkout_confidence is defined %}
+    <div class="visually-hidden">{{ form.mel_checkout_confidence }}</div>
+  {% endif %}
 {% else %}
   {# mel-checkout--compact-flow: QA hook + SCSS anchor for compact density (any Commerce flow). #}
   <div class="mel-checkout mel-checkout--compact-flow">
@@ -41,15 +44,13 @@
       <h1 class="mel-checkout__title">{{ title }}</h1>
     {% endif %}
 
-    <p class="mel-checkout-mode-hint">{{ 'Review your details and complete your booking. Card payment only runs when your order includes a priced ticket.'|t }}</p>
-
     {% if form.progress %}
       <div class="mel-checkout__progress">
         {{ form.progress }}
       </div>
     {% endif %}
 
-    <div class="mel-checkout__grid mel-checkout__grid--sidebar-flow">
+    <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
       <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
         {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
@@ -97,6 +98,14 @@
           </div>
         {% endif %}
 
+        <div class="mel-checkout-trust" role="region" aria-label="{{ 'Secure checkout'|t }}">
+          <ul class="mel-checkout-trust__list">
+            <li>{{ 'Secure checkout'|t }}</li>
+            <li>{{ 'Payment processed securely'|t }}</li>
+            <li>{{ 'Confirmation email sent'|t }}</li>
+          </ul>
+        </div>
+
         {% if form.actions %}
           <div class="mel-checkout-section mel-checkout-section--cta">
             <div class="mel-checkout-cta">
@@ -124,7 +133,7 @@
       {% if form.sidebar is defined %}
         {% set sidebar_content = form.sidebar|render %}
         {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) %}
-          <aside class="mel-checkout__aside mel-checkout__summary" aria-label="{{ 'Order summary and help'|t }}">
+          <aside class="mel-checkout__summary" aria-label="{{ 'Order summary'|t }}">
             <div class="mel-checkout__summary-inner">
               {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
                 <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card mel-checkout__summary-region">
@@ -134,16 +143,14 @@
               <div class="mel-checkout__summary-region mel-checkout__summary-region--order">
                 {{ sidebar_content }}
               </div>
-              {% if form.mel_checkout_confidence is defined %}
-                <div class="mel-checkout__summary-region mel-checkout__summary-region--trust">
-                  {{ form.mel_checkout_confidence }}
-                </div>
-              {% endif %}
             </div>
           </aside>
         {% endif %}
       {% endif %}
     </div>
   </div>
+  {% if form.mel_checkout_confidence is defined %}
+    <div class="visually-hidden">{{ form.mel_checkout_confidence }}</div>
+  {% endif %}
 {% endif %}
 </div>
