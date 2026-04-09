@@ -156,7 +156,7 @@ final class TemplatePreviewController extends ControllerBase {
       'message_body' => '<p>This is a sample message from the event organizer.</p>',
     ];
 
-    // Template-specific context.
+    // Template-specific context (merged second so it overrides $base keys).
     $specific = match ($template) {
       'order_confirmation', 'order_receipt' => [
         'events' => [
@@ -180,6 +180,27 @@ final class TemplatePreviewController extends ControllerBase {
         ],
         'donation_total' => NULL,
         'tickets_need_assignment' => FALSE,
+      ],
+      'order_invoice' => [
+        'invoice_date' => 'April 9, 2026',
+        'events' => [
+          ['title' => 'Sample Event'],
+        ],
+        'line_items' => [
+          [
+            'title' => 'General Admission',
+            'quantity' => 2,
+            'unit_price' => '$25.00',
+            'line_total' => '$50.00',
+          ],
+        ],
+        'fee_lines' => [
+          ['label' => 'Processing fee', 'amount' => '$2.00'],
+        ],
+        'tax_lines' => [
+          ['label' => 'GST', 'amount' => '$5.00'],
+        ],
+        'total_paid' => '$57.00',
       ],
       'rsvp_confirmation' => [
         'guests' => 2,

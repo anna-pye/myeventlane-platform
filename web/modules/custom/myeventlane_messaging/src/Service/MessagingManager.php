@@ -37,6 +37,7 @@ final class MessagingManager {
     'assign_tickets_buyer',
     'boost_confirmation',
     'order_confirmation',
+    'order_invoice',
     'rsvp_confirmation',
     'rsvp_vendor_copy',
     'vendor_event_cancellation',
@@ -259,9 +260,14 @@ final class MessagingManager {
     $type = $message->template;
     $to = $message->recipient;
     $ctx = $message->context;
+    $queuedAttachments = $ctx['_attachments'] ?? [];
+    $attachmentsForSend = $queuedAttachments;
+    if ($this->orderConfirmationAttachmentResolver instanceof OrderConfirmationAttachmentResolver) {
+      $attachmentsForSend = $this->orderConfirmationAttachmentResolver->mergeOrderConfirmationAttachments($type, $ctx, $queuedAttachments);
+    }
     $opts = [
       'langcode' => $message->langcode,
-      'attachments' => $ctx['_attachments'] ?? [],
+      'attachments' => $attachmentsForSend,
     ];
     unset($ctx['_attachments']);
 

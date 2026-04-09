@@ -257,6 +257,7 @@ final class TemplateEditForm extends FormBase {
       'vendor_event_important_change' => ['event_title', 'event_url'],
       'vendor_event_cancellation' => ['event_title', 'event_url'],
       'order_confirmation' => ['order_number', 'order_email'],
+      'order_invoice' => ['order_number', 'order_email'],
       'event_reminder' => ['event_title', 'event_url'],
       'event_reminder_24h' => ['event_title', 'event_url'],
       'event_reminder_7d' => ['event_title', 'event_url'],
@@ -276,6 +277,7 @@ final class TemplateEditForm extends FormBase {
   private function getCategory(string $template): string {
     $transactional = [
       'order_confirmation',
+      'order_invoice',
       'rsvp_confirmation',
       'rsvp_vendor_copy',
       'boost_confirmation',

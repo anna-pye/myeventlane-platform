@@ -69,7 +69,7 @@ final class VendorCommsResolver {
           'first_name' => (string) ($context['first_name'] ?? $context['name'] ?? 'there'),
         ],
         'order' => [
-          'total' => (string) ($context['order_total'] ?? ''),
+          'total' => (string) ($context['order_total'] ?? $context['total_paid'] ?? ''),
         ],
         'ticket' => [
           'type' => (string) ($context['ticket_type'] ?? ''),
@@ -97,6 +97,7 @@ final class VendorCommsResolver {
     return match ($templateId) {
       'rsvp_confirmation' => 'rsvp_body',
       'order_confirmation' => 'ticket_body',
+      'order_invoice' => 'ticket_body',
       'order_receipt' => 'ticket_body',
       'event_reminder_24h', 'event_reminder_2h' => 'reminder_body',
       'pro_cart_abandoned_w1', 'pro_cart_abandoned_w2' => 'abandoned_cart_body',

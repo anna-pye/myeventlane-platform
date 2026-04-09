@@ -41,6 +41,13 @@ services:
   myeventlane_messaging.utm_linker:
     class: Drupal\myeventlane_messaging\Service\UtmLinker
 
+  myeventlane_messaging.order_confirmation_attachment_resolver:
+    class: Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_messaging'
+      - '@?myeventlane_tickets.ticket_pdf_generator'
+
   myeventlane_messaging.manager:
     class: Drupal\myeventlane_messaging\Service\MessagingManager
     arguments:
