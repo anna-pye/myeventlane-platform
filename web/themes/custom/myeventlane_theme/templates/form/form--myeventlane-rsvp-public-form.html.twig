@@ -7,8 +7,9 @@
  * inside <form> — that can re-invoke the form theme and nest <form> tags.
  *
  * Order: (1) You’re going → (2) Who is coming → (3) Guest details → (4) Confirm.
- * Alter-added elements (e.g. mel_help_rsvp_after) are printed explicitly or
- * via |without() so they stay inside this single <form>.
+ * Alter-added elements (e.g. mel_help_rsvp_after) are printed explicitly.
+ * Do not add a trailing element|without() catch-all — it can re-render leftover
+ * keys and duplicate fields (breaks POST / submit).
  */
 #}
 <form{{ attributes }}>
@@ -59,12 +60,6 @@
             <div class="mel-rsvp__cta">
               {{ element.actions }}
             </div>
-
-            {{ element|without(
-              'form_build_id', 'form_token', 'form_id', 'event_id',
-              'mel_help_rsvp_after',
-              'intent', 'people', 'details', 'donation', 'optional', 'accessibility', 'legal', 'actions'
-            ) }}
           </div>
         </div>
 
