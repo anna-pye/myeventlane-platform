@@ -10,9 +10,17 @@
   min-width: 0;
   overflow: hidden;
   background: colors.$mel-color-surface;
-  border: 1px solid colors.$mel-color-border;
+  border: 1px solid rgba(0, 0, 0, 0.03);
   border-radius: radii.$mel-radius-lg;
   box-shadow: shadows.$mel-shadow-1;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(36, 48, 58, 0.12);
+  }
 }
 
 .mel-card__link {
@@ -67,7 +75,7 @@
   color: colors.$mel-color-text;
   font-size: typography.mel-font-size(lg);
   font-weight: typography.$mel-font-bold;
-  line-height: typography.$mel-leading-tight;
+  line-height: 1.3;
 }
 
 .mel-card__header .mel-card__title,
@@ -203,7 +211,9 @@
 // Unified hierarchy: hero image, title, meta, full-width primary CTA, link row.
 
 .mel-dashboard__section {
-  margin-bottom: spacing.mel-space(8);
+  margin-bottom: spacing.mel-space(9);
+  padding-bottom: spacing.mel-space(6);
+  border-bottom: 1px solid colors.$mel-color-surface-alt;
 
   &:last-child {
     margin-bottom: 0;
@@ -211,7 +221,7 @@
 
   // Wins over .mel-my-account__section when both are on the same <section>.
   &.mel-my-account__section {
-    margin-bottom: spacing.mel-space(8);
+    margin-bottom: spacing.mel-space(9);
   }
 
   h2.mel-my-account__section-title {
@@ -267,7 +277,7 @@
     font-size: typography.mel-font-size(sm);
     color: colors.$mel-color-text-muted;
     line-height: typography.$mel-leading-relaxed;
-    margin-bottom: spacing.mel-space(4);
+    margin-bottom: spacing.mel-space(5);
   }
 
   .mel-card__actions {
@@ -275,6 +285,7 @@
     flex-direction: column;
     gap: spacing.mel-space(3);
     margin-top: auto;
+    padding-top: spacing.mel-space(4);
   }
 
   .mel-card__links {
@@ -290,8 +301,10 @@
       font-weight: typography.$mel-font-medium;
       color: colors.$mel-color-accent;
       text-decoration: none;
+      opacity: 0.8;
 
       &:hover {
+        opacity: 1;
         text-decoration: underline;
       }
 
@@ -309,6 +322,14 @@
     border: none;
     border-radius: radii.$mel-radius-md;
     box-shadow: 0 4px 16px rgba(36, 48, 58, 0.1);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(36, 48, 58, 0.12);
+    }
   }
 
   .mel-card__body {
@@ -323,7 +344,7 @@
     margin: 0 0 spacing.mel-space(2) 0;
     font-size: typography.mel-font-size(xl);
     font-weight: typography.$mel-font-bold;
-    line-height: typography.$mel-leading-tight;
+    line-height: 1.3;
     color: colors.$mel-color-text;
   }
 
@@ -346,10 +367,19 @@
   }
 
   .mel-button--primary {
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     background: colors.$mel-color-primary;
     color: colors.$mel-color-text-inverse;
 
     &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
       background: colors.$mel-color-primary-hover;
       color: colors.$mel-color-text-inverse;
     }
