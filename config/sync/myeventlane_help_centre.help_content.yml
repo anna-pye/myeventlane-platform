@@ -1,8 +1,4 @@
-uuid: 8f3c2a91-4d0e-4b1f-9c7a-2e6d5b4c3a10
 langcode: en
-dependencies:
-  module:
-    - myeventlane_help_centre
 help_articles:
   how_to_buy_tickets:
     seed_key: how_to_buy_tickets
@@ -15,8 +11,8 @@ help_articles:
     article_type: Guide
     keywords: 'buy ticket, checkout, purchase, order'
     cta_label: 'Browse events'
-    cta_link: '/events'
-    alias: '/help/attendees/how-to-buy-tickets'
+    cta_link: /events
+    alias: /help/attendees/how-to-buy-tickets
     featured: true
   how_to_rsvp:
     seed_key: how_to_rsvp
@@ -29,8 +25,8 @@ help_articles:
     article_type: Guide
     keywords: 'free event, rsvp, register'
     cta_label: 'Find free events'
-    cta_link: '/events'
-    alias: '/help/attendees/how-to-rsvp-to-a-free-event'
+    cta_link: /events
+    alias: /help/attendees/how-to-rsvp-to-a-free-event
     featured: true
   how_to_access_tickets:
     seed_key: how_to_access_tickets
@@ -39,12 +35,12 @@ help_articles:
     body: '<p>Your tickets are sent to your account email and can also be found in your MyEventLane account. Open the QR code at the gate for quick entry.</p>'
     audience:
       - Attendees
-    topic: 'Check-in'
+    topic: Check-in
     article_type: FAQ
     keywords: 'ticket email, qr code, check in'
     cta_label: 'Open your account'
-    cta_link: '/user'
-    alias: '/help/attendees/how-to-access-your-tickets'
+    cta_link: /user
+    alias: /help/attendees/how-to-access-your-tickets
     featured: false
   how_to_request_refund:
     seed_key: how_to_request_refund
@@ -57,8 +53,8 @@ help_articles:
     article_type: Troubleshooting
     keywords: 'refund request, cancellation, ticket refund'
     cta_label: 'Read refund policy'
-    cta_link: '/help/policies/refund-policy'
-    alias: '/help/attendees/how-to-request-a-refund'
+    cta_link: /help/policies/refund-policy
+    alias: /help/attendees/how-to-request-a-refund
     featured: true
   how_to_create_event:
     seed_key: how_to_create_event
@@ -71,8 +67,8 @@ help_articles:
     article_type: Guide
     keywords: 'create event, publish event, organiser'
     cta_label: 'Open organiser dashboard'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/how-to-create-an-event'
+    cta_link: /dashboard
+    alias: /help/organisers/how-to-create-an-event
     featured: true
   choosing_rsvp_or_paid:
     seed_key: choosing_rsvp_or_paid
@@ -85,8 +81,8 @@ help_articles:
     article_type: Overview
     keywords: 'rsvp vs paid, ticket setup, pricing'
     cta_label: 'Configure ticket types'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/choosing-rsvp-or-paid-tickets'
+    cta_link: /dashboard
+    alias: /help/organisers/choosing-rsvp-or-paid-tickets
     featured: false
   managing_dashboard:
     seed_key: managing_dashboard
@@ -99,8 +95,8 @@ help_articles:
     article_type: Guide
     keywords: 'event dashboard, analytics, organiser tools'
     cta_label: 'Go to dashboard'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/managing-your-event-dashboard'
+    cta_link: /dashboard
+    alias: /help/organisers/managing-your-event-dashboard
     featured: true
   vendor_dashboard_overview:
     seed_key: vendor_dashboard_overview
@@ -113,8 +109,8 @@ help_articles:
     article_type: Guide
     keywords: 'vendor dashboard, vendor workspace, stall'
     cta_label: 'Vendor help'
-    cta_link: '/help/vendors'
-    alias: '/help/vendors/vendor-dashboard-overview'
+    cta_link: /help/vendors
+    alias: /help/vendors/vendor-dashboard-overview
     featured: false
   refund_policy:
     seed_key: refund_policy
@@ -127,8 +123,8 @@ help_articles:
     article_type: Policy
     keywords: 'refund rules, policy, cancelled event'
     cta_label: 'Contact support'
-    cta_link: '/help'
-    alias: '/help/policies/refund-policy'
+    cta_link: /help
+    alias: /help/policies/refund-policy
     featured: true
   community_guidelines:
     seed_key: community_guidelines
@@ -141,29 +137,37 @@ help_articles:
     article_type: Policy
     keywords: 'community rules, safety, respectful behaviour'
     cta_label: 'Read policies'
-    cta_link: '/help/policies'
-    alias: '/help/policies/community-guidelines'
+    cta_link: /help/policies
+    alias: /help/policies/community-guidelines
     featured: true
 support_panels:
   buy_tickets:
-    title: 'How to buy tickets'
-    summary: 'Learn how to purchase tickets and complete checkout securely.'
-    link_path: '/help/attendees/how-to-buy-tickets'
+    title: 'Need help buying tickets?'
+    summary: 'Get help with checkout and payments'
+    link_path: /help/how-to-buy-tickets
     surfaces:
       - checkout
     route_names:
       - commerce_checkout.form
+    analytics_key: buy_tickets
   create_event:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
-    link_path: '/help/organisers/how-to-create-an-event'
+    link_path: /help/organisers/how-to-create-an-event
     surfaces:
       - event_creation_wizard
   vendor_dashboard:
-    title: 'Vendor dashboard overview'
-    summary: 'Know where to manage your vendor workspace, events, and payouts.'
-    link_path: '/help/vendors/vendor-dashboard-overview'
+    title: 'Managing your events'
+    summary: 'Learn how to manage and track your events'
+    link_path: /help/vendor-dashboard
     surfaces:
+      - vendor
       - vendor_dashboard
     route_names:
+      - myeventlane_vendor.dashboard
       - myeventlane_vendor.console.dashboard
+    analytics_key: vendor_dashboard
+uuid: 8f3c2a91-4d0e-4b1f-9c7a-2e6d5b4c3a10
+dependencies:
+  module:
+    - myeventlane_help_centre

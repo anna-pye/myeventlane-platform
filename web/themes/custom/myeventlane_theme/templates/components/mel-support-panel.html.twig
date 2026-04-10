@@ -9,5 +9,12 @@
   {% if summary %}
     <p class="mel-support-panel__summary">{{ summary }}</p>
   {% endif %}
-  <a href="{{ url }}" class="mel-button mel-button--primary">{{ 'View help'|t }}</a>
+  <a
+    href="{{ url }}"
+    class="mel-button mel-button--primary"
+    data-analytics-key="{{ analytics_key|default('') }}"
+    onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
+  >
+    {{ 'View help'|t }}
+  </a>
 </div>

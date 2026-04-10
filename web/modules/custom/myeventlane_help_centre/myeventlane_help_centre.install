@@ -112,6 +112,42 @@ function myeventlane_help_centre_schema(): array {
     ],
   ];
 
+  $schema['mel_help_panel_analytics'] = [
+    'description' => 'Tracks support panel impressions and clicks.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'panel_key' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'event_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'path' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'panel_key' => ['panel_key'],
+      'event_type' => ['event_type'],
+      'created' => ['created'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -1758,6 +1794,24 @@ function myeventlane_help_centre_update_10032(): string {
 
   $logger->notice('update_10032: applied entity definition update for node.field_help_status.');
   return 'Applied entity definition update for node.field_help_status (synced installed field schema).';
+}
+
+/**
+ * Create analytics table for support panel impressions and clicks.
+ */
+function myeventlane_help_centre_update_10033(): string {
+  $schema = Database::getConnection()->schema();
+  $definitions = myeventlane_help_centre_schema();
+
+  if ($schema->tableExists('mel_help_panel_analytics')) {
+    return 'mel_help_panel_analytics already exists.';
+  }
+  if (!isset($definitions['mel_help_panel_analytics'])) {
+    return 'mel_help_panel_analytics definition missing; no changes applied.';
+  }
+
+  $schema->createTable('mel_help_panel_analytics', $definitions['mel_help_panel_analytics']);
+  return 'Created mel_help_panel_analytics table for support panel analytics.';
 }
 
 /**

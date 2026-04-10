@@ -15,6 +15,7 @@ final class SupportPanelBuilder {
   public function __construct(
     private readonly HelpContentRepository $helpContentRepository,
     private readonly PathValidatorInterface $pathValidator,
+    private readonly HelpPanelAnalytics $helpPanelAnalytics,
   ) {}
 
   /**
@@ -23,9 +24,58 @@ final class SupportPanelBuilder {
    */
   public function build(string $key, ?string $surface = NULL, ?string $routeName = NULL): array {
     $panel = $this->helpContentRepository->getSupportPanel($key);
-    if ($panel === NULL) {
-      return [];
+    return $panel === NULL ? [] : $this->buildPanel($key, $panel, $surface, $routeName);
+  }
+
+  /**
+   * Builds the first matching panel for a given route.
+   *
+   * @return array<string, mixed>|null
+   *   Render array when a match is found, NULL otherwise.
+   */
+  public function buildForRoute(string $routeName, ?string $surface = NULL): ?array {
+    $panels = $this->helpContentRepository->getSupportPanels();
+    foreach ($panels as $key => $panel) {
+      if (!is_array($panel)) {
+        continue;
+      }
+      $routeNames = $this->normalizeStringList($panel['route_names'] ?? []);
+      if ($routeNames !== [] && !in_array($routeName, $routeNames, TRUE)) {
+        continue;
+      }
+      $built = $this->buildPanel((string) $key, $panel, $surface, $routeName);
+      if ($built !== []) {
+        return $built;
+      }
     }
+    return NULL;
+  }
+
+  /**
+   * @param array<int|string, string>|string $values
+   *
+   * @return array<int, string>
+   */
+  private function normalizeStringList(array|string $values): array {
+    if (!is_array($values)) {
+      $values = $values === '' ? [] : [$values];
+    }
+    $out = [];
+    foreach ($values as $value) {
+      $value = trim((string) $value);
+      if ($value !== '') {
+        $out[] = $value;
+      }
+    }
+    return $out;
+  }
+
+  /**
+   * @param array<string, mixed> $panel
+   *
+   * @return array<string, mixed>
+   */
+  private function buildPanel(string $key, array $panel, ?string $surface, ?string $routeName): array {
     $surfaces = $this->normalizeStringList($panel['surfaces'] ?? []);
     if ($surface !== NULL && $surfaces !== [] && !in_array($surface, $surfaces, TRUE)) {
       return [];
@@ -52,37 +102,25 @@ final class SupportPanelBuilder {
 
     $cache = [
       'tags' => ['config:myeventlane_help_centre.help_content'],
+      'max-age' => 0,
     ];
     if ($cacheContexts !== []) {
       $cache['contexts'] = $cacheContexts;
     }
+
+    $this->helpPanelAnalytics->logImpression($key);
 
     return [
       '#theme' => 'mel_support_panel',
       '#title' => $title,
       '#summary' => trim((string) ($panel['summary'] ?? '')),
       '#url' => $url->setAbsolute(FALSE)->toString(),
+      '#analytics_key' => $key,
       '#cache' => $cache,
+      '#attached' => [
+        'library' => ['myeventlane_help_centre/support_panel_analytics'],
+      ],
     ];
-  }
-
-  /**
-   * @param array<int|string, string>|string $values
-   *
-   * @return array<int, string>
-   */
-  private function normalizeStringList(array|string $values): array {
-    if (!is_array($values)) {
-      $values = $values === '' ? [] : [$values];
-    }
-    $out = [];
-    foreach ($values as $value) {
-      $value = trim((string) $value);
-      if ($value !== '') {
-        $out[] = $value;
-      }
-    }
-    return $out;
   }
 
 }
