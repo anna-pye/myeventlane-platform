@@ -27,6 +27,7 @@ function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array
         'code' => NULL,
         'legacy' => FALSE,
         'is_rsvp' => FALSE,
+        'is_attendee' => FALSE,
         'brand_logo_url' => NULL,
         'brand_vendor_name' => NULL,
         'brand_accent_color' => '#f26d5b',

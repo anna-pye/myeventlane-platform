@@ -1,12 +1,3 @@
-# User account menu link.
-myeventlane_rsvp.my_rsvps:
-  title: 'My RSVPs'
-  description: 'View your RSVP submissions'
-  route_name: myeventlane_rsvp.user_list
-  menu_name: account
-  weight: 5
-  class: '\Drupal\myeventlane_rsvp\Plugin\Menu\MyRsvpsMenuLink'
-
 # Admin config menu links (under MyEventLane section).
 myeventlane_rsvp.settings:
   title: 'RSVP'

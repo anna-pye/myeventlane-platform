@@ -39,6 +39,8 @@ myeventlane_tickets.download_pdf_by_code:
     _title: 'Download Ticket PDF'
   requirements:
     _permission: 'access content'
+    # MEL codes and legacy alphanumeric codes; no slashes in segment.
+    ticket_code: '[^/]+'
 
 myeventlane_tickets.event_tickets_types:
   path: '/vendor/events/{event}/tickets/types'
