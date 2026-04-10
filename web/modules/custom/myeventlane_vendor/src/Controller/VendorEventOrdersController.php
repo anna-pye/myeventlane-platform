@@ -7,17 +7,16 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\RouteHelper;
 use Drupal\myeventlane_refunds\Service\RefundProcessor;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Event orders controller for vendor console.
@@ -64,8 +63,8 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
    *   The entity type manager.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter.
-   * @param \Drupal\Core\Routing\RouteProviderInterface $routeProvider
-   *   The route provider.
+   * @param \Drupal\myeventlane_core\Service\RouteHelper $routeHelper
+   *   Route helper for existence checks.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
@@ -76,7 +75,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorEventTabsService $eventTabsService,
-    private readonly RouteProviderInterface $routeProvider,
+    private readonly RouteHelper $routeHelper,
     private readonly LoggerInterface $logger,
     private readonly ?RefundProcessor $refundProcessor = NULL,
   ) {
@@ -589,17 +588,14 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     if ($this->resendOrderRouteRegistered !== NULL) {
       return $this->resendOrderRouteRegistered;
     }
-    try {
-      $this->routeProvider->getRouteByName(self::ROUTE_RESEND_ORDER_CONFIRMATION);
-      $this->resendOrderRouteRegistered = TRUE;
-    }
-    catch (RouteNotFoundException $e) {
+    $exists = $this->routeHelper->routeExists(self::ROUTE_RESEND_ORDER_CONFIRMATION);
+    $this->resendOrderRouteRegistered = $exists;
+    if (!$exists) {
       $this->logger->warning('Route @route is not registered; resend confirmation links are omitted. Clear caches and ensure myeventlane_messaging is installed and up to date.', [
         '@route' => self::ROUTE_RESEND_ORDER_CONFIRMATION,
       ]);
-      $this->resendOrderRouteRegistered = FALSE;
     }
-    return $this->resendOrderRouteRegistered;
+    return $exists;
   }
 
   /**

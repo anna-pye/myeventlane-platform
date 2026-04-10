@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Template\Attribute;
 use Drupal\node\NodeInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Returns TRUE when the route should show Platform Control Centre chrome.
@@ -234,6 +235,62 @@ function myeventlane_admin_dashboard_theme(): array {
       'template' => 'platform-control-centre--pro-kpis',
     ],
   ];
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ *
+ * Drops PCC tabs whose routes are missing from the route collection (stale
+ * deploy or cache) so LocalTaskManager::getTasksBuild() does not fatal when
+ * building the admin toolbar / secondary tabs.
+ */
+function myeventlane_admin_dashboard_local_tasks_alter(array &$local_tasks): void {
+  $route_tasks = [
+    'myeventlane_admin_dashboard.orders_tab' => 'myeventlane_admin_dashboard.orders',
+  ];
+  $route_provider = \Drupal::service('router.route_provider');
+  foreach ($route_tasks as $task_id => $route_name) {
+    if (!isset($local_tasks[$task_id])) {
+      continue;
+    }
+    try {
+      $route_provider->getRouteByName($route_name);
+    }
+    catch (RouteNotFoundException $e) {
+      unset($local_tasks[$task_id]);
+      \Drupal::logger('myeventlane_admin_dashboard')->warning(
+        'Local task @task references missing route @route; tab removed. Rebuild caches (drush cr) after deploy.',
+        ['@task' => $task_id, '@route' => $route_name]
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_menu_links_discovered_alter().
+ *
+ * Same guard as hook_local_tasks_alter() for static menu links under PCC.
+ */
+function myeventlane_admin_dashboard_menu_links_discovered_alter(array &$links): void {
+  $route_links = [
+    'myeventlane_admin_dashboard.orders_menu' => 'myeventlane_admin_dashboard.orders',
+  ];
+  $route_provider = \Drupal::service('router.route_provider');
+  foreach ($route_links as $link_id => $route_name) {
+    if (!isset($links[$link_id])) {
+      continue;
+    }
+    try {
+      $route_provider->getRouteByName($route_name);
+    }
+    catch (RouteNotFoundException $e) {
+      unset($links[$link_id]);
+      \Drupal::logger('myeventlane_admin_dashboard')->warning(
+        'Menu link @link references missing route @route; link removed. Rebuild caches (drush cr) after deploy.',
+        ['@link' => $link_id, '@route' => $route_name]
+      );
+    }
+  }
 }
 
 /**
