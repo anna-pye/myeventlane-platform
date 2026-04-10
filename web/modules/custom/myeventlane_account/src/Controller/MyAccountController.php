@@ -144,7 +144,7 @@ final class MyAccountController extends ControllerBase {
 
     [, , $pastEvents] = $this->buildEventData($userId, $account->getEmail(), $now);
 
-    $accountLinks = $this->accountLinksService->buildLinks('past_events');
+    $accountLinks = $this->accountLinksService->buildLinks('dashboard');
 
     $cache = (new CacheableMetadata())
       ->addCacheContexts(['user', 'route'])
