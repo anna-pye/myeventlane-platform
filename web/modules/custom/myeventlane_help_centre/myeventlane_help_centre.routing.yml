@@ -135,3 +135,11 @@ myeventlane_help_centre.docs_health:
     _permission: 'view mel help insights'
   options:
     _admin_route: TRUE
+
+myeventlane_help.analytics_click:
+  path: '/mel-help/click'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpAnalyticsController::track'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]

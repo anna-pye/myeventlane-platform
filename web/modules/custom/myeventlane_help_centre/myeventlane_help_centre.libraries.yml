@@ -9,6 +9,12 @@ support_components:
     - core/drupalSettings
     - core/once
 
+support_panel_analytics:
+  js:
+    js/help-analytics.js: {}
+  dependencies:
+    - core/drupalSettings
+
 help_feedback:
   js:
     js/help-feedback.js: {}

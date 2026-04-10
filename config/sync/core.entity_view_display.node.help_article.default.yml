@@ -50,8 +50,8 @@ hidden:
   field_help_category: true
   field_help_cta_label: true
   field_help_cta_link: true
-  field_help_seed_key: true
   field_help_keywords: true
+  field_help_seed_key: true
   field_help_status: true
   field_help_summary: true
   field_help_topic: true

@@ -145,8 +145,8 @@ hidden:
   field_help_audience: true
   field_help_cta_label: true
   field_help_cta_link: true
-  field_help_seed_key: true
   field_help_keywords: true
+  field_help_seed_key: true
   field_help_status: true
   field_last_reviewed: true
   field_last_updated: true
