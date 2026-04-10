@@ -66,7 +66,7 @@
               {% endif %}
             </div>
             <div data-label="{{ 'Actions'|t }}" class="mel-inline-actions">
-              <a href="{{ row.view_link.url }}" class="mel-link">{{ row.view_link.label }}</a>
+              {{ row.view_link }}
               {{ row.resend_link }}
             </div>
           </div>

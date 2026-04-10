@@ -53,10 +53,10 @@ final class ResendOrderEmailController extends ControllerBase {
 
     $messageId = $this->orderConfirmationQueue->queue($commerce_order, trim($mail), TRUE);
     if ($messageId) {
-      $this->messenger()->addStatus($this->t('Confirmation email resent.'));
+      $this->messenger()->addStatus($this->t('Confirmation email resent successfully.'));
     }
     else {
-      $this->messenger()->addError($this->t('The confirmation email could not be queued. Please try again or contact support if the problem continues.'));
+      $this->messenger()->addError($this->t('The confirmation email could not be queued. Please try again in a moment, or contact support if this keeps happening.'));
     }
 
     return $this->redirectAfterResend($commerce_order);
