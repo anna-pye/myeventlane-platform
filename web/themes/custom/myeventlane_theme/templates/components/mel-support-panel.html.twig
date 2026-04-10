@@ -17,4 +17,21 @@
   >
     {{ 'View help'|t }}
   </a>
+  {% if analytics_key is defined and analytics_key %}
+    <div class="mel-support-panel__feedback">
+      <span>{{ 'Was this helpful?'|t }}</span>
+      <button
+        type="button"
+        class="mel-support-panel__feedback-button"
+        data-analytics-key="{{ analytics_key }}"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback(this.dataset.analyticsKey, true); }"
+      >👍</button>
+      <button
+        type="button"
+        class="mel-support-panel__feedback-button"
+        data-analytics-key="{{ analytics_key }}"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback(this.dataset.analyticsKey, false); }"
+      >👎</button>
+    </div>
+  {% endif %}
 </div>

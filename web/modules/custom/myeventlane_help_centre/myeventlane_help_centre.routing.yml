@@ -143,3 +143,11 @@ myeventlane_help.analytics_click:
   requirements:
     _access: 'TRUE'
   methods: [POST]
+
+myeventlane_help.feedback_panel:
+  path: '/mel-help/feedback'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpFeedbackController::submitPanelFeedback'
+  requirements:
+    _csrf_token: 'TRUE'
+  methods: [POST]

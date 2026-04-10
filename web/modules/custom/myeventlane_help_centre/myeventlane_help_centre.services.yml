@@ -15,6 +15,7 @@ services:
       - '@myeventlane_help_centre.help_content_repository'
       - '@path.validator'
       - '@myeventlane_help.analytics'
+      - '@myeventlane_help.intelligence'
 
   myeventlane_help_centre.seeder:
     class: Drupal\myeventlane_help_centre\Service\HelpContentSeeder
@@ -90,4 +91,10 @@ services:
       - '@database'
       - '@request_stack'
       - '@datetime.time'
+      - '@logger.channel.myeventlane_help_centre'
+
+  myeventlane_help.intelligence:
+    class: Drupal\myeventlane_help_centre\Service\HelpPanelIntelligence
+    arguments:
+      - '@database'
       - '@logger.channel.myeventlane_help_centre'
