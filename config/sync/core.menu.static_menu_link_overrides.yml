@@ -19,12 +19,6 @@ definitions:
     parent: ''
     expanded: false
     enabled: true
-  myeventlane_rsvp__my_rsvps:
-    weight: -50
-    parent: user.page
-    menu_name: account
-    expanded: false
-    enabled: true
   user__logout:
     weight: -46
     menu_name: account

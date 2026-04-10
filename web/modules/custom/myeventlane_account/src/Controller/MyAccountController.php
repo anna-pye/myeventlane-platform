@@ -343,6 +343,8 @@ final class MyAccountController extends ControllerBase {
       $location = $event->get('field_location')->value;
     }
 
+    $code = trim($ticketCode);
+
     return [
       'id' => $eventId,
       'title' => $event->label(),
@@ -355,9 +357,11 @@ final class MyAccountController extends ControllerBase {
       'image_url' => $imageUrl,
       'location' => $location,
       'source' => $source,
-      'ticket_code' => $ticketCode,
+      'ticket_code' => $code,
       'attendee_id' => $attendeeId,
       'order_item_id' => $orderItemId,
+      // Show PDF when we have an order line or a MEL ticket code (PDF may use attendee fallback).
+      'pdf_available' => ($orderItemId !== NULL && $orderItemId > 0) || $code !== '',
     ];
   }
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Ticket;
 
-use Drupal\Core\Render\RendererInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Dompdf\Dompdf;
@@ -277,6 +279,64 @@ final class TicketPdfGenerator {
    * @return array
    *   Array with 'content' (PDF bytes), 'filename', and 'mime'.
    */
+  /**
+   * PDF for an event attendee when commerce order lines are missing (deleted).
+   *
+   * Uses the same template as RSVP virtual tickets; QR encodes the ticket code.
+   */
+  public function generatePdfForEventAttendee(EventAttendee $attendee): Response {
+    $pdf = $this->getPdfContentForEventAttendee($attendee);
+    return $this->renderPdfFromArray($pdf);
+  }
+
+  /**
+   * @return array{content: string, filename: string, mime: string}
+   */
+  public function getPdfContentForEventAttendee(EventAttendee $attendee): array {
+    $event = $attendee->get('event')->entity;
+    if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+      throw new \LogicException('Event not found for attendee.');
+    }
+    if ($attendee->get('ticket_code')->isEmpty()) {
+      throw new \LogicException('Ticket code required.');
+    }
+
+    $ticketCode = trim((string) $attendee->get('ticket_code')->value);
+    $holderName = trim((string) ($attendee->get('name')->value ?? ''));
+    if ($holderName === '') {
+      $holderName = 'Guest';
+    }
+
+    $event_title = $event->label();
+    $event_start = NULL;
+    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+      $event_start = $event->get('field_event_start')->value;
+    }
+
+    $location = $this->extractLocationFromEvent($event);
+
+    $build = [
+      '#theme' => 'ticket_pdf',
+      '#event_title' => $event_title,
+      '#event_start' => $event_start,
+      '#location' => $location,
+      '#holder' => $holderName,
+      '#code' => $ticketCode,
+      '#legacy' => FALSE,
+      '#is_rsvp' => FALSE,
+      '#is_attendee' => TRUE,
+      '#ticket' => NULL,
+    ];
+
+    $safeName = preg_replace('/[^A-Za-z0-9._-]+/', '_', $ticketCode) ?: 'ticket';
+
+    return [
+      'content' => $this->renderPdfContent($build),
+      'filename' => 'ticket-' . $safeName . '.pdf',
+      'mime' => 'application/pdf',
+    ];
+  }
+
   public function getPdfContentForRsvp($rsvp, $event): array {
     $holderName = '';
     $holderEmail = '';
