@@ -144,7 +144,7 @@ support_panels:
   buy_tickets:
     title: 'Need help buying tickets?'
     summary: 'Get help with checkout and payments'
-    link_path: /help/how-to-buy-tickets
+    link_path: /help/attendees/how-to-buy-tickets
     surfaces:
       - checkout
     route_names:
