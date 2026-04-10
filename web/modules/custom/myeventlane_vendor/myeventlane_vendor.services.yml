@@ -189,7 +189,16 @@ services:
 
   myeventlane_vendor.controller.vendor_event_orders:
     class: Drupal\myeventlane_vendor\Controller\VendorEventOrdersController
-    arguments: ['@myeventlane_core.domain_detector', '@current_user', '@messenger', '@entity_type.manager', '@date.formatter', '@myeventlane_vendor.service.event_tabs', '@?myeventlane_refunds.processor']
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@entity_type.manager'
+      - '@date.formatter'
+      - '@myeventlane_vendor.service.event_tabs'
+      - '@router.route_provider'
+      - '@logger.channel.myeventlane_vendor'
+      - '@?myeventlane_refunds.processor'
     tags:
       - { name: controller.service_arguments }
 

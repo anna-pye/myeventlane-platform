@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -15,6 +16,8 @@ use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Event orders controller for vendor console.
@@ -23,6 +26,11 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
  * Access: Vendor owns the event (via assertEventOwnership), Admin allowed.
  */
 final class VendorEventOrdersController extends VendorConsoleBaseController {
+
+  /**
+   * Route for resending order confirmation (myeventlane_messaging).
+   */
+  private const ROUTE_RESEND_ORDER_CONFIRMATION = 'myeventlane_messaging.resend_order_confirmation';
 
   /**
    * Order states to include in the list.
@@ -41,6 +49,11 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
   ];
 
   /**
+   * Cached: whether the resend route is registered (e.g. after cache rebuild).
+   */
+  private ?bool $resendOrderRouteRegistered = NULL;
+
+  /**
    * Constructs the controller.
    *
    * @param \Drupal\myeventlane_core\Service\DomainDetector $domain_detector
@@ -51,6 +64,10 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
    *   The entity type manager.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter.
+   * @param \Drupal\Core\Routing\RouteProviderInterface $routeProvider
+   *   The route provider.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
    */
   public function __construct(
     DomainDetector $domain_detector,
@@ -59,6 +76,8 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly VendorEventTabsService $eventTabsService,
+    private readonly RouteProviderInterface $routeProvider,
+    private readonly LoggerInterface $logger,
     private readonly ?RefundProcessor $refundProcessor = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
@@ -497,24 +516,27 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'label' => $this->t('View'),
     ];
 
-    $resendLink = [
-      '#type' => 'link',
-      '#title' => $this->t('Resend email'),
-      '#url' => Url::fromRoute(
-        'myeventlane_messaging.resend_order_confirmation',
-        ['commerce_order' => $order->id()],
-        [
-          'query' => [
-            'destination' => Url::fromRoute('myeventlane_vendor.console.event_orders', [
-              'event' => $eventId,
-            ])->toString(),
-          ],
-        ]
-      ),
-      '#attributes' => [
-        'class' => ['mel-link', 'mel-link--action'],
-      ],
-    ];
+    $resendLink = NULL;
+    if ($this->isResendOrderConfirmationRouteRegistered()) {
+      $resendLink = [
+        '#type' => 'link',
+        '#title' => $this->t('Resend email'),
+        '#url' => Url::fromRoute(
+          self::ROUTE_RESEND_ORDER_CONFIRMATION,
+          ['commerce_order' => $order->id()],
+          [
+            'query' => [
+              'destination' => Url::fromRoute('myeventlane_vendor.console.event_orders', [
+                'event' => $eventId,
+              ])->toString(),
+            ],
+          ]
+        ),
+        '#attributes' => [
+          'class' => ['mel-link', 'mel-link--action'],
+        ],
+      ];
+    }
 
     $refundLog = $this->refundProcessor?->getLatestRefundForOrder((int) $order->id(), $eventId);
     $refundStatus = (string) ($refundLog['status'] ?? 'none');
@@ -555,6 +577,29 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'raw_total' => $totalNumber,
       'raw_currency' => $currency,
     ];
+  }
+
+  /**
+   * Whether myeventlane_messaging registered the resend order route.
+   *
+   * Caches the result for the lifetime of this controller instance so the
+   * route table is not queried for every order row.
+   */
+  private function isResendOrderConfirmationRouteRegistered(): bool {
+    if ($this->resendOrderRouteRegistered !== NULL) {
+      return $this->resendOrderRouteRegistered;
+    }
+    try {
+      $this->routeProvider->getRouteByName(self::ROUTE_RESEND_ORDER_CONFIRMATION);
+      $this->resendOrderRouteRegistered = TRUE;
+    }
+    catch (RouteNotFoundException $e) {
+      $this->logger->warning('Route @route is not registered; resend confirmation links are omitted. Clear caches and ensure myeventlane_messaging is installed and up to date.', [
+        '@route' => self::ROUTE_RESEND_ORDER_CONFIRMATION,
+      ]);
+      $this->resendOrderRouteRegistered = FALSE;
+    }
+    return $this->resendOrderRouteRegistered;
   }
 
   /**
