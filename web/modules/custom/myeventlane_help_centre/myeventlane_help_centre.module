@@ -453,10 +453,11 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
   }
 
   $step_id = $variables['form']['#step_id'] ?? NULL;
+  $route_name = \Drupal::routeMatch()->getRouteName();
   if ($step_id !== 'complete') {
-    $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('buy_tickets');
+    $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('buy_tickets', 'checkout', $route_name);
     if ($panel !== []) {
-      $variables['mel_help_yaml_support_panel'] = $panel;
+      $variables['mel_support_panel'] = $panel;
     }
   }
 
@@ -475,7 +476,8 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
     }
   }
 
-  $has_inline_card = !empty($variables['mel_contextual_help_checkout'] ?? []);
+  $has_inline_card = !empty($variables['mel_contextual_help_checkout'] ?? [])
+    || !empty($variables['mel_support_panel'] ?? []);
   if (!$has_inline_card) {
     $item = myeventlane_help_centre_get_link('refunds_checkout');
     if ($item) {
@@ -582,12 +584,16 @@ function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &
   ]);
   if ($card !== []) {
     $variables['mel_vendor_contextual_help'] = $card;
-    return;
   }
 
   $item = myeventlane_help_centre_get_link('vendor_dashboard');
   if ($item) {
     $variables['mel_help_vendor_dashboard'] = myeventlane_help_link($item['text'], $item['url']);
+  }
+
+  $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('vendor_dashboard', 'vendor_dashboard', \Drupal::routeMatch()->getRouteName());
+  if ($panel !== []) {
+    $variables['mel_support_panel'] = $panel;
   }
 }
 

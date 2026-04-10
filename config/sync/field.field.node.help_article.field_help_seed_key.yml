@@ -1,0 +1,22 @@
+uuid: 10d88b1c-98dd-4b99-a5a0-8d49854174b8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_help_seed_key
+    - node.type.help_article
+id: node.help_article.field_help_seed_key
+field_name: field_help_seed_key
+entity_type: node
+bundle: help_article
+label: 'Seed key'
+description: 'Stable machine key for YAML-seeded help articles.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  max_length: 128
+  is_ascii: true
+  case_sensitive: false
+field_type: string

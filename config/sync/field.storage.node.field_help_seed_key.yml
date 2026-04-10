@@ -1,0 +1,21 @@
+uuid: e09e7e7f-fb18-4ea3-8e3f-4644a61e58c3
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_help_seed_key
+field_name: field_help_seed_key
+entity_type: node
+type: string
+settings:
+  max_length: 128
+  is_ascii: true
+  case_sensitive: false
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
