@@ -60,19 +60,24 @@
   <header class="mel-confirmation__hero">
     <div class="mel-confirmation__hero-icon" aria-hidden="true">✓</div>
     <div class="mel-confirmation__hero-content">
-      {% if mel_confirmation_has_tickets %}
+      {# Donation before tickets: mixed orders use donation-led hero copy only (same as original). #}
+      {% if mel_donation_total_formatted %}
+        <h1 class="mel-confirmation__title">{{ 'Thank you'|t }}</h1>
+      {% elseif mel_confirmation_has_tickets %}
         {% if mel_confirm_paid %}
           <h1 class="mel-confirmation__title">{{ "You're booked"|t }}</h1>
         {% else %}
           <h1 class="mel-confirmation__title">{{ "You're registered"|t }}</h1>
         {% endif %}
-      {% elseif mel_donation_total_formatted %}
-        <h1 class="mel-confirmation__title">{{ 'Thank you'|t }}</h1>
       {% else %}
         <h1 class="mel-confirmation__title">{{ 'Order confirmed'|t }}</h1>
       {% endif %}
 
-      {% if mel_confirmation_has_tickets %}
+      {% if mel_donation_total_formatted %}
+        <p class="mel-confirmation__subtitle">
+          {{ 'We\'ve emailed your receipt to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
+        </p>
+      {% elseif mel_confirmation_has_tickets %}
         {% if mel_confirm_paid %}
           <p class="mel-confirmation__subtitle">
             {{ 'Your booking is confirmed. We\'ve emailed your confirmation and tickets to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
@@ -82,10 +87,6 @@
             {{ 'Your registration is confirmed. We\'ve emailed your confirmation to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
           </p>
         {% endif %}
-      {% elseif mel_donation_total_formatted %}
-        <p class="mel-confirmation__subtitle">
-          {{ 'We\'ve emailed your receipt to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
-        </p>
       {% else %}
         <p class="mel-confirmation__subtitle">
           {{ 'We\'ve emailed your confirmation to <strong>@email</strong>.'|t({'@email': order_entity.getEmail()})|raw }}
@@ -269,15 +270,16 @@
       </div>
 
       <div class="mel-confirmation-access">
-        {% if mel_confirmation_has_tickets %}
+        {# Donation before tickets: one access line for mixed orders (donation copy). #}
+        {% if mel_donation_total_formatted %}
+          <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
+        {% elseif mel_confirmation_has_tickets %}
           {% if mel_logged_in and order_entity.getCustomerId() %}
             <p>{{ 'Your tickets are saved in your account.'|t }}</p>
             <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-link">{{ 'View my tickets'|t }}</a>
           {% else %}
             <p>{{ 'Your tickets have been sent to your email.'|t }}</p>
           {% endif %}
-        {% elseif mel_donation_total_formatted %}
-          <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
         {% endif %}
       </div>
 
@@ -324,10 +326,11 @@
       <section class="mel-confirmation-next">
         <h2 class="mel-confirmation-next__title">{{ 'What happens next'|t }}</h2>
         <ul class="mel-confirmation-next__list">
-          {% if mel_confirmation_has_tickets %}
-            <li class="mel-confirmation-next__item">{{ 'Your tickets are ready now.'|t }}</li>
-          {% elseif mel_donation_total_formatted %}
+          {# Donation before tickets: mixed orders show only the donation line here (original behaviour). #}
+          {% if mel_donation_total_formatted %}
             <li class="mel-confirmation-next__item">{{ 'Your donation is confirmed.'|t }}</li>
+          {% elseif mel_confirmation_has_tickets %}
+            <li class="mel-confirmation-next__item">{{ 'Your tickets are ready now.'|t }}</li>
           {% else %}
             <li class="mel-confirmation-next__item">{{ 'Your order is complete.'|t }}</li>
           {% endif %}
