@@ -159,7 +159,7 @@ support_panels:
   vendor_dashboard:
     title: 'Managing your events'
     summary: 'Learn how to manage and track your events'
-    link_path: /help/vendor-dashboard
+    link_path: /help/vendors/vendor-dashboard-overview
     surfaces:
       - vendor
       - vendor_dashboard
