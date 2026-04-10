@@ -272,11 +272,16 @@
         {% endif %}
       </div>
 
-      {% if (mel_confirmation_has_tickets and mel_logged_in and order_entity.getCustomerId()) or mel_donation_total_formatted %}
+      {% if mel_confirmation_has_tickets or mel_donation_total_formatted %}
         <div class="mel-confirmation-access">
-          {% if mel_confirmation_has_tickets and mel_logged_in and order_entity.getCustomerId() %}
-            <p>{{ 'Your tickets stay in your account — use the button above anytime to download.'|t }}</p>
-          {% elseif mel_donation_total_formatted %}
+          {% if mel_confirmation_has_tickets %}
+            {% if mel_logged_in and order_entity.getCustomerId() %}
+              <p>{{ 'Your tickets stay in your account — use the button above anytime to download.'|t }}</p>
+            {% else %}
+              <p>{{ 'Your tickets have been sent to your email.'|t }}</p>
+            {% endif %}
+          {% endif %}
+          {% if mel_donation_total_formatted %}
             <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
           {% endif %}
         </div>
