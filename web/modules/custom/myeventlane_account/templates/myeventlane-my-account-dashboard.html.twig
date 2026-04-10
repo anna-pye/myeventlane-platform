@@ -89,10 +89,10 @@
                     {% if event.ics_url %}
                       <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
                     {% endif %}
-                    {% if event.order_item_id %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
-                    {% elseif event.ticket_code %}
+                    {% if event.ticket_code %}
                       <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                    {% elseif event.order_item_id %}
+                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
                     {% endif %}
                     <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Tickets'|t }}</a>
                   </div>
@@ -141,10 +141,10 @@
                     {% if event.ics_url %}
                       <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
                     {% endif %}
-                    {% if event.order_item_id %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
-                    {% elseif event.ticket_code %}
+                    {% if event.ticket_code %}
                       <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                    {% elseif event.order_item_id %}
+                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
                     {% endif %}
                     <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Events'|t }}</a>
                   </div>
@@ -218,10 +218,10 @@
                   </div>
                   <div class="mel-my-account__card-actions mel-my-account__card-actions--onestop">
                     <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
-                    {% if event.order_item_id %}
-                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
-                    {% elseif event.ticket_code %}
+                    {% if event.ticket_code %}
                       <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
+                    {% elseif event.order_item_id %}
+                      <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
                     {% endif %}
                     {% if show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
                       <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Leave a review'|t }}</a>
