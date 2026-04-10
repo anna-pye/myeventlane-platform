@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_account\Service;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Builds account navigation links for the customer sidebar.
@@ -24,20 +23,11 @@ final class AccountLinksService {
   ) {}
 
   /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container): static {
-    return new static(
-      $container->get('module_handler')
-    );
-  }
-
-  /**
    * Builds account navigation links.
    *
    * @param string $active
-   *   Route key for the active link: 'dashboard', 'my_tickets', 'my_events',
-   *   'past_events'.
+   *   Active section: only "dashboard" is used (My Tickets / My Events / Past
+   *   Events are not shown in the sidebar; deep routes still mark Dashboard).
    *
    * @return array<int, array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, url: string, active: bool}>
    *   Array of nav links with title, url, and active flag.
@@ -63,21 +53,6 @@ final class AccountLinksService {
         'title' => $this->t('Dashboard'),
         'url' => Url::fromRoute('myeventlane_account.dashboard')->toString(),
         'active' => $active === 'dashboard',
-      ],
-      [
-        'title' => $this->t('My Tickets'),
-        'url' => Url::fromRoute('myeventlane_checkout_flow.my_tickets')->toString(),
-        'active' => $active === 'my_tickets',
-      ],
-      [
-        'title' => $this->t('My Events'),
-        'url' => Url::fromRoute('myeventlane_dashboard.customer')->toString(),
-        'active' => $active === 'my_events',
-      ],
-      [
-        'title' => $this->t('Past Events'),
-        'url' => Url::fromRoute('myeventlane_account.past_events')->toString(),
-        'active' => $active === 'past_events',
       ],
       [
         'title' => $this->t('Profile & Settings'),

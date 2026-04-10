@@ -150,7 +150,6 @@ function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, a
  * Adds account sidebar variables for customer account pages.
  */
 function myeventlane_account_preprocess_page__account(array &$variables): void {
-  $route = \Drupal::routeMatch()->getRouteName();
   $account = \Drupal::currentUser();
 
   if ($account->isAnonymous()) {
@@ -158,15 +157,9 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
   }
 
   $account_links_service = \Drupal::service('myeventlane_account.account_links');
-  $active_map = [
-    'myeventlane_checkout_flow.my_tickets' => 'my_tickets',
-    'myeventlane_checkout_flow.order_detail' => 'my_tickets',
-    'myeventlane_dashboard.customer' => 'my_events',
-  ];
-  $active = $active_map[$route] ?? 'dashboard';
 
   $variables['account_show_sidebar'] = TRUE;
-  $variables['account_links'] = $account_links_service->buildLinks($active);
+  $variables['account_links'] = $account_links_service->buildLinks('dashboard');
   $variables['display_name'] = $account->getDisplayName();
 
   _myeventlane_account_add_header_vars($variables);

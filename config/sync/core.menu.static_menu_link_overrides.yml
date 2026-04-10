@@ -21,7 +21,7 @@ definitions:
     enabled: true
   myeventlane_rsvp__my_rsvps:
     weight: -50
-    parent: myeventlane_dashboard.my_events
+    parent: user.page
     menu_name: account
     expanded: false
     enabled: true
@@ -33,14 +33,14 @@ definitions:
     enabled: true
   myeventlane_core__my_categories:
     weight: -49
-    parent: myeventlane_dashboard.my_events
+    parent: user.page
     menu_name: account
     expanded: false
     enabled: true
   myeventlane_dashboard__my_events:
     parent: user.page
     menu_name: account
-    enabled: true
+    enabled: false
     expanded: false
     weight: -50
   myeventlane_rsvp__ics_bundle_link:
