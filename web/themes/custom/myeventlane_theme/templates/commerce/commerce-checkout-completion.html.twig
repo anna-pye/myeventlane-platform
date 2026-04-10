@@ -248,7 +248,7 @@
             <a href="{{ url('entity.commerce_order.user_view', {'user': order_entity.getCustomerId(), 'commerce_order': order_entity.id()}) }}"
                class="mel-confirmation-button mel-confirmation-button--primary">
               {% if mel_confirm_paid %}
-                {{ 'View / download tickets'|t }}
+                {{ 'Download tickets'|t }}
               {% else %}
                 {{ 'View your RSVP'|t }}
               {% endif %}
@@ -272,21 +272,27 @@
         {% endif %}
       </div>
 
-      <div class="mel-confirmation-access">
-        {% if mel_confirmation_has_tickets %}
-          {% if mel_logged_in and order_entity.getCustomerId() %}
-            <p>{{ 'Your tickets are saved in your account.'|t }}</p>
-          {% else %}
-            <p>{{ 'Your tickets have been sent to your email.'|t }}</p>
+      {% if (mel_confirmation_has_tickets and mel_logged_in and order_entity.getCustomerId()) or mel_donation_total_formatted %}
+        <div class="mel-confirmation-access">
+          {% if mel_confirmation_has_tickets and mel_logged_in and order_entity.getCustomerId() %}
+            <p>{{ 'Your tickets stay in your account — use the button above anytime to download.'|t }}</p>
+          {% elseif mel_donation_total_formatted %}
+            <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
           {% endif %}
-        {% elseif mel_donation_total_formatted %}
-          <p>{{ 'Your receipt lists how your donation was processed.'|t }}</p>
-        {% endif %}
-      </div>
+        </div>
+      {% endif %}
+
+      {% if mel_event_url and events|length > 0 %}
+        <div class="mel-confirmation-actions__secondary">
+          <a href="{{ mel_event_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
+            {{ 'View event'|t }}
+          </a>
+        </div>
+      {% endif %}
 
       {% if mel_calendar_links|length > 0 %}
         <div class="mel-confirmation-calendar">
-          <h3 class="mel-confirmation-calendar__title">{{ 'Add to your calendar'|t }}</h3>
+          <h3 class="mel-confirmation-calendar__title">{{ 'Add to calendar'|t }}</h3>
           <div class="mel-calendar-actions">
             {% if mel_calendar_links.apple is defined and mel_calendar_links.apple %}
               <a href="{{ mel_calendar_links.apple }}" class="mel-calendar-btn" target="_blank" rel="noopener noreferrer">{{ 'Apple Calendar'|t }}</a>
@@ -301,17 +307,9 @@
         </div>
       {% endif %}
 
-      {% if mel_event_url and events|length > 0 %}
-        <div class="mel-confirmation-actions__secondary">
-          <a href="{{ mel_event_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">
-            {{ 'View event page'|t }}
-          </a>
-        </div>
-      {% endif %}
-
       {% if mel_event_url %}
         <section class="mel-confirmation-share">
-          <h3 class="mel-confirmation-share__title">{{ 'Share this event'|t }}</h3>
+          <h3 class="mel-confirmation-share__title">{{ 'Share'|t }}</h3>
           <div class="mel-share-actions">
             <button type="button" class="mel-share-copy" data-url="{{ mel_event_url }}">{{ 'Copy event link'|t }}</button>
           </div>
@@ -326,16 +324,14 @@
       <section class="mel-confirmation-next">
         <h2 class="mel-confirmation-next__title">{{ 'What happens next'|t }}</h2>
         <ul class="mel-confirmation-next__list">
-          {% if mel_confirmation_has_tickets %}
-            <li class="mel-confirmation-next__item">{{ 'Your tickets are ready now.'|t }}</li>
-          {% elseif mel_donation_total_formatted %}
+          {% if mel_donation_total_formatted %}
             <li class="mel-confirmation-next__item">{{ 'Your donation is confirmed.'|t }}</li>
-          {% else %}
+          {% elseif not mel_confirmation_has_tickets %}
             <li class="mel-confirmation-next__item">{{ 'Your order is complete.'|t }}</li>
           {% endif %}
           <li class="mel-confirmation-next__item">{{ 'Save the date — add to your calendar above if you have not already.'|t }}</li>
-          {% if order_entity.getCustomerId() %}
-            <li class="mel-confirmation-next__item">{{ 'You can come back to your tickets anytime from My Account.'|t }}</li>
+          {% if order_entity.getCustomerId() and mel_confirmation_has_tickets %}
+            <li class="mel-confirmation-next__item">{{ 'You can return to this order anytime from My Account.'|t }}</li>
           {% endif %}
         </ul>
       </section>

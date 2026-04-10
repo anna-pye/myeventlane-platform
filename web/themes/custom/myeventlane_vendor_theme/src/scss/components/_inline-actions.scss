@@ -18,7 +18,8 @@
 .mel-inline-actions {
   display: flex;
   align-items: center;
-  gap: $spacing-1;
+  flex-wrap: wrap;
+  gap: $spacing-2;
 }
 
 .mel-inline-actions__btn {

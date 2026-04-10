@@ -98,8 +98,11 @@ body_html: |
       </div>
 
       <div style="margin: 28px 0; padding: 22px; background-color: #eef7ff; border-radius: 8px; border: 1px solid #cce5ff;">
-        <p style="color: #1a3a52; font-size: 16px; line-height: 1.55; margin: 0 0 16px 0; text-align: center;">
-          <strong>Your tickets</strong> — PDFs may be attached when they are ready. You can always open your order online and download tickets; no attachment is required.
+        <p style="color: #1a3a52; font-size: 15px; line-height: 1.55; margin: 0 0 10px 0; text-align: center;">
+          Your tickets are attached when available.
+        </p>
+        <p style="color: #34495e; font-size: 14px; line-height: 1.5; margin: 0 0 18px 0; text-align: center;">
+          You can always access your tickets from your order page.
         </p>
         <div style="text-align: center;">
           {% set download_href = tickets_url|default(order_url) %}

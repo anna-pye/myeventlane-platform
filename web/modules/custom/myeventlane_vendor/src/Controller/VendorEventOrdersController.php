@@ -450,8 +450,8 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
    *
    * @return array
    *   Row with order_id, order_number, placed_date, purchaser_name,
-   *   purchaser_email, ticket_count, net_sales, fees, total, status, view_link,
-   *   resend_link.
+   *   purchaser_email, ticket_count, net_sales, fees, total, status, view_link
+   *   (render array), resend_link (render array or NULL).
    */
   private function buildOrderRow(
     OrderInterface $order,
@@ -508,11 +508,15 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     $orderNumber = $order->getOrderNumber() ?: '#' . $order->id();
 
     $viewLink = [
-      'url' => Url::fromRoute('myeventlane_vendor.console.event_order_view', [
+      '#type' => 'link',
+      '#title' => $this->t('View'),
+      '#url' => Url::fromRoute('myeventlane_vendor.console.event_order_view', [
         'event' => $eventId,
         'order' => $order->id(),
-      ])->toString(),
-      'label' => $this->t('View'),
+      ]),
+      '#attributes' => [
+        'class' => ['mel-link', 'mel-link--action'],
+      ],
     ];
 
     $resendLink = NULL;
