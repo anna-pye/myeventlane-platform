@@ -20,11 +20,86 @@ myeventlane_help_centre.contextual_help:
         '*':
           type: myeventlane_help_centre.contextual_help.link
 
+myeventlane_help_centre.help_content.article:
+  type: mapping
+  label: 'Help article seed'
+  mapping:
+    seed_key:
+      type: string
+      label: 'Seed key'
+    title:
+      type: label
+      label: 'Title'
+    summary:
+      type: text
+      label: 'Summary'
+    body:
+      type: text
+      label: 'Body'
+    audience:
+      type: sequence
+      label: 'Audience labels'
+      sequence:
+        type: string
+    topic:
+      type: string
+      label: 'Topic'
+    article_type:
+      type: string
+      label: 'Article type'
+    keywords:
+      type: string
+      label: 'Keywords'
+    cta_label:
+      type: label
+      label: 'CTA label'
+    cta_link:
+      type: string
+      label: 'CTA link'
+    alias:
+      type: string
+      label: 'URL alias'
+    featured:
+      type: boolean
+      label: 'Featured'
+
+myeventlane_help_centre.help_content.panel:
+  type: mapping
+  label: 'Support panel definition'
+  mapping:
+    title:
+      type: label
+      label: 'Title'
+    summary:
+      type: text
+      label: 'Summary'
+    link_path:
+      type: string
+      label: 'Internal link path'
+    surfaces:
+      type: sequence
+      label: 'Surfaces'
+      sequence:
+        type: string
+    route_names:
+      type: sequence
+      label: 'Route names'
+      sequence:
+        type: string
+
 myeventlane_help_centre.help_content:
   type: config_object
   label: 'MEL help content (YAML seeds and support panels)'
   mapping:
     help_articles:
-      type: ignore
+      type: mapping
+      label: 'Help articles'
+      mapping:
+        '*':
+          type: myeventlane_help_centre.help_content.article
     support_panels:
-      type: ignore
+      type: mapping
+      label: 'Support panels'
+      mapping:
+        '*':
+          type: myeventlane_help_centre.help_content.panel

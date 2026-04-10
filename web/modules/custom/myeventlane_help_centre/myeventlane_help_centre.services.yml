@@ -13,6 +13,7 @@ services:
     class: Drupal\myeventlane_help_centre\Service\SupportPanelBuilder
     arguments:
       - '@myeventlane_help_centre.help_content_repository'
+      - '@path.validator'
 
   myeventlane_help_centre.seeder:
     class: Drupal\myeventlane_help_centre\Service\HelpContentSeeder

@@ -5,6 +5,7 @@ dependencies:
     - myeventlane_help_centre
 help_articles:
   how_to_buy_tickets:
+    seed_key: how_to_buy_tickets
     title: 'How to buy tickets'
     summary: 'Buy tickets in a few quick steps from event page to confirmation.'
     body: '<p>Open the event page, choose your ticket type, and continue to checkout. After payment, your ticket and receipt are sent by email straight away.</p>'
@@ -18,6 +19,7 @@ help_articles:
     alias: '/help/attendees/how-to-buy-tickets'
     featured: true
   how_to_rsvp:
+    seed_key: how_to_rsvp
     title: 'How to RSVP to a free event'
     summary: 'Reserve your place at a free event and keep your confirmation handy.'
     body: '<p>Select RSVP on the event page and complete your details. Keep the confirmation email so you can check in faster on the day.</p>'
@@ -31,6 +33,7 @@ help_articles:
     alias: '/help/attendees/how-to-rsvp-to-a-free-event'
     featured: true
   how_to_access_tickets:
+    seed_key: how_to_access_tickets
     title: 'How to access your tickets'
     summary: 'Where to find your ticket email and QR code before event day.'
     body: '<p>Your tickets are sent to your account email and can also be found in your MyEventLane account. Open the QR code at the gate for quick entry.</p>'
@@ -44,6 +47,7 @@ help_articles:
     alias: '/help/attendees/how-to-access-your-tickets'
     featured: false
   how_to_request_refund:
+    seed_key: how_to_request_refund
     title: 'How to request a refund'
     summary: 'Check eligibility and send a refund request through the right channel.'
     body: '<p>Open your booking, review the organiser refund policy, then submit a refund request. If approved, the refund returns to the original payment method.</p>'
@@ -57,6 +61,7 @@ help_articles:
     alias: '/help/attendees/how-to-request-a-refund'
     featured: true
   how_to_create_event:
+    seed_key: how_to_create_event
     title: 'How to create an event'
     summary: 'Set up your event details, timing, and tickets before publishing.'
     body: '<p>From your organiser dashboard, create a new event, complete the required details, and preview before publishing. Keep the event summary simple and clear.</p>'
@@ -70,6 +75,7 @@ help_articles:
     alias: '/help/organisers/how-to-create-an-event'
     featured: true
   choosing_rsvp_or_paid:
+    seed_key: choosing_rsvp_or_paid
     title: 'Choosing RSVP or paid tickets'
     summary: 'Pick the right ticket setup based on your event goals.'
     body: '<p>Use RSVP when attendance is free and you mainly need numbers. Use paid tickets when you need checkout, receipts, and clearer revenue tracking.</p>'
@@ -83,6 +89,7 @@ help_articles:
     alias: '/help/organisers/choosing-rsvp-or-paid-tickets'
     featured: false
   managing_dashboard:
+    seed_key: managing_dashboard
     title: 'Managing your event dashboard'
     summary: 'Track bookings, attendee activity, and quick event edits.'
     body: '<p>Your dashboard gives a live view of bookings, capacity, and messages. Use it to make quick updates and keep attendees informed.</p>'
@@ -96,6 +103,7 @@ help_articles:
     alias: '/help/organisers/managing-your-event-dashboard'
     featured: true
   vendor_dashboard_overview:
+    seed_key: vendor_dashboard_overview
     title: 'Vendor dashboard overview'
     summary: 'Navigate your vendor workspace, events, and stall tools.'
     body: '<p>Use the vendor dashboard to review applications, manage your profile, and access event-day workflows. Links from your dashboard open the right tools for each task.</p>'
@@ -109,6 +117,7 @@ help_articles:
     alias: '/help/vendors/vendor-dashboard-overview'
     featured: false
   refund_policy:
+    seed_key: refund_policy
     title: 'Refund policy'
     summary: 'How refunds are handled, assessed, and paid back on MyEventLane.'
     body: '<p>Refunds depend on the organiser policy and event circumstances. Approved refunds are returned to the original payment method and timing may vary by bank.</p>'
@@ -122,6 +131,7 @@ help_articles:
     alias: '/help/policies/refund-policy'
     featured: true
   community_guidelines:
+    seed_key: community_guidelines
     title: 'Community guidelines'
     summary: 'Our expectations for respectful behaviour across the platform.'
     body: '<p>MyEventLane is community-first. We expect respectful conduct, clear communication, and safe participation from attendees, organisers, and vendors.</p>'
@@ -139,7 +149,21 @@ support_panels:
     title: 'How to buy tickets'
     summary: 'Learn how to purchase tickets and complete checkout securely.'
     link_path: '/help/attendees/how-to-buy-tickets'
+    surfaces:
+      - checkout
+    route_names:
+      - commerce_checkout.form
   create_event:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
     link_path: '/help/organisers/how-to-create-an-event'
+    surfaces:
+      - event_creation_wizard
+  vendor_dashboard:
+    title: 'Vendor dashboard overview'
+    summary: 'Know where to manage your vendor workspace, events, and payouts.'
+    link_path: '/help/vendors/vendor-dashboard-overview'
+    surfaces:
+      - vendor_dashboard
+    route_names:
+      - myeventlane_vendor.console.dashboard
