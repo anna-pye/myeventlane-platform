@@ -14,7 +14,8 @@
  * - account_links: Array of nav links (title, url, active).
  * - show_review_cta: Boolean to show review CTA (feature flag).
  * - review_eligible: Map of event_id => bool (can leave review).
- * - Event rows may include pdf_available (commerce order item present), ticket_code,
+ * - Event rows may include pdf_available, has_ticket_code (non-empty code; use this
+ *   in Twig instead of testing ticket_code — "0" is falsy in Twig), ticket_code,
  *   order_item_id for PDF and display.
  */
 #}
@@ -92,7 +93,7 @@
                       <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
                     {% endif %}
                     {% if event.pdf_available %}
-                      {% if event.ticket_code %}
+                      {% if event.has_ticket_code %}
                         <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
                       {% else %}
                         <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
@@ -100,7 +101,7 @@
                     {% endif %}
                     <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Tickets'|t }}</a>
                   </div>
-                  {% if event.ticket_code %}
+                  {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
                   {% endif %}
                 </div>
@@ -146,7 +147,7 @@
                       <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
                     {% endif %}
                     {% if event.pdf_available %}
-                      {% if event.ticket_code %}
+                      {% if event.has_ticket_code %}
                         <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
                       {% else %}
                         <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
@@ -154,7 +155,7 @@
                     {% endif %}
                     <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Events'|t }}</a>
                   </div>
-                  {% if event.ticket_code %}
+                  {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
                   {% endif %}
                 </div>
@@ -225,7 +226,7 @@
                   <div class="mel-my-account__card-actions mel-my-account__card-actions--onestop">
                     <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
                     {% if event.pdf_available %}
-                      {% if event.ticket_code %}
+                      {% if event.has_ticket_code %}
                         <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
                       {% else %}
                         <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
@@ -236,7 +237,7 @@
                     {% endif %}
                     <a href="{{ path('myeventlane_account.past_events') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'Past Events'|t }}</a>
                   </div>
-                  {% if event.ticket_code %}
+                  {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
                   {% endif %}
                 </div>

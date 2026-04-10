@@ -344,6 +344,8 @@ final class MyAccountController extends ControllerBase {
     }
 
     $code = trim($ticketCode);
+    // Explicit flag for Twig: {% if event.ticket_code %} treats "0" as falsy; PHP $code !== '' does not.
+    $hasTicketCode = $code !== '';
 
     return [
       'id' => $eventId,
@@ -358,10 +360,11 @@ final class MyAccountController extends ControllerBase {
       'location' => $location,
       'source' => $source,
       'ticket_code' => $code,
+      'has_ticket_code' => $hasTicketCode,
       'attendee_id' => $attendeeId,
       'order_item_id' => $orderItemId,
       // Show PDF when we have an order line or a MEL ticket code (PDF may use attendee fallback).
-      'pdf_available' => ($orderItemId !== NULL && $orderItemId > 0) || $code !== '',
+      'pdf_available' => ($orderItemId !== NULL && $orderItemId > 0) || $hasTicketCode,
     ];
   }
 
