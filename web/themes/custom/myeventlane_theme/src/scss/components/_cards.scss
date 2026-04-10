@@ -215,13 +215,15 @@
   padding-bottom: spacing.mel-space(6);
   border-bottom: 1px solid colors.$mel-color-surface-alt;
 
-  &:last-child {
-    margin-bottom: 0;
-  }
-
   // Wins over .mel-my-account__section when both are on the same <section>.
   &.mel-my-account__section {
     margin-bottom: spacing.mel-space(9);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   h2.mel-my-account__section-title {
