@@ -39,16 +39,6 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_help_audience:
-    type: entity_reference_autocomplete_tags
-    weight: 6
-    region: content
-    settings:
-      match_operator: CONTAINS
-      match_limit: 10
-      size: 60
-      placeholder: ''
-    third_party_settings: {  }
   field_help_category:
     type: entity_reference_autocomplete
     weight: 5
@@ -104,5 +94,6 @@ content:
       placeholder: ''
     third_party_settings: {  }
 hidden:
+  field_help_audience: true
   promote: true
   sticky: true

@@ -230,88 +230,20 @@
   margin: 0 0 spacing.mel-space(4) 0;
 }
 
-// ---------------------------------------------------------------------------
-// Cards Grid — reuses mel-card
-// ---------------------------------------------------------------------------
-// Image on top (cropped), title, date + location, CTA right bottom.
-
-.mel-my-account__cards {
-  display: grid;
-  gap: spacing.mel-space(4);
-  grid-template-columns: 1fr;
-
-  @include breakpoints.mel-break(sm) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @include breakpoints.mel-break(md) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
+// Card grid + dashboard section titles: components/_cards.scss (.mel-dashboard__section).
 
 .mel-my-account__card {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-
-  .mel-card__link {
-    flex-shrink: 0;
-  }
-
-  .mel-card__body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
   .mel-card__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     line-clamp: 3;
-  }
-
-  .mel-card__media--placeholder {
-    &::before {
-      content: "🎫";
-      font-size: 2.5rem;
-      opacity: 0.6;
-    }
+    overflow: hidden;
   }
 }
 
 .mel-my-account__card--past {
   opacity: 0.9;
-}
-
-.mel-my-account__event-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: typography.mel-font-size(sm);
-  color: colors.$mel-color-text-muted;
-  margin: 0 0 spacing.mel-space(3) 0;
-}
-
-.mel-my-account__event-location {
-  &::before {
-    content: '';
-    display: none;
-  }
-}
-
-.mel-my-account__card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: spacing.mel-space(2);
-  margin-top: spacing.mel-space(3);
-  justify-content: flex-end;
-  align-items: center;
-}
-
-// Primary actions grouped on each card (calendar, PDF, account destinations).
-.mel-my-account__card-actions--onestop {
-  justify-content: flex-start;
-  width: 100%;
 }
 
 .mel-my-account__ticket-code {

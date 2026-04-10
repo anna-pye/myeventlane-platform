@@ -343,41 +343,27 @@ final class HelpContentSeeder {
       return;
     }
 
-    // Deprecated: taxonomy field_help_audience — kept in sync for backward
-    // compatibility; canonical audience is field_audience (list: public,
-    // vendor, staff).
-    if ($node->hasField('field_help_audience')) {
-      $values = [];
-      foreach ($names as $name) {
-        $term = $this->loadTermByName('help_audience', $name);
-        if ($term instanceof TermInterface) {
-          $values[] = ['target_id' => (int) $term->id()];
-        }
-      }
-      if ($values !== []) {
-        $node->set('field_help_audience', $values);
-      }
+    if (!$node->hasField('field_audience')) {
+      return;
     }
 
-    if ($node->hasField('field_audience')) {
-      $canonical = [];
-      foreach ($names as $name) {
-        $mapped = $this->mapSeedAudienceNameToCanonical($name);
-        if ($mapped !== NULL) {
-          $canonical[$mapped] = $mapped;
-        }
+    $canonical = [];
+    foreach ($names as $name) {
+      $mapped = $this->mapSeedAudienceNameToCanonical($name);
+      if ($mapped !== NULL) {
+        $canonical[$mapped] = $mapped;
       }
-      if ($canonical !== []) {
-        $node->set('field_audience', array_map(
-          static fn(string $v): array => ['value' => $v],
-          array_values($canonical),
-        ));
-      }
+    }
+    if ($canonical !== []) {
+      $node->set('field_audience', array_map(
+        static fn(string $v): array => ['value' => $v],
+        array_values($canonical),
+      ));
     }
   }
 
   /**
-   * Maps seeded taxonomy audience labels to field_audience values.
+   * Maps seeded audience labels to field_audience list values.
    */
   private function mapSeedAudienceNameToCanonical(string $name): ?string {
     $key = mb_strtolower(trim($name));

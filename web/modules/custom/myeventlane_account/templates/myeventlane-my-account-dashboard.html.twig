@@ -62,44 +62,47 @@
       </header>
 
       {# Your Tickets (upcoming 1-3) #}
-      <section class="mel-my-account__section" aria-labelledby="your-tickets-title">
+      <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="your-tickets-title">
         <h2 id="your-tickets-title" class="mel-my-account__section-title">{{ 'Your Tickets'|t }}</h2>
         {% if upcoming_tickets is not empty %}
           <div class="mel-my-account__cards">
             {% for event in upcoming_tickets %}
               <article class="mel-card mel-my-account__card">
-                <a href="{{ event.url }}" class="mel-card__link">
-                  <div class="mel-card__media{% if not event.image_url %} mel-card__media--placeholder{% endif %}" aria-hidden="true">
-                    {% if event.image_url %}
-                      <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__media--placeholder');" />
-                    {% endif %}
-                  </div>
-                </a>
+                <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
+                  {% if event.image_url %}
+                    <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
+                  {% endif %}
+                </div>
                 <div class="mel-card__body">
-                  <h3 class="mel-card__title">
-                    <a href="{{ event.url }}">{{ event.title }}</a>
-                  </h3>
-                  <div class="mel-my-account__event-meta">
+                  <h3 class="mel-card__title">{{ event.title }}</h3>
+                  <div class="mel-card__meta">
                     {% if event.start_date %}
-                      <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time>
+                      <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time><br>
                     {% endif %}
                     {% if event.location %}
-                      <span class="mel-my-account__event-location">{{ event.location }}</span>
+                      {{ event.location }}
                     {% endif %}
                   </div>
-                  <div class="mel-my-account__card-actions mel-my-account__card-actions--onestop">
-                    <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
-                    {% if event.ics_url %}
-                      <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
-                    {% endif %}
+                  <div class="mel-card__actions">
                     {% if event.pdf_available %}
                       {% if event.has_ticket_code %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% else %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% endif %}
+                    {% else %}
+                      <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View Event'|t }}</a>
                     {% endif %}
-                    <a href="{{ path('myeventlane_checkout_flow.my_tickets') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Tickets'|t }}</a>
+                    {% if event.pdf_available or event.ics_url %}
+                      <div class="mel-card__links">
+                        {% if event.pdf_available %}
+                          <a href="{{ event.url }}">{{ 'View Event'|t }}</a>
+                        {% endif %}
+                        {% if event.ics_url %}
+                          <a href="{{ event.ics_url }}" download>{{ 'Add to Calendar'|t }}</a>
+                        {% endif %}
+                      </div>
+                    {% endif %}
                   </div>
                   {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
@@ -116,44 +119,47 @@
       </section>
 
       {# Your RSVPs (upcoming 1-3) #}
-      <section class="mel-my-account__section" aria-labelledby="your-rsvps-title">
+      <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="your-rsvps-title">
         <h2 id="your-rsvps-title" class="mel-my-account__section-title">{{ 'Your RSVPs'|t }}</h2>
         {% if upcoming_rsvps is not empty %}
           <div class="mel-my-account__cards">
             {% for event in upcoming_rsvps %}
               <article class="mel-card mel-my-account__card">
-                <a href="{{ event.url }}" class="mel-card__link">
-                  <div class="mel-card__media{% if not event.image_url %} mel-card__media--placeholder{% endif %}" aria-hidden="true">
-                    {% if event.image_url %}
-                      <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__media--placeholder');" />
-                    {% endif %}
-                  </div>
-                </a>
+                <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
+                  {% if event.image_url %}
+                    <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
+                  {% endif %}
+                </div>
                 <div class="mel-card__body">
-                  <h3 class="mel-card__title">
-                    <a href="{{ event.url }}">{{ event.title }}</a>
-                  </h3>
-                  <div class="mel-my-account__event-meta">
+                  <h3 class="mel-card__title">{{ event.title }}</h3>
+                  <div class="mel-card__meta">
                     {% if event.start_date %}
-                      <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time>
+                      <time datetime="{{ event.start_date }}">{{ event.start_date }}{% if event.start_time %} {{ event.start_time }}{% endif %}</time><br>
                     {% endif %}
                     {% if event.location %}
-                      <span class="mel-my-account__event-location">{{ event.location }}</span>
+                      {{ event.location }}
                     {% endif %}
                   </div>
-                  <div class="mel-my-account__card-actions mel-my-account__card-actions--onestop">
-                    <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
-                    {% if event.ics_url %}
-                      <a href="{{ event.ics_url }}" class="mel-btn mel-btn--sm mel-btn--link" download>{{ 'Add to Calendar'|t }}</a>
-                    {% endif %}
+                  <div class="mel-card__actions">
                     {% if event.pdf_available %}
                       {% if event.has_ticket_code %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% else %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% endif %}
+                    {% else %}
+                      <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View Event'|t }}</a>
                     {% endif %}
-                    <a href="{{ path('myeventlane_dashboard.customer') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'My Events'|t }}</a>
+                    {% if event.pdf_available or event.ics_url %}
+                      <div class="mel-card__links">
+                        {% if event.pdf_available %}
+                          <a href="{{ event.url }}">{{ 'View Event'|t }}</a>
+                        {% endif %}
+                        {% if event.ics_url %}
+                          <a href="{{ event.ics_url }}" download>{{ 'Add to Calendar'|t }}</a>
+                        {% endif %}
+                      </div>
+                    {% endif %}
                   </div>
                   {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
@@ -198,44 +204,50 @@
       </section>
 
       {# Past events preview (last 3) #}
-      <section class="mel-my-account__section" aria-labelledby="past-events-title">
+      <section class="mel-my-account__section mel-dashboard__section" aria-labelledby="past-events-title">
         <h2 id="past-events-title" class="mel-my-account__section-title">{{ 'Past events'|t }}</h2>
         {% if past_events is not empty %}
           <div class="mel-my-account__cards">
             {% for event in past_events %}
+              {% set primary_review = show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
               <article class="mel-card mel-my-account__card mel-my-account__card--past">
-                <a href="{{ event.url }}" class="mel-card__link">
-                  <div class="mel-card__media{% if not event.image_url %} mel-card__media--placeholder{% endif %}" aria-hidden="true">
-                    {% if event.image_url %}
-                      <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__media--placeholder');" />
-                    {% endif %}
-                  </div>
-                </a>
+                <div class="mel-card__image{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
+                  {% if event.image_url %}
+                    <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
+                  {% endif %}
+                </div>
                 <div class="mel-card__body">
-                  <h3 class="mel-card__title">
-                    <a href="{{ event.url }}">{{ event.title }}</a>
-                  </h3>
-                  <div class="mel-my-account__event-meta">
+                  <h3 class="mel-card__title">{{ event.title }}</h3>
+                  <div class="mel-card__meta">
                     {% if event.start_date %}
-                      <time datetime="{{ event.start_date }}">{{ event.start_date }}</time>
+                      <time datetime="{{ event.start_date }}">{{ event.start_date }}</time><br>
                     {% endif %}
                     {% if event.location %}
-                      <span class="mel-my-account__event-location">{{ event.location }}</span>
+                      {{ event.location }}
                     {% endif %}
                   </div>
-                  <div class="mel-my-account__card-actions mel-my-account__card-actions--onestop">
-                    <a href="{{ event.url }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View Event'|t }}</a>
-                    {% if event.pdf_available %}
+                  <div class="mel-card__actions">
+                    {% if primary_review %}
+                      <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-button mel-button--primary">{{ 'Leave a review'|t }}</a>
+                    {% elseif event.pdf_available %}
                       {% if event.has_ticket_code %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf_by_code', {'ticket_code': event.ticket_code}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% else %}
-                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-btn mel-btn--sm mel-btn--secondary">{{ 'View ticket PDF'|t }}</a>
+                        <a href="{{ path('myeventlane_tickets.download_pdf', {'order_item_id': event.order_item_id}) }}" class="mel-button mel-button--primary">{{ 'View Ticket'|t }}</a>
                       {% endif %}
+                    {% else %}
+                      <a href="{{ event.url }}" class="mel-button mel-button--primary">{{ 'View Event'|t }}</a>
                     {% endif %}
-                    {% if show_review_cta and review_eligible[event.id] is defined and review_eligible[event.id] %}
-                      <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-btn mel-btn--sm mel-btn--primary">{{ 'Leave a review'|t }}</a>
+                    {% if primary_review or event.pdf_available or event.ics_url %}
+                      <div class="mel-card__links">
+                        {% if primary_review or event.pdf_available %}
+                          <a href="{{ event.url }}">{{ 'View Event'|t }}</a>
+                        {% endif %}
+                        {% if event.ics_url %}
+                          <a href="{{ event.ics_url }}" download>{{ 'Add to Calendar'|t }}</a>
+                        {% endif %}
+                      </div>
                     {% endif %}
-                    <a href="{{ path('myeventlane_account.past_events') }}" class="mel-btn mel-btn--sm mel-btn--link">{{ 'Past Events'|t }}</a>
                   </div>
                   {% if event.has_ticket_code %}
                     <p class="mel-my-account__ticket-code" title="{{ 'Ticket code'|t }}">{{ event.ticket_code }}</p>
