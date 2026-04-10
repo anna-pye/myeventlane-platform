@@ -196,3 +196,166 @@
   background: colors.$mel-color-surface;
   box-shadow: shadows.$mel-shadow-2;
 }
+
+// ---------------------------------------------------------------------------
+// My Account dashboard — stacked event cards (Tickets / RSVPs / Past)
+// ---------------------------------------------------------------------------
+// Unified hierarchy: hero image, title, meta, full-width primary CTA, link row.
+
+.mel-dashboard__section {
+  margin-bottom: spacing.mel-space(8);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // Wins over .mel-my-account__section when both are on the same <section>.
+  &.mel-my-account__section {
+    margin-bottom: spacing.mel-space(8);
+  }
+
+  h2.mel-my-account__section-title {
+    font-size: typography.mel-font-size(2xl);
+    font-weight: typography.$mel-font-extrabold;
+    margin-bottom: spacing.mel-space(4);
+  }
+
+  .mel-my-account__cards {
+    display: grid;
+    gap: spacing.mel-space(5);
+    grid-template-columns: 1fr;
+
+    @include breakpoints.mel-break(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include breakpoints.mel-break(lg) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .mel-card__image {
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: colors.$mel-color-surface-alt;
+  }
+
+  .mel-card__image img {
+    display: block;
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+  }
+
+  .mel-card__image--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    color: colors.$mel-color-text-muted;
+    background: linear-gradient(135deg, var(--mel-peach) 0%, var(--mel-lilac) 100%);
+
+    &::before {
+      content: '🎫';
+      font-size: 2.5rem;
+      opacity: 0.6;
+    }
+  }
+
+  .mel-card__meta {
+    font-size: typography.mel-font-size(sm);
+    color: colors.$mel-color-text-muted;
+    line-height: typography.$mel-leading-relaxed;
+    margin-bottom: spacing.mel-space(4);
+  }
+
+  .mel-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.mel-space(3);
+    margin-top: auto;
+  }
+
+  .mel-card__links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: spacing.mel-space(2) spacing.mel-space(3);
+    margin-top: spacing.mel-space(2);
+
+    a {
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-medium;
+      color: colors.$mel-color-accent;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      &:focus-visible {
+        @include colors.mel-focus-ring;
+      }
+    }
+  }
+
+  .mel-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    background: colors.$mel-color-surface;
+    border: none;
+    border-radius: radii.$mel-radius-md;
+    box-shadow: 0 4px 16px rgba(36, 48, 58, 0.1);
+  }
+
+  .mel-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: spacing.mel-space(5);
+  }
+
+  .mel-card__title {
+    margin: 0 0 spacing.mel-space(2) 0;
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-bold;
+    line-height: typography.$mel-leading-tight;
+    color: colors.$mel-color-text;
+  }
+
+  .mel-button {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: spacing.mel-space(4) spacing.mel-space(5);
+    border-radius: radii.$mel-radius-pill;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-bold;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .mel-button--primary {
+    background: colors.$mel-color-primary;
+    color: colors.$mel-color-text-inverse;
+
+    &:hover {
+      background: colors.$mel-color-primary-hover;
+      color: colors.$mel-color-text-inverse;
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+  }
+}
