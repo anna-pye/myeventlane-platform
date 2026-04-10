@@ -196,7 +196,7 @@ services:
       - '@entity_type.manager'
       - '@date.formatter'
       - '@myeventlane_vendor.service.event_tabs'
-      - '@router.route_provider'
+      - '@myeventlane_core.route_helper'
       - '@logger.channel.myeventlane_vendor'
       - '@?myeventlane_refunds.processor'
     tags:
