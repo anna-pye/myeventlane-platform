@@ -308,6 +308,20 @@
   align-items: center;
 }
 
+// Primary actions grouped on each card (calendar, PDF, account destinations).
+.mel-my-account__card-actions--onestop {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.mel-my-account__ticket-code {
+  font-size: typography.mel-font-size(xs);
+  font-family: ui-monospace, monospace;
+  color: colors.$mel-color-text-muted;
+  margin: spacing.mel-space(2) 0 0;
+  word-break: break-all;
+}
+
 // ---------------------------------------------------------------------------
 // Quick Actions
 // ---------------------------------------------------------------------------
