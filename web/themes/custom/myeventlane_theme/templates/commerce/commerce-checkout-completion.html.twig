@@ -326,7 +326,13 @@
         <ul class="mel-confirmation-next__list">
           {% if mel_donation_total_formatted %}
             <li class="mel-confirmation-next__item">{{ 'Your donation is confirmed.'|t }}</li>
-          {% elseif not mel_confirmation_has_tickets %}
+          {% elseif mel_confirmation_has_tickets %}
+            {% if mel_logged_in and order_entity.getCustomerId() %}
+              <li class="mel-confirmation-next__item">{{ 'Your tickets are confirmed for this order.'|t }}</li>
+            {% else %}
+              <li class="mel-confirmation-next__item">{{ 'Your tickets are in the email we sent. Keep your order number (#@number) handy.'|t({'@number': order_entity.getOrderNumber()}) }}</li>
+            {% endif %}
+          {% else %}
             <li class="mel-confirmation-next__item">{{ 'Your order is complete.'|t }}</li>
           {% endif %}
           <li class="mel-confirmation-next__item">{{ 'Save the date — add to your calendar above if you have not already.'|t }}</li>
