@@ -13,6 +13,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
+use Drupal\myeventlane_help_centre\Service\HelpPanelAnalytics;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,6 +33,7 @@ final class HelpFeedbackController extends ControllerBase {
     private readonly AccountProxyInterface $accountProxy,
     private readonly CsrfTokenGenerator $csrfToken,
     private readonly HelpAnalyticsService $analyticsService,
+    private readonly HelpPanelAnalytics $panelAnalytics,
     private readonly TimeInterface $time,
   ) {}
 
@@ -46,6 +48,7 @@ final class HelpFeedbackController extends ControllerBase {
       $container->get('current_user'),
       $container->get('csrf_token'),
       $container->get('myeventlane_help_centre.analytics'),
+      $container->get('myeventlane_help.analytics'),
       $container->get('datetime.time'),
     );
   }
@@ -100,6 +103,43 @@ final class HelpFeedbackController extends ControllerBase {
       'helpful' => $helpful ? 1 : 0,
       'message' => $this->t('Thanks for your feedback.'),
     ]);
+  }
+
+  /**
+   * Stores "Was this helpful?" feedback for support panels.
+   */
+  public function submitPanelFeedback(Request $request): JsonResponse {
+    $token = (string) ($request->headers->get('X-CSRF-Token') ?? '');
+    if ($token === '' || !$this->csrfToken->validate($token, 'rest')) {
+      return new JsonResponse(['status' => 'error', 'message' => $this->t('Invalid CSRF token.')], 403);
+    }
+
+    $payload = json_decode($request->getContent() ?: '', TRUE);
+    if (!is_array($payload)) {
+      return new JsonResponse(['status' => 'error', 'message' => $this->t('Invalid payload.')], 400);
+    }
+
+    $key = trim((string) ($payload['key'] ?? ''));
+    if ($key === '' || !array_key_exists('helpful', $payload)) {
+      return new JsonResponse(['status' => 'error', 'message' => $this->t('Missing required fields.')], 400);
+    }
+
+    $helpfulRaw = $payload['helpful'];
+    $helpful = match (TRUE) {
+      is_bool($helpfulRaw) => $helpfulRaw,
+      $helpfulRaw === 1 => TRUE,
+      $helpfulRaw === 0 => FALSE,
+      $helpfulRaw === '1' => TRUE,
+      $helpfulRaw === '0' => FALSE,
+      default => NULL,
+    };
+    if (!is_bool($helpful)) {
+      return new JsonResponse(['status' => 'error', 'message' => $this->t('Invalid helpful value.')], 422);
+    }
+
+    $this->panelAnalytics->logFeedback($key, $helpful);
+
+    return new JsonResponse(['status' => 'ok']);
   }
 
 }

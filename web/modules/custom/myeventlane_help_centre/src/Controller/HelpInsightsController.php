@@ -8,6 +8,8 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
+use Drupal\myeventlane_help_centre\Service\HelpContentRepository;
+use Drupal\myeventlane_help_centre\Service\HelpPanelIntelligence;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -17,6 +19,8 @@ final class HelpInsightsController extends ControllerBase {
 
   public function __construct(
     private readonly MelAdminShellBuilder $adminShellBuilder,
+    private readonly HelpPanelIntelligence $panelIntelligence,
+    private readonly HelpContentRepository $helpContentRepository,
   ) {}
 
   /**
@@ -25,6 +29,8 @@ final class HelpInsightsController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_core.mel_admin_shell_builder'),
+      $container->get('myeventlane_help.intelligence'),
+      $container->get('myeventlane_help_centre.help_content_repository'),
     );
   }
 
@@ -63,6 +69,12 @@ final class HelpInsightsController extends ControllerBase {
     ];
     $build['least_helpful'] = views_embed_view('mel_help_least_helpful', 'block_1');
     $build['most_helpful'] = views_embed_view('mel_help_most_helpful', 'block_1');
+    $build['support_panels_heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h2',
+      '#value' => $this->t('Support panel performance'),
+    ];
+    $build['support_panels'] = $this->buildSupportPanelTable();
     $build['#cache'] = [
       'contexts' => ['user.permissions'],
     ];
@@ -109,6 +121,12 @@ final class HelpInsightsController extends ControllerBase {
       '#value' => $this->t('Least helpful articles'),
     ];
     $build['least_helpful'] = views_embed_view('mel_help_least_helpful', 'block_1');
+    $build['support_panels_heading'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h2',
+      '#value' => $this->t('Support panel performance'),
+    ];
+    $build['support_panels'] = $this->buildSupportPanelTable();
     $build['#cache'] = [
       'contexts' => ['user.permissions'],
       'max-age' => 300,
@@ -116,6 +134,7 @@ final class HelpInsightsController extends ControllerBase {
         'config:views.view.mel_help_top_articles',
         'config:views.view.mel_help_zero_results',
         'config:views.view.mel_help_least_helpful',
+        'config:myeventlane_help_centre.help_content',
       ],
     ];
 
@@ -152,6 +171,70 @@ final class HelpInsightsController extends ControllerBase {
       '#attributes' => ['class' => ['mel-help-improvement-nav']],
       '#cache' => [
         'contexts' => ['user.permissions'],
+      ],
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   *   Table render array for panel analytics.
+   */
+  private function buildSupportPanelTable(): array {
+    $panels = $this->helpContentRepository->getSupportPanels();
+    if (!is_array($panels) || $panels === []) {
+      return [
+        '#markup' => $this->t('No support panels configured.'),
+      ];
+    }
+
+    $orderedKeys = $this->panelIntelligence->getTopPanels($panels);
+    if ($orderedKeys === []) {
+      $orderedKeys = array_keys($panels);
+    }
+    $metrics = $this->panelIntelligence->getPanelMetrics($panels);
+
+    $rows = [];
+    foreach ($orderedKeys as $key) {
+      $panel = $panels[$key] ?? [];
+      $panelTitle = trim((string) ($panel['title'] ?? '')) ?: $key;
+      $stat = $metrics[$key] ?? [
+        'impressions' => 0,
+        'clicks' => 0,
+        'ctr' => 0,
+        'feedback_total' => 0,
+        'helpful' => 0,
+        'helpful_rate' => 0,
+      ];
+      $rows[] = [
+        $panelTitle,
+        $key,
+        (int) $stat['impressions'],
+        (int) $stat['clicks'],
+        sprintf('%.1f%%', ((float) $stat['ctr']) * 100),
+        (int) $stat['feedback_total'],
+        (int) $stat['helpful'],
+        sprintf('%.1f%%', ((float) $stat['helpful_rate']) * 100),
+      ];
+    }
+
+    return [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Panel'),
+        $this->t('Key'),
+        $this->t('Impressions'),
+        $this->t('Clicks'),
+        $this->t('CTR'),
+        $this->t('Feedback'),
+        $this->t('Helpful'),
+        $this->t('Helpful rate'),
+      ],
+      '#rows' => $rows,
+      '#empty' => $this->t('No support panel activity recorded yet.'),
+      '#cache' => [
+        'contexts' => ['user.permissions'],
+        'tags' => ['config:myeventlane_help_centre.help_content'],
+        'max-age' => 300,
       ],
     ];
   }
