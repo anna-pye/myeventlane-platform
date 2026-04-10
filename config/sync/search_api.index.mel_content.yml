@@ -10,7 +10,6 @@ dependencies:
     - field.storage.node.field_event_start
     - field.storage.node.field_audience
     - field.storage.node.field_help_article_type
-    - field.storage.node.field_help_audience
     - field.storage.node.field_help_keywords
     - field.storage.node.field_help_summary
     - field.storage.node.field_help_topic
@@ -75,14 +74,6 @@ field_settings:
     dependencies:
       config:
         - field.storage.node.field_help_article_type
-  field_help_audience:
-    label: 'Help audience'
-    datasource_id: 'entity:node'
-    property_path: field_help_audience
-    type: string
-    dependencies:
-      config:
-        - field.storage.node.field_help_audience
   field_help_keywords:
     label: 'Help keywords'
     datasource_id: 'entity:node'

@@ -28,6 +28,7 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
     'field',
     'text',
     'node',
+    'options',
     'taxonomy',
     'path_alias',
     'myeventlane_help_assistant',
@@ -47,7 +48,7 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
     $this->installConfig(['myeventlane_help_assistant']);
 
     $this->createBundles();
-    $this->createTaxonomyFields();
+    $this->createFields();
     $this->seedHelpContent();
   }
 
@@ -82,16 +83,12 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
       'vid' => 'help_categories',
       'name' => 'Help Categories',
     ])->save();
-    Vocabulary::create([
-      'vid' => 'help_audience',
-      'name' => 'Help Audience',
-    ])->save();
   }
 
   /**
-   * Creates taxonomy reference fields used by retrieval scoring.
+   * Creates field_help_category and canonical field_audience for test bundles.
    */
-  private function createTaxonomyFields(): void {
+  private function createFields(): void {
     FieldStorageConfig::create([
       'field_name' => 'field_help_category',
       'entity_type' => 'node',
@@ -103,11 +100,15 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
     ])->save();
 
     FieldStorageConfig::create([
-      'field_name' => 'field_help_audience',
+      'field_name' => 'field_audience',
       'entity_type' => 'node',
-      'type' => 'entity_reference',
+      'type' => 'list_string',
       'settings' => [
-        'target_type' => 'taxonomy_term',
+        'allowed_values' => [
+          'public' => 'Public',
+          'vendor' => 'Vendor',
+          'staff' => 'Staff',
+        ],
       ],
       'cardinality' => -1,
     ])->save();
@@ -125,14 +126,11 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
       ])->save();
 
       FieldConfig::create([
-        'field_name' => 'field_help_audience',
+        'field_name' => 'field_audience',
         'entity_type' => 'node',
         'bundle' => $bundle,
-        'label' => 'Help audience',
-        'settings' => [
-          'handler' => 'default:taxonomy_term',
-          'handler_settings' => ['target_bundles' => ['help_audience' => 'help_audience']],
-        ],
+        'label' => 'Audience',
+        'required' => FALSE,
       ])->save();
     }
   }
@@ -147,12 +145,6 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
     ]);
     $refundCategory->save();
 
-    $publicAudience = Term::create([
-      'vid' => 'help_audience',
-      'name' => 'Public',
-    ]);
-    $publicAudience->save();
-
     Node::create([
       'type' => 'faq',
       'title' => 'How refund requests work',
@@ -162,7 +154,9 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
         'format' => 'plain_text',
       ],
       'field_help_category' => [$refundCategory->id()],
-      'field_help_audience' => [$publicAudience->id()],
+      'field_audience' => [
+        ['value' => 'public'],
+      ],
     ])->save();
 
     Node::create([
@@ -174,7 +168,9 @@ final class HelpRetrieverKernelTest extends KernelTestBase {
         'format' => 'plain_text',
       ],
       'field_help_category' => [$refundCategory->id()],
-      'field_help_audience' => [$publicAudience->id()],
+      'field_audience' => [
+        ['value' => 'public'],
+      ],
     ])->save();
   }
 

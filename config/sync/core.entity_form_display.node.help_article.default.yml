@@ -27,6 +27,7 @@ dependencies:
   module:
     - commerce
     - content_moderation
+    - options
     - path
     - text
 id: node.help_article.default
@@ -43,6 +44,12 @@ content:
       summary_rows: 3
       placeholder: ''
       show_summary: false
+    third_party_settings: {  }
+  field_audience:
+    type: options_buttons
+    weight: 0
+    region: content
+    settings: {  }
     third_party_settings: {  }
   field_help_article_type:
     type: entity_reference_autocomplete
@@ -123,7 +130,7 @@ content:
     third_party_settings: {  }
   title:
     type: string_textfield
-    weight: 0
+    weight: -1
     region: content
     settings:
       size: 60
@@ -131,7 +138,6 @@ content:
     third_party_settings: {  }
 hidden:
   created: true
-  field_audience: true
   field_content_owner: true
   field_featured_help: true
   field_help_ai_allowed: true
