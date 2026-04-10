@@ -13,6 +13,7 @@ dependencies:
     - field.field.node.help_article.field_help_category
     - field.field.node.help_article.field_help_cta_label
     - field.field.node.help_article.field_help_cta_link
+    - field.field.node.help_article.field_help_seed_key
     - field.field.node.help_article.field_help_keywords
     - field.field.node.help_article.field_help_status
     - field.field.node.help_article.field_help_summary
@@ -49,6 +50,7 @@ hidden:
   field_help_category: true
   field_help_cta_label: true
   field_help_cta_link: true
+  field_help_seed_key: true
   field_help_keywords: true
   field_help_status: true
   field_help_summary: true
