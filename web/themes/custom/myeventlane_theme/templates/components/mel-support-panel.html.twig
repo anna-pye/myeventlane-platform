@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Compact support CTA from myeventlane_help_centre.help_content (support_panels).
+ */
+#}
+<div class="mel-support-panel">
+  <h3 class="mel-support-panel__title">{{ title }}</h3>
+  {% if summary %}
+    <p class="mel-support-panel__summary">{{ summary }}</p>
+  {% endif %}
+  <a href="{{ url }}" class="mel-button mel-button--primary">{{ 'View help'|t }}</a>
+</div>

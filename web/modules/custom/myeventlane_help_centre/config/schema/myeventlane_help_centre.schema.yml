@@ -19,3 +19,12 @@ myeventlane_help_centre.contextual_help:
       mapping:
         '*':
           type: myeventlane_help_centre.contextual_help.link
+
+myeventlane_help_centre.help_content:
+  type: config_object
+  label: 'MEL help content (YAML seeds and support panels)'
+  mapping:
+    help_articles:
+      type: ignore
+    support_panels:
+      type: ignore

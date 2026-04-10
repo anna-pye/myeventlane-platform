@@ -12,18 +12,12 @@ use Drupal\taxonomy\TermInterface;
 
 /**
  * Seeds Help Centre landing pages and baseline help articles.
- *
- * TODO: Replace hardcoded baseline article bodies with config-driven import
- * (e.g. default_content or install YAML) so editorial copy is not tied to
- * PHP releases.
  */
 final class HelpContentSeeder {
 
-  /**
-   * Constructs a help content seeder service.
-   */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly HelpContentRepository $helpContentRepository,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     $this->logger = $loggerFactory->get('myeventlane_help_centre');
@@ -83,6 +77,21 @@ final class HelpContentSeeder {
   }
 
   public function seedHelpArticles(): int {
+    $yaml = $this->helpContentRepository->getHelpArticleSeeds();
+    if ($yaml !== []) {
+      $rows = $this->normalizeYamlSeedsToArticleRows($yaml);
+      if ($rows !== []) {
+        return $this->seedArticleNodes($rows);
+      }
+    }
+
+    return $this->seedHelpArticlesLegacy();
+  }
+
+  /**
+   * Legacy baseline articles — used when YAML config is empty or invalid.
+   */
+  private function seedHelpArticlesLegacy(): int {
     $articles = [
       [
         'title' => 'How to buy tickets',
@@ -217,6 +226,46 @@ final class HelpContentSeeder {
     ];
 
     return $this->seedArticleNodes($articles);
+  }
+
+  /**
+   * @param array<string, array<string, mixed>> $helpArticles
+   *
+   * @return array<int, array<string, mixed>>
+   */
+  private function normalizeYamlSeedsToArticleRows(array $helpArticles): array {
+    $out = [];
+    foreach ($helpArticles as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $title = trim((string) ($row['title'] ?? ''));
+      if ($title === '') {
+        continue;
+      }
+      $kw = $row['keywords'] ?? '';
+      if (is_array($kw)) {
+        $kw = implode(', ', $kw);
+      }
+      $audience = $row['audience'] ?? [];
+      if (!is_array($audience)) {
+        $audience = $audience !== '' && $audience !== NULL ? [(string) $audience] : [];
+      }
+      $out[] = [
+        'title' => $title,
+        'summary' => (string) ($row['summary'] ?? ''),
+        'body' => (string) ($row['body'] ?? ''),
+        'audience' => $audience,
+        'topic' => (string) ($row['topic'] ?? ''),
+        'article_type' => (string) ($row['article_type'] ?? ''),
+        'keywords' => (string) $kw,
+        'cta_label' => (string) ($row['cta_label'] ?? ''),
+        'cta_link' => (string) ($row['cta_link'] ?? ''),
+        'alias' => (string) ($row['alias'] ?? ''),
+        'featured' => (bool) ($row['featured'] ?? FALSE),
+      ];
+    }
+    return $out;
   }
 
   private function seedLandingPageNodes(array $definitions): int {
@@ -398,4 +447,5 @@ final class HelpContentSeeder {
     $term = reset($terms);
     return $term instanceof TermInterface ? $term : NULL;
   }
+
 }

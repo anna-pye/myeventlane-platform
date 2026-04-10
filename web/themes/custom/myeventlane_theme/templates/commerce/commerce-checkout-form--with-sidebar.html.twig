@@ -53,6 +53,13 @@
     <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
       <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
+
+        {% if mel_help_yaml_support_panel is defined and mel_help_yaml_support_panel %}
+          <div class="mel-checkout-yaml-support" role="region" aria-label="{{ 'Help'|t }}">
+            {{ mel_help_yaml_support_panel }}
+          </div>
+        {% endif %}
+
         {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
 
         {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}

@@ -60,6 +60,12 @@
       <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
 
+        {% if mel_help_yaml_support_panel is defined and mel_help_yaml_support_panel %}
+          <div class="mel-checkout-yaml-support" role="region" aria-label="{{ 'Help'|t }}">
+            {{ mel_help_yaml_support_panel }}
+          </div>
+        {% endif %}
+
         {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout and form.sidebar is not defined %}
           <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card">
             {{ mel_contextual_help_checkout }}

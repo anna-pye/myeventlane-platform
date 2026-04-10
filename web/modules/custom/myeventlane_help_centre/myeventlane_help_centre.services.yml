@@ -4,11 +4,22 @@ services:
     factory: ['@logger.factory', 'get']
     arguments: ['myeventlane_help_centre']
 
+  myeventlane_help_centre.help_content_repository:
+    class: Drupal\myeventlane_help_centre\Service\HelpContentRepository
+    arguments:
+      - '@config.factory'
+
+  myeventlane_help_centre.support_panel_builder:
+    class: Drupal\myeventlane_help_centre\Service\SupportPanelBuilder
+    arguments:
+      - '@myeventlane_help_centre.help_content_repository'
+
   myeventlane_help_centre.seeder:
     class: Drupal\myeventlane_help_centre\Service\HelpContentSeeder
     public: true
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_help_centre.help_content_repository'
       - '@logger.factory'
 
   myeventlane_help_centre.analytics:
