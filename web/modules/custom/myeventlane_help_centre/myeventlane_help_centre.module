@@ -90,6 +90,15 @@ function myeventlane_help_centre_theme(): array {
       'template' => 'components/mel-support-layer',
       'path' => $theme_path . '/templates',
     ],
+    'mel_support_panel' => [
+      'variables' => [
+        'title' => '',
+        'summary' => '',
+        'url' => '',
+      ],
+      'template' => 'components/mel-support-panel',
+      'path' => $theme_path . '/templates',
+    ],
   ];
 }
 
@@ -444,6 +453,13 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
   }
 
   $step_id = $variables['form']['#step_id'] ?? NULL;
+  if ($step_id !== 'complete') {
+    $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('buy_tickets');
+    if ($panel !== []) {
+      $variables['mel_help_yaml_support_panel'] = $panel;
+    }
+  }
+
   $resolver = _myeventlane_help_centre_resolver();
 
   if ($step_id === 'complete') {

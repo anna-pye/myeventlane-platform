@@ -1271,6 +1271,10 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   line-height: 1.4;
 }
 
+.mel-checkout-yaml-support {
+  margin-bottom: spacing.mel-space(3);
+}
+
 /* Trust list — above primary CTA (Phase 4) */
 .mel-checkout-trust {
   margin: spacing.mel-space(3) 0 spacing.mel-space(2);
