@@ -1063,6 +1063,10 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   transition: box-shadow $mel-checkout-transition, border-color $mel-checkout-transition;
 }
 
+.mel-checkout__summary-region--help {
+  margin-top: spacing.mel-space(4);
+}
+
 /* SUMMARY CONTENT — Premium rhythm */
 .mel-checkout-order-title,
 .mel-summary-grouped .mel-checkout-order-title {

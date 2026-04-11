@@ -291,7 +291,9 @@
 
       {% if mel_support_panel is defined and mel_support_panel %}
         <section class="mel-panel-card mel-dashboard-rail-widget mel-dashboard-support-panel" aria-label="{{ 'Help and support'|t }}">
-          {{ mel_support_panel }}
+          <div class="mel-dashboard-help">
+            {{ mel_support_panel }}
+          </div>
         </section>
       {% endif %}
 

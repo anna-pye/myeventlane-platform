@@ -145,9 +145,9 @@ help_articles:
     featured: true
 support_panels:
   buy_tickets:
-    title: 'How to buy tickets'
-    summary: 'Learn how to purchase tickets and complete checkout securely.'
-    link_path: '/help/attendees/how-to-buy-tickets'
+    title: 'Need help buying tickets?'
+    summary: 'Get help with checkout and payments'
+    link_path: '/help/attendees'
     analytics_key: buy_tickets
     article_seed_key: how_to_buy_tickets
     surfaces:
@@ -157,18 +157,19 @@ support_panels:
   create_event:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
-    link_path: '/help/organisers/how-to-create-an-event'
+    link_path: '/help/organisers'
     analytics_key: create_event
     surfaces:
       - event_creation_wizard
   vendor_dashboard:
-    title: 'Vendor dashboard overview'
-    summary: 'Know where to manage your vendor workspace, events, and payouts.'
-    link_path: '/help/vendors/vendor-dashboard-overview'
+    title: 'Managing your events'
+    summary: 'Learn how to manage and track your events'
+    link_path: '/help/vendors'
     analytics_key: vendor_dashboard
     article_seed_key: vendor_dashboard_overview
     surfaces:
+      - vendor
       - vendor_dashboard
     route_names:
-      - myeventlane_vendor.console.dashboard
       - myeventlane_vendor.dashboard
+      - myeventlane_vendor.console.dashboard

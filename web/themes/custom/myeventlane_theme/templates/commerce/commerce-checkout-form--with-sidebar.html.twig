@@ -11,11 +11,6 @@
 {% if form['#step_id'] is defined and form['#step_id'] == 'complete' and order_entity %}
   <div class="layout-checkout-form clearfix mel-checkout mel-checkout--complete mel-checkout-complete-layout">
     <div class="layout-region layout-region-checkout-main mel-checkout-complete-layout__main">
-      {% if mel_support_panel is defined and mel_support_panel %}
-        <div class="mel-checkout-support" role="region" aria-label="{{ 'Help'|t }}">
-          {{ mel_support_panel }}
-        </div>
-      {% endif %}
       {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
         order_entity: order_entity,
         order_totals: order_totals|default(null),
@@ -34,6 +29,11 @@
     <div class="layout-region layout-region-checkout-secondary mel-checkout-complete-layout__secondary">
       <h3 class="mel-checkout-summary-heading">{% trans %}Booking summary{% endtrans %}</h3>
       {{ form.sidebar }}
+      {% if mel_support_panel is defined and mel_support_panel %}
+        <div class="mel-checkout__summary-region mel-checkout__summary-region--help" role="region" aria-label="{{ 'Help'|t }}">
+          {{ mel_support_panel }}
+        </div>
+      {% endif %}
     </div>
     <div class="layout-region layout-region-checkout-footer mel-checkout-complete-layout__footer">
       {{ form.actions }}
@@ -58,12 +58,6 @@
     <div class="mel-checkout__layout mel-checkout__grid mel-checkout__grid--sidebar-flow">
       <div class="mel-checkout__main">
         <p class="mel-checkout-helper">{{ "Just a few details and you're done."|t }}</p>
-
-        {% if mel_support_panel is defined and mel_support_panel %}
-          <div class="mel-checkout-yaml-support" role="region" aria-label="{{ 'Help'|t }}">
-            {{ mel_support_panel }}
-          </div>
-        {% endif %}
 
         {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence') }}
 
@@ -147,7 +141,7 @@
 
       {% if form.sidebar is defined %}
         {% set sidebar_content = form.sidebar|render %}
-        {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) %}
+        {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) or (mel_support_panel is defined and mel_support_panel) %}
           <aside class="mel-checkout__summary" aria-label="{{ 'Order summary'|t }}">
             <div class="mel-checkout__summary-inner">
               {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
@@ -158,6 +152,11 @@
               <div class="mel-checkout__summary-region mel-checkout__summary-region--order">
                 {{ sidebar_content }}
               </div>
+              {% if mel_support_panel is defined and mel_support_panel %}
+                <div class="mel-checkout__summary-region mel-checkout__summary-region--help" role="region" aria-label="{{ 'Help'|t }}">
+                  {{ mel_support_panel }}
+                </div>
+              {% endif %}
             </div>
           </aside>
         {% endif %}
