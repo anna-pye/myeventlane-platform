@@ -110,6 +110,24 @@ function myeventlane_help_centre_theme(): array {
 }
 
 /**
+ * Splits whitespace-separated CSS class tokens from a string or numeric scalar.
+ *
+ * Booleans, arrays, objects, and NULL yield no tokens (matches prior branches).
+ *
+ * @param mixed $value
+ *   A value that may represent space-separated classes.
+ *
+ * @return list<string>
+ */
+function _myeventlane_help_centre_split_class_tokens(mixed $value): array {
+  if (!is_scalar($value) || is_bool($value)) {
+    return [];
+  }
+  $split = preg_split('/\s+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY);
+  return is_array($split) ? $split : [];
+}
+
+/**
  * Implements hook_preprocess_HOOK() for mel_support_panel.
  *
  * Ensures the mel_support_panel template receives a normalized Attribute object.
@@ -140,31 +158,13 @@ function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables)
     $class_value = $attrs['class'];
     if (is_array($class_value)) {
       foreach ($class_value as $item) {
-        if (is_string($item)) {
-          $split = preg_split('/\s+/', $item, -1, PREG_SPLIT_NO_EMPTY);
-          if (is_array($split)) {
-            foreach ($split as $part) {
-              $classes[] = $part;
-            }
-          }
-        }
-        elseif (is_scalar($item) && !is_bool($item)) {
-          $split = preg_split('/\s+/', (string) $item, -1, PREG_SPLIT_NO_EMPTY);
-          if (is_array($split)) {
-            foreach ($split as $part) {
-              $classes[] = $part;
-            }
-          }
+        foreach (_myeventlane_help_centre_split_class_tokens($item) as $part) {
+          $classes[] = $part;
         }
       }
     }
-    elseif (is_string($class_value)) {
-      $split = preg_split('/\s+/', $class_value, -1, PREG_SPLIT_NO_EMPTY);
-      $classes = is_array($split) ? $split : [];
-    }
-    elseif (is_scalar($class_value) && !is_bool($class_value)) {
-      $split = preg_split('/\s+/', (string) $class_value, -1, PREG_SPLIT_NO_EMPTY);
-      $classes = is_array($split) ? $split : [];
+    else {
+      $classes = _myeventlane_help_centre_split_class_tokens($class_value);
     }
   }
 
