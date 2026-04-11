@@ -121,8 +121,19 @@ final class SupportPanelBuilder {
 
     $this->helpPanelAnalytics->logImpression($key);
 
+    $classes = ['mel-support-panel'];
+    if ($surface === 'checkout') {
+      $classes[] = 'mel-support-panel--checkout';
+    }
+    elseif ($surface === 'vendor_dashboard') {
+      $classes[] = 'mel-support-panel--vendor';
+    }
+
     return [
       '#theme' => 'mel_support_panel',
+      '#attributes' => [
+        'class' => $classes,
+      ],
       '#title' => $title,
       '#summary' => trim((string) ($panel['summary'] ?? '')),
       '#url' => $url->setAbsolute(FALSE)->toString(),
