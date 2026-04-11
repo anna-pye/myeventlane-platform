@@ -11,6 +11,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_help_centre\Service\ContextualHelpResolver;
 use Drupal\node\NodeInterface;
@@ -111,33 +112,68 @@ function myeventlane_help_centre_theme(): array {
 /**
  * Implements hook_preprocess_HOOK() for mel_support_panel.
  *
- * Normalizes `attributes` (array or Attribute) so the base `mel-support-panel`
- * class is always present for `#attributes` from the render array.
- *
- * Plain arrays are converted to an Attribute object so `{{ attributes }}` in
- * Twig renders valid HTML instead of the string "Array".
+ * Ensures the mel_support_panel template receives a normalized Attribute object.
  */
 function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables): void {
+  // Missing key and NULL both resolve to [] via ??; other invalid types are reset
+  // below so Twig always receives an Attribute instance, never stray scalars.
   $attrs = $variables['attributes'] ?? [];
+
+  // Attribute normalization is required because render arrays may supply
+  // #attributes as a plain array; we must coerce to one predictable type.
+  // Twig's {{ attributes }} expects \Drupal\Core\Template\Attribute: it uses
+  // __toString() for HTML. A PHP array is cast to the literal string "Array".
   if ($attrs instanceof Attribute) {
     if (!$attrs->hasClass('mel-support-panel')) {
       $attrs->addClass('mel-support-panel');
     }
+    $variables['attributes'] = $attrs;
     return;
   }
+
   if (!is_array($attrs)) {
     $attrs = [];
   }
+
   $classes = [];
-  if (isset($attrs['class'])) {
+  if (array_key_exists('class', $attrs)) {
     $class_value = $attrs['class'];
-    $classes = is_array($class_value)
-      ? $class_value
-      : preg_split('/\s+/', (string) $class_value, -1, PREG_SPLIT_NO_EMPTY);
+    if (is_array($class_value)) {
+      foreach ($class_value as $item) {
+        if (is_string($item)) {
+          $split = preg_split('/\s+/', $item, -1, PREG_SPLIT_NO_EMPTY);
+          if (is_array($split)) {
+            foreach ($split as $part) {
+              $classes[] = $part;
+            }
+          }
+        }
+        elseif (is_scalar($item) && !is_bool($item)) {
+          $split = preg_split('/\s+/', (string) $item, -1, PREG_SPLIT_NO_EMPTY);
+          if (is_array($split)) {
+            foreach ($split as $part) {
+              $classes[] = $part;
+            }
+          }
+        }
+      }
+    }
+    elseif (is_string($class_value)) {
+      $split = preg_split('/\s+/', $class_value, -1, PREG_SPLIT_NO_EMPTY);
+      $classes = is_array($split) ? $split : [];
+    }
+    elseif (is_scalar($class_value) && !is_bool($class_value)) {
+      $split = preg_split('/\s+/', (string) $class_value, -1, PREG_SPLIT_NO_EMPTY);
+      $classes = is_array($split) ? $split : [];
+    }
   }
+
+  $classes = array_values(array_unique($classes, SORT_STRING));
+
   if (!in_array('mel-support-panel', $classes, TRUE)) {
     array_unshift($classes, 'mel-support-panel');
   }
+
   $attrs['class'] = $classes;
   $variables['attributes'] = new Attribute($attrs);
 }
