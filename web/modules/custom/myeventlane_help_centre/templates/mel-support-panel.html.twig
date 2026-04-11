@@ -5,14 +5,44 @@
  */
 #}
 {% set articles = mel_help_articles is defined ? mel_help_articles : (elements['#mel_help_articles'] is defined ? elements['#mel_help_articles'] : []) %}
-<div class="mel-support-panel">
+{% set is_checkout = 'checkout' in attributes.class|join(' ') or analytics_key|default('') == 'buy_tickets' %}
+{% set is_vendor = 'vendor' in attributes.class|join(' ') or analytics_key|default('') == 'vendor_dashboard' %}
+<div{{ attributes.addClass('mel-support-panel') }}>
   <div class="mel-support-panel__content">
-    {% if title %}
-      <h3 class="mel-support-panel__title">{{ title }}</h3>
+    {% if is_checkout %}
+      <h3 class="mel-support-panel__title">
+        {{ 'Secure checkout — you\'re protected'|t }}
+      </h3>
+
+      <ul class="mel-support-panel__list">
+        <li>✔ {{ 'Instant confirmation emailed'|t }}</li>
+        <li>✔ {{ 'Easy refunds if needed'|t }}</li>
+      </ul>
+
+    {% elseif is_vendor %}
+      <h3 class="mel-support-panel__title">
+        {{ 'Boost your event performance'|t }}
+      </h3>
+
+      <p class="mel-support-panel__summary">
+        {{ 'You\'re not getting ticket sales yet. Try:'|t }}
+      </p>
+
+      <ul class="mel-support-panel__list">
+        <li>• {{ 'Add an event image'|t }}</li>
+        <li>• {{ 'Share your event'|t }}</li>
+        <li>• {{ 'Adjust pricing'|t }}</li>
+      </ul>
+
+    {% else %}
+      {% if title %}
+        <h3 class="mel-support-panel__title">{{ title }}</h3>
+      {% endif %}
+      {% if summary %}
+        <p class="mel-support-panel__summary">{{ summary }}</p>
+      {% endif %}
     {% endif %}
-    {% if summary %}
-      <p class="mel-support-panel__summary">{{ summary }}</p>
-    {% endif %}
+
     {% if url %}
       <a
         href="{{ url }}"
@@ -21,7 +51,7 @@
           data-analytics-key="{{ analytics_key }}"
           onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
         {% endif %}
-      >{{ 'View full guide'|t }}</a>
+      >{{ 'Get help'|t }}</a>
     {% endif %}
   </div>
 
