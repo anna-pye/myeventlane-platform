@@ -12,6 +12,11 @@
 {% if form['#step_id'] is defined and form['#step_id'] == 'complete' and order_entity %}
   <div class="layout-checkout-form clearfix mel-checkout mel-checkout--complete mel-checkout-complete-layout">
     <div class="layout-region layout-region-checkout-main mel-checkout-complete-layout__main">
+      {% if mel_support_panel is defined and mel_support_panel %}
+        <div class="mel-checkout-support" role="region" aria-label="{{ 'Help'|t }}">
+          {{ mel_support_panel }}
+        </div>
+      {% endif %}
       {% include '@myeventlane_theme/commerce/commerce-checkout-completion.html.twig' with {
         order_entity: order_entity,
         order_totals: order_totals|default(null),

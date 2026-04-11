@@ -144,22 +144,24 @@ support_panels:
   buy_tickets:
     title: 'Need help buying tickets?'
     summary: 'Get help with checkout and payments'
-    link_path: /help/attendees/how-to-buy-tickets
+    link_path: /help/attendees
     surfaces:
       - checkout
     route_names:
       - commerce_checkout.form
     analytics_key: buy_tickets
+    article_seed_key: how_to_buy_tickets
   create_event:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
-    link_path: /help/organisers/how-to-create-an-event
+    link_path: /help/organisers
     surfaces:
       - event_creation_wizard
+    analytics_key: create_event
   vendor_dashboard:
     title: 'Managing your events'
     summary: 'Learn how to manage and track your events'
-    link_path: /help/vendors/vendor-dashboard-overview
+    link_path: /help/vendors
     surfaces:
       - vendor
       - vendor_dashboard
@@ -167,6 +169,7 @@ support_panels:
       - myeventlane_vendor.dashboard
       - myeventlane_vendor.console.dashboard
     analytics_key: vendor_dashboard
+    article_seed_key: vendor_dashboard_overview
 uuid: 8f3c2a91-4d0e-4b1f-9c7a-2e6d5b4c3a10
 dependencies:
   module:

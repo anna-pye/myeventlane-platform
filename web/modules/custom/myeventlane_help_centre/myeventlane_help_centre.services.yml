@@ -93,6 +93,21 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_help_centre'
 
+  myeventlane_help.recommendation_engine:
+    class: Drupal\myeventlane_help_centre\Service\HelpRecommendationEngine
+    arguments:
+      - '@myeventlane_help.analytics_summary'
+      - '@myeventlane_help_centre.help_content_repository'
+      - '@logger.channel.myeventlane_help_centre'
+
+  myeventlane_help.analytics_summary:
+    class: Drupal\myeventlane_help_centre\Service\HelpAnalyticsSummary
+    arguments:
+      - '@database'
+      - '@cache.default'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_help_centre'
+
   myeventlane_help.intelligence:
     class: Drupal\myeventlane_help_centre\Service\HelpPanelIntelligence
     arguments:

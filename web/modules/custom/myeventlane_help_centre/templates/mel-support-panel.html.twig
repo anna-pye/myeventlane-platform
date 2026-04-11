@@ -1,0 +1,53 @@
+{#
+/**
+ * @file
+ * Compact support CTA from myeventlane_help_centre.help_content (support_panels).
+ */
+#}
+<div class="mel-support-panel">
+  {% if title %}
+    <h3 class="mel-support-panel__title">{{ title }}</h3>
+  {% endif %}
+  {% if summary %}
+    <p class="mel-support-panel__summary">{{ summary }}</p>
+  {% endif %}
+  {% if url %}
+    <a class="mel-support-panel__link mel-button mel-button--primary" href="{{ url }}">{{ 'View full guide'|t }}</a>
+  {% endif %}
+
+  {% set articles = mel_help_articles is defined ? mel_help_articles : (elements['#mel_help_articles'] is defined ? elements['#mel_help_articles'] : []) %}
+  {% if articles %}
+    <div class="mel-support-panel__suggestions">
+      <p class="mel-support-panel__label">{{ 'Suggested help'|t }}</p>
+
+      <ul class="mel-support-panel__list">
+        {% for item in articles %}
+          <li>
+            <a href="{{ item.url }}">
+              {{ item.title }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if analytics_key is defined and analytics_key %}
+    <div class="mel-support-panel__actions">
+      <button
+        class="mel-support-panel__feedback mel-support-panel__feedback--helpful"
+        data-analytics-key="{{ analytics_key }}"
+        data-feedback="1"
+        type="button"
+        aria-label="{{ 'This was helpful'|t }}"
+      >👍</button>
+      <button
+        class="mel-support-panel__feedback mel-support-panel__feedback--not-helpful"
+        data-analytics-key="{{ analytics_key }}"
+        data-feedback="0"
+        type="button"
+        aria-label="{{ 'This was not helpful'|t }}"
+      >👎</button>
+    </div>
+  {% endif %}
+</div>

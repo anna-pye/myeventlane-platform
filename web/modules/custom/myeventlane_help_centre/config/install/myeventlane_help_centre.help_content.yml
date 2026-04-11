@@ -148,6 +148,8 @@ support_panels:
     title: 'How to buy tickets'
     summary: 'Learn how to purchase tickets and complete checkout securely.'
     link_path: '/help/attendees/how-to-buy-tickets'
+    analytics_key: buy_tickets
+    article_seed_key: how_to_buy_tickets
     surfaces:
       - checkout
     route_names:
@@ -156,13 +158,17 @@ support_panels:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
     link_path: '/help/organisers/how-to-create-an-event'
+    analytics_key: create_event
     surfaces:
       - event_creation_wizard
   vendor_dashboard:
     title: 'Vendor dashboard overview'
     summary: 'Know where to manage your vendor workspace, events, and payouts.'
     link_path: '/help/vendors/vendor-dashboard-overview'
+    analytics_key: vendor_dashboard
+    article_seed_key: vendor_dashboard_overview
     surfaces:
       - vendor_dashboard
     route_names:
       - myeventlane_vendor.console.dashboard
+      - myeventlane_vendor.dashboard

@@ -22,6 +22,7 @@ use Drupal\views\ViewExecutable;
  */
 function myeventlane_help_centre_theme(): array {
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_help_centre');
 
   return [
     'help_centre_home' => [
@@ -95,9 +96,11 @@ function myeventlane_help_centre_theme(): array {
         'title' => '',
         'summary' => '',
         'url' => '',
+        'analytics_key' => NULL,
+        'mel_help_articles' => NULL,
       ],
-      'template' => 'components/mel-support-panel',
-      'path' => $theme_path . '/templates',
+      'template' => 'mel-support-panel',
+      'path' => $module_path . '/templates',
     ],
   ];
 }
@@ -214,6 +217,67 @@ function _myeventlane_help_centre_vendor_help_url(): string {
   }
   catch (\Throwable) {
     return '/help';
+  }
+}
+
+/**
+ * Attaches resolved help article links to a mel_support_panel render array.
+ *
+ * @param array<string, mixed> $panel
+ * @param array<string, mixed> $recommendation
+ *   Engine output; may include `articles` as seed keys.
+ */
+function _myeventlane_help_centre_attach_support_panel_articles(array &$panel, array $recommendation, string $surface): void {
+  $seedKeys = [];
+  if (!empty($recommendation['articles']) && is_array($recommendation['articles'])) {
+    foreach ($recommendation['articles'] as $key) {
+      $key = trim((string) $key);
+      if ($key !== '') {
+        $seedKeys[] = $key;
+      }
+    }
+  }
+  if ($seedKeys === [] && !empty($panel['#analytics_key'])) {
+    $engine = \Drupal::service('myeventlane_help.recommendation_engine');
+    $seedKeys = $engine->getArticleSeedKeysForPanel((string) $panel['#analytics_key'], $surface);
+  }
+  if ($seedKeys === []) {
+    return;
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $articles = [];
+  foreach ($seedKeys as $articleKey) {
+    $nodes = $storage->loadByProperties([
+      'type' => 'help_article',
+      'field_help_seed_key' => $articleKey,
+      'status' => 1,
+    ]);
+    if ($nodes === []) {
+      continue;
+    }
+    $node = reset($nodes);
+    if ($node instanceof NodeInterface) {
+      $articles[] = [
+        'title' => $node->label(),
+        'url' => $node->toUrl()->toString(),
+      ];
+      if (!isset($panel['#cache']['tags'])) {
+        $panel['#cache']['tags'] = [];
+      }
+      $panel['#cache']['tags'][] = 'node:' . $node->id();
+    }
+  }
+
+  if ($articles !== []) {
+    $panel['#mel_help_articles'] = $articles;
+  }
+
+  if (!isset($panel['#cache']['contexts'])) {
+    $panel['#cache']['contexts'] = [];
+  }
+  if (!in_array('route', $panel['#cache']['contexts'], TRUE)) {
+    $panel['#cache']['contexts'][] = 'route';
   }
 }
 
@@ -454,9 +518,19 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
 
   $step_id = $variables['form']['#step_id'] ?? NULL;
   $route_name = \Drupal::routeMatch()->getRouteName();
+  $engine = \Drupal::service('myeventlane_help.recommendation_engine');
   if ($step_id !== 'complete') {
-    $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('buy_tickets', 'checkout', $route_name);
+    $recommendation = $engine->getRecommendations($route_name, 'checkout');
+
+    $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
+    if (!empty($recommendation['panel_key'])) {
+      $panel = $builder->build((string) $recommendation['panel_key'], 'checkout', $route_name);
+    }
+    else {
+      $panel = $builder->buildForRoute($route_name, 'checkout') ?? [];
+    }
     if ($panel !== []) {
+      _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'checkout');
       $variables['mel_support_panel'] = $panel;
     }
   }
@@ -591,8 +665,19 @@ function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &
     $variables['mel_help_vendor_dashboard'] = myeventlane_help_link($item['text'], $item['url']);
   }
 
-  $panel = \Drupal::service('myeventlane_help_centre.support_panel_builder')->build('vendor_dashboard', 'vendor_dashboard', \Drupal::routeMatch()->getRouteName());
+  $engine = \Drupal::service('myeventlane_help.recommendation_engine');
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $recommendation = $engine->getRecommendations($route_name, 'vendor_dashboard');
+
+  $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
+  if (!empty($recommendation['panel_key'])) {
+    $panel = $builder->build((string) $recommendation['panel_key'], 'vendor_dashboard', $route_name);
+  }
+  else {
+    $panel = $builder->buildForRoute($route_name, 'vendor_dashboard') ?? [];
+  }
   if ($panel !== []) {
+    _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'vendor_dashboard');
     $variables['mel_support_panel'] = $panel;
   }
 }
