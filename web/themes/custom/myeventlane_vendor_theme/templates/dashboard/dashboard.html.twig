@@ -248,12 +248,6 @@
     </div>
 
     <aside class="mel-dashboard-layout__rail">
-      {% if mel_support_panel is defined and mel_support_panel %}
-        <section class="mel-panel-card mel-dashboard-rail-widget" aria-label="{{ 'Help and support'|t }}">
-          {{ mel_support_panel }}
-        </section>
-      {% endif %}
-
       <section class="mel-panel-card mel-dashboard-rail-widget">
         {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
           title: 'Alerts and next steps'|t
@@ -294,6 +288,12 @@
           } only %}
         {% endif %}
       </section>
+
+      {% if mel_support_panel is defined and mel_support_panel %}
+        <section class="mel-panel-card mel-dashboard-rail-widget mel-dashboard-support-panel" aria-label="{{ 'Help and support'|t }}">
+          {{ mel_support_panel }}
+        </section>
+      {% endif %}
 
       <section class="mel-panel-card mel-dashboard-rail-widget" aria-labelledby="audience-title">
         {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
