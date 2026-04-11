@@ -38,7 +38,13 @@ final class HelpContentRepository {
   public function getSupportPanel(string $key): ?array {
     $panels = $this->getSupportPanels();
     $item = $panels[$key] ?? NULL;
-    return is_array($item) ? $item : NULL;
+    if (!is_array($item)) {
+      return NULL;
+    }
+    if (empty($item['analytics_key'])) {
+      $item['analytics_key'] = $key;
+    }
+    return $item;
   }
 
 }

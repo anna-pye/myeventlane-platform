@@ -73,6 +73,7 @@
   @include meta.load-css('components/mel-header-footer');
   @include meta.load-css('components/wizard');
   @include meta.load-css('components/support');
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/support-panel');
   @include meta.load-css('components/help-assistant');
   @include meta.load-css('components/refund');
   @include meta.load-css('components/ai-panels');

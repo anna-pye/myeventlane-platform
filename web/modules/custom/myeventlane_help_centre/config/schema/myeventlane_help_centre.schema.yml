@@ -76,6 +76,12 @@ myeventlane_help_centre.help_content.panel:
     link_path:
       type: string
       label: 'Internal link path'
+    analytics_key:
+      type: string
+      label: 'Analytics key'
+    article_seed_key:
+      type: string
+      label: 'Linked help_article seed key'
     surfaces:
       type: sequence
       label: 'Surfaces'

@@ -1,0 +1,57 @@
+{#
+/**
+ * @file
+ * Compact support CTA from myeventlane_help_centre.help_content (support_panels).
+ */
+#}
+{% set articles = mel_help_articles is defined ? mel_help_articles : (elements['#mel_help_articles'] is defined ? elements['#mel_help_articles'] : []) %}
+<div class="mel-support-panel">
+  <div class="mel-support-panel__content">
+    {% if title %}
+      <h3 class="mel-support-panel__title">{{ title }}</h3>
+    {% endif %}
+    {% if summary %}
+      <p class="mel-support-panel__summary">{{ summary }}</p>
+    {% endif %}
+    {% if url %}
+      <a
+        href="{{ url }}"
+        class="mel-button mel-button--primary"
+        {% if analytics_key is defined and analytics_key %}
+          data-analytics-key="{{ analytics_key }}"
+          onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
+        {% endif %}
+      >{{ 'View full guide'|t }}</a>
+    {% endif %}
+  </div>
+
+  {% if articles %}
+    <div class="mel-support-panel__suggestions">
+      <p class="mel-support-panel__label">{{ 'Popular help'|t }}</p>
+      <ul>
+        {% for item in articles %}
+          <li>
+            <a href="{{ item.url }}">{{ item.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if analytics_key is defined and analytics_key %}
+    <div class="mel-support-panel__feedback">
+      <button
+        type="button"
+        class="mel-support-panel__feedback-btn mel-support-panel__feedback-btn--helpful"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback('{{ analytics_key|e('js') }}', true); }"
+        aria-label="{{ 'This was helpful'|t }}"
+      >👍</button>
+      <button
+        type="button"
+        class="mel-support-panel__feedback-btn mel-support-panel__feedback-btn--not-helpful"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback('{{ analytics_key|e('js') }}', false); }"
+        aria-label="{{ 'This was not helpful'|t }}"
+      >👎</button>
+    </div>
+  {% endif %}
+</div>
