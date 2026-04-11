@@ -95,6 +95,7 @@ function myeventlane_help_centre_theme(): array {
       'variables' => [
         'attributes' => [],
         'checkout_step_id' => NULL,
+        'mel_help_state' => NULL,
         'title' => '',
         'summary' => '',
         'url' => '',
@@ -110,12 +111,15 @@ function myeventlane_help_centre_theme(): array {
 /**
  * Implements hook_preprocess_HOOK() for mel_support_panel.
  *
- * Normalizes `attributes` as an array before ThemeManager builds the Attribute
- * object so `#attributes` from the render array (and the base BEM class) apply.
+ * Normalizes `attributes` (array or Attribute) so the base `mel-support-panel`
+ * class is always present for `#attributes` from the render array.
  */
 function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables): void {
   $attrs = $variables['attributes'] ?? [];
   if ($attrs instanceof \Drupal\Core\Template\Attribute) {
+    if (!$attrs->hasClass('mel-support-panel')) {
+      $attrs->addClass('mel-support-panel');
+    }
     return;
   }
   if (!is_array($attrs)) {
@@ -708,6 +712,34 @@ function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &
   }
   if ($panel !== []) {
     _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'vendor_dashboard');
+
+    $events = $variables['events'] ?? [];
+    $total_tickets = 0;
+    $total_revenue = 0.0;
+    $total_views = 0;
+    foreach ($events as $event) {
+      $total_tickets += (int) ($event['tickets_sold'] ?? 0);
+      $rev = $event['revenue'] ?? 0;
+      $total_revenue += is_numeric($rev) ? (float) $rev : 0.0;
+      $total_views += (int) ($event['views'] ?? 0);
+    }
+    $conversion = $total_views > 0
+      ? ($total_tickets / $total_views)
+      : 0.0;
+    $panel['#mel_help_state'] = [
+      'tickets_sold' => $total_tickets,
+      'has_events' => !empty($events),
+      'revenue' => $total_revenue,
+      'views' => $total_views,
+      'conversion' => $conversion,
+    ];
+    if (!isset($panel['#cache']['contexts'])) {
+      $panel['#cache']['contexts'] = [];
+    }
+    if (!in_array('user', $panel['#cache']['contexts'], TRUE)) {
+      $panel['#cache']['contexts'][] = 'user';
+    }
+
     $variables['mel_support_panel'] = $panel;
   }
 }
