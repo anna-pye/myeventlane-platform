@@ -39,6 +39,17 @@
   line-height: 1.45;
 }
 
+.mel-support-panel__list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 12px;
+}
+
+.mel-support-panel__list li {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
 .mel-support-panel__suggestions {
   margin-top: spacing.mel-space(3);
   padding-top: spacing.mel-space(2);

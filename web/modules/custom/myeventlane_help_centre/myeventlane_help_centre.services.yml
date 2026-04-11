@@ -107,6 +107,7 @@ services:
       - '@cache.default'
       - '@datetime.time'
       - '@logger.channel.myeventlane_help_centre'
+      - '@myeventlane_help.analytics'
 
   myeventlane_help.intelligence:
     class: Drupal\myeventlane_help_centre\Service\HelpPanelIntelligence

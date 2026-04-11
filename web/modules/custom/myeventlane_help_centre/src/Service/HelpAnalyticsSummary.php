@@ -21,6 +21,7 @@ final class HelpAnalyticsSummary {
     private readonly CacheBackendInterface $cache,
     private readonly TimeInterface $time,
     private readonly LoggerChannelInterface $logger,
+    private readonly HelpPanelAnalytics $panelAnalytics,
   ) {}
 
   /**
@@ -49,7 +50,7 @@ final class HelpAnalyticsSummary {
     }
 
     $summary = $this->loadPanelSummary($keys);
-    $this->cache->set($cid, $summary, $this->time->getRequestTime() + self::CACHE_TTL, ['myeventlane_help_panel_analytics']);
+    $this->cache->set($cid, $summary, $this->time->getRequestTime() + self::CACHE_TTL, [$this->panelAnalytics->getCacheTag()]);
 
     return $summary;
   }
