@@ -113,10 +113,13 @@ function myeventlane_help_centre_theme(): array {
  *
  * Normalizes `attributes` (array or Attribute) so the base `mel-support-panel`
  * class is always present for `#attributes` from the render array.
+ *
+ * Plain arrays are converted to an Attribute object so `{{ attributes }}` in
+ * Twig renders valid HTML instead of the string "Array".
  */
 function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables): void {
   $attrs = $variables['attributes'] ?? [];
-  if ($attrs instanceof \Drupal\Core\Template\Attribute) {
+  if ($attrs instanceof Attribute) {
     if (!$attrs->hasClass('mel-support-panel')) {
       $attrs->addClass('mel-support-panel');
     }
@@ -136,7 +139,7 @@ function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables)
     array_unshift($classes, 'mel-support-panel');
   }
   $attrs['class'] = $classes;
-  $variables['attributes'] = $attrs;
+  $variables['attributes'] = new Attribute($attrs);
 }
 
 /**
