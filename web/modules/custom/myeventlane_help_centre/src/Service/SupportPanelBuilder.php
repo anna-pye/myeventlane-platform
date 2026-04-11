@@ -106,12 +106,18 @@ final class SupportPanelBuilder {
       return [];
     }
 
-    $cacheContexts = ['route'];
+    $cacheContexts = [];
+    if ($routeNames !== []) {
+      $cacheContexts[] = 'route';
+    }
+
     $cache = [
       'tags' => ['config:myeventlane_help_centre.help_content'],
       'max-age' => 0,
-      'contexts' => $cacheContexts,
     ];
+    if ($cacheContexts !== []) {
+      $cache['contexts'] = $cacheContexts;
+    }
 
     $this->helpPanelAnalytics->logImpression($key);
 
