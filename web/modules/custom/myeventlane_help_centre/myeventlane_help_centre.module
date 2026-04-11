@@ -518,19 +518,24 @@ function myeventlane_help_centre_preprocess_commerce_checkout_form(array &$varia
 
   $step_id = $variables['form']['#step_id'] ?? NULL;
   $route_name = \Drupal::routeMatch()->getRouteName();
-  $engine = \Drupal::service('myeventlane_help.recommendation_engine');
-  $recommendation = $engine->getRecommendations($route_name, 'checkout');
 
-  $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
-  if (!empty($recommendation['panel_key'])) {
-    $panel = $builder->build((string) $recommendation['panel_key'], 'checkout', $route_name);
-  }
-  else {
-    $panel = $builder->buildForRoute($route_name, 'checkout') ?? [];
-  }
-  if ($panel !== []) {
-    _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'checkout');
-    $variables['mel_support_panel'] = $panel;
+  // Omit the sidebar support panel on the order completion step — pre-purchase
+  // copy (e.g. "Need help buying tickets?") is wrong after a successful purchase.
+  if ($step_id !== 'complete') {
+    $engine = \Drupal::service('myeventlane_help.recommendation_engine');
+    $recommendation = $engine->getRecommendations($route_name, 'checkout');
+
+    $builder = \Drupal::service('myeventlane_help_centre.support_panel_builder');
+    if (!empty($recommendation['panel_key'])) {
+      $panel = $builder->build((string) $recommendation['panel_key'], 'checkout', $route_name);
+    }
+    else {
+      $panel = $builder->buildForRoute($route_name, 'checkout') ?? [];
+    }
+    if ($panel !== []) {
+      _myeventlane_help_centre_attach_support_panel_articles($panel, $recommendation, 'checkout');
+      $variables['mel_support_panel'] = $panel;
+    }
   }
 
   $resolver = _myeventlane_help_centre_resolver();
