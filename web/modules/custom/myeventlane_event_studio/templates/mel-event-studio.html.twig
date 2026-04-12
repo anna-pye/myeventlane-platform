@@ -32,8 +32,9 @@
       </div>
     </div>
 
+    {# TOP ZONE #}
     <div class="mel-studio-top">
-      <div class="mel-studio-top__lead">
+      <div class="mel-studio-top__preview">
         <div class="mel-event-studio__top">
           <div class="mel-event-studio__preview">
             <div id="mel-preview-card">
@@ -111,7 +112,8 @@
       </div>
     </div>
 
-    <div class="mel-wizard-nav" id="mel-wizard-nav" role="tablist" aria-label="{{ 'Event steps'|t }}">
+    {# NAV #}
+    <div class="mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" role="tablist" aria-label="{{ 'Event steps'|t }}">
       <button type="button" data-step="basic" role="tab" aria-selected="true">{{ 'Basic'|t }}</button>
       <button type="button" data-step="schedule" role="tab" aria-selected="false">{{ 'Date'|t }}</button>
       <button type="button" data-step="location" role="tab" aria-selected="false">{{ 'Location'|t }}</button>
@@ -119,8 +121,8 @@
       <button type="button" data-step="advanced" role="tab" aria-selected="false">{{ 'Advanced'|t }}</button>
     </div>
 
-    {# Full-width form region below step nav. This template is the form root (<form>), so we cannot use {{ form }} here — fields are rendered as element.* #}
-    <div class="mel-event-studio__form-full mel-studio-main-full">
+    {# FORM ZONE — wizard + actions (single root <form> above; not a nested form). #}
+    <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
       <div class="mel-wizard">
         {# —— Basic —— #}
         <div class="mel-step" data-step="basic" role="tabpanel">

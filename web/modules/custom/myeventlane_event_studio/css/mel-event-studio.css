@@ -14,8 +14,11 @@
   --mel-studio-accent: #c2410c;
   --mel-studio-accent-soft: #fff7ed;
   --mel-studio-focus: #2563eb;
-  max-width: 1200px;
-  margin: 0 auto;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
   padding: 1rem 1.25rem 2.5rem;
   color: var(--mel-studio-text);
 }
