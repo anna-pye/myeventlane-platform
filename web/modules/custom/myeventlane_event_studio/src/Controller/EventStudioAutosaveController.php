@@ -8,8 +8,10 @@ use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
+use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,6 +27,9 @@ final class EventStudioAutosaveController {
     private readonly EventStudioSaveService $saveService,
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EventHighlightHelper $eventHighlightHelper,
+    private readonly PrivateTempStoreFactory $privateTempStoreFactory,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -34,6 +39,11 @@ final class EventStudioAutosaveController {
 
     $account = $this->currentUser;
     $params = $request->request->all();
+
+    // TEMP mel_debug: remove after verifying autosave mel_autosave_ts + stale compare.
+    $this->loggerFactory->get('mel_debug')->notice('TS: @ts', [
+      '@ts' => (string) ($request->request->get('mel_autosave_ts') ?? ''),
+    ]);
 
     $storage = $this->entityTypeManager->getStorage('node');
     $node = NULL;
@@ -48,24 +58,92 @@ final class EventStudioAutosaveController {
       $node = $loaded;
     }
 
-    $payload = $this->payloadFromRequestParams($params);
+    $incoming_autosave_ts = $this->parseAutosaveTimestamp($params);
+    if ($node !== NULL && $incoming_autosave_ts !== NULL) {
+      $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
+      $stored_ts = $store->get('node.' . $node->id());
+      if ($stored_ts !== NULL && is_numeric($stored_ts) && $incoming_autosave_ts < (float) $stored_ts) {
+        // TEMP mel_debug: remove after verifying stale detection.
+        $this->loggerFactory->get('mel_debug')->notice('COMPARE incoming=@in stored=@st', [
+          '@in' => (string) $incoming_autosave_ts,
+          '@st' => (string) $stored_ts,
+        ]);
+        return new JsonResponse([
+          'ok' => FALSE,
+          'latest_ts' => (float) $stored_ts,
+        ], 409);
+      }
+    }
+
+    $mel = $params['mel'] ?? [];
+    if (!is_array($mel)) {
+      $mel = [];
+    }
+
+    $decoded_event_highlights = NULL;
+    $event_highlights_items_state = NULL;
+    if (array_key_exists('event_highlights', $mel)) {
+      try {
+        $decoded_event_highlights = $this->decodeEventHighlightsFromMel($mel['event_highlights']);
+      }
+      catch (\InvalidArgumentException $e) {
+        return new JsonResponse([
+          'ok' => FALSE,
+          'errors' => [$e->getMessage()],
+        ], 422);
+      }
+      $eh = $mel['event_highlights'];
+      $event_highlights_items_state = is_array($eh) ? trim((string) ($eh['items_state'] ?? '')) : '';
+    }
+
+    $payload = $this->payloadFromRequestParams($params, $decoded_event_highlights, $event_highlights_items_state);
     $result = $this->saveService->save($payload, $node, $account, TRUE);
     if ($result['errors'] !== []) {
       return new JsonResponse(['ok' => FALSE, 'errors' => $result['errors']], 422);
     }
 
+    $saved_node = $result['node'];
+    // Always key tempstore by the node returned from save() (nid exists after first create).
+    if ($saved_node !== NULL && $incoming_autosave_ts !== NULL) {
+      $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
+      $store->set('node.' . $saved_node->id(), (float) $incoming_autosave_ts);
+      // TEMP mel_debug: remove after verifying tempstore write path.
+      $this->loggerFactory->get('mel_debug')->notice('SET TS nid=@nid ts=@ts', [
+        '@nid' => (string) $saved_node->id(),
+        '@ts' => (string) $incoming_autosave_ts,
+      ]);
+    }
+    elseif ($incoming_autosave_ts !== NULL) {
+      // TEMP mel_debug: should not happen when errors are empty; indicates save() returned no node.
+      $this->loggerFactory->get('mel_debug')->notice('SKIP SET: no saved node in result while TS present');
+    }
+
     return new JsonResponse([
       'ok' => TRUE,
-      'nid' => $result['node']?->id(),
+      'nid' => $saved_node?->id(),
     ]);
   }
 
   /**
    * @param array<string, mixed> $params
+   */
+  private function parseAutosaveTimestamp(array $params): ?float {
+    if (!isset($params['mel_autosave_ts']) || $params['mel_autosave_ts'] === '') {
+      return NULL;
+    }
+    if (is_numeric($params['mel_autosave_ts'])) {
+      return (float) $params['mel_autosave_ts'];
+    }
+    return NULL;
+  }
+
+  /**
+   * @param array<string, mixed> $params
+   * @param list<array{text: string, icon: string, weight: int}>|null $decoded_event_highlights
    *
    * @return array<string, mixed>
    */
-  private function payloadFromRequestParams(array $params): array {
+  private function payloadFromRequestParams(array $params, ?array $decoded_event_highlights = NULL, ?string $event_highlights_items_state = NULL): array {
     $mel = $params['mel'] ?? [];
     if (!is_array($mel)) {
       $mel = [];
@@ -140,21 +218,21 @@ final class EventStudioAutosaveController {
       'field_location_longitude' => $mel['field_location_longitude'] ?? $params['field_location_longitude'] ?? NULL,
       'studio_ticket_tiers' => $this->decodeStudioTicketTiers($mel['studio_ticket_tiers'] ?? NULL),
     ];
-    if (array_key_exists('event_highlights', $mel)) {
-      $payload['event_highlights'] = $this->decodeEventHighlightsFromMel($mel['event_highlights']);
-      $payload['event_highlights_items_state'] = trim(
-        (string) (($mel['event_highlights']['items_state'] ?? '')),
-      );
+    if ($decoded_event_highlights !== NULL) {
+      $payload['event_highlights'] = $decoded_event_highlights;
+      $payload['event_highlights_items_state'] = $event_highlights_items_state ?? '';
     }
     return $payload;
   }
 
   /**
-   * @return list<array{icon: string, text: string, weight: int}>
+   * Decodes MEL `event_highlights.items_state` JSON and normalizes via EventHighlightHelper.
+   *
+   * @return list<array{text: string, icon: string, weight: int}>
    */
   private function decodeEventHighlightsFromMel(mixed $raw): array {
-    if (!is_array($raw) || !isset($raw['items_state'])) {
-      return [];
+    if (!is_array($raw) || !array_key_exists('items_state', $raw)) {
+      throw new \InvalidArgumentException('Invalid event highlights payload.');
     }
     $json = trim((string) $raw['items_state']);
     if ($json === '') {
@@ -164,60 +242,15 @@ final class EventStudioAutosaveController {
       $decoded = json_decode($json, TRUE, 512, JSON_THROW_ON_ERROR);
     }
     catch (\JsonException) {
-      return [];
+      throw new \InvalidArgumentException('Highlights data could not be read.');
     }
     if (!is_array($decoded)) {
-      return [];
+      throw new \InvalidArgumentException('Highlights data could not be read.');
     }
-    $allowed = $this->loadHighlightIconKeysFromStorage();
-    $out = [];
-    $weight = 0;
-    foreach ($decoded as $item) {
-      if (!is_array($item)) {
-        continue;
-      }
-      $text = trim((string) ($item['text'] ?? ''));
-      $icon = trim((string) ($item['icon'] ?? ''));
-      if ($icon !== '' && $text === '') {
-        continue;
-      }
-      if ($text === '') {
-        continue;
-      }
-      if ($icon !== '' && !in_array($icon, $allowed, TRUE)) {
-        $icon = '';
-      }
-      $out[] = [
-        'icon' => $icon,
-        'text' => $text,
-        'weight' => $weight,
-      ];
-      $weight++;
-    }
-    $out = array_slice($out, 0, 6);
+    $this->eventHighlightHelper->validateDecodedForAutosaveRequest($decoded);
+    $allowed = $this->eventHighlightHelper->getAllowedIconKeys();
 
-    return $out;
-  }
-
-  /**
-   * @return list<string>
-   */
-  private function loadHighlightIconKeysFromStorage(): array {
-    $storage = FieldStorageConfig::load('paragraph.field_highlight_icon');
-    if ($storage === NULL) {
-      return [];
-    }
-    $raw = $storage->getSetting('allowed_values');
-    if (!is_array($raw)) {
-      return [];
-    }
-    $keys = [];
-    foreach ($raw as $item) {
-      if (is_array($item) && isset($item['value'])) {
-        $keys[] = (string) $item['value'];
-      }
-    }
-    return $keys;
+    return $this->eventHighlightHelper->normalizeHighlights($decoded, $allowed);
   }
 
   /**
