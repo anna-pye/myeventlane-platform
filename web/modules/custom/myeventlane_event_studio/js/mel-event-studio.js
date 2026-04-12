@@ -1461,7 +1461,8 @@
               forceSyncTicketTiersBeforeSubmit(form);
               forceSyncHighlightsBeforeSubmit(form);
               var body = new FormData(form);
-              body.append('mel_autosave_ts', String(Date.now()));
+              var autosaveTs = Date.now();
+              body.append('mel_autosave_ts', String(autosaveTs));
               fetch(url, {
                 method: 'POST',
                 body: body,
@@ -1477,6 +1478,18 @@
                 })
                 .then(function (result) {
                   if (result.status === 409) {
+                    var latestTs =
+                      result.data && result.data.latest_ts !== undefined && result.data.latest_ts !== null
+                        ? Number(result.data.latest_ts)
+                        : NaN;
+                    if (!Number.isNaN(latestTs) && autosaveTs < latestTs) {
+                      setFormState(
+                        form,
+                        'mel-studio--error',
+                        Drupal.t('Newer changes exist in another tab. Reload to avoid overwriting.'),
+                      );
+                      return;
+                    }
                     setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
                     return;
                   }
