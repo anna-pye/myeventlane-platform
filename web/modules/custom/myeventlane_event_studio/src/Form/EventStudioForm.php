@@ -1008,6 +1008,8 @@ final class EventStudioForm extends FormBase {
       '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'button--primary']],
     ];
 
+    $form['#mel_studio_node'] = $event;
+
     return $form;
   }
 

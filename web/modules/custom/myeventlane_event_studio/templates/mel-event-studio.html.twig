@@ -56,9 +56,6 @@
           </div>
 
           <div class="mel-event-actions">
-            {% if mel_event_actions.edit %}
-              <a href="{{ mel_event_actions.edit }}" class="mel-btn mel-btn--secondary">{{ 'Edit event'|t }}</a>
-            {% endif %}
             {% if mel_event_actions.view %}
               <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
             {% endif %}
