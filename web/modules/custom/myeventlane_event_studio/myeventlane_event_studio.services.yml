@@ -63,12 +63,3 @@ services:
       - '@logger.factory'
     tags:
       - { name: controller.service_arguments }
-
-  myeventlane_event_studio.ai_controller:
-    class: Drupal\myeventlane_event_studio\Controller\EventStudioAiController
-    arguments:
-      - '@myeventlane_ai.generator'
-      - '@current_user'
-      - '@logger.channel.myeventlane_event_studio'
-    tags:
-      - { name: controller.service_arguments }

@@ -27,10 +27,12 @@ myeventlane_event_studio.autosave:
   requirements:
     _permission: 'access content'
 
+# Header CSRF: JS sends X-CSRF-Token from GET /session/token (same salt as
+# CsrfRequestHeaderAccessCheck). Do NOT use _csrf_token — that only validates ?token=.
 myeventlane_event_studio.ai_generate:
-  path: '/vendor/events/ai-generate'
+  path: '/vendor/events/ai/generate'
   defaults:
-    _controller: myeventlane_event_studio.ai_controller:generate
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioAiController::generate'
   methods: [POST]
   requirements:
     _permission: 'access content'
