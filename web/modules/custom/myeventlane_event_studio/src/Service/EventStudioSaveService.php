@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
@@ -70,7 +71,9 @@ final class EventStudioSaveService {
     }
 
     $this->applyBodyPayload($node, $payload);
+    $this->applyEventIntroPayload($node, $payload);
     $this->applyDiscoveryTaxonomy($node, $payload);
+    $this->applyContactChannelsPayload($node, $payload);
 
     if ($node->hasField('field_event_start') && !empty($payload['field_event_start'])) {
       $node->set('field_event_start', [['value' => (string) $payload['field_event_start']]]);
@@ -78,6 +81,10 @@ final class EventStudioSaveService {
     if ($node->hasField('field_event_end') && !empty($payload['field_event_end'])) {
       $node->set('field_event_end', [['value' => (string) $payload['field_event_end']]]);
     }
+
+    $this->applySalesWindowPayload($node, $payload);
+    $this->applyAgeRefundPolicyPayload($node, $payload);
+    $this->applyAccessibilityTextPayload($node, $payload);
 
     if ($node->hasField('field_event_type') && isset($payload['field_event_type'])) {
       $node->set('field_event_type', (string) $payload['field_event_type']);
@@ -580,6 +587,180 @@ final class EventStudioSaveService {
       }
       $node->set('field_tags', $rows);
     }
+
+    if ($node->hasField('field_accessibility') && array_key_exists('field_accessibility', $payload) && is_array($payload['field_accessibility'])) {
+      $term_storage = $this->entityTypeManager->getStorage('taxonomy_term');
+      $rows = [];
+      foreach ($payload['field_accessibility'] as $tid) {
+        $tid = (int) $tid;
+        if ($tid < 1) {
+          continue;
+        }
+        $term = $term_storage->load($tid);
+        if ($term && $term->bundle() === 'accessibility') {
+          $rows[] = ['target_id' => $tid];
+        }
+      }
+      $node->set('field_accessibility', $rows);
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyEventIntroPayload(NodeInterface $node, array $payload): void {
+    if (!$node->hasField('field_event_intro') || !array_key_exists('field_event_intro', $payload)) {
+      return;
+    }
+    $text = trim((string) $payload['field_event_intro']);
+    $definition = $node->getFieldDefinition('field_event_intro');
+    $format = 'plain_text';
+    $allowed = $definition->getSetting('allowed_formats');
+    if (is_array($allowed) && $allowed !== []) {
+      $format = (string) reset($allowed);
+    }
+    if ($text === '') {
+      $node->set('field_event_intro', NULL);
+      return;
+    }
+    $node->set('field_event_intro', [
+      [
+        'value' => $text,
+        'format' => $format,
+      ],
+    ]);
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyContactChannelsPayload(NodeInterface $node, array $payload): void {
+    if ($node->hasField('field_contact_email') && array_key_exists('field_contact_email', $payload)) {
+      $raw = trim((string) $payload['field_contact_email']);
+      $node->set('field_contact_email', $raw === '' ? NULL : $raw);
+    }
+    if ($node->hasField('field_contact_phone') && array_key_exists('field_contact_phone', $payload)) {
+      $raw = trim((string) $payload['field_contact_phone']);
+      $node->set('field_contact_phone', $raw === '' ? NULL : $raw);
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applySalesWindowPayload(NodeInterface $node, array $payload): void {
+    foreach (['field_sales_start', 'field_sales_end'] as $field_name) {
+      if (!$node->hasField($field_name) || !array_key_exists($field_name, $payload)) {
+        continue;
+      }
+      $raw = $payload[$field_name];
+      if ($raw === NULL || $raw === '') {
+        $node->set($field_name, []);
+        continue;
+      }
+      $node->set($field_name, [['value' => (string) $raw]]);
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyAgeRefundPolicyPayload(NodeInterface $node, array $payload): void {
+    if ($node->hasField('field_age_policy') && array_key_exists('field_age_policy', $payload)) {
+      $v = trim((string) $payload['field_age_policy']);
+      $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_age_policy'));
+      if ($allowed === []) {
+        $this->logger->warning('Studio save: field_age_policy allowed values missing; coercing to all_ages (nid @nid).', [
+          '@nid' => (string) ($node->id() ?? 'new'),
+        ]);
+        $v = 'all_ages';
+      }
+      elseif ($v === '' || !in_array($v, $allowed, TRUE)) {
+        $v = 'all_ages';
+      }
+      $node->set('field_age_policy', $v);
+    }
+
+    if ($node->hasField('field_age_policy_note') && array_key_exists('field_age_policy_note', $payload)) {
+      $note = trim((string) $payload['field_age_policy_note']);
+      if (strlen($note) > 255) {
+        $note = substr($note, 0, 255);
+      }
+      $node->set('field_age_policy_note', $note === '' ? NULL : $note);
+    }
+
+    if ($node->hasField('field_age_restriction') && array_key_exists('field_age_restriction', $payload)) {
+      $v = trim((string) $payload['field_age_restriction']);
+      if ($v === '') {
+        $node->set('field_age_restriction', NULL);
+      }
+      else {
+        $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_age_restriction'));
+        $node->set('field_age_restriction', in_array($v, $allowed, TRUE) ? $v : NULL);
+      }
+    }
+
+    if ($node->hasField('field_refund_policy') && array_key_exists('field_refund_policy', $payload)) {
+      $v = trim((string) $payload['field_refund_policy']);
+      if ($v === '') {
+        $node->set('field_refund_policy', NULL);
+      }
+      else {
+        $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_refund_policy'));
+        $node->set('field_refund_policy', in_array($v, $allowed, TRUE) ? $v : NULL);
+      }
+    }
+  }
+
+  /**
+   * @param array<string, mixed> $payload
+   */
+  private function applyAccessibilityTextPayload(NodeInterface $node, array $payload): void {
+    foreach (['field_accessibility_contact', 'field_accessibility_directions', 'field_accessibility_entry', 'field_accessibility_parking'] as $field_name) {
+      if (!$node->hasField($field_name) || !array_key_exists($field_name, $payload)) {
+        continue;
+      }
+      $text = trim((string) $payload[$field_name]);
+      if ($text === '') {
+        $node->set($field_name, NULL);
+        continue;
+      }
+      $definition = $node->getFieldDefinition($field_name);
+      $format = 'plain_text';
+      $allowed = $definition->getSetting('allowed_formats');
+      if (is_array($allowed) && $allowed !== []) {
+        $format = (string) reset($allowed);
+      }
+      $node->set($field_name, [
+        [
+          'value' => $text,
+          'format' => $format,
+        ],
+      ]);
+    }
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function listStringValueKeys(FieldDefinitionInterface $definition): array {
+    if ($definition->getType() !== 'list_string') {
+      return [];
+    }
+    $allowed = $definition->getSetting('allowed_values');
+    if (!is_array($allowed)) {
+      return [];
+    }
+    $keys = [];
+    foreach ($allowed as $key => $item) {
+      if (is_array($item) && isset($item['value'])) {
+        $keys[] = (string) $item['value'];
+      }
+      elseif (!is_array($item) && !is_int($key)) {
+        $keys[] = (string) $key;
+      }
+    }
+    return $keys;
   }
 
   /**
