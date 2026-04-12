@@ -230,20 +230,19 @@
                 {% for item in highlights %}
                   {% set icon_key = item.icon|default('') %}
                   {% set icon_char = '' %}
+                  {# Keys match paragraph.field_highlight_icon allowed_values (config/sync). #}
                   {% if icon_key == 'star' %}
                     {% set icon_char = '★' %}
                   {% elseif icon_key == 'music' %}
                     {% set icon_char = '♪' %}
                   {% elseif icon_key == 'food' %}
                     {% set icon_char = '☕' %}
-                  {% elseif icon_key == 'community' %}
-                    {% set icon_char = '◎' %}
-                  {% elseif icon_key == 'workshop' %}
-                    {% set icon_char = '✦' %}
-                  {% elseif icon_key == 'accessibility' %}
+                  {% elseif icon_key == 'clock' %}
+                    {% set icon_char = '🕐' %}
+                  {% elseif icon_key == 'info' %}
+                    {% set icon_char = 'ℹ' %}
+                  {% elseif icon_key == 'access' %}
                     {% set icon_char = '♿' %}
-                  {% elseif icon_key == 'warning' %}
-                    {% set icon_char = '⚠' %}
                   {% endif %}
 
                   <li class="mel-event-highlights__item">
@@ -252,7 +251,7 @@
                         {{ icon_char }}
                       {% endif %}
                     </span>
-                    <span class="mel-event-highlights__text">{{ item.text }}</span>
+                    <span class="mel-event-highlights__text">{{ item.text|e }}</span>
                   </li>
                 {% endfor %}
               </ul>

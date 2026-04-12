@@ -5,8 +5,10 @@
 (function (Drupal, once) {
   'use strict';
 
+  var HIGHLIGHT_MAX = 6;
+
   function getSettings() {
-    return (drupalSettings && drupalSettings.melEventStudio) || {};
+    return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
   }
 
   function formRoot(form) {
@@ -117,6 +119,359 @@
 
   function getBuilderTable(form) {
     return form.querySelector('table[data-mel-ticket-builder-table]');
+  }
+
+  function getHighlightsTable(form) {
+    return form.querySelector('table[data-mel-highlights-table]');
+  }
+
+  function getHighlightIconOptions() {
+    var s = getSettings();
+    return (s && s.highlightIconOptions) || {};
+  }
+
+  function getHighlightErrorStrings() {
+    var s = getSettings().highlightErrors || {};
+    return {
+      max: s.max || 'You can add at most 6 highlights.',
+      iconNoText: s.iconNoText || 'Add text for each highlight that has an icon.',
+      json: s.json || 'Highlights data could not be read. Reset the list or reload the page.',
+    };
+  }
+
+  function getHighlightsErrorEl() {
+    return document.getElementById('mel-highlights-editor-errors');
+  }
+
+  function setHighlightsError(form, message) {
+    var box = getHighlightsErrorEl();
+    var textEl = box ? box.querySelector('.mel-highlights-editor__errors-text') : null;
+    if (!box || !textEl) {
+      return;
+    }
+    var msg = (message || '').trim();
+    if (msg === '') {
+      textEl.textContent = '';
+      box.setAttribute('hidden', 'hidden');
+      return;
+    }
+    textEl.textContent = msg;
+    box.removeAttribute('hidden');
+  }
+
+  function validateHighlightRows(rows) {
+    var err = getHighlightErrorStrings();
+    if (rows.length > HIGHLIGHT_MAX) {
+      return { ok: false, message: err.max };
+    }
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var icon = r && r.icon != null ? String(r.icon).trim() : '';
+      var text = r && r.text != null ? String(r.text).trim() : '';
+      if (icon !== '' && text === '') {
+        return { ok: false, message: err.iconNoText };
+      }
+    }
+    return { ok: true };
+  }
+
+  function parseHighlightsHiddenWithStatus(raw) {
+    if (!raw || !String(raw).trim()) {
+      return { rows: [], parseError: false };
+    }
+    try {
+      var d = JSON.parse(raw);
+      if (!Array.isArray(d)) {
+        return { rows: [], parseError: true };
+      }
+      return {
+        rows: d.filter(function (x) {
+          return x && typeof x === 'object';
+        }),
+        parseError: false,
+      };
+    } catch (e) {
+      return { rows: [], parseError: true };
+    }
+  }
+
+  function parseHighlightsHidden(raw) {
+    return parseHighlightsHiddenWithStatus(raw).rows;
+  }
+
+  function collectHighlightsFromDom(form) {
+    var table = getHighlightsTable(form);
+    if (!table) {
+      return [];
+    }
+    var rows = table.querySelectorAll('tbody .mel-highlight-row');
+    var out = [];
+    rows.forEach(function (tr) {
+      var sel = tr.querySelector('.mel-highlight-icon');
+      var ta = tr.querySelector('.mel-highlight-text');
+      var icon = sel ? String(sel.value || '').trim() : '';
+      var text = ta ? String(ta.value || '').trim() : '';
+      out.push({ icon: icon, text: text });
+    });
+    return out;
+  }
+
+  function createHighlightRow(row, index, totalCount) {
+    var tr = document.createElement('tr');
+    tr.className = 'mel-highlight-row';
+    tr.setAttribute('data-highlight-index', String(index));
+    var icons = getHighlightIconOptions();
+    var tdIcon = document.createElement('td');
+    var sel = document.createElement('select');
+    sel.className = 'mel-input mel-highlight-icon';
+    sel.setAttribute('aria-label', Drupal.t('Highlight icon'));
+    var optEmpty = document.createElement('option');
+    optEmpty.value = '';
+    optEmpty.textContent = Drupal.t('None');
+    sel.appendChild(optEmpty);
+    Object.keys(icons).forEach(function (k) {
+      var o = document.createElement('option');
+      o.value = k;
+      o.textContent = icons[k];
+      sel.appendChild(o);
+    });
+    if (row && row.icon) {
+      sel.value = row.icon;
+    }
+    tdIcon.appendChild(sel);
+
+    var tdText = document.createElement('td');
+    var ta = document.createElement('textarea');
+    ta.className = 'mel-input mel-highlight-text';
+    ta.rows = 2;
+    ta.setAttribute('aria-label', Drupal.t('Highlight text'));
+    ta.value = row && row.text != null ? String(row.text) : '';
+
+    tdText.appendChild(ta);
+
+    var tdOrder = document.createElement('td');
+    tdOrder.className = 'mel-highlight-order';
+    var up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'mel-btn mel-btn--secondary mel-btn--touch mel-highlight-move mel-highlight-move--up';
+    up.setAttribute('aria-label', Drupal.t('Move highlight @n up', { '@n': String(index + 1) }));
+    up.textContent = Drupal.t('Up');
+    var down = document.createElement('button');
+    down.type = 'button';
+    down.className = 'mel-btn mel-btn--secondary mel-btn--touch mel-highlight-move mel-highlight-move--down';
+    down.setAttribute('aria-label', Drupal.t('Move highlight @n down', { '@n': String(index + 1) }));
+    down.textContent = Drupal.t('Down');
+    var isFirst = index === 0;
+    var isLast = index >= totalCount - 1;
+    up.disabled = isFirst;
+    down.disabled = isLast;
+    tdOrder.appendChild(up);
+    tdOrder.appendChild(down);
+
+    var tdAct = document.createElement('td');
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mel-btn mel-btn--secondary mel-btn--touch mel-highlight-remove';
+    btn.setAttribute(
+      'aria-label',
+      Drupal.t('Remove highlight @n', { '@n': String(index + 1) }),
+    );
+    btn.textContent = Drupal.t('Remove');
+    tdAct.appendChild(btn);
+
+    tr.appendChild(tdIcon);
+    tr.appendChild(tdText);
+    tr.appendChild(tdOrder);
+    tr.appendChild(tdAct);
+    return tr;
+  }
+
+  function updateHighlightAddButton(form, rowCount) {
+    var addBtn = document.getElementById('mel-add-event-highlight');
+    if (!addBtn) {
+      return;
+    }
+    if (rowCount >= HIGHLIGHT_MAX) {
+      addBtn.setAttribute('disabled', 'disabled');
+    } else {
+      addBtn.removeAttribute('disabled');
+    }
+  }
+
+  function updateHighlightErrors(form) {
+    var rows = collectHighlightsFromDom(form);
+    var v = validateHighlightRows(rows);
+    if (v.ok) {
+      setHighlightsError(form, '');
+    } else {
+      setHighlightsError(form, v.message);
+    }
+  }
+
+  function renderHighlightRows(form, table, rows) {
+    if (!table) {
+      return;
+    }
+    var tbody = table.querySelector('tbody');
+    if (!tbody) {
+      tbody = document.createElement('tbody');
+      table.appendChild(tbody);
+    }
+    tbody.innerHTML = '';
+    var n = rows.length;
+    rows.forEach(function (row, index) {
+      tbody.appendChild(createHighlightRow(row, index, n));
+    });
+    updateHighlightAddButton(form, rows.length);
+    syncHighlightsFromDomToHidden(form);
+    updateHighlightErrors(form);
+  }
+
+  function syncHighlightsFromDomToHidden(form) {
+    var hidden = form.querySelector('input[data-mel-highlights-state]');
+    var table = getHighlightsTable(form);
+    if (!hidden || !table) {
+      return;
+    }
+    var rows = collectHighlightsFromDom(form);
+    hidden.value = JSON.stringify(rows);
+  }
+
+  function forceSyncHighlightsBeforeSubmit(form) {
+    try {
+      syncHighlightsFromDomToHidden(form);
+    } catch (e) {}
+  }
+
+  function initHighlightsBuilder(form) {
+    var hidden = form.querySelector('input[data-mel-highlights-state]');
+    var table = getHighlightsTable(form);
+    if (!hidden || !table) {
+      return;
+    }
+    var parsed = parseHighlightsHiddenWithStatus(hidden.value);
+    var rows = parsed.rows;
+    if (parsed.parseError) {
+      hidden.value = '[]';
+      rows = [];
+    }
+    renderHighlightRows(form, table, rows);
+    if (parsed.parseError) {
+      var jsonErr = getHighlightErrorStrings();
+      setHighlightsError(form, jsonErr.json);
+      form.setAttribute('data-mel-highlights-json-error', '1');
+      return;
+    }
+
+    form.addEventListener(
+      'click',
+      function (e) {
+        if (e.target.closest('#mel-add-event-highlight')) {
+          e.preventDefault();
+          var cur = collectHighlightsFromDom(form);
+          if (cur.length >= HIGHLIGHT_MAX) {
+            var maxErr = getHighlightErrorStrings();
+            setHighlightsError(form, maxErr.max);
+            var box = getHighlightsErrorEl();
+            if (box) {
+              if (!box.hasAttribute('tabindex')) {
+                box.setAttribute('tabindex', '-1');
+              }
+              box.focus();
+            }
+            return;
+          }
+          setHighlightsError(form, '');
+          cur.push({ icon: '', text: '' });
+          renderHighlightRows(form, table, cur);
+          setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+          refreshIntelligence(form);
+          return;
+        }
+        var rm = e.target.closest('.mel-highlight-remove');
+        if (rm && table.contains(rm)) {
+          e.preventDefault();
+          var tr = rm.closest('tr');
+          if (!tr) {
+            return;
+          }
+          var arr = collectHighlightsFromDom(form);
+          var rowList = table.querySelectorAll('tbody .mel-highlight-row');
+          var found = -1;
+          rowList.forEach(function (r, i) {
+            if (r === tr) {
+              found = i;
+            }
+          });
+          if (found >= 0 && found < arr.length) {
+            arr.splice(found, 1);
+          }
+          renderHighlightRows(form, table, arr);
+          setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+          refreshIntelligence(form);
+          return;
+        }
+        var up = e.target.closest('.mel-highlight-move--up');
+        var down = e.target.closest('.mel-highlight-move--down');
+        if (!up && !down) {
+          return;
+        }
+        var trMove = (up || down).closest('tr');
+        if (!trMove || !table.contains(trMove)) {
+          return;
+        }
+        e.preventDefault();
+        var arr = collectHighlightsFromDom(form);
+        var rowList = table.querySelectorAll('tbody .mel-highlight-row');
+        var idx = -1;
+        rowList.forEach(function (r, i) {
+          if (r === trMove) {
+            idx = i;
+          }
+        });
+        if (idx < 0) {
+          return;
+        }
+        if (up && idx > 0) {
+          var t = arr[idx - 1];
+          arr[idx - 1] = arr[idx];
+          arr[idx] = t;
+        }
+        if (down && idx < arr.length - 1) {
+          var t2 = arr[idx + 1];
+          arr[idx + 1] = arr[idx];
+          arr[idx] = t2;
+        }
+        renderHighlightRows(form, table, arr);
+        setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+        refreshIntelligence(form);
+      },
+      true,
+    );
+
+    form.addEventListener(
+      'input',
+      function (e) {
+        if (!e.target.closest('.mel-highlight-row')) {
+          return;
+        }
+        syncHighlightsFromDomToHidden(form);
+        updateHighlightErrors(form);
+      },
+      true,
+    );
+    form.addEventListener(
+      'change',
+      function (e) {
+        if (!e.target.closest('.mel-highlight-row')) {
+          return;
+        }
+        syncHighlightsFromDomToHidden(form);
+        updateHighlightErrors(form);
+      },
+      true,
+    );
   }
 
   function parseTiersHidden(raw) {
@@ -316,7 +671,6 @@
     if (!table) {
       return;
     }
-    console.log('MEL TIERS STATE:', tiers);
     var kind = valRadio(form, 'mel[field_event_type]') || 'rsvp';
     updateTicketBuilderTableClass(table, kind);
     var tbody = table.querySelector('tbody');
@@ -357,9 +711,7 @@
   function forceSyncTicketTiersBeforeSubmit(form) {
     try {
       syncTicketTiersFromDomToHidden(form);
-    } catch (e) {
-      console.warn('Ticket sync failed before submit', e);
-    }
+    } catch (e) {}
   }
 
   function syncTicketBuilderEventType(form) {
@@ -975,6 +1327,10 @@
 
     syncTicketBuilderEventType(form);
     syncTicketTiersFromDomToHidden(form);
+    syncHighlightsFromDomToHidden(form);
+    if (form.getAttribute('data-mel-highlights-json-error') !== '1') {
+      updateHighlightErrors(form);
+    }
 
     var title = val(form, 'mel[title]') || '—';
     var titleEl = document.getElementById('mel-preview-title');
@@ -1057,6 +1413,7 @@
         var str = getSettings().strings || {};
 
         initTicketBuilder(form);
+        initHighlightsBuilder(form);
         refreshIntelligence(form);
         bindCoverFilePreview(form);
 
@@ -1098,8 +1455,7 @@
               timeoutId = null;
               setFormState(form, 'mel-studio--saving', Drupal.t('Saving draft…'));
               forceSyncTicketTiersBeforeSubmit(form);
-              var tierHidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-              console.log('AUTOSAVE PAYLOAD TIERS:', tierHidden ? tierHidden.value : '');
+              forceSyncHighlightsBeforeSubmit(form);
               var body = new FormData(form);
               fetch(url, {
                 method: 'POST',
@@ -1195,6 +1551,17 @@
         return;
       }
       forceSyncTicketTiersBeforeSubmit(form);
+      forceSyncHighlightsBeforeSubmit(form);
+      var rows = collectHighlightsFromDom(form);
+      var hv = validateHighlightRows(rows);
+      if (!hv.ok) {
+        e.preventDefault();
+        setHighlightsError(form, hv.message);
+        var errBox = getHighlightsErrorEl();
+        if (errBox && typeof errBox.focus === 'function') {
+          errBox.focus();
+        }
+      }
     },
     true,
   );

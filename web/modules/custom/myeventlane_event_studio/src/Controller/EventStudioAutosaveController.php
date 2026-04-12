@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -107,7 +108,7 @@ final class EventStudioAutosaveController {
       $image_fid = (int) reset($image_fids);
     }
 
-    return [
+    $payload = [
       'title' => $mel['title'] ?? $params['basics']['title'] ?? $params['title'] ?? '',
       'summary' => $mel['summary'] ?? $params['basics']['summary'] ?? $params['summary'] ?? '',
       'body' => $mel['body'] ?? $params['basics']['body'] ?? $params['body'] ?? '',
@@ -139,6 +140,79 @@ final class EventStudioAutosaveController {
       'field_location_longitude' => $mel['field_location_longitude'] ?? $params['field_location_longitude'] ?? NULL,
       'studio_ticket_tiers' => $this->decodeStudioTicketTiers($mel['studio_ticket_tiers'] ?? NULL),
     ];
+    if (array_key_exists('event_highlights', $mel)) {
+      $payload['event_highlights'] = $this->decodeEventHighlightsFromMel($mel['event_highlights']);
+      $payload['event_highlights_items_state'] = trim(
+        (string) (($mel['event_highlights']['items_state'] ?? '')),
+      );
+    }
+    return $payload;
+  }
+
+  /**
+   * @return list<array{icon: string, text: string, weight: int}>
+   */
+  private function decodeEventHighlightsFromMel(mixed $raw): array {
+    if (!is_array($raw) || !isset($raw['items_state'])) {
+      return [];
+    }
+    $json = trim((string) $raw['items_state']);
+    if ($json === '') {
+      return [];
+    }
+    try {
+      $decoded = json_decode($json, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      return [];
+    }
+    if (!is_array($decoded)) {
+      return [];
+    }
+    $allowed = $this->loadHighlightIconKeysFromStorage();
+    $out = [];
+    $weight = 0;
+    foreach ($decoded as $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+      $text = trim((string) ($item['text'] ?? ''));
+      if ($text === '') {
+        continue;
+      }
+      $icon = trim((string) ($item['icon'] ?? ''));
+      if ($icon !== '' && !in_array($icon, $allowed, TRUE)) {
+        $icon = '';
+      }
+      $out[] = [
+        'icon' => $icon,
+        'text' => $text,
+        'weight' => $weight,
+      ];
+      $weight++;
+    }
+    return $out;
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function loadHighlightIconKeysFromStorage(): array {
+    $storage = FieldStorageConfig::load('paragraph.field_highlight_icon');
+    if ($storage === NULL) {
+      return [];
+    }
+    $raw = $storage->getSetting('allowed_values');
+    if (!is_array($raw)) {
+      return [];
+    }
+    $keys = [];
+    foreach ($raw as $item) {
+      if (is_array($item) && isset($item['value'])) {
+        $keys[] = (string) $item['value'];
+      }
+    }
+    return $keys;
   }
 
   /**

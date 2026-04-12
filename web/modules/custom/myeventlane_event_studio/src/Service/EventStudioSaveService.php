@@ -6,11 +6,13 @@ namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\node\NodeInterface;
+use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -210,9 +212,24 @@ final class EventStudioSaveService {
       return ['node' => NULL, 'errors' => $image_errors];
     }
 
+    if (array_key_exists('event_highlights_items_state', $payload)) {
+      $highlight_errors = $this->validateHighlightItemsStateJson((string) ($payload['event_highlights_items_state'] ?? ''));
+      if ($highlight_errors !== []) {
+        return ['node' => NULL, 'errors' => $highlight_errors];
+      }
+    }
+
     $studio_tier_errors = $this->melTicketTypeManager->validateStudioTicketDefinitions($node, $account, $payload, $draft);
     if ($studio_tier_errors !== []) {
       return ['node' => NULL, 'errors' => $studio_tier_errors];
+    }
+
+    try {
+      $this->syncEventHighlights($node, $payload);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Studio event highlights sync failed: @m', ['@m' => $e->getMessage()]);
+      return ['node' => NULL, 'errors' => ['Could not save event highlights.']];
     }
 
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio draft.' : 'Event Studio save.');
@@ -615,6 +632,174 @@ final class EventStudioSaveService {
     }
     if ($node->hasField('field_location_longitude') && $lng !== NULL && $lng !== '') {
       $node->set('field_location_longitude', (string) $lng);
+    }
+  }
+
+  /**
+   * Replaces `field_event_highlights` with paragraph entities in submitted order.
+   *
+   * Reuses existing paragraph entities by delta when possible; removes extras;
+   * creates new paragraphs when the list grows. Paragraphs dropped from the
+   * field are deleted to avoid orphans (same pattern as other MEL inline
+   * paragraph writers).
+   *
+   * @param array<string, mixed> $payload
+   */
+  private function syncEventHighlights(NodeInterface $node, array $payload): void {
+    if (!$node->hasField('field_event_highlights')) {
+      return;
+    }
+    if (!array_key_exists('event_highlights', $payload) || !is_array($payload['event_highlights'])) {
+      return;
+    }
+
+    $allowed_icons = $this->loadHighlightIconAllowedKeys();
+    $normalized = [];
+    foreach ($payload['event_highlights'] as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $text = trim((string) ($row['text'] ?? ''));
+      if ($text === '') {
+        continue;
+      }
+      $icon = trim((string) ($row['icon'] ?? ''));
+      if ($icon !== '' && !in_array($icon, $allowed_icons, TRUE)) {
+        $icon = '';
+      }
+      $normalized[] = ['text' => $text, 'icon' => $icon];
+    }
+    $normalized = array_slice($normalized, 0, 6);
+
+    $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
+    $old_entities = array_values($node->get('field_event_highlights')->referencedEntities());
+    $refs = [];
+
+    if ($normalized === []) {
+      $node->set('field_event_highlights', []);
+      foreach ($old_entities as $entity) {
+        if ($entity instanceof Paragraph && $entity->bundle() === 'event_highlight') {
+          $entity->delete();
+        }
+      }
+      return;
+    }
+
+    foreach ($normalized as $i => $item) {
+      if (isset($old_entities[$i]) && $old_entities[$i] instanceof Paragraph && $old_entities[$i]->bundle() === 'event_highlight') {
+        $paragraph = $old_entities[$i];
+      }
+      else {
+        $paragraph = $paragraph_storage->create(['type' => 'event_highlight']);
+      }
+      $this->applyHighlightParagraphValues($paragraph, $item['text'], $item['icon']);
+      $paragraph->save();
+      $refs[] = [
+        'target_id' => (int) $paragraph->id(),
+        'target_revision_id' => (int) $paragraph->getRevisionId(),
+      ];
+    }
+
+    for ($j = count($normalized); $j < count($old_entities); $j++) {
+      $drop = $old_entities[$j];
+      if ($drop instanceof Paragraph && $drop->bundle() === 'event_highlight') {
+        $drop->delete();
+      }
+    }
+
+    $node->set('field_event_highlights', $refs);
+  }
+
+  /**
+   * @return list<string>
+   */
+  private function loadHighlightIconAllowedKeys(): array {
+    $storage = FieldStorageConfig::load('paragraph.field_highlight_icon');
+    if ($storage === NULL) {
+      return [];
+    }
+    $raw = $storage->getSetting('allowed_values');
+    if (!is_array($raw)) {
+      return [];
+    }
+    $keys = [];
+    foreach ($raw as $item) {
+      if (is_array($item) && isset($item['value'])) {
+        $keys[] = (string) $item['value'];
+      }
+    }
+    return $keys;
+  }
+
+  /**
+   * Validates the hidden JSON for Event Studio highlights (aligns with EventStudioForm).
+   *
+   * Empty string means “no editor state sent”; validation is skipped.
+   *
+   * @return list<string>
+   */
+  private function validateHighlightItemsStateJson(string $raw): array {
+    if ($raw === '') {
+      return [];
+    }
+    try {
+      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (\JsonException) {
+      return ['Highlights data could not be read.'];
+    }
+    if (!is_array($decoded)) {
+      return ['Highlights data could not be read.'];
+    }
+    $non_empty = 0;
+    foreach ($decoded as $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+      $text = trim((string) ($item['text'] ?? ''));
+      $icon = trim((string) ($item['icon'] ?? ''));
+      if ($text === '' && $icon === '') {
+        continue;
+      }
+      if ($text === '' && $icon !== '') {
+        return ['Each highlight with an icon needs highlight text.'];
+      }
+      $non_empty++;
+    }
+    if ($non_empty > 6) {
+      return ['You can add at most 6 highlights.'];
+    }
+    return [];
+  }
+
+  /**
+   * Sets highlight text/icon respecting the configured field types on the bundle.
+   */
+  private function applyHighlightParagraphValues(Paragraph $paragraph, string $text, string $icon): void {
+    $text_def = $paragraph->getFieldDefinition('field_highlight_text');
+    if ($text_def->getType() === 'text') {
+      $format = 'plain_text';
+      $allowed = $text_def->getSetting('allowed_formats');
+      if (is_array($allowed) && $allowed !== []) {
+        $format = (string) reset($allowed);
+      }
+      $paragraph->set('field_highlight_text', [
+        'value' => $text,
+        'format' => $format,
+      ]);
+    }
+    elseif ($text_def->getType() === 'string_long') {
+      $paragraph->set('field_highlight_text', ['value' => $text]);
+    }
+    else {
+      $paragraph->set('field_highlight_text', $text);
+    }
+
+    if ($icon === '') {
+      $paragraph->set('field_highlight_icon', NULL);
+    }
+    else {
+      $paragraph->set('field_highlight_icon', $icon);
     }
   }
 
