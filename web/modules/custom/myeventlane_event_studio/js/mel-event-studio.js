@@ -7,6 +7,19 @@
 
   var HIGHLIGHT_MAX = 6;
 
+  /**
+   * Guided wizard step model (order is fixed).
+   *
+   * @type {{id: string, label: string}[]}
+   */
+  var MEL_STEPS = [
+    { id: 'basic', label: 'Basic Info' },
+    { id: 'schedule', label: 'Date & Time' },
+    { id: 'location', label: 'Location' },
+    { id: 'tickets', label: 'Tickets' },
+    { id: 'advanced', label: 'Advanced' },
+  ];
+
   function getSettings() {
     return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
   }
@@ -1197,6 +1210,150 @@
     );
   }
 
+  function getWizardStepIndex(form) {
+    var v = form.getAttribute('data-mel-wizard-step');
+    var n = v ? parseInt(v, 10) : 0;
+    return isNaN(n) ? 0 : n;
+  }
+
+  function setWizardStepIndex(form, index) {
+    form.setAttribute('data-mel-wizard-step', String(index));
+  }
+
+  function calculateScore(form) {
+    var score = 0;
+    var total = 10;
+
+    if (val(form, 'mel[title]').length >= 3) score++;
+    if (val(form, 'mel[summary]').length >= 10) score++;
+    if (val(form, 'mel[body]').length >= 40) score++;
+    if (val(form, 'mel[field_category]')) score++;
+    if (hasCoverFile(form)) score++;
+
+    var sd = form.querySelector('[name="mel[start_date][date]"]');
+    if (sd && sd.value) score++;
+
+    var loc = parseHiddenLocation(form);
+    if (loc) score++;
+
+    var tt = valRadio(form, 'mel[field_event_type]');
+    if (tt === 'external' && val(form, 'mel[external_url]')) score++;
+    if (tt === 'paid' && val(form, 'mel[field_product_target]')) score++;
+    if (tt === 'rsvp') score++;
+
+    return Math.round((score / total) * 100);
+  }
+
+  function updateProgress(form) {
+    var percent = calculateScore(form);
+
+    var fill = document.getElementById('mel-progress-fill');
+    var text = document.getElementById('mel-progress-text');
+
+    if (fill) fill.style.width = percent + '%';
+    if (text) {
+      text.textContent = Drupal.t('@pct% complete', { '@pct': String(percent) });
+    }
+  }
+
+  function isStepComplete(step, form) {
+    switch (step) {
+      case 'basic':
+        return !!(val(form, 'mel[title]') && val(form, 'mel[field_category]'));
+      case 'schedule': {
+        var sd = form.querySelector('[name="mel[start_date][date]"]');
+        return !!(sd && sd.value);
+      }
+      case 'location':
+        return parseHiddenLocation(form) !== '';
+      case 'tickets': {
+        var tt = valRadio(form, 'mel[field_event_type]');
+        if (tt === 'external') return !!val(form, 'mel[external_url]');
+        if (tt === 'paid') return !!val(form, 'mel[field_product_target]');
+        return true;
+      }
+      default:
+        return true;
+    }
+  }
+
+  function showStep(form, index) {
+    var steps = form.querySelectorAll('.mel-wizard .mel-step');
+    var nav = form.querySelectorAll('#mel-wizard-nav button');
+    var max = steps.length - 1;
+    if (index < 0) index = 0;
+    if (index > max) index = max;
+
+    steps.forEach(function (el, i) {
+      var on = i === index;
+      el.style.display = on ? 'block' : 'none';
+      if (on) {
+        var prevBtn = el.querySelector('.mel-prev');
+        var nextBtn = el.querySelector('.mel-next');
+        if (prevBtn) prevBtn.disabled = index === 0;
+        if (nextBtn) nextBtn.hidden = index >= MEL_STEPS.length - 1;
+      }
+    });
+
+    nav.forEach(function (btn, i) {
+      var on = i === index;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+
+    setWizardStepIndex(form, index);
+  }
+
+  function initMelWizard(form) {
+    if (!form.querySelector('.mel-wizard') || !form.querySelector('#mel-wizard-nav')) {
+      return;
+    }
+
+    showStep(form, 0);
+    updateProgress(form);
+
+    var nav = form.querySelector('#mel-wizard-nav');
+    nav.querySelectorAll('button[data-step]').forEach(function (btn, i) {
+      btn.addEventListener('click', function () {
+        showStep(form, i);
+      });
+    });
+
+    form.addEventListener(
+      'click',
+      function (e) {
+        var nextBtn = e.target.closest('.mel-next');
+        if (!nextBtn || !form.contains(nextBtn)) return;
+
+        var stepIdx = getWizardStepIndex(form);
+        var stepId = MEL_STEPS[stepIdx].id;
+
+        if (!isStepComplete(stepId, form)) {
+          alert(Drupal.t('Complete required fields before continuing.'));
+          return;
+        }
+
+        if (stepIdx >= MEL_STEPS.length - 1) {
+          return;
+        }
+
+        showStep(form, stepIdx + 1);
+      },
+      false,
+    );
+
+    form.addEventListener(
+      'click',
+      function (e) {
+        var prevBtn = e.target.closest('.mel-prev');
+        if (!prevBtn || !form.contains(prevBtn)) return;
+        var stepIdx = getWizardStepIndex(form);
+        showStep(form, stepIdx - 1);
+      },
+      false,
+    );
+  }
+
   /**
    * Actionable suggestions (replaces numeric completeness).
    *
@@ -1380,6 +1537,8 @@
     syncCoverPreview(form);
     syncPaidTierWarning(form);
 
+    updateProgress(form);
+
     var insights = document.getElementById('mel-insights-list');
     if (insights) {
       var items = buildActionableInsights(form, init);
@@ -1420,6 +1579,7 @@
         initHighlightsBuilder(form);
         refreshIntelligence(form);
         bindCoverFilePreview(form);
+        initMelWizard(form);
 
         form.addEventListener('click', function (e) {
           var a = e.target.closest('.mel-ticket-product-panel__cta.is-disabled');
@@ -1565,6 +1725,7 @@
       });
     },
   };
+
   document.addEventListener(
     'submit',
     function (e) {
