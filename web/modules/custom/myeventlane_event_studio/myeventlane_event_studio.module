@@ -27,6 +27,26 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
 }
 
 /**
+ * Implements hook_preprocess_html().
+ *
+ * Full-bleed Event Studio: body class scopes theme SCSS that relaxes global
+ * layout containers (layout-container, Gin, off-canvas canvas, etc.).
+ */
+function myeventlane_event_studio_preprocess_html(array &$variables): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $studio_routes = [
+    'myeventlane_event_studio.create',
+    'myeventlane_event_studio.edit',
+  ];
+  if (!in_array($route_name, $studio_routes, TRUE)) {
+    return;
+  }
+  if (isset($variables['attributes']) && $variables['attributes'] instanceof Attribute) {
+    $variables['attributes']->addClass('mel-event-studio-page');
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK() for mel_event_studio.
  *
  * Mirrors \Drupal\Core\Form\FormPreprocess::preprocessForm() so action, method,

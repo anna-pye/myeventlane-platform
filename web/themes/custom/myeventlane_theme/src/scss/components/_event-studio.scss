@@ -3,17 +3,53 @@
 // Complements module css/mel-event-studio.css (library mel_event_studio).
 // ==========================================================================
 
+// Full-bleed workspace: body.mel-event-studio-page is set in
+// myeventlane_event_studio_preprocess_html() on Event Studio routes only.
+body.mel-event-studio-page {
+  .layout-container,
+  .layout-content,
+  .region-content,
+  .gin-content,
+  .dialog-off-canvas-main-canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 16px;
+    padding-right: 16px;
+    box-sizing: border-box;
+  }
+
+  .container,
+  .container-lg,
+  .container-md {
+    max-width: 100% !important;
+  }
+}
+
 // Override module mel-event-studio.css (max-width: 1200px on .mel-event-studio).
 .mel-event-studio {
+  display: block;
   max-width: 100% !important;
   width: 100%;
   box-sizing: border-box;
 }
 
+.mel-studio-form-wrapper {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+.mel-studio-form-wrapper form {
+  width: 100%;
+  max-width: 100%;
+}
+
 // Full-width region below step nav (wizard + primary actions).
-// DOM: <form class="mel-event-studio-form"> → .mel-event-studio → … → .mel-event-studio__form-full
-// (There is no nested <form> inside __form-full; the prompt’s ".mel-event-studio__form-full form"
-// would only match child forms, e.g. file upload widgets.)
+// DOM: <form class="mel-event-studio-form"> → .mel-event-studio → … → .mel-studio-form-wrapper
+// (There is no nested <form> inside the wrapper; ".mel-studio-form-wrapper form" matches nested
+// widgets only, e.g. file uploads.)
+.mel-studio-form-wrapper,
 .mel-event-studio__form-full {
   width: 100%;
   max-width: 100%;
@@ -37,7 +73,10 @@ form.mel-event-studio-form {
 
 .mel-event-studio__form-full .form-wrapper,
 .mel-event-studio__form-full .form-item,
-.mel-event-studio__form-full .js-form-wrapper {
+.mel-event-studio__form-full .js-form-wrapper,
+.mel-studio-form-wrapper .form-wrapper,
+.mel-studio-form-wrapper .form-item,
+.mel-studio-form-wrapper .js-form-wrapper {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -45,7 +84,10 @@ form.mel-event-studio-form {
 
 .mel-event-studio__form-full input,
 .mel-event-studio__form-full textarea,
-.mel-event-studio__form-full select {
+.mel-event-studio__form-full select,
+.mel-studio-form-wrapper input,
+.mel-studio-form-wrapper textarea,
+.mel-studio-form-wrapper select {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -53,7 +95,9 @@ form.mel-event-studio-form {
 
 // Vendor page: utility rail + main column grid — span full main column width.
 .mel-vendor-shell__content .mel-shell-layout__main .mel-event-studio__form-full,
-.mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full {
+.mel-vendor-shell__content .mel-shell-layout__main .mel-studio-form-wrapper,
+.mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full,
+.mel-vendor-shell__content .mel-event-studio .mel-studio-form-wrapper {
   grid-column: 1 / -1;
   width: 100%;
   max-width: 100%;
@@ -77,9 +121,18 @@ form.mel-event-studio-form {
 }
 
 // Vendor workspace.css targets .mel-studio-main inside shell; Event Studio must not pick up that grid.
-.mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full {
+.mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full,
+.mel-vendor-shell__content .mel-event-studio .mel-studio-form-wrapper {
   display: block !important;
   grid-template-columns: none !important;
+}
+
+// Vendor studio layout also uses .mel-studio-nav for a sidebar; reset when it is the Event Studio tab bar.
+.vendor-workspace--studio .mel-event-studio .mel-studio-nav.mel-wizard-nav {
+  overflow: visible;
+  height: auto;
+  padding: 0;
+  background: transparent;
 }
 
 // Basic step: title field + AI button (vendor theme loads this partial too).
@@ -109,14 +162,14 @@ form.mel-event-studio-form {
 
 .mel-studio-top {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
   align-items: start;
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-.mel-studio-top__lead {
+.mel-studio-top__preview {
   width: 100%;
   min-width: 0;
 }
@@ -184,6 +237,10 @@ form.mel-event-studio-form {
     grid-template-columns: 1fr;
   }
 
+  .mel-ai-controls__row {
+    flex-direction: column;
+  }
+
   .mel-event-studio__top {
     flex-direction: column;
   }
@@ -209,7 +266,8 @@ form.mel-event-studio-form {
 form.mel-event-studio-form .mel-event-studio,
 .mel-wizard,
 .mel-studio-main-full,
-.mel-event-studio__form-full {
+.mel-event-studio__form-full,
+.mel-studio-form-wrapper {
   width: 100% !important;
   max-width: 100% !important;
 }
@@ -364,14 +422,16 @@ form.mel-event-studio-form .mel-event-studio,
   color: var(--mel-studio-text-muted, #64748b);
 }
 
-.mel-wizard-nav {
+.mel-wizard-nav,
+.mel-studio-nav.mel-wizard-nav {
   display: flex;
   gap: 8px;
   margin: 16px 0;
   flex-wrap: wrap;
 }
 
-.mel-wizard-nav button {
+.mel-wizard-nav button,
+.mel-studio-nav.mel-wizard-nav button {
   flex: 1;
   min-width: 0;
   margin: 0;
@@ -385,12 +445,14 @@ form.mel-event-studio-form .mel-event-studio,
   color: var(--mel-studio-text, #0f172a);
 }
 
-.mel-wizard-nav button.active {
+.mel-wizard-nav button.active,
+.mel-studio-nav.mel-wizard-nav button.active {
   background: #f26d5b;
   color: white;
 }
 
-.mel-wizard-nav button:focus-visible {
+.mel-wizard-nav button:focus-visible,
+.mel-studio-nav.mel-wizard-nav button:focus-visible {
   outline: 2px solid var(--mel-studio-focus, #2563eb);
   outline-offset: 2px;
 }
