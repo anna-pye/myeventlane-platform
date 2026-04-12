@@ -8,7 +8,7 @@
   var HIGHLIGHT_MAX = 6;
 
   function getSettings() {
-    return (drupalSettings && drupalSettings.melEventStudio) || {};
+    return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
   }
 
   function formRoot(form) {
@@ -255,12 +255,12 @@
     var up = document.createElement('button');
     up.type = 'button';
     up.className = 'mel-btn mel-btn--secondary mel-btn--touch mel-highlight-move mel-highlight-move--up';
-    up.setAttribute('aria-label', Drupal.t('Move highlight up'));
+    up.setAttribute('aria-label', Drupal.t('Move highlight @n up', { '@n': String(index + 1) }));
     up.textContent = Drupal.t('Up');
     var down = document.createElement('button');
     down.type = 'button';
     down.className = 'mel-btn mel-btn--secondary mel-btn--touch mel-highlight-move mel-highlight-move--down';
-    down.setAttribute('aria-label', Drupal.t('Move highlight down'));
+    down.setAttribute('aria-label', Drupal.t('Move highlight @n down', { '@n': String(index + 1) }));
     down.textContent = Drupal.t('Down');
     var isFirst = index === 0;
     var isLast = index >= totalCount - 1;
@@ -341,9 +341,7 @@
   function forceSyncHighlightsBeforeSubmit(form) {
     try {
       syncHighlightsFromDomToHidden(form);
-    } catch (e) {
-      console.warn('Highlights sync failed before submit', e);
-    }
+    } catch (e) {}
   }
 
   function initHighlightsBuilder(form) {
@@ -362,6 +360,8 @@
     if (parsed.parseError) {
       var jsonErr = getHighlightErrorStrings();
       setHighlightsError(form, jsonErr.json);
+      form.setAttribute('data-mel-highlights-json-error', '1');
+      return;
     }
 
     form.addEventListener(
@@ -373,6 +373,13 @@
           if (cur.length >= HIGHLIGHT_MAX) {
             var maxErr = getHighlightErrorStrings();
             setHighlightsError(form, maxErr.max);
+            var box = getHighlightsErrorEl();
+            if (box) {
+              if (!box.hasAttribute('tabindex')) {
+                box.setAttribute('tabindex', '-1');
+              }
+              box.focus();
+            }
             return;
           }
           setHighlightsError(form, '');
@@ -704,9 +711,7 @@
   function forceSyncTicketTiersBeforeSubmit(form) {
     try {
       syncTicketTiersFromDomToHidden(form);
-    } catch (e) {
-      console.warn('Ticket sync failed before submit', e);
-    }
+    } catch (e) {}
   }
 
   function syncTicketBuilderEventType(form) {
@@ -1323,7 +1328,9 @@
     syncTicketBuilderEventType(form);
     syncTicketTiersFromDomToHidden(form);
     syncHighlightsFromDomToHidden(form);
-    updateHighlightErrors(form);
+    if (form.getAttribute('data-mel-highlights-json-error') !== '1') {
+      updateHighlightErrors(form);
+    }
 
     var title = val(form, 'mel[title]') || '—';
     var titleEl = document.getElementById('mel-preview-title');
