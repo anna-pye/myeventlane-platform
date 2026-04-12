@@ -196,10 +196,6 @@
     }
   }
 
-  function parseHighlightsHidden(raw) {
-    return parseHighlightsHiddenWithStatus(raw).rows;
-  }
-
   function collectHighlightsFromDom(form) {
     var table = getHighlightsTable(form);
     if (!table) {
@@ -300,6 +296,9 @@
   }
 
   function updateHighlightErrors(form) {
+    if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+      return;
+    }
     var rows = collectHighlightsFromDom(form);
     var v = validateHighlightRows(rows);
     if (v.ok) {
@@ -355,13 +354,12 @@
     if (parsed.parseError) {
       hidden.value = '[]';
       rows = [];
+      form.setAttribute('data-mel-highlights-json-error', '1');
     }
     renderHighlightRows(form, table, rows);
     if (parsed.parseError) {
       var jsonErr = getHighlightErrorStrings();
       setHighlightsError(form, jsonErr.json);
-      form.setAttribute('data-mel-highlights-json-error', '1');
-      return;
     }
 
     form.addEventListener(
@@ -456,6 +454,9 @@
         if (!e.target.closest('.mel-highlight-row')) {
           return;
         }
+        if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+          form.removeAttribute('data-mel-highlights-json-error');
+        }
         syncHighlightsFromDomToHidden(form);
         updateHighlightErrors(form);
       },
@@ -466,6 +467,9 @@
       function (e) {
         if (!e.target.closest('.mel-highlight-row')) {
           return;
+        }
+        if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+          form.removeAttribute('data-mel-highlights-json-error');
         }
         syncHighlightsFromDomToHidden(form);
         updateHighlightErrors(form);
@@ -1457,6 +1461,8 @@
               forceSyncTicketTiersBeforeSubmit(form);
               forceSyncHighlightsBeforeSubmit(form);
               var body = new FormData(form);
+              var autosaveTs = Date.now();
+              body.append('mel_autosave_ts', String(autosaveTs));
               fetch(url, {
                 method: 'POST',
                 body: body,
@@ -1467,10 +1473,26 @@
               })
                 .then(function (response) {
                   return response.json().then(function (data) {
-                    return { ok: response.ok, data: data };
+                    return { ok: response.ok, status: response.status, data: data };
                   });
                 })
                 .then(function (result) {
+                  if (result.status === 409) {
+                    var latestTs =
+                      result.data && result.data.latest_ts !== undefined && result.data.latest_ts !== null
+                        ? Number(result.data.latest_ts)
+                        : NaN;
+                    if (!Number.isNaN(latestTs) && autosaveTs < latestTs) {
+                      setFormState(
+                        form,
+                        'mel-studio--error',
+                        Drupal.t('Newer changes exist in another tab. Reload to avoid overwriting.'),
+                      );
+                      return;
+                    }
+                    setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+                    return;
+                  }
                   if (!result.ok || !result.data || !result.data.ok) {
                     setFormState(form, 'mel-studio--error', Drupal.t('Draft could not be saved.'));
                     return;
@@ -1559,6 +1581,9 @@
         setHighlightsError(form, hv.message);
         var errBox = getHighlightsErrorEl();
         if (errBox && typeof errBox.focus === 'function') {
+          if (!errBox.hasAttribute('tabindex')) {
+            errBox.setAttribute('tabindex', '-1');
+          }
           errBox.focus();
         }
       }
