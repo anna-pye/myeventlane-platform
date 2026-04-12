@@ -10,14 +10,28 @@
   box-sizing: border-box;
 }
 
-// Full-width region below step nav (wizard + primary actions). Single root <form> wraps
-// .mel-event-studio; there is no nested form inside this div.
+// Full-width region below step nav (wizard + primary actions).
+// DOM: <form class="mel-event-studio-form"> → .mel-event-studio → … → .mel-event-studio__form-full
+// (There is no nested <form> inside __form-full; the prompt’s ".mel-event-studio__form-full form"
+// would only match child forms, e.g. file upload widgets.)
 .mel-event-studio__form-full {
   width: 100%;
   max-width: 100%;
   flex: 1 1 100%;
   min-width: 0;
   display: block;
+  box-sizing: border-box;
+}
+
+.mel-event-studio__form-full form {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+form.mel-event-studio-form {
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -56,10 +70,41 @@
   max-width: 100%;
 }
 
+.mel-event-studio__layout {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
 // Vendor workspace.css targets .mel-studio-main inside shell; Event Studio must not pick up that grid.
 .mel-vendor-shell__content .mel-event-studio .mel-event-studio__form-full {
   display: block !important;
   grid-template-columns: none !important;
+}
+
+// Basic step: title field + AI button (vendor theme loads this partial too).
+.mel-basic-title-with-ai {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .mel-basic-title-with-ai {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-basic-title-with-ai .mel-ai-autofill {
+  padding-top: 1.75rem;
+}
+
+@media (max-width: 600px) {
+  .mel-basic-title-with-ai .mel-ai-autofill {
+    padding-top: 0;
+  }
 }
 
 .mel-studio-top {
@@ -71,9 +116,34 @@
   margin-bottom: 16px;
 }
 
-.mel-studio-top__preview {
+.mel-studio-top__lead {
   width: 100%;
   min-width: 0;
+}
+
+.mel-event-studio__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
+}
+
+.mel-event-studio__preview {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mel-event-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.mel-event-actions .mel-btn {
+  white-space: nowrap;
 }
 
 .mel-studio-top__insights {
@@ -87,6 +157,14 @@
 @media (max-width: 768px) {
   .mel-studio-top {
     grid-template-columns: 1fr;
+  }
+
+  .mel-event-studio__top {
+    flex-direction: column;
+  }
+
+  .mel-event-actions {
+    justify-content: flex-start;
   }
 }
 
@@ -102,8 +180,8 @@
   grid-template-columns: 1fr !important;
 }
 
-/* Kill ALL width constraints */
-.mel-event-studio form,
+/* Kill ALL width constraints (form wraps .mel-event-studio, not the other way around) */
+form.mel-event-studio-form .mel-event-studio,
 .mel-wizard,
 .mel-studio-main-full,
 .mel-event-studio__form-full {
