@@ -385,7 +385,7 @@ final class BoostPerformanceService {
 
   /**
    * @param array<string, mixed> $metrics
-   * @param array{boost: string, analytics: string, edit: string} $urls
+   * @param array{boost: string, analytics: string, overview: string, edit: string} $urls
    *
    * @phpstan-return array<string, mixed>
    */
@@ -410,7 +410,8 @@ final class BoostPerformanceService {
         'intro' => (string) $this->t('You’re getting extra visibility right now.'),
         'tips' => [],
         'cta' => [
-          'url' => $urls['analytics'],
+          // Event analytics is Pro-gated; overview is available to all vendor console users.
+          'url' => $urls['overview'] !== '' ? $urls['overview'] : $urls['analytics'],
           'label' => (string) $this->t('View performance'),
           'classes' => 'mel-btn mel-btn--sm mel-btn--primary',
         ],
@@ -703,12 +704,13 @@ final class BoostPerformanceService {
   }
 
   /**
-   * @phpstan-return array{boost: string, analytics: string, edit: string}
+   * @phpstan-return array{boost: string, analytics: string, overview: string, edit: string}
    */
   private function safeUrls(int $eventId): array {
     $out = [
       'boost' => '',
       'analytics' => '',
+      'overview' => '',
       'edit' => '',
     ];
     if ($eventId <= 0) {
@@ -717,6 +719,7 @@ final class BoostPerformanceService {
     try {
       $out['boost'] = $this->urlGenerator->generateFromRoute('myeventlane_boost.boost_page', ['node' => $eventId]);
       $out['analytics'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_analytics', ['event' => $eventId]);
+      $out['overview'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_overview', ['event' => $eventId]);
       $out['edit'] = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.edit', ['node' => $eventId]);
     }
     catch (\Throwable $e) {
