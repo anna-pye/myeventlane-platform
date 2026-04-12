@@ -183,6 +183,10 @@ final class EventHighlightHelper {
   /**
    * Autosave path: strict row shape and business rules before normalization.
    *
+   * Aligns with validateHighlightItemsStateJson(): rejects icon-without-text
+   * rows and more than HIGHLIGHT_LIMIT persistable rows (non-empty text), so
+   * decode + normalize cannot pass while items_state validation fails later.
+   *
    * @param array<int|string, mixed> $decoded
    *   PHP array from json_decode(..., TRUE).
    *
@@ -199,6 +203,10 @@ final class EventHighlightHelper {
       if ($icon !== '' && $text === '') {
         throw new \InvalidArgumentException('Highlight text required when icon is set.');
       }
+    }
+    $analysis = $this->analyzeDecodedHighlights($decoded);
+    if ($analysis['persistable_count'] > self::HIGHLIGHT_LIMIT) {
+      throw new \InvalidArgumentException('You can add at most 6 highlights.');
     }
   }
 
