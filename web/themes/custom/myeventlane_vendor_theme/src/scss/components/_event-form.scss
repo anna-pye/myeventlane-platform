@@ -286,8 +286,10 @@
 // ============================================================================
 // WIZARD LAYOUT (LEFT SIDEBAR + RIGHT CONTENT)
 // ============================================================================
+// Event Studio also uses .mel-wizard (step panels only; no .mel-wizard__layout).
+// Do not apply this 2-column grid there — scope to layouts that include the sidebar rail.
 
-.mel-wizard,
+.mel-wizard:has(.mel-wizard__layout),
 .mel-wizard--event,
 .mel-vendor-wizard {
   display: grid;

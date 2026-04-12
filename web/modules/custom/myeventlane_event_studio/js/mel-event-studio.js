@@ -39,6 +39,15 @@
     return (el.value || '').trim();
   }
 
+  /** Category: multi-select uses mel[field_category][]; autocomplete uses mel[field_category]. */
+  function categoryFieldHasValue(form) {
+    var multi = form.querySelector('select[name="mel[field_category][]"]');
+    if (multi && multi.selectedOptions && multi.selectedOptions.length > 0) {
+      return true;
+    }
+    return !!val(form, 'mel[field_category]');
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -871,6 +880,19 @@
     if (!host) {
       return;
     }
+    var sel = form.querySelector('select[name="mel[field_category][]"]');
+    if (sel) {
+      var chips = [];
+      for (var i = 0; i < sel.selectedOptions.length; i++) {
+        chips.push(
+          '<span class="mel-chip">' +
+            Drupal.checkPlain(sel.selectedOptions[i].text) +
+            '</span>',
+        );
+      }
+      host.innerHTML = chips.join('');
+      return;
+    }
     var raw = val(form, 'mel[field_category]');
     if (!raw) {
       host.innerHTML = '';
@@ -1227,7 +1249,7 @@
     if (val(form, 'mel[title]').length >= 3) score++;
     if (val(form, 'mel[summary]').length >= 10) score++;
     if (val(form, 'mel[body]').length >= 40) score++;
-    if (val(form, 'mel[field_category]')) score++;
+    if (categoryFieldHasValue(form)) score++;
     if (hasCoverFile(form)) score++;
 
     var sd = form.querySelector('[name="mel[start_date][date]"]');
@@ -1259,7 +1281,7 @@
   function isStepComplete(step, form) {
     switch (step) {
       case 'basic':
-        return !!(val(form, 'mel[title]') && val(form, 'mel[field_category]'));
+        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
       case 'schedule': {
         var sd = form.querySelector('[name="mel[start_date][date]"]');
         return !!(sd && sd.value);
@@ -1367,7 +1389,7 @@
       out.push(Drupal.t('Add a cover image to increase visibility in discovery and social previews.'));
     }
 
-    if (!val(form, 'mel[field_category]')) {
+    if (!categoryFieldHasValue(form)) {
       out.push(Drupal.t('Select a category so the right audience can find your event.'));
     }
 
