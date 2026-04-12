@@ -187,7 +187,7 @@ final class HelpInsightsController extends ControllerBase {
       ];
     }
 
-    $orderedKeys = $this->panelIntelligence->getTopPanels($panels);
+    $orderedKeys = $this->panelIntelligence->getOrderedPanelKeys($panels);
     if ($orderedKeys === []) {
       $orderedKeys = array_keys($panels);
     }

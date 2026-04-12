@@ -40,7 +40,7 @@ final class SupportPanelBuilder {
       return NULL;
     }
 
-    $orderedKeys = $this->helpPanelIntelligence->getTopPanels($panels);
+    $orderedKeys = $this->helpPanelIntelligence->getOrderedPanelKeys($panels);
     if ($orderedKeys === []) {
       $orderedKeys = array_keys($panels);
     }
