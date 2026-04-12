@@ -48,6 +48,7 @@
   @include meta.load-css('components/empty-states');
   @include meta.load-css('components/console');
   @include meta.load-css('components/workspace');
+  @include meta.load-css('components/boost-insights');
   @include meta.load-css('components/mel-workspace-percent');
   @include meta.load-css('components/event-form');
   @include meta.load-css('components/stripe-panel');

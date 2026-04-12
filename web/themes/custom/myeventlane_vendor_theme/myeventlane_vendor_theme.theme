@@ -828,6 +828,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'insights' => NULL,
         'header_stats' => NULL,
         'header_meta_line' => NULL,
+        'workspace_event_boost' => NULL,
       ],
       'template' => 'mel-event/mel-event-workspace',
     ],
@@ -1101,6 +1102,23 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
     if ($event->hasField('moderation_state') && !$event->get('moderation_state')->isEmpty()
       && (string) $event->get('moderation_state')->value === 'review') {
       $variables['event_status_badge_modifier'] = 'mel-badge--warning';
+    }
+  }
+
+  // Boost insights payload (optional module): same source as dashboard rows, no vendor→boost hard dependency.
+  $variables['workspace_event_boost'] = NULL;
+  if ($event->bundle() === 'event' && \Drupal::hasService('myeventlane_boost.performance')) {
+    try {
+      $boost_performance = \Drupal::service('myeventlane_boost.performance');
+      $variables['workspace_event_boost'] = [
+        'performance' => $boost_performance->getPerformanceForEvent($event),
+      ];
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_vendor_theme')->warning('Workspace boost performance failed for event @nid: @message', [
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
     }
   }
 }

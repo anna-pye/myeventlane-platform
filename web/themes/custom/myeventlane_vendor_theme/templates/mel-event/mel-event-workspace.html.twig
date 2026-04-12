@@ -31,6 +31,12 @@
       {% endif %}
 
       <main class="mel-workspace__content">
+        {% if workspace_event_boost and workspace_event_boost.performance is defined and workspace_event_boost.performance.ui is defined and workspace_event_boost.performance.ui.show %}
+          {% include '@myeventlane_vendor_theme/components/mel-boost-insights-panel.html.twig' with {
+            performance: workspace_event_boost.performance
+          } only %}
+        {% endif %}
+
         {% if insights is not empty and insights is iterable %}
           <div class="mel-intelligence" role="region" aria-label="{{ 'Event guidance'|t }}">
             {% if insights.score is defined %}

@@ -1,0 +1,108 @@
+/**
+ * @file
+ * Boost Insights panel — event workspace top banner (MEL workspace tokens).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/radii' as *;
+
+// Aliases aligned with design brief (map to vendor tokens).
+$color-bg-offwhite: $ml-vendor-bg;
+$radius-medium: $mel-radius-sm;
+$color-muted-text: $text-secondary;
+$color-primary: $primary;
+$color-highlight: $mel-ws-coral;
+$color-accent: $mel-ws-purple;
+
+.mel-boost-insights {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  background: $color-bg-offwhite;
+  border-radius: $radius-medium;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid $mel-ws-border-soft;
+  box-shadow: 0 1px 3px $mel-ws-shadow-soft;
+
+  &__header {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  &__emoji {
+    flex-shrink: 0;
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  &__text {
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__intro {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: $color-muted-text;
+  }
+
+  &__tips {
+    margin: 12px 0 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+
+    li {
+      font-size: 14px;
+      line-height: 1.45;
+      margin-bottom: 6px;
+      color: $text-secondary;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  &__pricing {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: $color-primary;
+    font-weight: 500;
+  }
+
+  &__cta {
+    margin-top: 16px;
+  }
+
+  &--opportunity {
+    border-left: 4px solid $color-highlight;
+  }
+
+  &--active_boost {
+    border-left: 4px solid $color-accent;
+  }
+
+  &--boost_worked {
+    border-left: 4px solid #4caf50;
+  }
+
+  &--boost_failed {
+    border-left: 4px solid #f26d5b;
+  }
+}
+
+@media (min-width: 768px) {
+  .mel-boost-insights {
+    padding: 18px 20px;
+  }
+}
