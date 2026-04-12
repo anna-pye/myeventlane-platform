@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
@@ -32,6 +33,8 @@ final class EventStudioForm extends FormBase {
    */
   protected EntityTypeManagerInterface $entityTypeManager;
 
+  protected EntityFieldManagerInterface $entityFieldManager;
+
   protected EventStudioSaveService $saveService;
 
   protected AccountProxyInterface $currentUser;
@@ -50,6 +53,7 @@ final class EventStudioForm extends FormBase {
     /** @var static $instance */
     $instance = parent::create($container);
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->entityFieldManager = $container->get('entity_field.manager');
     $instance->saveService = $container->get('myeventlane_event_studio.save');
     $instance->currentUser = $container->get('current_user');
     $instance->locationProvider = $container->has('myeventlane_location.provider_manager')
@@ -75,12 +79,15 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper)) {
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper)) {
       return;
     }
     $container = \Drupal::getContainer();
     if (!isset($this->entityTypeManager)) {
       $this->entityTypeManager = $container->get('entity_type.manager');
+    }
+    if (!isset($this->entityFieldManager)) {
+      $this->entityFieldManager = $container->get('entity_field.manager');
     }
     if (!isset($this->saveService)) {
       $this->saveService = $container->get('myeventlane_event_studio.save');
@@ -272,6 +279,76 @@ final class EventStudioForm extends FormBase {
       $ticket_types_default = $event->get('field_ticket_types')->referencedEntities();
     }
 
+    $field_event_intro_default = '';
+    if ($event->hasField('field_event_intro') && !$event->get('field_event_intro')->isEmpty()) {
+      $field_event_intro_default = (string) ($event->get('field_event_intro')->value ?? '');
+    }
+
+    $field_sales_start_default = NULL;
+    if ($event->hasField('field_sales_start') && !$event->get('field_sales_start')->isEmpty()) {
+      $field_sales_start_default = new DrupalDateTime($event->get('field_sales_start')->value);
+    }
+
+    $field_sales_end_default = NULL;
+    if ($event->hasField('field_sales_end') && !$event->get('field_sales_end')->isEmpty()) {
+      $field_sales_end_default = new DrupalDateTime($event->get('field_sales_end')->value);
+    }
+
+    $field_age_policy_default = 'all_ages';
+    if ($event->hasField('field_age_policy') && !$event->get('field_age_policy')->isEmpty()) {
+      $field_age_policy_default = (string) $event->get('field_age_policy')->value;
+    }
+
+    $field_age_policy_note_default = '';
+    if ($event->hasField('field_age_policy_note') && !$event->get('field_age_policy_note')->isEmpty()) {
+      $field_age_policy_note_default = (string) ($event->get('field_age_policy_note')->value ?? '');
+    }
+
+    $field_age_restriction_default = '';
+    if ($event->hasField('field_age_restriction') && !$event->get('field_age_restriction')->isEmpty()) {
+      $field_age_restriction_default = (string) $event->get('field_age_restriction')->value;
+    }
+
+    $field_refund_policy_default = '';
+    if ($event->hasField('field_refund_policy') && !$event->get('field_refund_policy')->isEmpty()) {
+      $field_refund_policy_default = (string) $event->get('field_refund_policy')->value;
+    }
+
+    $field_accessibility_default = [];
+    if ($event->hasField('field_accessibility') && !$event->get('field_accessibility')->isEmpty()) {
+      $field_accessibility_default = $event->get('field_accessibility')->referencedEntities();
+    }
+
+    $field_accessibility_contact_default = '';
+    if ($event->hasField('field_accessibility_contact') && !$event->get('field_accessibility_contact')->isEmpty()) {
+      $field_accessibility_contact_default = (string) ($event->get('field_accessibility_contact')->value ?? '');
+    }
+
+    $field_accessibility_directions_default = '';
+    if ($event->hasField('field_accessibility_directions') && !$event->get('field_accessibility_directions')->isEmpty()) {
+      $field_accessibility_directions_default = (string) ($event->get('field_accessibility_directions')->value ?? '');
+    }
+
+    $field_accessibility_entry_default = '';
+    if ($event->hasField('field_accessibility_entry') && !$event->get('field_accessibility_entry')->isEmpty()) {
+      $field_accessibility_entry_default = (string) ($event->get('field_accessibility_entry')->value ?? '');
+    }
+
+    $field_accessibility_parking_default = '';
+    if ($event->hasField('field_accessibility_parking') && !$event->get('field_accessibility_parking')->isEmpty()) {
+      $field_accessibility_parking_default = (string) ($event->get('field_accessibility_parking')->value ?? '');
+    }
+
+    $field_contact_email_default = '';
+    if ($event->hasField('field_contact_email') && !$event->get('field_contact_email')->isEmpty()) {
+      $field_contact_email_default = (string) ($event->get('field_contact_email')->value ?? '');
+    }
+
+    $field_contact_phone_default = '';
+    if ($event->hasField('field_contact_phone') && !$event->get('field_contact_phone')->isEmpty()) {
+      $field_contact_phone_default = (string) ($event->get('field_contact_phone')->value ?? '');
+    }
+
     $has_cover = $event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty();
     $needs_ticket_product = FALSE;
     if ($type_default === 'paid'
@@ -309,6 +386,14 @@ final class EventStudioForm extends FormBase {
       '#default_value' => $body_default,
       '#description' => $this->t('Longer description for your event page (plain text).'),
       '#attributes' => ['class' => ['mel-input', 'mel-input--body']],
+    ];
+
+    $form['mel']['field_event_intro'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('What to expect'),
+      '#default_value' => $field_event_intro_default,
+      '#description' => $this->t('Introductory content shown on the event page (plain text).'),
+      '#attributes' => ['class' => ['mel-input']],
     ];
 
     $highlights_json = $this->encodeEventHighlightsJsonForEvent($event);
@@ -405,6 +490,20 @@ final class EventStudioForm extends FormBase {
       '#attributes' => ['class' => ['mel-input']],
     ];
 
+    $form['mel']['field_contact_email'] = [
+      '#type' => 'email',
+      '#title' => $this->t('Contact email'),
+      '#default_value' => $field_contact_email_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_contact_phone'] = [
+      '#type' => 'tel',
+      '#title' => $this->t('Contact phone'),
+      '#default_value' => $field_contact_phone_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
     $form['mel']['start_date'] = [
       '#type' => 'datetime',
       '#title' => $this->t('Start'),
@@ -422,6 +521,71 @@ final class EventStudioForm extends FormBase {
         ? new DrupalDateTime($event->get('field_event_end')->value)
         : NULL,
       '#date_increment' => 15,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_sales_start'] = [
+      '#type' => 'datetime',
+      '#title' => $this->t('Ticket sales start'),
+      '#default_value' => $field_sales_start_default,
+      '#date_increment' => 15,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_sales_end'] = [
+      '#type' => 'datetime',
+      '#title' => $this->t('Ticket sales end'),
+      '#default_value' => $field_sales_end_default,
+      '#date_increment' => 15,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_age_policy'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Age policy'),
+      '#options' => $this->listStringFieldOptions('field_age_policy') ?: [
+        'all_ages' => $this->t('All ages'),
+        '18_plus' => $this->t('18+'),
+        '16_plus' => $this->t('16+'),
+        'under_18_with_guardian' => $this->t('Under 18 with guardian'),
+        'custom' => $this->t('Custom'),
+      ],
+      '#default_value' => $field_age_policy_default,
+      '#required' => TRUE,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_age_policy_note'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Age policy note'),
+      '#default_value' => $field_age_policy_note_default,
+      '#maxlength' => 255,
+      '#description' => $this->t('Use when age policy is set to Custom.'),
+      '#attributes' => ['class' => ['mel-input']],
+      '#states' => [
+        'visible' => [
+          ':input[name="mel[field_age_policy]"]' => ['value' => 'custom'],
+        ],
+      ],
+    ];
+
+    $form['mel']['field_age_restriction'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Age suitability'),
+      '#options' => $this->listStringFieldOptions('field_age_restriction'),
+      '#empty_option' => $this->t('- None -'),
+      '#empty_value' => '',
+      '#default_value' => $field_age_restriction_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_refund_policy'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Refund policy'),
+      '#options' => $this->listStringFieldOptions('field_refund_policy'),
+      '#empty_option' => $this->t('- Not specified -'),
+      '#empty_value' => '',
+      '#default_value' => $field_refund_policy_default,
       '#attributes' => ['class' => ['mel-input']],
     ];
 
@@ -751,6 +915,48 @@ final class EventStudioForm extends FormBase {
         'target_bundles' => ['tags' => 'tags'],
       ],
       '#default_value' => $tags_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility'] = [
+      '#type' => 'entity_autocomplete',
+      '#title' => $this->t('Accessibility features'),
+      '#target_type' => 'taxonomy_term',
+      '#tags' => TRUE,
+      '#selection_handler' => 'default',
+      '#selection_settings' => [
+        'target_bundles' => ['accessibility' => 'accessibility'],
+      ],
+      '#default_value' => $field_accessibility_default,
+      '#description' => $this->t('Shown on listings and helps attendees plan ahead.'),
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_contact'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessibility contact'),
+      '#default_value' => $field_accessibility_contact_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_directions'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessible directions'),
+      '#default_value' => $field_accessibility_directions_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_entry'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Entry and access'),
+      '#default_value' => $field_accessibility_entry_default,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_accessibility_parking'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Accessible parking'),
+      '#default_value' => $field_accessibility_parking_default,
       '#attributes' => ['class' => ['mel-input']],
     ];
 
@@ -1126,10 +1332,18 @@ final class EventStudioForm extends FormBase {
       'title' => $mel['title'] ?? '',
       'summary' => $mel['summary'] ?? '',
       'body' => $mel['body'] ?? '',
+      'field_event_intro' => trim((string) ($mel['field_event_intro'] ?? '')),
       'field_event_image' => $image_fid,
       'field_event_image_alt' => trim((string) ($mel['field_event_image_alt'] ?? '')),
+      'field_contact_email' => trim((string) ($mel['field_contact_email'] ?? '')),
+      'field_contact_phone' => trim((string) ($mel['field_contact_phone'] ?? '')),
       'field_category' => $this->extractMultipleEntityIds($mel['field_category'] ?? ''),
       'field_tags' => $this->extractMultipleEntityIds($mel['field_tags'] ?? ''),
+      'field_accessibility' => $this->extractMultipleEntityIds($mel['field_accessibility'] ?? ''),
+      'field_accessibility_contact' => trim((string) ($mel['field_accessibility_contact'] ?? '')),
+      'field_accessibility_directions' => trim((string) ($mel['field_accessibility_directions'] ?? '')),
+      'field_accessibility_entry' => trim((string) ($mel['field_accessibility_entry'] ?? '')),
+      'field_accessibility_parking' => trim((string) ($mel['field_accessibility_parking'] ?? '')),
       'field_product_target' => $this->extractSingleEntityId($mel['field_product_target'] ?? NULL),
       'field_ticket_types' => $this->extractMultipleEntityIds($mel['field_ticket_types'] ?? ''),
       'studio_ticket_tiers' => $studio_ticket_tiers,
@@ -1139,6 +1353,12 @@ final class EventStudioForm extends FormBase {
       'field_location' => $field_location,
       'field_event_start' => $this->normalizeDatetimeValue($mel['start_date'] ?? NULL),
       'field_event_end' => $this->normalizeDatetimeValue($mel['end_date'] ?? NULL),
+      'field_sales_start' => $this->normalizeDatetimeValue($mel['field_sales_start'] ?? NULL),
+      'field_sales_end' => $this->normalizeDatetimeValue($mel['field_sales_end'] ?? NULL),
+      'field_age_policy' => trim((string) ($mel['field_age_policy'] ?? 'all_ages')),
+      'field_age_policy_note' => trim((string) ($mel['field_age_policy_note'] ?? '')),
+      'field_age_restriction' => trim((string) ($mel['field_age_restriction'] ?? '')),
+      'field_refund_policy' => trim((string) ($mel['field_refund_policy'] ?? '')),
       'field_event_type' => $ticket_type,
       'ticket_type' => $ticket_type,
       'capacity' => $capacity,
@@ -1263,6 +1483,39 @@ final class EventStudioForm extends FormBase {
       }
     }
     return is_string($value) ? $value : NULL;
+  }
+
+  /**
+   * Options for a list_string field on the event bundle (empty if unavailable).
+   *
+   * @return array<string, string>
+   */
+  private function listStringFieldOptions(string $field_name): array {
+    $this->ensureInjectedServices();
+    try {
+      $definitions = $this->entityFieldManager->getFieldDefinitions('node', 'event');
+    }
+    catch (\Throwable) {
+      return [];
+    }
+    $def = $definitions[$field_name] ?? NULL;
+    if ($def === NULL || $def->getType() !== 'list_string') {
+      return [];
+    }
+    $allowed = $def->getSetting('allowed_values');
+    if (!is_array($allowed)) {
+      return [];
+    }
+    $out = [];
+    foreach ($allowed as $key => $item) {
+      if (is_array($item) && isset($item['value'])) {
+        $out[(string) $item['value']] = (string) ($item['label'] ?? $item['value']);
+      }
+      elseif (!is_array($item) && !is_int($key)) {
+        $out[(string) $key] = (string) $item;
+      }
+    }
+    return $out;
   }
 
 }
