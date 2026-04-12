@@ -92,10 +92,19 @@
     return parts.join(', ');
   }
 
+  /** Panel tone/audience selects (one per form; class-scoped, not global IDs). */
+  function getAiToneSelect(form) {
+    return form.querySelector('select.mel-ai-tone');
+  }
+
+  function getAiAudienceSelect(form) {
+    return form.querySelector('select.mel-ai-audience');
+  }
+
   /** Panel selects → hidden mel[ai_settings][*] (submit + AI). */
   function syncAiControlsToForm(form) {
-    var toneSelect = document.getElementById('mel-ai-tone');
-    var audienceSelect = document.getElementById('mel-ai-audience');
+    var toneSelect = getAiToneSelect(form);
+    var audienceSelect = getAiAudienceSelect(form);
     if (!toneSelect || !audienceSelect) {
       return;
     }
@@ -111,8 +120,8 @@
 
   /** Hidden fields → panel (initial load / after rebuild). */
   function syncFormToAiControls(form) {
-    var toneSelect = document.getElementById('mel-ai-tone');
-    var audienceSelect = document.getElementById('mel-ai-audience');
+    var toneSelect = getAiToneSelect(form);
+    var audienceSelect = getAiAudienceSelect(form);
     if (!toneSelect || !audienceSelect) {
       return;
     }
@@ -126,13 +135,13 @@
     }
   }
 
-  function aiToneFromPanel() {
-    var el = document.getElementById('mel-ai-tone');
+  function aiToneFromPanel(form) {
+    var el = getAiToneSelect(form);
     return el && el.value ? el.value : 'community';
   }
 
-  function aiAudienceFromPanel() {
-    var el = document.getElementById('mel-ai-audience');
+  function aiAudienceFromPanel(form) {
+    var el = getAiAudienceSelect(form);
     return el && el.value ? el.value : 'general';
   }
 
@@ -1692,8 +1701,8 @@
         initMelWizard(form);
 
         syncFormToAiControls(form);
-        var melAiTone = document.getElementById('mel-ai-tone');
-        var melAiAudience = document.getElementById('mel-ai-audience');
+        var melAiTone = getAiToneSelect(form);
+        var melAiAudience = getAiAudienceSelect(form);
         if (melAiTone) {
           melAiTone.addEventListener('change', function () {
             syncAiControlsToForm(form);
@@ -1736,8 +1745,8 @@
                     summary: val(form, 'mel[summary]'),
                     category: categoryForAiPayload(form),
                     tags: tagsForAiPayload(form),
-                    tone: aiToneFromPanel(),
-                    audience: aiAudienceFromPanel(),
+                    tone: aiToneFromPanel(form),
+                    audience: aiAudienceFromPanel(form),
                   }),
                 });
               })
