@@ -1,4 +1,6 @@
 enabled: false
+# When FALSE, Flood-based per-user / per-scope rate limits are skipped (dev only).
+rate_limit_enabled: true
 provider: 'openai'
 openai:
   endpoint: 'https://api.openai.com/v1/chat/completions'

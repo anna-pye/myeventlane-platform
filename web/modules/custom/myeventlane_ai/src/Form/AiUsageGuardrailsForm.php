@@ -119,6 +119,13 @@ final class AiUsageGuardrailsForm extends ConfigFormBase {
       '#open' => TRUE,
     ];
 
+    $form['guardrails']['rate_limit_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable Flood rate limits (per user / per scope)'),
+      '#default_value' => $config->get('rate_limit_enabled') !== FALSE,
+      '#description' => $this->t('When enabled, AiManager enforces per-user (hourly) and per-scope (10 min) limits via the Flood API. Turn off only on trusted local/dev environments for rapid testing; keep enabled in production.'),
+    ];
+
     $form['guardrails']['daily_user_token_limit'] = [
       '#type' => 'number',
       '#title' => $this->t('Daily token limit per user'),
@@ -212,6 +219,7 @@ final class AiUsageGuardrailsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $config = $this->config('myeventlane_ai.settings');
     $config
+      ->set('rate_limit_enabled', (bool) $form_state->getValue('rate_limit_enabled'))
       ->set('daily_user_token_limit', (int) $form_state->getValue('daily_user_token_limit'))
       ->set('daily_vendor_token_limit', (int) $form_state->getValue('daily_vendor_token_limit'))
       ->set('daily_cost_ceiling_usd', (float) $form_state->getValue('daily_cost_ceiling_usd'))

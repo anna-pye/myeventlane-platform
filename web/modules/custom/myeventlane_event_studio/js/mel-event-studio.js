@@ -48,6 +48,50 @@
     return !!val(form, 'mel[field_category]');
   }
 
+  /** Token string for X-CSRF-Token (must match GET /session/token body). */
+  function melGetCsrfToken() {
+    return fetch(Drupal.url('session/token'), {
+      credentials: 'same-origin',
+    }).then(function (response) {
+      if (!response.ok) {
+        return Promise.reject(new Error('session_token_http_' + response.status));
+      }
+      return response.text().then(function (text) {
+        return (text || '').trim();
+      });
+    });
+  }
+
+  /** Category labels for AI payload (multi-select vs autocomplete). */
+  function categoryForAiPayload(form) {
+    var multi = form.querySelector('select[name="mel[field_category][]"]');
+    if (multi && multi.selectedOptions && multi.selectedOptions.length > 0) {
+      var parts = [];
+      for (var i = 0; i < multi.selectedOptions.length; i++) {
+        parts.push(multi.selectedOptions[i].text);
+      }
+      return parts.join(', ');
+    }
+    return val(form, 'mel[field_category]');
+  }
+
+  /** Tags field (entity autocomplete may use mel[field_tags] or target_id children). */
+  function tagsForAiPayload(form) {
+    var v = val(form, 'mel[field_tags]');
+    if (v) {
+      return v;
+    }
+    var parts = [];
+    var inputs = form.querySelectorAll('input[name*="[field_tags]"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var x = (inputs[i].value || '').trim();
+      if (x) {
+        parts.push(x);
+      }
+    }
+    return parts.join(', ');
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -1604,6 +1648,82 @@
         initMelWizard(form);
 
         form.addEventListener('click', function (e) {
+          var genBtn = e.target.closest('#mel-ai-generate');
+          if (genBtn && form.contains(genBtn)) {
+            e.preventDefault();
+            var aiUrl = Drupal.url('vendor/events/ai/generate');
+
+            setFormState(form, 'mel-studio--saving', Drupal.t('AI is writing your event…'));
+
+            melGetCsrfToken()
+              .then(function (token) {
+                if (!token) {
+                  return Promise.reject(new Error('empty_csrf_token'));
+                }
+                return fetch(aiUrl, {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': token,
+                    Accept: 'application/json',
+                  },
+                  body: JSON.stringify({
+                    title: val(form, 'mel[title]'),
+                    summary: val(form, 'mel[summary]'),
+                    category: categoryForAiPayload(form),
+                    tags: tagsForAiPayload(form),
+                    tone: val(form, 'mel[ai_settings][ai_tone]'),
+                    audience: val(form, 'mel[ai_settings][ai_audience]'),
+                  }),
+                });
+              })
+              .then(function (response) {
+                return response.text().then(function (text) {
+                  var data = {};
+                  if (text) {
+                    try {
+                      data = JSON.parse(text);
+                    } catch (parseErr) {
+                      data = { ok: false, _parseError: true };
+                    }
+                  }
+                  return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: data,
+                  };
+                });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  setFormState(form, 'mel-studio--error', Drupal.t('AI generation failed.'));
+                  return;
+                }
+
+                if (result.data.title) {
+                  var titleInput = form.querySelector('[name="mel[title]"]');
+                  if (titleInput) {
+                    titleInput.value = result.data.title;
+                  }
+                }
+
+                if (result.data.summary) {
+                  var summaryInput = form.querySelector('[name="mel[summary]"]');
+                  if (summaryInput) {
+                    summaryInput.value = result.data.summary;
+                  }
+                }
+
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+                refreshIntelligence(form);
+                setFormState(form, 'mel-studio--dirty', Drupal.t('AI content applied'));
+              })
+              .catch(function () {
+                setFormState(form, 'mel-studio--error', Drupal.t('AI request failed.'));
+              });
+            return;
+          }
           var a = e.target.closest('.mel-ticket-product-panel__cta.is-disabled');
           if (a) {
             e.preventDefault();

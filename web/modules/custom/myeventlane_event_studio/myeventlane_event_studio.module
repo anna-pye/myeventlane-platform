@@ -8,6 +8,7 @@
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
+use Drupal\myeventlane_event_studio\EventStudioPreprocess;
 
 /**
  * Implements hook_theme().
@@ -42,4 +43,6 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
   }
   $variables['attributes'] = new Attribute($element['#attributes']);
   $variables['mode'] = $element['#mel_studio_mode'] ?? 'create';
+
+  (new EventStudioPreprocess())->preprocess($variables);
 }

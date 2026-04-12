@@ -243,3 +243,16 @@ function myeventlane_ai_update_9007(): string {
 
   return 'prompt_key and prompt_version already installed on ai_job.';
 }
+
+/**
+ * Add rate_limit_enabled (Flood limits); default ON for existing sites.
+ */
+function myeventlane_ai_update_9008(): string {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_ai.settings');
+  if ($config->get('rate_limit_enabled') === NULL) {
+    $config->set('rate_limit_enabled', TRUE);
+    $config->save();
+    return 'Added rate_limit_enabled (default: enabled). Set to FALSE in dev only to skip Flood rate limits.';
+  }
+  return 'rate_limit_enabled already present.';
+}

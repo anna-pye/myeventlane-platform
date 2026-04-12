@@ -149,4 +149,109 @@ final class AiManager {
     return $result;
   }
 
+  /**
+   * Generates an event title and short summary from optional user context.
+   *
+   * @param array<string, string> $context
+   *   Keys: title, summary, category, tags, tone, audience (plain text; may be empty).
+   * @param int|null $requested_by_uid
+   *   User ID for rate limiting and usage accounting.
+   * @param int|null $vendor_id
+   *   Optional vendor ID for opt-in and quota (resolved server-side by caller).
+   *
+   * @return array{title: string, summary: string}
+   *   Generated strings; may be empty if the model returns incomplete data.
+   *
+   * @throws \RuntimeException
+   *   When the AI call fails or the response is not usable JSON.
+   */
+  public function generateEventCopy(array $context, ?int $requested_by_uid = NULL, ?int $vendor_id = NULL): array {
+    $category = (string) ($context['category'] ?? '');
+    $title = (string) ($context['title'] ?? '');
+    $summary = (string) ($context['summary'] ?? '');
+    $tags = (string) ($context['tags'] ?? '');
+    $toneKey = (string) ($context['tone'] ?? 'community');
+    $audienceKey = (string) ($context['audience'] ?? 'general');
+
+    $toneDesc = $this->mapToneForEventCopy($toneKey);
+    $audienceDesc = $this->mapAudienceForEventCopy($audienceKey);
+    $categoryLine = $category !== '' ? $category : 'general';
+    $tagsLine = $tags !== '' ? $tags : '(none)';
+
+    $system = 'You are an event marketing assistant for MyEventLane. Respond with ONLY valid JSON (no markdown fences): {"title":"...","summary":"..."}. Title: max ~12 words, clear and engaging. Summary: 1–2 sentences on value and vibe, max ~300 characters. Match the requested tone and audience; avoid generic filler. Make it feel local, real, and specific.';
+    $user = "Write a compelling event title and short summary.\n\nContext:\n- Category: {$categoryLine}\n- Tags / keywords: {$tagsLine}\n- Audience: {$audienceDesc}\n- Tone: {$toneDesc}\n\nExisting draft (may be empty):\n- Title: {$title}\n- Summary notes: {$summary}\n\nInstructions:\n- Reflect tone and audience in word choice.\n- Avoid generic phrases.\n";
+
+    $hash = hash('sha256', $system . "\n" . $user);
+    $definition = new PromptDefinition('event_studio.generate_event_copy', 'v2', $system, $user, $hash);
+
+    $scopeId = 'event_studio:generate_copy:' . substr($hash, 0, 20);
+
+    $config = $this->configFactory->get('myeventlane_ai.settings');
+    $maxTokens = (int) ($config->get('openai.max_tokens') ?? 600);
+    $maxTokens = max(200, min($maxTokens, 600));
+
+    $result = $this->analyze(
+      $definition,
+      [
+        'model' => (string) ($config->get('openai.model') ?: 'gpt-4o-mini'),
+        'temperature' => (float) ($config->get('openai.temperature') ?? 0.35),
+        'max_tokens' => $maxTokens,
+        'timeout_seconds' => (int) ($config->get('openai.timeout_seconds') ?? 20),
+      ],
+      $requested_by_uid,
+      $scopeId,
+      $vendor_id,
+    );
+
+    if (!$result->ok) {
+      throw new \RuntimeException($result->error ?? 'AI request failed');
+    }
+
+    $decoded = $result->json;
+    if (!is_array($decoded)) {
+      $trimmed = trim($result->raw);
+      if ($trimmed !== '' && ($trimmed[0] === '{' || $trimmed[0] === '[')) {
+        $try = json_decode($trimmed, TRUE);
+        $decoded = is_array($try) ? $try : NULL;
+      }
+    }
+
+    if (!is_array($decoded)) {
+      $this->logger->notice('Event Studio AI: response was not valid JSON.');
+      throw new \RuntimeException('AI response was not valid JSON');
+    }
+
+    return [
+      'title' => trim((string) ($decoded['title'] ?? '')),
+      'summary' => trim((string) ($decoded['summary'] ?? '')),
+    ];
+  }
+
+  /**
+   * Maps Event Studio tone key to prompt instructions.
+   */
+  private function mapToneForEventCopy(string $tone): string {
+    return match ($tone) {
+      'fun' => 'playful, energetic, exciting',
+      'professional' => 'clear, structured, polished',
+      'community' => 'inclusive, welcoming, friendly',
+      'urgent' => 'high energy, time-sensitive, compelling',
+      'luxury' => 'premium, exclusive, refined',
+      default => 'friendly and engaging',
+    };
+  }
+
+  /**
+   * Maps Event Studio audience key to prompt instructions.
+   */
+  private function mapAudienceForEventCopy(string $audience): string {
+    return match ($audience) {
+      'lgbtq' => 'LGBTQIA+ community',
+      'students' => 'young adults and students',
+      'professionals' => 'working professionals',
+      'families' => 'families and parents',
+      default => 'general public',
+    };
+  }
+
 }

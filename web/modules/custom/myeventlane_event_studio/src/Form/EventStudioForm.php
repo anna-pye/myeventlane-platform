@@ -380,6 +380,39 @@ final class EventStudioForm extends FormBase {
       '#attributes' => ['class' => ['mel-input']],
     ];
 
+    $form['mel']['ai_settings'] = [
+      '#type' => 'details',
+      '#title' => $this->t('AI Settings'),
+      '#open' => TRUE,
+      '#weight' => -10,
+    ];
+    $form['mel']['ai_settings']['ai_tone'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Tone'),
+      '#options' => [
+        'fun' => $this->t('Fun & playful'),
+        'professional' => $this->t('Professional'),
+        'community' => $this->t('Community-focused'),
+        'urgent' => $this->t('High energy / urgent'),
+        'luxury' => $this->t('Premium / exclusive'),
+      ],
+      '#default_value' => 'community',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+    $form['mel']['ai_settings']['ai_audience'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Audience'),
+      '#options' => [
+        'general' => $this->t('General public'),
+        'lgbtq' => $this->t('LGBTQIA+ community'),
+        'students' => $this->t('Students'),
+        'professionals' => $this->t('Professionals'),
+        'families' => $this->t('Families'),
+      ],
+      '#default_value' => 'general',
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
     $form['mel']['body'] = [
       '#type' => 'textarea',
       '#title' => $this->t('About the event'),
@@ -475,8 +508,8 @@ final class EventStudioForm extends FormBase {
       '#description' => $this->t('Hero image (PNG, JPG, WebP; max 5 MB). Recommended 1200×630.'),
       '#upload_location' => 'public://events',
       '#upload_validators' => [
-        'file_validate_extensions' => ['png gif jpg jpeg webp'],
-        'file_validate_size' => [5 * 1024 * 1024],
+        'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
+        'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
       ],
       '#default_value' => $image_fids,
       '#attributes' => ['class' => ['mel-input-file']],
@@ -1007,6 +1040,8 @@ final class EventStudioForm extends FormBase {
       '#value' => $this->t('Save'),
       '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'button--primary']],
     ];
+
+    $form['#mel_studio_node'] = $event;
 
     return $form;
   }

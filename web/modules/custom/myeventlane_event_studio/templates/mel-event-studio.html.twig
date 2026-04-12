@@ -31,25 +31,41 @@
     </div>
 
     <div class="mel-studio-top">
-      <div class="mel-studio-top__preview">
-        <div id="mel-preview-card">
-          <article class="mel-preview-card">
-            <div class="mel-preview-card__media" id="mel-preview-card-media">
-              <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
-              <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
-                <span aria-hidden="true"></span>
-              </div>
+      <div class="mel-studio-top__lead">
+        <div class="mel-event-studio__top">
+          <div class="mel-event-studio__preview">
+            <div id="mel-preview-card">
+              <article class="mel-preview-card">
+                <div class="mel-preview-card__media" id="mel-preview-card-media">
+                  <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
+                  <div class="mel-preview-card__media-placeholder" id="mel-preview-card-placeholder">
+                    <span aria-hidden="true"></span>
+                  </div>
+                </div>
+                <div class="mel-preview-card__body">
+                  <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
+                  <p class="mel-preview-card__meta">
+                    <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
+                  </p>
+                  <p class="mel-preview-card__location" id="mel-preview-location">—</p>
+                  <p class="mel-preview-card__badge" id="mel-preview-tickets">—</p>
+                  <p class="mel-preview-card__status" id="mel-preview-status">—</p>
+                </div>
+              </article>
             </div>
-            <div class="mel-preview-card__body">
-              <h3 class="mel-preview-card__title" id="mel-preview-title">—</h3>
-              <p class="mel-preview-card__meta">
-                <time class="mel-preview-card__time" id="mel-preview-schedule" datetime="">—</time>
-              </p>
-              <p class="mel-preview-card__location" id="mel-preview-location">—</p>
-              <p class="mel-preview-card__badge" id="mel-preview-tickets">—</p>
-              <p class="mel-preview-card__status" id="mel-preview-status">—</p>
-            </div>
-          </article>
+          </div>
+
+          <div class="mel-event-actions">
+            {% if mel_event_actions.view %}
+              <a href="{{ mel_event_actions.view }}" class="mel-btn mel-btn--ghost" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+            {% endif %}
+            {% if mel_event_actions.booking %}
+              <a href="{{ mel_event_actions.booking }}" class="mel-btn mel-btn--primary" target="_blank" rel="noopener noreferrer">{{ 'Booking page'|t }}</a>
+            {% endif %}
+            {% if mel_event_actions.scan %}
+              <a href="{{ mel_event_actions.scan }}" class="mel-btn mel-btn--accent">{{ 'Scan tickets'|t }}</a>
+            {% endif %}
+          </div>
         </div>
       </div>
 
@@ -76,6 +92,7 @@
       <button type="button" data-step="advanced" role="tab" aria-selected="false">{{ 'Advanced'|t }}</button>
     </div>
 
+    {# Full-width form region below step nav. This template is the form root (<form>), so we cannot use {{ form }} here — fields are rendered as element.* #}
     <div class="mel-event-studio__form-full mel-studio-main-full">
       <div class="mel-wizard">
         {# —— Basic —— #}
@@ -87,7 +104,20 @@
             </header>
 
             <div class="mel-identity-stack">
-              {{ element.mel.title }}
+              {{ element.mel.ai_settings }}
+              <div class="mel-basic-title-with-ai">
+                {{ element.mel.title }}
+                <div class="mel-ai-autofill">
+                  <button
+                    type="button"
+                    id="mel-ai-generate"
+                    class="mel-btn mel-btn--secondary"
+                    data-mel-ai-default-label="{{ '✨ Generate with AI'|t }}"
+                  >
+                    {{ '✨ Generate with AI'|t }}
+                  </button>
+                </div>
+              </div>
               {{ element.mel.summary }}
               {{ element.mel.field_event_intro }}
               {{ element.mel.body }}
