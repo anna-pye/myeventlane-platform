@@ -5,6 +5,9 @@ set -euo pipefail
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
 
 APP_PATH="${APP_PATH:-$HOME/staging}"
+# Shared config sync directory on the server (must match $settings['config_sync_directory'] in
+# shared settings.php). Default: /home/mel/staging/config/sync when APP_PATH is ~/staging.
+SHARED_CONFIG_SYNC="${SHARED_CONFIG_SYNC:-$APP_PATH/config/sync}"
 SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-}"
 RUN_UPDB="${RUN_UPDB:-0}"
@@ -159,8 +162,24 @@ ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 
 cd "$CURRENT_PATH"
 
-# ---- CONFIG SYNC SANITY (before cim) ----
-CONFIG_SYNC_DIR="$CURRENT_PATH/config/sync"
+# ---- CONFIG SYNC: mirror artifact → shared sync directory (single source of truth per release) ----
+# Staging uses a shared path (e.g. /home/mel/staging/config/sync) referenced by settings.php.
+# Without this step, an incomplete or stale sync dir causes cim to report "no changes" while
+# active config drifts; missing files can delete config on import.
+RELEASE_CONFIG_SYNC="$RELEASE_PATH/config/sync"
+if [ ! -d "$RELEASE_CONFIG_SYNC" ]; then
+  echo "ERROR: Missing $RELEASE_CONFIG_SYNC in artifact — cannot deploy config."
+  exit 1
+fi
+
+mkdir -p "$SHARED_CONFIG_SYNC"
+echo "Syncing config from release to shared directory (rsync --delete)..."
+echo "  Source: $RELEASE_CONFIG_SYNC/"
+echo "  Dest:   $SHARED_CONFIG_SYNC/"
+rsync -av --delete "$RELEASE_CONFIG_SYNC/" "$SHARED_CONFIG_SYNC/"
+
+# ---- CONFIG SYNC SANITY (before cim): validate what Drupal will import ----
+CONFIG_SYNC_DIR="$SHARED_CONFIG_SYNC"
 if [ -d "$CONFIG_SYNC_DIR" ]; then
   if grep -rE 'ddev\.site' "$CONFIG_SYNC_DIR" --include='*.yml' --include='*.yaml' 2>/dev/null | grep -q .; then
     echo "ERROR: DDEV hostname found in config/sync — fix export before deploy." >&2
@@ -178,6 +197,20 @@ fi
 
 if [ "$RUN_CIM" = "1" ]; then
   vendor/bin/drush cim -y --uri="$SITE_URI"
+
+  # Deploy safety: active storage must match sync after import (see Drush docs: grep "No differences").
+  echo "Verifying config:status after import..."
+  CST_OUT="$(vendor/bin/drush cst --uri="$SITE_URI" 2>&1)" || true
+  if echo "$CST_OUT" | grep -qi 'configuration differences'; then
+    echo "ERROR: config:status reports configuration differences — deployment aborted." >&2
+    echo "$CST_OUT" >&2
+    exit 1
+  fi
+  if ! echo "$CST_OUT" | grep -q 'No differences'; then
+    echo "ERROR: config:status must report no differences between DB and sync after cim." >&2
+    echo "$CST_OUT" >&2
+    exit 1
+  fi
 fi
 
 # ---- DOMAIN ENFORCEMENT (after cim; runs every deploy) ----
