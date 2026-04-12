@@ -30,6 +30,10 @@ final class AiRateLimiter {
    */
   public function checkAndRecordUser(int $uid): bool {
     $config = $this->configFactory->get('myeventlane_ai.settings');
+    if ($config->get('rate_limit_enabled') === FALSE) {
+      return TRUE;
+    }
+
     $limit = (int) $config->get('rate_limit.per_user_per_hour') ?: 10;
 
     $name = 'myeventlane_ai.user';
@@ -55,6 +59,10 @@ final class AiRateLimiter {
    */
   public function checkAndRecordScope(string $scope_id): bool {
     $config = $this->configFactory->get('myeventlane_ai.settings');
+    if ($config->get('rate_limit_enabled') === FALSE) {
+      return TRUE;
+    }
+
     $limit = (int) $config->get('rate_limit.per_scope_per_10_min') ?: 5;
 
     $name = 'myeventlane_ai.scope';

@@ -53,6 +53,9 @@ final class EventStudioAiController implements ContainerInjectionInterface {
       'title' => (string) ($data['title'] ?? ''),
       'summary' => (string) ($data['summary'] ?? ''),
       'category' => (string) ($data['category'] ?? ''),
+      'tags' => (string) ($data['tags'] ?? ''),
+      'tone' => (string) ($data['tone'] ?? 'community'),
+      'audience' => (string) ($data['audience'] ?? 'general'),
     ];
 
     $uid = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;

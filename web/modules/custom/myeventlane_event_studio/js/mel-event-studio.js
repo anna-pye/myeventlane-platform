@@ -75,6 +75,23 @@
     return val(form, 'mel[field_category]');
   }
 
+  /** Tags field (entity autocomplete may use mel[field_tags] or target_id children). */
+  function tagsForAiPayload(form) {
+    var v = val(form, 'mel[field_tags]');
+    if (v) {
+      return v;
+    }
+    var parts = [];
+    var inputs = form.querySelectorAll('input[name*="[field_tags]"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var x = (inputs[i].value || '').trim();
+      if (x) {
+        parts.push(x);
+      }
+    }
+    return parts.join(', ');
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -1636,7 +1653,7 @@
             e.preventDefault();
             var aiUrl = Drupal.url('vendor/events/ai/generate');
 
-            setFormState(form, 'mel-studio--saving', Drupal.t('Generating…'));
+            setFormState(form, 'mel-studio--saving', Drupal.t('AI is writing your event…'));
 
             melGetCsrfToken()
               .then(function (token) {
@@ -1655,6 +1672,9 @@
                     title: val(form, 'mel[title]'),
                     summary: val(form, 'mel[summary]'),
                     category: categoryForAiPayload(form),
+                    tags: tagsForAiPayload(form),
+                    tone: val(form, 'mel[ai_settings][ai_tone]'),
+                    audience: val(form, 'mel[ai_settings][ai_audience]'),
                   }),
                 });
               })

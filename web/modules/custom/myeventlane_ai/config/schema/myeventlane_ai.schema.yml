@@ -5,6 +5,9 @@ myeventlane_ai.settings:
     enabled:
       type: boolean
       label: 'Enabled'
+    rate_limit_enabled:
+      type: boolean
+      label: 'Enable Flood rate limits (per user / per scope)'
     provider:
       type: string
       label: 'Provider'

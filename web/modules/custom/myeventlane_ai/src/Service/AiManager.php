@@ -169,12 +169,20 @@ final class AiManager {
     $category = (string) ($context['category'] ?? '');
     $title = (string) ($context['title'] ?? '');
     $summary = (string) ($context['summary'] ?? '');
+    $tags = (string) ($context['tags'] ?? '');
+    $toneKey = (string) ($context['tone'] ?? 'community');
+    $audienceKey = (string) ($context['audience'] ?? 'general');
 
-    $system = 'You are an event marketing assistant for MyEventLane. Respond with ONLY valid JSON (no markdown fences): {"title":"...","summary":"..."}. Title: concise, max ~120 characters. Summary: one or two sentences, max ~300 characters.';
-    $user = "Generate an engaging event title and short summary.\nCategory: {$category}\nExisting title (may be empty): {$title}\nExisting summary or notes (may be empty): {$summary}";
+    $toneDesc = $this->mapToneForEventCopy($toneKey);
+    $audienceDesc = $this->mapAudienceForEventCopy($audienceKey);
+    $categoryLine = $category !== '' ? $category : 'general';
+    $tagsLine = $tags !== '' ? $tags : '(none)';
+
+    $system = 'You are an event marketing assistant for MyEventLane. Respond with ONLY valid JSON (no markdown fences): {"title":"...","summary":"..."}. Title: max ~12 words, clear and engaging. Summary: 1–2 sentences on value and vibe, max ~300 characters. Match the requested tone and audience; avoid generic filler. Make it feel local, real, and specific.';
+    $user = "Write a compelling event title and short summary.\n\nContext:\n- Category: {$categoryLine}\n- Tags / keywords: {$tagsLine}\n- Audience: {$audienceDesc}\n- Tone: {$toneDesc}\n\nExisting draft (may be empty):\n- Title: {$title}\n- Summary notes: {$summary}\n\nInstructions:\n- Reflect tone and audience in word choice.\n- Avoid generic phrases.\n";
 
     $hash = hash('sha256', $system . "\n" . $user);
-    $definition = new PromptDefinition('event_studio.generate_event_copy', 'v1', $system, $user, $hash);
+    $definition = new PromptDefinition('event_studio.generate_event_copy', 'v2', $system, $user, $hash);
 
     $scopeId = 'event_studio:generate_copy:' . substr($hash, 0, 20);
 
@@ -217,6 +225,33 @@ final class AiManager {
       'title' => trim((string) ($decoded['title'] ?? '')),
       'summary' => trim((string) ($decoded['summary'] ?? '')),
     ];
+  }
+
+  /**
+   * Maps Event Studio tone key to prompt instructions.
+   */
+  private function mapToneForEventCopy(string $tone): string {
+    return match ($tone) {
+      'fun' => 'playful, energetic, exciting',
+      'professional' => 'clear, structured, polished',
+      'community' => 'inclusive, welcoming, friendly',
+      'urgent' => 'high energy, time-sensitive, compelling',
+      'luxury' => 'premium, exclusive, refined',
+      default => 'friendly and engaging',
+    };
+  }
+
+  /**
+   * Maps Event Studio audience key to prompt instructions.
+   */
+  private function mapAudienceForEventCopy(string $audience): string {
+    return match ($audience) {
+      'lgbtq' => 'LGBTQIA+ community',
+      'students' => 'young adults and students',
+      'professionals' => 'working professionals',
+      'families' => 'families and parents',
+      default => 'general public',
+    };
   }
 
 }
