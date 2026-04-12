@@ -128,7 +128,7 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@current_user'
       - '@messenger'
-      - '@module_handler'
+      - '@router.route_provider'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@entity_type.manager'
       - '@myeventlane_core.entity_id_normalizer'

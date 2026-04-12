@@ -13,6 +13,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Drupal\myeventlane_help_centre\Service\ContextualHelpResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
@@ -142,13 +143,13 @@ function _myeventlane_help_centre_vendor_event_boost_url(mixed $event_id): ?stri
   if ($event_id === NULL || $event_id === '') {
     return NULL;
   }
-  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_boost')) {
-    return NULL;
-  }
   try {
     return Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => (int) $event_id])
       ->setAbsolute(FALSE)
       ->toString();
+  }
+  catch (RouteNotFoundException) {
+    return NULL;
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_help_centre')->warning('Could not build vendor_event_boost URL: @message', [

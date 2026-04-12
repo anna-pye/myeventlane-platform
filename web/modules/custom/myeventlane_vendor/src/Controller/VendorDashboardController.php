@@ -8,8 +8,8 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_ai\Service\AiUsageTracker;
@@ -36,6 +36,7 @@ use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -139,9 +140,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected LoggerInterface $melDebugLogger;
 
   /**
-   * Module handler (for optional myeventlane_boost routes).
+   * Route provider (detect optional myeventlane_boost routes; module may be on without routes).
    */
-  protected ModuleHandlerInterface $moduleHandler;
+  protected RouteProviderInterface $routeProvider;
 
   /**
    * Boost lifecycle metrics façade (optional, myeventlane_boost.performance).
@@ -157,7 +158,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
     MessengerInterface $messenger,
-    ModuleHandlerInterface $module_handler,
+    RouteProviderInterface $route_provider,
     RsvpStatsService $rsvp_stats,
     EntityTypeManagerInterface $entity_type_manager,
     EntityIdNormalizer $entity_id_normalizer,
@@ -181,7 +182,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     mixed $boost_performance = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
-    $this->moduleHandler = $module_handler;
+    $this->routeProvider = $route_provider;
     $this->rsvpStats = $rsvp_stats;
     $this->entityTypeManager = $entity_type_manager;
     $this->entityIdNormalizer = $entity_id_normalizer;
@@ -213,7 +214,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->get('myeventlane_core.domain_detector'),
       $container->get('current_user'),
       $container->get('messenger'),
-      $container->get('module_handler'),
+      $container->get('router.route_provider'),
       $container->get('myeventlane_vendor.service.rsvp_stats'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_core.entity_id_normalizer'),
@@ -1027,6 +1028,19 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
+   * Whether a named route is registered (handles module on but router stale/partial).
+   */
+  private function routeExists(string $name): bool {
+    try {
+      $this->routeProvider->getRouteByName($name);
+      return TRUE;
+    }
+    catch (RouteNotFoundException) {
+      return FALSE;
+    }
+  }
+
+  /**
    * Get events table data with full details.
    *
    * Loads event nodes and builds table data including revenue, tickets, RSVPs.
@@ -1069,6 +1083,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     $events = [];
+
+    $vendorBoostRouteOk = $this->routeExists('myeventlane_boost.vendor_event_boost');
+    $boostWizardStep1Ok = $this->routeExists('myeventlane_boost.wizard.step1');
 
     foreach ($melEvents as $dto) {
       if (!$dto instanceof MelEventData) {
@@ -1194,12 +1211,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $isEligible = !empty($boostData['eligible']);
 
       // Build boost button data with proper state handling.
-      $boostModuleOn = $this->moduleHandler->moduleExists('myeventlane_boost');
-
       $boost = [
         'allowed' => $isPublished && $isEligible,
         'label' => $isBoosted ? 'Boost active' : ($isPublished ? 'Boost event' : 'Publish to boost'),
-        'url' => ($isPublished && $isEligible && $boostModuleOn)
+        'url' => ($isPublished && $isEligible && $vendorBoostRouteOk)
           ? Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $eventId])->toString()
           : NULL,
         'is_boosted' => $isBoosted,
@@ -1209,7 +1224,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       // Boost wizard entrypoint (Step 1), per event. Only if user has boost
       // permission, event is published, and event meets eligibility.
       $boostWizardUrl = NULL;
-      if ($boostModuleOn && $isPublished && $isEligible && $this->currentUser->hasPermission('purchase boost for events')) {
+      if ($boostWizardStep1Ok && $isPublished && $isEligible && $this->currentUser->hasPermission('purchase boost for events')) {
         $boostWizardUrl = Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $eventId])->toString();
       }
 
@@ -2319,6 +2334,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       return [];
     }
 
+    $vendorBoostRouteOk = $this->routeExists('myeventlane_boost.vendor_event_boost');
+
     try {
       $now = time();
       $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
@@ -2349,7 +2366,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'event_id' => $event_id,
           'event_title' => $event ? $event->label() : $this->t('Unknown event'),
           'ends_at' => $ends > 0 ? date('M j, Y g:ia', $ends) : $this->t('Unknown'),
-          'manage_url' => ($event_id > 0 && $this->moduleHandler->moduleExists('myeventlane_boost'))
+          'manage_url' => ($event_id > 0 && $vendorBoostRouteOk)
             ? Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $event_id])->toString()
             : NULL,
         ];
