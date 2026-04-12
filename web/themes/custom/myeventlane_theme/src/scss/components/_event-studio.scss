@@ -3,6 +3,29 @@
 // Complements module css/mel-event-studio.css (library mel_event_studio).
 // ==========================================================================
 
+// Full-bleed workspace: body.mel-event-studio-page is set in
+// myeventlane_event_studio_preprocess_html() on Event Studio routes only.
+body.mel-event-studio-page {
+  .layout-container,
+  .layout-content,
+  .region-content,
+  .gin-content,
+  .dialog-off-canvas-main-canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 16px;
+    padding-right: 16px;
+    box-sizing: border-box;
+  }
+
+  .container,
+  .container-lg,
+  .container-md {
+    max-width: 100% !important;
+  }
+}
+
 // Override module mel-event-studio.css (max-width: 1200px on .mel-event-studio).
 .mel-event-studio {
   display: block;
