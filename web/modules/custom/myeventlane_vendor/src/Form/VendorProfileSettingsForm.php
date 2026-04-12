@@ -382,7 +382,7 @@ class VendorProfileSettingsForm extends FormBase {
         '#upload_location' => 'public://vendor-assets/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif svg webp'],
-        'FileSizeLimit' => ['fileLimit' => '5MB'],
+        'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
       ],
         '#description' => $this->t('Your organization logo. Recommended size: 400x400px. Square format works best.'),
       ];
@@ -404,7 +404,7 @@ class VendorProfileSettingsForm extends FormBase {
         '#upload_location' => 'public://vendor-assets/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
-        'FileSizeLimit' => ['fileLimit' => '10MB'],
+        'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
       ],
         '#description' => $this->t('Banner image for your vendor page. Recommended size: 1920x400px.'),
       ];

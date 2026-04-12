@@ -199,7 +199,7 @@ final class VendorBrandConfigForm extends FormBase {
       '#upload_location' => 'public://vendor-email-logos/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
-        'FileSizeLimit' => ['fileLimit' => '2MB'],
+        'FileSizeLimit' => ['fileLimit' => 2 * 1024 * 1024],
       ],
     ];
 

@@ -476,7 +476,7 @@ final class EventStudioForm extends FormBase {
       '#upload_location' => 'public://events',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
-        'FileSizeLimit' => ['fileLimit' => '5MB'],
+        'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
       ],
       '#default_value' => $image_fids,
       '#attributes' => ['class' => ['mel-input-file']],
