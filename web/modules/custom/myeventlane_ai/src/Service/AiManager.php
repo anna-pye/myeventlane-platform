@@ -153,7 +153,7 @@ final class AiManager {
    * Generates an event title and short summary from optional user context.
    *
    * @param array<string, string> $context
-   *   Keys: title, summary, category (plain text; may be empty).
+   *   Keys: title, summary, category, tags, tone, audience (plain text; may be empty).
    * @param int|null $requested_by_uid
    *   User ID for rate limiting and usage accounting.
    * @param int|null $vendor_id
