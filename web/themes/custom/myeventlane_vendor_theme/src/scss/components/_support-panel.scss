@@ -1,0 +1,98 @@
+/**
+ * @file
+ * Boost conversion panel (vendor dashboard event cards).
+ * Pastel surface, soft shadow — mobile-first.
+ */
+
+.mel-boost-panel {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--mel-color-bg-subtle, #f7f8fa);
+  box-shadow: 0 1px 3px rgba(13, 21, 32, 0.06);
+  border: 1px solid var(--mel-color-border, #e6e6e6);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  max-width: 100%;
+}
+
+.mel-boost-panel__emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.mel-boost-panel__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mel-color-text-primary, #1a1a1a);
+}
+
+.mel-boost-panel__intro {
+  margin: 0 0 10px;
+  color: var(--mel-color-text-secondary, #637185);
+}
+
+.mel-boost-panel__pricing-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--mel-color-text-secondary, #637185);
+  font-size: 0.8125rem;
+}
+
+.mel-boost-panel__tips-label {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mel-color-text-muted, #829ab1);
+}
+
+.mel-boost-panel__tips {
+  margin: 0 0 14px;
+  padding-left: 1.15rem;
+  color: var(--mel-color-text-secondary, #637185);
+}
+
+.mel-boost-panel__tip {
+  margin-bottom: 4px;
+}
+
+.mel-boost-panel__tip:last-child {
+  margin-bottom: 0;
+}
+
+.mel-boost-panel__actions {
+  margin-top: 4px;
+}
+
+// Variant accents (pastel)
+.mel-boost-panel--opportunity {
+  background: linear-gradient(145deg, rgba(255, 224, 224, 0.45) 0%, rgba(247, 248, 250, 1) 55%);
+  border-color: rgba(255, 138, 138, 0.25);
+}
+
+.mel-boost-panel--active_boost {
+  background: linear-gradient(145deg, rgba(224, 242, 254, 0.6) 0%, rgba(247, 248, 250, 1) 60%);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.mel-boost-panel--boost_worked {
+  background: linear-gradient(145deg, rgba(220, 252, 231, 0.55) 0%, rgba(247, 248, 250, 1) 55%);
+  border-color: rgba(92, 201, 139, 0.28);
+}
+
+.mel-boost-panel--boost_failed {
+  background: linear-gradient(145deg, rgba(255, 250, 235, 0.75) 0%, rgba(247, 248, 250, 1) 55%);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+@media (min-width: 768px) {
+  .mel-boost-panel {
+    padding: 18px 20px;
+  }
+}

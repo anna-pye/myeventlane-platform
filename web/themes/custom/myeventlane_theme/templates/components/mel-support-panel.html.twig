@@ -1,0 +1,206 @@
+{#
+/**
+ * @file
+ * Theme override: MEL support panel (mel_support_panel).
+ *
+ * @see myeventlane_help_centre/templates/mel-support-panel.html.twig
+ */
+#}
+{% set articles = mel_help_articles is defined ? mel_help_articles : (elements['#mel_help_articles'] is defined ? elements['#mel_help_articles'] : []) %}
+{% set step_id = checkout_step_id|default('') %}
+{% set key = analytics_key|default('') %}
+{% set state = mel_help_state|default({}) %}
+{% set is_order_complete = step_id == 'complete' %}
+{% set is_checkout = key == 'buy_tickets' and not is_order_complete %}
+{% set is_vendor = key == 'vendor_dashboard' %}
+{% set tickets_sold = state.tickets_sold|default(0) %}
+{% set state_views = state.views|default(0) %}
+{% set state_conversion = state.conversion|default(0) %}
+{% set is_boost_opportunity =
+  state.views is defined and
+  state.views > 50 and
+  state.conversion is defined and
+  state.conversion < 0.02
+%}
+{% set is_low_conversion_vendor = is_vendor and state_views > 0 and state_conversion < 0.02 %}
+{% if is_boost_opportunity %}
+  {% set attributes = attributes.addClass('mel-support-panel--boost') %}
+{% endif %}
+<div{{ attributes }} data-event-id="{{ event_id|default('') }}">
+  <div class="mel-support-panel__content">
+    {% if is_order_complete %}
+      <h3 class="mel-support-panel__title">
+        {{ 'Your booking is confirmed'|t }}
+      </h3>
+
+      <p class="mel-support-panel__summary">
+        {{ 'Confirmation and ticket details are emailed. Contact support if anything looks wrong.'|t }}
+      </p>
+
+    {% elseif is_checkout %}
+      <h3 class="mel-support-panel__title">
+        {{ 'Almost there — your booking is secure'|t }}
+      </h3>
+
+      <ul class="mel-support-panel__list">
+        <li>✔ {{ 'Instant confirmation emailed'|t }}</li>
+        <li>✔ {{ 'Secure payment processing'|t }}</li>
+      </ul>
+
+    {% elseif is_vendor %}
+      {% if is_boost_opportunity %}
+        <h3 class="mel-support-panel__title">
+          {{ 'Your event is getting attention 👀'|t }}
+        </h3>
+
+        <p class="mel-support-panel__summary">
+          {{ 'People are viewing your event, but not booking yet.'|t }}
+        </p>
+
+        <ul class="mel-support-panel__list">
+          <li>✔ {{ 'Get featured higher in search'|t }}</li>
+          <li>✔ {{ 'Reach more local attendees'|t }}</li>
+          <li>✔ {{ 'Turn views into bookings faster'|t }}</li>
+        </ul>
+
+        <div class="mel-support-panel__cta">
+          <a
+            href="{{ event_id ? path('myeventlane_boost.boost_page', {'node': event_id}) : '#' }}"
+            class="mel-button mel-button--primary mel-button--highlight"
+            data-analytics-key="boost_event"
+            onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
+          >
+            {{ 'Boost this event'|t }}
+          </a>
+
+          <p class="mel-support-panel__micro">
+            {{ 'Events like yours typically see more bookings after boosting.'|t }}
+          </p>
+        </div>
+
+      {% elseif is_low_conversion_vendor %}
+        <h3 class="mel-support-panel__title">
+          {{ 'Your event is getting views but no bookings'|t }}
+        </h3>
+
+        <p class="mel-support-panel__summary">
+          {{ 'Try:'|t }}
+        </p>
+
+        <ul class="mel-support-panel__list">
+          <li>• {{ 'Adjust ticket pricing'|t }}</li>
+          <li>• {{ 'Add urgency (limited tickets)'|t }}</li>
+          <li>• {{ 'Improve event description'|t }}</li>
+        </ul>
+
+      {% elseif tickets_sold > 20 %}
+        <h3 class="mel-support-panel__title">
+          {{ '🔥 Your event is performing well'|t }}
+        </h3>
+
+        <ul class="mel-support-panel__list">
+          <li>• {{ 'Boost your event'|t }}</li>
+          <li>• {{ 'Add another session'|t }}</li>
+        </ul>
+
+      {% else %}
+        {% if tickets_sold == 0 %}
+          <h3 class="mel-support-panel__title">
+            {{ '⚡ Your event isn’t selling yet'|t }}
+          </h3>
+
+          <ul class="mel-support-panel__list">
+            <li>• {{ 'Add a cover image'|t }}</li>
+            <li>• {{ 'Share your event'|t }}</li>
+            <li>• {{ 'Boost visibility'|t }}</li>
+          </ul>
+
+        {% elseif tickets_sold < 10 %}
+          <h3 class="mel-support-panel__title">
+            {{ '📈 Your event is gaining traction'|t }}
+          </h3>
+
+          <ul class="mel-support-panel__list">
+            <li>• {{ 'Share on social'|t }}</li>
+            <li>• {{ 'Add ticket options'|t }}</li>
+          </ul>
+
+        {% else %}
+          <h3 class="mel-support-panel__title">
+            {{ '🔥 Your event is performing well'|t }}
+          </h3>
+
+          <ul class="mel-support-panel__list">
+            <li>• {{ 'Boost your event'|t }}</li>
+            <li>• {{ 'Add another session'|t }}</li>
+          </ul>
+        {% endif %}
+      {% endif %}
+
+    {% else %}
+      {% if title %}
+        <h3>{{ title }}</h3>
+      {% endif %}
+      {% if summary %}
+        <p>{{ summary }}</p>
+      {% endif %}
+    {% endif %}
+
+    {% if url and not is_boost_opportunity %}
+      <div class="mel-support-panel__cta">
+        <a
+          href="{{ url }}"
+          class="mel-button mel-button--primary"
+          {% if analytics_key is defined and analytics_key %}
+            data-analytics-key="{{ analytics_key }}"
+            onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
+          {% endif %}
+        >
+          {% if is_order_complete %}
+            {{ 'Get help'|t }}
+          {% elseif is_checkout %}
+            {{ 'Get help with checkout'|t }}
+          {% elseif is_vendor %}
+            {% if is_low_conversion_vendor %}
+              {{ 'Improve conversion'|t }}
+            {% else %}
+              {{ 'Improve my event'|t }}
+            {% endif %}
+          {% else %}
+            {{ 'Get help'|t }}
+          {% endif %}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if articles %}
+    <div class="mel-support-panel__suggestions">
+      <p class="mel-support-panel__label">{{ 'Popular help'|t }}</p>
+      <ul>
+        {% for item in articles %}
+          <li>
+            <a href="{{ item.url }}">{{ item.title }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if analytics_key is defined and analytics_key %}
+    <div class="mel-support-panel__feedback">
+      <button
+        type="button"
+        class="mel-support-panel__feedback-btn mel-support-panel__feedback-btn--helpful"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback('{{ analytics_key|e('js') }}', true); }"
+        aria-label="{{ 'This was helpful'|t }}"
+      >👍</button>
+      <button
+        type="button"
+        class="mel-support-panel__feedback-btn mel-support-panel__feedback-btn--not-helpful"
+        onclick="if (typeof melHelpFeedback === 'function') { melHelpFeedback('{{ analytics_key|e('js') }}', false); }"
+        aria-label="{{ 'This was not helpful'|t }}"
+      >👎</button>
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * Boost conversion loop panel — presentation only (all copy from BoostPerformanceService).
+ *
+ * Variables:
+ * - performance: output of BoostPerformanceService::getPerformanceForEvent()
+ */
+#}
+{% set ui = performance.ui|default({}) %}
+{% set cta = ui.cta|default({}) %}
+<div class="mel-boost-panel mel-boost-panel--{{ ui.variant|default('') }}" role="region" aria-label="{{ ui.title|default('Boost'|t) }}">
+  {% if ui.emoji %}
+    <div class="mel-boost-panel__emoji" aria-hidden="true">{{ ui.emoji }}</div>
+  {% endif %}
+  {% if ui.title %}
+    <h4 class="mel-boost-panel__title">{{ ui.title }}</h4>
+  {% endif %}
+  {% if ui.intro %}
+    <p class="mel-boost-panel__intro">{{ ui.intro }}</p>
+  {% endif %}
+  {% if performance.pricing_recommendation is defined and performance.pricing_recommendation.message %}
+    <p class="mel-boost-panel__pricing-hint">{{ performance.pricing_recommendation.message }}</p>
+  {% endif %}
+  {% if ui.tips is iterable and ui.tips|length > 0 %}
+    <p class="mel-boost-panel__tips-label">{{ 'Try:'|t }}</p>
+    <ul class="mel-boost-panel__tips">
+      {% for tip in ui.tips %}
+        <li class="mel-boost-panel__tip">{{ tip }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if cta.url|default('') and cta.label|default('') %}
+    <div class="mel-boost-panel__actions">
+      <a href="{{ cta.url }}" class="{{ cta.classes|default('mel-btn mel-btn--sm mel-btn--primary') }}">{{ cta.label }}</a>
+    </div>
+  {% endif %}
+</div>
