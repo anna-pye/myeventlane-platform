@@ -12,6 +12,22 @@ myeventlane_boost.boost_page:
       node:
         type: entity:node
 
+# Boost purchase inside vendor event workspace (sidebar + mel_event_workspace shell).
+myeventlane_boost.vendor_event_boost:
+  path: '/vendor/events/{event}/boost'
+  defaults:
+    _controller: '\Drupal\myeventlane_boost\Controller\BoostController::buildVendorWorkspace'
+    _title_callback: '\Drupal\myeventlane_boost\Controller\BoostController::titleVendor'
+  requirements:
+    _custom_access: 'myeventlane_boost.boost_route_access:accessVendorWorkspace'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 # Vendor Boost configuration wizard (placeholder scaffold).
 myeventlane_boost.vendor_boost_wizard:
   path: '/vendor/events/{event}/boost/wizard'

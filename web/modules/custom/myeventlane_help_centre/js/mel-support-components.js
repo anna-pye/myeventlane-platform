@@ -110,6 +110,7 @@
     const variant = settings.variant || 'compact';
     const strings = settings.strings || {};
     const esca = settings.escalation || {};
+    const collapsedDefault = Boolean(settings.panel_collapsed_default);
     mount.innerHTML = '';
     mount.classList.add('mel-mel-support-mount', 'mel-mel-support-mount--' + variant);
 
@@ -122,8 +123,10 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'mel-mel-support-floating__toggle';
-    toggle.setAttribute('aria-expanded', 'true');
-    toggle.textContent = strings.panel_toggle_hide || 'Hide';
+    toggle.setAttribute('aria-expanded', collapsedDefault ? 'false' : 'true');
+    toggle.textContent = collapsedDefault
+      ? strings.panel_toggle_show || 'Show'
+      : strings.panel_toggle_hide || 'Hide';
     const title = document.createElement('span');
     title.className = 'mel-mel-support-floating__title';
     title.textContent =
@@ -136,6 +139,9 @@
 
     const body = document.createElement('div');
     body.className = 'mel-mel-support-floating__body';
+    if (collapsedDefault) {
+      body.setAttribute('hidden', 'hidden');
+    }
 
     const actionsHost = document.createElement('div');
     actionsHost.setAttribute('data-mel-support-actions-host', '');

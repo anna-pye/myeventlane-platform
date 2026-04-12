@@ -16,6 +16,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_growth\Service\GrowthInsightService;
 use Drupal\myeventlane_growth\Service\GrowthTrackingService;
 use Drupal\myeventlane_pro\Service\EventInsightService;
@@ -34,6 +35,7 @@ use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Psr\Log\LoggerInterface;
 
 /**
  * Organiser dashboard controller - Full functional control centre.
@@ -131,6 +133,17 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   protected ?CsrfTokenGenerator $csrfToken;
 
+  protected StateInterface $state;
+
+  protected LoggerInterface $melDebugLogger;
+
+  /**
+   * Boost lifecycle metrics façade (optional, myeventlane_boost.performance).
+   *
+   * @var object|null
+   */
+  protected mixed $boostPerformance = NULL;
+
   /**
    * Constructs the controller.
    */
@@ -149,6 +162,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
+    StateInterface $state,
+    LoggerInterface $mel_debug_logger,
     ?AiUsageTracker $ai_usage_tracker = NULL,
     ?ConfigFactoryInterface $config_factory = NULL,
     ?CategoryAudienceService $category_audience_service = NULL,
@@ -156,6 +171,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?GrowthInsightService $growth_insight = NULL,
     ?GrowthTrackingService $growth_tracking = NULL,
     ?CsrfTokenGenerator $csrf_token = NULL,
+    mixed $boost_performance = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
     $this->rsvpStats = $rsvp_stats;
@@ -169,6 +185,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
     $this->eventStateResolver = $event_state_resolver;
+    $this->state = $state;
+    $this->melDebugLogger = $mel_debug_logger;
     $this->aiUsageTracker = $ai_usage_tracker;
     $this->configFactory = $config_factory;
     $this->categoryAudienceService = $category_audience_service;
@@ -176,6 +194,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->growthInsight = $growth_insight;
     $this->growthTracking = $growth_tracking;
     $this->csrfToken = $csrf_token;
+    $this->boostPerformance = $boost_performance;
   }
 
   /**
@@ -197,6 +216,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
+      $container->get('state'),
+      $container->get('logger.channel.mel_debug'),
       $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
       $container->get('config.factory'),
       $container->has('myeventlane_vendor.service.category_audience') ? $container->get('myeventlane_vendor.service.category_audience') : NULL,
@@ -204,6 +225,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_growth.insight') ? $container->get('myeventlane_growth.insight') : NULL,
       $container->has('myeventlane_growth.tracking') ? $container->get('myeventlane_growth.tracking') : NULL,
       $container->get('csrf_token'),
+      $container->has('myeventlane_boost.performance') ? $container->get('myeventlane_boost.performance') : NULL,
     );
   }
 
@@ -234,6 +256,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Build all dashboard data.
     $kpis = $this->buildKpiCards($eventNodes, $vendor);
     $events = $this->getEventsTableData($userEvents);
+    $melTopBoostOpportunity = $this->getTopBoostOpportunity($events);
     $bestEvent = $this->getBestPerformingEvent($userEvents);
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
     $notifications = $this->getNotifications($userId, $userEvents, $vendor);
@@ -313,6 +336,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'kpis' => $kpis,
       'charts' => $charts,
       'events' => $events,
+      'mel_top_boost_opportunity' => $melTopBoostOpportunity,
       'best_event' => $bestEvent,
       'stripe' => $stripeStatusFormatted,
       'notifications' => $notifications,
@@ -1178,6 +1202,23 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $boostWizardUrl = Url::fromRoute('myeventlane_boost.wizard.step1', ['event' => $eventId])->toString();
       }
 
+      if ($this->boostPerformance !== NULL) {
+        $boostPerformancePayload = [];
+        try {
+          $eventNode = $this->entityTypeManager->getStorage('node')->load($eventId);
+          if ($eventNode instanceof NodeInterface) {
+            $boostPerformancePayload = $this->boostPerformance->getPerformanceForEvent($eventNode);
+          }
+        }
+        catch (\Throwable $e) {
+          \Drupal::logger('myeventlane_vendor')->warning('Boost performance payload failed for event @nid: @message', [
+            '@nid' => (string) $eventId,
+            '@message' => $e->getMessage(),
+          ]);
+        }
+        $boost['performance'] = $boostPerformancePayload;
+      }
+
       $isSeriesTemplate = $dto->is_series_template;
 
       $eventRow = [
@@ -1246,6 +1287,161 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     usort($events, fn($a, $b) => $b['start_timestamp'] <=> $a['start_timestamp']);
 
     return $events;
+  }
+
+  /**
+   * Selects the single best boost opportunity from pre-built event rows.
+   *
+   * Uses only BoostPerformanceService output under boost.performance (no
+   * recomputation, no extra analytics calls).
+   *
+   * @param array<int, array<string, mixed>> $events
+   *   Event rows from getEventsTableData().
+   *
+   * @return array<string, mixed>|null
+   *   Payload for mel_top_boost_opportunity, or NULL when none qualify.
+   */
+  private function getTopBoostOpportunity(array $events): ?array {
+    $candidates = [];
+    foreach ($events as $row) {
+      if (!is_array($row) || empty($row['id'])) {
+        continue;
+      }
+      $performance = $row['boost']['performance'] ?? NULL;
+      if (!is_array($performance)) {
+        continue;
+      }
+      $ui = $performance['ui'] ?? [];
+      $forceVisible = $this->isMelDevUiFallbackEnabled();
+      if (empty($ui['show']) && !$forceVisible) {
+        continue;
+      }
+      if ($forceVisible) {
+        $this->melDebugLogger->notice('BOOST CANDIDATE → @title | show=@show', [
+          '@title' => (string) ($row['title'] ?? 'unknown'),
+          '@show' => !empty($ui['show']) ? 'YES' : 'NO',
+        ]);
+      }
+      $cta = $ui['cta'] ?? [];
+      if (empty($cta['url']) || ($cta['label'] ?? '') === '') {
+        if (!$forceVisible) {
+          continue;
+        }
+      }
+      $candidates[] = $row;
+    }
+
+    if ($candidates === []) {
+      return NULL;
+    }
+
+    usort($candidates, [$this, 'compareTopBoostOpportunityRows']);
+
+    $best = $candidates[0];
+    $performance = $best['boost']['performance'] ?? [];
+    if (!is_array($performance)) {
+      return NULL;
+    }
+
+    return [
+      'event_id' => (int) $best['id'],
+      'title' => (string) ($best['title'] ?? ''),
+      'image' => $best['image'] ?? NULL,
+      'performance' => $performance,
+    ];
+  }
+
+  /**
+   * Dev/staging: align with BoostPerformanceService visibility (state mel.dev_mode or uid 1).
+   */
+  private function isMelDevUiFallbackEnabled(): bool {
+    if ($this->state->get('mel.dev_mode', FALSE)) {
+      return TRUE;
+    }
+    return (int) $this->currentUser->id() === 1;
+  }
+
+  /**
+   * Sort callback: action_state, confidence_level, then impact from metrics only.
+   *
+   * @param array<string, mixed> $a
+   * @param array<string, mixed> $b
+   */
+  private function compareTopBoostOpportunityRows(array $a, array $b): int {
+    $pa = $a['boost']['performance'] ?? [];
+    $pb = $b['boost']['performance'] ?? [];
+    if (!is_array($pa)) {
+      $pa = [];
+    }
+    if (!is_array($pb)) {
+      $pb = [];
+    }
+
+    $cmp = $this->compareBoostActionStatePriority(
+      (string) ($pa['action_state'] ?? 'do_nothing'),
+      (string) ($pb['action_state'] ?? 'do_nothing'),
+    );
+    if ($cmp !== 0) {
+      return $cmp;
+    }
+
+    $cmp = $this->compareBoostConfidencePriority(
+      (string) ($pa['confidence_level'] ?? 'low'),
+      (string) ($pb['confidence_level'] ?? 'low'),
+    );
+    if ($cmp !== 0) {
+      return $cmp;
+    }
+
+    $ia = $this->impactScoreFromBoostPerformanceMetrics($pa);
+    $ib = $this->impactScoreFromBoostPerformanceMetrics($pb);
+
+    return $ib <=> $ia;
+  }
+
+  /**
+   * Lower return value = higher priority (sort ascending).
+   */
+  private function compareBoostActionStatePriority(string $a, string $b): int {
+    $rank = [
+      'boost_again' => 0,
+      'fix_event' => 1,
+      'do_nothing' => 2,
+    ];
+    return ($rank[$a] ?? 3) <=> ($rank[$b] ?? 3);
+  }
+
+  /**
+   * Lower return value = higher priority (sort ascending).
+   */
+  private function compareBoostConfidencePriority(string $a, string $b): int {
+    $rank = [
+      'high' => 0,
+      'medium' => 1,
+      'low' => 2,
+    ];
+    return ($rank[$a] ?? 3) <=> ($rank[$b] ?? 3);
+  }
+
+  /**
+   * Impact tie-breaker from existing performance.metrics only (no new queries).
+   *
+   * @param array<string, mixed> $performance
+   *   boost.performance array from BoostPerformanceService.
+   */
+  private function impactScoreFromBoostPerformanceMetrics(array $performance): float {
+    $metrics = $performance['metrics'] ?? [];
+    if (!is_array($metrics)) {
+      $metrics = [];
+    }
+    $svBefore = (float) ($metrics['sales_velocity_before'] ?? 0.0);
+    $svAfter = (float) ($metrics['sales_velocity_after'] ?? 0.0);
+    $delta = abs($svAfter - $svBefore);
+    $ticketsBaseline = (int) ($metrics['tickets_before'] ?? 0)
+      + (int) ($metrics['tickets_during'] ?? 0)
+      + (int) ($metrics['tickets_after'] ?? 0);
+
+    return ($delta * 10000.0) + (float) $ticketsBaseline;
   }
 
   /**

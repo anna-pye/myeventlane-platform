@@ -35,6 +35,9 @@
             {% if event.venue %}
               <span class="mel-event-table__venue">{{ event.venue }}</span>
             {% endif %}
+            {% if event.boost.performance is defined and event.boost.performance.ui is defined and event.boost.performance.ui.show %}
+              {% include '@myeventlane_vendor_theme/components/mel-boost-status-panel.html.twig' with { performance: event.boost.performance } only %}
+            {% endif %}
           </div>
           <div class="mel-event-table__col mel-event-table__col--date">{{ event.date }}</div>
           <div class="mel-event-table__col mel-event-table__col--tickets">{{ event.tickets_sold }}</div>

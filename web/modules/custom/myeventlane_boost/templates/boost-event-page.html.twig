@@ -1,14 +1,41 @@
+{#
+/**
+ * @file
+ * Boost purchase page — layout and copy; pricing form from BoostSelectForm.
+ */
+#}
 {{ attach_library('myeventlane_boost/boost') }}
 
-<header class="boost-hero">
-  <div class="boost-hero__copy">
-    <h1 class="boost-title">Boost Your Event</h1>
-    <p class="boost-kicker">Get more visibility and sell more tickets</p>
-    <h2 class="boost-section">Upgrade options</h2>
-  </div>
-  <div class="boost-hero__art" aria-hidden="true">📣</div>
-</header>
+{# Recommendation badge + default selection use catalog-aware logic in BoostSelectForm. #}
+<div{{ attributes }}>
+  <div class="mel-boost-hero">
+    <h1>{{ '🚀 Boost your event visibility'|t }}</h1>
+    <p>{{ 'Get more views. Sell more tickets. Reach the right audience.'|t }}</p>
 
-<div class="mel-card boost-card">
-  {{ form }}
+    {% if boost_performance and boost_performance.ui and boost_performance.ui.title %}
+      <div class="mel-boost-hero__performance">
+        <p class="mel-boost-hero__perf-title">{{ boost_performance.ui.title }}</p>
+        {% if boost_performance.ui.intro %}
+          <p class="mel-boost-hero__perf-intro">{{ boost_performance.ui.intro }}</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="mel-boost-hero__fallback">{{ 'Your event is live — let’s get your first bookings'|t }}</p>
+    {% endif %}
+  </div>
+
+  <div class="mel-boost-benefits">
+    <h3>{{ '✨ What Boost includes'|t }}</h3>
+    <ul>
+      <li>{{ '✔ Featured placement on homepage'|t }}</li>
+      <li>{{ '✔ Priority in search results'|t }}</li>
+      <li>{{ '✔ Boost badge on your event'|t }}</li>
+      <li>{{ '✔ Increased visibility across categories'|t }}</li>
+      <li>{{ '✔ Higher chance of selling out'|t }}</li>
+    </ul>
+  </div>
+
+  <div class="mel-boost-pricing-wrap">
+    {{ form }}
+  </div>
 </div>

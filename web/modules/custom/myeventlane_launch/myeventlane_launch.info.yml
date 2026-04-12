@@ -3,6 +3,9 @@ type: module
 description: "Launch readiness orchestration, hardening, and reliability safeguards."
 package: MyEventLane
 core_version_requirement: ^11
+# Run before myeventlane_help_centre so dashboard events are enriched with
+# event_health (page views) before the contextual support panel builds #mel_help_state.
+weight: -20
 dependencies:
   - myeventlane_admin_dashboard:myeventlane_admin_dashboard
   - myeventlane_vendor:myeventlane_vendor

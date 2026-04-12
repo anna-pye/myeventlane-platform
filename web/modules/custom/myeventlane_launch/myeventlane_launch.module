@@ -50,14 +50,15 @@ function myeventlane_launch_preprocess_myeventlane_vendor_dashboard(array &$vari
     '#upgrade_url' => $variables['pro_upgrade_url'] ?? NULL,
   ];
 
-  $rows = $variables['dashboard_event_performance'] ?? [];
-  if (!is_array($rows) || $rows === []) {
+  $events = $variables['events'] ?? [];
+  if (!is_array($events) || $events === []) {
     return;
   }
 
   try {
     $builder = \Drupal::service('myeventlane_launch.vendor_dashboard_health');
-    $variables['dashboard_event_performance'] = $builder->enrichRows($rows);
+    $variables['events'] = $builder->enrichRows($events);
+    $variables['dashboard_event_performance'] = array_slice($variables['events'], 0, 4);
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_launch')->warning('Event health enrichment failed: @message', [

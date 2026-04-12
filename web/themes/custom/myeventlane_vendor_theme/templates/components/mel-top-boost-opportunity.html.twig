@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Top-level boost opportunity card — presentation only (copy from BoostPerformanceService).
+ *
+ * Variables:
+ * - event: { title, image (optional) }
+ * - performance: BoostPerformanceService::getPerformanceForEvent() output
+ */
+#}
+{% set ui = performance.ui|default({}) %}
+{% set cta = ui.cta|default({}) %}
+<article class="mel-top-boost-opportunity" role="region" aria-labelledby="mel-top-boost-opportunity-title">
+  <div class="mel-top-boost-opportunity__header">
+    <span class="mel-top-boost-opportunity__badge">{{ 'Recommended'|t }}</span>
+    {% if ui.emoji %}
+      <span class="mel-top-boost-opportunity__emoji" aria-hidden="true">{{ ui.emoji }}</span>
+    {% endif %}
+  </div>
+  {% if ui.title %}
+    <h2 id="mel-top-boost-opportunity-title" class="mel-top-boost-opportunity__title">{{ ui.title }}</h2>
+  {% endif %}
+  {% if ui.intro %}
+    <p class="mel-top-boost-opportunity__intro">{{ ui.intro }}</p>
+  {% endif %}
+  {% if event.title is defined and event.title %}
+    <div class="mel-top-boost-opportunity__event">
+      {% if event.image is defined and event.image %}
+        <div class="mel-top-boost-opportunity__thumb">
+          <img src="{{ event.image }}" alt="" loading="lazy" width="56" height="56" />
+        </div>
+      {% endif %}
+      <p class="mel-top-boost-opportunity__event-title">{{ event.title }}</p>
+    </div>
+  {% endif %}
+  {% if ui.tips is iterable and ui.tips|length > 0 %}
+    <p class="mel-top-boost-opportunity__tips-label">{{ 'Tips'|t }}</p>
+    <ul class="mel-top-boost-opportunity__tips">
+      {% for tip in ui.tips %}
+        <li class="mel-top-boost-opportunity__tip">{{ tip }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if performance.pricing_recommendation is defined and performance.pricing_recommendation.message %}
+    <p class="mel-top-boost-opportunity__pricing">{{ performance.pricing_recommendation.message }}</p>
+  {% endif %}
+  {% if cta.url|default('') and cta.label|default('') %}
+    <div class="mel-top-boost-opportunity__actions">
+      <a href="{{ cta.url }}" class="{{ cta.classes|default('mel-btn mel-btn--sm mel-btn--cta') }}">{{ cta.label }}</a>
+    </div>
+  {% endif %}
+</article>

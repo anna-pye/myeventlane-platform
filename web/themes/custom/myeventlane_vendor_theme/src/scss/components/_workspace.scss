@@ -471,6 +471,12 @@
   line-height: 1.25;
 }
 
+// Boost purchase module template nested in workspace main content
+.mel-workspace__content .mel-boost-page {
+  width: 100%;
+  min-width: 0;
+}
+
 .mel-workspace-page .mel-section__intro {
   margin: 0;
   font-size: $font-size-sm;

@@ -102,12 +102,12 @@ final class VendorEventBoostPageTest extends BrowserTestBase {
 
     $this->drupalLogin($vendor_user);
 
-    $this->drupalGet('/event/' . $event->id() . '/boost');
+    $this->drupalGet('/vendor/events/' . $event->id() . '/boost');
     $this->assertSession()->statusCodeEquals(200);
 
-    // Confirm we're on the Boost purchase page (heading + lead copy).
-    $this->assertSession()->elementTextContains('css', 'h1.boost-title', 'Boost');
-    $this->assertSession()->pageTextContains('Featured placement + badge. Choose a boost duration below.');
+    // Confirm we're on the Boost purchase page (hero + benefits copy).
+    $this->assertSession()->elementTextContains('css', '.mel-boost-hero h1', 'Boost your event visibility');
+    $this->assertSession()->pageTextContains('Featured placement on homepage');
 
     // If no boost products are configured, the form shows an empty state.
     $this->assertSession()->pageTextContains('No boost options are available right now.');

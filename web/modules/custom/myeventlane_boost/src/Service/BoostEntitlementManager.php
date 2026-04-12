@@ -211,6 +211,36 @@ final class BoostEntitlementManager {
   }
 
   /**
+   * Returns the most recent non-revoked entitlement for an event (including expired).
+   *
+   * Used for historical boost windows; does not duplicate BoostManager active/expired logic.
+   *
+   * @return \Drupal\myeventlane_boost\Entity\BoostEntitlementInterface|null
+   *   The entitlement with the latest end time, or NULL if none.
+   */
+  public function getLatestEntitlementForEvent(int $eventNid): ?BoostEntitlementInterface {
+    if ($eventNid <= 0) {
+      return NULL;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $eventNid)
+      ->condition('status', BoostEntitlementInterface::STATUS_REVOKED, '<>')
+      ->sort('ends', 'DESC')
+      ->range(0, 1)
+      ->execute();
+
+    if (empty($ids)) {
+      return NULL;
+    }
+
+    $entity = $storage->load(reset($ids));
+    return $entity instanceof BoostEntitlementInterface ? $entity : NULL;
+  }
+
+  /**
    * Returns the latest active end timestamp for an event.
    */
   public function getActiveEndTimestampForEvent(int $eventNid): ?int {

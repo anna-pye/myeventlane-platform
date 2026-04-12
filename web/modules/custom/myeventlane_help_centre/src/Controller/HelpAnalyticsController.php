@@ -35,7 +35,13 @@ final class HelpAnalyticsController implements ContainerInjectionInterface {
       return new JsonResponse(['status' => 'error', 'message' => 'Missing key'], 400);
     }
 
-    $this->analytics->logClick($key);
+    $type = trim((string) ($data['type'] ?? ''));
+    if ($type === 'boost_click') {
+      $this->analytics->logBoostClick($key);
+    }
+    else {
+      $this->analytics->logClick($key);
+    }
 
     return new JsonResponse(['status' => 'ok']);
   }

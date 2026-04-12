@@ -1,0 +1,102 @@
+// ==========================================================================
+// Boost purchase page (module: boost-event-page.html.twig + BoostSelectForm)
+// ==========================================================================
+
+@use '../tokens/colors';
+@use '../tokens/radii';
+@use '../tokens/typography';
+
+.mel-boost-hero {
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  p {
+    color: colors.$mel-color-text-muted;
+  }
+}
+
+.mel-boost-hero__performance {
+  margin-top: 12px;
+}
+
+.mel-boost-hero__perf-title {
+  font-weight: 600;
+  color: colors.$mel-color-text;
+  margin: 0 0 4px;
+}
+
+.mel-boost-hero__perf-intro {
+  margin: 0;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-boost-hero__fallback {
+  margin-top: 8px;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-boost-benefits {
+  background: colors.$mel-color-surface-alt;
+  padding: 16px;
+  border-radius: radii.$mel-radius-md;
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0;
+    font-size: typography.mel-font-size(lg);
+    font-weight: 600;
+  }
+
+  ul {
+    margin-top: 8px;
+    padding-left: 1.25rem;
+
+    li {
+      margin-bottom: 6px;
+      color: colors.$mel-color-text;
+    }
+  }
+}
+
+.mel-boost-pricing-wrap {
+  margin-top: 0;
+}
+
+.mel-boost-badge {
+  background: colors.$mel-color-accent;
+  color: colors.$mel-color-text-inverse;
+  padding: 4px 10px;
+  border-radius: radii.$mel-radius-pill;
+  font-size: 12px;
+  margin-left: 8px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.mel-boost-option-content {
+  .mel-boost-option-desc {
+    display: block;
+    font-size: 13px;
+    color: colors.$mel-color-text-muted;
+    margin-top: 4px;
+  }
+}
+
+.mel-boost-micro {
+  font-size: 12px;
+  color: colors.$mel-color-text-muted;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+// Stack primary action + micro copy (cancel stays in page footer row).
+.myeventlane-boost-select-form .boost-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+

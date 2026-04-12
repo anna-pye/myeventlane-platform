@@ -55,6 +55,7 @@ final class MelSupportSettingsBuilder {
       'actions' => $this->supportActionBuilder->prepareForClientSettings($supportActions),
       'escalation' => $this->buildEscalationUrls(),
       'strings' => $this->buildUiStrings(),
+      'panel_collapsed_default' => in_array($variant, ['compact', 'admin'], TRUE),
     ];
 
     if ($debug) {

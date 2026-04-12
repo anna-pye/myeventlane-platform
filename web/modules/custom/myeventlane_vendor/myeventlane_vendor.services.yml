@@ -17,6 +17,10 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_vendor']
 
+  logger.channel.mel_debug:
+    parent: logger.channel_base
+    arguments: ['mel_debug']
+
   myeventlane_vendor.current_vendor_resolver:
     class: Drupal\myeventlane_vendor\Service\CurrentVendorResolver
     arguments:
@@ -135,6 +139,8 @@ services:
       - '@?myeventlane_capacity.service'
       - '@myeventlane_onboarding.manager'
       - '@myeventlane_event_state.resolver'
+      - '@state'
+      - '@logger.channel.mel_debug'
       - '@?myeventlane_ai.usage_tracker'
       - '@config.factory'
       - '@?myeventlane_vendor.service.category_audience'
@@ -142,6 +148,7 @@ services:
       - '@?myeventlane_growth.insight'
       - '@?myeventlane_growth.tracking'
       - '@csrf_token'
+      - '@?myeventlane_boost.performance'
     tags:
       - { name: controller.service_arguments }
 

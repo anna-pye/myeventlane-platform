@@ -6,8 +6,10 @@ namespace Drupal\myeventlane_boost\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_boost\Service\StripeChecker;
+use Drupal\myeventlane_vendor\Access\VendorConsoleAccess;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -17,9 +19,12 @@ use Psr\Log\LoggerInterface;
  * Enforces:
  * - Event bundle validation.
  * - Admin override.
- * - Owner + purchase permission.
+ * - Owner + purchase permission (public /event/{node}/boost).
  * - Published event requirement.
  * - Stripe connected requirement.
+ *
+ * Vendor workspace route additionally requires VendorConsoleAccess and allows
+ * vendor team members linked via field_event_vendor (same as event console).
  */
 final class BoostRouteAccess {
 
@@ -148,6 +153,89 @@ final class BoostRouteAccess {
     return AccessResult::allowed()
       ->addCacheContexts(self::CACHE_CONTEXTS)
       ->addCacheableDependency($node);
+  }
+
+  /**
+   * Access for /vendor/events/{event}/boost — vendor console + team + boost rules.
+   */
+  public function accessVendorWorkspace(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
+    $vendorAccess = VendorConsoleAccess::access($route_match, $account);
+    if (!$vendorAccess->isAllowed()) {
+      return $vendorAccess;
+    }
+
+    $event = $route_match->getParameter('event');
+    if (!$event instanceof NodeInterface) {
+      $this->logger->debug('Boost vendor workspace denied: missing event parameter');
+      return AccessResult::forbidden()
+        ->addCacheContexts(self::CACHE_CONTEXTS);
+    }
+
+    if ($this->hasAdminOverride($account)) {
+      return AccessResult::allowed()
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    if ($event->bundle() !== self::EVENT_BUNDLE) {
+      return AccessResult::forbidden()
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    if (!$this->accountManagesEvent($event, $account)) {
+      $this->logger->debug('Boost vendor workspace denied: user @uid cannot manage event @nid', [
+        '@uid' => $account->id(),
+        '@nid' => $event->id(),
+      ]);
+      return AccessResult::forbidden()
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    $permissionAccess = AccessResult::allowedIfHasPermission($account, self::PERMISSION_PURCHASE)
+      ->addCacheableDependency($event);
+    if (!$permissionAccess->isAllowed()) {
+      return $permissionAccess
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    if (!$event->isPublished()) {
+      return AccessResult::forbidden('Event must be published to boost.')
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    if (!$this->stripeChecker->isConnected($account)) {
+      return AccessResult::forbidden('Connect Stripe before purchasing boosts.')
+        ->addCacheContexts(self::CACHE_CONTEXTS)
+        ->addCacheableDependency($event);
+    }
+
+    return AccessResult::allowed()
+      ->addCacheContexts(self::CACHE_CONTEXTS)
+      ->addCacheableDependency($event);
+  }
+
+  /**
+   * Whether the account is the event owner or a linked vendor team member.
+   */
+  private function accountManagesEvent(NodeInterface $event, AccountInterface $account): bool {
+    if ((int) $event->getOwnerId() === (int) $account->id()) {
+      return TRUE;
+    }
+    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
+      $vendor = $event->get('field_event_vendor')->entity;
+      if ($vendor && $vendor->hasField('field_vendor_users')) {
+        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
+          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
+            return TRUE;
+          }
+        }
+      }
+    }
+    return FALSE;
   }
 
   /**

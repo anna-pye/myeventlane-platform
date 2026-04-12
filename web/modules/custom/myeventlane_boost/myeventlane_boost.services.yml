@@ -87,6 +87,21 @@ services:
       - '@datetime.time'
       - '@string_translation'
 
+  # Thin façade: lifecycle presentation metrics (composes BoostManager, entitlements, analytics).
+  myeventlane_boost.performance:
+    class: Drupal\myeventlane_boost\Service\BoostPerformanceService
+    arguments:
+      - '@myeventlane_boost.manager'
+      - '@myeventlane_boost.entitlement_manager'
+      - '@myeventlane_boost.metrics'
+      - '@myeventlane_analytics.data'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_boost'
+      - '@url_generator'
+      - '@string_translation'
+      - '@state'
+      - '@current_user'
+
   # Boost impression tracker.
   myeventlane_boost.impression_tracker:
     class: Drupal\myeventlane_boost\Service\BoostImpressionTracker
