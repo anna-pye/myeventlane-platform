@@ -300,6 +300,9 @@
   }
 
   function updateHighlightErrors(form) {
+    if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+      return;
+    }
     var rows = collectHighlightsFromDom(form);
     var v = validateHighlightRows(rows);
     if (v.ok) {
@@ -355,13 +358,12 @@
     if (parsed.parseError) {
       hidden.value = '[]';
       rows = [];
+      form.setAttribute('data-mel-highlights-json-error', '1');
     }
     renderHighlightRows(form, table, rows);
     if (parsed.parseError) {
       var jsonErr = getHighlightErrorStrings();
       setHighlightsError(form, jsonErr.json);
-      form.setAttribute('data-mel-highlights-json-error', '1');
-      return;
     }
 
     form.addEventListener(
@@ -456,6 +458,9 @@
         if (!e.target.closest('.mel-highlight-row')) {
           return;
         }
+        if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+          form.removeAttribute('data-mel-highlights-json-error');
+        }
         syncHighlightsFromDomToHidden(form);
         updateHighlightErrors(form);
       },
@@ -466,6 +471,9 @@
       function (e) {
         if (!e.target.closest('.mel-highlight-row')) {
           return;
+        }
+        if (form.getAttribute('data-mel-highlights-json-error') === '1') {
+          form.removeAttribute('data-mel-highlights-json-error');
         }
         syncHighlightsFromDomToHidden(form);
         updateHighlightErrors(form);
@@ -1559,6 +1567,9 @@
         setHighlightsError(form, hv.message);
         var errBox = getHighlightsErrorEl();
         if (errBox && typeof errBox.focus === 'function') {
+          if (!errBox.hasAttribute('tabindex')) {
+            errBox.setAttribute('tabindex', '-1');
+          }
           errBox.focus();
         }
       }

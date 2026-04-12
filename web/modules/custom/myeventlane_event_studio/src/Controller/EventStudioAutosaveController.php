@@ -177,10 +177,13 @@ final class EventStudioAutosaveController {
         continue;
       }
       $text = trim((string) ($item['text'] ?? ''));
+      $icon = trim((string) ($item['icon'] ?? ''));
+      if ($icon !== '' && $text === '') {
+        continue;
+      }
       if ($text === '') {
         continue;
       }
-      $icon = trim((string) ($item['icon'] ?? ''));
       if ($icon !== '' && !in_array($icon, $allowed, TRUE)) {
         $icon = '';
       }
@@ -191,6 +194,8 @@ final class EventStudioAutosaveController {
       ];
       $weight++;
     }
+    $out = array_slice($out, 0, 6);
+
     return $out;
   }
 

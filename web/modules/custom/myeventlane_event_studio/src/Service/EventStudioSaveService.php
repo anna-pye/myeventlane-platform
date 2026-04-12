@@ -227,6 +227,10 @@ final class EventStudioSaveService {
     try {
       $this->syncEventHighlights($node, $payload);
     }
+    catch (\InvalidArgumentException $e) {
+      $this->logger->warning('Studio event highlights validation failed: @m', ['@m' => $e->getMessage()]);
+      return ['node' => NULL, 'errors' => [$e->getMessage()]];
+    }
     catch (\Throwable $e) {
       $this->logger->error('Studio event highlights sync failed: @m', ['@m' => $e->getMessage()]);
       return ['node' => NULL, 'errors' => ['Could not save event highlights.']];
@@ -653,6 +657,10 @@ final class EventStudioSaveService {
       return;
     }
 
+    if (count($payload['event_highlights']) > 6) {
+      throw new \InvalidArgumentException('Maximum 6 highlights allowed.');
+    }
+
     $allowed_icons = $this->loadHighlightIconAllowedKeys();
     $normalized = [];
     foreach ($payload['event_highlights'] as $row) {
@@ -660,10 +668,13 @@ final class EventStudioSaveService {
         continue;
       }
       $text = trim((string) ($row['text'] ?? ''));
+      $icon = trim((string) ($row['icon'] ?? ''));
+      if ($icon !== '' && $text === '') {
+        throw new \InvalidArgumentException('Highlight text required when icon is set.');
+      }
       if ($text === '') {
         continue;
       }
-      $icon = trim((string) ($row['icon'] ?? ''));
       if ($icon !== '' && !in_array($icon, $allowed_icons, TRUE)) {
         $icon = '';
       }
