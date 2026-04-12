@@ -475,8 +475,8 @@ final class EventStudioForm extends FormBase {
       '#description' => $this->t('Hero image (PNG, JPG, WebP; max 5 MB). Recommended 1200×630.'),
       '#upload_location' => 'public://events',
       '#upload_validators' => [
-        'file_validate_extensions' => ['png gif jpg jpeg webp'],
-        'file_validate_size' => [5 * 1024 * 1024],
+        'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
+        'FileSizeLimit' => ['fileLimit' => '5MB'],
       ],
       '#default_value' => $image_fids,
       '#attributes' => ['class' => ['mel-input-file']],
