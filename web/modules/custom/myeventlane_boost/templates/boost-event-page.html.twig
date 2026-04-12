@@ -6,12 +6,8 @@
 #}
 {{ attach_library('myeventlane_boost/boost') }}
 
-{% set recommended_days = 7 %}
-{% if boost_performance and boost_performance.action_state == 'boost_again' %}
-  {% set recommended_days = 10 %}
-{% endif %}
-
-<div{{ attributes.setAttribute('data-recommended-days', recommended_days) }}>
+{# Recommendation badge + default selection use catalog-aware logic in BoostSelectForm. #}
+<div{{ attributes }}>
   <div class="mel-boost-hero">
     <h1>{{ '🚀 Boost your event visibility'|t }}</h1>
     <p>{{ 'Get more views. Sell more tickets. Reach the right audience.'|t }}</p>

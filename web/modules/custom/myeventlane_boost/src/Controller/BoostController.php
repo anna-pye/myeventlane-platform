@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_boost\Controller;
 
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
@@ -15,8 +14,10 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Form\BoostSelectForm;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -31,10 +32,13 @@ final class BoostController extends ControllerBase {
    *   The entity type manager.
    * @param \Drupal\Core\Form\FormBuilderInterface $formBuilder
    *   The form builder.
+   * @param \Drupal\myeventlane_vendor\Service\VendorEventTabsService $eventTabsService
+   *   Event workspace tab definitions (vendor shell).
    */
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     FormBuilderInterface $formBuilder,
+    private readonly VendorEventTabsService $eventTabsService,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->formBuilder = $formBuilder;
@@ -47,11 +51,12 @@ final class BoostController extends ControllerBase {
     return new self(
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
+      $container->get('myeventlane_vendor.service.event_tabs'),
     );
   }
 
   /**
-   * Page title callback.
+   * Page title callback (public route uses {node}).
    *
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
@@ -61,6 +66,13 @@ final class BoostController extends ControllerBase {
    */
   public function title(NodeInterface $node): TranslatableMarkup|string {
     return $this->t('Boost "@title"', ['@title' => $node->label()]);
+  }
+
+  /**
+   * Title for vendor workspace boost route ({event} parameter).
+   */
+  public function titleVendor(NodeInterface $event): TranslatableMarkup|string {
+    return $this->title($event);
   }
 
   /**
@@ -107,7 +119,7 @@ final class BoostController extends ControllerBase {
   }
 
   /**
-   * Build the boost purchase page.
+   * Build the boost purchase page (public /event/{node}/boost).
    *
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
@@ -116,6 +128,38 @@ final class BoostController extends ControllerBase {
    *   The render array or redirect response.
    */
   public function build(NodeInterface $node): array|RedirectResponse {
+    return $this->buildBoostEventPageContent($node, FALSE);
+  }
+
+  /**
+   * Boost purchase inside vendor event workspace shell.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   The render array or redirect response.
+   */
+  public function buildVendorWorkspace(NodeInterface $event): array|RedirectResponse {
+    $inner = $this->buildBoostEventPageContent($event, TRUE);
+    if ($inner instanceof RedirectResponse) {
+      return $inner;
+    }
+    return $this->wrapVendorWorkspace($event, $inner);
+  }
+
+  /**
+   * Shared boost UI used by public and vendor workspace routes.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The event node.
+   * @param bool $vendor_workspace
+   *   When TRUE, Cancel targets the event overview in the vendor console.
+   *
+   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   The render array or redirect response.
+   */
+  private function buildBoostEventPageContent(NodeInterface $node, bool $vendor_workspace): array|RedirectResponse {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
@@ -147,10 +191,24 @@ final class BoostController extends ControllerBase {
     $showStripeCta = !$this->currentUser()->hasPermission('administer myeventlane')
       && !$this->checkStripeConnection($this->currentUser());
 
-    $cancelLink = Link::fromTextAndUrl(
-      $this->t('Cancel'),
-      $node->toUrl('canonical')
-    )->toRenderable();
+    if ($vendor_workspace) {
+      try {
+        $cancelUrl = Url::fromRoute('myeventlane_vendor.console.event_overview', ['event' => $node->id()]);
+        $cancelLink = Link::fromTextAndUrl($this->t('Cancel'), $cancelUrl)->toRenderable();
+      }
+      catch (\Throwable) {
+        $cancelLink = Link::fromTextAndUrl(
+          $this->t('Cancel'),
+          $node->toUrl('canonical')
+        )->toRenderable();
+      }
+    }
+    else {
+      $cancelLink = Link::fromTextAndUrl(
+        $this->t('Cancel'),
+        $node->toUrl('canonical')
+      )->toRenderable();
+    }
     $cancelLink['#attributes']['class'][] = 'button';
     $cancelLink['#attributes']['class'][] = 'button--ghost';
     $cancelLink['#attributes']['class'][] = 'boost-cancel';
@@ -181,6 +239,51 @@ final class BoostController extends ControllerBase {
         'contexts' => ['user', 'user.permissions'],
         'tags' => $node->getCacheTags(),
       ],
+    ];
+  }
+
+  /**
+   * Wraps boost_event_page in the vendor theme workspace shell.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event.
+   * @param array $boost_page_render
+   *   Render array for boost_event_page.
+   *
+   * @return array
+   *   Render array for mel_event_workspace.
+   */
+  private function wrapVendorWorkspace(NodeInterface $event, array $boost_page_render): array {
+    $base_attached = [
+      'library' => [
+        'myeventlane_vendor_theme/global-styling',
+      ],
+    ];
+    if (isset($boost_page_render['#attached']) && is_array($boost_page_render['#attached'])) {
+      $extra = $boost_page_render['#attached'];
+      if (!empty($extra['library']) && is_array($extra['library'])) {
+        $base_attached['library'] = array_values(array_unique(array_merge(
+          $base_attached['library'],
+          $extra['library'],
+        )));
+      }
+      if (!empty($extra['drupalSettings']) && is_array($extra['drupalSettings'])) {
+        $base_attached['drupalSettings'] = array_replace_recursive(
+          $base_attached['drupalSettings'] ?? [],
+          $extra['drupalSettings'],
+        );
+      }
+    }
+
+    return [
+      '#theme' => 'mel_event_workspace',
+      '#attached' => $base_attached,
+      '#event' => $event,
+      '#tabs' => $this->eventTabsService->getTabs($event, 'boost'),
+      '#meta' => NULL,
+      '#sidebar' => NULL,
+      '#content' => $boost_page_render,
+      '#actions' => [],
     ];
   }
 

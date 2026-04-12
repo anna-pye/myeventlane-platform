@@ -83,7 +83,7 @@ final class VendorEventTabsService {
       ],
       'boost' => [
         'label' => (string) $t->translate('Boost'),
-        'url' => "/event/{$id}/boost",
+        'url' => "/vendor/events/{$id}/boost",
         'key' => 'boost',
       ],
       'settings' => [

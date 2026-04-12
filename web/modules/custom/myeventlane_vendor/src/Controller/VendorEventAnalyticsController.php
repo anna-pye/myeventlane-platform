@@ -95,7 +95,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
 
     $boost_page_url = NULL;
     try {
-      $boost_page_url = Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event->id()])->toString();
+      $boost_page_url = Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $event->id()])->toString();
     }
     catch (\Throwable) {
       $boost_page_url = NULL;

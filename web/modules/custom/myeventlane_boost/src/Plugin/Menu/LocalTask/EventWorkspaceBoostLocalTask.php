@@ -13,7 +13,7 @@ use Drupal\node\NodeInterface;
  *
  * @MenuLocalTask(
  *   id = "myeventlane_boost.event_workspace_boost",
- *   route_name = "myeventlane_boost.boost_page",
+ *   route_name = "myeventlane_boost.vendor_event_boost",
  *   title = @Translation("Boost"),
  *   base_route = "myeventlane_vendor.console.event_overview",
  *   weight = 22,
@@ -27,7 +27,7 @@ final class EventWorkspaceBoostLocalTask extends LocalTaskDefault {
   public function getRouteParameters(RouteMatchInterface $route_match) {
     $event = $route_match->getParameter('event');
     $nid = $event instanceof NodeInterface ? $event->id() : $event;
-    return ['node' => $nid];
+    return ['event' => $nid];
   }
 
 }

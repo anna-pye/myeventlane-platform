@@ -25,6 +25,18 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 final class BoostSelectForm extends FormBase {
 
   /**
+   * Ideal default duration (days) when we suggest a first-time boost.
+   */
+  private const IDEAL_DAYS_DEFAULT = 7;
+
+  /**
+   * Ideal duration (days) when performance suggests "boost again".
+   *
+   * Resolved against actual catalog via resolveRecommendedDaysForCatalog().
+   */
+  private const IDEAL_DAYS_BOOST_AGAIN = 10;
+
+  /**
    * Constructs a BoostSelectForm.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -117,13 +129,8 @@ final class BoostSelectForm extends FormBase {
     /** @var \Drupal\commerce_product\Entity\ProductInterface[] $products */
     $products = $productStorage->loadMultiple($pids);
 
-    $options = [];
-    $rows = [];
-
-    $recommendedDays = 7;
-    if (is_array($boost_performance) && ($boost_performance['action_state'] ?? '') === 'boost_again') {
-      $recommendedDays = 10;
-    }
+    /** @var list<array{variation: \Drupal\commerce_product\Entity\ProductVariationInterface, days: int, priceStr: string}> $candidates */
+    $candidates = [];
 
     foreach ($products as $product) {
       if (!$product instanceof ProductInterface) {
@@ -152,72 +159,107 @@ final class BoostSelectForm extends FormBase {
 
         $priceStr = $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
 
-        $options[$variation->id()] = $this->t('@days days — @price', [
-          '@days' => $days,
-          '@price' => $priceStr,
-        ]);
-
-        $desc = match ($days) {
-          7 => $this->t('Get immediate visibility boost'),
-          10 => $this->t('Sustain momentum across the week'),
-          30 => $this->t('Maximise reach for long-running events'),
-          default => $this->t('Keep your event featured for @d days.', ['@d' => $days]),
-        };
-
-        $badge = '';
-        if ($days === $recommendedDays) {
-          $badge = '<span class="mel-boost-badge">' . $this->t('Recommended') . '</span>';
-        }
-
-        $titleInner = '<div class="mel-boost-option-content"><strong>' . $this->t('@d days', ['@d' => $days]) . '</strong>' . $badge
-          . '<span class="mel-boost-option-desc">' . $desc . '</span></div>';
-
-        $rows[$variation->id()] = [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['boost-row'],
-            'data-variation-id' => $variation->id(),
-            'data-option-days' => (string) $days,
-            'role' => 'option',
-            'tabindex' => '0',
-          ],
-          'icon' => [
-            '#markup' => '<div class="boost-row__icon">⚡️</div>',
-          ],
-          'text' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['boost-row__text']],
-            'title' => [
-              '#markup' => '<div class="boost-row__title">' . $titleInner . '</div>',
-            ],
-          ],
-          'price' => [
-            '#markup' => '<div class="boost-row__price">' . $priceStr . '</div>',
-          ],
-          'radio_indicator' => [
-            '#markup' => '<div class="boost-row__radio-indicator" aria-hidden="true" role="presentation"><span class="boost-row__radio-checkmark">✓</span></div>',
-          ],
+        $candidates[] = [
+          'variation' => $variation,
+          'days' => $days,
+          'priceStr' => $priceStr,
         ];
       }
     }
 
-    if (empty($options)) {
+    if ($candidates === []) {
       $form['empty'] = ['#markup' => $this->t('No valid boost variations found.')];
       return $form;
     }
 
+    $uniqueDays = array_values(array_unique(array_column($candidates, 'days')));
+    sort($uniqueDays, SORT_NUMERIC);
+
+    $recommendedDays = $this->resolveRecommendedDaysForCatalog($boost_performance, $uniqueDays);
+
+    $options = [];
+    $rows = [];
+
+    foreach ($candidates as $c) {
+      $variation = $c['variation'];
+      $days = $c['days'];
+      $priceStr = $c['priceStr'];
+
+      $options[$variation->id()] = $this->t('@days days — @price', [
+        '@days' => $days,
+        '@price' => $priceStr,
+      ]);
+
+      $desc = match ($days) {
+        7 => $this->t('Get immediate visibility boost'),
+        10 => $this->t('Sustain momentum across the week'),
+        30 => $this->t('Maximise reach for long-running events'),
+        default => $this->t('Keep your event featured for @d days.', ['@d' => $days]),
+      };
+
+      $badge = '';
+      if ($recommendedDays !== NULL && $days === $recommendedDays) {
+        $badge = '<span class="mel-boost-badge">' . $this->t('Recommended') . '</span>';
+      }
+
+      $titleInner = '<div class="mel-boost-option-content"><strong>' . $this->t('@d days', ['@d' => $days]) . '</strong>' . $badge
+        . '<span class="mel-boost-option-desc">' . $desc . '</span></div>';
+
+      $rows[$variation->id()] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['boost-row'],
+          'data-variation-id' => $variation->id(),
+          'data-option-days' => (string) $days,
+          'role' => 'option',
+          'tabindex' => '0',
+        ],
+        'icon' => [
+          '#markup' => '<div class="boost-row__icon">⚡️</div>',
+        ],
+        'text' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['boost-row__text']],
+          'title' => [
+            '#markup' => '<div class="boost-row__title">' . $titleInner . '</div>',
+          ],
+        ],
+        'price' => [
+          '#markup' => '<div class="boost-row__price">' . $priceStr . '</div>',
+        ],
+        'radio_indicator' => [
+          '#markup' => '<div class="boost-row__radio-indicator" aria-hidden="true" role="presentation"><span class="boost-row__radio-checkmark">✓</span></div>',
+        ],
+      ];
+    }
+
     // Hidden radios for accessibility and form submission.
+    $defaultVariationId = (int) array_key_first($options);
+    if ($recommendedDays !== NULL) {
+      foreach ($candidates as $c) {
+        if ($c['days'] === $recommendedDays) {
+          $defaultVariationId = (int) $c['variation']->id();
+          break;
+        }
+      }
+    }
+
     $form['choices'] = [
       '#type' => 'radios',
       '#title' => $this->t('Choose a boost duration'),
       '#options' => $options,
       '#required' => TRUE,
-      '#default_value' => !empty($options) ? array_key_first($options) : NULL,
+      '#default_value' => $defaultVariationId,
       '#attributes' => [
         'class' => ['mel-boost-radios', 'visually-hidden'],
         'required' => 'required',
       ],
     ];
+
+    // Expose resolved recommendation for scripts (e.g. future defaults); matches catalog.
+    if ($recommendedDays !== NULL) {
+      $form['#attached']['drupalSettings']['melBoost']['recommendedDays'] = $recommendedDays;
+    }
 
     // Add form class for JavaScript targeting.
     $form['#attributes']['class'][] = 'myeventlane-boost-select-form';
@@ -253,6 +295,55 @@ final class BoostSelectForm extends FormBase {
     $form['event_nid'] = ['#type' => 'value', '#value' => $node->id()];
 
     return $form;
+  }
+
+  /**
+   * Picks which duration (days) gets the "Recommended" badge for this catalog.
+   *
+   * Uses ideal targets (7 / 10) when those SKUs exist; otherwise the closest
+   * available duration so the badge always reflects a real purchasable option.
+   *
+   * @param array<string, mixed>|null $boost_performance
+   *   Payload from BoostPerformanceService (may include action_state).
+   * @param array<int> $available_days
+   *   Unique positive day counts from published variations.
+   *
+   * @return int|null
+   *   Days value to mark as recommended, or NULL if the catalog is empty.
+   */
+  private function resolveRecommendedDaysForCatalog(?array $boost_performance, array $available_days): ?int {
+    $available_days = array_values(array_unique(array_filter(
+      array_map(static fn ($d): int => (int) $d, $available_days),
+      static fn (int $d): bool => $d > 0,
+    )));
+    sort($available_days, SORT_NUMERIC);
+    if ($available_days === []) {
+      return NULL;
+    }
+
+    $is_boost_again = is_array($boost_performance)
+      && ($boost_performance['action_state'] ?? '') === 'boost_again';
+    $ideal = $is_boost_again ? self::IDEAL_DAYS_BOOST_AGAIN : self::IDEAL_DAYS_DEFAULT;
+
+    if (in_array($ideal, $available_days, TRUE)) {
+      return $ideal;
+    }
+
+    $best = $available_days[0];
+    $best_dist = PHP_INT_MAX;
+    foreach ($available_days as $d) {
+      $dist = abs($d - $ideal);
+      if ($dist < $best_dist) {
+        $best_dist = $dist;
+        $best = $d;
+      }
+      elseif ($dist === $best_dist && $d < $best) {
+        // Tie: prefer shorter duration (avoid nudging toward longest SKU).
+        $best = $d;
+      }
+    }
+
+    return $best;
   }
 
   /**
