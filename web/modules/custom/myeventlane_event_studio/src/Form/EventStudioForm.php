@@ -380,37 +380,22 @@ final class EventStudioForm extends FormBase {
       '#attributes' => ['class' => ['mel-input']],
     ];
 
+    // Tone/audience for AI + submit: synced from #mel-ai-tone / #mel-ai-audience in twig (hidden).
     $form['mel']['ai_settings'] = [
-      '#type' => 'details',
-      '#title' => $this->t('AI Settings'),
-      '#open' => TRUE,
+      '#type' => 'container',
       '#weight' => -10,
+      '#attributes' => [
+        'class' => ['visually-hidden'],
+        'aria-hidden' => 'true',
+      ],
     ];
     $form['mel']['ai_settings']['ai_tone'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Tone'),
-      '#options' => [
-        'fun' => $this->t('Fun & playful'),
-        'professional' => $this->t('Professional'),
-        'community' => $this->t('Community-focused'),
-        'urgent' => $this->t('High energy / urgent'),
-        'luxury' => $this->t('Premium / exclusive'),
-      ],
+      '#type' => 'hidden',
       '#default_value' => 'community',
-      '#attributes' => ['class' => ['mel-input']],
     ];
     $form['mel']['ai_settings']['ai_audience'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Audience'),
-      '#options' => [
-        'general' => $this->t('General public'),
-        'lgbtq' => $this->t('LGBTQIA+ community'),
-        'students' => $this->t('Students'),
-        'professionals' => $this->t('Professionals'),
-        'families' => $this->t('Families'),
-      ],
+      '#type' => 'hidden',
       '#default_value' => 'general',
-      '#attributes' => ['class' => ['mel-input']],
     ];
 
     $form['mel']['body'] = [
