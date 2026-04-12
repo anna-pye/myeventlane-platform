@@ -1565,6 +1565,44 @@
       });
     },
   };
+
+  /**
+   * Layout v2: horizontal tab panels (.active on buttons + panels).
+   */
+  Drupal.behaviors.melEventStudioLayout = {
+    attach: function (context) {
+      once('mel-studio-tabs', '#mel-tabs', context).forEach(function (tabRoot) {
+        var tabs = tabRoot.querySelectorAll('button[data-tab]');
+        var panels = document.querySelectorAll('.mel-tab-panel');
+
+        if (!tabs.length || !panels.length) {
+          return;
+        }
+
+        function activate(tab) {
+          panels.forEach(function (p) {
+            var match = p.getAttribute('data-tab') === tab;
+            p.classList.toggle('active', match);
+            p.setAttribute('aria-hidden', match ? 'false' : 'true');
+          });
+          tabs.forEach(function (b) {
+            var sel = b.getAttribute('data-tab') === tab;
+            b.classList.toggle('active', sel);
+            b.setAttribute('aria-selected', sel ? 'true' : 'false');
+          });
+        }
+
+        tabs.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            activate(btn.getAttribute('data-tab') || 'basic');
+          });
+        });
+
+        activate('basic');
+      });
+    },
+  };
+
   document.addEventListener(
     'submit',
     function (e) {
