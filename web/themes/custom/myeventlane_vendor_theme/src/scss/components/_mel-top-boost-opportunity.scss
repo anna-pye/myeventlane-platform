@@ -1,0 +1,124 @@
+/**
+ * @file
+ * Top dashboard boost opportunity card (BoostPerformanceService UI).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+
+.mel-top-boost-opportunity {
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  background: $mel-ws-bg-warm;
+  border: 1px solid $mel-ws-purple-border;
+  box-shadow: 0 8px 24px $mel-ws-shadow-soft;
+}
+
+.mel-top-boost-opportunity__header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+  margin-bottom: $spacing-2;
+}
+
+.mel-top-boost-opportunity__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $mel-ws-navy;
+  background: $mel-ws-purple-tint;
+  border: 1px solid $mel-ws-purple-border;
+}
+
+.mel-top-boost-opportunity__emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.mel-top-boost-opportunity__title {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $text-primary;
+  line-height: 1.25;
+}
+
+.mel-top-boost-opportunity__intro {
+  margin: 0 0 $spacing-3;
+  font-size: $font-size-base;
+  color: $text-secondary;
+  line-height: 1.5;
+  max-width: 48rem;
+}
+
+.mel-top-boost-opportunity__event {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  margin-bottom: $spacing-3;
+  padding: $spacing-3;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: $radius-md;
+  border: 1px solid $mel-ws-border-soft;
+}
+
+.mel-top-boost-opportunity__thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: $gray-100;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.mel-top-boost-opportunity__event-title {
+  margin: 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-top-boost-opportunity__tips-label {
+  margin: 0 0 $spacing-1;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+}
+
+.mel-top-boost-opportunity__tips {
+  margin: 0 0 $spacing-3;
+  padding-left: 1.25rem;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  line-height: 1.5;
+}
+
+.mel-top-boost-opportunity__tip {
+  margin-bottom: $spacing-1;
+}
+
+.mel-top-boost-opportunity__pricing {
+  margin: 0 0 $spacing-3;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  line-height: 1.5;
+}
+
+.mel-top-boost-opportunity__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+}
