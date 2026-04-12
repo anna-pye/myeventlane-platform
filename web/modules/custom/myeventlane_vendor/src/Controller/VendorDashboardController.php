@@ -16,6 +16,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_growth\Service\GrowthInsightService;
 use Drupal\myeventlane_growth\Service\GrowthTrackingService;
 use Drupal\myeventlane_pro\Service\EventInsightService;
@@ -34,6 +35,7 @@ use Drupal\node\NodeInterface;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Psr\Log\LoggerInterface;
 
 /**
  * Organiser dashboard controller - Full functional control centre.
@@ -131,6 +133,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
   protected ?CsrfTokenGenerator $csrfToken;
 
+  protected StateInterface $state;
+
+  protected LoggerInterface $melDebugLogger;
+
   /**
    * Boost lifecycle metrics façade (optional, myeventlane_boost.performance).
    *
@@ -156,6 +162,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
+    StateInterface $state,
+    LoggerInterface $mel_debug_logger,
     ?AiUsageTracker $ai_usage_tracker = NULL,
     ?ConfigFactoryInterface $config_factory = NULL,
     ?CategoryAudienceService $category_audience_service = NULL,
@@ -177,6 +185,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
     $this->eventStateResolver = $event_state_resolver;
+    $this->state = $state;
+    $this->melDebugLogger = $mel_debug_logger;
     $this->aiUsageTracker = $ai_usage_tracker;
     $this->configFactory = $config_factory;
     $this->categoryAudienceService = $category_audience_service;
@@ -206,6 +216,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
+      $container->get('state'),
+      $container->get('logger.channel.mel_debug'),
       $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
       $container->get('config.factory'),
       $container->has('myeventlane_vendor.service.category_audience') ? $container->get('myeventlane_vendor.service.category_audience') : NULL,
@@ -1300,12 +1312,21 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         continue;
       }
       $ui = $performance['ui'] ?? [];
-      if (empty($ui['show'])) {
+      $forceVisible = $this->isMelDevUiFallbackEnabled();
+      if (empty($ui['show']) && !$forceVisible) {
         continue;
+      }
+      if ($forceVisible) {
+        $this->melDebugLogger->notice('BOOST CANDIDATE → @title | show=@show', [
+          '@title' => (string) ($row['title'] ?? 'unknown'),
+          '@show' => !empty($ui['show']) ? 'YES' : 'NO',
+        ]);
       }
       $cta = $ui['cta'] ?? [];
       if (empty($cta['url']) || ($cta['label'] ?? '') === '') {
-        continue;
+        if (!$forceVisible) {
+          continue;
+        }
       }
       $candidates[] = $row;
     }
@@ -1328,6 +1349,16 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'image' => $best['image'] ?? NULL,
       'performance' => $performance,
     ];
+  }
+
+  /**
+   * Dev/staging: align with BoostPerformanceService visibility (state mel.dev_mode or uid 1).
+   */
+  private function isMelDevUiFallbackEnabled(): bool {
+    if ($this->state->get('mel.dev_mode', FALSE)) {
+      return TRUE;
+    }
+    return (int) $this->currentUser->id() === 1;
   }
 
   /**
