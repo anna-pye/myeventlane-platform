@@ -1,0 +1,215 @@
+// ==========================================================================
+// Event Studio — layout v2 (top preview + horizontal tabs + full-width form)
+// Complements module css/mel-event-studio.css (library mel_event_studio).
+// ==========================================================================
+
+.mel-event-studio {
+  max-width: 100%;
+}
+
+.mel-studio-top {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mel-studio-preview {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mel-studio-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Horizontal tabs (v2 uses .mel-tabs-horizontal; alias .mel-tabs + .mel-tabs__btn if templates differ) */
+.mel-tabs-horizontal,
+.mel-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.mel-tabs-horizontal button,
+.mel-tabs button,
+.mel-tabs .mel-tabs__btn {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: #eef2ff;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--mel-studio-text, #0f172a);
+}
+
+.mel-tabs-horizontal button.active,
+.mel-tabs button.active,
+.mel-tabs .mel-tabs__btn.active {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.mel-tabs-horizontal button:focus-visible,
+.mel-tabs button:focus-visible,
+.mel-tabs .mel-tabs__btn:focus-visible {
+  outline: 2px solid var(--mel-studio-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+/* Full width form */
+.mel-studio-main-full {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Tab panels — visibility controlled by .active + JS */
+.mel-tab-panel {
+  display: none;
+}
+
+.mel-tab-panel.active {
+  display: block;
+}
+
+.mel-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .mel-studio-top {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-form-group {
+  margin-top: 0.5rem;
+}
+
+.mel-advanced {
+  margin-bottom: 1rem;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+  border-radius: var(--mel-studio-radius, 12px);
+  padding: 0.35rem 1rem 1rem;
+  background: var(--mel-studio-card, #fff);
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0.35rem 0;
+  }
+
+  .mel-section--card {
+    margin-bottom: 1rem;
+  }
+}
+
+// Spacing tune (overrides module defaults where loaded after).
+.mel-event-studio .form-item {
+  margin-bottom: 10px;
+}
+
+.mel-event-studio .card,
+.mel-event-studio .mel-section--card {
+  padding: 12px;
+}
+
+// ---------------------------------------------------------------------------
+// Guided wizard (progress + step nav + panels)
+// ---------------------------------------------------------------------------
+
+.mel-wizard-progress {
+  margin-bottom: 16px;
+}
+
+.mel-wizard-progress__bar {
+  height: 6px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mel-wizard-progress__fill {
+  height: 100%;
+  width: 0%;
+  background: #f26d5b;
+  transition: width 0.3s ease;
+}
+
+.mel-wizard-progress__meta {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: var(--mel-studio-text-muted, #64748b);
+}
+
+.mel-wizard-nav {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.mel-wizard-nav button {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: #eef2ff;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  color: var(--mel-studio-text, #0f172a);
+}
+
+.mel-wizard-nav button.active {
+  background: #f26d5b;
+  color: white;
+}
+
+.mel-wizard-nav button:focus-visible {
+  outline: 2px solid var(--mel-studio-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+.mel-wizard {
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-step {
+  display: none;
+}
+
+.mel-wizard .mel-step:first-child {
+  display: block;
+}
+
+.mel-step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mel-step-actions .mel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
