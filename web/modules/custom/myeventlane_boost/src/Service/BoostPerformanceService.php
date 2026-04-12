@@ -6,6 +6,8 @@ namespace Drupal\myeventlane_boost\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_analytics\Service\AnalyticsDataService;
@@ -46,6 +48,8 @@ final class BoostPerformanceService {
     private readonly LoggerInterface $logger,
     private readonly UrlGeneratorInterface $urlGenerator,
     TranslationInterface $stringTranslation,
+    private readonly StateInterface $state,
+    private readonly AccountProxyInterface $currentUser,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -92,10 +96,16 @@ final class BoostPerformanceService {
     }
 
     if ($startTs === NULL || $endTs === NULL || $startTs <= 0 || $endTs <= 0) {
-      return $this->buildNoBoostWindowPayload($event, $now, $empty);
+      return $this->applyDevUiFallback(
+        $event,
+        $this->buildNoBoostWindowPayload($event, $now, $empty),
+      );
     }
 
-    return $this->buildBoostWindowPayload($event, $now, $startTs, $endTs, $legacyWindow);
+    return $this->applyDevUiFallback(
+      $event,
+      $this->buildBoostWindowPayload($event, $now, $startTs, $endTs, $legacyWindow),
+    );
   }
 
   /**
@@ -716,6 +726,71 @@ final class BoostPerformanceService {
       ]);
     }
     return $out;
+  }
+
+  /**
+   * Whether dev/staging UI fallback is enabled (production unchanged when off).
+   *
+   * Uses state key mel.dev_mode, or user 1, so staging can enable for all users.
+   */
+  private function isDevUiFallbackEnabled(): bool {
+    if ($this->state->get('mel.dev_mode', FALSE)) {
+      return TRUE;
+    }
+    return (int) $this->currentUser->id() === 1;
+  }
+
+  /**
+   * Surfaces Boost UI when canonical logic hides it; no new metrics or SQL.
+   *
+   * @param array<string, mixed> $payload
+   *   Full performance payload from buildNoBoostWindowPayload / buildBoostWindowPayload.
+   *
+   * @return array<string, mixed>
+   */
+  private function applyDevUiFallback(NodeInterface $event, array $payload): array {
+    if (!$this->isDevUiFallbackEnabled()) {
+      return $payload;
+    }
+    $ui = $payload['ui'] ?? [];
+    if (!is_array($ui)) {
+      $ui = [];
+    }
+    if (!empty($ui['show'])) {
+      return $payload;
+    }
+    $eventId = (int) $event->id();
+    $urls = $this->safeUrls($eventId);
+    $cta = $ui['cta'] ?? [];
+    if (!is_array($cta)) {
+      $cta = [];
+    }
+    $ui['show'] = TRUE;
+    if (empty($ui['title'])) {
+      $ui['title'] = (string) $this->t('Boost your event visibility');
+    }
+    if (empty($ui['intro'])) {
+      $ui['intro'] = (string) $this->t('This event could benefit from promotion.');
+    }
+    $tips = $ui['tips'] ?? [];
+    if (!is_array($tips) || $tips === []) {
+      $ui['tips'] = [
+        (string) $this->t('Increase visibility with Boost'),
+        (string) $this->t('Reach more attendees'),
+      ];
+    }
+    if (empty($cta['label'])) {
+      $cta['label'] = (string) $this->t('Boost this event');
+    }
+    if (empty($cta['url'])) {
+      $cta['url'] = $urls['boost'] !== '' ? $urls['boost'] : NULL;
+    }
+    if (empty($cta['classes'])) {
+      $cta['classes'] = 'mel-btn mel-btn--sm mel-btn--cta';
+    }
+    $ui['cta'] = $cta;
+    $payload['ui'] = $ui;
+    return $payload;
   }
 
   /**
