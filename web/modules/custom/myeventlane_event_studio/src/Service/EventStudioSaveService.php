@@ -670,15 +670,16 @@ final class EventStudioSaveService {
       $v = trim((string) $payload['field_age_policy']);
       $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_age_policy'));
       if ($allowed === []) {
-        $this->logger->warning('Studio save: field_age_policy allowed values missing; coercing to all_ages (nid @nid).', [
+        $this->logger->warning('Studio save: field_age_policy allowed values missing; skipping field_age_policy set (nid @nid).', [
           '@nid' => (string) ($node->id() ?? 'new'),
         ]);
-        $v = 'all_ages';
       }
-      elseif ($v === '' || !in_array($v, $allowed, TRUE)) {
-        $v = 'all_ages';
+      else {
+        if ($v === '' || !in_array($v, $allowed, TRUE)) {
+          $v = in_array('all_ages', $allowed, TRUE) ? 'all_ages' : (string) reset($allowed);
+        }
+        $node->set('field_age_policy', $v);
       }
-      $node->set('field_age_policy', $v);
     }
 
     if ($node->hasField('field_age_policy_note') && array_key_exists('field_age_policy_note', $payload)) {
