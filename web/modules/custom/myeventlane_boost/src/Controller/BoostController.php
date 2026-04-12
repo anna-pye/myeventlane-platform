@@ -159,11 +159,12 @@ final class BoostController extends ControllerBase {
       ? $this->buildStripeConnectCta()
       : $this->formBuilder->getForm(BoostSelectForm::class, $node, $boostPerformance);
 
+    // Theme variables must use # prefix; bare keys are treated as child render elements.
     return [
       '#theme' => 'boost_event_page',
-      'boost_performance' => $boostPerformance,
-      'event' => $node,
-      'form' => [
+      '#boost_performance' => $boostPerformance,
+      '#event' => $node,
+      '#form' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-boost-page__card']],
         'body' => $body,
