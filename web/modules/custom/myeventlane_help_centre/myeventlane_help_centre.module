@@ -103,6 +103,7 @@ function myeventlane_help_centre_theme(): array {
         'url' => '',
         'analytics_key' => NULL,
         'mel_help_articles' => NULL,
+        'vendor_event_boost_url' => NULL,
       ],
       'template' => 'mel-support-panel',
       'path' => $module_path . '/templates',
@@ -129,11 +130,42 @@ function _myeventlane_help_centre_split_class_tokens(mixed $value): array {
 }
 
 /**
+ * Returns the vendor boost management URL when myeventlane_boost is enabled.
+ *
+ * @param mixed $event_id
+ *   Event node ID, or NULL/empty when unavailable.
+ *
+ * @return string|null
+ *   Relative URL, or NULL when the route is unavailable.
+ */
+function _myeventlane_help_centre_vendor_event_boost_url(mixed $event_id): ?string {
+  if ($event_id === NULL || $event_id === '') {
+    return NULL;
+  }
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_boost')) {
+    return NULL;
+  }
+  try {
+    return Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => (int) $event_id])
+      ->setAbsolute(FALSE)
+      ->toString();
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_help_centre')->warning('Could not build vendor_event_boost URL: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return NULL;
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK() for mel_support_panel.
  *
  * Ensures the mel_support_panel template receives a normalized Attribute object.
  */
 function myeventlane_help_centre_preprocess_mel_support_panel(array &$variables): void {
+  $variables['vendor_event_boost_url'] = _myeventlane_help_centre_vendor_event_boost_url($variables['event_id'] ?? NULL);
+
   // Missing key and NULL both resolve to [] via ??; other invalid types are reset
   // below so Twig always receives an Attribute instance, never stray scalars.
   $attrs = $variables['attributes'] ?? [];
