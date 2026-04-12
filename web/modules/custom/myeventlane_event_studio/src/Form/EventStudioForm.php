@@ -838,7 +838,7 @@ final class EventStudioForm extends FormBase {
       $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
       return;
     }
-    if ($analysis['non_empty_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
+    if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
       $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
     }
   }
