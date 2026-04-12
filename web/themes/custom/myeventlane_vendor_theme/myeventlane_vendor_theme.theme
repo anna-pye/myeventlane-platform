@@ -477,6 +477,11 @@ function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
  * Implements hook_form_alter().
  */
 function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Event Studio: taxonomy select list instead of entity autocomplete (presentation).
+  if ($form_id === 'mel_event_studio_form') {
+    _myeventlane_vendor_theme_mel_event_studio_category_select($form);
+  }
+
   // Style node event forms.
   if (str_starts_with($form_id, 'node_event_')) {
     $form['#attributes']['class'][] = 'mel-event-form';
@@ -505,6 +510,68 @@ function myeventlane_vendor_theme_form_alter(array &$form, FormStateInterface $f
     $form['#attached']['library'][] = 'core/drupal.states';
     $form['#attached']['library'][] = 'core/drupal.ajax';
   }
+}
+
+/**
+ * Replaces Event Studio category autocomplete with a multi-select (taxonomy terms).
+ *
+ * Submits mel[field_category] as an array of term IDs, which matches
+ * EventStudioForm::extractMultipleEntityIds() for array input.
+ */
+function _myeventlane_vendor_theme_mel_event_studio_category_select(array &$form): void {
+  if (!isset($form['mel']['field_category']) || !is_array($form['mel']['field_category'])) {
+    return;
+  }
+  $original = $form['mel']['field_category'];
+  if (($original['#type'] ?? '') !== 'entity_autocomplete') {
+    return;
+  }
+
+  $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $tids = $term_storage->getQuery()
+    ->accessCheck(TRUE)
+    ->condition('vid', 'categories')
+    ->sort('name')
+    ->execute();
+
+  if ($tids === []) {
+    return;
+  }
+
+  $terms = $term_storage->loadMultiple($tids);
+  $options = [];
+  foreach ($terms as $term) {
+    $options[$term->id()] = $term->label();
+  }
+
+  $default_tids = [];
+  $dv = $original['#default_value'] ?? [];
+  if (is_array($dv)) {
+    foreach ($dv as $entity) {
+      if (is_object($entity) && method_exists($entity, 'id')) {
+        $default_tids[] = $entity->id();
+      }
+    }
+  }
+
+  $classes = ['mel-input', 'mel-select--category'];
+  if (!empty($original['#attributes']['class']) && is_array($original['#attributes']['class'])) {
+    $classes = array_merge($classes, $original['#attributes']['class']);
+  }
+
+  $form['mel']['field_category'] = [
+    '#type' => 'select',
+    '#title' => $original['#title'] ?? t('Categories'),
+    '#options' => $options,
+    '#multiple' => TRUE,
+    '#default_value' => $default_tids,
+    '#description' => $original['#description'] ?? NULL,
+    '#attributes' => [
+      'class' => array_values(array_unique($classes)),
+      'size' => (string) min(12, max(4, count($options))),
+    ],
+    '#weight' => $original['#weight'] ?? 0,
+  ];
 }
 
 /**

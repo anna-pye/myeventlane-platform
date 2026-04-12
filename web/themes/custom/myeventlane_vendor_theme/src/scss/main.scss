@@ -87,6 +87,8 @@
   @include meta.load-css('../../../myeventlane_theme/src/scss/components/vendor-studio-editor');
   @include meta.load-css('../../../myeventlane_theme/src/scss/components/studio-inspector');
   @include meta.load-css('../../../myeventlane_theme/src/scss/components/help-centre');
+  // Event Studio layout (preview + insights grid, full-width form) — shared with public theme.
+  @include meta.load-css('../../../myeventlane_theme/src/scss/components/event-studio');
 
   @include meta.load-css('pages/dashboard');
   @include meta.load-css('pages/dashboard-mel-support');
