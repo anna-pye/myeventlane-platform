@@ -112,5 +112,4 @@ services:
   myeventlane_help.intelligence:
     class: Drupal\myeventlane_help_centre\Service\HelpPanelIntelligence
     arguments:
-      - '@database'
-      - '@logger.channel.myeventlane_help_centre'
+      - '@myeventlane_help.analytics_summary'

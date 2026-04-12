@@ -1,5 +1,13 @@
 ## Release hardening (MyEventLane)
 
+### Config sync directory (CRITICAL)
+
+The **config sync directory** is the single source of truth for Drupal configuration. On artifact-based hosts it must be **overwritten on every deploy** using `rsync -av --delete` from the extracted release’s `config/sync` into the server’s shared sync path (for example `/home/mel/staging/config/sync`). Failure to do so causes config drift, misleading `drush cim` results, partial sync states, and production instability.
+
+**Operational rule:** do not hand-edit YAML under the shared sync directory on the server. Change configuration in local development, run `drush cex`, commit to Git, and deploy a new artifact. Treat staging and production sync directories as **read-only** except for the deploy pipeline.
+
+Staging/production deploys implement this via `scripts/deploy/remote-deploy.sh` (shared sync + `drush cim` + `drush cst` verification when `RUN_CIM=1`).
+
 ### When to run
 
 - **Before tagging a release** (local/DDEV): ensure code + config are consistent and diagnostics are clean.
@@ -65,4 +73,3 @@ Exit codes:
   - Queue backend is not readable for that queue (schema/runtime issue).
 - **Messaging templates = FAIL**
   - An enabled messaging template has invalid Twig syntax and will not render correctly.
-
