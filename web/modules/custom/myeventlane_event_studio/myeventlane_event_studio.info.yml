@@ -6,8 +6,11 @@ package: MyEventLane
 
 dependencies:
   - drupal:node
+  - myeventlane_ai:myeventlane_ai
+  - myeventlane_commerce:myeventlane_commerce
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
   - myeventlane_event_state:myeventlane_event_state
+  - myeventlane_tickets:myeventlane_tickets
   - myeventlane_venue:myeventlane_venue
   - myeventlane_location:myeventlane_location

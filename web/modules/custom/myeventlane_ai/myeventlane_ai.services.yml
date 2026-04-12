@@ -31,6 +31,10 @@ services:
       $provider: '@myeventlane_ai.provider.openai'
       $entityTypeManager: '@entity_type.manager'
 
+  # Alias for callers expecting a "generator" service id (e.g. Event Studio).
+  myeventlane_ai.generator:
+    alias: myeventlane_ai.manager
+
   myeventlane_ai.prompt_registry:
     class: Drupal\myeventlane_ai\Service\PromptRegistry
     arguments: ['@config.factory', '@logger.channel.myeventlane_ai']

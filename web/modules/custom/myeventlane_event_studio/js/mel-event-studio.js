@@ -48,6 +48,32 @@
     return !!val(form, 'mel[field_category]');
   }
 
+  /** Comma-separated category labels for AI context (multi-select or autocomplete). */
+  function categoryContextForAi(form) {
+    var multi = form.querySelector('select[name="mel[field_category][]"]');
+    if (multi && multi.selectedOptions && multi.selectedOptions.length > 0) {
+      var parts = [];
+      for (var i = 0; i < multi.selectedOptions.length; i++) {
+        parts.push(multi.selectedOptions[i].text);
+      }
+      return parts.join(', ');
+    }
+    return val(form, 'mel[field_category]');
+  }
+
+  function getCsrfToken() {
+    if (typeof drupalSettings === 'undefined') {
+      return '';
+    }
+    if (drupalSettings.path && drupalSettings.path.csrfToken) {
+      return drupalSettings.path.csrfToken;
+    }
+    if (drupalSettings.ajaxPageState && drupalSettings.ajaxPageState.csrfToken) {
+      return drupalSettings.ajaxPageState.csrfToken;
+    }
+    return '';
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -1603,7 +1629,72 @@
         bindCoverFilePreview(form);
         initMelWizard(form);
 
+        var aiGenerateUrl = Drupal.url('vendor/events/ai-generate');
+
         form.addEventListener('click', function (e) {
+          var genBtn = e.target.closest('#mel-ai-generate');
+          if (genBtn && form.contains(genBtn)) {
+            e.preventDefault();
+            var token = getCsrfToken();
+            if (!token) {
+              setFormState(form, 'mel-studio--error', Drupal.t('Could not verify the request. Reload the page and try again.'));
+              return;
+            }
+            var defaultLabel =
+              genBtn.getAttribute('data-mel-ai-default-label') || Drupal.t('✨ Generate with AI');
+            genBtn.disabled = true;
+            genBtn.setAttribute('aria-busy', 'true');
+            genBtn.textContent = Drupal.t('Generating…');
+            var payload = {
+              title: val(form, 'mel[title]'),
+              summary: val(form, 'mel[summary]'),
+              category: categoryContextForAi(form),
+            };
+            fetch(aiGenerateUrl, {
+              method: 'POST',
+              body: JSON.stringify(payload),
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token,
+                Accept: 'application/json',
+              },
+            })
+              .then(function (response) {
+                return response.json().then(function (data) {
+                  return { ok: response.ok, data: data };
+                });
+              })
+              .then(function (result) {
+                if (!result.ok || !result.data || !result.data.ok) {
+                  setFormState(
+                    form,
+                    'mel-studio--error',
+                    Drupal.t('AI could not generate text. Try again.'),
+                  );
+                  return;
+                }
+                var data = result.data;
+                var titleIn = form.querySelector('[name="mel[title]"]');
+                var sumIn = form.querySelector('[name="mel[summary]"]');
+                if (data.title && titleIn) {
+                  titleIn.value = data.title;
+                }
+                if (data.summary && sumIn) {
+                  sumIn.value = data.summary;
+                }
+                form.dispatchEvent(new Event('input', { bubbles: true }));
+              })
+              .catch(function () {
+                setFormState(form, 'mel-studio--error', Drupal.t('AI could not generate text. Try again.'));
+              })
+              .finally(function () {
+                genBtn.disabled = false;
+                genBtn.removeAttribute('aria-busy');
+                genBtn.textContent = defaultLabel;
+              });
+            return;
+          }
           var a = e.target.closest('.mel-ticket-product-panel__cta.is-disabled');
           if (a) {
             e.preventDefault();
