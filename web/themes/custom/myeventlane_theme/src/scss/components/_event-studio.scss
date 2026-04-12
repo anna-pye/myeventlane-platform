@@ -153,6 +153,31 @@ form.mel-event-studio-form {
   width: 100%;
 }
 
+.mel-ai-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.mel-ai-controls__row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mel-ai-controls__group {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mel-ai-controls__group .mel-input {
+  min-width: 8rem;
+}
+
 /* Mobile fallback */
 @media (max-width: 768px) {
   .mel-studio-top {

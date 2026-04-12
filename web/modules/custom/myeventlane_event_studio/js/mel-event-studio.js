@@ -92,6 +92,50 @@
     return parts.join(', ');
   }
 
+  /** Panel selects → hidden mel[ai_settings][*] (submit + AI). */
+  function syncAiControlsToForm(form) {
+    var toneSelect = document.getElementById('mel-ai-tone');
+    var audienceSelect = document.getElementById('mel-ai-audience');
+    if (!toneSelect || !audienceSelect) {
+      return;
+    }
+    var toneInput = form.querySelector('[name="mel[ai_settings][ai_tone]"]');
+    var audienceInput = form.querySelector('[name="mel[ai_settings][ai_audience]"]');
+    if (toneInput) {
+      toneInput.value = toneSelect.value;
+    }
+    if (audienceInput) {
+      audienceInput.value = audienceSelect.value;
+    }
+  }
+
+  /** Hidden fields → panel (initial load / after rebuild). */
+  function syncFormToAiControls(form) {
+    var toneSelect = document.getElementById('mel-ai-tone');
+    var audienceSelect = document.getElementById('mel-ai-audience');
+    if (!toneSelect || !audienceSelect) {
+      return;
+    }
+    var toneInput = form.querySelector('[name="mel[ai_settings][ai_tone]"]');
+    var audienceInput = form.querySelector('[name="mel[ai_settings][ai_audience]"]');
+    if (toneInput && toneInput.value) {
+      toneSelect.value = toneInput.value;
+    }
+    if (audienceInput && audienceInput.value) {
+      audienceSelect.value = audienceInput.value;
+    }
+  }
+
+  function aiToneFromPanel() {
+    var el = document.getElementById('mel-ai-tone');
+    return el && el.value ? el.value : 'community';
+  }
+
+  function aiAudienceFromPanel() {
+    var el = document.getElementById('mel-ai-audience');
+    return el && el.value ? el.value : 'general';
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -1647,10 +1691,29 @@
         bindCoverFilePreview(form);
         initMelWizard(form);
 
+        syncFormToAiControls(form);
+        var melAiTone = document.getElementById('mel-ai-tone');
+        var melAiAudience = document.getElementById('mel-ai-audience');
+        if (melAiTone) {
+          melAiTone.addEventListener('change', function () {
+            syncAiControlsToForm(form);
+          });
+        }
+        if (melAiAudience) {
+          melAiAudience.addEventListener('change', function () {
+            syncAiControlsToForm(form);
+          });
+        }
+
+        form.addEventListener('submit', function () {
+          syncAiControlsToForm(form);
+        });
+
         form.addEventListener('click', function (e) {
           var genBtn = e.target.closest('#mel-ai-generate');
           if (genBtn && form.contains(genBtn)) {
             e.preventDefault();
+            syncAiControlsToForm(form);
             var aiUrl = Drupal.url('vendor/events/ai/generate');
 
             setFormState(form, 'mel-studio--saving', Drupal.t('AI is writing your event…'));
@@ -1673,8 +1736,8 @@
                     summary: val(form, 'mel[summary]'),
                     category: categoryForAiPayload(form),
                     tags: tagsForAiPayload(form),
-                    tone: val(form, 'mel[ai_settings][ai_tone]'),
-                    audience: val(form, 'mel[ai_settings][ai_audience]'),
+                    tone: aiToneFromPanel(),
+                    audience: aiAudienceFromPanel(),
                   }),
                 });
               })

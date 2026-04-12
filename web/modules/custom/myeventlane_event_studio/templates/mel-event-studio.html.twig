@@ -13,6 +13,8 @@
   {% endif %}
 
   <div class="mel-event-studio mel-event-studio--{{ mode|default('create') }}" data-mel-studio-shell="1">
+    {# Hidden Drupal values for AI tone/audience (synced with #mel-ai-tone / #mel-ai-audience). #}
+    {{ element.mel.ai_settings }}
     <h1 class="mel-event-studio__page-title visually-hidden">
       {% if mode == 'create' %}
         {{ 'Create Event'|t }}
@@ -70,6 +72,31 @@
       </div>
 
       <div class="mel-studio-top__insights">
+        <div class="mel-ai-controls" role="region" aria-label="{{ 'AI style for generation'|t }}">
+          <div class="mel-ai-controls__row">
+            <label class="mel-ai-controls__group">
+              <span>{{ 'Tone'|t }}</span>
+              <select id="mel-ai-tone" class="mel-input" aria-label="{{ 'AI tone'|t }}">
+                <option value="community">{{ 'Community'|t }}</option>
+                <option value="fun">{{ 'Fun'|t }}</option>
+                <option value="professional">{{ 'Professional'|t }}</option>
+                <option value="urgent">{{ 'Urgent'|t }}</option>
+                <option value="luxury">{{ 'Premium'|t }}</option>
+              </select>
+            </label>
+            <label class="mel-ai-controls__group">
+              <span>{{ 'Audience'|t }}</span>
+              <select id="mel-ai-audience" class="mel-input" aria-label="{{ 'AI audience'|t }}">
+                <option value="general">{{ 'General'|t }}</option>
+                <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
+                <option value="students">{{ 'Students'|t }}</option>
+                <option value="professionals">{{ 'Professionals'|t }}</option>
+                <option value="families">{{ 'Families'|t }}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
         <div class="mel-insights-card">
           <h3 class="mel-aside-card__title">{{ 'Suggestions'|t }}</h3>
           <ul class="mel-insights-list" id="mel-insights-list" aria-live="polite"></ul>
@@ -104,7 +131,6 @@
             </header>
 
             <div class="mel-identity-stack">
-              {{ element.mel.ai_settings }}
               <div class="mel-basic-title-with-ai">
                 {{ element.mel.title }}
                 <div class="mel-ai-autofill">
