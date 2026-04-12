@@ -131,6 +131,19 @@ final class BoostController extends ControllerBase {
       ]);
     }
 
+    $boostPerformance = NULL;
+    if (\Drupal::hasService('myeventlane_boost.performance')) {
+      try {
+        $boostPerformance = \Drupal::service('myeventlane_boost.performance')
+          ->getPerformanceForEvent($node);
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_boost')->warning('Boost performance failed: @msg', [
+          '@msg' => $e->getMessage(),
+        ]);
+      }
+    }
+
     $showStripeCta = !$this->currentUser()->hasPermission('administer myeventlane')
       && !$this->checkStripeConnection($this->currentUser());
 
@@ -142,42 +155,18 @@ final class BoostController extends ControllerBase {
     $cancelLink['#attributes']['class'][] = 'button--ghost';
     $cancelLink['#attributes']['class'][] = 'boost-cancel';
 
+    $body = $showStripeCta
+      ? $this->buildStripeConnectCta()
+      : $this->formBuilder->getForm(BoostSelectForm::class, $node, $boostPerformance);
+
     return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-boost-page']],
-      'lead' => [
+      '#theme' => 'boost_event_page',
+      'boost_performance' => $boostPerformance,
+      'event' => $node,
+      'form' => [
         '#type' => 'container',
-        '#attributes' => ['class' => ['boost-hero']],
-        'content' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['boost-hero__content']],
-          'title' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h1',
-            '#value' => $this->t('Boost "@title"', ['@title' => $node->label()]),
-            '#attributes' => ['class' => ['boost-title']],
-          ],
-          'kicker' => [
-            '#type' => 'html_tag',
-            '#tag' => 'div',
-            '#value' => $this->t('Featured placement + badge. Choose a boost duration below.'),
-            '#attributes' => ['class' => ['boost-kicker']],
-          ],
-        ],
-        'art' => [
-          '#type' => 'html_tag',
-          '#tag' => 'div',
-          '#value' => '📈',
-          '#attributes' => [
-            'class' => ['boost-hero__art'],
-            'aria-hidden' => 'true',
-          ],
-        ],
-      ],
-      'card' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['boost-card']],
-        'body' => $showStripeCta ? $this->buildStripeConnectCta() : $this->formBuilder->getForm(BoostSelectForm::class, $node),
+        '#attributes' => ['class' => ['mel-boost-page__card']],
+        'body' => $body,
         'footer' => [
           '#type' => 'container',
           '#attributes' => ['class' => ['boost-footer']],

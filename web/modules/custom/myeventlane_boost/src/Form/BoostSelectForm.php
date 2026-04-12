@@ -71,7 +71,7 @@ final class BoostSelectForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL, ?array $boost_performance = NULL): array {
     if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
       $form['#markup'] = $this->t('This page requires an event.');
       return $form;
@@ -120,6 +120,11 @@ final class BoostSelectForm extends FormBase {
     $options = [];
     $rows = [];
 
+    $recommendedDays = 7;
+    if (is_array($boost_performance) && ($boost_performance['action_state'] ?? '') === 'boost_again') {
+      $recommendedDays = 10;
+    }
+
     foreach ($products as $product) {
       if (!$product instanceof ProductInterface) {
         continue;
@@ -152,11 +157,27 @@ final class BoostSelectForm extends FormBase {
           '@price' => $priceStr,
         ]);
 
+        $desc = match ($days) {
+          7 => $this->t('Get immediate visibility boost'),
+          10 => $this->t('Sustain momentum across the week'),
+          30 => $this->t('Maximise reach for long-running events'),
+          default => $this->t('Keep your event featured for @d days.', ['@d' => $days]),
+        };
+
+        $badge = '';
+        if ($days === $recommendedDays) {
+          $badge = '<span class="mel-boost-badge">' . $this->t('Recommended') . '</span>';
+        }
+
+        $titleInner = '<div class="mel-boost-option-content"><strong>' . $this->t('@d days', ['@d' => $days]) . '</strong>' . $badge
+          . '<span class="mel-boost-option-desc">' . $desc . '</span></div>';
+
         $rows[$variation->id()] = [
           '#type' => 'container',
           '#attributes' => [
             'class' => ['boost-row'],
             'data-variation-id' => $variation->id(),
+            'data-option-days' => (string) $days,
             'role' => 'option',
             'tabindex' => '0',
           ],
@@ -167,10 +188,7 @@ final class BoostSelectForm extends FormBase {
             '#type' => 'container',
             '#attributes' => ['class' => ['boost-row__text']],
             'title' => [
-              '#markup' => '<div class="boost-row__title">' . $this->t('@d days', ['@d' => $days]) . '</div>',
-            ],
-            'desc' => [
-              '#markup' => '<div class="boost-row__desc">' . $this->t('Keep your event featured for @d days.', ['@d' => $days]) . '</div>',
+              '#markup' => '<div class="boost-row__title">' . $titleInner . '</div>',
             ],
           ],
           'price' => [
@@ -222,8 +240,13 @@ final class BoostSelectForm extends FormBase {
       '#attributes' => ['class' => ['boost-footer']],
       'submit' => [
         '#type' => 'submit',
-        '#value' => $this->t('Continue to checkout'),
+        '#value' => $this->t('Boost my event now'),
         '#attributes' => ['class' => ['button', 'button--primary']],
+      ],
+      'micro' => [
+        '#type' => 'markup',
+        '#markup' => '<p class="mel-boost-micro">' . $this->t('No lock-in. Boost starts immediately.') . '</p>',
+        '#weight' => 10,
       ],
     ];
 
