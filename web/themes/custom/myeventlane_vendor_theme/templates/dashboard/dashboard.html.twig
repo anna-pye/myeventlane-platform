@@ -61,6 +61,16 @@
         {{ mel_contribution_billing_strip }}
       {% endif %}
 
+      {% if mel_top_boost_opportunity is defined and mel_top_boost_opportunity %}
+        {% include '@myeventlane_vendor_theme/components/mel-top-boost-opportunity.html.twig' with {
+          event: {
+            title: mel_top_boost_opportunity.title,
+            image: mel_top_boost_opportunity.image|default(null),
+          },
+          performance: mel_top_boost_opportunity.performance,
+        } only %}
+      {% endif %}
+
       <section class="mel-dashboard-section" aria-labelledby="performance-title">
         {% include '@myeventlane_vendor_theme/components/section-heading.html.twig' with {
           title: 'Performance'|t,
@@ -210,6 +220,9 @@
                       </div>
                     {% endif %}
                   </div>
+                  {% if event.boost.performance is defined and event.boost.performance.ui is defined and event.boost.performance.ui.show %}
+                    {% include '@myeventlane_vendor_theme/components/mel-boost-status-panel.html.twig' with { performance: event.boost.performance } only %}
+                  {% endif %}
                   <div class="mel-performance-list__metrics">
                     <span>{{ 'Tickets'|t }}: {{ event.tickets_sold|default(0) }}</span>
                     <span>{{ 'RSVPs'|t }}: {{ event.rsvps|default(0) }}</span>

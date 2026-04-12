@@ -97,6 +97,7 @@ function myeventlane_help_centre_theme(): array {
         'attributes' => [],
         'checkout_step_id' => NULL,
         'mel_help_state' => NULL,
+        'event_id' => NULL,
         'title' => '',
         'summary' => '',
         'url' => '',
@@ -760,17 +761,59 @@ function myeventlane_help_centre_preprocess_myeventlane_vendor_dashboard(array &
       $total_tickets += (int) ($event['tickets_sold'] ?? 0);
       $rev = $event['revenue'] ?? 0;
       $total_revenue += is_numeric($rev) ? (float) $rev : 0.0;
-      $total_views += (int) ($event['views'] ?? 0);
+      $event_health = $event['event_health'] ?? [];
+      $page_views = is_array($event_health)
+        ? (int) ($event_health['page_views'] ?? 0)
+        : 0;
+      $total_views += $page_views > 0 ? $page_views : (int) ($event['views'] ?? 0);
+    }
+    $first_event = reset($events);
+    if (is_array($first_event)) {
+      if (!empty($first_event['nid'])) {
+        $panel['#event_id'] = $first_event['nid'];
+      }
+      elseif (!empty($first_event['id'])) {
+        $panel['#event_id'] = $first_event['id'];
+      }
     }
     $conversion = $total_views > 0
       ? ($total_tickets / $total_views)
       : 0.0;
+
+    $request = \Drupal::request();
+    $session = $request->hasSession() ? $request->getSession() : NULL;
+    $previous = NULL;
+    if ($session !== NULL && $session->has('mel_help_baseline_conversion')) {
+      $previous = (float) $session->get('mel_help_baseline_conversion');
+    }
+    if ($session !== NULL && !$session->has('mel_help_baseline_conversion')) {
+      $session->set('mel_help_baseline_conversion', $conversion);
+    }
+
+    static $mel_help_logged_conversion_after_boost = FALSE;
+    if (
+      !$mel_help_logged_conversion_after_boost
+      && $session !== NULL
+      && $previous !== NULL
+      && $previous > 0
+      && $conversion > $previous
+      && !$session->get('mel_help_boost_conversion_logged', FALSE)
+    ) {
+      $mel_help_logged_conversion_after_boost = TRUE;
+      $session->set('mel_help_boost_conversion_logged', TRUE);
+      \Drupal::service('myeventlane_help.analytics')->logConversionAfterBoost('boost_event', $conversion, $previous);
+    }
+
+    $baseline_for_state = $session !== NULL && $session->has('mel_help_baseline_conversion')
+      ? (float) $session->get('mel_help_baseline_conversion')
+      : $conversion;
     $panel['#mel_help_state'] = [
       'tickets_sold' => $total_tickets,
       'has_events' => !empty($events),
       'revenue' => $total_revenue,
       'views' => $total_views,
       'conversion' => $conversion,
+      'baseline_conversion' => $baseline_for_state,
     ];
     if (!isset($panel['#cache']['contexts'])) {
       $panel['#cache']['contexts'] = [];
