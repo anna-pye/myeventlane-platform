@@ -1189,7 +1189,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'allowed' => $isPublished && $isEligible,
         'label' => $isBoosted ? 'Boost active' : ($isPublished ? 'Boost event' : 'Publish to boost'),
         'url' => ($isPublished && $isEligible)
-          ? Url::fromRoute('myeventlane_boost.boost_page', ['node' => $eventId])->toString()
+          ? Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $eventId])->toString()
           : NULL,
         'is_boosted' => $isBoosted,
         'message' => !$isPublished ? 'Publish this event to enable boosting.' : ($boostData['reason'] ?? NULL),
@@ -1352,13 +1352,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   }
 
   /**
-   * Dev/staging: align with BoostPerformanceService visibility (state mel.dev_mode or uid 1).
+   * Dev/staging: align with BoostPerformanceService visibility (state mel.dev_mode only).
    */
   private function isMelDevUiFallbackEnabled(): bool {
-    if ($this->state->get('mel.dev_mode', FALSE)) {
-      return TRUE;
-    }
-    return (int) $this->currentUser->id() === 1;
+    return (bool) $this->state->get('mel.dev_mode', FALSE);
   }
 
   /**
@@ -2341,7 +2338,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           'event_id' => $event_id,
           'event_title' => $event ? $event->label() : $this->t('Unknown event'),
           'ends_at' => $ends > 0 ? date('M j, Y g:ia', $ends) : $this->t('Unknown'),
-          'manage_url' => $event_id > 0 ? Url::fromRoute('myeventlane_boost.boost_page', ['node' => $event_id])->toString() : NULL,
+          'manage_url' => $event_id > 0 ? Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $event_id])->toString() : NULL,
         ];
       }
 
