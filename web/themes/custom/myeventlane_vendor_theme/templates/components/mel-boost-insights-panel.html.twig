@@ -1,0 +1,44 @@
+{#
+/**
+ * @file
+ * Boost Insights — event workspace banner (display only; data from BoostPerformanceService).
+ *
+ * Variables:
+ * - performance: output of BoostPerformanceService::getPerformanceForEvent()
+ */
+#}
+{% if performance and performance.ui and performance.ui.show %}
+  {% set ui = performance.ui %}
+  {% set cta = ui.cta|default({}) %}
+  {% set variant = ui.variant|default('') %}
+  {% set variant_slug = variant ? variant|clean_class : 'default' %}
+  <div class="mel-boost-insights mel-boost-insights--{{ variant }}" role="region" aria-labelledby="mel-boost-insights-heading-{{ variant_slug }}">
+    <div class="mel-boost-insights__header">
+      <span class="mel-boost-insights__emoji" aria-hidden="true">{{ ui.emoji|default('📈') }}</span>
+      <div class="mel-boost-insights__text">
+        <h3 id="mel-boost-insights-heading-{{ variant_slug }}" class="mel-boost-insights__title">{{ ui.title }}</h3>
+        {% if ui.intro %}
+          <p class="mel-boost-insights__intro">{{ ui.intro }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if ui.tips is iterable and ui.tips|length > 0 %}
+      <ul class="mel-boost-insights__tips">
+        {% for tip in ui.tips %}
+          <li>{{ tip }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if performance.pricing_recommendation and performance.pricing_recommendation.message %}
+      <p class="mel-boost-insights__pricing">{{ performance.pricing_recommendation.message }}</p>
+    {% endif %}
+
+    {% if cta.url|default('') and cta.label|default('') %}
+      <div class="mel-boost-insights__cta">
+        <a href="{{ cta.url }}" class="{{ cta.classes|default('mel-btn mel-btn--sm mel-btn--primary') }}">{{ cta.label }}</a>
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
