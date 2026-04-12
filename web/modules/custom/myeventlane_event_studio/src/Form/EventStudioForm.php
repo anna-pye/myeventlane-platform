@@ -380,7 +380,7 @@ final class EventStudioForm extends FormBase {
       '#attributes' => ['class' => ['mel-input']],
     ];
 
-    // Tone/audience for AI + submit: synced from #mel-ai-tone / #mel-ai-audience in twig (hidden).
+    // Tone/audience for AI + submit: synced from panel selects .mel-ai-tone / .mel-ai-audience in twig (hidden).
     $form['mel']['ai_settings'] = [
       '#type' => 'container',
       '#weight' => -10,

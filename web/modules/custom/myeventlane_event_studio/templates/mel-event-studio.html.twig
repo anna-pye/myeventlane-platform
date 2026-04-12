@@ -13,7 +13,7 @@
   {% endif %}
 
   <div class="mel-event-studio mel-event-studio--{{ mode|default('create') }}" data-mel-studio-shell="1">
-    {# Hidden Drupal values for AI tone/audience (synced with #mel-ai-tone / #mel-ai-audience). #}
+    {# Hidden Drupal values for AI tone/audience (synced with panel selects .mel-ai-tone / .mel-ai-audience). #}
     {{ element.mel.ai_settings }}
     <h1 class="mel-event-studio__page-title visually-hidden">
       {% if mode == 'create' %}
@@ -76,7 +76,7 @@
           <div class="mel-ai-controls__row">
             <label class="mel-ai-controls__group">
               <span>{{ 'Tone'|t }}</span>
-              <select id="mel-ai-tone" class="mel-input" aria-label="{{ 'AI tone'|t }}">
+              <select class="mel-input mel-ai-tone" aria-label="{{ 'AI tone'|t }}">
                 <option value="community">{{ 'Community'|t }}</option>
                 <option value="fun">{{ 'Fun'|t }}</option>
                 <option value="professional">{{ 'Professional'|t }}</option>
@@ -86,7 +86,7 @@
             </label>
             <label class="mel-ai-controls__group">
               <span>{{ 'Audience'|t }}</span>
-              <select id="mel-ai-audience" class="mel-input" aria-label="{{ 'AI audience'|t }}">
+              <select class="mel-input mel-ai-audience" aria-label="{{ 'AI audience'|t }}">
                 <option value="general">{{ 'General'|t }}</option>
                 <option value="lgbtq">{{ 'LGBTQIA+'|t }}</option>
                 <option value="students">{{ 'Students'|t }}</option>
