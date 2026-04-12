@@ -144,6 +144,18 @@ function myeventlane_help_centre_schema(): array {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+      'metric_value' => [
+        'type' => 'float',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Optional metric (e.g. conversion rate for conversion_after_boost).',
+      ],
+      'metric_value_baseline' => [
+        'type' => 'float',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Optional baseline metric paired with metric_value.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -1838,6 +1850,30 @@ function myeventlane_help_centre_update_10034(): string {
   ]);
 
   return 'Added is_helpful column to mel_help_panel_analytics.';
+}
+
+/**
+ * Add metric columns for Boost conversion-after logging.
+ */
+function myeventlane_help_centre_update_10035(): string {
+  $schema = Database::getConnection()->schema();
+  if (!$schema->tableExists('mel_help_panel_analytics')) {
+    return 'mel_help_panel_analytics is missing; no changes applied.';
+  }
+  $definitions = myeventlane_help_centre_schema();
+  $fieldDefs = $definitions['mel_help_panel_analytics']['fields'] ?? [];
+  $added = [];
+  if (!$schema->fieldExists('mel_help_panel_analytics', 'metric_value') && isset($fieldDefs['metric_value'])) {
+    $schema->addField('mel_help_panel_analytics', 'metric_value', $fieldDefs['metric_value']);
+    $added[] = 'metric_value';
+  }
+  if (!$schema->fieldExists('mel_help_panel_analytics', 'metric_value_baseline') && isset($fieldDefs['metric_value_baseline'])) {
+    $schema->addField('mel_help_panel_analytics', 'metric_value_baseline', $fieldDefs['metric_value_baseline']);
+    $added[] = 'metric_value_baseline';
+  }
+  return $added === []
+    ? 'mel_help_panel_analytics metric columns already present.'
+    : 'Added to mel_help_panel_analytics: ' . implode(', ', $added) . '.';
 }
 
 /**

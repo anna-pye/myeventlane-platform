@@ -67,6 +67,56 @@ final class HelpAnalyticsSummary {
   }
 
   /**
+   * Averages baseline vs post metrics for conversion_after_boost rows (reports not wired yet).
+   *
+   * @return array{avg_conversion_before: float|null, avg_conversion_after: float|null}
+   */
+  public function getBoostPerformance(): array {
+    $out = [
+      'avg_conversion_before' => NULL,
+      'avg_conversion_after' => NULL,
+    ];
+    $schema = $this->database->schema();
+    if (!$schema->tableExists('mel_help_panel_analytics')) {
+      return $out;
+    }
+    if (!$schema->fieldExists('mel_help_panel_analytics', 'metric_value')) {
+      return $out;
+    }
+
+    try {
+      $eventType = HelpPanelAnalytics::EVENT_TYPE_CONVERSION_AFTER_BOOST;
+      if ($schema->fieldExists('mel_help_panel_analytics', 'metric_value_baseline')) {
+        $result = $this->database->query(
+          'SELECT AVG(metric_value_baseline) AS b, AVG(metric_value) AS a FROM {mel_help_panel_analytics} WHERE event_type = :t',
+          [':t' => $eventType]
+        )->fetchAssoc();
+      }
+      else {
+        $result = $this->database->query(
+          'SELECT AVG(metric_value) AS a FROM {mel_help_panel_analytics} WHERE event_type = :t',
+          [':t' => $eventType]
+        )->fetchAssoc();
+      }
+      if (is_array($result)) {
+        if (isset($result['b']) && $result['b'] !== NULL && is_numeric($result['b'])) {
+          $out['avg_conversion_before'] = (float) $result['b'];
+        }
+        if (isset($result['a']) && $result['a'] !== NULL && is_numeric($result['a'])) {
+          $out['avg_conversion_after'] = (float) $result['a'];
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('getBoostPerformance failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return $out;
+  }
+
+  /**
    * Executes the aggregate query for the requested panels.
    *
    * @param array<int, string> $panelKeys
@@ -79,7 +129,7 @@ final class HelpAnalyticsSummary {
       $query = $this->database->select('mel_help_panel_analytics', 'a');
       $query->addField('a', 'panel_key');
       $query->addExpression("SUM(CASE WHEN a.event_type = 'impression' THEN 1 ELSE 0 END)", 'impressions');
-      $query->addExpression("SUM(CASE WHEN a.event_type = 'click' THEN 1 ELSE 0 END)", 'clicks');
+      $query->addExpression("SUM(CASE WHEN a.event_type IN ('click', 'boost_click') THEN 1 ELSE 0 END)", 'clicks');
       $query->addExpression("SUM(CASE WHEN a.event_type = 'feedback' THEN 1 ELSE 0 END)", 'feedback_total');
       $query->addExpression("SUM(CASE WHEN a.event_type = 'feedback' AND a.is_helpful = 1 THEN 1 ELSE 0 END)", 'helpful');
       $query->addExpression("SUM(CASE WHEN a.event_type = 'feedback' AND a.is_helpful = 0 THEN 1 ELSE 0 END)", 'unhelpful');

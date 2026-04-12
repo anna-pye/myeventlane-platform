@@ -54,6 +54,7 @@
   @include meta.load-css('components/best-event');
   @include meta.load-css('components/notifications');
   @include meta.load-css('components/event-table');
+  @include meta.load-css('components/support-panel');
   @include meta.load-css('components/account-summary');
   @include meta.load-css('components/quick-actions');
   @include meta.load-css('components/vendor-alert');

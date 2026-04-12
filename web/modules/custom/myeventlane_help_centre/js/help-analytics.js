@@ -35,8 +35,11 @@
     }
 
     const endpoint = buildEndpoint('mel-help/click');
+    const payload = key === 'boost_event'
+      ? { key, type: 'boost_click' }
+      : { key };
 
-    sendJson(endpoint, { key }).catch((error) => {
+    sendJson(endpoint, payload).catch((error) => {
       console.error('melHelpTrackClick failed', error);
     });
   };

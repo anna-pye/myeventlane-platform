@@ -14,7 +14,17 @@
 {% set tickets_sold = state.tickets_sold|default(0) %}
 {% set state_views = state.views|default(0) %}
 {% set state_conversion = state.conversion|default(0) %}
-<div{{ attributes }}>
+{% set is_boost_opportunity =
+  state.views is defined and
+  state.views > 50 and
+  state.conversion is defined and
+  state.conversion < 0.02
+%}
+{% set is_low_conversion_vendor = is_vendor and state_views > 0 and state_conversion < 0.02 %}
+{% if is_boost_opportunity %}
+  {% set attributes = attributes.addClass('mel-support-panel--boost') %}
+{% endif %}
+<div{{ attributes }} data-event-id="{{ event_id|default('') }}">
   <div class="mel-support-panel__content">
     {% if is_order_complete %}
       <h3 class="mel-support-panel__title">
@@ -36,15 +46,45 @@
       </ul>
 
     {% elseif is_vendor %}
-      {% if state_views > 0 and state_conversion < 0.02 %}
+      {% if is_boost_opportunity %}
         <h3 class="mel-support-panel__title">
-          {{ '📉 Your event isn’t converting'|t }}
+          {{ 'Your event is getting attention'|t }}
         </h3>
+
+        <p class="mel-support-panel__summary">
+          {{ 'Boost your event to convert more visitors into bookings.'|t }}
+        </p>
+
+        <ul class="mel-support-panel__list">
+          <li>✔ {{ 'Appear higher in search results'|t }}</li>
+          <li>✔ {{ 'Get featured on the homepage'|t }}</li>
+          <li>✔ {{ 'Reach more local attendees'|t }}</li>
+        </ul>
+
+        <div class="mel-support-panel__cta">
+          <a
+            href="{{ event_id ? path('myeventlane_boost.boost_page', {'node': event_id}) : '#' }}"
+            class="mel-button mel-button--primary mel-button--highlight"
+            data-analytics-key="boost_event"
+            onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
+          >
+            {{ 'Boost this event'|t }}
+          </a>
+        </div>
+
+      {% elseif is_low_conversion_vendor %}
+        <h3 class="mel-support-panel__title">
+          {{ 'Your event is getting views but no bookings'|t }}
+        </h3>
+
+        <p class="mel-support-panel__summary">
+          {{ 'Try:'|t }}
+        </p>
 
         <ul class="mel-support-panel__list">
           <li>• {{ 'Adjust ticket pricing'|t }}</li>
-          <li>• {{ 'Improve description'|t }}</li>
-          <li>• {{ 'Add urgency'|t }}</li>
+          <li>• {{ 'Add urgency (limited tickets)'|t }}</li>
+          <li>• {{ 'Improve event description'|t }}</li>
         </ul>
 
       {% elseif tickets_sold > 20 %}
@@ -100,7 +140,7 @@
       {% endif %}
     {% endif %}
 
-    {% if url %}
+    {% if url and not is_boost_opportunity %}
       <div class="mel-support-panel__cta">
         <a
           href="{{ url }}"
@@ -115,7 +155,11 @@
           {% elseif is_checkout %}
             {{ 'Get help with checkout'|t }}
           {% elseif is_vendor %}
-            {{ 'Improve my event'|t }}
+            {% if is_low_conversion_vendor %}
+              {{ 'Improve conversion'|t }}
+            {% else %}
+              {{ 'Improve my event'|t }}
+            {% endif %}
           {% else %}
             {{ 'Get help'|t }}
           {% endif %}
