@@ -11,10 +11,10 @@ use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Url;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\node\NodeInterface;
@@ -39,6 +39,11 @@ final class EventStudioForm extends FormBase {
   protected ?LocationProviderManager $locationProvider = NULL;
 
   /**
+   * Allowed icons and highlight row normalization for Event Studio.
+   */
+  protected EventHighlightHelper $eventHighlightHelper;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -50,6 +55,7 @@ final class EventStudioForm extends FormBase {
     $instance->locationProvider = $container->has('myeventlane_location.provider_manager')
       ? $container->get('myeventlane_location.provider_manager')
       : NULL;
+    $instance->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
     return $instance;
   }
 
@@ -69,7 +75,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->saveService, $this->currentUser)) {
+    if (isset($this->entityTypeManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper)) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -84,6 +90,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->locationProvider) && $container->has('myeventlane_location.provider_manager')) {
       $this->locationProvider = $container->get('myeventlane_location.provider_manager');
+    }
+    if (!isset($this->eventHighlightHelper)) {
+      $this->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
     }
   }
 
@@ -764,7 +773,7 @@ final class EventStudioForm extends FormBase {
         'ticketType' => $type_default,
         'venueMode' => $venue_mode_default,
       ],
-      'highlightIconOptions' => $this->getHighlightIconOptionsForJs(),
+      'highlightIconOptions' => $this->eventHighlightHelper->getIconOptionsForJs(),
       'highlightErrors' => [
         'max' => (string) $this->t('You can add at most 6 highlights.'),
         'iconNoText' => (string) $this->t('Add text for each highlight that has an icon.'),
@@ -823,24 +832,13 @@ final class EventStudioForm extends FormBase {
       $decoded = [];
     }
 
-    $non_empty = 0;
-    foreach ($decoded as $item) {
-      if (!is_array($item)) {
-        continue;
-      }
-      $text = trim((string) ($item['text'] ?? ''));
-      $icon = trim((string) ($item['icon'] ?? ''));
-      if ($text === '' && $icon === '') {
-        continue;
-      }
-      if ($text === '' && $icon !== '') {
-        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
-        return;
-      }
-      $non_empty++;
+    $this->ensureInjectedServices();
+    $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
+    if ($analysis['icon_without_text']) {
+      $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
+      return;
     }
-
-    if ($non_empty > 6) {
+    if ($analysis['non_empty_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
       $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
     }
   }
@@ -917,32 +915,15 @@ final class EventStudioForm extends FormBase {
   }
 
   /**
-   * @return array<string, string>
-   */
-  private function getHighlightIconOptionsForJs(): array {
-    $storage = FieldStorageConfig::load('paragraph.field_highlight_icon');
-    if ($storage === NULL) {
-      return [];
-    }
-    $raw = $storage->getSetting('allowed_values');
-    if (!is_array($raw)) {
-      return [];
-    }
-    $out = [];
-    foreach ($raw as $item) {
-      if (is_array($item) && isset($item['value'], $item['label'])) {
-        $out[(string) $item['value']] = (string) $item['label'];
-      }
-    }
-    return $out;
-  }
-
-  /**
-   * @param array<string, mixed> $mel
+   * Decodes `mel.event_highlights.items_state` and normalizes via helper.
    *
-   * @return list<array{icon: string, text: string, weight: int}>
+   * @param array<string, mixed> $mel
+   *   Submitted mel form values.
+   *
+   * @return list<array{text: string, icon: string, weight: int}>
+   *   Normalized highlight rows for the save payload.
    */
-  private function normalizeEventHighlightsPayload(array $mel): array {
+  private function decodeAndNormalizeEventHighlightsFromMel(array $mel): array {
     if (!isset($mel['event_highlights']['items_state'])) {
       return [];
     }
@@ -959,29 +940,9 @@ final class EventStudioForm extends FormBase {
     if (!is_array($decoded)) {
       return [];
     }
-    $allowed = array_keys($this->getHighlightIconOptionsForJs());
-    $out = [];
-    $weight = 0;
-    foreach ($decoded as $item) {
-      if (!is_array($item)) {
-        continue;
-      }
-      $text = trim((string) ($item['text'] ?? ''));
-      if ($text === '') {
-        continue;
-      }
-      $icon = trim((string) ($item['icon'] ?? ''));
-      if ($icon !== '' && !in_array($icon, $allowed, TRUE)) {
-        $icon = '';
-      }
-      $out[] = [
-        'icon' => $icon,
-        'text' => $text,
-        'weight' => $weight,
-      ];
-      $weight++;
-    }
-    return array_slice($out, 0, 6);
+    $allowed = $this->eventHighlightHelper->getAllowedIconKeys();
+
+    return $this->eventHighlightHelper->normalizeHighlights($decoded, $allowed);
   }
 
   private function encodeStudioTiersJsonForEvent(NodeInterface $event): string {
@@ -1192,7 +1153,7 @@ final class EventStudioForm extends FormBase {
       'status' => !empty($mel['status']),
       'field_location_latitude' => $mel['field_location_latitude'] ?? NULL,
       'field_location_longitude' => $mel['field_location_longitude'] ?? NULL,
-      'event_highlights' => $this->normalizeEventHighlightsPayload($mel),
+      'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
     ];
   }

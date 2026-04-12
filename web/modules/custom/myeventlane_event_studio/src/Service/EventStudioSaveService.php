@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_event_studio\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_venue\Entity\Venue;
@@ -32,6 +31,7 @@ final class EventStudioSaveService {
     private readonly VenueManager $venueManager,
     private readonly LoggerInterface $logger,
     private readonly MelTicketTypeManager $melTicketTypeManager,
+    private readonly EventHighlightHelper $eventHighlightHelper,
   ) {}
 
   /**
@@ -213,7 +213,7 @@ final class EventStudioSaveService {
     }
 
     if (array_key_exists('event_highlights_items_state', $payload)) {
-      $highlight_errors = $this->validateHighlightItemsStateJson((string) ($payload['event_highlights_items_state'] ?? ''));
+      $highlight_errors = $this->eventHighlightHelper->validateHighlightItemsStateJson((string) ($payload['event_highlights_items_state'] ?? ''));
       if ($highlight_errors !== []) {
         return ['node' => NULL, 'errors' => $highlight_errors];
       }
@@ -226,10 +226,6 @@ final class EventStudioSaveService {
 
     try {
       $this->syncEventHighlights($node, $payload);
-    }
-    catch (\InvalidArgumentException $e) {
-      $this->logger->warning('Studio event highlights validation failed: @m', ['@m' => $e->getMessage()]);
-      return ['node' => NULL, 'errors' => [$e->getMessage()]];
     }
     catch (\Throwable $e) {
       $this->logger->error('Studio event highlights sync failed: @m', ['@m' => $e->getMessage()]);
@@ -657,30 +653,8 @@ final class EventStudioSaveService {
       return;
     }
 
-    if (count($payload['event_highlights']) > 6) {
-      throw new \InvalidArgumentException('Maximum 6 highlights allowed.');
-    }
-
-    $allowed_icons = $this->loadHighlightIconAllowedKeys();
-    $normalized = [];
-    foreach ($payload['event_highlights'] as $row) {
-      if (!is_array($row)) {
-        continue;
-      }
-      $text = trim((string) ($row['text'] ?? ''));
-      $icon = trim((string) ($row['icon'] ?? ''));
-      if ($icon !== '' && $text === '') {
-        throw new \InvalidArgumentException('Highlight text required when icon is set.');
-      }
-      if ($text === '') {
-        continue;
-      }
-      if ($icon !== '' && !in_array($icon, $allowed_icons, TRUE)) {
-        $icon = '';
-      }
-      $normalized[] = ['text' => $text, 'icon' => $icon];
-    }
-    $normalized = array_slice($normalized, 0, 6);
+    $allowed_icons = $this->eventHighlightHelper->getAllowedIconKeys();
+    $normalized = $this->eventHighlightHelper->normalizeHighlights($payload['event_highlights'], $allowed_icons);
 
     $paragraph_storage = $this->entityTypeManager->getStorage('paragraph');
     $old_entities = array_values($node->get('field_event_highlights')->referencedEntities());
@@ -719,68 +693,6 @@ final class EventStudioSaveService {
     }
 
     $node->set('field_event_highlights', $refs);
-  }
-
-  /**
-   * @return list<string>
-   */
-  private function loadHighlightIconAllowedKeys(): array {
-    $storage = FieldStorageConfig::load('paragraph.field_highlight_icon');
-    if ($storage === NULL) {
-      return [];
-    }
-    $raw = $storage->getSetting('allowed_values');
-    if (!is_array($raw)) {
-      return [];
-    }
-    $keys = [];
-    foreach ($raw as $item) {
-      if (is_array($item) && isset($item['value'])) {
-        $keys[] = (string) $item['value'];
-      }
-    }
-    return $keys;
-  }
-
-  /**
-   * Validates the hidden JSON for Event Studio highlights (aligns with EventStudioForm).
-   *
-   * Empty string means “no editor state sent”; validation is skipped.
-   *
-   * @return list<string>
-   */
-  private function validateHighlightItemsStateJson(string $raw): array {
-    if ($raw === '') {
-      return [];
-    }
-    try {
-      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-    }
-    catch (\JsonException) {
-      return ['Highlights data could not be read.'];
-    }
-    if (!is_array($decoded)) {
-      return ['Highlights data could not be read.'];
-    }
-    $non_empty = 0;
-    foreach ($decoded as $item) {
-      if (!is_array($item)) {
-        continue;
-      }
-      $text = trim((string) ($item['text'] ?? ''));
-      $icon = trim((string) ($item['icon'] ?? ''));
-      if ($text === '' && $icon === '') {
-        continue;
-      }
-      if ($text === '' && $icon !== '') {
-        return ['Each highlight with an icon needs highlight text.'];
-      }
-      $non_empty++;
-    }
-    if ($non_empty > 6) {
-      return ['You can add at most 6 highlights.'];
-    }
-    return [];
   }
 
   /**

@@ -196,10 +196,6 @@
     }
   }
 
-  function parseHighlightsHidden(raw) {
-    return parseHighlightsHiddenWithStatus(raw).rows;
-  }
-
   function collectHighlightsFromDom(form) {
     var table = getHighlightsTable(form);
     if (!table) {
@@ -1465,6 +1461,7 @@
               forceSyncTicketTiersBeforeSubmit(form);
               forceSyncHighlightsBeforeSubmit(form);
               var body = new FormData(form);
+              body.append('mel_autosave_ts', String(Date.now()));
               fetch(url, {
                 method: 'POST',
                 body: body,
@@ -1475,10 +1472,14 @@
               })
                 .then(function (response) {
                   return response.json().then(function (data) {
-                    return { ok: response.ok, data: data };
+                    return { ok: response.ok, status: response.status, data: data };
                   });
                 })
                 .then(function (result) {
+                  if (result.status === 409) {
+                    setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+                    return;
+                  }
                   if (!result.ok || !result.data || !result.data.ok) {
                     setFormState(form, 'mel-studio--error', Drupal.t('Draft could not be saved.'));
                     return;

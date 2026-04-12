@@ -20,6 +20,11 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_event_studio']
 
+  myeventlane_event_studio.highlight_helper:
+    class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
+    arguments:
+      - '@entity_type.manager'
+
   myeventlane_event_studio.repository:
     class: Drupal\myeventlane_event_studio\Service\EventRepository
     arguments:
@@ -45,6 +50,7 @@ services:
       - '@myeventlane_venue.manager'
       - '@logger.channel.myeventlane_event_studio'
       - '@myeventlane_event_studio.mel_ticket_type_manager'
+      - '@myeventlane_event_studio.highlight_helper'
 
   myeventlane_event_studio.autosave_controller:
     class: Drupal\myeventlane_event_studio\Controller\EventStudioAutosaveController
@@ -52,5 +58,7 @@ services:
       - '@myeventlane_event_studio.save'
       - '@current_user'
       - '@entity_type.manager'
+      - '@myeventlane_event_studio.highlight_helper'
+      - '@tempstore.private'
     tags:
       - { name: controller.service_arguments }
