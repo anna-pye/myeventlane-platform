@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_boost\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
-use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -49,7 +48,6 @@ final class BoostPerformanceService {
     private readonly UrlGeneratorInterface $urlGenerator,
     TranslationInterface $stringTranslation,
     private readonly StateInterface $state,
-    private readonly AccountProxyInterface $currentUser,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -430,14 +428,16 @@ final class BoostPerformanceService {
         'variant' => 'boost_worked',
         'emoji' => '🔥',
         'title' => (string) $this->t('Your boost worked'),
-        'intro' => (string) $this->t('Bookings increased by @pct%. Keep momentum going while your event is active.', ['@pct' => $pct]),
+        'intro' => $pct > 0
+          ? (string) $this->t('Bookings increased by @pct%. Keep momentum going while your event is active.', ['@pct' => $pct])
+          : (string) $this->t('Keep momentum going while your event is active.'),
         'tips' => [],
         'cta' => [
           'url' => $urls['boost'],
           'label' => (string) $this->t('Boost again'),
           'classes' => 'mel-btn mel-btn--sm mel-btn--cta',
         ],
-        'headline_percent' => (string) $pct,
+        'headline_percent' => $pct > 0 ? (string) $pct : NULL,
       ];
     }
 
@@ -474,14 +474,25 @@ final class BoostPerformanceService {
    */
   private function formatWorkedPercent(?float $upliftPct, array $metrics): int {
     if ($upliftPct !== NULL) {
-      return (int) max(1, (int) round(abs($upliftPct)));
+      $rounded = (int) round($upliftPct);
+      if ($rounded > 0) {
+        return $rounded;
+      }
     }
+
     $tb = (int) ($metrics['tickets_before'] ?? 0);
     $ta = (int) ($metrics['tickets_after'] ?? 0);
+    $delta = $ta - $tb;
+
     if ($tb <= 0 && $ta > 0) {
       return 100;
     }
-    return (int) max(1, $ta - $tb);
+
+    if ($delta > 0) {
+      return $delta;
+    }
+
+    return 0;
   }
 
   /**
@@ -717,7 +728,7 @@ final class BoostPerformanceService {
       return $out;
     }
     try {
-      $out['boost'] = $this->urlGenerator->generateFromRoute('myeventlane_boost.boost_page', ['node' => $eventId]);
+      $out['boost'] = $this->urlGenerator->generateFromRoute('myeventlane_boost.vendor_event_boost', ['event' => $eventId]);
       $out['analytics'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_analytics', ['event' => $eventId]);
       $out['overview'] = $this->urlGenerator->generateFromRoute('myeventlane_vendor.console.event_overview', ['event' => $eventId]);
       $out['edit'] = $this->urlGenerator->generateFromRoute('myeventlane_event_studio.edit', ['node' => $eventId]);
@@ -732,15 +743,10 @@ final class BoostPerformanceService {
   }
 
   /**
-   * Whether dev/staging UI fallback is enabled (production unchanged when off).
-   *
-   * Uses state key mel.dev_mode, or user 1, so staging can enable for all users.
+   * Whether dev/staging UI fallback is enabled.
    */
   private function isDevUiFallbackEnabled(): bool {
-    if ($this->state->get('mel.dev_mode', FALSE)) {
-      return TRUE;
-    }
-    return (int) $this->currentUser->id() === 1;
+    return (bool) $this->state->get('mel.dev_mode', FALSE);
   }
 
   /**

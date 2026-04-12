@@ -100,7 +100,6 @@ services:
       - '@url_generator'
       - '@string_translation'
       - '@state'
-      - '@current_user'
 
   # Boost impression tracker.
   myeventlane_boost.impression_tracker:

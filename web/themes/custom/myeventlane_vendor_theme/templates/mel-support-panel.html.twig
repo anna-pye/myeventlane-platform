@@ -67,7 +67,7 @@
 
         <div class="mel-support-panel__cta">
           <a
-            href="{{ event_id ? path('myeventlane_boost.boost_page', {'node': event_id}) : '#' }}"
+            href="{{ event_id ? path('myeventlane_boost.vendor_event_boost', {'event': event_id}) : '#' }}"
             class="mel-button mel-button--primary mel-button--highlight"
             data-analytics-key="boost_event"
             onclick="if (typeof melHelpTrackClick === 'function') { melHelpTrackClick(this); }"
