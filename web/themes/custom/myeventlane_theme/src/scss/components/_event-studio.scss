@@ -482,3 +482,86 @@ form.mel-event-studio-form .mel-event-studio,
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+// AI rewrite diff preview modal
+.mel-ai-diff-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.mel-ai-diff-modal[hidden] {
+  display: none !important;
+}
+
+.mel-ai-diff-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.mel-ai-diff-modal__panel {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 80px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+}
+
+.mel-ai-diff-modal__panel h3 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.mel-ai-diff-modal__panel h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mel-ai-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.mel-ai-diff__body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow: auto;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 12px;
+  background: var(--mel-studio-surface-muted, #f8fafc);
+  border-radius: 8px;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+}
+
+.mel-diff-added {
+  background: #d4f8d4;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.mel-ai-diff-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .mel-ai-diff {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-ai-diff-modal__panel {
+    margin: 24px 12px;
+  }
+}

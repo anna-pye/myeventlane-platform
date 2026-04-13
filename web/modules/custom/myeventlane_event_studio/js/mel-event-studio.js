@@ -145,6 +145,188 @@
     return el && el.value ? el.value : 'general';
   }
 
+  /**
+   * Word-level highlight of tokens present in new but not in old (naive).
+   *
+   * @param {string} oldText
+   * @param {string} newText
+   * @return {string}
+   */
+  function melSimpleDiff(oldText, newText) {
+    var oldWords = oldText.split(/\s+/);
+    var newWords = newText.split(/\s+/);
+    var result = '';
+    newWords.forEach(function (word) {
+      if (oldWords.indexOf(word) === -1) {
+        result += '<span class="mel-diff-added">' + word + '</span> ';
+      } else {
+        result += word + ' ';
+      }
+    });
+    return result.trim();
+  }
+
+  /**
+   * Side-by-side preview before applying AI rewrite.
+   *
+   * @param {string} oldText
+   * @param {string} newText
+   * @param {function(): void} onApply
+   */
+  function melShowDiffModal(oldText, newText, onApply) {
+    var modal = document.getElementById('mel-ai-diff-modal');
+    var currentEl = document.getElementById('mel-ai-diff-current');
+    var newEl = document.getElementById('mel-ai-diff-new');
+
+    if (!modal || !currentEl || !newEl) {
+      return;
+    }
+
+    var previousActive = document.activeElement;
+
+    currentEl.textContent = oldText;
+    newEl.innerHTML = melSimpleDiff(oldText, newText);
+
+    modal.removeAttribute('hidden');
+
+    var applyBtn = document.getElementById('mel-ai-diff-apply');
+    var cancelBtn = document.getElementById('mel-ai-diff-cancel');
+    var overlay = modal.querySelector('.mel-ai-diff-modal__overlay');
+
+    if (!applyBtn || !cancelBtn) {
+      return;
+    }
+
+    function cleanup() {
+      modal.setAttribute('hidden', 'hidden');
+      applyBtn.removeEventListener('click', applyHandler);
+      cancelBtn.removeEventListener('click', cancelHandler);
+      document.removeEventListener('keydown', keyHandler);
+      if (overlay) {
+        overlay.removeEventListener('click', cancelHandler);
+      }
+      if (previousActive && typeof previousActive.focus === 'function') {
+        try {
+          previousActive.focus();
+        } catch (e) {}
+      }
+    }
+
+    function applyHandler() {
+      onApply();
+      cleanup();
+    }
+
+    function cancelHandler() {
+      cleanup();
+    }
+
+    function keyHandler(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelHandler();
+      }
+    }
+
+    applyBtn.addEventListener('click', applyHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
+    document.addEventListener('keydown', keyHandler);
+    if (overlay) {
+      overlay.addEventListener('click', cancelHandler);
+    }
+
+    window.setTimeout(function () {
+      applyBtn.focus();
+    }, 0);
+  }
+
+  /**
+   * AI rewrite for About (body) and What to expect (field_event_intro).
+   *
+   * @param {HTMLFormElement} form
+   * @param {'about'|'expect'} field
+   */
+  function melRewriteField(form, field) {
+    syncAiControlsToForm(form);
+    var aboutEl = form.querySelector('[name="mel[body]"]');
+    var expectEl = form.querySelector('[name="mel[field_event_intro]"]');
+    var about = aboutEl ? String(aboutEl.value || '') : '';
+    var expect = expectEl ? String(expectEl.value || '') : '';
+
+    setFormState(form, 'mel-studio--saving', Drupal.t('Improving your text…'));
+
+    var rewriteUrl = Drupal.url('vendor/events/ai/rewrite');
+
+    melGetCsrfToken()
+      .then(function (token) {
+        if (!token) {
+          return Promise.reject(new Error('empty_csrf_token'));
+        }
+        return fetch(rewriteUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token,
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            about: about,
+            what_to_expect: expect,
+            category: categoryForAiPayload(form),
+            tone: aiToneFromPanel(form),
+            audience: aiAudienceFromPanel(form),
+          }),
+        });
+      })
+      .then(function (response) {
+        return response.text().then(function (text) {
+          var data = {};
+          if (text) {
+            try {
+              data = JSON.parse(text);
+            } catch (parseErr) {
+              data = { ok: false };
+            }
+          }
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        if (!result.ok || !result.data || !result.data.ok) {
+          setFormState(form, 'mel-studio--error', Drupal.t('Rewrite could not be applied.'));
+          return;
+        }
+
+        var original = field === 'about' ? about : expect;
+        var updated =
+          field === 'about' ? result.data.about : result.data.what_to_expect;
+        if (updated === undefined || updated === null) {
+          updated = '';
+        }
+
+        setFormState(form, '', '');
+
+        melShowDiffModal(original, updated, function () {
+          if (field === 'about' && aboutEl) {
+            aboutEl.value = updated;
+            aboutEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          if (field === 'expect' && expectEl) {
+            expectEl.value = updated;
+            expectEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+
+          refreshIntelligence(form);
+          setFormState(form, 'mel-studio--dirty', Drupal.t('AI changes applied'));
+        });
+      })
+      .catch(function () {
+        setFormState(form, 'mel-studio--error', Drupal.t('Rewrite request failed.'));
+      });
+  }
+
   function valRadio(form, name) {
     var el = form.querySelector('[name="' + name + '"]:checked');
     return el ? el.value : '';
@@ -1719,6 +1901,18 @@
         });
 
         form.addEventListener('click', function (e) {
+          var rewriteAboutBtn = e.target.closest('#mel-ai-rewrite-about');
+          if (rewriteAboutBtn && form.contains(rewriteAboutBtn)) {
+            e.preventDefault();
+            melRewriteField(form, 'about');
+            return;
+          }
+          var rewriteExpectBtn = e.target.closest('#mel-ai-rewrite-expect');
+          if (rewriteExpectBtn && form.contains(rewriteExpectBtn)) {
+            e.preventDefault();
+            melRewriteField(form, 'expect');
+            return;
+          }
           var genBtn = e.target.closest('#mel-ai-generate');
           if (genBtn && form.contains(genBtn)) {
             e.preventDefault();

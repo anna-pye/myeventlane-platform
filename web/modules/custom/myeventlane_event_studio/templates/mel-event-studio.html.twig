@@ -148,7 +148,13 @@
               </div>
               {{ element.mel.summary }}
               {{ element.mel.field_event_intro }}
+              <div class="mel-ai-rewrite-actions">
+                <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
+              </div>
               {{ element.mel.body }}
+              <div class="mel-ai-rewrite-actions">
+                <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+              </div>
             </div>
 
             <div class="mel-identity-media">
@@ -345,6 +351,36 @@
 
       <div class="mel-actions">
         {{ element.actions }}
+      </div>
+    </div>
+  </div>
+
+  <div id="mel-ai-diff-modal" class="mel-ai-diff-modal" hidden>
+    <div class="mel-ai-diff-modal__overlay"></div>
+
+    <div
+      class="mel-ai-diff-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mel-ai-diff-modal-title"
+    >
+      <h3 id="mel-ai-diff-modal-title">{{ 'Review AI changes'|t }}</h3>
+
+      <div class="mel-ai-diff">
+        <div class="mel-ai-diff__col">
+          <h4>{{ 'Current'|t }}</h4>
+          <div id="mel-ai-diff-current" class="mel-ai-diff__body"></div>
+        </div>
+
+        <div class="mel-ai-diff__col">
+          <h4>{{ 'AI suggestion'|t }}</h4>
+          <div id="mel-ai-diff-new" class="mel-ai-diff__body"></div>
+        </div>
+      </div>
+
+      <div class="mel-ai-diff-modal__actions">
+        <button type="button" id="mel-ai-diff-cancel" class="mel-btn">{{ 'Cancel'|t }}</button>
+        <button type="button" id="mel-ai-diff-apply" class="mel-btn mel-btn--primary">{{ 'Apply changes'|t }}</button>
       </div>
     </div>
   </div>
