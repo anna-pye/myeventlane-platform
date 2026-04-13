@@ -29,18 +29,30 @@ body.mel-event-studio-page {
 // Override module mel-event-studio.css (max-width: 1200px on .mel-event-studio).
 .mel-event-studio {
   display: block;
-  max-width: 100% !important;
   width: 100%;
+  max-width: 100%;
+  margin: 0;
   box-sizing: border-box;
 }
 
-.mel-studio-form-wrapper {
+.mel-studio-form-wrapper,
+.mel-event-studio__form-full,
+.mel-studio-main-full {
   width: 100%;
   max-width: 100%;
   display: block;
+  flex: 1 1 100%;
 }
 
-.mel-studio-form-wrapper form {
+.mel-studio-form-wrapper form,
+.mel-event-studio__form-full form {
+  width: 100%;
+  max-width: 100%;
+}
+
+.mel-studio-form-wrapper .form-wrapper,
+.mel-studio-form-wrapper .form-item,
+.mel-studio-form-wrapper .js-form-wrapper {
   width: 100%;
   max-width: 100%;
 }
@@ -208,15 +220,15 @@ form.mel-event-studio-form {
 
 .mel-ai-controls {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 
 .mel-ai-controls__row {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .mel-ai-controls__group {
@@ -251,11 +263,172 @@ form.mel-event-studio-form {
 }
 
 .mel-insights-card,
-.mel-publish-card {
+.mel-suggestions-card,
+.mel-publish-card,
+.mel-publish-readiness-card {
   background: white;
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mel-publish-readiness-body {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--mel-studio-text-muted, #64748b);
+}
+
+// Event strength score (replaces wizard % bar in UI)
+.mel-event-studio__progress {
+  margin-bottom: 16px;
+}
+
+.mel-event-strength__bar {
+  height: 8px;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mel-event-strength__fill {
+  height: 100%;
+  width: 0%;
+  background: #f26d5b;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.mel-event-strength__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: var(--mel-studio-text-muted, #64748b);
+}
+
+#mel-event-strength-score {
+  font-weight: 700;
+  color: var(--mel-studio-text, #0f172a);
+}
+
+// Checklist insights (module CSS targeted ul.mel-insights-list; neutralize for div layout)
+.mel-insights-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-insight-item {
+  margin: 0;
+  padding: 0;
+}
+
+.mel-insight-item__jump {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--mel-studio-text, #0f172a);
+  background: var(--mel-studio-surface-muted, #f8fafc);
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mel-insight-item__jump:hover,
+.mel-insight-item__jump:focus-visible {
+  border-color: #f26d5b;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(242, 109, 91, 0.25);
+}
+
+.mel-insight-item__text {
+  display: block;
+  padding: 8px 10px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--mel-studio-muted, #64748b);
+}
+
+.mel-insight-item--high .mel-insight-item__jump {
+  border-left: 3px solid #dc2626;
+}
+
+.mel-insight-item--medium .mel-insight-item__jump {
+  border-left: 3px solid #d97706;
+}
+
+.mel-insight-item--low .mel-insight-item__jump,
+.mel-insight-item--low .mel-insight-item__text {
+  border-left: 3px solid #64748b;
+}
+
+.mel-preview-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mel-preview-hints__item {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--mel-studio-muted, #64748b);
+  background: var(--mel-studio-surface-muted, #f8fafc);
+  border-radius: 6px;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+}
+
+// Footer: save / publish visual hierarchy
+.mel-event-studio__footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mel-studio-border, #e2e8f0);
+}
+
+.mel-event-studio__footer-actions.mel-footer--draft-focus .mel-btn--primary,
+.mel-event-studio__footer-actions.mel-footer--draft-focus .button--primary {
+  background: #fff;
+  color: var(--mel-studio-text, #0f172a);
+  border: 2px solid var(--mel-studio-border, #e2e8f0);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.mel-event-studio__footer-actions.mel-footer--draft-focus .mel-btn--primary:hover,
+.mel-event-studio__footer-actions.mel-footer--draft-focus .button--primary:hover {
+  border-color: #cbd5e1;
+  background: var(--mel-studio-surface-muted, #f8fafc);
+}
+
+.mel-event-studio__footer-actions.mel-footer--publish-ready .mel-btn--primary,
+.mel-event-studio__footer-actions.mel-footer--publish-ready .button--primary,
+.mel-event-studio__footer-actions .mel-btn--studio-publish {
+  background: #f26d5b;
+  color: #fff;
+  border: 2px solid #f26d5b;
+  box-shadow: 0 2px 8px rgba(242, 109, 91, 0.35);
+}
+
+.mel-event-studio__footer-actions.mel-footer--publish-ready .mel-btn--primary:hover,
+.mel-event-studio__footer-actions.mel-footer--publish-ready .button--primary:hover {
+  filter: brightness(0.95);
 }
 
 .mel-layout-grid {
@@ -395,32 +568,8 @@ form.mel-event-studio-form .mel-event-studio,
 }
 
 // ---------------------------------------------------------------------------
-// Guided wizard (progress + step nav + panels)
+// Guided wizard (step nav + panels; progress = event strength above)
 // ---------------------------------------------------------------------------
-
-.mel-wizard-progress {
-  margin-bottom: 16px;
-}
-
-.mel-wizard-progress__bar {
-  height: 6px;
-  background: #eee;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.mel-wizard-progress__fill {
-  height: 100%;
-  width: 0%;
-  background: #f26d5b;
-  transition: width 0.3s ease;
-}
-
-.mel-wizard-progress__meta {
-  margin-top: 8px;
-  font-size: 0.875rem;
-  color: var(--mel-studio-text-muted, #64748b);
-}
 
 .mel-wizard-nav,
 .mel-studio-nav.mel-wizard-nav {

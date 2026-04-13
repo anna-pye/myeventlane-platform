@@ -368,6 +368,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Event title'),
+      '#description' => $this->t('Make it clear and specific.'),
       '#default_value' => $event->label(),
       '#required' => TRUE,
       '#attributes' => ['class' => ['mel-input']],
@@ -376,6 +377,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['summary'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Summary'),
+      '#description' => $this->t('This appears in cards and previews.'),
       '#default_value' => $summary,
       '#attributes' => ['class' => ['mel-input']],
     ];
@@ -410,7 +412,7 @@ final class EventStudioForm extends FormBase {
       '#type' => 'textarea',
       '#title' => $this->t('What to expect'),
       '#default_value' => $field_event_intro_default,
-      '#description' => $this->t('Introductory content shown on the event page (plain text).'),
+      '#description' => $this->t('Shown on the event page (plain text).'),
       '#attributes' => ['class' => ['mel-input']],
     ];
 
@@ -490,7 +492,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['field_event_image'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Cover image'),
-      '#description' => $this->t('Hero image (PNG, JPG, WebP; max 5 MB). Recommended 1200×630.'),
+      '#description' => $this->t('Events perform better with a visual. PNG, JPG, WebP; max 5 MB. Recommended 1200×630.'),
       '#upload_location' => 'public://events',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png gif jpg jpeg webp'],
@@ -525,6 +527,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['start_date'] = [
       '#type' => 'datetime',
       '#title' => $this->t('Start'),
+      '#description' => $this->t('Used in search, reminders, and calendars.'),
       '#default_value' => $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()
         ? new DrupalDateTime($event->get('field_event_start')->value)
         : NULL,
@@ -535,6 +538,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['end_date'] = [
       '#type' => 'datetime',
       '#title' => $this->t('End'),
+      '#description' => $this->t('Used in search, reminders, and calendars.'),
       '#default_value' => $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
         ? new DrupalDateTime($event->get('field_event_end')->value)
         : NULL,
@@ -919,7 +923,7 @@ final class EventStudioForm extends FormBase {
         'target_bundles' => ['categories' => 'categories'],
       ],
       '#default_value' => $category_default,
-      '#description' => $this->t('Help attendees discover your event.'),
+      '#description' => $this->t('Helps people find your event.'),
       '#attributes' => ['class' => ['mel-input']],
     ];
 
