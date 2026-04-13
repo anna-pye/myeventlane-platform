@@ -220,7 +220,9 @@ final class AiManager {
           '@attempt' => (string) $attempt,
           '@msg' => $lastError,
         ]);
-        $this->sleepBackoff($attempt);
+        if ($attempt < $this->maxRetries()) {
+          $this->sleepBackoff($attempt);
+        }
         $attempt++;
       }
     }
@@ -277,7 +279,9 @@ final class AiManager {
           '@attempt' => (string) $attempt,
           '@msg' => $lastError,
         ]);
-        $this->sleepBackoff($attempt);
+        if ($attempt < $this->maxRetries()) {
+          $this->sleepBackoff($attempt);
+        }
         $attempt++;
       }
     }

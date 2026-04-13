@@ -157,10 +157,11 @@
     var newWords = newText.split(/\s+/);
     var result = '';
     newWords.forEach(function (word) {
+      var safe = Drupal.checkPlain(word);
       if (oldWords.indexOf(word) === -1) {
-        result += '<span class="mel-diff-added">' + word + '</span> ';
+        result += '<span class="mel-diff-added">' + safe + '</span> ';
       } else {
-        result += word + ' ';
+        result += safe + ' ';
       }
     });
     return result.trim();
