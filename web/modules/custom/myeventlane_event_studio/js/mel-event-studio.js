@@ -28,6 +28,44 @@
     return form.closest('.mel-event-studio') || form.parentElement;
   }
 
+  /**
+   * Scroll to and focus a field by name= (no anchor navigation).
+   *
+   * @param {HTMLFormElement} form
+   * @param {string} fieldName
+   */
+  function melJumpToField(form, fieldName) {
+    if (!form || !fieldName) {
+      return;
+    }
+    var el = form.querySelector('[name="' + fieldName + '"]');
+    if (!el && fieldName === 'mel[field_category]') {
+      el =
+        form.querySelector('select[name="mel[field_category][]"]') ||
+        form.querySelector('input[name="mel[field_category]"]');
+    }
+    if (!el && fieldName === 'mel[field_event_image][]') {
+      el = form.querySelector('input[name="mel[field_event_image][]"]');
+    }
+    if (!el && fieldName === 'mel[studio_ticket_focus]') {
+      el = form.querySelector('#mel-add-ticket-tier') || form.querySelector('.mel-tier-title');
+    }
+    if (!el) {
+      return;
+    }
+    var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
+    if (scrollTarget.scrollIntoView) {
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    window.setTimeout(function () {
+      try {
+        if (el && typeof el.focus === 'function' && !el.disabled) {
+          el.focus({ preventScroll: true });
+        }
+      } catch (err) {}
+    }, 320);
+  }
+
   function val(form, name) {
     var el = form.querySelector('[name="' + name + '"]');
     if (!el) {
@@ -1546,15 +1584,237 @@
     return Math.round((score / total) * 100);
   }
 
+  /**
+   * @param {number} percent
+   * @return {string}
+   */
+  function strengthLabelForScore(percent) {
+    var p = percent;
+    if (p < 40) {
+      return Drupal.t('Needs work');
+    }
+    if (p < 70) {
+      return Drupal.t('Getting there');
+    }
+    if (p < 90) {
+      return Drupal.t('Almost ready');
+    }
+    return Drupal.t('Ready to publish');
+  }
+
   function updateProgress(form) {
     var percent = calculateScore(form);
 
-    var fill = document.getElementById('mel-progress-fill');
-    var text = document.getElementById('mel-progress-text');
+    var fill = document.getElementById('mel-event-strength-fill');
+    var scoreEl = document.getElementById('mel-event-strength-score');
+    var labelEl = document.getElementById('mel-event-strength-label');
 
-    if (fill) fill.style.width = percent + '%';
-    if (text) {
-      text.textContent = Drupal.t('@pct% complete', { '@pct': String(percent) });
+    if (fill) {
+      fill.style.width = percent + '%';
+    }
+    if (scoreEl) {
+      scoreEl.textContent = String(percent) + '%';
+    }
+    if (labelEl) {
+      labelEl.textContent = strengthLabelForScore(percent);
+    }
+  }
+
+  var SEV = { high: 0, medium: 1, low: 2 };
+
+  /**
+   * @return {{severity: string, text: string, target: string}[]}
+   */
+  function buildStructuredInsights(form) {
+    var rows = [];
+    var tt = valRadio(form, 'mel[field_event_type]');
+
+    function add(severity, text, target) {
+      rows.push({ severity: severity, text: text, target: target });
+    }
+
+    if (!hasCoverFile(form)) {
+      add('high', Drupal.t('Add a cover image to increase visibility in discovery and social previews.'), 'mel[field_event_image][]');
+    }
+
+    if (!categoryFieldHasValue(form)) {
+      add('high', Drupal.t('Select a category so the right audience can find your event.'), 'mel[field_category]');
+    }
+
+    if (val(form, 'mel[title]').length < 3) {
+      add('high', Drupal.t('Give your event a clear, specific title — it is the first thing people see.'), 'mel[title]');
+    }
+
+    if (val(form, 'mel[summary]').length < 10) {
+      add('medium', Drupal.t('Write a short summary: one or two sentences on why someone should come.'), 'mel[summary]');
+    }
+
+    if (val(form, 'mel[body]').length < 40) {
+      add('medium', Drupal.t('Flesh out the description with timing, vibe, and what to expect.'), 'mel[body]');
+    }
+
+    var sd = form.querySelector('[name="mel[start_date][date]"]');
+    if (!sd || !sd.value) {
+      add('high', Drupal.t('Set a start date and time so calendars and reminders can work.'), 'mel[start_date][date]');
+    }
+
+    var ed = form.querySelector('[name="mel[end_date][date]"]');
+    if (!ed || !ed.value) {
+      add('medium', Drupal.t('Add an end time when you know it — it helps attendees plan their evening.'), 'mel[end_date][date]');
+    }
+
+    var mode = valRadio(form, 'mel[venue_mode]');
+    if (mode === 'saved' && val(form, 'mel[venue_saved]') === '') {
+      add('high', Drupal.t('Pick a saved venue to reuse a trusted address.'), 'mel[venue_saved]');
+    } else if (mode === 'create') {
+      if (val(form, 'mel[venue_create_name]') === '') {
+        add('high', Drupal.t('Name your new venue so it is easy to recognise later.'), 'mel[venue_create_name]');
+      }
+      if (parseHiddenLocation(form) === '' && val(form, 'mel[location_search]') === '') {
+        add('high', Drupal.t('Search and confirm an address for your new venue.'), 'mel[location_search]');
+      }
+    } else if (parseHiddenLocation(form) === '' && val(form, 'mel[location_search]') === '') {
+      add('high', Drupal.t('Add a location so people know where to go.'), 'mel[location_search]');
+    }
+
+    if (tt === 'paid') {
+      var hasProduct = val(form, 'mel[field_product_target]') !== '';
+      if (!hasProduct) {
+        add('high', Drupal.t('Link a ticket product for paid events — or create ticket types in the Tickets workspace first.'), 'mel[field_product_target]');
+      }
+      var tTable = getBuilderTable(form);
+      var tierRows = tTable ? tTable.querySelectorAll('tbody .mel-tier-row').length : 0;
+      if (tierRows < 1) {
+        add('high', Drupal.t('Add at least one ticket type for paid checkout.'), 'mel[studio_ticket_focus]');
+      }
+    } else if (tt === 'external') {
+      var u = val(form, 'mel[external_url]');
+      if (u === '') {
+        add('high', Drupal.t('Add the external booking or registration URL for this event.'), 'mel[external_url]');
+      } else if (!/^https?:\/\//i.test(u)) {
+        add('high', Drupal.t('Use a full https:// link so the button works everywhere.'), 'mel[external_url]');
+      }
+    }
+
+    if (tt === 'rsvp' && form.querySelector('[name="mel[collect_attendee_questions]"]') && form.querySelector('[name="mel[collect_attendee_questions]"]').checked) {
+      add('low', Drupal.t('You asked for extra attendee details — add specific questions in the Tickets workspace.'), 'mel[collect_attendee_questions]');
+    }
+
+    if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
+      add('medium', Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'), 'mel[field_event_image_alt]');
+    }
+
+    if (rows.length === 0) {
+      add('low', Drupal.t('Strong start — review publish readiness below, then go live when you are ready.'), '');
+    }
+
+    rows.sort(function (a, b) {
+      return SEV[a.severity] - SEV[b.severity];
+    });
+
+    return rows.slice(0, 12);
+  }
+
+  function updateInsightsChecklist(form) {
+    var insights = document.getElementById('mel-insights-list');
+    if (!insights) {
+      return;
+    }
+    var items = buildStructuredInsights(form);
+    insights.innerHTML = items
+      .map(function (item) {
+        var sev = item.severity || 'low';
+        var safe = Drupal.checkPlain(item.text);
+        if (item.target) {
+          return (
+            '<div class="mel-insight-item mel-insight-item--' +
+            sev +
+            '" role="listitem">' +
+            '<button type="button" class="mel-insight-item__jump" data-target="' +
+            Drupal.checkPlain(item.target) +
+            '">' +
+            safe +
+            '</button></div>'
+          );
+        }
+        return (
+          '<div class="mel-insight-item mel-insight-item--' +
+          sev +
+          '" role="listitem"><span class="mel-insight-item__text">' +
+          safe +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
+
+  function updatePreviewHints(form) {
+    var host = document.getElementById('mel-preview-hints');
+    if (!host) {
+      return;
+    }
+    var hints = [];
+    if (!hasCoverFile(form)) {
+      hints.push({ k: 0, t: Drupal.t('No cover image yet') });
+    }
+    var sd = form.querySelector('[name="mel[start_date][date]"]');
+    if (!sd || !sd.value) {
+      hints.push({ k: 1, t: Drupal.t('No date set') });
+    }
+    if (!categoryFieldHasValue(form)) {
+      hints.push({ k: 2, t: Drupal.t('No category') });
+    }
+    var mode = valRadio(form, 'mel[venue_mode]');
+    var hasLoc = parseHiddenLocation(form) !== '';
+    if (mode === 'saved') {
+      hasLoc = val(form, 'mel[venue_saved]') !== '';
+    } else if (mode === 'create') {
+      hasLoc =
+        val(form, 'mel[venue_create_name]') !== '' &&
+        (parseHiddenLocation(form) !== '' || val(form, 'mel[location_search]') !== '');
+    }
+    if (!hasLoc) {
+      hints.push({ k: 3, t: Drupal.t('No location') });
+    }
+    var title = val(form, 'mel[title]');
+    if (title.length > 70) {
+      hints.push({ k: 4, t: Drupal.t('Title is long for cards — consider shortening') });
+    }
+    hints.sort(function (a, b) {
+      return a.k - b.k;
+    });
+    var top = hints.slice(0, 3);
+    if (top.length === 0) {
+      host.innerHTML = '';
+      return;
+    }
+    host.innerHTML = top
+      .map(function (h) {
+        return '<span class="mel-preview-hints__item">' + Drupal.checkPlain(h.t) + '</span>';
+      })
+      .join('');
+  }
+
+  function updateFooterCtaState(form) {
+    var footer = form.querySelector('.mel-event-studio__footer-actions');
+    var submit = form.querySelector(
+      '.mel-event-studio__footer-actions input[type="submit"], .mel-event-studio__footer-actions button[type="submit"]',
+    );
+    if (!footer) {
+      return;
+    }
+    var score = calculateScore(form);
+    var st = form.querySelector('[name="mel[status]"]');
+    var pub = !!(st && st.checked);
+    footer.classList.remove('mel-footer--draft-focus', 'mel-footer--publish-ready');
+    if (pub && score >= 70) {
+      footer.classList.add('mel-footer--publish-ready');
+    } else {
+      footer.classList.add('mel-footer--draft-focus');
+    }
+    if (submit) {
+      submit.classList.toggle('mel-btn--studio-publish', pub && score >= 70);
+      submit.classList.toggle('mel-btn--studio-draft', !(pub && score >= 70));
     }
   }
 
@@ -1566,8 +1826,16 @@
         var sd = form.querySelector('[name="mel[start_date][date]"]');
         return !!(sd && sd.value);
       }
-      case 'location':
+      case 'location': {
+        var vm = valRadio(form, 'mel[venue_mode]');
+        if (vm === 'saved') {
+          return val(form, 'mel[venue_saved]') !== '';
+        }
+        if (vm === 'create') {
+          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
+        }
         return parseHiddenLocation(form) !== '';
+      }
       case 'tickets': {
         var tt = valRadio(form, 'mel[field_event_type]');
         if (tt === 'external') return !!val(form, 'mel[external_url]');
@@ -1654,93 +1922,6 @@
       },
       false,
     );
-  }
-
-  /**
-   * Actionable suggestions (replaces numeric completeness).
-   *
-   * @return {string[]}
-   */
-  function buildActionableInsights(form, init) {
-    var out = [];
-    var tt = valRadio(form, 'mel[field_event_type]');
-
-    if (!hasCoverFile(form)) {
-      out.push(Drupal.t('Add a cover image to increase visibility in discovery and social previews.'));
-    }
-
-    if (!categoryFieldHasValue(form)) {
-      out.push(Drupal.t('Select a category so the right audience can find your event.'));
-    }
-
-    if (val(form, 'mel[title]').length < 3) {
-      out.push(Drupal.t('Give your event a clear, specific title — it is the first thing people see.'));
-    }
-
-    if (val(form, 'mel[summary]').length < 10) {
-      out.push(Drupal.t('Write a short summary: one or two sentences on why someone should come.'));
-    }
-
-    if (val(form, 'mel[body]').length < 40) {
-      out.push(Drupal.t('Flesh out the description with timing, vibe, and what to expect.'));
-    }
-
-    var sd = form.querySelector('[name="mel[start_date][date]"]');
-    if (!sd || !sd.value) {
-      out.push(Drupal.t('Set a start date and time so calendars and reminders can work.'));
-    }
-
-    var ed = form.querySelector('[name="mel[end_date][date]"]');
-    if (!ed || !ed.value) {
-      out.push(Drupal.t('Add an end time when you know it — it helps attendees plan their evening.'));
-    }
-
-    var mode = valRadio(form, 'mel[venue_mode]');
-    if (mode === 'saved' && val(form, 'mel[venue_saved]') === '') {
-      out.push(Drupal.t('Pick a saved venue to reuse a trusted address.'));
-    } else if (mode === 'create') {
-      if (val(form, 'mel[venue_create_name]') === '') {
-        out.push(Drupal.t('Name your new venue so it is easy to recognise later.'));
-      }
-      if (parseHiddenLocation(form) === '' && val(form, 'mel[location_search]') === '') {
-        out.push(Drupal.t('Search and confirm an address for your new venue.'));
-      }
-    } else if (parseHiddenLocation(form) === '' && val(form, 'mel[location_search]') === '') {
-      out.push(Drupal.t('Add a location so people know where to go.'));
-    }
-
-    if (tt === 'paid') {
-      var hasProduct = val(form, 'mel[field_product_target]') !== '';
-      if (!hasProduct) {
-        out.push(Drupal.t('Link a ticket product for paid events — or create ticket types in the Tickets workspace first.'));
-      }
-      var tTable = getBuilderTable(form);
-      var tierRows = tTable ? tTable.querySelectorAll('tbody .mel-tier-row').length : 0;
-      if (tierRows < 1) {
-        out.push(Drupal.t('Add at least one ticket type for paid checkout.'));
-      }
-    } else if (tt === 'external') {
-      var u = val(form, 'mel[external_url]');
-      if (u === '') {
-        out.push(Drupal.t('Add the external booking or registration URL for this event.'));
-      } else if (!/^https?:\/\//i.test(u)) {
-        out.push(Drupal.t('Use a full https:// link so the button works everywhere.'));
-      }
-    }
-
-    if (tt === 'rsvp' && form.querySelector('[name="mel[collect_attendee_questions]"]')?.checked) {
-      out.push(Drupal.t('You asked for extra attendee details — add specific questions in the Tickets workspace.'));
-    }
-
-    if (!val(form, 'mel[field_event_image_alt]') && hasCoverFile(form)) {
-      out.push(Drupal.t('Add alt text for your cover image — it helps accessibility and SEO.'));
-    }
-
-    if (out.length === 0) {
-      out.push(Drupal.t('Strong start — review publish readiness below, then go live when you are ready.'));
-    }
-
-    return out.slice(0, 8);
   }
 
   function publishReadiness(form, init, str) {
@@ -1840,16 +2021,9 @@
     syncPaidTierWarning(form);
 
     updateProgress(form);
-
-    var insights = document.getElementById('mel-insights-list');
-    if (insights) {
-      var items = buildActionableInsights(form, init);
-      insights.innerHTML = items
-        .map(function (t) {
-          return '<li class="mel-insights-list__item">' + Drupal.checkPlain(t) + '</li>';
-        })
-        .join('');
-    }
+    updateInsightsChecklist(form);
+    updatePreviewHints(form);
+    updateFooterCtaState(form);
 
     var pr = document.getElementById('mel-publish-readiness');
     if (pr) {
@@ -1902,6 +2076,15 @@
         });
 
         form.addEventListener('click', function (e) {
+          var jumpBtn = e.target.closest('.mel-insight-item__jump');
+          if (jumpBtn && form.contains(jumpBtn)) {
+            var targetName = jumpBtn.getAttribute('data-target');
+            if (targetName) {
+              e.preventDefault();
+              melJumpToField(form, targetName);
+            }
+            return;
+          }
           var rewriteAboutBtn = e.target.closest('#mel-ai-rewrite-about');
           if (rewriteAboutBtn && form.contains(rewriteAboutBtn)) {
             e.preventDefault();
