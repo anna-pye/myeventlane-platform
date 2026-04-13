@@ -48,7 +48,7 @@
       el = form.querySelector('input[name="mel[field_event_image][]"]');
     }
     if (!el && fieldName === 'mel[studio_ticket_focus]') {
-      el = document.getElementById('mel-add-ticket-tier') || form.querySelector('.mel-tier-title');
+      el = form.querySelector('#mel-add-ticket-tier') || form.querySelector('.mel-tier-title');
     }
     if (!el) {
       return;
