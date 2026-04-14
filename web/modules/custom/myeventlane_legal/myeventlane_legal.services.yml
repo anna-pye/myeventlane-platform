@@ -13,6 +13,7 @@ services:
       - '@myeventlane_legal.settings'
       - '@current_user'
       - '@datetime.time'
+      - '@request_stack'
 
   myeventlane_legal.consent_helper:
     class: Drupal\myeventlane_legal\Service\RsvpSubmissionConsentHelper

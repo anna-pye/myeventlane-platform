@@ -427,6 +427,57 @@ final class OnboardingManager {
   }
 
   /**
+   * Whether the user has at least one completed Commerce order (lightweight count).
+   *
+   * Used for customer UX signals (e.g. post-login hub) without loading orders.
+   */
+  public function customerHasCompletedOrders(int $uid): bool {
+    return $this->customerHasOrders($uid);
+  }
+
+  /**
+   * Advances customer track after an authenticated RSVP (probe → present).
+   */
+  public function progressCustomerAfterRsvp(UserInterface $user): void {
+    $uid = (int) $user->id();
+    if ($uid <= 0) {
+      return;
+    }
+    $state = $this->loadOrCreateCustomer($user);
+    $this->refreshFlags($state);
+    if ($state->getTrack() !== OnboardingStateInterface::TRACK_CUSTOMER) {
+      return;
+    }
+    if ($state->isCompleted()) {
+      return;
+    }
+    if ($state->getStage() === 'probe') {
+      $this->advanceStage($state, 'present');
+    }
+  }
+
+  /**
+   * Completes customer track after a placed Commerce order (first purchase milestone).
+   */
+  public function progressCustomerAfterPlacedOrder(UserInterface $user): void {
+    $uid = (int) $user->id();
+    if ($uid <= 0) {
+      return;
+    }
+    $state = $this->loadOrCreateCustomer($user);
+    $this->refreshFlags($state);
+    if ($state->getTrack() !== OnboardingStateInterface::TRACK_CUSTOMER) {
+      return;
+    }
+    if ($state->isCompleted()) {
+      return;
+    }
+    $this->advanceStage($state, 'complete');
+    $state->setCompleted(TRUE);
+    $state->save();
+  }
+
+  /**
    * Whether vendor is invite-ready (all Ask steps done, can proceed to Review).
    *
    * Aligns with OnboardingNavigator: organiser done, has events, tickets,
@@ -649,25 +700,30 @@ final class OnboardingManager {
   }
 
   /**
-   * Whether customer has completed orders.
+   * Count of completed Commerce orders for the user (lightweight).
    */
-  private function customerHasOrders(int $uid): bool {
+  public function getCustomerCompletedOrderCount(int $uid): int {
     try {
       if (!$this->entityTypeManager->getStorage('commerce_order')->getEntityType()->hasKey('id')) {
-        return FALSE;
+        return 0;
       }
-      $count = (int) $this->entityTypeManager->getStorage('commerce_order')->getQuery()
+      return (int) $this->entityTypeManager->getStorage('commerce_order')->getQuery()
         ->accessCheck(FALSE)
         ->condition('uid', $uid)
         ->condition('state', 'completed')
-        ->range(0, 1)
         ->count()
         ->execute();
-      return $count > 0;
     }
     catch (\Throwable $e) {
-      return FALSE;
+      return 0;
     }
+  }
+
+  /**
+   * Whether customer has completed orders.
+   */
+  private function customerHasOrders(int $uid): bool {
+    return $this->getCustomerCompletedOrderCount($uid) > 0;
   }
 
 }

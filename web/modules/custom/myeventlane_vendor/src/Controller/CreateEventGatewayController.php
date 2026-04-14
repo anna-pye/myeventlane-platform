@@ -71,7 +71,8 @@ class CreateEventGatewayController extends ControllerBase {
    * Redirects or renders based on vendor onboarding status.
    *
    * Logic:
-   * - Anonymous users → login with destination back to /create-event
+   * - Anonymous users → MEL auth continue (intent create_event) when available,
+   *   else login with destination back to /create-event
    * - No state → redirect to profile
    * - Incomplete + ?auto=1 → redirect to next onboarding step
    * - Incomplete (no auto) → render explanatory "Complete setup" page
@@ -83,24 +84,16 @@ class CreateEventGatewayController extends ControllerBase {
   public function gateway(): RedirectResponse|array {
     $current_user = $this->currentUser();
 
-    // Anonymous users: redirect to login with destination and vendor intent.
+    // Anonymous users: intent-aware auth handoff, then return to this gateway.
     if ($current_user->isAnonymous()) {
       $this->messenger()->addWarning($this->t('To create events, you need to log in with a vendor/organiser account. If you don\'t have an account yet, you can create one after logging in.'));
-      $login_url = Url::fromRoute('user.login', [], [
-        'query' => [
-          'destination' => '/create-event',
-        ],
-      ]);
+      $login_url = $this->buildAnonymousAuthEntryLoginUrl();
       return new RedirectResponse($login_url->toString());
     }
 
     $uid = (int) $current_user->id();
     if ($uid <= 0) {
-      $login_url = Url::fromRoute('user.login', [], [
-        'query' => [
-          'destination' => '/create-event',
-        ],
-      ]);
+      $login_url = $this->buildAnonymousAuthEntryLoginUrl();
       return new RedirectResponse($login_url->toString());
     }
 
@@ -282,6 +275,30 @@ class CreateEventGatewayController extends ControllerBase {
 
     // Convert string keys to integer values and ensure uniqueness.
     return array_values(array_unique(array_map('intval', $all_ids)));
+  }
+
+  /**
+   * Builds the login URL with destination pointing at MEL continue or /create-event.
+   */
+  private function buildAnonymousAuthEntryLoginUrl(): Url {
+    if ($this->moduleHandler()->moduleExists('myeventlane_auth')) {
+      $auth_continue = Url::fromRoute('myeventlane_auth.mel_continue', [], [
+        'query' => [
+          'destination' => '/create-event',
+          'mel_intent' => 'create_event',
+        ],
+      ]);
+      return Url::fromRoute('user.login', [], [
+        'query' => [
+          'destination' => $auth_continue->toString(),
+        ],
+      ]);
+    }
+    return Url::fromRoute('user.login', [], [
+      'query' => [
+        'destination' => '/create-event',
+      ],
+    ]);
   }
 
 }

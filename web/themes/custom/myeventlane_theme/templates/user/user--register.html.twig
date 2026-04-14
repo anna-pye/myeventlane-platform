@@ -4,6 +4,8 @@
  * Theme override for user registration form.
  *
  * Provides a centered, branded authentication card layout.
+ * All fields sit inside .mel-auth-form-wrapper so validation errors (legal, etc.)
+ * receive the same visible styling as account fields.
  */
 #}
 
@@ -24,34 +26,36 @@
         <p class="mel-auth-subtitle">{{ 'Join our community of event creators and attendees.'|t }}</p>
       </div>
 
-      {{ form|without('account', 'actions', 'form_build_id', 'form_token', 'form_id') }}
+      <div class="mel-auth-form-wrapper">
+        {{ form|without('account', 'actions', 'form_build_id', 'form_token', 'form_id') }}
 
-      <div class="mel-auth-form">
-        <div class="form-item">
-          {{ form.account.name }}
-          <div class="description">{{ 'Choose a unique username for your account.'|t }}</div>
-        </div>
-
-        <div class="form-item">
-          {{ form.account.mail }}
-          <div class="description">{{ 'We'll never share your email with anyone else.'|t }}</div>
-        </div>
-
-        {% if form.account.pass %}
+        <div class="mel-auth-form">
           <div class="form-item">
-            {{ form.account.pass }}
-            <div class="description">{{ 'Use at least 8 characters with a mix of letters and numbers.'|t }}</div>
+            {{ form.account.name }}
+            <div class="description">{{ 'Choose a unique username for your account.'|t }}</div>
           </div>
-        {% endif %}
 
-        {% if form.timezone %}
           <div class="form-item">
-            {{ form.timezone }}
+            {{ form.account.mail }}
+            <div class="description">{{ "We'll never share your email with anyone else."|t }}</div>
           </div>
-        {% endif %}
 
-        <div class="mel-auth-actions">
-          {{ form.actions }}
+          {% if form.account.pass %}
+            <div class="form-item">
+              {{ form.account.pass }}
+              <div class="description">{{ 'Use at least 8 characters with a mix of letters and numbers.'|t }}</div>
+            </div>
+          {% endif %}
+
+          {% if form.timezone %}
+            <div class="form-item">
+              {{ form.timezone }}
+            </div>
+          {% endif %}
+
+          <div class="mel-auth-actions">
+            {{ form.actions }}
+          </div>
         </div>
       </div>
 
@@ -67,4 +71,3 @@
     </div>
   </div>
 </div>
-

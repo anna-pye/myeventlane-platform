@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * MEL post-login page — soft shell; hub content uses mel-post-login-hub.
+ */
+#}
+<div class="mel-page mel-page--post-login-hub">
+  <main id="main-content" class="mel-post-login-page" role="main">
+    {% if page.highlighted %}
+      <div class="mel-post-login-page__messages">
+        {{ page.highlighted }}
+      </div>
+    {% endif %}
+
+    <div class="mel-post-login-page__inner">
+      {{ page.content }}
+    </div>
+
+    <p class="mel-post-login-page__footer-note">
+      <a href="{{ path('user.pass') }}" class="mel-post-login-page__footer-link">{{ 'Set or reset your password'|t }}</a>
+    </p>
+  </main>
+</div>

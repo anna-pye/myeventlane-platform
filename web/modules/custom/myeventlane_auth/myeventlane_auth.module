@@ -7,6 +7,7 @@ declare(strict_types=1);
  * MyEventLane SSO (OAuth2-style) for cross-subdomain authentication.
  */
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\UserInterface;
@@ -102,6 +103,23 @@ function myeventlane_auth_user_login_form_validate_audit(array &$form, FormState
   if (!$form_state->get('uid')) {
     \Drupal::logger('myeventlane_auth')->warning('Audit: login failed (credentials or flood).');
   }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function myeventlane_auth_entity_insert(EntityInterface $entity): void {
+  if ($entity->getEntityTypeId() !== 'rsvp_submission') {
+    return;
+  }
+  $uid = (int) ($entity->getOwnerId() ?? 0);
+  if ($uid <= 0) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_auth.customer_identity_bridge')) {
+    return;
+  }
+  \Drupal::service('myeventlane_auth.customer_identity_bridge')->onAuthenticatedRsvpUid($uid);
 }
 
 /**

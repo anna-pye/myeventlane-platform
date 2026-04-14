@@ -16,6 +16,50 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_auth'
 
+  myeventlane_auth.identity_intent_resolver:
+    class: Drupal\myeventlane_auth\Service\IdentityIntentResolver
+
+  myeventlane_auth.post_auth_redirect_resolver:
+    class: Drupal\myeventlane_auth\Service\PostAuthRedirectResolver
+    arguments:
+      - '@myeventlane_auth.identity_intent_resolver'
+      - '@myeventlane_core.mel_destination_normalizer'
+      - '@url_generator'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.post_login_hub_builder:
+    class: Drupal\myeventlane_auth\Service\PostLoginHubBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_onboarding.manager'
+      - '@myeventlane_auth.identity_intent_resolver'
+      - '@logger.channel.myeventlane_auth'
+      - '@string_translation'
+
+  myeventlane_auth.customer_identity_bridge:
+    class: Drupal\myeventlane_auth\Service\CustomerIdentityBridge
+    arguments:
+      - '@myeventlane_onboarding.manager'
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_auth'
+
+  myeventlane_auth.customer_order_onboarding_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\CustomerOrderOnboardingSubscriber
+    arguments:
+      - '@myeventlane_auth.customer_identity_bridge'
+      - '@module_handler'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_auth.post_login_hub_redirect_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\PostLoginHubRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@myeventlane_auth.post_auth_redirect_resolver'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_auth.login_url_builder:
     class: Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder
     arguments:

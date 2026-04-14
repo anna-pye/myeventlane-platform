@@ -1,0 +1,67 @@
+{#
+/**
+ * @file
+ * MEL post-login hub — data from PostLoginHubBuilder only (no business logic).
+ */
+#}
+{% set hub = hub|default({}) %}
+{% set mode = hub.mode|default('customer') %}
+{% set primary = hub.primary_cta|default({}) %}
+{% set secondaries = hub.secondary_ctas|default([]) %}
+{% set badges = hub.badges|default([]) %}
+{% set rec = hub.recommendation|default(null) %}
+
+<div class="mel-post-login-hub" data-mel-hub-mode="{{ mode }}">
+  <article class="mel-post-login-hub__card mel-post-login-hub__card--main">
+    {% if badges is not empty %}
+      <div class="mel-post-login-hub__badges" role="status">
+        {% for b in badges %}
+          {% if b.label %}
+            <span class="mel-post-login-hub__badge">{{ b.label }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if hub.headline %}
+      <h1 class="mel-post-login-hub__title">{{ hub.headline }}</h1>
+    {% endif %}
+
+    {% if hub.body %}
+      <p class="mel-post-login-hub__lede">{{ hub.body }}</p>
+    {% endif %}
+
+    {% if primary.url is defined and primary.label %}
+      <div class="mel-post-login-hub__primary">
+        <a href="{{ primary.url }}" class="mel-btn mel-btn--primary mel-post-login-hub__cta-primary">{{ primary.label }}</a>
+      </div>
+    {% endif %}
+
+    {% if secondaries is not empty %}
+      <div class="mel-post-login-hub__secondary">
+        {% for cta in secondaries %}
+          {% if cta.url is defined and cta.label %}
+            {% set variant = cta.variant|default('secondary') %}
+            <a href="{{ cta.url }}" class="mel-btn mel-post-login-hub__cta-secondary mel-btn--{{ variant }}">{{ cta.label }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </article>
+
+  {% if rec and rec.cta_url is defined and rec.cta_label %}
+    <article class="mel-post-login-hub__card mel-post-login-hub__card--soft" aria-labelledby="mel-hub-rec-title">
+      {% if rec.headline %}
+        <h2 id="mel-hub-rec-title" class="mel-post-login-hub__subtitle">{{ rec.headline }}</h2>
+      {% endif %}
+      {% if rec.body %}
+        <p class="mel-post-login-hub__rec-body">{{ rec.body }}</p>
+      {% endif %}
+      <a href="{{ rec.cta_url }}" class="mel-btn mel-btn--secondary">{{ rec.cta_label }}</a>
+    </article>
+  {% endif %}
+
+  {% if hub.support_note %}
+    <p class="mel-post-login-hub__support">{{ hub.support_note }}</p>
+  {% endif %}
+</div>

@@ -1,3 +1,27 @@
+myeventlane_auth.mel_continue:
+  path: '/mel/auth/continue'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\MelContinueController::handoff'
+    _title: 'Continue'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.mel_post_login:
+  path: '/mel/post-login'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\MelPostLoginController::content'
+    _title: 'Welcome to MyEventLane'
+  requirements:
+    _access: 'TRUE'
+
+myeventlane_auth.mel_email_entry:
+  path: '/mel/auth/email'
+  defaults:
+    _controller: '\Drupal\myeventlane_auth\Controller\MelEmailEntryPlaceholderController::build'
+    _title: 'Sign in'
+  requirements:
+    _access: 'TRUE'
+
 myeventlane_auth.login:
   path: '/auth/login'
   defaults:
