@@ -45,6 +45,14 @@ function myeventlane_theme_preprocess(array &$variables, string $hook): void {
     return;
   }
 
+  // Form templates carry Drupal render arrays and Attribute data; do not run the
+  // generic string walker here. Walking those trees has caused
+  // InvalidArgumentException for keys like data-drupal-selector (must live under
+  // #attributes only). Form strings already go through t().
+  if (str_starts_with($hook, 'form')) {
+    return;
+  }
+
   /** @var \Drupal\myeventlane_core\Service\LanguageStyleService $service */
   $service = \Drupal::service('myeventlane_core.language_style');
   _myeventlane_theme_apply_language_style($variables, $service);
@@ -63,6 +71,12 @@ function _myeventlane_theme_apply_language_style(array &$items, $service): void 
       continue;
     }
     if (is_array($value)) {
+      // Do not recurse into Drupal form render arrays (e.g. login, ticket selection).
+      // Walking them can corrupt structure; non-# keys like data-drupal-selector must
+      // only exist under #attributes, not as render children.
+      if (($key === 'element' || $key === 'form') && isset($value['#form_id'])) {
+        continue;
+      }
       _myeventlane_theme_apply_language_style($value, $service);
     }
     elseif (is_string($value) && !$service->shouldSkipKey($key) && !$service->looksLikeUrl($value)) {
@@ -76,6 +90,12 @@ function _myeventlane_theme_apply_language_style(array &$items, $service): void 
  */
 function myeventlane_theme_theme(array $existing, string $type, string $theme, string $path): array {
   return [
+    'mel_post_login_hub' => [
+      'variables' => [
+        'hub' => [],
+      ],
+      'template' => 'mel-post-login-hub',
+    ],
     'mel_checkout_order_summary_grouped' => [
       'variables' => [
         'grouped_items' => [],
@@ -842,6 +862,12 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
   // Full calendar view: ensure page--calendar + preprocess_page__calendar run (path-based
   // suggestions can miss this display; without it calendar_events stays unset).
   $route = \Drupal::routeMatch()->getRouteName();
+  if ($route === 'myeventlane_auth.post_login') {
+    $suggestions[] = 'page__mel_post_login';
+  }
+  if ($route === 'user.login') {
+    $suggestions[] = 'page__user_login';
+  }
   if ($route === 'view.events_calendar.page_calendar') {
     $suggestions[] = 'page__calendar';
   }
@@ -859,6 +885,33 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
 }
 
 /**
+ * Whether the login page request is for the create-event organiser flow.
+ *
+ * Deterministic checks only (query + POST body): intent keys and destination
+ * path prefix. Does not mirror PostLoginRouter or gateway routing.
+ */
+function _myeventlane_theme_login_page_is_create_event_context(\Symfony\Component\HttpFoundation\Request $request): bool {
+  foreach ([$request->query, $request->request] as $bag) {
+    foreach (['mel_intent', 'intent'] as $key) {
+      $v = $bag->get($key);
+      if (is_string($v) && strtolower(trim($v)) === 'create_event') {
+        return TRUE;
+      }
+    }
+    $dest = $bag->get('destination');
+    if (!is_string($dest) || $dest === '') {
+      continue;
+    }
+    $decoded = urldecode(trim($dest));
+    $path_only = strtok($decoded, '?') ?: $decoded;
+    if (str_starts_with($path_only, '/create-event')) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
  * Implements hook_preprocess_page().
  *
  * Adds cart block to header if not already placed.
@@ -871,6 +924,14 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Ensure directory variable is available for all templates (especially homepage hero).
   if (!isset($variables['directory'])) {
     $variables['directory'] = base_path() . $theme_path;
+  }
+
+  // user.login: encouraging create-event panel (replaces legacy gateway messenger warning).
+  if (\Drupal::routeMatch()->getRouteName() === 'user.login') {
+    $variables['mel_login_create_event_info'] = _myeventlane_theme_login_page_is_create_event_context(\Drupal::request());
+    $variables['#cache']['contexts'][] = 'url.query_args:destination';
+    $variables['#cache']['contexts'][] = 'url.query_args:mel_intent';
+    $variables['#cache']['contexts'][] = 'url.query_args:intent';
   }
 
   // Footer: dynamic categories (only if > 3 published events) + organiser detection.
@@ -2612,22 +2673,19 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     $form['#attributes']['class'][] = 'mel-event-form-wrapper';
   }
 
-  // User login form.
-  if ($form_id === 'user_login_form') {
-    $form['#attributes']['class'][] = 'mel-form';
-    $form['#attributes']['class'][] = 'mel-form--login';
-  }
-
   // User register form.
   if ($form_id === 'user_register_form') {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--register';
+    $form['#attributes']['class'][] = 'user-register-form';
+    $form['#attached']['library'][] = 'myeventlane_theme/auth_pages';
   }
 
   // User password reset form.
   if ($form_id === 'user_pass') {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--password';
+    $form['#attached']['library'][] = 'myeventlane_theme/auth_pages';
   }
 
   // User edit form.

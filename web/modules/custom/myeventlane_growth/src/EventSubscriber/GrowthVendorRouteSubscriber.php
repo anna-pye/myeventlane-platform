@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_growth\EventSubscriber;
 
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_growth\Service\GrowthOrganiserSignals;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -33,7 +34,11 @@ final class GrowthVendorRouteSubscriber implements EventSubscriberInterface {
     if (!$event->isMainRequest()) {
       return;
     }
-    $route = $event->getRequest()->attributes->get('_route');
+    $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
+    $route = $request->attributes->get('_route');
     if (!is_string($route)) {
       return;
     }

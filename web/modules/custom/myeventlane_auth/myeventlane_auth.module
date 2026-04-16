@@ -8,10 +8,11 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\UserInterface;
 use Drupal\Core\Site\Settings;
+use Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Implements hook_cron().
@@ -33,11 +34,122 @@ function myeventlane_auth_cron(): void {
 
 /**
  * Implements hook_user_login().
+ *
+ * Stages destination + intent for post-login hub redirect (session commit safe).
+ * Does not alter the login form or POST handling.
  */
 function myeventlane_auth_user_login(UserInterface $account): void {
   \Drupal::logger('myeventlane_auth')->notice('Audit: login success uid=@uid.', [
     '@uid' => (string) $account->id(),
   ]);
+
+  $request = \Drupal::request();
+  if (!$request->hasSession()) {
+    return;
+  }
+  $session = $request->getSession();
+
+  $raw_dest = NULL;
+  foreach ([$request->query->get('destination'), $request->request->get('destination')] as $candidate) {
+    if (is_string($candidate) && $candidate !== '') {
+      $raw_dest = $candidate;
+      break;
+    }
+  }
+  if ($raw_dest === NULL) {
+    $raw_dest = '/user/' . $account->id();
+  }
+
+  $intent = '';
+  foreach ([
+    $request->query->get('mel_intent'),
+    $request->request->get('mel_intent'),
+    $request->query->get('intent'),
+    $request->request->get('intent'),
+  ] as $candidate) {
+    if (is_string($candidate) && $candidate !== '') {
+      $intent = $candidate;
+      break;
+    }
+  }
+
+  $internal = myeventlane_auth_destination_to_internal_path($request, $raw_dest);
+  if ($internal === NULL || myeventlane_auth_should_skip_mel_hub_wrap($internal)) {
+    $session->save();
+    return;
+  }
+
+  $session->set(MelPostLoginSessionRedirectSubscriber::SESSION_KEY, [
+    'destination' => $internal,
+    'intent' => $intent,
+  ]);
+  $session->save();
+}
+
+/**
+ * Maps a login destination to an internal path for the current host.
+ */
+function myeventlane_auth_destination_to_internal_path(Request $request, string $destination): ?string {
+  $destination = trim($destination);
+  if ($destination === '' || $destination === '/') {
+    return '/';
+  }
+  if (str_starts_with($destination, '//')) {
+    return NULL;
+  }
+  if (preg_match('#^https?://#i', $destination)) {
+    $parts = parse_url($destination);
+    if ($parts === FALSE) {
+      return NULL;
+    }
+    $scheme = $parts['scheme'] ?? '';
+    if ($scheme !== '' && !in_array($scheme, ['http', 'https'], TRUE)) {
+      return NULL;
+    }
+    if (isset($parts['host']) && strcasecmp((string) $parts['host'], $request->getHost()) !== 0) {
+      return NULL;
+    }
+    $path = $parts['path'] ?? '/';
+    $base = $request->getBasePath();
+    if ($base !== '' && str_starts_with($path, $base)) {
+      $path = substr($path, strlen($base)) ?: '/';
+    }
+    if ($path === '') {
+      $path = '/';
+    }
+    if (!str_starts_with($path, '/')) {
+      return NULL;
+    }
+    $query = isset($parts['query']) && is_string($parts['query']) ? '?' . $parts['query'] : '';
+    return $path . $query;
+  }
+  if (str_starts_with($destination, '/')) {
+    return $destination;
+  }
+  return NULL;
+}
+
+/**
+ * Paths that must not be wrapped to the MEL post-login hub.
+ */
+function myeventlane_auth_should_skip_mel_hub_wrap(string $internal_path): bool {
+  $path_only = strtok($internal_path, '?') ?: $internal_path;
+  if ($path_only === '/mel/post-login') {
+    return TRUE;
+  }
+  if ($path_only === '/mel/auth/continue') {
+    return TRUE;
+  }
+  if (str_starts_with($path_only, '/admin')) {
+    return TRUE;
+  }
+  if (str_starts_with($path_only, '/system/')) {
+    return TRUE;
+  }
+  if (str_starts_with($path_only, '/batch')) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -48,60 +160,6 @@ function myeventlane_auth_user_logout(AccountInterface $account): void {
     \Drupal::logger('myeventlane_auth')->notice('Audit: logout uid=@uid.', [
       '@uid' => (string) $account->id(),
     ]);
-  }
-}
-
-/**
- * Resolves destination for the login form hidden field.
- *
- * On validation failure the form is rebuilt on the same POST; the URL often
- * has no ?destination=, but the prior submission still carries destination in
- * the request body / user input.
- */
-function myeventlane_auth_user_login_destination_for_form(FormStateInterface $form_state): ?string {
-  $request = \Drupal::request();
-  foreach ([$request->query->get('destination'), $request->request->get('destination')] as $candidate) {
-    if (is_string($candidate) && $candidate !== '') {
-      return $candidate;
-    }
-  }
-  $input = $form_state->getUserInput();
-  if (is_array($input) && isset($input['destination']) && is_string($input['destination']) && $input['destination'] !== '') {
-    return $input['destination'];
-  }
-  return NULL;
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for user_login_form.
- */
-function myeventlane_auth_form_user_login_form_alter(&$form, FormStateInterface $form_state, $form_id): void {
-  $form['#validate'][] = 'myeventlane_auth_user_login_form_validate_audit';
-
-  // UserLoginForm::submitForm() only honours destination when it is in the POST
-  // body ($request->request). A ?destination= query on GET is often dropped on
-  // POST (no hidden field, form posts to /user/login without query), so core
-  // falls back to entity.user.canonical → /my-account for MEL flows.
-  if (!empty($form['destination'])) {
-    return;
-  }
-  $raw = myeventlane_auth_user_login_destination_for_form($form_state);
-  if ($raw === NULL) {
-    return;
-  }
-  $form['destination'] = [
-    '#type' => 'hidden',
-    '#value' => $raw,
-    '#weight' => -100,
-  ];
-}
-
-/**
- * Logs failed credential checks (runs after core validators).
- */
-function myeventlane_auth_user_login_form_validate_audit(array &$form, FormStateInterface $form_state): void {
-  if (!$form_state->get('uid')) {
-    \Drupal::logger('myeventlane_auth')->warning('Audit: login failed (credentials or flood).');
   }
 }
 

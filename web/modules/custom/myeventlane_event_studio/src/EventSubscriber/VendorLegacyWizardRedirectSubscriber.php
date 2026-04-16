@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\EventSubscriber;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -48,6 +49,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $route = (string) ($request->attributes->get('_route') ?? '');
     if (!in_array($route, self::WIZARD_STEP_ROUTES, TRUE)) {
       return;

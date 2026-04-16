@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\MelDestinationNormalizer;
 use Psr\Log\LoggerInterface;
@@ -46,6 +47,9 @@ final class VendorHostAuthRedirectSubscriber implements EventSubscriberInterface
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassPostRequests($request)) {
+      return;
+    }
     if ($request->getMethod() !== 'GET') {
       return;
     }

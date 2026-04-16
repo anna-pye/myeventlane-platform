@@ -17,6 +17,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *
  * Preserves the original internal destination and mel_intent as query params on
  * the hub URL. Skips admin, API, and already-hub targets.
+ *
+ * Service is not tagged: hub staging runs in hook_user_login() and
+ * MelPostLoginSessionRedirectSubscriber (request phase) so the session is
+ * committed before any hub RedirectResponse.
  */
 final class PostLoginHubRedirectSubscriber implements EventSubscriberInterface {
 
@@ -67,7 +71,15 @@ final class PostLoginHubRedirectSubscriber implements EventSubscriberInterface {
       $destinationPath,
       $intent,
     );
-    $event->setResponse(new RedirectResponse($hub, $response->getStatusCode()));
+    // Replacing the response drops headers added during the request (including
+    // Set-Cookie for the session). Copy cookies from the outgoing redirect so
+    // the browser still stores the session on the hub hop — same pattern as
+    // VendorPostLoginRedirectSubscriber.
+    $hubResponse = new RedirectResponse($hub, $response->getStatusCode());
+    foreach ($response->headers->getCookies() as $cookie) {
+      $hubResponse->headers->setCookie($cookie);
+    }
+    $event->setResponse($hubResponse);
   }
 
   /**

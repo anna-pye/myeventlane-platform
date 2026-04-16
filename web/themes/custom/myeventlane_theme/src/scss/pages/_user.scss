@@ -124,6 +124,38 @@
   }
 }
 
+// ---------------------------------------------------------------------------
+// Login: create-event intro (neutral / positive — not status-warning)
+// ---------------------------------------------------------------------------
+
+.mel-login-create-event-banner {
+  padding-top: spacing.mel-space(4);
+  padding-bottom: spacing.mel-space(2);
+}
+
+.mel-auth-info {
+  background: color.mix(colors.$mel-color-accent, #ffffff, 8%);
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+  padding: spacing.mel-space(4) spacing.mel-space(5);
+  box-shadow: shadows.$mel-shadow-sm;
+
+  &__title {
+    display: block;
+    font-size: typography.mel-font-size(lg);
+    font-weight: typography.$mel-font-bold;
+    color: colors.$mel-color-text;
+    margin: 0 0 spacing.mel-space(2) 0;
+  }
+
+  &__body {
+    margin: 0;
+    font-size: typography.mel-font-size(base);
+    line-height: 1.55;
+    color: colors.$mel-color-text-muted;
+  }
+}
+
 .mel-auth-remember {
   display: flex;
   align-items: center;
@@ -666,8 +698,8 @@
 // ---------------------------------------------------------------------------
 // Drupal User Form Overrides
 // ---------------------------------------------------------------------------
-// Note: These forms are now styled via dedicated templates (user--login.html.twig, etc.)
-// and the _auth.scss styles. This section kept for backward compatibility.
+// Login uses Gin Login (no theme login templates). Register / password may use MEL
+// templates and _auth.scss; this section kept for backward compatibility.
 
 .user-login-form,
 .user-register-form,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_boost\EventSubscriber;
 
 use Drupal\myeventlane_boost\Service\BoostClickTracker;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\node\NodeInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -50,6 +51,9 @@ final class BoostClickTrackingSubscriber implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $routeName = $request->attributes->get('_route');
 
     // Only track on event canonical routes.

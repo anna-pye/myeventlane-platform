@@ -420,6 +420,10 @@ function myeventlane_commerce_commerce_checkout_pane_info_alter(array &$definiti
  * Remove duplicate billing information from payment_information pane.
  */
 function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  // Phase 4 hard isolation: do not touch core login render tree (remove after confirm).
+  if ($form_id === 'user_login_form') {
+    return;
+  }
   // Allow customer booking/checkout forms to submit when a non-default
   // workspace is active in the current user session.
   $workspace_safe_form_ids = [

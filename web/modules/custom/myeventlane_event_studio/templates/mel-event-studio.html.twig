@@ -136,7 +136,7 @@
               <p class="mel-section__hint">{{ 'Name your event, how it shows in listings, and your cover image.'|t }}</p>
             </header>
 
-            <div class="mel-identity-stack">
+            <div class="mel-basic-section">
               <div class="mel-basic-title-with-ai">
                 {{ element.mel.title }}
                 <div class="mel-ai-autofill">
@@ -172,13 +172,25 @@
                 </div>
               </div>
 
-              {{ element.mel.field_event_intro }}
-              <div class="mel-ai-rewrite-actions">
-                <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
+              <div class="mel-section">
+                <h3>{{ 'About the event'|t }}</h3>
+                {{ element.mel.body }}
+                <div class="mel-ai-rewrite-actions">
+                  <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+                </div>
               </div>
-              {{ element.mel.body }}
-              <div class="mel-ai-rewrite-actions">
-                <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+
+              <div class="mel-section">
+                <h3>{{ 'Highlights'|t }}</h3>
+                {{ element.mel.event_highlights }}
+              </div>
+
+              <div class="mel-section">
+                <h3>{{ 'What to expect'|t }}</h3>
+                {{ element.mel.field_event_intro }}
+                <div class="mel-ai-rewrite-actions">
+                  <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
+                </div>
               </div>
             </div>
 
@@ -260,20 +272,6 @@
             {{ element.mel.rsvp_capacity }}
 
             <div class="mel-ticket-paid-shell" id="mel-ticket-paid-shell" hidden>
-              <div class="mel-ticket-product-panel" id="mel-ticket-product-panel">
-                <div class="mel-ticket-product-panel__empty" id="mel-ticket-product-empty">
-                  <p class="mel-ticket-product-panel__message" id="mel-ticket-product-empty-msg"></p>
-                  <a href="#" class="mel-btn mel-btn--secondary mel-ticket-product-panel__cta" id="mel-ticket-cta-tickets">
-                    {{ 'Create ticket types'|t }}
-                  </a>
-                  <p class="mel-ticket-product-panel__hint">{{ 'Link a Commerce ticket product below, or build types in the workspace first.'|t }}</p>
-                </div>
-                <div class="mel-ticket-product-panel__ok" id="mel-ticket-product-ok" hidden>
-                  <p class="mel-ticket-product-panel__summary-label">{{ 'Linked product'|t }}</p>
-                  <p class="mel-ticket-product-panel__summary" id="mel-ticket-product-summary"></p>
-                  <p class="mel-ticket-product-panel__types" id="mel-ticket-types-summary"></p>
-                </div>
-              </div>
               <div class="mel-ticket-fields-deck mel-form-grid">
                 {{ element.mel.field_product_target }}
                 {{ element.mel.field_ticket_types }}
@@ -323,8 +321,6 @@
                 {{ element.mel.field_contact_phone }}
               </div>
             </section>
-
-            {{ element.mel.event_highlights }}
 
             <section class="mel-section mel-section--card mel-section--builder mel-section--policies" aria-labelledby="mel-policies-heading">
               <header class="mel-section__header">

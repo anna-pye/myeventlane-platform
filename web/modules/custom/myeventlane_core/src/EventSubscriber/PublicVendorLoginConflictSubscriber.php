@@ -44,6 +44,8 @@ final class PublicVendorLoginConflictSubscriber implements EventSubscriberInterf
     }
 
     $request = $event->getRequest();
+    // Intentionally no MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes():
+    // this subscriber must run GET /user/login for authenticated conflict handling.
     if ($request->getMethod() !== 'GET') {
       return;
     }

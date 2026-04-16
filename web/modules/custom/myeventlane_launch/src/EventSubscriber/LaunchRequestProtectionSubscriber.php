@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_launch\EventSubscriber;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard;
 use Drupal\myeventlane_launch\Service\MELMonitoringService;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_launch\Service\PlatformRateLimiter;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -43,6 +44,9 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $routeName = (string) $request->attributes->get('_route');
     $method = $request->getMethod();
 

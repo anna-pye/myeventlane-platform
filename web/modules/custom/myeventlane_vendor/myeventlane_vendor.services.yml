@@ -28,6 +28,11 @@ services:
       - '@current_user'
       - '@logger.channel.myeventlane_vendor'
 
+  myeventlane_vendor.user_vendor_membership_query:
+    class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery
+    arguments:
+      - '@entity_type.manager'
+
   myeventlane_vendor.vendor_theme_page_preprocess:
     class: Drupal\myeventlane_vendor\Service\VendorThemePagePreprocess
     arguments:

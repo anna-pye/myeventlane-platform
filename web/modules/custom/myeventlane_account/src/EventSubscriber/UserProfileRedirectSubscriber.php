@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_account\EventSubscriber;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -43,6 +44,10 @@ final class UserProfileRedirectSubscriber implements EventSubscriberInterface {
    */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
+      return;
+    }
+
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($event->getRequest())) {
       return;
     }
 

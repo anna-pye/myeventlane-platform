@@ -93,6 +93,7 @@ services:
     tags:
       - { name: event_subscriber }
 
+  # Disabled: avoids replacing user.login RedirectResponse before session commit (see myeventlane_auth session-staged hub).
   myeventlane_core.vendor_post_login_redirect_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\VendorPostLoginRedirectSubscriber
     arguments:
@@ -100,8 +101,6 @@ services:
       $domainDetector: '@myeventlane_core.domain_detector'
       $logger: '@logger.channel.myeventlane_core'
       $destinationNormalizer: '@myeventlane_core.mel_destination_normalizer'
-    tags:
-      - { name: event_subscriber }
 
   myeventlane_core.vendor_host_auth_redirect_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\VendorHostAuthRedirectSubscriber

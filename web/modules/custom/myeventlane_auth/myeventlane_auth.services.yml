@@ -28,14 +28,15 @@ services:
       - '@request_stack'
       - '@logger.channel.myeventlane_auth'
 
-  myeventlane_auth.post_login_hub_builder:
-    class: Drupal\myeventlane_auth\Service\PostLoginHubBuilder
+  myeventlane_auth.post_login_router:
+    class: Drupal\myeventlane_auth\Service\PostLoginRouter
     arguments:
-      - '@entity_type.manager'
       - '@myeventlane_onboarding.manager'
+      - '@myeventlane_vendor.user_vendor_membership_query'
       - '@myeventlane_auth.identity_intent_resolver'
+      - '@module_handler'
       - '@logger.channel.myeventlane_auth'
-      - '@string_translation'
+      - '@myeventlane_core.route_helper'
 
   myeventlane_auth.customer_identity_bridge:
     class: Drupal\myeventlane_auth\Service\CustomerIdentityBridge
@@ -52,11 +53,19 @@ services:
     tags:
       - { name: event_subscriber }
 
+  # Disabled: hub wrap moved to MelPostLoginSessionRedirectSubscriber (request phase after session commit).
   myeventlane_auth.post_login_hub_redirect_subscriber:
     class: Drupal\myeventlane_auth\EventSubscriber\PostLoginHubRedirectSubscriber
     arguments:
       - '@current_user'
       - '@myeventlane_auth.post_auth_redirect_resolver'
+
+  myeventlane_auth.mel_post_login_session_redirect_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@myeventlane_auth.post_auth_redirect_resolver'
+      - '@logger.channel.myeventlane_auth'
     tags:
       - { name: event_subscriber }
 
