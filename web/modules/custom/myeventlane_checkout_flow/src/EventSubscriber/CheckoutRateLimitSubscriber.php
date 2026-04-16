@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_checkout_flow\EventSubscriber;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\myeventlane_api\Service\RateLimiterService;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -61,6 +62,11 @@ final class CheckoutRateLimitSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
+
     $route_name = $this->routeMatch->getRouteName();
     if ($route_name !== 'commerce_checkout.form') {
       return;
@@ -72,7 +78,6 @@ final class CheckoutRateLimitSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    $request = $event->getRequest();
     $ip = $this->rateLimiter->getClientIp($request);
     $identifier = 'checkout:' . $ip;
 

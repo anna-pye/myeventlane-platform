@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\myeventlane_auth\Service\MelAuthLoginUrlBuilder;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -48,6 +49,9 @@ final class VendorSsoRedirectSubscriber implements EventSubscriberInterface {
       return;
     }
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $host = strtolower($request->getHost());
     if (!$this->isVendorHost($host)) {
       return;

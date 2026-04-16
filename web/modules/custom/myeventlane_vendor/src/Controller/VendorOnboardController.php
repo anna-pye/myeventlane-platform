@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -15,11 +16,17 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 class VendorOnboardController extends ControllerBase {
 
+  public function __construct(
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
+  ) {}
+
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static();
+    return new static(
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
+    );
   }
 
   /**
@@ -39,7 +46,7 @@ class VendorOnboardController extends ControllerBase {
     }
 
     // Check if user already has a vendor.
-    $vendor_ids = $this->getUserVendors((int) $current_user->id());
+    $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser((int) $current_user->id());
     if (!empty($vendor_ids)) {
       // User already has a vendor, redirect to create event.
       return new RedirectResponse(
@@ -77,40 +84,6 @@ class VendorOnboardController extends ControllerBase {
 
     // Redirect to create event gateway.
     $form_state->setRedirect('myeventlane_vendor.create_event_gateway');
-  }
-
-  /**
-   * Gets vendor IDs associated with a user.
-   *
-   * @param int $uid
-   *   The user ID.
-   *
-   * @return array
-   *   Array of vendor IDs (as integers).
-   */
-  private function getUserVendors(int $uid): array {
-    $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-
-    // Check vendors where user is the owner (uid field).
-    $owner_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('uid', $uid)
-      ->execute();
-
-    // Check vendors where user is in field_vendor_users.
-    $users_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('field_vendor_users', $uid)
-      ->execute();
-
-    // Merge and return unique IDs, converting to integers.
-    $all_ids = array_merge(
-      $owner_ids ?: [],
-      $users_ids ?: []
-    );
-
-    // Convert string keys to integer values and ensure uniqueness.
-    return array_values(array_unique(array_map('intval', $all_ids)));
   }
 
 }

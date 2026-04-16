@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_core\EventSubscriber;
 
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -51,6 +52,9 @@ final class AdminDomainRedirectSubscriber implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $path = $request->getPathInfo();
 
     // Do not touch auth or console paths (session-safe; mirrors vendor domain).

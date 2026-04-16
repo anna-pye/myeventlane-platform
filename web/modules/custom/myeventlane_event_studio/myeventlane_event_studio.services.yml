@@ -25,6 +25,13 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_event_studio.ticket_link_suggestion:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioTicketLinkSuggestionService
+    arguments:
+      - '@entity_type.manager'
+      - '@database'
+      - '@logger.channel.myeventlane_event_studio'
+
   myeventlane_event_studio.repository:
     class: Drupal\myeventlane_event_studio\Service\EventRepository
     arguments:

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_support_console\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -54,6 +55,9 @@ final class SupportConsoleRedirectSubscriber implements EventSubscriberInterface
       }
 
       $request = $event->getRequest();
+      if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+        return;
+      }
       if ($request->isXmlHttpRequest()) {
         return;
       }

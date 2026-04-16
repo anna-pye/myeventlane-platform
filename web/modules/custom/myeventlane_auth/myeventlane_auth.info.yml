@@ -8,3 +8,4 @@ dependencies:
   - drupal:user
   - drupal:system
   - myeventlane_core:myeventlane_core
+  - myeventlane_vendor:myeventlane_vendor

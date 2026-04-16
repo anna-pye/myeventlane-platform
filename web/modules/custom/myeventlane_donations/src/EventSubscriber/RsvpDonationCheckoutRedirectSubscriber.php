@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -44,6 +45,10 @@ final class RsvpDonationCheckoutRedirectSubscriber implements EventSubscriberInt
    */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
+      return;
+    }
+
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($event->getRequest())) {
       return;
     }
 

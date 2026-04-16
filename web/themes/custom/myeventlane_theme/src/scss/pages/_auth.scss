@@ -158,6 +158,23 @@
   }
 }
 
+// Gin Login and other modules may add a link group inside the form; keep it readable.
+.mel-auth-form-wrapper .more-links {
+  margin-top: spacing.mel-space(4);
+  text-align: center;
+  font-size: typography.mel-font-size(sm);
+
+  a {
+    color: colors.$mel-color-primary;
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 .mel-auth-actions {
   margin-top: spacing.mel-space(6);
 
@@ -278,7 +295,8 @@
 // Error Messages
 // ---------------------------------------------------------------------------
 
-.mel-auth-form {
+.mel-auth-form,
+.mel-auth-form-wrapper {
   .form-item--error-message,
   .messages--error {
     margin-top: spacing.mel-space(2);
@@ -289,6 +307,15 @@
     color: colors.$mel-color-error;
     font-size: typography.mel-font-size(sm);
     font-weight: typography.$mel-font-medium;
+  }
+}
+
+// Legal fieldset (and other extras) render inside .mel-auth-form-wrapper; reinforce checkbox errors.
+.mel-auth-page .mel-legal-consent {
+  .form-item--error .form-item--error-message,
+  .form-item.form-item--error-message {
+    display: block;
+    margin-top: spacing.mel-space(2);
   }
 }
 

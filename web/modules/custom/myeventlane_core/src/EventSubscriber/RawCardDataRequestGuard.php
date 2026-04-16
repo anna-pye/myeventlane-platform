@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\EventSubscriber;
 
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_core\Security\SensitiveDataScrubber;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -67,6 +68,9 @@ final class RawCardDataRequestGuard implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
 
     // Only inspect mutation requests.
     if (!in_array($request->getMethod(), ['POST', 'PUT', 'PATCH'], TRUE)) {

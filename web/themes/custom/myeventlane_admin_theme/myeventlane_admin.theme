@@ -29,6 +29,10 @@ function _myeventlane_admin_normalize_class_attribute(array &$element): void {
  * Implements hook_form_alter().
  */
 function myeventlane_admin_form_alter(&$form, FormStateInterface $form_state, $form_id): void {
+  // Gin Login / core user login: leave the form array untouched.
+  if ($form_id === 'user_login_form') {
+    return;
+  }
   _myeventlane_admin_normalize_class_attribute($form);
   $form['#attributes']['class'][] = 'mel-admin-form';
 

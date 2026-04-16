@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event_studio\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\node\NodeInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -38,6 +39,9 @@ final class EventNodeFormAccessSubscriber implements EventSubscriberInterface {
     }
 
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     $route = (string) ($request->attributes->get('_route') ?? '');
 
     if ($route === 'entity.node.add_form') {

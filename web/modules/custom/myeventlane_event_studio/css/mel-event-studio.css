@@ -23,6 +23,11 @@
   color: var(--mel-studio-text);
 }
 
+.mel-studio-form-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
 .mel-event-studio__page-title {
   margin: 0;
 }
@@ -415,7 +420,8 @@
   color: var(--mel-studio-muted);
 }
 
-.mel-identity-stack .form-item:last-child {
+.mel-identity-stack .form-item:last-child,
+.mel-basic-section .form-item:last-child {
   margin-bottom: 0;
 }
 

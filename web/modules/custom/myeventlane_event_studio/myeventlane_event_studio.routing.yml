@@ -46,3 +46,12 @@ myeventlane_event_studio.ai_rewrite:
   requirements:
     _permission: 'access content'
     _csrf_request_header_token: 'TRUE'
+
+myeventlane_event_studio.ticket_link_suggestions:
+  path: '/vendor/events/studio/ticket-link-suggestions'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioTicketSuggestionsController::suggest'
+  methods: [POST]
+  requirements:
+    _permission: 'access content'
+    _csrf_request_header_token: 'TRUE'

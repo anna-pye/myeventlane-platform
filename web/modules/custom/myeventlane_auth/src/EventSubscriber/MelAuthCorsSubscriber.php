@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_auth\EventSubscriber;
 
 use Drupal\myeventlane_auth\Service\AuthRedirectValidator;
+use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +37,9 @@ final class MelAuthCorsSubscriber implements EventSubscriberInterface {
       return;
     }
     $request = $event->getRequest();
+    if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
+      return;
+    }
     if (!self::isAuthApiPath($request)) {
       return;
     }

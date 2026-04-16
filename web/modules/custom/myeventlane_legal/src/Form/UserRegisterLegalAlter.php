@@ -9,6 +9,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Adds legal consent fields to user registration form.
@@ -22,6 +23,7 @@ final class UserRegisterLegalAlter {
     private readonly LegalSettingsService $legalSettings,
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -42,6 +44,7 @@ final class UserRegisterLegalAlter {
       '#type' => 'fieldset',
       '#title' => t('Legal agreements'),
       '#weight' => 5,
+      '#tree' => TRUE,
       '#attributes' => ['class' => ['mel-legal-consent']],
     ];
 
@@ -52,6 +55,7 @@ final class UserRegisterLegalAlter {
       // required runs before #validate and yields "@title is required.").
       '#required' => FALSE,
       '#default_value' => FALSE,
+      '#return_value' => 1,
       '#attributes' => ['class' => ['mel-consent-terms'], 'aria-required' => 'true'],
     ];
 
@@ -60,6 +64,7 @@ final class UserRegisterLegalAlter {
       '#title' => Markup::create(t('I have read the') . ' ' . $privacyLink),
       '#required' => FALSE,
       '#default_value' => FALSE,
+      '#return_value' => 1,
       '#attributes' => ['class' => ['mel-consent-privacy'], 'aria-required' => 'true'],
     ];
 
@@ -68,6 +73,7 @@ final class UserRegisterLegalAlter {
       '#title' => t('Send me updates, tips and event news'),
       '#required' => FALSE,
       '#default_value' => FALSE,
+      '#return_value' => 1,
       '#attributes' => ['class' => ['mel-consent-marketing']],
     ];
 
@@ -79,6 +85,7 @@ final class UserRegisterLegalAlter {
    * Validation callback for legal consent.
    */
   public function validateLegalConsent(array &$form, FormStateInterface $form_state): void {
+    $this->mergeLegalConsentFromRequest($form_state);
     $terms = (bool) $form_state->getValue(['legal_consent', 'customer_terms_agreed']);
     $privacy = (bool) $form_state->getValue(['legal_consent', 'privacy_agreed']);
     if (!$terms) {
@@ -87,6 +94,35 @@ final class UserRegisterLegalAlter {
     if (!$privacy) {
       $form_state->setError($form['legal_consent']['privacy_agreed'], t('You must confirm you have read the Privacy Policy.'));
     }
+  }
+
+  /**
+   * Aligns checkbox values with the POST body (same pattern as RSVP legal flow).
+   *
+   * Some browsers/themes submit multipart registration forms such that checkbox
+   * values are present in the request but not yet reflected in form state.
+   */
+  private function mergeLegalConsentFromRequest(FormStateInterface $form_state): void {
+    $request = $this->requestStack->getCurrentRequest();
+    if (!$request || $request->getMethod() !== 'POST') {
+      return;
+    }
+    // Prefer ParameterBag::get() so nested keys survive multipart POST reliably.
+    $legal = $request->request->get('legal_consent');
+    if (!is_array($legal)) {
+      return;
+    }
+    $merged = $form_state->getValue('legal_consent');
+    $merged = is_array($merged) ? $merged : [];
+    foreach (['customer_terms_agreed', 'privacy_agreed', 'marketing_opt_in'] as $key) {
+      if (!array_key_exists($key, $legal)) {
+        $merged[$key] = 0;
+        continue;
+      }
+      $v = $legal[$key];
+      $merged[$key] = ($v === NULL || $v === '' || $v === '0' || $v === 0 || $v === FALSE) ? 0 : 1;
+    }
+    $form_state->setValue('legal_consent', $merged);
   }
 
   /**

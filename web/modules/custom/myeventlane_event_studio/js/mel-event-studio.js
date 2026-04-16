@@ -387,6 +387,134 @@
     }
   }
 
+  /**
+   * Tier titles from the inline ticket builder (paid/external/rsvp table).
+   *
+   * @param {HTMLFormElement} form
+   * @return {string[]}
+   */
+  function collectTierTitlesFromDom(form) {
+    var table = getBuilderTable(form);
+    if (!table) {
+      return [];
+    }
+    var rows = table.querySelectorAll('tbody .mel-tier-row');
+    var out = [];
+    rows.forEach(function (tr) {
+      var titleEl = tr.querySelector('.mel-tier-title');
+      var t = titleEl ? String(titleEl.value || '').trim() : '';
+      if (t) {
+        out.push(t);
+      }
+    });
+    return out;
+  }
+
+  /**
+   * Fills empty ticket product / ticket types autocomplete fields from server
+   * (entity label + id), using event title, inline tier titles, and optional nid.
+   *
+   * @param {HTMLFormElement} form
+   */
+  function applyTicketLinkSuggestions(form) {
+    if (valRadio(form, 'mel[field_event_type]') !== 'paid') {
+      return;
+    }
+    var productInp = form.querySelector('[name="mel[field_product_target]"]');
+    var typesInp = form.querySelector('[name="mel[field_ticket_types]"]');
+    if (!productInp || !typesInp) {
+      return;
+    }
+    var hasProduct = String(productInp.value || '').trim() !== '';
+    var hasTypes = String(typesInp.value || '').trim() !== '';
+    if (hasProduct && hasTypes) {
+      return;
+    }
+    var eventTitle = val(form, 'mel[title]');
+    if (eventTitle.length < 2) {
+      return;
+    }
+    var tierTitles = collectTierTitlesFromDom(form);
+    if (!hasTypes && tierTitles.length === 0 && hasProduct) {
+      return;
+    }
+
+    if (form.getAttribute('data-mel-ticket-suggest-fetching') === '1') {
+      return;
+    }
+    form.setAttribute('data-mel-ticket-suggest-fetching', '1');
+
+    var suggestUrl = Drupal.url('vendor/events/studio/ticket-link-suggestions');
+    var nidStr = getNid(form);
+    var nidNum = nidStr ? parseInt(nidStr, 10) : 0;
+
+    melGetCsrfToken()
+      .then(function (token) {
+        if (!token) {
+          return Promise.reject(new Error('empty_csrf_token'));
+        }
+        return fetch(suggestUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': token,
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            event_title: eventTitle,
+            tier_titles: tierTitles,
+            nid: !isNaN(nidNum) && nidNum > 0 ? nidNum : 0,
+          }),
+        });
+      })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          return { ok: response.ok, data: data };
+        });
+      })
+      .then(function (result) {
+        form.removeAttribute('data-mel-ticket-suggest-fetching');
+        if (!result.ok || !result.data || !result.data.ok) {
+          return;
+        }
+        var d = result.data;
+        var changed = false;
+        if (d.product && !String(productInp.value || '').trim()) {
+          productInp.value = d.product;
+          changed = true;
+        }
+        if (d.ticket_types && !String(typesInp.value || '').trim()) {
+          typesInp.value = d.ticket_types;
+          changed = true;
+        }
+        if (changed) {
+          productInp.dispatchEvent(new Event('change', { bubbles: true }));
+          typesInp.dispatchEvent(new Event('change', { bubbles: true }));
+          productInp.dispatchEvent(new Event('input', { bubbles: true }));
+          typesInp.dispatchEvent(new Event('input', { bubbles: true }));
+          setFormState(form, 'mel-studio--dirty', Drupal.t('Unsaved changes'));
+          refreshIntelligence(form);
+        }
+      })
+      .catch(function () {
+        form.removeAttribute('data-mel-ticket-suggest-fetching');
+      });
+  }
+
+  function scheduleTicketLinkSuggestions(form) {
+    if (valRadio(form, 'mel[field_event_type]') !== 'paid') {
+      return;
+    }
+    if (form._melTicketSuggestTimer) {
+      clearTimeout(form._melTicketSuggestTimer);
+    }
+    form._melTicketSuggestTimer = window.setTimeout(function () {
+      form._melTicketSuggestTimer = null;
+      applyTicketLinkSuggestions(form);
+    }, 900);
+  }
+
   function parseLocationRow(form) {
     var raw = val(form, 'mel[field_location]');
     if (!raw) {
@@ -1030,25 +1158,13 @@
 
   function syncTicketTiersFromDomToHidden(form) {
     var hidden = form.querySelector('input[name="mel[studio_ticket_tiers]"]');
-    var table = getBuilderTable(form);
-    if (!hidden || !table) {
+    if (!hidden) {
       return;
     }
+
     var tiers = collectTiersFromDom(form);
-    if (tiers.length === 0) {
-      var existing = [];
-      if (hidden.value && String(hidden.value).trim()) {
-        try {
-          var parsed = JSON.parse(hidden.value);
-          existing = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-          existing = [];
-        }
-      }
-      if (existing.length > 0) {
-        return;
-      }
-    }
+
+    // Always persist UI → hidden
     hidden.value = JSON.stringify(tiers);
   }
 
@@ -2057,6 +2173,31 @@
         bindCoverFilePreview(form);
         initMelWizard(form);
 
+        form.addEventListener(
+          'input',
+          function (e) {
+            if (
+              (e.target.matches && e.target.matches('[name="mel[title]"]')) ||
+              (e.target.closest && e.target.closest('.mel-tier-row'))
+            ) {
+              scheduleTicketLinkSuggestions(form);
+            }
+          },
+          true,
+        );
+        form.addEventListener(
+          'change',
+          function (e) {
+            if (e.target.matches && e.target.matches('[name="mel[field_event_type]"]')) {
+              scheduleTicketLinkSuggestions(form);
+            }
+          },
+          true,
+        );
+        window.setTimeout(function () {
+          scheduleTicketLinkSuggestions(form);
+        }, 500);
+
         syncFormToAiControls(form);
         var melAiTone = getAiToneSelect(form);
         var melAiAudience = getAiAudienceSelect(form);
@@ -2212,6 +2353,7 @@
               setFormState(form, 'mel-studio--saving', Drupal.t('Saving draft…'));
               forceSyncTicketTiersBeforeSubmit(form);
               forceSyncHighlightsBeforeSubmit(form);
+              syncTicketTiersFromDomToHidden(form);
               var body = new FormData(form);
               var autosaveTs = Date.now();
               body.append('mel_autosave_ts', String(autosaveTs));
