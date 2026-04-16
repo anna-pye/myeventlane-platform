@@ -9,8 +9,10 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Resolves a coarse identity / commerce intent for auth and onboarding redirects.
  *
- * Query keys: mel_intent (preferred), intent (alias). Values are lowercase
- * snake-case strings; unknown values map to browse.
+ * Keys: mel_intent (preferred), intent (alias). Matches priority used in
+ * myeventlane_auth_user_login() for query and POST body.
+ *
+ * Values are lowercase snake-case strings; unknown values map to browse.
  */
 final class IdentityIntentResolver {
 
@@ -33,14 +35,22 @@ final class IdentityIntentResolver {
   ];
 
   /**
-   * Reads intent from a request (GET query).
+   * Reads intent from a request (query then request body, mel_intent then intent).
    */
   public function resolveFromRequest(Request $request): string {
-    $raw = $request->query->get('mel_intent');
-    if (!is_string($raw) || $raw === '') {
-      $raw = $request->query->get('intent');
+    foreach ([
+      [$request->query, 'mel_intent'],
+      [$request->request, 'mel_intent'],
+      [$request->query, 'intent'],
+      [$request->request, 'intent'],
+    ] as $pair) {
+      [$bag, $key] = $pair;
+      $raw = $bag->get($key);
+      if (is_string($raw) && $raw !== '') {
+        return $this->normalizeIntent($raw);
+      }
     }
-    return $this->normalizeIntent(is_string($raw) ? $raw : '');
+    return $this->normalizeIntent('');
   }
 
   /**

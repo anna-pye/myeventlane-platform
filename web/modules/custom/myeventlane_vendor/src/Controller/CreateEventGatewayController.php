@@ -11,6 +11,7 @@ use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -41,6 +42,11 @@ class CreateEventGatewayController extends ControllerBase {
   private readonly RequestStack $requestStack;
 
   /**
+   * Vendor membership query (shared with PostLoginRouter).
+   */
+  private readonly UserVendorMembershipQuery $userVendorMembershipQuery;
+
+  /**
    * Constructs the controller.
    */
   public function __construct(
@@ -48,11 +54,13 @@ class CreateEventGatewayController extends ControllerBase {
     RendererInterface $renderer,
     LegalGatekeeper $legal_gatekeeper,
     RequestStack $request_stack,
+    UserVendorMembershipQuery $user_vendor_membership_query,
   ) {
     $this->onboardingManager = $onboarding_manager;
     $this->renderer = $renderer;
     $this->legalGatekeeper = $legal_gatekeeper;
     $this->requestStack = $request_stack;
+    $this->userVendorMembershipQuery = $user_vendor_membership_query;
   }
 
   /**
@@ -64,6 +72,7 @@ class CreateEventGatewayController extends ControllerBase {
       $container->get('renderer'),
       $container->get('myeventlane_legal.gatekeeper'),
       $container->get('request_stack'),
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
     );
   }
 
@@ -85,8 +94,8 @@ class CreateEventGatewayController extends ControllerBase {
     $current_user = $this->currentUser();
 
     // Anonymous users: intent-aware auth handoff, then return to this gateway.
+    // Encouraging copy for create-event lives on user.login (see myeventlane_theme page--user-login).
     if ($current_user->isAnonymous()) {
-      $this->messenger()->addWarning($this->t('To create events, you need to log in with a vendor/organiser account. If you don\'t have an account yet, you can create one after logging in.'));
       $login_url = $this->buildAnonymousAuthEntryLoginUrl();
       return new RedirectResponse($login_url->toString());
     }
@@ -125,7 +134,7 @@ class CreateEventGatewayController extends ControllerBase {
     }
 
     // Completed: ensure vendor entity exists, ensure vendor role, then redirect.
-    $vendor_ids = $this->getUserVendors($uid);
+    $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     $vendor = NULL;
     if (!empty($vendor_ids)) {
       $vendor = $this->entityTypeManager()->getStorage('myeventlane_vendor')->load(reset($vendor_ids));
@@ -237,44 +246,6 @@ class CreateEventGatewayController extends ControllerBase {
         'query' => ['auto' => '1'],
       ])->toString(),
     ];
-  }
-
-  /**
-   * Gets vendor IDs associated with a user.
-   *
-   * Checks both:
-   * - uid (owner) field
-   * - field_vendor_users (multi-user field)
-   *
-   * @param int $uid
-   *   The user ID.
-   *
-   * @return array
-   *   Array of vendor IDs (as integers).
-   */
-  private function getUserVendors(int $uid): array {
-    $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-
-    // Check vendors where user is the owner (uid field).
-    $owner_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('uid', $uid)
-      ->execute();
-
-    // Check vendors where user is in field_vendor_users.
-    $users_ids = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('field_vendor_users', $uid)
-      ->execute();
-
-    // Merge and return unique IDs, converting to integers.
-    $all_ids = array_merge(
-      $owner_ids ?: [],
-      $users_ids ?: []
-    );
-
-    // Convert string keys to integer values and ensure uniqueness.
-    return array_values(array_unique(array_map('intval', $all_ids)));
   }
 
   /**

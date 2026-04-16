@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -16,11 +17,17 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 final class VendorOnboardProfileController extends ControllerBase {
 
+  public function __construct(
+    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
+  ) {}
+
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static();
+    return new static(
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
+    );
   }
 
   /**
@@ -40,7 +47,7 @@ final class VendorOnboardProfileController extends ControllerBase {
     }
 
     // Check if user already has a vendor.
-    $vendorIds = $this->getUserVendors((int) $currentUser->id());
+    $vendorIds = $this->userVendorMembershipQuery->getVendorIdsForUser((int) $currentUser->id());
 
     $vendor = NULL;
     if (!empty($vendorIds)) {
@@ -191,32 +198,6 @@ final class VendorOnboardProfileController extends ControllerBase {
     $form_state->setRedirect('myeventlane_vendor.stripe_connect', [], [
       'query' => ['destination' => '/vendor/onboard/first-event'],
     ]);
-  }
-
-  /**
-   * Gets vendor IDs associated with a user.
-   *
-   * @param int $uid
-   *   The user ID.
-   *
-   * @return array
-   *   Array of vendor IDs.
-   */
-  private function getUserVendors(int $uid): array {
-    $storage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-
-    $ownerIds = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('uid', $uid)
-      ->execute();
-
-    $usersIds = $storage->getQuery()
-      ->accessCheck(TRUE)
-      ->condition('field_vendor_users', $uid)
-      ->execute();
-
-    $allIds = array_merge($ownerIds ?: [], $usersIds ?: []);
-    return array_values(array_unique(array_map('intval', $allIds)));
   }
 
 }

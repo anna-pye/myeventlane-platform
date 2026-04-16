@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_auth\Service;
 
+use Drupal\myeventlane_auth\PostLoginDecision;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -33,7 +34,16 @@ final class PostAuthRedirectResolver {
    */
   public function buildPostLoginHubUrl(AccountInterface $account, string $destination_raw, string $intent_raw): string {
     if ($account->isAnonymous()) {
-      $this->logger->warning('buildPostLoginHubUrl called for anonymous user; falling back to front.');
+      $intent = $this->intentResolver->normalizeIntent($intent_raw);
+      $this->logger->warning(
+        'PostAuthRedirectResolver: buildPostLoginHubUrl anonymous uid=@uid intent=@intent decision=@decision route=@route',
+        [
+          '@uid' => '0',
+          '@intent' => $intent,
+          '@decision' => PostLoginDecision::BUILD_POST_LOGIN_HUB_ANONYMOUS,
+          '@route' => 'myeventlane_auth.post_login',
+        ],
+      );
       return $this->urlGenerator->generateFromRoute('<front>', [], ['absolute' => TRUE]);
     }
     $intent = $this->intentResolver->normalizeIntent($intent_raw);
@@ -46,7 +56,7 @@ final class PostAuthRedirectResolver {
       $query['mel_intent'] = $intent;
     }
     return $this->urlGenerator->generateFromRoute(
-      'myeventlane_auth.mel_post_login',
+      'myeventlane_auth.post_login',
       [],
       ['absolute' => TRUE, 'query' => $query],
     );
@@ -57,7 +67,16 @@ final class PostAuthRedirectResolver {
    */
   public function resolveRedirectUrl(AccountInterface $account, string $destination_raw, string $intent_raw): string {
     if ($account->isAnonymous()) {
-      $this->logger->warning('PostAuthRedirectResolver called for anonymous user; falling back to front.');
+      $intent = $this->intentResolver->normalizeIntent($intent_raw);
+      $this->logger->warning(
+        'PostAuthRedirectResolver: resolveRedirectUrl anonymous uid=@uid intent=@intent decision=@decision route=@route',
+        [
+          '@uid' => '0',
+          '@intent' => $intent,
+          '@decision' => PostLoginDecision::RESOLVE_REDIRECT_URL_ANONYMOUS,
+          '@route' => PostLoginDecision::ROUTE_LOG_NA,
+        ],
+      );
       return $this->urlGenerator->generateFromRoute('<front>', [], ['absolute' => TRUE]);
     }
 

@@ -39,6 +39,8 @@
   {% endif %}
 
   <main id="main-content" class="mel-main" role="main">
+    {# Optional: login page create-event intro (page--user-login). #}
+    {% block mel_pre_highlighted %}{% endblock %}
     {# Status messages: Highlighted region, or preprocess fallback if no block placed. #}
     {% if page.highlighted %}
       <div class="mel-region-highlighted" role="region" aria-label="{{ 'Status messages'|t }}">

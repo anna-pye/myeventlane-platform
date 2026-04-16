@@ -6,13 +6,13 @@ myeventlane_auth.mel_continue:
   requirements:
     _access: 'TRUE'
 
-myeventlane_auth.mel_post_login:
+myeventlane_auth.post_login:
   path: '/mel/post-login'
   defaults:
-    _controller: '\Drupal\myeventlane_auth\Controller\MelPostLoginController::content'
+    _controller: '\Drupal\myeventlane_auth\Controller\MelPostLoginController::handle'
     _title: 'Welcome to MyEventLane'
   requirements:
-    _access: 'TRUE'
+    _user_is_logged_in: 'TRUE'
 
 myeventlane_auth.mel_email_entry:
   path: '/mel/auth/email'
