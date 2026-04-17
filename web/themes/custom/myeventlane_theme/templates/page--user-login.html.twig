@@ -1,24 +1,10 @@
 {#
 /**
  * @file
- * Login page — extends default page; adds create-event encouraging panel when relevant.
- * Template name matches suggestion page__user_login (page--user-login.html.twig).
+ * Login page — extends default page.
  *
- * Visibility is driven by mel_login_create_event_info (see myeventlane_theme_preprocess_page).
+ * Create-event messaging is added by myeventlane_auth (user login form alter),
+ * including when Gin Login uses the Gin/Claro theme for /user/login.
  */
 #}
 {% extends '@myeventlane_theme/page.html.twig' %}
-
-{% block mel_pre_highlighted %}
-  {% if mel_login_create_event_info %}
-    <div class="mel-container mel-login-create-event-banner">
-      <div class="mel-auth-info" role="region" aria-label="{{ 'Create an event'|t }}">
-        <strong class="mel-auth-info__title">{{ '✨ Create your own event'|t }}</strong>
-        <p class="mel-auth-info__body">
-          {{ 'Want to create your own event?'|t }}<br>
-          {{ "Log in or create an account to get started — we'll guide you through setting up your organiser profile in just a few steps."|t }}
-        </p>
-      </div>
-    </div>
-  {% endif %}
-{% endblock %}

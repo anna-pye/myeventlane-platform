@@ -1,0 +1,5 @@
+# Create-event intent callout on user.login (works with Gin Login / any active theme).
+login_create_event_intent:
+  css:
+    theme:
+      css/login-create-event-intent.css: {}

@@ -1,12 +1,12 @@
 {#
 /**
- * @component Mobile Drawer (design mirror — runtime uses templates/components/…)
+ * @component Mobile Drawer
  *
  * Variables:
  * - drawer_menu (primary links)
  * - drawer_organiser (organiser links/context)
- * - create_event_url (optional; gateway URL)
- * - mel_cart_url, mel_cart_item_count, mel_cart_count_text, mel_checkout_url
+ * - create_event_url
+ * - mel_cart_url, mel_cart_item_count, mel_cart_count_text, mel_checkout_url (cart continuity)
  */
 #}
 <details class="mobile-drawer">
@@ -51,7 +51,7 @@
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        {{ 'Create event'|t }}
+        {{ 'Create Event'|t }}
       </a>
     </div>
   </div>

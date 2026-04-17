@@ -1,0 +1,25 @@
+/**
+ * @file
+ * Login form: create-event intent callout (Gin Login + default theme).
+ */
+
+.mel-login-intent {
+  background: #fef5ec;
+  border: 1px solid #f26d5b;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.mel-login-intent strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mel-login-intent p {
+  margin: 0;
+  line-height: 1.45;
+  opacity: 0.92;
+}

@@ -1,11 +1,10 @@
 {#
 /**
  * @file
- * Theme override for user registration form.
+ * User registration — MEL auth card (aligned with login UX).
  *
- * Provides a centered, branded authentication card layout.
- * All fields sit inside .mel-auth-form-wrapper so validation errors (legal, etc.)
- * receive the same visible styling as account fields.
+ * Optional fields are hidden via myeventlane_auth_form_user_register_form_alter().
+ * Create-event messaging uses mel_register_create_event_context (preprocess_user).
  */
 #}
 
@@ -22,52 +21,29 @@
             <line x1="48" y1="28" x2="58" y2="28" stroke="#ffd46f" stroke-width="4" stroke-linecap="round"/>
           </svg>
         </a>
-        <h1 class="mel-auth-title">{{ 'Create your MyEventLane account'|t }}</h1>
-        <p class="mel-auth-subtitle">{{ 'Join our community of event creators and attendees.'|t }}</p>
+        <h1 class="mel-auth-title">{{ '✨ Create your account'|t }}</h1>
+        <p class="mel-auth-subtitle">{{ 'Start discovering events — or host your own in minutes.'|t }}</p>
       </div>
 
-      <div class="mel-auth-form-wrapper">
-        {{ form|without('account', 'actions', 'form_build_id', 'form_token', 'form_id') }}
-
-        <div class="mel-auth-form">
-          <div class="form-item">
-            {{ form.account.name }}
-            <div class="description">{{ 'Choose a unique username for your account.'|t }}</div>
-          </div>
-
-          <div class="form-item">
-            {{ form.account.mail }}
-            <div class="description">{{ "We'll never share your email with anyone else."|t }}</div>
-          </div>
-
-          {% if form.account.pass %}
-            <div class="form-item">
-              {{ form.account.pass }}
-              <div class="description">{{ 'Use at least 8 characters with a mix of letters and numbers.'|t }}</div>
-            </div>
-          {% endif %}
-
-          {% if form.timezone %}
-            <div class="form-item">
-              {{ form.timezone }}
-            </div>
-          {% endif %}
-
-          <div class="mel-auth-actions">
-            {{ form.actions }}
-          </div>
+      {% if mel_register_create_event_context %}
+        <div class="mel-register-intent" role="status">
+          <p class="mel-register-intent__text">{{ 'You’re just one step away from creating your event.'|t }}</p>
         </div>
+      {% endif %}
+
+      <div class="mel-auth-form-wrapper mel-auth-form-wrapper--register">
+        {{ form|without('form_build_id', 'form_token', 'form_id') }}
       </div>
+
+      {{ form.form_build_id }}
+      {{ form.form_token }}
+      {{ form.form_id }}
 
       <div class="mel-auth-footer">
         <p class="mel-auth-link">
           {{ 'Already have an account?'|t }} <a href="{{ path('user.login') }}">{{ 'Log in'|t }}</a>
         </p>
       </div>
-
-      {{ form.form_build_id }}
-      {{ form.form_token }}
-      {{ form.form_id }}
     </div>
   </div>
 </div>
