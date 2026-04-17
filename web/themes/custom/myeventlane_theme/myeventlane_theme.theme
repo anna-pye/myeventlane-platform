@@ -868,6 +868,9 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
   if ($route === 'user.login') {
     $suggestions[] = 'page__user_login';
   }
+  if ($route === 'user.register') {
+    $suggestions[] = 'page__user_register';
+  }
   if ($route === 'view.events_calendar.page_calendar') {
     $suggestions[] = 'page__calendar';
   }
@@ -885,33 +888,6 @@ function myeventlane_theme_theme_suggestions_page_alter(array &$suggestions, arr
 }
 
 /**
- * Whether the login page request is for the create-event organiser flow.
- *
- * Deterministic checks only (query + POST body): intent keys and destination
- * path prefix. Does not mirror PostLoginRouter or gateway routing.
- */
-function _myeventlane_theme_login_page_is_create_event_context(\Symfony\Component\HttpFoundation\Request $request): bool {
-  foreach ([$request->query, $request->request] as $bag) {
-    foreach (['mel_intent', 'intent'] as $key) {
-      $v = $bag->get($key);
-      if (is_string($v) && strtolower(trim($v)) === 'create_event') {
-        return TRUE;
-      }
-    }
-    $dest = $bag->get('destination');
-    if (!is_string($dest) || $dest === '') {
-      continue;
-    }
-    $decoded = urldecode(trim($dest));
-    $path_only = strtok($decoded, '?') ?: $decoded;
-    if (str_starts_with($path_only, '/create-event')) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-/**
  * Implements hook_preprocess_page().
  *
  * Adds cart block to header if not already placed.
@@ -924,14 +900,6 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   // Ensure directory variable is available for all templates (especially homepage hero).
   if (!isset($variables['directory'])) {
     $variables['directory'] = base_path() . $theme_path;
-  }
-
-  // user.login: encouraging create-event panel (replaces legacy gateway messenger warning).
-  if (\Drupal::routeMatch()->getRouteName() === 'user.login') {
-    $variables['mel_login_create_event_info'] = _myeventlane_theme_login_page_is_create_event_context(\Drupal::request());
-    $variables['#cache']['contexts'][] = 'url.query_args:destination';
-    $variables['#cache']['contexts'][] = 'url.query_args:mel_intent';
-    $variables['#cache']['contexts'][] = 'url.query_args:intent';
   }
 
   // Footer: dynamic categories (only if > 3 published events) + organiser detection.
@@ -2523,6 +2491,19 @@ function myeventlane_theme_preprocess_user(array &$variables): void {
   $user = $variables['user'];
   $view_mode = $variables['view_mode'] ?? 'full';
 
+  if ($view_mode === 'register') {
+    $variables['mel_register_create_event_context'] = FALSE;
+    if (\Drupal::moduleHandler()->moduleExists('myeventlane_auth')) {
+      $variables['mel_register_create_event_context'] = myeventlane_auth_register_page_is_create_event_flow(\Drupal::request());
+    }
+    $variables['#cache']['contexts'][] = 'url.query_args:destination';
+    $variables['#cache']['contexts'][] = 'url.query_args:mel_intent';
+    $variables['#cache']['contexts'][] = 'url.query_args:intent';
+    $variables['attributes']['class'][] = 'mel-user-form';
+    $variables['attributes']['class'][] = 'mel-user-form--register';
+    return;
+  }
+
   // Only process form view modes.
   if ($view_mode !== 'form' && $view_mode !== 'default') {
     return;
@@ -2679,6 +2660,17 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     $form['#attributes']['class'][] = 'mel-form--register';
     $form['#attributes']['class'][] = 'user-register-form';
     $form['#attached']['library'][] = 'myeventlane_theme/auth_pages';
+    if (isset($form['actions']['submit'])) {
+      if (!isset($form['actions']['submit']['#attributes']['class'])) {
+        $form['actions']['submit']['#attributes']['class'] = [];
+      }
+      elseif (!is_array($form['actions']['submit']['#attributes']['class'])) {
+        $form['actions']['submit']['#attributes']['class'] = [$form['actions']['submit']['#attributes']['class']];
+      }
+      foreach (['mel-btn', 'mel-btn-primary', 'mel-auth-submit'] as $class) {
+        $form['actions']['submit']['#attributes']['class'][] = $class;
+      }
+    }
   }
 
   // User password reset form.
