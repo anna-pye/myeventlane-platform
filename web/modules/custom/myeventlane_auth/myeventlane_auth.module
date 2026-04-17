@@ -8,10 +8,12 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\UserInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber;
+use Drupal\myeventlane_auth\Service\IdentityIntentResolver;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -33,10 +35,209 @@ function myeventlane_auth_cron(): void {
 }
 
 /**
+ * Resolves raw MEL intent for the login request (GET or POST).
+ *
+ * Priority: mel_intent (query/POST), intent (query/POST), then destination
+ * (query/POST): internal path starting with /create-event maps to create_event;
+ * also inspects query strings inside destination (e.g. /mel/auth/continue?...).
+ *
+ * Used by the login form hidden field and hook_user_login() so behavior stays
+ * in one place.
+ */
+function myeventlane_auth_resolve_mel_intent_for_login_request(Request $request): string {
+  foreach ([
+    [$request->query, 'mel_intent'],
+    [$request->request, 'mel_intent'],
+    [$request->query, 'intent'],
+    [$request->request, 'intent'],
+  ] as $pair) {
+    [$bag, $key] = $pair;
+    $raw = $bag->get($key);
+    if (is_string($raw) && $raw !== '') {
+      return $raw;
+    }
+  }
+
+  foreach ([$request->query->get('destination'), $request->request->get('destination')] as $dest) {
+    if (!is_string($dest) || $dest === '') {
+      continue;
+    }
+    $from_dest = myeventlane_auth_resolve_intent_from_destination_value($dest, $request);
+    if ($from_dest !== '') {
+      return $from_dest;
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Derives intent from a destination parameter value, including nested URLs.
+ *
+ * Handles e.g. destination=/mel/auth/continue?destination=/create-event&mel_intent=create_event
+ * (Create Event → auth continue handoff) where intent lives in the inner query string.
+ */
+function myeventlane_auth_resolve_intent_from_destination_value(string $dest, Request $request, int $depth = 0): string {
+  if ($depth > 5) {
+    return '';
+  }
+
+  $dest = trim(urldecode($dest));
+  if ($dest === '') {
+    return '';
+  }
+
+  $path_part = $dest;
+  $query_string = '';
+  if (preg_match('#^https?://#i', $dest)) {
+    $parsed = parse_url($dest);
+    if ($parsed === FALSE) {
+      return '';
+    }
+    $path_part = $parsed['path'] ?? '';
+    $query_string = $parsed['query'] ?? '';
+  }
+  elseif (str_contains($dest, '?')) {
+    $parts = explode('?', $dest, 2);
+    $path_part = $parts[0];
+    $query_string = $parts[1] ?? '';
+  }
+
+  $path_only = $path_part;
+  $base = $request->getBasePath();
+  if ($base !== '' && str_starts_with($path_only, $base)) {
+    $path_only = substr($path_only, strlen($base)) ?: '/';
+  }
+  if ($path_only !== '' && !str_starts_with($path_only, '/')) {
+    $path_only = '/' . $path_only;
+  }
+  if ($path_only !== '' && str_starts_with($path_only, '/create-event')) {
+    return 'create_event';
+  }
+
+  if ($query_string !== '') {
+    parse_str($query_string, $q);
+    foreach (['mel_intent', 'intent'] as $key) {
+      if (!empty($q[$key]) && is_string($q[$key]) && trim($q[$key]) !== '') {
+        return trim($q[$key]);
+      }
+    }
+    if (!empty($q['destination']) && is_string($q['destination'])) {
+      return myeventlane_auth_resolve_intent_from_destination_value($q['destination'], $request, $depth + 1);
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Whether the registration page should show create-event–specific messaging.
+ *
+ * Uses myeventlane_auth_resolve_mel_intent_for_login_request() and
+ * IdentityIntentResolver (no PostLoginRouter duplication).
+ */
+function myeventlane_auth_register_page_is_create_event_flow(Request $request): bool {
+  $raw = myeventlane_auth_resolve_mel_intent_for_login_request($request);
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  return $resolver->normalizeIntent($raw) === IdentityIntentResolver::INTENT_CREATE_EVENT;
+}
+
+/**
+ * Implements hook_form_user_register_form_alter().
+ *
+ * Minimal signup UI: hide optional components (presentation only). Runs for any
+ * theme, including Gin Login on /user/register.
+ */
+function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  foreach ([
+    'user_picture',
+    'contact',
+    'timezone',
+    'path',
+    'language',
+    'vendor_profiles',
+  ] as $key) {
+    if (isset($form[$key])) {
+      $form[$key]['#access'] = FALSE;
+    }
+  }
+  foreach (['field_marketing', 'field_vendor'] as $key) {
+    if (isset($form[$key])) {
+      $form[$key]['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_form_user_login_form_alter().
+ *
+ * - Carries mel_intent through POST /user/login (hub + PostLoginRouter).
+ * - When normalized intent is create_event, adds in-form messaging + CSS.
+ *   Implemented here (not only in the front theme) so Gin Login (Gin/Claro)
+ *   still shows the callout: https://www.drupal.org/project/gin_login
+ */
+function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $request = \Drupal::request();
+  $raw_intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
+
+  if ($raw_intent !== '') {
+    $form['mel_intent'] = [
+      '#type' => 'hidden',
+      '#value' => $raw_intent,
+      '#weight' => -50,
+    ];
+  }
+
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  if ($resolver->normalizeIntent($raw_intent) !== IdentityIntentResolver::INTENT_CREATE_EVENT) {
+    return;
+  }
+
+  // Use Form API elements (container + html_tag), not inline_template — the latter
+  // is not a form element and can fail to render inside $form.
+  $intent_cache_contexts = [
+    'url.query_args:destination',
+    'url.query_args:mel_intent',
+    'url.query_args:intent',
+  ];
+
+  $form['mel_login_create_event_info'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-login-intent'],
+      'role' => 'region',
+      'aria-labelledby' => 'mel-login-intent-title',
+    ],
+    '#weight' => -60,
+    '#attached' => [
+      'library' => ['myeventlane_auth/login_create_event_intent'],
+    ],
+    '#cache' => [
+      'contexts' => $intent_cache_contexts,
+    ],
+    'title' => [
+      '#type' => 'html_tag',
+      '#tag' => 'strong',
+      '#attributes' => ['id' => 'mel-login-intent-title'],
+      '#value' => t('✨ Create your event'),
+    ],
+    'body' => [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => t('Log in or sign up to start your event — we’ll guide you through the rest.'),
+    ],
+  ];
+
+  $existing = $form['#cache']['contexts'] ?? [];
+  $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing, $intent_cache_contexts)));
+}
+
+/**
  * Implements hook_user_login().
  *
  * Stages destination + intent for post-login hub redirect (session commit safe).
- * Does not alter the login form or POST handling.
  */
 function myeventlane_auth_user_login(UserInterface $account): void {
   \Drupal::logger('myeventlane_auth')->notice('Audit: login success uid=@uid.', [
@@ -60,18 +261,7 @@ function myeventlane_auth_user_login(UserInterface $account): void {
     $raw_dest = '/user/' . $account->id();
   }
 
-  $intent = '';
-  foreach ([
-    $request->query->get('mel_intent'),
-    $request->request->get('mel_intent'),
-    $request->query->get('intent'),
-    $request->request->get('intent'),
-  ] as $candidate) {
-    if (is_string($candidate) && $candidate !== '') {
-      $intent = $candidate;
-      break;
-    }
-  }
+  $intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
 
   $internal = myeventlane_auth_destination_to_internal_path($request, $raw_dest);
   if ($internal === NULL || myeventlane_auth_should_skip_mel_hub_wrap($internal)) {

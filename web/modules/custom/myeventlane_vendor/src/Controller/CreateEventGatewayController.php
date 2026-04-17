@@ -94,7 +94,7 @@ class CreateEventGatewayController extends ControllerBase {
     $current_user = $this->currentUser();
 
     // Anonymous users: intent-aware auth handoff, then return to this gateway.
-    // Encouraging copy for create-event lives on user.login (see myeventlane_theme page--user-login).
+    // Encouraging copy for create-event is added on user.login by myeventlane_auth (Gin Login–safe).
     if ($current_user->isAnonymous()) {
       $login_url = $this->buildAnonymousAuthEntryLoginUrl();
       return new RedirectResponse($login_url->toString());
