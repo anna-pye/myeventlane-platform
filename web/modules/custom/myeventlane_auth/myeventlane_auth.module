@@ -38,8 +38,8 @@ function myeventlane_auth_cron(): void {
  * Resolves raw MEL intent for the login request (GET or POST).
  *
  * Priority: mel_intent (query/POST), intent (query/POST), then destination
- * (query/POST): internal path starting with /create-event maps to create_event;
- * also inspects query strings inside destination (e.g. /mel/auth/continue?...).
+ * (query/POST): path /create-event or /create-event/… maps to create_event (not
+ * /create-event-copy, etc.); also inspects query strings inside destination.
  *
  * Used by the login form hidden field and hook_user_login() so behavior stays
  * in one place.
@@ -69,6 +69,16 @@ function myeventlane_auth_resolve_mel_intent_for_login_request(Request $request)
   }
 
   return '';
+}
+
+/**
+ * Whether an internal path is the create-event route or a subpath (not a false prefix).
+ *
+ * Matches /create-event and /create-event/…; does not match /create-event-copy,
+ * /create-eventuality, etc.
+ */
+function myeventlane_auth_path_implies_create_event_route(string $path_only): bool {
+  return $path_only === '/create-event' || str_starts_with($path_only, '/create-event/');
 }
 
 /**
@@ -111,7 +121,7 @@ function myeventlane_auth_resolve_intent_from_destination_value(string $dest, Re
   if ($path_only !== '' && !str_starts_with($path_only, '/')) {
     $path_only = '/' . $path_only;
   }
-  if ($path_only !== '' && str_starts_with($path_only, '/create-event')) {
+  if ($path_only !== '' && myeventlane_auth_path_implies_create_event_route($path_only)) {
     return 'create_event';
   }
 
