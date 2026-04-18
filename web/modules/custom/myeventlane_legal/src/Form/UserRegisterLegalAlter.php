@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_legal\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -25,7 +24,6 @@ final class UserRegisterLegalAlter {
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,
     private readonly RequestStack $requestStack,
-    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   /**
@@ -89,9 +87,6 @@ final class UserRegisterLegalAlter {
   public function validateLegalConsent(array &$form, FormStateInterface $form_state): void {
     $this->mergeLegalConsentFromRequest($form_state);
     $this->normalizeLegalConsentNestedValues($form_state);
-    $this->loggerFactory->get('mel_debug')->notice('Consent value: <pre>@v</pre>', [
-      '@v' => print_r($form_state->getValue('legal_consent'), TRUE),
-    ]);
     $terms = (bool) $form_state->getValue(['legal_consent', 'customer_terms_agreed']);
     $privacy = (bool) $form_state->getValue(['legal_consent', 'privacy_agreed']);
     if (!$terms) {
