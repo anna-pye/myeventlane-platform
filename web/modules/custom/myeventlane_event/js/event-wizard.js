@@ -15,9 +15,6 @@
 (function (Drupal, once) {
   'use strict';
 
-  // TEMP: verify library loads on every wizard step (remove after QA).
-  console.log('MEL event wizard library loaded');
-
   /**
    * Wizard state helpers
    */

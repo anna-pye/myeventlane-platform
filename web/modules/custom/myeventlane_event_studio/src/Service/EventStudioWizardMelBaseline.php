@@ -14,6 +14,13 @@ use Drupal\node\NodeInterface;
  */
 final class EventStudioWizardMelBaseline {
 
+  /**
+   * Per-request cache: building the full Event Studio form is expensive.
+   *
+   * @var array<string, array<string, mixed>>
+   */
+  private array $baselineMelByNodeRevision = [];
+
   public function __construct(
     private readonly FormBuilderInterface $formBuilder,
     private readonly EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
@@ -23,18 +30,27 @@ final class EventStudioWizardMelBaseline {
    * @return array<string, mixed>
    */
   public function getBaselineMel(NodeInterface $node): array {
+    $cacheKey = (string) $node->id() . ':' . (string) $node->getRevisionId();
+    if (array_key_exists($cacheKey, $this->baselineMelByNodeRevision)) {
+      return $this->baselineMelByNodeRevision[$cacheKey];
+    }
+
     $form = $this->formBuilder->getForm(EventStudioForm::class, $node);
     $mel = $form['mel'] ?? [];
     if (!is_array($mel)) {
+      $this->baselineMelByNodeRevision[$cacheKey] = [];
       return [];
     }
 
     $baseline = $this->extractDefaultsRecursive($mel);
     if (!is_array($baseline)) {
+      $this->baselineMelByNodeRevision[$cacheKey] = [];
       return [];
     }
 
-    return $this->normalizeBaselineMel($baseline);
+    $normalized = $this->normalizeBaselineMel($baseline);
+    $this->baselineMelByNodeRevision[$cacheKey] = $normalized;
+    return $normalized;
   }
 
   /**
