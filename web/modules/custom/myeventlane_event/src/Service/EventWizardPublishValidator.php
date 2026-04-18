@@ -23,6 +23,7 @@ final class EventWizardPublishValidator {
    */
   public function __construct(
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly EventProductManager $eventProductManager,
   ) {}
 
   /**
@@ -97,6 +98,11 @@ final class EventWizardPublishValidator {
       if ($event->hasField('field_rsvp_target') && $this->resolveRsvpTarget($event, $form_state) === NULL) {
         $errors[] = (string) t('RSVP events need an RSVP target set.');
       }
+    }
+
+    $productIntegrity = $this->eventProductManager->validateTicketProductEventIntegrity($event);
+    if ($productIntegrity !== NULL) {
+      $errors[] = $productIntegrity;
     }
 
     return $errors;

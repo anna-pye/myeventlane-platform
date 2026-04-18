@@ -1,16 +1,19 @@
 {#
 /**
  * @file
- * Horizontal step navigation for route-based Event Studio wizard.
+ * Horizontal step navigation for route-based Event Studio wizard (admin-only step forms).
+ *
+ * Links target the unified Event Studio route with section anchors matching mel-event-studio.html.twig.
  */
 #}
 {% if node %}
+  {% set studio_base = path('myeventlane_event_studio.edit', {'node': node.id}) %}
   <nav class="mel-nav mel-wizard-nav mel-event-studio-wizard-nav" aria-label="{{ 'Event steps'|t }}">
-    <a href="{{ path('myeventlane_event_studio.edit_basic', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'basic' %} is-active{% endif %}">{{ 'Basic'|t }}</a>
-    <a href="{{ path('myeventlane_event_studio.edit_datetime', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'datetime' %} is-active{% endif %}">{{ 'Date & location'|t }}</a>
-    <a href="{{ path('myeventlane_event_studio.edit_tickets', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'tickets' %} is-active{% endif %}">{{ 'Tickets'|t }}</a>
-    <a href="{{ path('myeventlane_event_studio.edit_description', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'description' %} is-active{% endif %}">{{ 'Description'|t }}</a>
-    <a href="{{ path('myeventlane_event_studio.edit_preview', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'preview' %} is-active{% endif %}">{{ 'Preview'|t }}</a>
-    <a href="{{ path('myeventlane_event_studio.edit_publish', {'node': node.id}) }}" class="mel-nav__link{% if current_step == 'publish' %} is-active{% endif %}">{{ 'Publish'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-basic" class="mel-nav__link{% if current_step == 'basic' %} is-active{% endif %}">{{ 'Basic'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-datetime" class="mel-nav__link{% if current_step == 'datetime' %} is-active{% endif %}">{{ 'Date & location'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-tickets" class="mel-nav__link{% if current_step == 'tickets' %} is-active{% endif %}">{{ 'Tickets'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-description" class="mel-nav__link{% if current_step == 'description' %} is-active{% endif %}">{{ 'Description'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-preview" class="mel-nav__link{% if current_step == 'preview' %} is-active{% endif %}">{{ 'Preview'|t }}</a>
+    <a href="{{ studio_base }}#mel-step-publish" class="mel-nav__link{% if current_step == 'publish' %} is-active{% endif %}">{{ 'Publish'|t }}</a>
   </nav>
 {% endif %}

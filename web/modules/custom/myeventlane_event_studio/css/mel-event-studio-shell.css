@@ -77,10 +77,6 @@
   padding: 4px 0;
 }
 
-.mel-event-studio .mel-advanced .mel-es-card {
-  margin-top: 16px;
-}
-
 /* -------------------------------------------------------------------------- */
 /* MEL cards (.mel-es-card + legacy .mel-section--card inside workspace)       */
 /* -------------------------------------------------------------------------- */
@@ -96,8 +92,23 @@
   box-sizing: border-box;
 }
 
-.mel-event-studio .mel-es-card:last-child,
-.mel-event-studio .mel-es-stack > .mel-section--card:last-child {
+/* Nested cards inside "More options" — blend into .mel-advanced (#fafafa), not white tiles. */
+.mel-event-studio .mel-advanced .mel-es-card,
+.mel-event-studio .mel-advanced .mel-section--card {
+  margin-top: 16px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 12px;
+}
+
+.mel-event-studio .mel-advanced > .mel-es-card:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Stacks end with .mel-step-actions, so cards are never :last-child. Pure
+   section:last-of-type fails when a section is followed by details.mel-advanced. */
+.mel-event-studio .mel-es-stack:has(> .mel-step-actions:last-child) > :nth-last-child(2) {
   margin-bottom: 0;
 }
 

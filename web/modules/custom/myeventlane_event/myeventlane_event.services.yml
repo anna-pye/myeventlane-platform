@@ -38,6 +38,7 @@ services:
     class: Drupal\myeventlane_event\Service\EventWizardPublishValidator
     arguments:
       - '@logger.factory'
+      - '@myeventlane_event.event_product_manager'
 
   myeventlane_event.event_form_ticket_builder_callbacks:
     class: Drupal\myeventlane_event\Form\EventFormTicketBuilderCallbacks

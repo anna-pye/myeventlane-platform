@@ -160,7 +160,12 @@ final class EventTicketsBuilder {
         'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
       ],
       '#limit_validation_errors' => [],
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__rsvp']],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__rsvp'],
+        // Event Studio nests this builder in a form with required mel[title] etc.; without
+        // formnovalidate the browser blocks AJAX before Drupal runs (standalone /tickets has no such fields).
+        'formnovalidate' => 'formnovalidate',
+      ],
       '#access' => !$adding_new,
     ];
 
@@ -174,7 +179,10 @@ final class EventTicketsBuilder {
         'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
       ],
       '#limit_validation_errors' => [],
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__paid']],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--primary', 'mel-ticket-controls__paid'],
+        'formnovalidate' => 'formnovalidate',
+      ],
       '#access' => !$adding_new,
     ];
 
@@ -188,7 +196,10 @@ final class EventTicketsBuilder {
         'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
       ],
       '#limit_validation_errors' => [],
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-ticket-controls__external']],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--secondary', 'mel-ticket-controls__external'],
+        'formnovalidate' => 'formnovalidate',
+      ],
       '#access' => !$adding_new,
     ];
 
@@ -202,7 +213,10 @@ final class EventTicketsBuilder {
         'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
       ],
       '#limit_validation_errors' => [],
-      '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--secondary'],
+        'formnovalidate' => 'formnovalidate',
+      ],
     ];
 
     $form['builder_shell']['order'] = [
@@ -433,7 +447,10 @@ final class EventTicketsBuilder {
             'wrapper' => self::BUILDER_WRAPPER_ID,
           ],
           '#limit_validation_errors' => $limit_edit,
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--primary'],
+            'formnovalidate' => 'formnovalidate',
+          ],
         ];
 
         $form['builder_shell']['list'][$tid]['edit']['actions']['cancel'] = [
@@ -446,7 +463,10 @@ final class EventTicketsBuilder {
             'wrapper' => self::BUILDER_WRAPPER_ID,
           ],
           '#limit_validation_errors' => $limit_edit,
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--ghost']],
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--ghost'],
+            'formnovalidate' => 'formnovalidate',
+          ],
         ];
       }
       else {
@@ -496,7 +516,7 @@ final class EventTicketsBuilder {
         $name === 'ticket_begin_add_external' => $this->beginAddWithKind($form_state, 'external'),
         $name === 'ticket_cancel_add' => $this->cancelAdd($form_state),
         $name === 'ticket_create' => $this->createTicket($form_state, $event),
-        $name === 'ticket_save_sync' => $this->saveAndSync($event),
+        $name === 'ticket_save_sync' => $this->performSaveAndSync($form_state, $event),
         $name === 'ticket_reorder' => $this->reorderTickets($form_state, $event),
         str_starts_with($name, 'edit_') => $this->beginInlineEdit($form_state, $name),
         str_starts_with($name, 'cancel_') => $this->cancelInlineEdit($form_state),
@@ -601,12 +621,13 @@ final class EventTicketsBuilder {
           '#title' => $this->t('Capacity'),
           '#min' => 1,
           '#default_value' => (string) ($form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields', 'capacity')) ?? ''),
+          // Must use core #states "or" shape; nesting "or" inside the selector value breaks
+          // drupal.states.js so RSVP capacity never shows/submits and create fails validation.
           '#states' => [
             'visible' => [
-              $ticket_kind_input => [
-                ['value' => 'paid'],
-                'or',
-                ['value' => 'rsvp'],
+              'or' => [
+                [$ticket_kind_input => ['value' => 'paid']],
+                [$ticket_kind_input => ['value' => 'rsvp']],
               ],
             ],
           ],
@@ -640,7 +661,10 @@ final class EventTicketsBuilder {
             'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
           ],
           '#limit_validation_errors' => [$this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')],
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--primary'],
+            'formnovalidate' => 'formnovalidate',
+          ],
         ],
         'cancel' => [
           '#type' => 'submit',
@@ -652,7 +676,10 @@ final class EventTicketsBuilder {
             'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
           ],
           '#limit_validation_errors' => [],
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--ghost']],
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--ghost'],
+            'formnovalidate' => 'formnovalidate',
+          ],
         ],
       ],
     ];
@@ -754,7 +781,10 @@ final class EventTicketsBuilder {
         '#limit_validation_errors' => [
           $this->valuePath($form_state, 'builder_shell', 'list', (string) $tid, 'edit'),
         ],
-        '#attributes' => ['class' => ['mel-btn', 'mel-btn--ghost']],
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--ghost'],
+          'formnovalidate' => 'formnovalidate',
+        ],
         '#access' => !$archive_only,
       ],
       'full_edit' => [
@@ -776,7 +806,10 @@ final class EventTicketsBuilder {
           'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
         ],
         '#limit_validation_errors' => [],
-        '#attributes' => ['class' => ['mel-btn', 'mel-btn--ghost']],
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--ghost'],
+          'formnovalidate' => 'formnovalidate',
+        ],
         '#access' => !$archive_only,
       ],
       'archive' => [
@@ -789,7 +822,10 @@ final class EventTicketsBuilder {
           'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
         ],
         '#limit_validation_errors' => [],
-        '#attributes' => ['class' => ['mel-btn', 'mel-btn--ghost']],
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--ghost'],
+          'formnovalidate' => 'formnovalidate',
+        ],
       ],
       'remove' => [
         '#type' => 'submit',
@@ -801,7 +837,10 @@ final class EventTicketsBuilder {
           'wrapper' => EventTicketsBuilder::BUILDER_WRAPPER_ID,
         ],
         '#limit_validation_errors' => [],
-        '#attributes' => ['class' => ['mel-btn', 'mel-btn--danger']],
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--danger'],
+          'formnovalidate' => 'formnovalidate',
+        ],
         '#access' => !$archive_only,
       ],
     ];
@@ -838,13 +877,40 @@ final class EventTicketsBuilder {
     $form_state->set('editing_ticket_id', NULL);
   }
 
-  private function createTicket(FormStateInterface $form_state, NodeInterface $event): void {
+  private function createTicket(FormStateInterface $form_state, NodeInterface $event, bool $quiet = FALSE): void {
     $values = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')) ?? [];
     $payload = $this->normalisePayload($values, $event, TRUE);
     $this->lifecycle->createAttachAndSync($event, $payload);
-    $this->messenger->addStatus($this->t('Ticket created.'));
+    if (!$quiet) {
+      $this->messenger->addStatus($this->t('Ticket created.'));
+    }
     $form_state->set('mel_ticket_adding_new', FALSE);
     $form_state->set('mel_ticket_prefill_kind', NULL);
+  }
+
+  /**
+   * Syncs Commerce for paid tiers; if a new-tier form is open with a title, saves it first.
+   *
+   * Vendors often click "Save & sync" instead of "Create ticket"; without this, nothing persists.
+   */
+  private function performSaveAndSync(FormStateInterface $form_state, NodeInterface $event): void {
+    if ($form_state->get('mel_ticket_adding_new')) {
+      $values = $form_state->getValue($this->valuePath($form_state, 'builder_shell', 'list', 'new', 'fields')) ?? [];
+      $title = trim((string) ($values['title'] ?? ''));
+      if ($title !== '') {
+        try {
+          $this->createTicket($form_state, $event, TRUE);
+          $this->messenger->addStatus($this->t('Tickets saved and synced.'));
+        }
+        catch (\InvalidArgumentException $e) {
+          $this->messenger->addError($this->t('Could not save ticket: @message', ['@message' => $e->getMessage()]));
+        }
+        return;
+      }
+      $this->messenger->addWarning($this->t('Enter a ticket title and price or capacity as needed, then use Save & sync again — or use Create ticket.'));
+    }
+    $this->lifecycle->syncPaidTiers($event);
+    $this->messenger->addStatus($this->t('Tickets saved and synced.'));
   }
 
   private function saveInlineEdit(FormStateInterface $form_state, NodeInterface $event, string $name): void {
@@ -1215,11 +1281,6 @@ final class EventTicketsBuilder {
       return ((float) $as_int === $item) ? $as_int : NULL;
     }
     return NULL;
-  }
-
-  private function saveAndSync(NodeInterface $event): void {
-    $this->lifecycle->syncPaidTiers($event);
-    $this->messenger->addStatus($this->t('Tickets saved and synced.'));
   }
 
   private function normalisePayload(array $values, NodeInterface $event, bool $is_new): array {

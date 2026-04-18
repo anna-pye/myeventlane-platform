@@ -438,7 +438,7 @@ final class VendorThemePagePreprocess {
 
     return [
       [
-        'label' => (string) $this->t('Event builder'),
+        'label' => (string) $this->t('Event Studio'),
         'url' => $url,
         'is_disabled' => $url === NULL,
         'is_active' => $is_active,

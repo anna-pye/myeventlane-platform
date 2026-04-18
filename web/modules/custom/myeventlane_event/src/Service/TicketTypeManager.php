@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event\Service;
 
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
+use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -108,8 +109,21 @@ final class TicketTypeManager {
   private function getOrCreateTicketProduct(NodeInterface $event): ?object {
     if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
       $product = $event->get('field_product_target')->entity;
-      if ($product && $product->bundle() === 'ticket') {
-        return $product;
+      if ($product instanceof ProductInterface && $product->bundle() === 'ticket') {
+        if ($this->ticketProductOwnsEvent($product, $event)) {
+          $this->ensureProductFieldEventMatches($product, $event);
+          return $product;
+        }
+        $this->loggerFactory->get('myeventlane_event')->warning(
+          'Paid sync: event @eid had field_product_target product @pid not owned by this event; clearing and creating a dedicated product.',
+          [
+            '@eid' => (string) $event->id(),
+            '@pid' => (string) $product->id(),
+          ]
+        );
+        $event->set('field_product_target', []);
+        EventNodeRevisionSave::prepare($event, 'Removed ticket product not owned by this event.');
+        $event->save();
       }
     }
 
@@ -129,6 +143,7 @@ final class TicketTypeManager {
       'uid' => $event->getOwnerId(),
     ]);
     $product->save();
+    $this->ensureProductFieldEventMatches($product, $event);
 
     $event->set('field_product_target', ['target_id' => $product->id()]);
     EventNodeRevisionSave::prepare($event, 'Linked ticket product to event.');
@@ -140,6 +155,36 @@ final class TicketTypeManager {
     );
 
     return $product;
+  }
+
+  /**
+   * TRUE when field_event is empty (self-healed) or matches this event.
+   */
+  private function ticketProductOwnsEvent(ProductInterface $product, NodeInterface $event): bool {
+    if (!$product->hasField('field_event')) {
+      return FALSE;
+    }
+    if ($product->get('field_event')->isEmpty()) {
+      $product->set('field_event', ['target_id' => $event->id()]);
+      $product->save();
+      $this->loggerFactory->get('myeventlane_event')->notice(
+        'Set field_event on ticket product @pid to event @eid (was empty).',
+        ['@pid' => (string) $product->id(), '@eid' => (string) $event->id()]
+      );
+      return TRUE;
+    }
+    return (int) $product->get('field_event')->target_id === (int) $event->id();
+  }
+
+  /**
+   * Sets field_event when empty (mismatch → clear link + new product in getOrCreateTicketProduct).
+   */
+  private function ensureProductFieldEventMatches(ProductInterface $product, NodeInterface $event): void {
+    if (!$product->hasField('field_event') || !$product->get('field_event')->isEmpty()) {
+      return;
+    }
+    $product->set('field_event', ['target_id' => $event->id()]);
+    $product->save();
   }
 
   /**

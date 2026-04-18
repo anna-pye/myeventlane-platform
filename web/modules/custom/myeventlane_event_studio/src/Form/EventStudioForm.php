@@ -153,6 +153,27 @@ final class EventStudioForm extends FormBase {
     $form['#attributes']['data-mel-event-studio-form'] = '1';
     $form['#attributes']['id'] = 'event-studio-form';
 
+    // AJAX rebuilds do not receive $route_node; cached form state can lose studio_node. Ticket
+    // builder actions then exit early in handleAction() with no save. Rehydrate from hidden nid.
+    $user_input = $form_state->getUserInput();
+    $nid_from_request = 0;
+    if (is_array($user_input) && isset($user_input['nid'])) {
+      $nid_from_request = (int) $user_input['nid'];
+    }
+    if ($nid_from_request > 0) {
+      $existing = $form_state->get('studio_node');
+      $needs_hydrate = !$existing instanceof NodeInterface
+        || (!$existing->isNew() && (int) $existing->id() !== $nid_from_request);
+      if ($needs_hydrate) {
+        $loaded = $this->entityTypeManager->getStorage('node')->load($nid_from_request);
+        if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
+          if ((int) $loaded->getOwnerId() === (int) $this->currentUser->id() || $this->currentUser->hasPermission('administer nodes')) {
+            $form_state->set('studio_node', $loaded);
+          }
+        }
+      }
+    }
+
     if (!$form_state->has('studio_node')) {
       if ($route_node instanceof NodeInterface) {
         if ((int) $route_node->getOwnerId() !== (int) $this->currentUser->id() && !$this->currentUser->hasPermission('administer nodes')) {
@@ -1198,6 +1219,8 @@ final class EventStudioForm extends FormBase {
     $this->ensureInjectedServices();
     $event = $form_state->get('studio_node');
     if (!$event instanceof NodeInterface) {
+      $this->logger->error('Event Studio ticket builder: studio_node missing from form state; ticket action skipped. Check nid rehydration on AJAX rebuild.');
+      $this->messenger()->addError($this->t('Could not attach tickets to this event (session state). Reload the page and try again.'));
       return;
     }
     $this->eventTicketsBuilder->handleAction($form, $form_state, $event);
