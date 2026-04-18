@@ -1010,7 +1010,7 @@ textarea.mel-input--body {
   scrollbar-width: thin;
 }
 
-.mel-event-studio #mel-wizard-nav button[data-step] {
+.mel-event-studio #mel-wizard-nav a.mel-nav-link {
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0.45rem 0.85rem;
@@ -1022,9 +1022,13 @@ textarea.mel-input--body {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
 }
 
-.mel-event-studio #mel-wizard-nav button[data-step].active {
+.mel-event-studio #mel-wizard-nav a.mel-nav-link.is-active {
   border-color: var(--mel-studio-accent);
   background: var(--mel-studio-accent-soft);
   color: var(--mel-studio-accent);
