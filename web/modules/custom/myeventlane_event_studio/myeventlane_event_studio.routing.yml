@@ -10,9 +10,9 @@ myeventlane_event_studio.edit:
   path: '/vendor/events/{node}/edit'
   defaults:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::buildEdit'
-    _title: 'Edit Event'
+    _title_callback: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::editTitle'
   requirements:
-    _permission: 'access content'
+    _entity_access: 'node.update'
     node: \d+
   options:
     parameters:

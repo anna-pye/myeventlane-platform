@@ -677,6 +677,30 @@
     return { ok: true };
   }
 
+  /**
+   * Ticket builder controls submit the same Event Studio form as Save; highlight
+   * validation must not block those AJAX submits (only the main publish/save).
+   */
+  function isTicketBuilderSubmitter(submitter) {
+    if (!submitter || !submitter.name) {
+      return false;
+    }
+    var n = submitter.name;
+    if (n.indexOf('ticket_') === 0) {
+      return true;
+    }
+    if (/^save_\d+$/.test(n)) {
+      return true;
+    }
+    if (/^cancel_\d+$/.test(n)) {
+      return true;
+    }
+    if (/^edit_\d+$/.test(n)) {
+      return true;
+    }
+    return false;
+  }
+
   function parseHighlightsHiddenWithStatus(raw) {
     if (!raw || !String(raw).trim()) {
       return { rows: [], parseError: false };
@@ -2128,6 +2152,10 @@
         if (!cont || !form.contains(cont)) {
           return;
         }
+        // Wizard "Continue" is always type=button. Never intercept real submits.
+        if (cont.tagName !== 'BUTTON' || String(cont.type || '').toLowerCase() !== 'button') {
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         melContinueToNextSection(form, cont);
@@ -2358,8 +2386,17 @@
           });
         }
 
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
           syncAiControlsToForm(form);
+          // Temporary: remove after verifying publish reaches the server (Drupal submit handler).
+          if (
+            !e.defaultPrevented &&
+            !isTicketBuilderSubmitter(e.submitter) &&
+            typeof console !== 'undefined' &&
+            console.log
+          ) {
+            console.log('FORM SUBMIT FIRED');
+          }
         });
 
         form.addEventListener('click', function (e) {
@@ -2648,11 +2685,18 @@
       }
       forceSyncTicketTiersBeforeSubmit(form);
       forceSyncHighlightsBeforeSubmit(form);
+      if (isTicketBuilderSubmitter(e.submitter)) {
+        return;
+      }
       var rows = collectHighlightsFromDom(form);
       var hv = validateHighlightRows(rows);
       if (!hv.ok) {
         e.preventDefault();
         setHighlightsError(form, hv.message);
+        var hlRoot = form.querySelector('[data-mel-highlights-builder]');
+        if (hlRoot && typeof hlRoot.scrollIntoView === 'function') {
+          hlRoot.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
         var errBox = getHighlightsErrorEl();
         if (errBox && typeof errBox.focus === 'function') {
           if (!errBox.hasAttribute('tabindex')) {
@@ -2660,6 +2704,7 @@
           }
           errBox.focus();
         }
+        return;
       }
     },
     true,

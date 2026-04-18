@@ -12,6 +12,7 @@ use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -31,6 +32,20 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     'myeventlane_event.wizard.review',
     'myeventlane_event.wizard.publish',
     'myeventlane_event.wizard.success',
+  ];
+
+  /**
+   * Route-based step forms under /vendor/events/{node}/edit/... (superseded by unified studio).
+   *
+   * @var list<string>
+   */
+  private const STUDIO_LEGACY_STEP_ROUTES = [
+    'myeventlane_event_studio.edit_basic',
+    'myeventlane_event_studio.edit_datetime',
+    'myeventlane_event_studio.edit_tickets',
+    'myeventlane_event_studio.edit_description',
+    'myeventlane_event_studio.edit_preview',
+    'myeventlane_event_studio.edit_publish',
   ];
 
   public function __construct(
@@ -53,7 +68,8 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       return;
     }
     $route = (string) ($request->attributes->get('_route') ?? '');
-    if (!in_array($route, self::WIZARD_STEP_ROUTES, TRUE)) {
+    $redirect_routes = array_merge(self::WIZARD_STEP_ROUTES, self::STUDIO_LEGACY_STEP_ROUTES);
+    if (!in_array($route, $redirect_routes, TRUE)) {
       return;
     }
 
@@ -65,16 +81,7 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       return;
     }
 
-    $event_param = $request->attributes->get('event');
-    $node = NULL;
-    if ($event_param instanceof NodeInterface) {
-      $node = $event_param;
-    }
-    elseif (is_numeric($event_param) && (int) $event_param > 0) {
-      $loaded = $this->entityTypeManager->getStorage('node')->load((int) $event_param);
-      $node = $loaded instanceof NodeInterface ? $loaded : NULL;
-    }
-
+    $node = $this->resolveEventNode($request);
     if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
       return;
     }
@@ -87,6 +94,25 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     ]);
 
     $event->setResponse(new RedirectResponse($url, 302));
+  }
+
+  /**
+   * Resolves an event node from legacy wizard (`event`) or studio step (`node`) parameters.
+   */
+  private function resolveEventNode(Request $request): ?NodeInterface {
+    foreach (['event', 'node'] as $key) {
+      $param = $request->attributes->get($key);
+      if ($param instanceof NodeInterface && $param->bundle() === 'event') {
+        return $param;
+      }
+      if (is_numeric($param) && (int) $param > 0) {
+        $loaded = $this->entityTypeManager->getStorage('node')->load((int) $param);
+        if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event') {
+          return $loaded;
+        }
+      }
+    }
+    return NULL;
   }
 
 }

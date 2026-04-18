@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Form\EventStudioForm;
 use Drupal\node\NodeInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -30,16 +28,28 @@ final class EventStudioController extends ControllerBase {
     return $form;
   }
 
-  public function buildEdit(NodeInterface $node): RedirectResponse {
+  public function buildEdit(NodeInterface $node): array {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    $this->getLogger('myeventlane_event_studio')->notice('Vendor Event Studio entry: route=myeventlane_event_studio.edit redirect=edit_basic event_id=@eid uid=@uid', [
+    $this->getLogger('myeventlane_event_studio')->notice('Vendor Event Studio entry: route=myeventlane_event_studio.edit event_id=@eid uid=@uid', [
       '@eid' => (string) $node->id(),
       '@uid' => (string) $this->currentUser()->id(),
     ]);
-    $url = Url::fromRoute('myeventlane_event_studio.edit_basic', ['node' => $node->id()])->setAbsolute();
-    return new RedirectResponse($url->toString());
+    $form = $this->formBuilder()->getForm(EventStudioForm::class, $node);
+    $form['#theme_wrappers'] = [];
+    $form['#theme'] = 'mel_event_studio';
+    $form['#mel_studio_mode'] = 'edit';
+    $form['#attached']['library'] ??= [];
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio';
+    return $form;
+  }
+
+  public function editTitle(NodeInterface $node): string {
+    if ($node->bundle() !== 'event') {
+      throw new NotFoundHttpException();
+    }
+    return (string) $this->t('Event Studio — @title', ['@title' => $node->getTitle()]);
   }
 
 }

@@ -262,8 +262,8 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
   private function buildHeaderActions(NodeInterface $event): array {
     $actions = [
       [
-        'label' => (string) $this->t('Edit event'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.event_editor', ['event' => $event->id()])->toString(),
+        'label' => (string) $this->t('Open Event Studio'),
+        'url' => Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString(),
         'class' => 'mel-btn--primary',
       ],
       [
