@@ -2193,13 +2193,13 @@
                 break;
               }
             }
-            if (idx >= 0 && entry.isIntersecting) {
+            if (idx >= 0 && entry.intersectionRatio >= 0.1) {
               setWizardNavActive(form, idx);
               setWizardStepIndex(form, idx);
             }
           });
         },
-        { rootMargin: '-40% 0px -50% 0px', threshold: [0, 0.01, 0.1, 0.25, 0.5, 0.75, 1] },
+        { rootMargin: '-40% 0px -50% 0px', threshold: 0.1 },
       );
       steps.forEach(function (s) {
         io.observe(s);
