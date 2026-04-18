@@ -2,21 +2,22 @@ uuid: a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d
 langcode: en
 status: true
 dependencies:
+  config:
+    - workflows.workflow.editorial
   module:
-    - mel_ticket
-    - myeventlane_vendor
     - commerce_order
     - commerce_product
     - commerce_stripe
     - content_moderation
+    - mel_ticket
     - myeventlane_boost
     - myeventlane_escalations_refunds
     - myeventlane_event_state
     - myeventlane_refunds
+    - myeventlane_vendor
     - myeventlane_vendor_ai
     - paragraphs
     - paragraphs_type_permissions
-    - workflows
 id: mel_pro
 label: 'MEL Pro'
 weight: -6

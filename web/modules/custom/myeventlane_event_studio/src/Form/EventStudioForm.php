@@ -15,6 +15,7 @@ use Drupal\Core\Url;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
+use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
@@ -57,6 +58,8 @@ final class EventStudioForm extends FormBase {
 
   protected EventStudioMelPayloadService $melPayloadService;
 
+  protected EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer;
+
   /**
    * {@inheritdoc}
    */
@@ -75,6 +78,7 @@ final class EventStudioForm extends FormBase {
     $instance->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
     $instance->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
     $instance->melPayloadService = $container->get('myeventlane_event_studio.mel_payload');
+    $instance->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
     return $instance;
   }
 
@@ -94,7 +98,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger, $this->melPayloadService)) {
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer)) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -127,6 +131,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->melPayloadService)) {
       $this->melPayloadService = $container->get('myeventlane_event_studio.mel_payload');
+    }
+    if (!isset($this->entityAutocompleteMelNormalizer)) {
+      $this->entityAutocompleteMelNormalizer = $container->get('myeventlane_event_studio.entity_autocomplete_mel_normalizer');
     }
   }
 
@@ -386,6 +393,13 @@ final class EventStudioForm extends FormBase {
       && $event->get('field_product_target')->isEmpty()) {
       $needs_ticket_product = TRUE;
     }
+
+    $venue_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($venue_default, 'myeventlane_venue', 'mel.venue_saved');
+    $product_default = $this->entityAutocompleteMelNormalizer->normalizeSingle($product_default, 'commerce_product', 'mel.field_product_target');
+    $ticket_types_default = $this->entityAutocompleteMelNormalizer->normalizeTags($ticket_types_default, 'mel_ticket_type', 'mel.field_ticket_types');
+    $category_default = $this->entityAutocompleteMelNormalizer->normalizeTags($category_default, 'taxonomy_term', 'mel.field_category');
+    $tags_default = $this->entityAutocompleteMelNormalizer->normalizeTags($tags_default, 'taxonomy_term', 'mel.field_tags');
+    $field_accessibility_default = $this->entityAutocompleteMelNormalizer->normalizeTags($field_accessibility_default, 'taxonomy_term', 'mel.field_accessibility');
 
     $studio_tiers_json = $this->encodeStudioTiersJsonForEvent($event);
 

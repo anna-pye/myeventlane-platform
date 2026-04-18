@@ -16,6 +16,7 @@ final class EventStudioWizardMelBaseline {
 
   public function __construct(
     private readonly FormBuilderInterface $formBuilder,
+    private readonly EntityAutocompleteMelNormalizer $entityAutocompleteMelNormalizer,
   ) {}
 
   /**
@@ -28,7 +29,12 @@ final class EventStudioWizardMelBaseline {
       return [];
     }
 
-    return $this->extractDefaultsRecursive($mel);
+    $baseline = $this->extractDefaultsRecursive($mel);
+    if (!is_array($baseline)) {
+      return [];
+    }
+
+    return $this->normalizeBaselineMel($baseline);
   }
 
   /**
@@ -53,6 +59,39 @@ final class EventStudioWizardMelBaseline {
       $out[$key] = $this->extractDefaultsRecursive($child);
     }
     return $out;
+  }
+
+  /**
+   * @param array<string, mixed> $mel
+   *
+   * @return array<string, mixed>
+   */
+  private function normalizeBaselineMel(array $mel): array {
+    $single = [
+      'venue_saved' => 'myeventlane_venue',
+      'field_product_target' => 'commerce_product',
+    ];
+    foreach ($single as $key => $entity_type_id) {
+      if (!array_key_exists($key, $mel)) {
+        continue;
+      }
+      $mel[$key] = $this->entityAutocompleteMelNormalizer->normalizeSingle($mel[$key], $entity_type_id, 'mel.' . $key);
+    }
+
+    $tags = [
+      'field_ticket_types' => 'mel_ticket_type',
+      'field_category' => 'taxonomy_term',
+      'field_tags' => 'taxonomy_term',
+      'field_accessibility' => 'taxonomy_term',
+    ];
+    foreach ($tags as $key => $entity_type_id) {
+      if (!array_key_exists($key, $mel)) {
+        continue;
+      }
+      $mel[$key] = $this->entityAutocompleteMelNormalizer->normalizeTags($mel[$key], $entity_type_id, 'mel.' . $key);
+    }
+
+    return $mel;
   }
 
 }

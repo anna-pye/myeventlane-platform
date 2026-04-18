@@ -14,8 +14,8 @@ dependencies:
     - media
     - myeventlane_checkin
     - myeventlane_escalations_portal
-    - myeventlane_help_assistant
     - myeventlane_event_state
+    - myeventlane_help_assistant
     - paragraphs
     - profile
     - search
