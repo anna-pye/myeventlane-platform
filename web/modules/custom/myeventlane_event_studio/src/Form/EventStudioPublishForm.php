@@ -44,15 +44,8 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
   /**
    * {@inheritdoc}
    */
-  protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
-    $form['mel']['status'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Published'),
-      '#default_value' => !empty($melDefaults['status']),
-      '#attributes' => ['class' => ['mel-checkbox-publish']],
-    ];
-
-    $form['actions']['continue']['#value'] = $this->t('Save and view event');
+  protected function getContinueButtonLabel() {
+    return $this->t('Save and view event');
   }
 
   /**
@@ -60,44 +53,28 @@ final class EventStudioPublishForm extends EventStudioBaseForm {
    *
    * Final step: non-draft save so publish flag persists as in full Event Studio.
    */
-  public function submitContinue(array &$form, FormStateInterface $form_state): void {
-    $nid = (int) ($form_state->getValue('nid') ?? 0);
-    if ($nid < 1) {
-      return;
-    }
-    $storage = $this->entityTypeManager->getStorage('node');
-    $loaded = $storage->load($nid);
-    if (!$loaded instanceof NodeInterface) {
-      return;
-    }
-    $this->assertVendorEvent($loaded);
+  protected function isDraftWizardSave(): bool {
+    return FALSE;
+  }
 
-    $baseline = $this->wizardMelBaseline->getBaselineMel($loaded);
-    $submitted = $form_state->getValue('mel') ?? [];
-    if (!is_array($submitted)) {
-      $submitted = [];
-    }
-    $merged = $this->mergeMel($baseline, $submitted);
-    $form_state->setValue('mel', $merged);
-
-    $payload = $this->melPayloadService->buildFromFormState($form_state, $this->entityTypeManager);
-    $result = $this->saveService->save($payload, $loaded, $this->currentUser(), FALSE);
-
-    if ($result['errors'] !== []) {
-      foreach ($result['errors'] as $msg) {
-        $this->messenger()->addError($msg);
-      }
-      return;
-    }
-
-    $saved = $result['node'];
-    if (!$saved instanceof NodeInterface) {
-      $this->messenger()->addError($this->t('Could not save the event.'));
-      return;
-    }
-
+  /**
+   * {@inheritdoc}
+   */
+  protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
     $this->messenger()->addStatus($this->t('Event saved.'));
     $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $saved->id()]));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form['mel']['status'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Published'),
+      '#default_value' => !empty($melDefaults['status']),
+      '#attributes' => ['class' => ['mel-checkbox-publish']],
+    ];
   }
 
 }

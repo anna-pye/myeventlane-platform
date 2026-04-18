@@ -112,6 +112,58 @@ abstract class EventStudioBaseForm extends FormBase {
   }
 
   /**
+   * Label for the primary Continue submit (set after $form['actions'] is built).
+   */
+  protected function getContinueButtonLabel() {
+    return $this->t('Continue');
+  }
+
+  /**
+   * Whether saves on Continue are draft (TRUE) or apply publish/status (FALSE).
+   */
+  protected function isDraftWizardSave(): bool {
+    return TRUE;
+  }
+
+  /**
+   * Redirect and messaging after a successful wizard step save.
+   */
+  protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
+    $this->messenger()->addStatus($this->t('Saved.'));
+    $form_state->setRedirect($this->getNextRouteName(), ['node' => $saved->id()]);
+  }
+
+  /**
+   * Loads the event, merges mel with baseline, persists via save service.
+   *
+   * @return array{errors: list<string>, node: ?\Drupal\node\NodeInterface}|null
+   *   Null when preconditions fail (invalid nid or missing node).
+   */
+  protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid < 1) {
+      return NULL;
+    }
+    $storage = $this->entityTypeManager->getStorage('node');
+    $loaded = $storage->load($nid);
+    if (!$loaded instanceof NodeInterface) {
+      return NULL;
+    }
+    $this->assertVendorEvent($loaded);
+
+    $baseline = $this->wizardMelBaseline->getBaselineMel($loaded);
+    $submitted = $form_state->getValue('mel') ?? [];
+    if (!is_array($submitted)) {
+      $submitted = [];
+    }
+    $merged = $this->mergeMel($baseline, $submitted);
+    $form_state->setValue('mel', $merged);
+
+    $payload = $this->melPayloadService->buildFromFormState($form_state, $this->entityTypeManager);
+    return $this->saveService->save($payload, $loaded, $this->currentUser(), $draft);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
@@ -161,7 +213,7 @@ abstract class EventStudioBaseForm extends FormBase {
 
     $form['actions']['continue'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Continue'),
+      '#value' => $this->getContinueButtonLabel(),
       '#button_type' => 'primary',
       '#submit' => ['::submitContinue'],
     ];
@@ -219,28 +271,10 @@ abstract class EventStudioBaseForm extends FormBase {
    * Saves merged mel via EventStudioSaveService and redirects to the next route.
    */
   public function submitContinue(array &$form, FormStateInterface $form_state): void {
-    $nid = (int) ($form_state->getValue('nid') ?? 0);
-    if ($nid < 1) {
+    $result = $this->persistWizardMel($form_state, $this->isDraftWizardSave());
+    if ($result === NULL) {
       return;
     }
-    $storage = $this->entityTypeManager->getStorage('node');
-    $loaded = $storage->load($nid);
-    if (!$loaded instanceof NodeInterface) {
-      return;
-    }
-    $this->assertVendorEvent($loaded);
-
-    $baseline = $this->wizardMelBaseline->getBaselineMel($loaded);
-    $submitted = $form_state->getValue('mel') ?? [];
-    if (!is_array($submitted)) {
-      $submitted = [];
-    }
-    $merged = $this->mergeMel($baseline, $submitted);
-    $form_state->setValue('mel', $merged);
-
-    $payload = $this->melPayloadService->buildFromFormState($form_state, $this->entityTypeManager);
-    $result = $this->saveService->save($payload, $loaded, $this->currentUser(), TRUE);
-
     if ($result['errors'] !== []) {
       foreach ($result['errors'] as $msg) {
         $this->messenger()->addError($msg);
@@ -254,8 +288,7 @@ abstract class EventStudioBaseForm extends FormBase {
       return;
     }
 
-    $this->messenger()->addStatus($this->t('Saved.'));
-    $form_state->setRedirect($this->getNextRouteName(), ['node' => $saved->id()]);
+    $this->onWizardStepSaveSuccess($saved, $form_state);
   }
 
 }

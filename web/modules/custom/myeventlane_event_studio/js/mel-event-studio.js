@@ -2193,13 +2193,13 @@
                 break;
               }
             }
-            if (idx >= 0 && entry.intersectionRatio >= 0.1) {
+            if (idx >= 0 && entry.isIntersecting) {
               setWizardNavActive(form, idx);
               setWizardStepIndex(form, idx);
             }
           });
         },
-        { rootMargin: '-40% 0px -50% 0px', threshold: 0.1 },
+        { rootMargin: '-40% 0px -50% 0px', threshold: [0, 0.01, 0.1, 0.25, 0.5, 0.75, 1] },
       );
       steps.forEach(function (s) {
         io.observe(s);
@@ -2388,15 +2388,6 @@
 
         form.addEventListener('submit', function (e) {
           syncAiControlsToForm(form);
-          // Temporary: remove after verifying publish reaches the server (Drupal submit handler).
-          if (
-            !e.defaultPrevented &&
-            !isTicketBuilderSubmitter(e.submitter) &&
-            typeof console !== 'undefined' &&
-            console.log
-          ) {
-            console.log('FORM SUBMIT FIRED');
-          }
         });
 
         form.addEventListener('click', function (e) {

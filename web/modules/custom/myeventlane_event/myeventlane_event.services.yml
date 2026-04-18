@@ -64,6 +64,11 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_event.ticket_product_event_ownership:
+    class: Drupal\myeventlane_event\Service\TicketProductEventOwnershipService
+    arguments:
+      - '@logger.factory'
+
   myeventlane_event.event_product_manager:
     class: Drupal\myeventlane_event\Service\EventProductManager
     arguments:
@@ -72,6 +77,7 @@ services:
       - '@messenger'
       - '@lock'
       - '@myeventlane_event.ticket_type_manager'
+      - '@myeventlane_event.ticket_product_event_ownership'
 
   myeventlane_event.event_mode_manager:
     class: Drupal\myeventlane_event\Service\EventModeManager
@@ -87,6 +93,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+      - '@myeventlane_event.ticket_product_event_ownership'
 
   myeventlane_event.ticket_tier_lifecycle:
     class: Drupal\myeventlane_event\Service\TicketTierLifecycleService

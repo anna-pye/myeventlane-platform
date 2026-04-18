@@ -7,7 +7,7 @@
     "start": "vite preview",
     "prepare": "husky",
     "mel:hero-check": "cd web/themes/custom/myeventlane_theme && npm run check:hero",
-    "mel:build": "cd web/themes/custom/myeventlane_theme && npm run build && cd ../myeventlane_vendor_theme && npm run build",
+    "mel:build": "cd web/themes/custom/myeventlane_theme && npm ci && npm run build && cd ../myeventlane_vendor_theme && npm ci && npm run build",
     "mel:lint": "cd web/themes/custom/myeventlane_theme && npm run check:hero && npm run lint:css"
   },
   "devDependencies": {
