@@ -116,24 +116,16 @@
       </div>
     </div>
 
-    {# Overview navigation — anchor targets + data-step for scroll-spy (mel-event-studio.js). #}
-    <nav class="mel-event-studio-nav mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" aria-label="{{ 'Event overview'|t }}">
-      <p class="mel-event-studio-nav__label">{{ 'Overview'|t }}</p>
-      <div class="mel-event-studio-nav__scroll">
-        <div class="mel-event-studio-nav__track" role="tablist">
-          <a href="#mel-step-basic" class="mel-nav-link mel-event-studio-nav__item is-active active" data-step="basic" role="tab" aria-selected="true">{{ 'Basic info'|t }}</a>
-          <a href="#mel-step-datetime" class="mel-nav-link mel-event-studio-nav__item" data-step="datetime" role="tab" aria-selected="false">{{ 'Date & Location'|t }}</a>
-          <a href="#mel-step-tickets" class="mel-nav-link mel-event-studio-nav__item" data-step="tickets" role="tab" aria-selected="false">{{ 'Tickets / RSVP'|t }}</a>
-          <a href="#mel-step-description" class="mel-nav-link mel-event-studio-nav__item" data-step="description" role="tab" aria-selected="false">{{ 'Description'|t }}</a>
-          <a href="#mel-step-preview" class="mel-nav-link mel-event-studio-nav__item" data-step="preview" role="tab" aria-selected="false">{{ 'Preview'|t }}</a>
-          <a href="#mel-step-publish" class="mel-nav-link mel-event-studio-nav__item mel-event-studio-nav__item--publish" data-step="publish" role="tab" aria-selected="false">{{ 'Publish'|t }}</a>
-        </div>
-      </div>
-    </nav>
+    {# Two-column shell: sticky sidebar nav + main form (mel-event-studio.js uses #mel-wizard-nav a.mel-nav-link). #}
+    <div class="mel-studio-layout">
+      <aside class="mel-studio-sidebar" aria-label="{{ 'Event steps'|t }}">
+        {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
+      </aside>
+      <main class="mel-studio-content">
 
     {# FORM ZONE — wizard + actions (single root <form> above; not a nested form). #}
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
-      <div class="mel-wizard mel-studio--scroll-all">
+      <div class="mel-wizard">
         {# —— Basic —— #}
         <section id="mel-step-basic" class="mel-step mel-studio-section mel-studio-scroll-step" data-step="basic" role="tabpanel" aria-labelledby="mel-basic-heading">
           <section class="mel-section mel-section--card mel-section--builder mel-section--basic" aria-labelledby="mel-basic-heading">
@@ -242,6 +234,7 @@
               <p class="mel-section__hint">{{ 'Set how people join. For saved events, use the full ticket builder for the same controls as the legacy wizard.'|t }}</p>
             </header>
 
+            <div class="mel-ticket-section">
             {{ element.mel.tickets_intro }}
             {{ element.mel.field_event_type }}
             {{ element.mel.studio_ticket_tiers }}
@@ -270,6 +263,7 @@
             <div class="mel-form-grid">
               {{ element.mel.field_sales_start }}
               {{ element.mel.field_sales_end }}
+            </div>
             </div>
 
             <div class="mel-step-actions">
@@ -400,6 +394,9 @@
       <div class="mel-event-studio__footer-actions mel-actions">
         {{ element.actions }}
       </div>
+    </div>
+
+      </main>
     </div>
   </div>
 

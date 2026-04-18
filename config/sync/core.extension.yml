@@ -86,6 +86,7 @@ module:
   myeventlane_analytics: 0
   myeventlane_api: 0
   myeventlane_attendee: 0
+  myeventlane_auth: 0
   myeventlane_automation: 0
   myeventlane_blocks: 0
   myeventlane_boost: 0

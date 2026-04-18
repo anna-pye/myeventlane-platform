@@ -3,6 +3,8 @@ mel_event_studio:
     theme:
       css/mel-event-studio.css: {}
       css/mel-event-studio-nav.css: {}
+      # After vendor theme global CSS so sidebar/ticket shell wins in cascade.
+      css/mel-event-studio-shell.css: { weight: 200 }
   js:
     js/mel-event-studio.js: {}
   dependencies:

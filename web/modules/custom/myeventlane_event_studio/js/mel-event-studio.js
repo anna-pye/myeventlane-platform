@@ -11,15 +11,34 @@
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  function melScrollToSelector(sel) {
-    var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
-    if (!el || !el.scrollIntoView) {
+  /** Sticky header buffer for window scroll (matches .mel-studio-scroll-step scroll-margin). */
+  var MEL_SCROLL_OFFSET = 120;
+
+  /**
+   * Window scroll only — no nested scroll containers.
+   *
+   * @param {HTMLElement|null} target
+   */
+  function scrollToTarget(target) {
+    if (!target) {
       return;
     }
-    el.scrollIntoView({
+    var y = target.getBoundingClientRect().top + window.scrollY - MEL_SCROLL_OFFSET;
+    window.scrollTo({
+      top: Math.max(0, y),
       behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-      block: 'start',
     });
+  }
+
+  /**
+   * @param {string|HTMLElement} sel
+   */
+  function melScrollToSelector(sel) {
+    var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (!el) {
+      return;
+    }
+    scrollToTarget(el);
   }
 
   /**
@@ -70,12 +89,7 @@
       return;
     }
     var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
-    if (scrollTarget.scrollIntoView) {
-      scrollTarget.scrollIntoView({
-        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-        block: 'center',
-      });
-    }
+    scrollToTarget(scrollTarget);
     window.setTimeout(function () {
       try {
         if (el && typeof el.focus === 'function' && !el.disabled) {
@@ -1953,38 +1967,6 @@
     }
   }
 
-  function isStepComplete(step, form) {
-    switch (step) {
-      case 'basic':
-        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
-      case 'datetime': {
-        var sd = form.querySelector('[name="mel[start_date][date]"]');
-        if (!sd || !sd.value) {
-          return false;
-        }
-        var vm = valRadio(form, 'mel[venue_mode]');
-        if (vm === 'saved') {
-          return val(form, 'mel[venue_saved]') !== '';
-        }
-        if (vm === 'create') {
-          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
-        }
-        return parseHiddenLocation(form) !== '';
-      }
-      case 'tickets': {
-        var tt = valRadio(form, 'mel[field_event_type]');
-        if (tt === 'external') return !!val(form, 'mel[external_url]');
-        if (tt === 'paid') return !!val(form, 'mel[field_product_target]');
-        return true;
-      }
-      case 'description':
-      case 'preview':
-      case 'publish':
-      default:
-        return true;
-    }
-  }
-
   function setWizardNavActive(form, activeIndex) {
     var nav = form.querySelector('#mel-wizard-nav');
     if (!nav) {
@@ -2007,10 +1989,46 @@
       window.setTimeout(function () {
         activeLink.scrollIntoView({
           block: 'nearest',
-          inline: 'center',
+          inline: 'nearest',
           behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
         });
       }, 60);
+    }
+  }
+
+  function isStepComplete(step, form) {
+    switch (step) {
+      case 'basic':
+        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
+      case 'datetime': {
+        var sd = form.querySelector('[name="mel[start_date][date]"]');
+        if (!sd || !sd.value) {
+          return false;
+        }
+        var vm = valRadio(form, 'mel[venue_mode]');
+        if (vm === 'saved') {
+          return val(form, 'mel[venue_saved]') !== '';
+        }
+        if (vm === 'create') {
+          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
+        }
+        return parseHiddenLocation(form) !== '';
+      }
+      case 'tickets': {
+        var tt = valRadio(form, 'mel[field_event_type]');
+        if (tt === 'external') {
+          return !!val(form, 'mel[external_url]');
+        }
+        if (tt === 'paid') {
+          return !!val(form, 'mel[field_product_target]');
+        }
+        return true;
+      }
+      case 'description':
+      case 'preview':
+      case 'publish':
+      default:
+        return true;
     }
   }
 
@@ -2020,29 +2038,41 @@
     }
     var step = MEL_STEPS[index];
     var el = document.getElementById('mel-step-' + step.id);
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({
-        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-        block: 'start',
-      });
-    }
+    scrollToTarget(el);
     setWizardNavActive(form, index);
     setWizardStepIndex(form, index);
   }
 
-  function melContinueToNextSection(form) {
-    var stepIdx = getWizardStepIndex(form);
-    var stepId = MEL_STEPS[stepIdx].id;
-
-    if (!isStepComplete(stepId, form)) {
+  /**
+   * @param {HTMLFormElement} form
+   * @param {HTMLElement} cont Continue control (.mel-continue-button).
+   */
+  function melContinueToNextSection(form, cont) {
+    var section = cont && cont.closest ? cont.closest('section.mel-step[data-step]') : null;
+    var stepIdx = -1;
+    if (section) {
+      var sid = section.getAttribute('data-step');
+      for (var s = 0; s < MEL_STEPS.length; s++) {
+        if (MEL_STEPS[s].id === sid) {
+          stepIdx = s;
+          break;
+        }
+      }
+    }
+    if (stepIdx < 0) {
+      stepIdx = getWizardStepIndex(form);
+    }
+    if (stepIdx < 0 || stepIdx >= MEL_STEPS.length) {
+      return;
+    }
+    var validateId = MEL_STEPS[stepIdx].id;
+    if (!isStepComplete(validateId, form)) {
       alert(Drupal.t('Complete required fields before continuing.'));
       return;
     }
-
     if (stepIdx >= MEL_STEPS.length - 1) {
       return;
     }
-
     scrollToStudioSection(form, stepIdx + 1);
   }
 
@@ -2056,18 +2086,13 @@
     setWizardNavActive(form, 0);
     updateProgress(form);
 
-    var nav = form.querySelector('#mel-wizard-nav');
-    nav.querySelectorAll('a.mel-nav-link').forEach(function (link) {
+    form.querySelectorAll('a.mel-nav-link').forEach(function (link) {
       link.addEventListener('click', function (e) {
         e.preventDefault();
-        var targetId = link.getAttribute('href');
-        var target = targetId ? document.querySelector(targetId) : null;
-        if (target && target.scrollIntoView) {
-          target.scrollIntoView({
-            behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-            block: 'start',
-          });
-        }
+        var href = link.getAttribute('href') || '';
+        var id = href.replace(/^#/, '');
+        var target = id ? document.getElementById(id) : null;
+        scrollToTarget(target);
         var stepAttr = link.getAttribute('data-step');
         var idx = -1;
         for (var s = 0; s < MEL_STEPS.length; s++) {
@@ -2105,7 +2130,7 @@
         }
         e.preventDefault();
         e.stopPropagation();
-        melContinueToNextSection(form);
+        melContinueToNextSection(form, cont);
       },
       true,
     );
@@ -2146,7 +2171,7 @@
             }
           });
         },
-        { root: null, rootMargin: '-40% 0px -50% 0px', threshold: 0.1 },
+        { rootMargin: '-40% 0px -50% 0px', threshold: 0.1 },
       );
       steps.forEach(function (s) {
         io.observe(s);
@@ -2578,6 +2603,39 @@
           refreshIntelligence(form);
         });
       });
+    },
+  };
+
+  /**
+   * Collapse Duplicate / Archive / Remove into a compact details menu (Event Studio ticket cards).
+   */
+  Drupal.behaviors.melEventStudioTicketOverflow = {
+    attach: function (context) {
+      once('mel-ticket-overflow', '.mel-event-studio .js-mel-ticket-card.is-view .mel-ticket-card__actions', context).forEach(
+        function (actions) {
+          if (actions.querySelector('details.mel-ticket-card__overflow')) {
+            return;
+          }
+          var dup = actions.querySelector('[name^="ticket_duplicate_"]');
+          var arch = actions.querySelector('[name^="ticket_archive_"]');
+          var rem = actions.querySelector('[name^="ticket_remove_"]');
+          var toMove = [dup, arch, rem].filter(Boolean);
+          if (toMove.length === 0) {
+            return;
+          }
+          var details = document.createElement('details');
+          details.className = 'mel-ticket-card__overflow';
+          var summary = document.createElement('summary');
+          summary.className = 'mel-ticket-card__overflow-trigger';
+          summary.setAttribute('aria-label', Drupal.t('More ticket actions'));
+          summary.appendChild(document.createTextNode('\u22EF'));
+          details.appendChild(summary);
+          toMove.forEach(function (btn) {
+            details.appendChild(btn);
+          });
+          actions.appendChild(details);
+        },
+      );
     },
   };
 

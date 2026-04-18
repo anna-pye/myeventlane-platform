@@ -1,34 +1,31 @@
 {#
 /**
  * @file
- * Event Studio — horizontal overview navigation (vendor edit flow).
+ * Event Studio — left sidebar step navigation (anchors + mel-event-studio.js scroll-spy).
  *
- * Wired by mel-event-studio.js: data-mel-overview values drive step jumps and scroll.
- * Not the legacy Form API wizard; Studio-specific classes only.
+ * Keeps #mel-wizard-nav and a.mel-nav-link for initMelWizard() / setWizardNavActive().
  */
 #}
-<nav class="mel-event-studio-nav" id="mel-event-studio-nav" aria-label="{{ 'Event overview'|t }}">
+<nav class="mel-sidebar-nav mel-event-studio-nav mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" aria-label="{{ 'Event overview'|t }}">
   <p class="mel-event-studio-nav__label">{{ 'Overview'|t }}</p>
-  <div class="mel-event-studio-nav__scroll">
-    <div class="mel-event-studio-nav__track" role="tablist">
-      <button type="button" class="mel-event-studio-nav__item" data-mel-overview="basic" data-mel-step-index="0" role="tab" aria-selected="true">
-        {{ 'Basic info'|t }}
-      </button>
-      <button type="button" class="mel-event-studio-nav__item" data-mel-overview="date_location" data-mel-step-index="1" role="tab" aria-selected="false">
-        {{ 'Date & Location'|t }}
-      </button>
-      <button type="button" class="mel-event-studio-nav__item" data-mel-overview="tickets" data-mel-step-index="3" role="tab" aria-selected="false">
-        {{ 'Tickets / RSVP'|t }}
-      </button>
-      <button type="button" class="mel-event-studio-nav__item" data-mel-overview="description" role="tab" aria-selected="false">
-        {{ 'Description'|t }}
-      </button>
-      <button type="button" class="mel-event-studio-nav__item" data-mel-overview="preview" role="tab" aria-selected="false">
-        {{ 'Preview'|t }}
-      </button>
-      <button type="button" class="mel-event-studio-nav__item mel-event-studio-nav__item--publish" data-mel-overview="publish" data-mel-step-index="4" role="tab" aria-selected="false">
-        {{ 'Publish'|t }}
-      </button>
-    </div>
-  </div>
+  <ul class="mel-sidebar-nav__list">
+    <li>
+      <a href="#mel-step-basic" class="mel-nav-item mel-nav-link mel-event-studio-nav__item is-active active" data-step="basic" role="tab" aria-selected="true">{{ 'Basic info'|t }}</a>
+    </li>
+    <li>
+      <a href="#mel-step-datetime" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="datetime" role="tab" aria-selected="false">{{ 'Date & Location'|t }}</a>
+    </li>
+    <li>
+      <a href="#mel-step-tickets" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="tickets" role="tab" aria-selected="false">{{ 'Tickets / RSVP'|t }}</a>
+    </li>
+    <li>
+      <a href="#mel-step-description" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="description" role="tab" aria-selected="false">{{ 'Description'|t }}</a>
+    </li>
+    <li>
+      <a href="#mel-step-preview" class="mel-nav-item mel-nav-link mel-event-studio-nav__item" data-step="preview" role="tab" aria-selected="false">{{ 'Preview'|t }}</a>
+    </li>
+    <li>
+      <a href="#mel-step-publish" class="mel-nav-item mel-nav-link mel-event-studio-nav__item mel-event-studio-nav__item--publish" data-step="publish" role="tab" aria-selected="false">{{ 'Publish'|t }}</a>
+    </li>
+  </ul>
 </nav>
