@@ -38,6 +38,7 @@ final class EventProductManager {
     private readonly MessengerInterface $messenger,
     private readonly LockBackendInterface $lock,
     private readonly TicketTypeManager $ticketTypeManager,
+    private readonly TicketProductEventOwnershipService $ticketProductEventOwnership,
   ) {}
 
   /**
@@ -208,8 +209,7 @@ final class EventProductManager {
     if (!$event->get('field_product_target')->isEmpty()) {
       $product = $event->get('field_product_target')->entity;
       if ($product instanceof ProductInterface && $product->isPublished()) {
-        if ($this->ticketProductOwnsEvent($product, $event)) {
-          $this->ensureProductFieldEventMatches($product, $event);
+        if ($this->ticketProductEventOwnership->ticketProductOwnsEvent($product, $event)) {
           return TRUE;
         }
         $this->loggerFactory->get('myeventlane_event')->warning(
@@ -242,36 +242,6 @@ final class EventProductManager {
     );
 
     return TRUE;
-  }
-
-  /**
-   * TRUE when this product is the ticket product for the given event (field_event match or self-heal empty).
-   */
-  private function ticketProductOwnsEvent(ProductInterface $product, NodeInterface $event): bool {
-    if (!$product->hasField('field_event')) {
-      return FALSE;
-    }
-    if ($product->get('field_event')->isEmpty()) {
-      $product->set('field_event', ['target_id' => $event->id()]);
-      $product->save();
-      $this->loggerFactory->get('myeventlane_event')->notice(
-        'Set field_event on ticket product @pid to event @eid (was empty).',
-        ['@pid' => (string) $product->id(), '@eid' => (string) $event->id()]
-      );
-      return TRUE;
-    }
-    return (int) $product->get('field_event')->target_id === (int) $event->id();
-  }
-
-  /**
-   * Sets field_event when empty (never reassigns another event's product — mismatch is handled elsewhere).
-   */
-  private function ensureProductFieldEventMatches(ProductInterface $product, NodeInterface $event): void {
-    if (!$product->hasField('field_event') || !$product->get('field_event')->isEmpty()) {
-      return;
-    }
-    $product->set('field_event', ['target_id' => $event->id()]);
-    $product->save();
   }
 
   /**
@@ -316,7 +286,6 @@ final class EventProductManager {
         'uid' => $event->getOwnerId(),
       ]);
       $product->save();
-      $this->ensureProductFieldEventMatches($product, $event);
 
       $this->loggerFactory->get('myeventlane_event')->notice(
         'Created RSVP product @pid for event @eid (@title)',

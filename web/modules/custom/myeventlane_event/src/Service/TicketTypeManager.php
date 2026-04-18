@@ -29,6 +29,7 @@ final class TicketTypeManager {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly TicketProductEventOwnershipService $ticketProductEventOwnership,
   ) {}
 
   /**
@@ -110,8 +111,7 @@ final class TicketTypeManager {
     if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
       $product = $event->get('field_product_target')->entity;
       if ($product instanceof ProductInterface && $product->bundle() === 'ticket') {
-        if ($this->ticketProductOwnsEvent($product, $event)) {
-          $this->ensureProductFieldEventMatches($product, $event);
+        if ($this->ticketProductEventOwnership->ticketProductOwnsEvent($product, $event)) {
           return $product;
         }
         $this->loggerFactory->get('myeventlane_event')->warning(
@@ -143,7 +143,6 @@ final class TicketTypeManager {
       'uid' => $event->getOwnerId(),
     ]);
     $product->save();
-    $this->ensureProductFieldEventMatches($product, $event);
 
     $event->set('field_product_target', ['target_id' => $product->id()]);
     EventNodeRevisionSave::prepare($event, 'Linked ticket product to event.');
@@ -155,36 +154,6 @@ final class TicketTypeManager {
     );
 
     return $product;
-  }
-
-  /**
-   * TRUE when field_event is empty (self-healed) or matches this event.
-   */
-  private function ticketProductOwnsEvent(ProductInterface $product, NodeInterface $event): bool {
-    if (!$product->hasField('field_event')) {
-      return FALSE;
-    }
-    if ($product->get('field_event')->isEmpty()) {
-      $product->set('field_event', ['target_id' => $event->id()]);
-      $product->save();
-      $this->loggerFactory->get('myeventlane_event')->notice(
-        'Set field_event on ticket product @pid to event @eid (was empty).',
-        ['@pid' => (string) $product->id(), '@eid' => (string) $event->id()]
-      );
-      return TRUE;
-    }
-    return (int) $product->get('field_event')->target_id === (int) $event->id();
-  }
-
-  /**
-   * Sets field_event when empty (mismatch → clear link + new product in getOrCreateTicketProduct).
-   */
-  private function ensureProductFieldEventMatches(ProductInterface $product, NodeInterface $event): void {
-    if (!$product->hasField('field_event') || !$product->get('field_event')->isEmpty()) {
-      return;
-    }
-    $product->set('field_event', ['target_id' => $event->id()]);
-    $product->save();
   }
 
   /**
