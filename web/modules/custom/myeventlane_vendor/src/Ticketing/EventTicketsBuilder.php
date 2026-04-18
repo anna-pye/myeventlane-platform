@@ -93,6 +93,7 @@ final class EventTicketsBuilder {
       $form['builder_shell'] = [
         '#type' => 'container',
         '#attributes' => [
+          'id' => self::BUILDER_WRAPPER_ID,
           'class' => ['mel-ticket-builder', 'mel-stack', 'mel-stack--lg'],
         ],
       ];
@@ -116,6 +117,7 @@ final class EventTicketsBuilder {
     $form['builder_shell'] = [
       '#type' => 'container',
       '#attributes' => [
+        'id' => self::BUILDER_WRAPPER_ID,
         'class' => ['mel-ticket-builder', 'mel-stack', 'mel-stack--lg'],
       ],
     ];
