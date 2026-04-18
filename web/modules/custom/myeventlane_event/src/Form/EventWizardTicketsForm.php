@@ -28,11 +28,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
   protected EventTicketsBuilder $ticketBuilder;
 
-  /**
-   * @var \Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper|null
-   *   Null when form was unserialized from cache; lazy-loaded on first access.
-   */
-  protected ?MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm = null;
+  protected MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm;
 
   public function __construct(
     $entity_type_manager,
@@ -49,21 +45,6 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
     $this->ticketTypeManager = $ticket_type_manager;
     $this->ticketBuilder = $ticket_builder;
     $this->melPlatformSupportWizardForm = $mel_platform_support_wizard_form;
-  }
-
-  /**
-   * Returns the MEL platform support wizard form helper.
-   *
-   * Lazy-loaded when form was unserialized from cache (AJAX rebuilds). The
-   * form object is serialized for form cache; constructor-injected services
-   * are not restored, so we re-fetch from container on first access.
-   */
-  protected function getMelPlatformSupportWizardForm(): MelPlatformSupportWizardFormHelper {
-    if ($this->melPlatformSupportWizardForm === null) {
-      $this->melPlatformSupportWizardForm = \Drupal::getContainer()
-        ->get('myeventlane_event.mel_platform_support_wizard_form');
-    }
-    return $this->melPlatformSupportWizardForm;
   }
 
   /**
@@ -112,7 +93,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->applyTicketTypeStates($form);
     $this->addCapacityWarning($form, $event);
-    $this->getMelPlatformSupportWizardForm()->buildSection($form, $form_state, $event);
+    $this->melPlatformSupportWizardForm->buildSection($form, $form_state, $event);
 
     $form['#title'] = $this->t('Create event: Tickets');
     $form['#event'] = $event;
@@ -206,7 +187,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
         }
       }
 
-      $this->getMelPlatformSupportWizardForm()->validate($form_state, $event, (string) $value);
+      $this->melPlatformSupportWizardForm->validate($form_state, $event, (string) $value);
     }
   }
 
@@ -227,7 +208,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
 
     $this->copyFormValuesToEvent($event, $form, $form_state, 'wizard_step_4');
 
-    $this->getMelPlatformSupportWizardForm()->apply($event, $form_state);
+    $this->melPlatformSupportWizardForm->apply($event, $form_state);
 
     $event->set('field_ticket_types', $saved_ticket_types);
     EventNodeRevisionSave::prepare($event, 'Event wizard: tickets step (field_ticket_types).');
@@ -237,6 +218,22 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
       '@id' => $event->id(),
       '@fields' => implode(', ', $field_names),
     ]);
+
+    $reloaded = $this->entityTypeManager->getStorage('node')->load($event->id());
+    if ($reloaded instanceof NodeInterface) {
+      if (!$this->ticketTypeManager->syncTicketTypesToVariations($reloaded)) {
+        $this->logger->notice('Ticket variation sync returned FALSE after tickets step for event @nid.', [
+          '@nid' => $event->id(),
+        ]);
+      }
+    }
+
+    $event_type = $event->get('field_event_type')->value ?? '';
+    if (in_array($event_type, ['paid', 'both'], TRUE)) {
+      if (!$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+        $this->messenger()->addWarning($this->t('Add at least one ticket tier (for example a paid tier or RSVP) before you publish. Use the buttons above to create tickets.'));
+      }
+    }
 
     $this->redirectToNextStep($form_state, 'tickets');
   }

@@ -36,12 +36,36 @@ abstract class EventWizardBaseForm extends FormBase {
    * Wizard step order.
    */
   protected const STEPS = [
-    'basics' => ['label' => 'Basics', 'route' => 'myeventlane_event.wizard.basics'],
-    'when_where' => ['label' => 'When & Where', 'route' => 'myeventlane_event.wizard.when_where'],
-    'tickets' => ['label' => 'Tickets', 'route' => 'myeventlane_event.wizard.tickets'],
-    'details' => ['label' => 'Details', 'route' => 'myeventlane_event.wizard.details'],
-    'review' => ['label' => 'Review', 'route' => 'myeventlane_event.wizard.review'],
-    'publish' => ['label' => 'Publish', 'route' => 'myeventlane_event.wizard.publish'],
+    'basics' => [
+      'label' => 'Basics',
+      'overview_label' => 'Basic Info',
+      'route' => 'myeventlane_event.wizard.basics',
+    ],
+    'when_where' => [
+      'label' => 'When & Where',
+      'overview_label' => 'Date & Location',
+      'route' => 'myeventlane_event.wizard.when_where',
+    ],
+    'tickets' => [
+      'label' => 'Tickets',
+      'overview_label' => 'Tickets / RSVP',
+      'route' => 'myeventlane_event.wizard.tickets',
+    ],
+    'details' => [
+      'label' => 'Details',
+      'overview_label' => 'Description',
+      'route' => 'myeventlane_event.wizard.details',
+    ],
+    'review' => [
+      'label' => 'Review',
+      'overview_label' => 'Preview',
+      'route' => 'myeventlane_event.wizard.review',
+    ],
+    'publish' => [
+      'label' => 'Publish',
+      'overview_label' => 'Publish',
+      'route' => 'myeventlane_event.wizard.publish',
+    ],
   ];
 
   /**
@@ -519,6 +543,7 @@ abstract class EventWizardBaseForm extends FormBase {
       $navigation[] = [
         'id' => $step_id,
         'label' => $step['label'],
+        'overview_label' => $step['overview_label'] ?? $step['label'],
         'url' => $url,
         'is_current' => $is_current,
         'is_complete' => $is_complete,

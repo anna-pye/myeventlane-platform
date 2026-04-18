@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Persistent overview navigation for the multi-route event wizard.
+ *
+ * Variables:
+ * - steps: Navigation items from EventWizardBaseForm::buildStepper() (id, overview_label, url, …).
+ */
+#}
+<nav class="mel-event-wizard__nav mel-event-wizard-nav" aria-label="{{ 'Event wizard overview'|t }}">
+  <p class="mel-event-wizard-nav__title">{{ 'Overview'|t }}</p>
+  <div class="mel-event-wizard-nav__scroll">
+    <ol class="mel-wizard-steps">
+      {% for nav_step in steps %}
+        <li class="mel-wizard-steps__item{% if nav_step.is_current %} is-current{% endif %}{% if nav_step.is_complete %} is-complete{% endif %}{% if not nav_step.is_accessible and not nav_step.is_current %} is-disabled{% endif %}">
+          {% if nav_step.url and (nav_step.is_accessible or nav_step.is_current) %}
+            <a href="{{ nav_step.url }}"
+               class="mel-wizard-steps__link js-mel-stepper-button{% if nav_step.is_current %} is-active{% endif %}"
+               data-step-target="{{ nav_step.id }}"
+               {% if nav_step.is_current %}aria-current="step"{% endif %}>
+              <span class="mel-wizard-steps__number">{{ nav_step.step_number }}</span>
+              <span class="mel-wizard-steps__label">{{ nav_step.overview_label }}</span>
+            </a>
+          {% else %}
+            <span class="mel-wizard-steps__link" aria-disabled="true">
+              <span class="mel-wizard-steps__number">{{ nav_step.step_number }}</span>
+              <span class="mel-wizard-steps__label">{{ nav_step.overview_label }}</span>
+            </span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</nav>
