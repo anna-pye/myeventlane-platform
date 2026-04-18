@@ -5,10 +5,22 @@
 (function (Drupal, once) {
   'use strict';
 
-  console.log('MEL event wizard library loaded');
-  console.log('MEL studio loaded');
-
   var HIGHLIGHT_MAX = 6;
+
+  function melPrefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function melScrollToSelector(sel) {
+    var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (!el || !el.scrollIntoView) {
+      return;
+    }
+    el.scrollIntoView({
+      behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
 
   /**
    * Guided wizard step model (order is fixed). IDs match #mel-step-{id} in Twig.
@@ -59,7 +71,10 @@
     }
     var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
     if (scrollTarget.scrollIntoView) {
-      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollTarget.scrollIntoView({
+        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'center',
+      });
     }
     window.setTimeout(function () {
       try {
@@ -1978,16 +1993,24 @@
     var links = nav.querySelectorAll('a.mel-nav-link');
     links.forEach(function (link) {
       link.classList.remove('is-active');
+      link.classList.remove('active');
     });
     if (activeIndex >= 0 && activeIndex < links.length) {
       links[activeIndex].classList.add('is-active');
+      links[activeIndex].classList.add('active');
     }
     links.forEach(function (link, i) {
       link.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
     });
     var activeLink = links[activeIndex];
     if (activeLink && activeLink.scrollIntoView) {
-      activeLink.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+      window.setTimeout(function () {
+        activeLink.scrollIntoView({
+          block: 'nearest',
+          inline: 'center',
+          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        });
+      }, 60);
     }
   }
 
@@ -1998,7 +2021,10 @@
     var step = MEL_STEPS[index];
     var el = document.getElementById('mel-step-' + step.id);
     if (el && el.scrollIntoView) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({
+        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'start',
+      });
     }
     setWizardNavActive(form, index);
     setWizardStepIndex(form, index);
@@ -2025,7 +2051,7 @@
       return;
     }
 
-    var steps = form.querySelectorAll('.mel-studio-section');
+    var steps = form.querySelectorAll('section.mel-step[data-step]');
     setWizardStepIndex(form, 0);
     setWizardNavActive(form, 0);
     updateProgress(form);
@@ -2035,11 +2061,10 @@
       link.addEventListener('click', function (e) {
         e.preventDefault();
         var targetId = link.getAttribute('href');
-        console.log('NAV CLICK', targetId);
         var target = targetId ? document.querySelector(targetId) : null;
         if (target && target.scrollIntoView) {
           target.scrollIntoView({
-            behavior: 'smooth',
+            behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
             block: 'start',
           });
         }
@@ -2061,13 +2086,10 @@
     form.addEventListener(
       'click',
       function (e) {
-        var jumpPrev = e.target.closest('#mel-studio-jump-preview');
+        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
         if (jumpPrev && form.contains(jumpPrev)) {
           e.preventDefault();
-          var prevPanel = document.getElementById('mel-studio-preview-panel');
-          if (prevPanel && prevPanel.scrollIntoView) {
-            prevPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          melScrollToSelector('#mel-preview-card');
           return;
         }
       },
@@ -2081,20 +2103,12 @@
         if (!cont || !form.contains(cont)) {
           return;
         }
-        if (cont.getAttribute('data-mel-continue') === 'next') {
-          e.preventDefault();
-          e.stopPropagation();
-          melContinueToNextSection(form);
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        melContinueToNextSection(form);
       },
       true,
     );
-
-    form.querySelectorAll('.mel-continue-button').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        console.log('CONTINUE CLICKED');
-      });
-    });
 
     form.addEventListener(
       'click',

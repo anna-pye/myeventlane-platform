@@ -3,6 +3,20 @@
  * MEL Event Studio — product workflow styling (aligned with vendor console tone).
  */
 
+/**
+ * Scroll-only Studio: all wizard steps stay in the document flow (no display toggling).
+ */
+.mel-studio--scroll-all .mel-step {
+  display: block !important;
+}
+
+.mel-event-studio-nav__track a.mel-nav-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
 .mel-event-studio {
   --mel-studio-radius: 12px;
   --mel-studio-radius-sm: 8px;

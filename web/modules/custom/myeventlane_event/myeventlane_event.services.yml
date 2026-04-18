@@ -70,6 +70,7 @@ services:
       - '@logger.factory'
       - '@messenger'
       - '@lock'
+      - '@myeventlane_event.ticket_type_manager'
 
   myeventlane_event.event_mode_manager:
     class: Drupal\myeventlane_event\Service\EventModeManager

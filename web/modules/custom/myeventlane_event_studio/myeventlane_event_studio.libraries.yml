@@ -2,6 +2,7 @@ mel_event_studio:
   css:
     theme:
       css/mel-event-studio.css: {}
+      css/mel-event-studio-nav.css: {}
   js:
     js/mel-event-studio.js: {}
   dependencies:

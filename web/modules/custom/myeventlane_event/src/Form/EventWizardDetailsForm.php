@@ -60,6 +60,7 @@ final class EventWizardDetailsForm extends EventWizardBaseForm {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form = parent::buildForm($form, $form_state);
     $event = $this->getEvent();
 
     $form_display = EntityFormDisplay::collectRenderDisplay($event, 'wizard_step_details');
