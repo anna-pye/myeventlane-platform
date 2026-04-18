@@ -228,15 +228,122 @@ form .mel-simple-tabs {
   content: 'Event image';
 }
 
-/* Phase IV — Content layout (stepper moved to sidebar; single column) */
+/* Overview nav + main: two columns on wide screens; horizontal scroll on small. */
 .mel-event-wizard .mel-event-wizard__layout {
-  display: block;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
   width: 100%;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .mel-event-wizard .mel-event-wizard__layout {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+.mel-event-wizard .mel-event-wizard-nav {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 0.75rem 0.5rem 0.75rem 0.75rem;
+}
+
+.mel-event-wizard .mel-event-wizard-nav__title {
+  margin: 0 0 0.5rem 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.mel-event-wizard .mel-event-wizard-nav__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+@media (max-width: 899px) {
+  .mel-event-wizard .mel-event-wizard-nav__scroll .mel-wizard-steps {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    min-height: 44px;
+    align-items: stretch;
+  }
+
+  .mel-event-wizard .mel-event-wizard-nav__scroll .mel-wizard-steps__item {
+    flex: 0 0 auto;
+  }
+
+  .mel-event-wizard .mel-event-wizard-nav__scroll .mel-wizard-steps__link {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+  }
+}
+
+.mel-event-wizard .mel-wizard-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.mel-event-wizard .mel-wizard-steps__item.is-current .mel-wizard-steps__link {
+  border-color: rgba(232, 121, 98, 0.55);
+  background: rgba(255, 245, 242, 0.95);
+  font-weight: 600;
+}
+
+.mel-event-wizard .mel-wizard-steps__item.is-disabled .mel-wizard-steps__link {
+  opacity: 0.55;
+}
+
+.mel-event-wizard .mel-wizard-steps__link {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  text-decoration: none;
+  color: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.mel-event-wizard .mel-wizard-steps__link.is-active {
+  outline: 2px solid transparent;
+}
+
+.mel-event-wizard .mel-wizard-steps__number {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .mel-event-wizard .mel-wizard-steps__label {
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.25;
 }
 
 /* Phase V — Mobile density */

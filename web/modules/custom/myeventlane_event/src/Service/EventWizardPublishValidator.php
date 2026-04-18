@@ -89,9 +89,8 @@ final class EventWizardPublishValidator {
       }
     }
     elseif (in_array($joinType, ['paid', 'both'], TRUE)) {
-      $productTarget = $this->resolveProductTarget($event, $form_state);
-      if (empty($productTarget)) {
-        $errors[] = (string) t('Paid events need at least one ticket or product linked.');
+      if (!$this->hasPaidTicketingCoverage($event, $form_state)) {
+        $errors[] = (string) t('Paid events need at least one ticket tier on the event, or a linked Commerce ticket product.');
       }
     }
     elseif ($joinType === 'rsvp') {
@@ -192,17 +191,20 @@ final class EventWizardPublishValidator {
   }
 
   /**
-   * Resolves product target (paid/both) from form or entity.
+   * Whether paid/hybrid events have ticketing data (ticket types and/or product).
    */
-  private function resolveProductTarget(NodeInterface $event, FormStateInterface $form_state): mixed {
+  private function hasPaidTicketingCoverage(NodeInterface $event, FormStateInterface $form_state): bool {
+    if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
+      return TRUE;
+    }
     $v = $form_state->getValue(['field_product_target', 0, 'target_id']);
     if ($v !== NULL && $v !== '') {
-      return $v;
+      return TRUE;
     }
     if ($event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty()) {
-      return $event->get('field_product_target')->target_id;
+      return TRUE;
     }
-    return NULL;
+    return FALSE;
   }
 
   /**

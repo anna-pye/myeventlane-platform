@@ -7,9 +7,11 @@ namespace Drupal\myeventlane_event\Form;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
-use Drupal\node\NodeInterface;
+use Drupal\myeventlane_event\Service\EventProductManager;
+use Drupal\myeventlane_event\Service\EventWizardPublishValidator;
 use Drupal\myeventlane_event\Service\MelPlatformSupportWizardFormHelper;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,6 +34,8 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
     RendererInterface $renderer,
     LoggerInterface $logger,
     private readonly MelPlatformSupportWizardFormHelper $melPlatformSupportWizardForm,
+    private readonly EventProductManager $eventProductManager,
+    private readonly EventWizardPublishValidator $eventWizardPublishValidator,
   ) {
     parent::__construct($entity_type_manager, $domain_detector, $current_user, $renderer);
     $this->logger = $logger;
@@ -48,6 +52,8 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
       $container->get('renderer'),
       $container->get('logger.factory')->get('myeventlane_event'),
       $container->get('myeventlane_event.mel_platform_support_wizard_form'),
+      $container->get('myeventlane_event.event_product_manager'),
+      $container->get('myeventlane_event.wizard_publish_validator'),
     );
   }
 
@@ -62,6 +68,7 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form = parent::buildForm($form, $form_state);
     $event = $this->getEvent();
 
     $form['#title'] = $this->t('Publish event');
@@ -124,6 +131,14 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
     $event = $this->getEvent();
     $event_type = (string) ($event->get('field_event_type')->value ?? 'rsvp');
     $this->melPlatformSupportWizardForm->validate($form_state, $event, $event_type);
+
+    $publish_errors = $this->eventWizardPublishValidator->validate($event, $form_state);
+    if ($publish_errors !== []) {
+      $form_state->setErrorByName('submit', (string) reset($publish_errors));
+      foreach (array_slice($publish_errors, 1) as $additional) {
+        $this->messenger()->addError((string) $additional);
+      }
+    }
   }
 
   /**
@@ -143,14 +158,21 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
       '@uid' => $this->currentUser->id(),
     ]);
 
-    $this->messenger()->addStatus($this->t('Event "@title" has been published!', [
-      '@title' => $event->label(),
-    ]));
-
     $fresh = $this->entityTypeManager->getStorage('node')->load($event->id());
     if ($fresh instanceof NodeInterface) {
       $event = $fresh;
     }
+
+    if (!$this->eventProductManager->syncProducts($event, 'publish')) {
+      $this->logger->warning('Commerce product sync did not complete for event @nid after publish.', [
+        '@nid' => $event->id(),
+      ]);
+      $this->messenger()->addWarning($this->t('Your event was published, but ticket products may still be syncing. Refresh in a moment if checkout does not show tiers yet.'));
+    }
+
+    $this->messenger()->addStatus($this->t('Event "@title" has been published!', [
+      '@title' => $event->label(),
+    ]));
 
     $vendor_uid = (int) $event->getOwnerId();
     $checkout_url = $this->melPlatformSupportWizardForm->getPostPublishCheckoutUrl($event, $vendor_uid);

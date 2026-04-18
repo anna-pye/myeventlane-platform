@@ -36,6 +36,7 @@ final class EventProductManager {
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MessengerInterface $messenger,
     private readonly LockBackendInterface $lock,
+    private readonly TicketTypeManager $ticketTypeManager,
   ) {}
 
   /**
@@ -129,14 +130,27 @@ final class EventProductManager {
       return $this->syncRsvpProduct($event);
     }
 
-    // Paid and Both events: validate product link exists.
+    // Paid and hybrid events: mel_ticket_type is source of truth; mirror to Commerce.
     if (in_array($eventType, ['paid', 'both'], TRUE)) {
-      $hasTicketTypes = $event->hasField('field_ticket_types')
+      $variation_sync = $this->ticketTypeManager->syncTicketTypesToVariations($event);
+      if (!$variation_sync) {
+        $this->loggerFactory->get('myeventlane_event')->notice(
+          'Ticket variation sync returned FALSE for event @eid (verify field_event_type is paid/both and Commerce store exists).',
+          ['@eid' => (string) $event->id()]
+        );
+      }
+
+      $fresh = $this->entityTypeManager->getStorage('node')->load($event->id());
+      if ($fresh instanceof NodeInterface) {
+        $event = $fresh;
+      }
+
+      $has_ticket_types = $event->hasField('field_ticket_types')
         && !$event->get('field_ticket_types')->isEmpty();
 
-      if ($event->get('field_product_target')->isEmpty() && !$hasTicketTypes) {
+      if ($event->get('field_product_target')->isEmpty() && !$has_ticket_types) {
         $this->messenger->addWarning(
-          $this->t('Please link a ticket product for this @type event, or define ticket types below.', [
+          $this->t('Please add at least one ticket tier for this @type event, or link a ticket product.', [
             '@type' => $eventType === 'paid' ? 'paid' : 'hybrid',
           ])
         );

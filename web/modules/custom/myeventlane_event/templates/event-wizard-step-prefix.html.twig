@@ -3,17 +3,17 @@
  * @file
  * Prefix markup for wizard step forms (card header + content wrapper).
  *
- * Wizard step navigation is rendered in the left sidebar (myeventlane_vendor_theme)
- * when on vendor event wizard routes. Inline stepper removed in favor of sidebar.
+ * Overview navigation is rendered here (mel-event-wizard-nav) for all wizard routes.
  *
  * Variables:
- * - steps: Step navigation array (kept for compatibility; no longer rendered here)
+ * - steps: Step navigation array from EventWizardBaseForm::buildStepper()
  * - step: Current step (id, label)
  * - title: Page title (fallback)
  */
 #}
 <div class="mel-event-wizard">
   <div class="mel-event-wizard__layout">
+    {% include '@myeventlane_event/mel-event-wizard-nav.html.twig' %}
     <div class="mel-event-wizard__main">
       <div class="mel-wizard-frame">
         <div class="mel-wizard-frame__header">

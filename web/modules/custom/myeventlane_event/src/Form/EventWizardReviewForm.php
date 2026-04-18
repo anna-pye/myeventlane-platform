@@ -93,7 +93,7 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
     $view_builder = $this->entityTypeManager->getViewBuilder('node');
     $card_preview = $view_builder->view($event, 'teaser');
 
-    return [
+    $build = [
       '#theme' => 'myeventlane_event_wizard_review',
       '#title' => $title,
       // Also expose entity on the form root for shared wizard helpers (e.g. suggestions).
@@ -106,10 +106,10 @@ final class EventWizardReviewForm extends EventWizardBaseForm {
       '#publish_url' => $publish_url,
       '#card_preview' => $card_preview,
       '#step_id' => 'review',
-      '#attached' => [
-        'library' => ['myeventlane_event/event_wizard'],
-      ],
     ];
+    $this->attachEventWizardLibrary($build);
+
+    return $build;
   }
 
   /**
