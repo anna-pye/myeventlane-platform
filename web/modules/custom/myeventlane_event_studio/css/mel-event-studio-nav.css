@@ -1,0 +1,81 @@
+/**
+ * @file
+ * Event Studio overview navigation — horizontal scroll on small screens, MEL tokens.
+ */
+
+.mel-event-studio-nav {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0 0;
+  border-bottom: 1px solid var(--mel-studio-border, #e2e8f0);
+}
+
+.mel-event-studio-nav__label {
+  margin: 0 0 0.5rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mel-studio-muted, #64748b);
+}
+
+.mel-event-studio-nav__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+  margin: 0 -0.25rem;
+  scrollbar-width: thin;
+}
+
+.mel-event-studio-nav__track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: stretch;
+  min-height: 44px;
+  padding: 0 0.25rem 0.25rem;
+}
+
+.mel-event-studio-nav__item {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.85rem;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+  background: var(--mel-studio-bg, #f8fafc);
+  color: var(--mel-studio-text, #0f172a);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mel-event-studio-nav__item:hover {
+  border-color: rgba(242, 109, 91, 0.45);
+  background: var(--mel-studio-card, #fff);
+}
+
+.mel-event-studio-nav__item.is-active,
+.mel-event-studio-nav__item.active {
+  background: #f26d5b;
+  border-color: #f26d5b;
+  color: #fff;
+}
+
+.mel-event-studio-nav__item--publish:not(.is-active):not(.active) {
+  border-color: rgba(242, 109, 91, 0.35);
+}
+
+.mel-event-studio-nav__item:focus-visible {
+  outline: 2px solid var(--mel-studio-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+@media (min-width: 960px) {
+  .mel-event-studio-nav__track {
+    flex-wrap: wrap;
+  }
+}
