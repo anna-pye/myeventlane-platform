@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_event\Service;
 
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\Product;
+use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -38,6 +39,40 @@ final class EventProductManager {
     private readonly LockBackendInterface $lock,
     private readonly TicketTypeManager $ticketTypeManager,
   ) {}
+
+  /**
+   * Ensures a linked ticket product's field_event matches this event (wizard publish guard).
+   *
+   * @return string|null
+   *   A translated error message when invalid; NULL when OK or no product linked.
+   */
+  public function validateTicketProductEventIntegrity(NodeInterface $event): ?string {
+    if (!$event->hasField('field_product_target') || $event->get('field_product_target')->isEmpty()) {
+      return NULL;
+    }
+    $product = $event->get('field_product_target')->entity;
+    if (!$product instanceof ProductInterface) {
+      return (string) $this->t('The linked ticket product could not be loaded.');
+    }
+    if (!$product->hasField('field_event')) {
+      return NULL;
+    }
+    if ($product->get('field_event')->isEmpty()) {
+      return (string) $this->t('The ticket product is not linked to this event. Save the event or run a ticket sync, then try again.');
+    }
+    if ((int) $product->get('field_event')->target_id !== (int) $event->id()) {
+      $this->loggerFactory->get('myeventlane_event')->error(
+        'Ticket product integrity failed: event @eid points to product @pid with field_event=@other.',
+        [
+          '@eid' => (string) $event->id(),
+          '@pid' => (string) $product->id(),
+          '@other' => (string) ($product->get('field_event')->target_id ?? '0'),
+        ]
+      );
+      return (string) $this->t('The ticket product does not belong to this event. Remove the product link or contact support.');
+    }
+    return NULL;
+  }
 
   /**
    * Syncs products for an event based on explicit intent.
@@ -170,24 +205,23 @@ final class EventProductManager {
    *   TRUE if sync completed successfully.
    */
   private function syncRsvpProduct(NodeInterface $event): bool {
-    // Check if product already exists and is linked.
     if (!$event->get('field_product_target')->isEmpty()) {
       $product = $event->get('field_product_target')->entity;
-      if ($product && $product->isPublished()) {
-        // Ensure bidirectional link.
-        if ($product->hasField('field_event')) {
-          $productEventId = $product->get('field_event')->target_id;
-          if ($productEventId != $event->id()) {
-            $product->set('field_event', ['target_id' => $event->id()]);
-            $product->save();
-
-            $this->loggerFactory->get('myeventlane_event')->notice(
-              'Linked RSVP product @pid to event @eid',
-              ['@pid' => $product->id(), '@eid' => $event->id()]
-            );
-          }
+      if ($product instanceof ProductInterface && $product->isPublished()) {
+        if ($this->ticketProductOwnsEvent($product, $event)) {
+          $this->ensureProductFieldEventMatches($product, $event);
+          return TRUE;
         }
-        return TRUE;
+        $this->loggerFactory->get('myeventlane_event')->warning(
+          'RSVP event @eid referenced product @pid not owned by this event (field_event mismatch or missing). Clearing link; creating a dedicated product.',
+          [
+            '@eid' => (string) $event->id(),
+            '@pid' => (string) $product->id(),
+          ]
+        );
+        $event->set('field_product_target', []);
+        EventNodeRevisionSave::prepare($event, 'Removed ticket product not owned by this event.');
+        $event->save();
       }
     }
 
@@ -208,6 +242,36 @@ final class EventProductManager {
     );
 
     return TRUE;
+  }
+
+  /**
+   * TRUE when this product is the ticket product for the given event (field_event match or self-heal empty).
+   */
+  private function ticketProductOwnsEvent(ProductInterface $product, NodeInterface $event): bool {
+    if (!$product->hasField('field_event')) {
+      return FALSE;
+    }
+    if ($product->get('field_event')->isEmpty()) {
+      $product->set('field_event', ['target_id' => $event->id()]);
+      $product->save();
+      $this->loggerFactory->get('myeventlane_event')->notice(
+        'Set field_event on ticket product @pid to event @eid (was empty).',
+        ['@pid' => (string) $product->id(), '@eid' => (string) $event->id()]
+      );
+      return TRUE;
+    }
+    return (int) $product->get('field_event')->target_id === (int) $event->id();
+  }
+
+  /**
+   * Sets field_event when empty (never reassigns another event's product — mismatch is handled elsewhere).
+   */
+  private function ensureProductFieldEventMatches(ProductInterface $product, NodeInterface $event): void {
+    if (!$product->hasField('field_event') || !$product->get('field_event')->isEmpty()) {
+      return;
+    }
+    $product->set('field_event', ['target_id' => $event->id()]);
+    $product->save();
   }
 
   /**
@@ -252,6 +316,7 @@ final class EventProductManager {
         'uid' => $event->getOwnerId(),
       ]);
       $product->save();
+      $this->ensureProductFieldEventMatches($product, $event);
 
       $this->loggerFactory->get('myeventlane_event')->notice(
         'Created RSVP product @pid for event @eid (@title)',
