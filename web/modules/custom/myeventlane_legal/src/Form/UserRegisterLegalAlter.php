@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_legal\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -24,6 +25,7 @@ final class UserRegisterLegalAlter {
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,
     private readonly RequestStack $requestStack,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   /**
@@ -86,6 +88,10 @@ final class UserRegisterLegalAlter {
    */
   public function validateLegalConsent(array &$form, FormStateInterface $form_state): void {
     $this->mergeLegalConsentFromRequest($form_state);
+    $this->normalizeLegalConsentNestedValues($form_state);
+    $this->loggerFactory->get('mel_debug')->notice('Consent value: <pre>@v</pre>', [
+      '@v' => print_r($form_state->getValue('legal_consent'), TRUE),
+    ]);
     $terms = (bool) $form_state->getValue(['legal_consent', 'customer_terms_agreed']);
     $privacy = (bool) $form_state->getValue(['legal_consent', 'privacy_agreed']);
     if (!$terms) {
@@ -101,16 +107,30 @@ final class UserRegisterLegalAlter {
    *
    * Some browsers/themes submit multipart registration forms such that checkbox
    * values are present in the request but not yet reflected in form state.
+   *
+   * Symfony InputBag::get() only returns scalars and throws BadRequestException
+   * when the key holds an array (e.g. legal_consent[customer_terms_agreed]).
+   * Always read nested POST via Request::request->all().
    */
   private function mergeLegalConsentFromRequest(FormStateInterface $form_state): void {
     $request = $this->requestStack->getCurrentRequest();
     if (!$request || $request->getMethod() !== 'POST') {
       return;
     }
-    // Prefer ParameterBag::get() so nested keys survive multipart POST reliably.
-    $legal = $request->request->get('legal_consent');
+    $all = $request->request->all();
+    $legal = $all['legal_consent'] ?? NULL;
     if (!is_array($legal)) {
       return;
+    }
+    // Malformed client input: legal_consent[] yields a list, not a keyed tree.
+    if ($legal !== [] && array_is_list($legal)) {
+      $first = reset($legal);
+      $on = ($first === NULL || $first === '' || $first === '0' || $first === 0 || $first === FALSE) ? 0 : 1;
+      $legal = [
+        'customer_terms_agreed' => $on,
+        'privacy_agreed' => $on,
+        'marketing_opt_in' => 0,
+      ];
     }
     $merged = $form_state->getValue('legal_consent');
     $merged = is_array($merged) ? $merged : [];
@@ -120,9 +140,33 @@ final class UserRegisterLegalAlter {
         continue;
       }
       $v = $legal[$key];
+      if (is_array($v)) {
+        $v = reset($v);
+      }
       $merged[$key] = ($v === NULL || $v === '' || $v === '0' || $v === 0 || $v === FALSE) ? 0 : 1;
     }
     $form_state->setValue('legal_consent', $merged);
+  }
+
+  /**
+   * Ensures each legal_consent child is 0/1, never a nested array.
+   */
+  private function normalizeLegalConsentNestedValues(FormStateInterface $form_state): void {
+    $legal = $form_state->getValue('legal_consent');
+    if (!is_array($legal)) {
+      return;
+    }
+    foreach (['customer_terms_agreed', 'privacy_agreed', 'marketing_opt_in'] as $key) {
+      if (!array_key_exists($key, $legal)) {
+        continue;
+      }
+      $v = $legal[$key];
+      if (is_array($v)) {
+        $v = reset($v);
+        $legal[$key] = ($v === NULL || $v === '' || $v === '0' || $v === 0 || $v === FALSE) ? 0 : 1;
+      }
+    }
+    $form_state->setValue('legal_consent', $legal);
   }
 
   /**
