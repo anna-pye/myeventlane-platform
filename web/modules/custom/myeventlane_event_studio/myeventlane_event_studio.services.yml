@@ -25,6 +25,16 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_event_studio.mel_payload:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService
+    arguments:
+      - '@myeventlane_event_studio.highlight_helper'
+
+  myeventlane_event_studio.wizard_mel_baseline:
+    class: Drupal\myeventlane_event_studio\Service\EventStudioWizardMelBaseline
+    arguments:
+      - '@form_builder'
+
   myeventlane_event_studio.ticket_link_suggestion:
     class: Drupal\myeventlane_event_studio\Service\EventStudioTicketLinkSuggestionService
     arguments:

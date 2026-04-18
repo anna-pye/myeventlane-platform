@@ -4,10 +4,14 @@
  */
 
 /**
- * Scroll-only Studio: all wizard steps stay in the document flow (no display toggling).
+ * Wizard steps stay visible in normal document flow (no nested scroll region).
  */
-.mel-studio--scroll-all .mel-step {
+.mel-wizard .mel-step {
   display: block !important;
+}
+
+.mel-studio-scroll-step {
+  scroll-margin-top: 120px;
 }
 
 .mel-event-studio-nav__track a.mel-nav-link {
@@ -35,11 +39,14 @@
   margin: 0;
   padding: 1rem 1.25rem 2.5rem;
   color: var(--mel-studio-text);
+  height: auto;
+  overflow: visible;
 }
 
 .mel-studio-form-wrapper {
   width: 100%;
   max-width: 100%;
+  overflow: visible;
 }
 
 .mel-event-studio__page-title {

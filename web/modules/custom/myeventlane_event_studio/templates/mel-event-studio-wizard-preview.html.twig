@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Preview step — read-only; continue via link to publish step.
+ */
+#}
+<div class="mel-event-studio-wizard-preview">
+  {{ include('@myeventlane_event_studio/mel-event-studio-wizard-nav.html.twig', { node: node, current_step: 'preview' }) }}
+
+  <div class="mel-wizard-preview-card">
+    <h2 class="mel-wizard-preview-card__title">{{ node.label }}</h2>
+    <p class="mel-wizard-preview-card__hint">{{ 'Review your event on the public page, or continue to publishing options.'|t }}</p>
+    <p>
+      <a href="{{ url('entity.node.canonical', {'node': node.id}) }}" class="button button--primary" target="_blank" rel="noopener noreferrer">{{ 'View public page'|t }}</a>
+    </p>
+    <p>
+      <a href="{{ path('myeventlane_event_studio.edit_publish', {'node': node.id}) }}" class="button">{{ 'Continue to publish'|t }}</a>
+    </p>
+    <p>
+      <a href="{{ path('myeventlane_event_studio.edit_description', {'node': node.id}) }}">{{ 'Back'|t }}</a>
+    </p>
+  </div>
+</div>
