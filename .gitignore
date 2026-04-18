@@ -18,6 +18,7 @@
 ############################################
 /node_modules/
 /web/themes/custom/*/node_modules/
+/web/themes/custom/**/node_modules.bak/
 /web/themes/custom/**/dist/
 /build/
 /.npm-cache/
