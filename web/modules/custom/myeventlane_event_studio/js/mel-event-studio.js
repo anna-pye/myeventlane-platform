@@ -7,22 +7,6 @@
 
   var HIGHLIGHT_MAX = 6;
 
-  /**
-   * Guided wizard step model (order is fixed).
-   *
-   * @type {{id: string, label: string}[]}
-   */
-  var MEL_STEPS = [
-    { id: 'basic', label: 'Basic Info' },
-    { id: 'schedule', label: 'Date & Time' },
-    { id: 'location', label: 'Location' },
-    { id: 'tickets', label: 'Tickets' },
-    { id: 'advanced', label: 'Advanced' },
-  ];
-
-  /** Keys for #mel-event-studio-nav — one per wizard step index (matches showStep). */
-  var MEL_OVERVIEW_BY_STEP = ['basic', 'date_location', 'date_location', 'tickets', 'publish'];
-
   function melPrefersReducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
@@ -36,39 +20,6 @@
       behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
       block: 'start',
     });
-  }
-
-  function scrollMelOverviewActiveIntoView(form) {
-    var nav = form.querySelector('#mel-event-studio-nav');
-    if (!nav) {
-      return;
-    }
-    var active = nav.querySelector('.mel-event-studio-nav__item.is-active, .mel-event-studio-nav__item.active');
-    if (!active) {
-      return;
-    }
-    active.scrollIntoView({
-      behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-      inline: 'center',
-      block: 'nearest',
-    });
-  }
-
-  function setMelOverviewActive(form, overviewKey) {
-    var nav = form.querySelector('#mel-event-studio-nav');
-    if (!nav) {
-      return;
-    }
-    nav.querySelectorAll('[data-mel-overview]').forEach(function (btn) {
-      var key = btn.getAttribute('data-mel-overview') || '';
-      var on = key === overviewKey;
-      btn.classList.toggle('is-active', on);
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    window.setTimeout(function () {
-      scrollMelOverviewActiveIntoView(form);
-    }, 60);
   }
 
   function getSettings() {
@@ -1717,16 +1668,6 @@
     );
   }
 
-  function getWizardStepIndex(form) {
-    var v = form.getAttribute('data-mel-wizard-step');
-    var n = v ? parseInt(v, 10) : 0;
-    return isNaN(n) ? 0 : n;
-  }
-
-  function setWizardStepIndex(form, index) {
-    form.setAttribute('data-mel-wizard-step', String(index));
-  }
-
   function calculateScore(form) {
     var score = 0;
     var total = 10;
@@ -1985,222 +1926,119 @@
     }
   }
 
-  function isStepComplete(step, form) {
-    switch (step) {
-      case 'basic':
-        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
-      case 'schedule': {
-        var sd = form.querySelector('[name="mel[start_date][date]"]');
-        return !!(sd && sd.value);
-      }
-      case 'location': {
-        var vm = valRadio(form, 'mel[venue_mode]');
-        if (vm === 'saved') {
-          return val(form, 'mel[venue_saved]') !== '';
-        }
-        if (vm === 'create') {
-          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
-        }
-        return parseHiddenLocation(form) !== '';
-      }
-      case 'tickets': {
-        var tt = valRadio(form, 'mel[field_event_type]');
-        if (tt === 'external') return !!val(form, 'mel[external_url]');
-        if (tt === 'paid') return !!val(form, 'mel[field_product_target]');
-        return true;
-      }
-      default:
-        return true;
-    }
-  }
-
-  function showStep(form, index) {
-    form._melOverviewScrollLock = true;
-    window.clearTimeout(form._melOverviewScrollLockTimer);
-    form._melOverviewScrollLockTimer = window.setTimeout(function () {
-      form._melOverviewScrollLock = false;
-    }, 450);
-
-    var steps = form.querySelectorAll('.mel-wizard .mel-step');
-    var max = steps.length - 1;
-    if (index < 0) index = 0;
-    if (index > max) index = max;
-
-    steps.forEach(function (el, i) {
-      var on = i === index;
-      el.style.display = on ? 'block' : 'none';
-      if (on) {
-        var prevBtn = el.querySelector('.mel-prev');
-        var nextBtn = el.querySelector('.mel-next');
-        if (prevBtn) prevBtn.disabled = index === 0;
-        if (nextBtn) nextBtn.hidden = index >= MEL_STEPS.length - 1;
-      }
-    });
-
-    var overviewKey = MEL_OVERVIEW_BY_STEP[index];
-    if (overviewKey) {
-      setMelOverviewActive(form, overviewKey);
-    }
-
-    setWizardStepIndex(form, index);
-  }
-
   /**
-   * While on Basic Info step, refine overview highlight (basic vs description vs preview) from scroll.
+   * Scroll-only overview: all steps visible; nav and Continue move the viewport.
    *
    * @param {HTMLFormElement} form
    */
-  function initOverviewScrollSpy(form) {
-    if (!form.querySelector('#mel-event-studio-nav')) {
-      return;
-    }
-
-    var previewEl = document.getElementById('mel-preview-card');
-    var descEl = document.getElementById('mel-studio-section-description');
-
-    function tick() {
-      form._melOverviewScrollSpyRaf = null;
-      if (form._melOverviewScrollLock) {
-        return;
-      }
-      if (getWizardStepIndex(form) !== 0) {
-        return;
-      }
-      if (!form._melOverviewUserScrolledOnce) {
-        return;
-      }
-
-      var vh = window.innerHeight || 800;
-      function visibleRatio(el) {
-        if (!el) {
-          return 0;
-        }
-        var r = el.getBoundingClientRect();
-        var h = Math.max(0, Math.min(r.bottom, vh) - Math.max(0, r.top));
-        var eh = r.height || el.offsetHeight || 1;
-        return Math.min(1, h / Math.min(eh, vh));
-      }
-
-      var pRatio = visibleRatio(previewEl);
-      var dRatio = visibleRatio(descEl);
-      var key = 'basic';
-      if (dRatio > 0.18 && dRatio + 0.05 >= pRatio) {
-        key = 'description';
-      } else if (pRatio > 0.1) {
-        key = 'preview';
-      }
-      setMelOverviewActive(form, key);
-    }
-
-    function scheduleTick() {
-      if (form._melOverviewScrollSpyRaf !== null && form._melOverviewScrollSpyRaf !== undefined) {
-        return;
-      }
-      form._melOverviewScrollSpyRaf = window.requestAnimationFrame(tick);
-    }
-
-    if (window.IntersectionObserver) {
-      var io = new IntersectionObserver(
-        function () {
-          scheduleTick();
-        },
-        { root: null, threshold: [0, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1] },
-      );
-      if (previewEl) {
-        io.observe(previewEl);
-      }
-      if (descEl) {
-        io.observe(descEl);
-      }
-    }
-
-    window.addEventListener(
-      'scroll',
-      function () {
-        form._melOverviewUserScrolledOnce = true;
-        scheduleTick();
-      },
-      { passive: true },
-    );
-  }
-
   function initMelWizard(form) {
-    if (!form.querySelector('.mel-wizard') || !form.querySelector('#mel-event-studio-nav')) {
+    var wizard = form.querySelector('.mel-wizard');
+    var nav = form.querySelector('#mel-wizard-nav');
+    if (!wizard || !nav) {
       return;
     }
 
-    showStep(form, 0);
     updateProgress(form);
 
-    var nav = form.querySelector('#mel-event-studio-nav');
-    nav.querySelectorAll('[data-mel-overview]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var o = btn.getAttribute('data-mel-overview') || '';
-        if (o === 'description') {
-          showStep(form, 0);
-          window.setTimeout(function () {
-            setMelOverviewActive(form, 'description');
-            melScrollToSelector('#mel-studio-section-description');
-          }, 100);
-          return;
+    function scrollOverviewActiveIntoView() {
+      var active = nav.querySelector('.mel-nav-link.is-active, .mel-nav-link.active');
+      if (!active) {
+        return;
+      }
+      active.scrollIntoView({
+        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+    }
+
+    function setNavActive(link) {
+      nav.querySelectorAll('.mel-nav-link').forEach(function (l) {
+        l.classList.remove('is-active');
+        l.classList.remove('active');
+        l.setAttribute('aria-selected', 'false');
+      });
+      link.classList.add('is-active');
+      link.classList.add('active');
+      link.setAttribute('aria-selected', 'true');
+      window.setTimeout(scrollOverviewActiveIntoView, 60);
+    }
+
+    nav.querySelectorAll('.mel-nav-link').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var targetId = link.getAttribute('href');
+        var target = targetId ? document.querySelector(targetId) : null;
+        if (typeof console !== 'undefined' && console.log) {
+          console.log('NAV CLICK', targetId);
         }
-        if (o === 'preview') {
-          setMelOverviewActive(form, 'preview');
-          melScrollToSelector('#mel-preview-card');
-          return;
+        if (target) {
+          target.scrollIntoView({
+            behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+            block: 'start',
+          });
+        } else if (typeof console !== 'undefined' && console.warn) {
+          console.warn('Target not found:', targetId);
         }
-        var si = btn.getAttribute('data-mel-step-index');
-        if (si === null || si === '') {
-          return;
-        }
-        var idx = parseInt(si, 10);
-        if (isNaN(idx)) {
-          return;
-        }
-        showStep(form, idx);
-        if (o === 'publish') {
-          window.setTimeout(function () {
-            melScrollToSelector('#mel-studio-section-publish');
-          }, 100);
-        }
+        setNavActive(link);
       });
     });
 
-    initOverviewScrollSpy(form);
-
-    form.addEventListener(
-      'click',
-      function (e) {
-        var nextBtn = e.target.closest('.mel-next');
-        if (!nextBtn || !form.contains(nextBtn)) return;
-
-        var stepIdx = getWizardStepIndex(form);
-        var stepId = MEL_STEPS[stepIdx].id;
-
-        if (!isStepComplete(stepId, form)) {
-          alert(Drupal.t('Complete required fields before continuing.'));
+    form.querySelectorAll('.mel-continue-button').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (typeof console !== 'undefined' && console.log) {
+          console.log('CONTINUE CLICKED');
+        }
+        var currentSection = button.closest('.mel-studio-scroll-step');
+        if (!currentSection) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('No parent section found');
+          }
           return;
         }
-
-        if (stepIdx >= MEL_STEPS.length - 1) {
+        var next = currentSection.nextElementSibling;
+        while (next && !next.classList.contains('mel-studio-scroll-step')) {
+          next = next.nextElementSibling;
+        }
+        if (!next) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('No next section found');
+          }
           return;
         }
+        next.scrollIntoView({
+          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    });
 
-        showStep(form, stepIdx + 1);
-      },
-      false,
-    );
+    form.querySelectorAll('.mel-prev').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var currentSection = button.closest('.mel-studio-scroll-step');
+        if (!currentSection) {
+          return;
+        }
+        var prev = currentSection.previousElementSibling;
+        while (prev && !prev.classList.contains('mel-studio-scroll-step')) {
+          prev = prev.previousElementSibling;
+        }
+        if (!prev) {
+          return;
+        }
+        prev.scrollIntoView({
+          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    });
 
-    form.addEventListener(
-      'click',
-      function (e) {
-        var prevBtn = e.target.closest('.mel-prev');
-        if (!prevBtn || !form.contains(prevBtn)) return;
-        var stepIdx = getWizardStepIndex(form);
-        showStep(form, stepIdx - 1);
-      },
-      false,
-    );
+    var jumpPreview = form.querySelector('#mel-jump-to-preview-card');
+    if (jumpPreview) {
+      jumpPreview.addEventListener('click', function () {
+        melScrollToSelector('#mel-preview-card');
+      });
+    }
   }
 
   function publishReadiness(form, init, str) {
