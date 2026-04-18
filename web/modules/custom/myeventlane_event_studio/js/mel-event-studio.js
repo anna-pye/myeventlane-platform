@@ -20,6 +20,57 @@
     { id: 'advanced', label: 'Advanced' },
   ];
 
+  /** Keys for #mel-event-studio-nav — one per wizard step index (matches showStep). */
+  var MEL_OVERVIEW_BY_STEP = ['basic', 'date_location', 'date_location', 'tickets', 'publish'];
+
+  function melPrefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function melScrollToSelector(sel) {
+    var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (!el || !el.scrollIntoView) {
+      return;
+    }
+    el.scrollIntoView({
+      behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }
+
+  function scrollMelOverviewActiveIntoView(form) {
+    var nav = form.querySelector('#mel-event-studio-nav');
+    if (!nav) {
+      return;
+    }
+    var active = nav.querySelector('.mel-event-studio-nav__item.is-active, .mel-event-studio-nav__item.active');
+    if (!active) {
+      return;
+    }
+    active.scrollIntoView({
+      behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  }
+
+  function setMelOverviewActive(form, overviewKey) {
+    var nav = form.querySelector('#mel-event-studio-nav');
+    if (!nav) {
+      return;
+    }
+    nav.querySelectorAll('[data-mel-overview]').forEach(function (btn) {
+      var key = btn.getAttribute('data-mel-overview') || '';
+      var on = key === overviewKey;
+      btn.classList.toggle('is-active', on);
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    window.setTimeout(function () {
+      scrollMelOverviewActiveIntoView(form);
+    }, 60);
+  }
+
   function getSettings() {
     return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
   }
@@ -1964,8 +2015,13 @@
   }
 
   function showStep(form, index) {
+    form._melOverviewScrollLock = true;
+    window.clearTimeout(form._melOverviewScrollLockTimer);
+    form._melOverviewScrollLockTimer = window.setTimeout(function () {
+      form._melOverviewScrollLock = false;
+    }, 450);
+
     var steps = form.querySelectorAll('.mel-wizard .mel-step');
-    var nav = form.querySelectorAll('#mel-wizard-nav button');
     var max = steps.length - 1;
     if (index < 0) index = 0;
     if (index > max) index = max;
@@ -1981,29 +2037,136 @@
       }
     });
 
-    nav.forEach(function (btn, i) {
-      var on = i === index;
-      btn.classList.toggle('active', on);
-      btn.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
+    var overviewKey = MEL_OVERVIEW_BY_STEP[index];
+    if (overviewKey) {
+      setMelOverviewActive(form, overviewKey);
+    }
 
     setWizardStepIndex(form, index);
   }
 
+  /**
+   * While on Basic Info step, refine overview highlight (basic vs description vs preview) from scroll.
+   *
+   * @param {HTMLFormElement} form
+   */
+  function initOverviewScrollSpy(form) {
+    if (!form.querySelector('#mel-event-studio-nav')) {
+      return;
+    }
+
+    var previewEl = document.getElementById('mel-preview-card');
+    var descEl = document.getElementById('mel-studio-section-description');
+
+    function tick() {
+      form._melOverviewScrollSpyRaf = null;
+      if (form._melOverviewScrollLock) {
+        return;
+      }
+      if (getWizardStepIndex(form) !== 0) {
+        return;
+      }
+      if (!form._melOverviewUserScrolledOnce) {
+        return;
+      }
+
+      var vh = window.innerHeight || 800;
+      function visibleRatio(el) {
+        if (!el) {
+          return 0;
+        }
+        var r = el.getBoundingClientRect();
+        var h = Math.max(0, Math.min(r.bottom, vh) - Math.max(0, r.top));
+        var eh = r.height || el.offsetHeight || 1;
+        return Math.min(1, h / Math.min(eh, vh));
+      }
+
+      var pRatio = visibleRatio(previewEl);
+      var dRatio = visibleRatio(descEl);
+      var key = 'basic';
+      if (dRatio > 0.18 && dRatio + 0.05 >= pRatio) {
+        key = 'description';
+      } else if (pRatio > 0.1) {
+        key = 'preview';
+      }
+      setMelOverviewActive(form, key);
+    }
+
+    function scheduleTick() {
+      if (form._melOverviewScrollSpyRaf !== null && form._melOverviewScrollSpyRaf !== undefined) {
+        return;
+      }
+      form._melOverviewScrollSpyRaf = window.requestAnimationFrame(tick);
+    }
+
+    if (window.IntersectionObserver) {
+      var io = new IntersectionObserver(
+        function () {
+          scheduleTick();
+        },
+        { root: null, threshold: [0, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1] },
+      );
+      if (previewEl) {
+        io.observe(previewEl);
+      }
+      if (descEl) {
+        io.observe(descEl);
+      }
+    }
+
+    window.addEventListener(
+      'scroll',
+      function () {
+        form._melOverviewUserScrolledOnce = true;
+        scheduleTick();
+      },
+      { passive: true },
+    );
+  }
+
   function initMelWizard(form) {
-    if (!form.querySelector('.mel-wizard') || !form.querySelector('#mel-wizard-nav')) {
+    if (!form.querySelector('.mel-wizard') || !form.querySelector('#mel-event-studio-nav')) {
       return;
     }
 
     showStep(form, 0);
     updateProgress(form);
 
-    var nav = form.querySelector('#mel-wizard-nav');
-    nav.querySelectorAll('button[data-step]').forEach(function (btn, i) {
+    var nav = form.querySelector('#mel-event-studio-nav');
+    nav.querySelectorAll('[data-mel-overview]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        showStep(form, i);
+        var o = btn.getAttribute('data-mel-overview') || '';
+        if (o === 'description') {
+          showStep(form, 0);
+          window.setTimeout(function () {
+            setMelOverviewActive(form, 'description');
+            melScrollToSelector('#mel-studio-section-description');
+          }, 100);
+          return;
+        }
+        if (o === 'preview') {
+          setMelOverviewActive(form, 'preview');
+          melScrollToSelector('#mel-preview-card');
+          return;
+        }
+        var si = btn.getAttribute('data-mel-step-index');
+        if (si === null || si === '') {
+          return;
+        }
+        var idx = parseInt(si, 10);
+        if (isNaN(idx)) {
+          return;
+        }
+        showStep(form, idx);
+        if (o === 'publish') {
+          window.setTimeout(function () {
+            melScrollToSelector('#mel-studio-section-publish');
+          }, 100);
+        }
       });
     });
+
+    initOverviewScrollSpy(form);
 
     form.addEventListener(
       'click',
