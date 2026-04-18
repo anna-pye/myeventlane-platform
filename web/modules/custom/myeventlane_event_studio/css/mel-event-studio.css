@@ -52,23 +52,7 @@
   margin: 0;
 }
 
-.mel-studio-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  align-items: start;
-}
-
-@media (min-width: 960px) {
-  .mel-studio-layout {
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 2rem;
-  }
-
-  .mel-studio-aside {
-    order: unset;
-  }
-}
+/* Legacy .mel-studio-layout grid removed: unified Event Studio uses .mel-es-workspace (see mel-event-studio-shell.css). */
 
 .mel-studio-main {
   min-width: 0;
