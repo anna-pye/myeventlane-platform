@@ -333,6 +333,11 @@
       setTimeout(() => {
         updateStepButtonAccessibility(context);
       }, 100);
+
+      // Mobile overview nav: keep the current step in view inside the horizontal scroller.
+      once('mel-wizard-nav-current', '.mel-event-wizard-nav .mel-wizard-steps__item.is-current', context).forEach((li) => {
+        li.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+      });
     },
   };
 
