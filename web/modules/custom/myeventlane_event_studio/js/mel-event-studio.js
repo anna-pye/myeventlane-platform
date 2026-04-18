@@ -1992,7 +1992,7 @@
       window.setTimeout(function () {
         activeLink.scrollIntoView({
           block: 'nearest',
-          inline: 'center',
+          inline: 'nearest',
           behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
         });
       }, 60);
@@ -2536,6 +2536,39 @@
           refreshIntelligence(form);
         });
       });
+    },
+  };
+
+  /**
+   * Collapse Duplicate / Archive / Remove into a compact details menu (Event Studio ticket cards).
+   */
+  Drupal.behaviors.melEventStudioTicketOverflow = {
+    attach: function (context) {
+      once('mel-ticket-overflow', '.mel-event-studio .js-mel-ticket-card.is-view .mel-ticket-card__actions', context).forEach(
+        function (actions) {
+          if (actions.querySelector('details.mel-ticket-card__overflow')) {
+            return;
+          }
+          var dup = actions.querySelector('[name^="ticket_duplicate_"]');
+          var arch = actions.querySelector('[name^="ticket_archive_"]');
+          var rem = actions.querySelector('[name^="ticket_remove_"]');
+          var toMove = [dup, arch, rem].filter(Boolean);
+          if (toMove.length === 0) {
+            return;
+          }
+          var details = document.createElement('details');
+          details.className = 'mel-ticket-card__overflow';
+          var summary = document.createElement('summary');
+          summary.className = 'mel-ticket-card__overflow-trigger';
+          summary.setAttribute('aria-label', Drupal.t('More ticket actions'));
+          summary.appendChild(document.createTextNode('\u22EF'));
+          details.appendChild(summary);
+          toMove.forEach(function (btn) {
+            details.appendChild(btn);
+          });
+          actions.appendChild(details);
+        },
+      );
     },
   };
 

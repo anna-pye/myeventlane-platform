@@ -1,5 +1,5 @@
 // ==========================================================================
-// Event Studio — layout v2 (top preview + horizontal tabs + full-width form)
+// Event Studio — top preview + sticky sidebar nav + full-width main column
 // Complements module css/mel-event-studio.css (library mel_event_studio).
 // ==========================================================================
 
@@ -119,17 +119,37 @@ form.mel-event-studio-form {
   min-width: 0;
 }
 
-// Module CSS defines .mel-studio-layout (2-col at 960px); neutralize if present anywhere.
+// Two-column Studio shell: sticky sidebar + scrollable main (form stays one <form>).
 .mel-event-studio .mel-studio-layout {
-  display: block !important;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mel-event-studio__layout {
   display: block;
   width: 100%;
   max-width: 100%;
+}
+
+.mel-event-studio .mel-studio-sidebar {
+  flex: 0 0 220px;
+  width: 220px;
+  max-width: 100%;
+  position: sticky;
+  top: 100px;
+  align-self: flex-start;
+  height: fit-content;
+  z-index: 2;
+}
+
+.mel-event-studio .mel-studio-content {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 // Vendor workspace.css targets .mel-studio-main inside shell; Event Studio must not pick up that grid.
@@ -139,12 +159,247 @@ form.mel-event-studio-form {
   grid-template-columns: none !important;
 }
 
-// Vendor studio layout also uses .mel-studio-nav for a sidebar; reset when it is the Event Studio tab bar.
-.vendor-workspace--studio .mel-event-studio .mel-studio-nav.mel-wizard-nav {
+// Event Studio sidebar nav (distinct from vendor workspace rail).
+.vendor-workspace--studio .mel-event-studio .mel-studio-sidebar .mel-studio-nav.mel-wizard-nav {
   overflow: visible;
   height: auto;
   padding: 0;
   background: transparent;
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar step list (#mel-wizard-nav)
+// ---------------------------------------------------------------------------
+
+.mel-event-studio .mel-sidebar-nav {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+}
+
+.mel-event-studio .mel-sidebar-nav .mel-event-studio-nav__label {
+  margin: 0 0 8px 4px;
+}
+
+.mel-event-studio .mel-sidebar-nav__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mel-event-studio .mel-sidebar-nav__list li {
+  margin-bottom: 6px;
+}
+
+.mel-event-studio .mel-sidebar-nav__list li:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-sidebar-nav a.mel-nav-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mel-event-studio .mel-sidebar-nav a.mel-nav-item:hover {
+  background: #f5f7ff;
+  color: var(--mel-studio-text, #0f172a);
+}
+
+.mel-event-studio .mel-sidebar-nav a.mel-nav-item.is-active,
+.mel-event-studio .mel-sidebar-nav a.mel-nav-item.active {
+  background: #f26d5b;
+  color: #fff;
+  border-color: #f26d5b;
+}
+
+.mel-event-studio .mel-sidebar-nav a.mel-nav-item:focus-visible {
+  outline: 2px solid var(--mel-studio-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .mel-event-studio .mel-studio-layout {
+    flex-direction: column;
+  }
+
+  .mel-event-studio .mel-studio-sidebar {
+    position: static;
+    width: 100%;
+    flex: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tickets region — calm surface + button hierarchy (maps to existing .mel-btn classes)
+// ---------------------------------------------------------------------------
+
+.mel-event-studio .mel-ticket-section {
+  margin-top: 0.5rem;
+  padding: 1rem 1.1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.mel-event-studio .mel-ticket-section .mel-tickets-intro {
+  margin-top: 0;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-builder,
+.mel-event-studio .mel-ticket-section .mel-ticket-wizard-embed {
+  background: #fff;
+  border-color: #eee;
+  box-shadow: none;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-controls {
+  margin-bottom: 12px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-controls--primary {
+  gap: 10px;
+}
+
+// Utility aliases (Studio ticket toolbar)
+.mel-event-studio .mel-ticket-section .btn-primary,
+.mel-event-studio .mel-ticket-section .mel-ticket-controls__paid,
+.mel-event-studio .mel-ticket-section .mel-ticket-controls [name='ticket_save_sync'] {
+  background: #f26d5b !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  font-weight: 600 !important;
+  border: none !important;
+}
+
+.mel-event-studio .mel-ticket-section .btn-secondary,
+.mel-event-studio .mel-ticket-section .mel-ticket-controls__rsvp {
+  background: #eef2ff !important;
+  color: #4f46e5 !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  font-weight: 600 !important;
+  border: none !important;
+}
+
+.mel-event-studio .mel-ticket-section .btn-ghost,
+.mel-event-studio .mel-ticket-section .mel-ticket-controls__external {
+  background: transparent !important;
+  border: 1px dashed #ddd !important;
+  color: #666 !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  font-weight: 500 !important;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card {
+  border-radius: 16px;
+  border: 1px solid #eee;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card:last-child {
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__title {
+  font-weight: 600;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__price {
+  color: #6e7ef2;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: #666;
+  margin-top: 8px;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__meta li {
+  margin: 0;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: flex-start;
+  border: 1px solid var(--mel-studio-border, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
+  min-width: 2.5rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow[open] {
+  padding: 8px;
+  min-width: 11rem;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__overflow-trigger {
+  list-style: none;
+  cursor: pointer;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  margin: 0;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--mel-studio-text, #0f172a);
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.mel-event-studio .mel-ticket-section .mel-ticket-card__overflow-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow[open] .mel-ticket-card__overflow-trigger {
+  margin-bottom: 6px;
+}
+
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow .button,
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow input.mel-btn,
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow button.mel-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow .button:first-of-type,
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow input.mel-btn:first-of-type,
+.mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow button.mel-btn:first-of-type {
+  margin-top: 0;
 }
 
 // Basic step: title field + AI button (vendor theme loads this partial too).
@@ -568,43 +823,8 @@ form.mel-event-studio-form .mel-event-studio,
 }
 
 // ---------------------------------------------------------------------------
-// Guided wizard (step nav + panels; progress = event strength above)
+// Guided wizard (step panels; nav = left sidebar #mel-wizard-nav)
 // ---------------------------------------------------------------------------
-
-.mel-wizard-nav,
-.mel-studio-nav.mel-wizard-nav {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
-  flex-wrap: wrap;
-}
-
-.mel-wizard-nav button,
-.mel-studio-nav.mel-wizard-nav button {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: #eef2ff;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  color: var(--mel-studio-text, #0f172a);
-}
-
-.mel-wizard-nav button.active,
-.mel-studio-nav.mel-wizard-nav button.active {
-  background: #f26d5b;
-  color: white;
-}
-
-.mel-wizard-nav button:focus-visible,
-.mel-studio-nav.mel-wizard-nav button:focus-visible {
-  outline: 2px solid var(--mel-studio-focus, #2563eb);
-  outline-offset: 2px;
-}
 
 .mel-wizard {
   width: 100%;
