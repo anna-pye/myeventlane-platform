@@ -519,7 +519,7 @@ final class EventStudioSaveService {
     }
 
     if (!$draft && $event_type === 'paid' && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
-      return ['Paid events need a ticket product. Link one above or finish setup in the Tickets workspace.'];
+      return ['Paid events need a ticket product. Link one above or add it from the event Tickets tab.'];
     }
 
     return [];

@@ -167,10 +167,6 @@ final class MelTicketTypeManager {
 
     foreach ($tiers as $row) {
       $row = $this->normalizeStudioTierRow($row);
-      \Drupal::logger('mel_debug')->notice('Studio tier normalised for event @nid: <pre>@row</pre>', [
-        '@nid' => (string) $event->id(),
-        '@row' => print_r($row, TRUE),
-      ]);
       $tierKind = $this->resolveTierKind($row, $eventKind);
       if ($tierKind === NULL) {
         continue;
@@ -208,7 +204,7 @@ final class MelTicketTypeManager {
     }
 
     if (!$event->hasField('field_ticket_types')) {
-      \Drupal::logger('mel_debug')->notice('Event @nid has no field_ticket_types; cannot attach MEL tiers.', [
+      $this->logger->warning('Studio: event @nid has no field_ticket_types; cannot attach MEL tiers.', [
         '@nid' => (string) $event->id(),
       ]);
       return;
@@ -221,7 +217,7 @@ final class MelTicketTypeManager {
     sort($targetIds);
 
     if ($targetIds === []) {
-      \Drupal::logger('mel_debug')->notice('No ticket tiers available to attach for event @nid.', [
+      $this->logger->notice('Studio: no ticket tier IDs to attach for event @nid.', [
         '@nid' => (string) $event->id(),
       ]);
       return;
@@ -235,11 +231,6 @@ final class MelTicketTypeManager {
     sort($current);
 
     if ($current === $targetIds) {
-      \Drupal::logger('mel_debug')->notice('Attached @count ticket types to event @nid: <pre>@ids</pre>', [
-        '@count' => count($targetIds),
-        '@nid' => (string) $event->id(),
-        '@ids' => print_r($targetIds, TRUE),
-      ]);
       return;
     }
 
@@ -248,10 +239,9 @@ final class MelTicketTypeManager {
     EventNodeRevisionSave::prepare($event, 'Event Studio: ticket tiers attached.');
     try {
       $event->save();
-      \Drupal::logger('mel_debug')->notice('Attached @count ticket types to event @nid: <pre>@ids</pre>', [
-        '@count' => count($targetIds),
+      $this->logger->notice('Studio: merged @count ticket type reference(s) on event @nid.', [
+        '@count' => (string) count($targetIds),
         '@nid' => (string) $event->id(),
-        '@ids' => print_r($targetIds, TRUE),
       ]);
     }
     catch (\Throwable $e) {

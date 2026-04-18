@@ -22,6 +22,20 @@
     });
   }
 
+  /**
+   * Guided wizard step model (order is fixed). IDs match #mel-step-{id} in Twig.
+   *
+   * @type {{id: string, label: string}[]}
+   */
+  var MEL_STEPS = [
+    { id: 'basic', label: 'Basic info' },
+    { id: 'datetime', label: 'Date & location' },
+    { id: 'tickets', label: 'Tickets' },
+    { id: 'description', label: 'Description' },
+    { id: 'preview', label: 'Preview' },
+    { id: 'publish', label: 'Publish' },
+  ];
+
   function getSettings() {
     return (typeof drupalSettings !== 'undefined' && drupalSettings.melEventStudio) || {};
   }
@@ -57,7 +71,10 @@
     }
     var scrollTarget = el.closest('.js-form-item, .form-item, .fieldset, .mel-step') || el;
     if (scrollTarget.scrollIntoView) {
-      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollTarget.scrollIntoView({
+        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'center',
+      });
     }
     window.setTimeout(function () {
       try {
@@ -1668,6 +1685,16 @@
     );
   }
 
+  function getWizardStepIndex(form) {
+    var v = form.getAttribute('data-mel-wizard-step');
+    var n = v ? parseInt(v, 10) : 0;
+    return isNaN(n) ? 0 : n;
+  }
+
+  function setWizardStepIndex(form, index) {
+    form.setAttribute('data-mel-wizard-step', String(index));
+  }
+
   function calculateScore(form) {
     var score = 0;
     var total = 10;
@@ -1926,117 +1953,203 @@
     }
   }
 
-  /**
-   * Scroll-only overview: all steps visible; nav and Continue move the viewport.
-   *
-   * @param {HTMLFormElement} form
-   */
-  function initMelWizard(form) {
-    var wizard = form.querySelector('.mel-wizard');
+  function isStepComplete(step, form) {
+    switch (step) {
+      case 'basic':
+        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
+      case 'datetime': {
+        var sd = form.querySelector('[name="mel[start_date][date]"]');
+        if (!sd || !sd.value) {
+          return false;
+        }
+        var vm = valRadio(form, 'mel[venue_mode]');
+        if (vm === 'saved') {
+          return val(form, 'mel[venue_saved]') !== '';
+        }
+        if (vm === 'create') {
+          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
+        }
+        return parseHiddenLocation(form) !== '';
+      }
+      case 'tickets': {
+        var tt = valRadio(form, 'mel[field_event_type]');
+        if (tt === 'external') return !!val(form, 'mel[external_url]');
+        if (tt === 'paid') return !!val(form, 'mel[field_product_target]');
+        return true;
+      }
+      case 'description':
+      case 'preview':
+      case 'publish':
+      default:
+        return true;
+    }
+  }
+
+  function setWizardNavActive(form, activeIndex) {
     var nav = form.querySelector('#mel-wizard-nav');
-    if (!wizard || !nav) {
+    if (!nav) {
+      return;
+    }
+    var links = nav.querySelectorAll('a.mel-nav-link');
+    links.forEach(function (link) {
+      link.classList.remove('is-active');
+      link.classList.remove('active');
+    });
+    if (activeIndex >= 0 && activeIndex < links.length) {
+      links[activeIndex].classList.add('is-active');
+      links[activeIndex].classList.add('active');
+    }
+    links.forEach(function (link, i) {
+      link.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
+    });
+    var activeLink = links[activeIndex];
+    if (activeLink && activeLink.scrollIntoView) {
+      window.setTimeout(function () {
+        activeLink.scrollIntoView({
+          block: 'nearest',
+          inline: 'center',
+          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        });
+      }, 60);
+    }
+  }
+
+  function scrollToStudioSection(form, index) {
+    if (index < 0 || index >= MEL_STEPS.length) {
+      return;
+    }
+    var step = MEL_STEPS[index];
+    var el = document.getElementById('mel-step-' + step.id);
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({
+        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    }
+    setWizardNavActive(form, index);
+    setWizardStepIndex(form, index);
+  }
+
+  function melContinueToNextSection(form) {
+    var stepIdx = getWizardStepIndex(form);
+    var stepId = MEL_STEPS[stepIdx].id;
+
+    if (!isStepComplete(stepId, form)) {
+      alert(Drupal.t('Complete required fields before continuing.'));
       return;
     }
 
+    if (stepIdx >= MEL_STEPS.length - 1) {
+      return;
+    }
+
+    scrollToStudioSection(form, stepIdx + 1);
+  }
+
+  function initMelWizard(form) {
+    if (!form.querySelector('.mel-wizard') || !form.querySelector('#mel-wizard-nav')) {
+      return;
+    }
+
+    var steps = form.querySelectorAll('section.mel-step[data-step]');
+    setWizardStepIndex(form, 0);
+    setWizardNavActive(form, 0);
     updateProgress(form);
 
-    function scrollOverviewActiveIntoView() {
-      var active = nav.querySelector('.mel-nav-link.is-active, .mel-nav-link.active');
-      if (!active) {
-        return;
-      }
-      active.scrollIntoView({
-        behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-        inline: 'center',
-        block: 'nearest',
-      });
-    }
-
-    function setNavActive(link) {
-      nav.querySelectorAll('.mel-nav-link').forEach(function (l) {
-        l.classList.remove('is-active');
-        l.classList.remove('active');
-        l.setAttribute('aria-selected', 'false');
-      });
-      link.classList.add('is-active');
-      link.classList.add('active');
-      link.setAttribute('aria-selected', 'true');
-      window.setTimeout(scrollOverviewActiveIntoView, 60);
-    }
-
-    nav.querySelectorAll('.mel-nav-link').forEach(function (link) {
+    var nav = form.querySelector('#mel-wizard-nav');
+    nav.querySelectorAll('a.mel-nav-link').forEach(function (link) {
       link.addEventListener('click', function (e) {
         e.preventDefault();
         var targetId = link.getAttribute('href');
         var target = targetId ? document.querySelector(targetId) : null;
-        if (typeof console !== 'undefined' && console.log) {
-          console.log('NAV CLICK', targetId);
-        }
-        if (target) {
+        if (target && target.scrollIntoView) {
           target.scrollIntoView({
             behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
             block: 'start',
           });
-        } else if (typeof console !== 'undefined' && console.warn) {
-          console.warn('Target not found:', targetId);
         }
-        setNavActive(link);
-      });
-    });
-
-    form.querySelectorAll('.mel-continue-button').forEach(function (button) {
-      button.addEventListener('click', function () {
-        if (typeof console !== 'undefined' && console.log) {
-          console.log('CONTINUE CLICKED');
-        }
-        var currentSection = button.closest('.mel-studio-scroll-step');
-        if (!currentSection) {
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('No parent section found');
+        var stepAttr = link.getAttribute('data-step');
+        var idx = -1;
+        for (var s = 0; s < MEL_STEPS.length; s++) {
+          if (MEL_STEPS[s].id === stepAttr) {
+            idx = s;
+            break;
           }
-          return;
         }
-        var next = currentSection.nextElementSibling;
-        while (next && !next.classList.contains('mel-studio-scroll-step')) {
-          next = next.nextElementSibling;
+        if (idx >= 0) {
+          setWizardNavActive(form, idx);
+          setWizardStepIndex(form, idx);
         }
-        if (!next) {
-          if (typeof console !== 'undefined' && console.warn) {
-            console.warn('No next section found');
-          }
-          return;
-        }
-        next.scrollIntoView({
-          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-          block: 'start',
-        });
       });
     });
 
-    form.querySelectorAll('.mel-prev').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var currentSection = button.closest('.mel-studio-scroll-step');
-        if (!currentSection) {
+    form.addEventListener(
+      'click',
+      function (e) {
+        var jumpPrev = e.target.closest('#mel-studio-jump-preview, #mel-jump-to-preview-card');
+        if (jumpPrev && form.contains(jumpPrev)) {
+          e.preventDefault();
+          melScrollToSelector('#mel-preview-card');
           return;
         }
-        var prev = currentSection.previousElementSibling;
-        while (prev && !prev.classList.contains('mel-studio-scroll-step')) {
-          prev = prev.previousElementSibling;
-        }
-        if (!prev) {
-          return;
-        }
-        prev.scrollIntoView({
-          behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
-          block: 'start',
-        });
-      });
-    });
+      },
+      false,
+    );
 
-    var jumpPreview = form.querySelector('#mel-jump-to-preview-card');
-    if (jumpPreview) {
-      jumpPreview.addEventListener('click', function () {
-        melScrollToSelector('#mel-preview-card');
+    form.addEventListener(
+      'click',
+      function (e) {
+        var cont = e.target.closest('.mel-continue-button');
+        if (!cont || !form.contains(cont)) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        melContinueToNextSection(form);
+      },
+      true,
+    );
+
+    form.addEventListener(
+      'click',
+      function (e) {
+        var prevBtn = e.target.closest('.mel-prev');
+        if (!prevBtn || !form.contains(prevBtn)) {
+          return;
+        }
+        var stepIdx = getWizardStepIndex(form);
+        if (stepIdx > 0) {
+          scrollToStudioSection(form, stepIdx - 1);
+        }
+      },
+      false,
+    );
+
+    if (window.IntersectionObserver && steps.length) {
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) {
+              return;
+            }
+            var id = entry.target.getAttribute('data-step');
+            var idx = -1;
+            for (var s = 0; s < MEL_STEPS.length; s++) {
+              if (MEL_STEPS[s].id === id) {
+                idx = s;
+                break;
+              }
+            }
+            if (idx >= 0 && entry.intersectionRatio >= 0.1) {
+              setWizardNavActive(form, idx);
+              setWizardStepIndex(form, idx);
+            }
+          });
+        },
+        { root: null, rootMargin: '-40% 0px -50% 0px', threshold: 0.1 },
+      );
+      steps.forEach(function (s) {
+        io.observe(s);
       });
     }
   }
@@ -2052,6 +2165,13 @@
     }
     var pTable = getBuilderTable(form);
     var paidTierRows = pTable ? pTable.querySelectorAll('tbody .mel-tier-row').length : 0;
+    var ajaxShell = document.getElementById('mel-ticket-builder-ajax-wrapper');
+    if (ajaxShell && tt === 'paid') {
+      paidTierRows = Math.max(
+        paidTierRows,
+        ajaxShell.querySelectorAll('.js-mel-ticket-card[data-ticket-id]').length,
+      );
+    }
     if (tt === 'paid' && paidTierRows < 1) {
       blocking.push(Drupal.t('Ticket types'));
     }
