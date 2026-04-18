@@ -116,15 +116,27 @@
       </div>
     </div>
 
-    {# Overview navigation (scroll targets + step switching — see mel-event-studio.js) #}
-    {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
+    {# Overview navigation — anchor scroll targets (see mel-event-studio.js initMelWizard). #}
+    <nav class="mel-event-studio-nav" id="mel-wizard-nav" aria-label="{{ 'Event overview'|t }}">
+      <p class="mel-event-studio-nav__label">{{ 'Overview'|t }}</p>
+      <div class="mel-event-studio-nav__scroll">
+        <div class="mel-event-studio-nav__track" role="tablist">
+          <a href="#mel-step-basic" class="mel-nav-link mel-event-studio-nav__item is-active active" role="tab" aria-selected="true">{{ 'Basic info'|t }}</a>
+          <a href="#mel-step-datetime" class="mel-nav-link mel-event-studio-nav__item" role="tab" aria-selected="false">{{ 'Date & Location'|t }}</a>
+          <a href="#mel-step-tickets" class="mel-nav-link mel-event-studio-nav__item" role="tab" aria-selected="false">{{ 'Tickets / RSVP'|t }}</a>
+          <a href="#mel-step-description" class="mel-nav-link mel-event-studio-nav__item" role="tab" aria-selected="false">{{ 'Description'|t }}</a>
+          <a href="#mel-step-preview" class="mel-nav-link mel-event-studio-nav__item" role="tab" aria-selected="false">{{ 'Preview'|t }}</a>
+          <a href="#mel-step-publish" class="mel-nav-link mel-event-studio-nav__item mel-event-studio-nav__item--publish" role="tab" aria-selected="false">{{ 'Publish'|t }}</a>
+        </div>
+      </div>
+    </nav>
 
     {# FORM ZONE — wizard + actions (single root <form> above; not a nested form). #}
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
-      <div class="mel-wizard">
+      <div class="mel-wizard mel-studio--scroll-all">
         {# —— Basic —— #}
-        <div id="mel-studio-step-basic" class="mel-step" data-step="basic" role="tabpanel">
-          <section class="mel-section mel-section--card mel-section--builder mel-section--basic" aria-labelledby="mel-basic-heading">
+        <section id="mel-step-basic" class="mel-step mel-studio-scroll-step" data-step="basic" role="tabpanel">
+          <div class="mel-section mel-section--card mel-section--builder mel-section--basic" aria-labelledby="mel-basic-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-basic-heading">{{ 'Basic info'|t }}</h2>
               <p class="mel-section__hint">{{ 'Name your event, how it shows in listings, and your cover image.'|t }}</p>
@@ -165,38 +177,17 @@
                   {{ element.mel.field_event_image_alt }}
                 </div>
               </div>
-
-              <div id="mel-studio-section-description" class="mel-section">
-                <h3>{{ 'About the event'|t }}</h3>
-                {{ element.mel.body }}
-                <div class="mel-ai-rewrite-actions">
-                  <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
-                </div>
-              </div>
-
-              <div class="mel-section">
-                <h3>{{ 'Highlights'|t }}</h3>
-                {{ element.mel.event_highlights }}
-              </div>
-
-              <div class="mel-section">
-                <h3>{{ 'What to expect'|t }}</h3>
-                {{ element.mel.field_event_intro }}
-                <div class="mel-ai-rewrite-actions">
-                  <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
-                </div>
-              </div>
             </div>
 
             <div class="mel-step-actions">
               <button type="button" class="mel-btn mel-prev" disabled>{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-next">{{ 'Continue'|t }}</button>
+              <button type="button" class="mel-btn mel-continue-button">{{ 'Continue'|t }}</button>
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
 
-        {# —— Schedule —— #}
-        <div id="mel-studio-step-schedule" class="mel-step" data-step="schedule" role="tabpanel">
+        {# —— Date & location —— #}
+        <section id="mel-step-datetime" class="mel-step mel-studio-scroll-step" data-step="datetime" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--details" aria-labelledby="mel-details-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-details-heading">{{ 'Date & time'|t }}</h2>
@@ -207,16 +198,8 @@
               {{ element.mel.start_date }}
               {{ element.mel.end_date }}
             </div>
-
-            <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-next">{{ 'Continue'|t }}</button>
-            </div>
           </section>
-        </div>
 
-        {# —— Location —— #}
-        <div id="mel-studio-step-location" class="mel-step" data-step="location" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--location" aria-labelledby="mel-location-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-location-heading">{{ 'Location'|t }}</h2>
@@ -243,16 +226,16 @@
               {{ element.mel.field_location_latitude }}
               {{ element.mel.field_location_longitude }}
             </div>
-
-            <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-next">{{ 'Continue'|t }}</button>
-            </div>
           </section>
-        </div>
+
+          <div class="mel-step-actions">
+            <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+            <button type="button" class="mel-btn mel-continue-button">{{ 'Continue'|t }}</button>
+          </div>
+        </section>
 
         {# —— Tickets —— #}
-        <div id="mel-studio-step-tickets" class="mel-step" data-step="tickets" role="tabpanel">
+        <section id="mel-step-tickets" class="mel-step mel-studio-scroll-step" data-step="tickets" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--tickets" aria-labelledby="mel-tickets-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-tickets-heading">{{ 'Tickets'|t }}</h2>
@@ -285,16 +268,37 @@
               {{ element.mel.field_sales_start }}
               {{ element.mel.field_sales_end }}
             </div>
-
-            <div class="mel-step-actions">
-              <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
-              <button type="button" class="mel-btn mel-next">{{ 'Continue'|t }}</button>
-            </div>
           </section>
-        </div>
 
-        {# —— Advanced —— #}
-        <div id="mel-studio-step-advanced" class="mel-step" data-step="advanced" role="tabpanel">
+          <div class="mel-step-actions">
+            <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+            <button type="button" class="mel-btn mel-continue-button">{{ 'Continue'|t }}</button>
+          </div>
+        </section>
+
+        {# —— Description & advanced —— #}
+        <section id="mel-step-description" class="mel-step mel-studio-scroll-step" data-step="description" role="tabpanel">
+          <div id="mel-studio-section-description" class="mel-section">
+            <h3>{{ 'About the event'|t }}</h3>
+            {{ element.mel.body }}
+            <div class="mel-ai-rewrite-actions">
+              <button type="button" id="mel-ai-rewrite-about" class="mel-btn mel-btn--secondary">{{ 'Rewrite About'|t }}</button>
+            </div>
+          </div>
+
+          <div class="mel-section">
+            <h3>{{ 'Highlights'|t }}</h3>
+            {{ element.mel.event_highlights }}
+          </div>
+
+          <div class="mel-section">
+            <h3>{{ 'What to expect'|t }}</h3>
+            {{ element.mel.field_event_intro }}
+            <div class="mel-ai-rewrite-actions">
+              <button type="button" id="mel-ai-rewrite-expect" class="mel-btn mel-btn--secondary">{{ 'Rewrite What to Expect'|t }}</button>
+            </div>
+          </div>
+
           <details class="mel-advanced">
             <summary>{{ 'Advanced options'|t }}</summary>
 
@@ -341,6 +345,31 @@
             </section>
           </details>
 
+          <div class="mel-step-actions">
+            <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+            <button type="button" class="mel-btn mel-continue-button">{{ 'Continue'|t }}</button>
+          </div>
+        </section>
+
+        {# —— Preview (jump to card above) —— #}
+        <section id="mel-step-preview" class="mel-step mel-studio-scroll-step" data-step="preview" role="tabpanel">
+          <section class="mel-section mel-section--card mel-section--builder" aria-labelledby="mel-studio-preview-heading">
+            <header class="mel-section__header">
+              <h2 class="mel-section__title" id="mel-studio-preview-heading">{{ 'Preview'|t }}</h2>
+              <p class="mel-section__hint">{{ 'See how your event appears in listings — the live card stays at the top of this page.'|t }}</p>
+            </header>
+            <p class="mel-section__hint">{{ 'Jump to the preview card to review title, schedule, location, and ticket summary.'|t }}</p>
+            <button type="button" class="mel-btn mel-btn--secondary" id="mel-jump-to-preview-card">{{ 'Show live preview'|t }}</button>
+          </section>
+
+          <div class="mel-step-actions">
+            <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
+            <button type="button" class="mel-btn mel-continue-button">{{ 'Continue'|t }}</button>
+          </div>
+        </section>
+
+        {# —— Publish —— #}
+        <section id="mel-step-publish" class="mel-step mel-studio-scroll-step" data-step="publish" role="tabpanel">
           <section id="mel-studio-section-publish" class="mel-section mel-section--card mel-section--builder mel-section--publish" aria-labelledby="mel-publish-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-publish-heading">{{ 'Publishing'|t }}</h2>
@@ -350,9 +379,8 @@
 
           <div class="mel-step-actions">
             <button type="button" class="mel-btn mel-prev">{{ 'Back'|t }}</button>
-            <button type="button" class="mel-btn mel-next">{{ 'Continue'|t }}</button>
           </div>
-        </div>
+        </section>
       </div>
 
       {{ element.nid }}
