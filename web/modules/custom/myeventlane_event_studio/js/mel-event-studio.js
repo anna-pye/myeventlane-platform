@@ -28,9 +28,6 @@
       top: Math.max(0, y),
       behavior: melPrefersReducedMotion() ? 'auto' : 'smooth',
     });
-    if (typeof console !== 'undefined' && console.log) {
-      console.log('SCROLL TO', target.id || target);
-    }
   }
 
   /**
@@ -1999,6 +1996,42 @@
     }
   }
 
+  function isStepComplete(step, form) {
+    switch (step) {
+      case 'basic':
+        return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
+      case 'datetime': {
+        var sd = form.querySelector('[name="mel[start_date][date]"]');
+        if (!sd || !sd.value) {
+          return false;
+        }
+        var vm = valRadio(form, 'mel[venue_mode]');
+        if (vm === 'saved') {
+          return val(form, 'mel[venue_saved]') !== '';
+        }
+        if (vm === 'create') {
+          return val(form, 'mel[venue_create_name]') !== '' && parseHiddenLocation(form) !== '';
+        }
+        return parseHiddenLocation(form) !== '';
+      }
+      case 'tickets': {
+        var tt = valRadio(form, 'mel[field_event_type]');
+        if (tt === 'external') {
+          return !!val(form, 'mel[external_url]');
+        }
+        if (tt === 'paid') {
+          return !!val(form, 'mel[field_product_target]');
+        }
+        return true;
+      }
+      case 'description':
+      case 'preview':
+      case 'publish':
+      default:
+        return true;
+    }
+  }
+
   function scrollToStudioSection(form, index) {
     if (index < 0 || index >= MEL_STEPS.length) {
       return;
@@ -2008,6 +2041,39 @@
     scrollToTarget(el);
     setWizardNavActive(form, index);
     setWizardStepIndex(form, index);
+  }
+
+  /**
+   * @param {HTMLFormElement} form
+   * @param {HTMLElement} cont Continue control (.mel-continue-button).
+   */
+  function melContinueToNextSection(form, cont) {
+    var section = cont && cont.closest ? cont.closest('section.mel-step[data-step]') : null;
+    var stepIdx = -1;
+    if (section) {
+      var sid = section.getAttribute('data-step');
+      for (var s = 0; s < MEL_STEPS.length; s++) {
+        if (MEL_STEPS[s].id === sid) {
+          stepIdx = s;
+          break;
+        }
+      }
+    }
+    if (stepIdx < 0) {
+      stepIdx = getWizardStepIndex(form);
+    }
+    if (stepIdx < 0 || stepIdx >= MEL_STEPS.length) {
+      return;
+    }
+    var validateId = MEL_STEPS[stepIdx].id;
+    if (!isStepComplete(validateId, form)) {
+      alert(Drupal.t('Complete required fields before continuing.'));
+      return;
+    }
+    if (stepIdx >= MEL_STEPS.length - 1) {
+      return;
+    }
+    scrollToStudioSection(form, stepIdx + 1);
   }
 
   function initMelWizard(form) {
@@ -2055,18 +2121,19 @@
       false,
     );
 
-    form.querySelectorAll('.mel-continue-button').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (typeof console !== 'undefined' && console.log) {
-          console.log('CONTINUE CLICKED');
+    form.addEventListener(
+      'click',
+      function (e) {
+        var cont = e.target.closest('.mel-continue-button');
+        if (!cont || !form.contains(cont)) {
+          return;
         }
-        var current = btn.closest('.mel-studio-scroll-step');
-        var next = current ? current.nextElementSibling : null;
-        if (next) {
-          scrollToTarget(next);
-        }
-      });
-    });
+        e.preventDefault();
+        e.stopPropagation();
+        melContinueToNextSection(form, cont);
+      },
+      true,
+    );
 
     form.addEventListener(
       'click',
