@@ -138,6 +138,7 @@ final class EventStudioForm extends FormBase {
     $this->ensureInjectedServices();
     $form['#attributes']['class'][] = 'mel-event-studio-form';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
+    $form['#attributes']['id'] = 'event-studio-form';
 
     if (!$form_state->has('studio_node')) {
       if ($route_node instanceof NodeInterface) {

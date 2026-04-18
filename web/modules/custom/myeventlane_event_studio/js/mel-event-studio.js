@@ -5,8 +5,8 @@
 (function (Drupal, once) {
   'use strict';
 
-  console.log('MEL studio loaded');
   console.log('MEL event wizard library loaded');
+  console.log('MEL studio loaded');
 
   var HIGHLIGHT_MAX = 6;
 
@@ -1976,10 +1976,14 @@
       return;
     }
     var links = nav.querySelectorAll('a.mel-nav-link');
+    links.forEach(function (link) {
+      link.classList.remove('is-active');
+    });
+    if (activeIndex >= 0 && activeIndex < links.length) {
+      links[activeIndex].classList.add('is-active');
+    }
     links.forEach(function (link, i) {
-      var on = i === activeIndex;
-      link.classList.toggle('is-active', on);
-      link.setAttribute('aria-selected', on ? 'true' : 'false');
+      link.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
     });
     var activeLink = links[activeIndex];
     if (activeLink && activeLink.scrollIntoView) {
@@ -2080,12 +2084,17 @@
         if (cont.getAttribute('data-mel-continue') === 'next') {
           e.preventDefault();
           e.stopPropagation();
-          console.log('CONTINUE CLICKED');
           melContinueToNextSection(form);
         }
       },
       true,
     );
+
+    form.querySelectorAll('.mel-continue-button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        console.log('CONTINUE CLICKED');
+      });
+    });
 
     form.addEventListener(
       'click',
