@@ -40,7 +40,7 @@
       <div class="mel-studio-top__preview">
         <div class="mel-event-studio__top">
           <div class="mel-event-studio__preview">
-            <div id="mel-preview-card">
+            <div id="mel-preview-card" data-mel-studio-preview-anchor="1">
               <article class="mel-preview-card">
                 <div class="mel-preview-card__media" id="mel-preview-card-media">
                   <img class="mel-preview-card__img" id="mel-preview-card-img" src="" alt="" width="640" height="336" loading="lazy" hidden />
@@ -116,20 +116,14 @@
       </div>
     </div>
 
-    {# NAV #}
-    <div class="mel-studio-nav mel-wizard-nav" id="mel-wizard-nav" role="tablist" aria-label="{{ 'Event steps'|t }}">
-      <button type="button" data-step="basic" role="tab" aria-selected="true">{{ 'Basic'|t }}</button>
-      <button type="button" data-step="schedule" role="tab" aria-selected="false">{{ 'Date'|t }}</button>
-      <button type="button" data-step="location" role="tab" aria-selected="false">{{ 'Location'|t }}</button>
-      <button type="button" data-step="tickets" role="tab" aria-selected="false">{{ 'Tickets'|t }}</button>
-      <button type="button" data-step="advanced" role="tab" aria-selected="false">{{ 'Advanced'|t }}</button>
-    </div>
+    {# Overview navigation (scroll targets + step switching — see mel-event-studio.js) #}
+    {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
 
     {# FORM ZONE — wizard + actions (single root <form> above; not a nested form). #}
     <div class="mel-studio-form-wrapper mel-event-studio__form-full mel-studio-main-full">
       <div class="mel-wizard">
         {# —— Basic —— #}
-        <div class="mel-step" data-step="basic" role="tabpanel">
+        <div id="mel-studio-step-basic" class="mel-step" data-step="basic" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--basic" aria-labelledby="mel-basic-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-basic-heading">{{ 'Basic info'|t }}</h2>
@@ -172,7 +166,7 @@
                 </div>
               </div>
 
-              <div class="mel-section">
+              <div id="mel-studio-section-description" class="mel-section">
                 <h3>{{ 'About the event'|t }}</h3>
                 {{ element.mel.body }}
                 <div class="mel-ai-rewrite-actions">
@@ -202,7 +196,7 @@
         </div>
 
         {# —— Schedule —— #}
-        <div class="mel-step" data-step="schedule" role="tabpanel">
+        <div id="mel-studio-step-schedule" class="mel-step" data-step="schedule" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--details" aria-labelledby="mel-details-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-details-heading">{{ 'Date & time'|t }}</h2>
@@ -222,7 +216,7 @@
         </div>
 
         {# —— Location —— #}
-        <div class="mel-step" data-step="location" role="tabpanel">
+        <div id="mel-studio-step-location" class="mel-step" data-step="location" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--location" aria-labelledby="mel-location-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-location-heading">{{ 'Location'|t }}</h2>
@@ -258,7 +252,7 @@
         </div>
 
         {# —— Tickets —— #}
-        <div class="mel-step" data-step="tickets" role="tabpanel">
+        <div id="mel-studio-step-tickets" class="mel-step" data-step="tickets" role="tabpanel">
           <section class="mel-section mel-section--card mel-section--builder mel-section--tickets" aria-labelledby="mel-tickets-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-tickets-heading">{{ 'Tickets'|t }}</h2>
@@ -300,7 +294,7 @@
         </div>
 
         {# —— Advanced —— #}
-        <div class="mel-step" data-step="advanced" role="tabpanel">
+        <div id="mel-studio-step-advanced" class="mel-step" data-step="advanced" role="tabpanel">
           <details class="mel-advanced">
             <summary>{{ 'Advanced options'|t }}</summary>
 
@@ -347,7 +341,7 @@
             </section>
           </details>
 
-          <section class="mel-section mel-section--card mel-section--builder mel-section--publish" aria-labelledby="mel-publish-heading">
+          <section id="mel-studio-section-publish" class="mel-section mel-section--card mel-section--builder mel-section--publish" aria-labelledby="mel-publish-heading">
             <header class="mel-section__header">
               <h2 class="mel-section__title" id="mel-publish-heading">{{ 'Publishing'|t }}</h2>
             </header>
