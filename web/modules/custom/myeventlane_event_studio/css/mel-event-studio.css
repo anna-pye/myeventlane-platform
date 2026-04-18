@@ -997,3 +997,51 @@ textarea.mel-input--body {
   }
 }
 
+/* Section overview nav — horizontal scroll, scroll-margin for in-page jumps */
+.mel-event-studio #mel-wizard-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+  margin-bottom: 1rem;
+  scrollbar-width: thin;
+}
+
+.mel-event-studio #mel-wizard-nav button[data-step] {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--mel-studio-radius-sm);
+  border: 1px solid var(--mel-studio-border);
+  background: var(--mel-studio-card);
+  color: var(--mel-studio-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mel-event-studio #mel-wizard-nav button[data-step].active {
+  border-color: var(--mel-studio-accent);
+  background: var(--mel-studio-accent-soft);
+  color: var(--mel-studio-accent);
+}
+
+.mel-event-studio .mel-studio-section {
+  scroll-margin-top: 5.5rem;
+}
+
+.mel-ticket-wizard-embed {
+  margin: 1rem 0;
+}
+
+.mel-preview-section__text {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  color: var(--mel-studio-muted);
+  line-height: 1.5;
+}
+

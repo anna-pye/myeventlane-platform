@@ -15,10 +15,13 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
+use Drupal\myeventlane_vendor\Ticketing\EventTicketsBuilder;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -46,6 +49,12 @@ final class EventStudioForm extends FormBase {
    */
   protected EventHighlightHelper $eventHighlightHelper;
 
+  protected EventTicketsBuilder $eventTicketsBuilder;
+
+  protected TicketTypeManager $ticketTypeManager;
+
+  protected LoggerInterface $logger;
+
   /**
    * {@inheritdoc}
    */
@@ -60,6 +69,9 @@ final class EventStudioForm extends FormBase {
       ? $container->get('myeventlane_location.provider_manager')
       : NULL;
     $instance->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
+    $instance->eventTicketsBuilder = $container->get('myeventlane_vendor.ticket_builder');
+    $instance->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
+    $instance->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
     return $instance;
   }
 
@@ -79,7 +91,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper)) {
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventTicketsBuilder, $this->ticketTypeManager, $this->logger)) {
       return;
     }
     $container = \Drupal::getContainer();
@@ -100,6 +112,15 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->eventHighlightHelper)) {
       $this->eventHighlightHelper = $container->get('myeventlane_event_studio.highlight_helper');
+    }
+    if (!isset($this->eventTicketsBuilder)) {
+      $this->eventTicketsBuilder = $container->get('myeventlane_vendor.ticket_builder');
+    }
+    if (!isset($this->ticketTypeManager)) {
+      $this->ticketTypeManager = $container->get('myeventlane_event.ticket_type_manager');
+    }
+    if (!isset($this->logger)) {
+      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
     }
   }
 
@@ -139,6 +160,8 @@ final class EventStudioForm extends FormBase {
 
     /** @var \Drupal\node\NodeInterface $event */
     $event = $form_state->get('studio_node');
+
+    $has_saved_event = $event->id() !== NULL && (int) $event->id() > 0;
 
     $form['nid'] = [
       '#type' => 'hidden',
@@ -707,8 +730,23 @@ final class EventStudioForm extends FormBase {
       ],
     ];
 
+    if ($has_saved_event) {
+      $form_state->set('event', $event);
+      $form['mel']['embedded_ticket_wizard'] = [
+        '#type' => 'container',
+        '#tree' => TRUE,
+        '#weight' => 13,
+        '#attributes' => [
+          'class' => ['mel-ticket-wizard-embed'],
+        ],
+      ];
+      $form_state->set('mel_ticket_builder_value_prefix', ['mel', 'embedded_ticket_wizard']);
+      $this->eventTicketsBuilder->build($form['mel']['embedded_ticket_wizard'], $form_state, $event);
+    }
+
     $form['mel']['studio_ticket_builder'] = [
       '#type' => 'container',
+      '#access' => !$has_saved_event,
       '#attributes' => ['class' => ['mel-ticket-builder']],
       'help' => [
         '#type' => 'html_tag',
@@ -779,7 +817,7 @@ final class EventStudioForm extends FormBase {
         'target_bundles' => ['ticket' => 'ticket'],
       ],
       '#default_value' => $product_default,
-      '#description' => $this->t('Required for paid events: link your Commerce ticket product. You can refine types and pricing in the Tickets workspace.'),
+      '#description' => $this->t('Required for paid events: link your Commerce ticket product. Configure ticket types below once the event is saved.'),
       '#attributes' => ['class' => ['mel-input']],
       '#states' => [
         'visible' => [
@@ -794,8 +832,11 @@ final class EventStudioForm extends FormBase {
       '#target_type' => 'mel_ticket_type',
       '#tags' => TRUE,
       '#default_value' => $ticket_types_default,
-      '#description' => $this->t('Optional: attach existing ticket type entities. Full builder remains in the Tickets workspace.'),
+      '#description' => $has_saved_event
+        ? $this->t('Ticket types are managed in the ticket builder above.')
+        : $this->t('Optional: attach existing ticket type entities. After your first save, use the full ticket builder in Event Studio.'),
       '#attributes' => ['class' => ['mel-input']],
+      '#access' => !$has_saved_event,
       '#states' => [
         'visible' => [
           ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],
@@ -807,7 +848,7 @@ final class EventStudioForm extends FormBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-panel', 'mel-panel--placeholder']],
       'text' => [
-        '#markup' => '<p class="mel-panel__text">' . $this->t('Use the ticket product above for checkout. Configure tiers, pricing, and inventory in the Tickets workspace after save.') . '</p>',
+        '#markup' => '<p class="mel-panel__text">' . $this->t('Use the ticket product above for checkout. Add and edit tiers in the ticket builder on this page.') . '</p>',
       ],
       '#states' => [
         'visible' => [
@@ -832,7 +873,7 @@ final class EventStudioForm extends FormBase {
     $form['mel']['collect_attendee_questions'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Collect extra attendee details'),
-      '#description' => $this->t('Paid: collect per ticket where supported. RSVP: add custom questions in the Tickets workspace after save.'),
+      '#description' => $this->t('Paid: collect per ticket where supported. RSVP: add custom questions from the full ticket builder after your event is saved, or from the event Tickets tab.'),
       '#default_value' => $collect_default,
       '#states' => [
         'visible' => [
@@ -1040,6 +1081,24 @@ final class EventStudioForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     parent::validateForm($form, $form_state);
+    $this->ensureInjectedServices();
+    $event = $form_state->get('studio_node');
+    if ($event instanceof NodeInterface && $event->hasField('field_event_type')) {
+      $mel = $form_state->getValue('mel');
+      $event_type = is_array($mel) ? (string) ($mel['field_event_type'] ?? '') : '';
+      if ($event_type === '') {
+        $event_type = (string) ($event->get('field_event_type')->value ?? '');
+      }
+      if (in_array($event_type, ['paid', 'both'], TRUE)) {
+        if (!$this->ticketTypeManager->hasVendorStore($event)) {
+          $this->logger->warning('Event Studio: tickets validation blocked — no vendor store for event @nid', [
+            '@nid' => (string) $event->id(),
+          ]);
+          $form_state->setErrorByName('mel][field_event_type', $this->t('This event does not have a valid vendor store. Complete organiser setup and ensure your vendor account has a store assigned before selling paid tickets.'));
+        }
+      }
+    }
+
     $mel = $form_state->getValue('mel');
     if (!is_array($mel) || !isset($mel['event_highlights']) || !is_array($mel['event_highlights'])) {
       return;
@@ -1103,12 +1162,39 @@ final class EventStudioForm extends FormBase {
       $form_state->set('studio_node', $node);
       $this->messenger()->addStatus($this->t('Event saved.'));
       try {
-        $form_state->setRedirectUrl(Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $node->id()]));
+        $form_state->setRedirectUrl(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $node->id()]));
       }
       catch (\Throwable) {
         $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()]));
       }
     }
+  }
+
+  /**
+   * Ticket builder AJAX actions (EventTicketsBuilder); preserves fresh node in form state.
+   */
+  public function handleAction(array &$form, FormStateInterface $form_state): void {
+    $this->ensureInjectedServices();
+    $event = $form_state->get('studio_node');
+    if (!$event instanceof NodeInterface) {
+      return;
+    }
+    $this->eventTicketsBuilder->handleAction($form, $form_state, $event);
+    $nid = (int) $event->id();
+    if ($nid > 0) {
+      $fresh = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($fresh instanceof NodeInterface) {
+        $form_state->set('studio_node', $fresh);
+        $form_state->set('event', $fresh);
+      }
+    }
+  }
+
+  /**
+   * AJAX replace target for the embedded ticket builder shell.
+   */
+  public function ajaxRebuildTicketBuilder(array &$form, FormStateInterface $form_state): array {
+    return $form['mel']['embedded_ticket_wizard']['builder_shell'] ?? [];
   }
 
   /**
@@ -1266,7 +1352,7 @@ final class EventStudioForm extends FormBase {
       ? ($external !== '' ? (string) $this->t('Set') : (string) $this->t('Not set'))
       : '—';
     $paid_note = ($type === 'paid' && $needs_ticket_product)
-      ? '<li class="mel-ticket-summary__warn">' . (string) $this->t('Ticket product still needed — link one above or use the Tickets workspace.') . '</li>'
+      ? '<li class="mel-ticket-summary__warn">' . (string) $this->t('Ticket product still needed — link one above or add it from the event Tickets tab.') . '</li>'
       : '';
 
     return '<ul class="mel-ticket-summary__list">'
@@ -1352,7 +1438,7 @@ final class EventStudioForm extends FormBase {
       }
     }
 
-    return [
+    $payload = [
       'title' => $mel['title'] ?? '',
       'summary' => $mel['summary'] ?? '',
       'body' => $mel['body'] ?? '',
@@ -1400,6 +1486,22 @@ final class EventStudioForm extends FormBase {
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
     ];
+
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    if ($nid > 0) {
+      $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
+      if ($loaded instanceof NodeInterface && $loaded->bundle() === 'event' && $loaded->hasField('field_ticket_types')) {
+        $payload['field_ticket_types'] = [];
+        foreach ($loaded->get('field_ticket_types')->getValue() as $row) {
+          $tid = (int) ($row['target_id'] ?? 0);
+          if ($tid > 0) {
+            $payload['field_ticket_types'][] = $tid;
+          }
+        }
+      }
+    }
+
+    return $payload;
   }
 
   /**

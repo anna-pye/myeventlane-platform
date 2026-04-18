@@ -13,11 +13,12 @@
    * @type {{id: string, label: string}[]}
    */
   var MEL_STEPS = [
-    { id: 'basic', label: 'Basic Info' },
-    { id: 'schedule', label: 'Date & Time' },
-    { id: 'location', label: 'Location' },
+    { id: 'basic', label: 'Basic info' },
+    { id: 'date_location', label: 'Date & location' },
     { id: 'tickets', label: 'Tickets' },
-    { id: 'advanced', label: 'Advanced' },
+    { id: 'description', label: 'Description' },
+    { id: 'preview', label: 'Preview' },
+    { id: 'publish', label: 'Publish' },
   ];
 
   function getSettings() {
@@ -1938,11 +1939,11 @@
     switch (step) {
       case 'basic':
         return !!(val(form, 'mel[title]') && categoryFieldHasValue(form));
-      case 'schedule': {
+      case 'date_location': {
         var sd = form.querySelector('[name="mel[start_date][date]"]');
-        return !!(sd && sd.value);
-      }
-      case 'location': {
+        if (!sd || !sd.value) {
+          return false;
+        }
         var vm = valRadio(form, 'mel[venue_mode]');
         if (vm === 'saved') {
           return val(form, 'mel[venue_saved]') !== '';
@@ -1958,35 +1959,41 @@
         if (tt === 'paid') return !!val(form, 'mel[field_product_target]');
         return true;
       }
+      case 'description':
+      case 'preview':
+      case 'publish':
       default:
         return true;
     }
   }
 
-  function showStep(form, index) {
-    var steps = form.querySelectorAll('.mel-wizard .mel-step');
-    var nav = form.querySelectorAll('#mel-wizard-nav button');
-    var max = steps.length - 1;
-    if (index < 0) index = 0;
-    if (index > max) index = max;
-
-    steps.forEach(function (el, i) {
-      var on = i === index;
-      el.style.display = on ? 'block' : 'none';
-      if (on) {
-        var prevBtn = el.querySelector('.mel-prev');
-        var nextBtn = el.querySelector('.mel-next');
-        if (prevBtn) prevBtn.disabled = index === 0;
-        if (nextBtn) nextBtn.hidden = index >= MEL_STEPS.length - 1;
-      }
-    });
-
-    nav.forEach(function (btn, i) {
-      var on = i === index;
+  function setWizardNavActive(form, activeIndex) {
+    var nav = form.querySelector('#mel-wizard-nav');
+    if (!nav) {
+      return;
+    }
+    var buttons = nav.querySelectorAll('button[data-step]');
+    buttons.forEach(function (btn, i) {
+      var on = i === activeIndex;
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-selected', on ? 'true' : 'false');
     });
+    var activeBtn = buttons[activeIndex];
+    if (activeBtn && activeBtn.scrollIntoView) {
+      activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    }
+  }
 
+  function scrollToStudioSection(form, index) {
+    if (index < 0 || index >= MEL_STEPS.length) {
+      return;
+    }
+    var step = MEL_STEPS[index];
+    var el = document.getElementById('mel-studio-section-' + step.id);
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setWizardNavActive(form, index);
     setWizardStepIndex(form, index);
   }
 
@@ -1995,21 +2002,34 @@
       return;
     }
 
-    showStep(form, 0);
+    var steps = form.querySelectorAll('.mel-studio-section');
+    setWizardStepIndex(form, 0);
+    setWizardNavActive(form, 0);
     updateProgress(form);
 
     var nav = form.querySelector('#mel-wizard-nav');
     nav.querySelectorAll('button[data-step]').forEach(function (btn, i) {
       btn.addEventListener('click', function () {
-        showStep(form, i);
+        scrollToStudioSection(form, i);
       });
     });
 
     form.addEventListener(
       'click',
       function (e) {
+        var jumpPrev = e.target.closest('#mel-studio-jump-preview');
+        if (jumpPrev && form.contains(jumpPrev)) {
+          e.preventDefault();
+          var prevPanel = document.getElementById('mel-studio-preview-panel');
+          if (prevPanel && prevPanel.scrollIntoView) {
+            prevPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
         var nextBtn = e.target.closest('.mel-next');
-        if (!nextBtn || !form.contains(nextBtn)) return;
+        if (!nextBtn || !form.contains(nextBtn)) {
+          return;
+        }
 
         var stepIdx = getWizardStepIndex(form);
         var stepId = MEL_STEPS[stepIdx].id;
@@ -2023,7 +2043,7 @@
           return;
         }
 
-        showStep(form, stepIdx + 1);
+        scrollToStudioSection(form, stepIdx + 1);
       },
       false,
     );
@@ -2032,12 +2052,44 @@
       'click',
       function (e) {
         var prevBtn = e.target.closest('.mel-prev');
-        if (!prevBtn || !form.contains(prevBtn)) return;
+        if (!prevBtn || !form.contains(prevBtn)) {
+          return;
+        }
         var stepIdx = getWizardStepIndex(form);
-        showStep(form, stepIdx - 1);
+        if (stepIdx > 0) {
+          scrollToStudioSection(form, stepIdx - 1);
+        }
       },
       false,
     );
+
+    if (window.IntersectionObserver && steps.length) {
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) {
+              return;
+            }
+            var id = entry.target.getAttribute('data-step');
+            var idx = -1;
+            for (var s = 0; s < MEL_STEPS.length; s++) {
+              if (MEL_STEPS[s].id === id) {
+                idx = s;
+                break;
+              }
+            }
+            if (idx >= 0 && entry.intersectionRatio >= 0.2) {
+              setWizardNavActive(form, idx);
+              setWizardStepIndex(form, idx);
+            }
+          });
+        },
+        { root: null, rootMargin: '-12% 0px -50% 0px', threshold: [0, 0.15, 0.35] },
+      );
+      steps.forEach(function (s) {
+        io.observe(s);
+      });
+    }
   }
 
   function publishReadiness(form, init, str) {
@@ -2051,6 +2103,13 @@
     }
     var pTable = getBuilderTable(form);
     var paidTierRows = pTable ? pTable.querySelectorAll('tbody .mel-tier-row').length : 0;
+    var ajaxShell = document.getElementById('mel-ticket-builder-ajax-wrapper');
+    if (ajaxShell && tt === 'paid') {
+      paidTierRows = Math.max(
+        paidTierRows,
+        ajaxShell.querySelectorAll('.js-mel-ticket-card[data-ticket-id]').length,
+      );
+    }
     if (tt === 'paid' && paidTierRows < 1) {
       blocking.push(Drupal.t('Ticket types'));
     }
