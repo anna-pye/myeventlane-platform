@@ -74,6 +74,7 @@ final class EventWizardTicketsForm extends EventWizardBaseForm {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form = parent::buildForm($form, $form_state);
     $event = $this->getEvent();
 
     $form_state->set('event', $event);

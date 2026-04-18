@@ -116,6 +116,33 @@ abstract class EventWizardBaseForm extends FormBase {
   }
 
   /**
+   * {@inheritdoc}
+   *
+   * Attaches the shared event wizard asset library (CSS/JS) for every step.
+   * Concrete wizard forms should call parent::buildForm() first so
+   * \#attached is merged before fields are added.
+   */
+  public function buildForm(array $form, FormStateInterface $form_state): array {
+    $this->attachEventWizardLibrary($form);
+    return $form;
+  }
+
+  /**
+   * Ensures myeventlane_event/event_wizard is attached exactly once.
+   *
+   * @param array<string, mixed> $form
+   *   The form or render array root (modified by reference).
+   */
+  protected function attachEventWizardLibrary(array &$form): void {
+    if (!isset($form['#attached']['library'])) {
+      $form['#attached']['library'] = [];
+    }
+    if (!in_array('myeventlane_event/event_wizard', $form['#attached']['library'], TRUE)) {
+      $form['#attached']['library'][] = 'myeventlane_event/event_wizard';
+    }
+  }
+
+  /**
    * Builds prefix markup for wizard step forms (stepper + card header).
    *
    * @param array $steps

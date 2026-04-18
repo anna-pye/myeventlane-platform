@@ -68,6 +68,7 @@ final class EventWizardPublishForm extends EventWizardBaseForm {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form = parent::buildForm($form, $form_state);
     $event = $this->getEvent();
 
     $form['#title'] = $this->t('Publish event');
