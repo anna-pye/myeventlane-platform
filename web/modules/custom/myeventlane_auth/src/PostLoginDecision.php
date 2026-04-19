@@ -17,6 +17,11 @@ final class PostLoginDecision {
 
   public const INTENT_CREATE_EVENT = 'intent_create_event';
 
+  /**
+   * Password reset / one-time login: hand off to user edit (preserve pass-reset-token).
+   */
+  public const PASSWORD_RESET_CONTINUE_USER_EDIT = 'password_reset_continue_user_edit';
+
   public const NO_VENDOR_COMPLETED_ORDERS_CUSTOMER_DASHBOARD = 'no_vendor_completed_orders_customer_dashboard';
 
   public const NO_VENDOR_EVENTS_LISTING = 'no_vendor_events_listing';

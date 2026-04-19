@@ -37,6 +37,12 @@ final class PostLoginRouter {
     $uid = (int) $account->id();
     $intent = $this->identityIntentResolver->resolveFromRequest($request);
 
+    if (myeventlane_auth_is_password_reset_flow($request)) {
+      if ($uid > 0 && !$account->isAnonymous()) {
+        return $this->safeUrlPasswordResetContinue($account, $request, $uid, $intent);
+      }
+    }
+
     if ($uid <= 0 || $account->isAnonymous()) {
       $this->logger->warning(
         'PostLoginRouter: invalid session uid=@uid intent=@intent decision=@decision route=@route',
@@ -125,6 +131,85 @@ final class PostLoginRouter {
    */
   private function routeExists(string $route): bool {
     return $this->routeHelper->routeExists($route);
+  }
+
+  /**
+   * User edit with optional pass-reset-token (core password set form).
+   */
+  private function safeUrlPasswordResetContinue(
+    AccountInterface $account,
+    Request $request,
+    int $uid,
+    string $intent,
+  ): Url {
+    $route = 'entity.user.edit_form';
+    $decision = PostLoginDecision::PASSWORD_RESET_CONTINUE_USER_EDIT;
+    $query = $this->extractPassResetTokenQuery($request);
+
+    if (!$this->routeExists($route)) {
+      $this->logger->warning(
+        'PostLoginRouter: password reset handoff route not registered uid=@uid intent=@intent decision=@decision route=@route',
+        $this->routerLogContext($uid, $intent, $decision, $route),
+      );
+      return $this->urlFrontFallback($uid, $intent, $decision, $route);
+    }
+
+    try {
+      $options = $query !== [] ? ['query' => $query] : [];
+      $url = Url::fromRoute($route, ['user' => $account->id()], $options);
+      $this->logger->notice(
+        'PostLoginRouter: password reset handoff uid=@uid intent=@intent decision=@decision route=@route',
+        $this->routerLogContext($uid, $intent, $decision, $route),
+      );
+      return $url;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error(
+        'PostLoginRouter: password reset Url::fromRoute failed uid=@uid intent=@intent decision=@decision route=@route message=@message',
+        $this->routerLogContext($uid, $intent, $decision, $route) + [
+          '@message' => $e->getMessage(),
+        ],
+      );
+      return $this->urlFrontFallback($uid, $intent, $decision, $route);
+    }
+  }
+
+  /**
+   * @return array<string, string>
+   */
+  private function extractPassResetTokenQuery(Request $request): array {
+    if ($request->query->has('pass-reset-token')) {
+      $t = $request->query->get('pass-reset-token');
+      return is_string($t) && $t !== '' ? ['pass-reset-token' => $t] : [];
+    }
+    $destination = $request->query->get('destination');
+    if (!is_string($destination) || $destination === '') {
+      return [];
+    }
+    $decoded = rawurldecode($destination);
+    if (!str_contains(strtolower($decoded), 'pass-reset-token')) {
+      return [];
+    }
+    $query_string = '';
+    if (preg_match('#^https?://#i', $decoded)) {
+      $parsed = parse_url($decoded);
+      if ($parsed === FALSE) {
+        return [];
+      }
+      $query_string = $parsed['query'] ?? '';
+    }
+    elseif (str_contains($decoded, '?')) {
+      $parts = explode('?', $decoded, 2);
+      $query_string = $parts[1] ?? '';
+    }
+    if ($query_string === '') {
+      return [];
+    }
+    parse_str($query_string, $q);
+    if (!empty($q['pass-reset-token']) && is_string($q['pass-reset-token']) && $q['pass-reset-token'] !== '') {
+      return ['pass-reset-token' => $q['pass-reset-token']];
+    }
+    return [];
   }
 
   /**

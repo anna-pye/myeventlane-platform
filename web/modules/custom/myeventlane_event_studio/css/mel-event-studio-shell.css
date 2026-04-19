@@ -500,3 +500,41 @@
 .mel-event-studio .mel-ticket-section details.mel-ticket-card__overflow button.mel-btn:first-of-type {
   margin-top: 0;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Organiser setup callout (publish step — informational only)                 */
+/* -------------------------------------------------------------------------- */
+
+.mel-event-studio .mel-publish-warning {
+  background: #fef5ec;
+  border: 1px solid #f26d5b;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.mel-event-studio .mel-publish-warning__title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-publish-warning__lead {
+  margin: 0 0 12px;
+  color: #334155;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.mel-event-studio .mel-publish-warning__list {
+  margin: 0 0 16px 1.1em;
+  padding: 0;
+  color: #334155;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio .mel-publish-warning__cta {
+  display: inline-flex;
+}

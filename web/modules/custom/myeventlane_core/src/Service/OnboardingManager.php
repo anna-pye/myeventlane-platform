@@ -364,14 +364,47 @@ final class OnboardingManager {
   }
 
   /**
+   * Records /create-event gateway milestones (merged into vendor onboarding flags).
+   *
+   * Preserved across refreshFlags() when vendor_id is set. Unknown milestones
+   * are logged and ignored.
+   *
+   * @param string $milestone
+   *   One of: event_started, draft_created, vendor_incomplete.
+   */
+  public function recordCreateEventGatewayMilestone(OnboardingStateInterface $state, string $milestone): void {
+    $allowed = ['event_started', 'draft_created', 'vendor_incomplete'];
+    if (!in_array($milestone, $allowed, TRUE)) {
+      $this->logger()->warning('recordCreateEventGatewayMilestone ignored unknown milestone: @m', ['@m' => $milestone]);
+      return;
+    }
+    $flags = $state->getFlags();
+    $mel = $flags['mel_create_event_gateway'] ?? [];
+    if (!is_array($mel)) {
+      $mel = [];
+    }
+    if (!empty($mel[$milestone])) {
+      return;
+    }
+    $mel[$milestone] = TRUE;
+    $flags['mel_create_event_gateway'] = $mel;
+    $state->setFlags($flags);
+    $state->save();
+  }
+
+  /**
    * Refreshes flags on the given state and saves.
    */
   public function refreshFlags(OnboardingStateInterface $state): OnboardingStateInterface {
     $flags = $state->getFlags();
+    $preserved_gateway = $this->extractPreserveGatewayFlags($flags);
     if ($state->getTrack() === OnboardingStateInterface::TRACK_VENDOR && $state->getVendorId() !== NULL) {
       $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($state->getVendorId());
       if ($vendor instanceof Vendor) {
         $flags = $this->computeVendorFlags($vendor);
+        if ($preserved_gateway !== []) {
+          $flags['mel_create_event_gateway'] = $preserved_gateway;
+        }
         $state->setFlags($flags);
         $store_id = NULL;
         if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
@@ -618,6 +651,16 @@ final class OnboardingManager {
    */
   private function logger(): LoggerChannelInterface {
     return $this->loggerFactory->get('myeventlane_onboarding');
+  }
+
+  /**
+   * @param array<string, mixed> $flags
+   *
+   * @return array<string, mixed>
+   */
+  private function extractPreserveGatewayFlags(array $flags): array {
+    $mel = $flags['mel_create_event_gateway'] ?? [];
+    return is_array($mel) ? $mel : [];
   }
 
   /**

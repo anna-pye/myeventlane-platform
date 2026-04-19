@@ -72,6 +72,15 @@ final class MelPostLoginSessionRedirectSubscriber implements EventSubscriberInte
     }
 
     $session = $request->getSession();
+
+    if (myeventlane_auth_is_password_reset_flow($request)) {
+      if ($session->has(self::SESSION_KEY)) {
+        $session->remove(self::SESSION_KEY);
+        $session->save();
+      }
+      return;
+    }
+
     $pending = $session->get(self::SESSION_KEY);
     if (!is_array($pending)) {
       return;

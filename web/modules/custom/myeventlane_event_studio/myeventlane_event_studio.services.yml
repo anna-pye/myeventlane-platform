@@ -1,4 +1,11 @@
 services:
+  myeventlane_event_studio.preprocess:
+    class: Drupal\myeventlane_event_studio\EventStudioPreprocess
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@myeventlane_onboarding.manager'
+
   myeventlane_event_studio.vendor_legacy_wizard_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorLegacyWizardRedirectSubscriber
     arguments:
