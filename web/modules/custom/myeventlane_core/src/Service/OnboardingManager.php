@@ -162,7 +162,7 @@ final class OnboardingManager {
       ->accessCheck(FALSE)
       ->condition('uid', $uid)
       ->condition('track', OnboardingStateInterface::TRACK_VENDOR)
-      ->sort('id', 'DESC')
+      ->sort('created', 'DESC')
       ->execute();
 
     if (empty($ids)) {
@@ -194,6 +194,11 @@ final class OnboardingManager {
   public function createVendorStateForUid(int $uid): OnboardingStateInterface {
     if ($uid <= 0) {
       throw new \InvalidArgumentException('createVendorStateForUid requires an authenticated uid.');
+    }
+
+    $existing = $this->loadVendorStateByUid($uid);
+    if ($existing !== NULL) {
+      return $existing;
     }
 
     $storage = $this->getStorage();

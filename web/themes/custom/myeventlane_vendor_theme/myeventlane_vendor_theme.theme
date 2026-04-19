@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
@@ -310,8 +311,19 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $route_match
   );
 
-  $is_vendor_onboard = is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard');
-  $variables['page']['vendor_onboard_inner'] = $is_vendor_onboard;
+  // Sidebar region: shell navigation is not a Twig include — render via page.sidebar
+  // so the page template uses standard Drupal regions (blocks may extend this later).
+  $sidebar_region = $variables['page']['sidebar'] ?? [];
+  $sidebar_empty = $sidebar_region === [] || $sidebar_region === NULL
+    || (is_array($sidebar_region) && Element::children($sidebar_region) === []);
+  if ($sidebar_empty) {
+    $page_for_shell = $variables['page'];
+    unset($page_for_shell['sidebar']);
+    $variables['page']['sidebar'] = [
+      '#theme' => 'vendor_sidebar',
+      'page' => $page_for_shell,
+    ];
+  }
 
   // Legacy step-wizard sidebar: staff/support only (vendors are redirected to Event Studio).
   $variables['page']['wizard_steps'] = [];
@@ -669,6 +681,10 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
   elseif ($route_name === 'myeventlane_vendor.dashboard') {
     $suggestions[] = 'page__vendor__dashboard';
   }
+  elseif (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard')) {
+    // Single shell template for all organiser onboarding routes (same as dashboard/events).
+    $suggestions[] = 'page__vendor';
+  }
   elseif (str_starts_with($route_name ?? '', 'myeventlane_vendor.')) {
     $route_parts = explode('.', $route_name);
     if (count($route_parts) >= 2) {
@@ -877,7 +893,7 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
 }
 
 /**
- * Builds compact journey metadata (4 core steps) for guided onboarding UX.
+ * Builds journey metadata for guided onboarding UX (matches STAGE_ORDER).
  *
  * @return array
  *   Journey variables for Twig (steps, progress label, stage, completed keys).
@@ -888,16 +904,21 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
     $route = 'myeventlane_vendor.onboard.stripe';
   }
 
-  $journey_routes = [
-    'myeventlane_vendor.onboard.account' => 0,
-    'myeventlane_vendor.onboard' => 0,
-    'myeventlane_vendor.onboard.profile' => 1,
-    'myeventlane_vendor.onboard.stripe' => 2,
-    'myeventlane_vendor.onboard.first_event' => 3,
+  $route_to_stage = [
+    'myeventlane_vendor.onboard' => 'probe',
+    'myeventlane_vendor.onboard.account' => 'probe',
+    'myeventlane_vendor.onboard.profile' => 'present',
+    'myeventlane_vendor.onboard.stripe' => 'listen',
+    'myeventlane_vendor.onboard.first_event' => 'ask',
+    'myeventlane_vendor.onboard.boost' => 'invite',
+    'myeventlane_vendor.onboard.complete' => 'complete',
   ];
-  $current_index = $journey_routes[$route] ?? 0;
+  $stage = $route_to_stage[$route] ?? 'probe';
+  $stage_order = \Drupal\myeventlane_core\Entity\OnboardingStateInterface::STAGE_ORDER;
+  $current_index = array_search($stage, $stage_order, TRUE);
+  $current_index = $current_index !== FALSE ? (int) $current_index : 0;
 
-  $journey_ids = ['probe', 'present', 'listen', 'ask'];
+  $journey_ids = $stage_order;
   $uid = (int) \Drupal::currentUser()->id();
   $state = NULL;
   if ($uid > 0 && \Drupal::hasService('myeventlane_onboarding.manager')) {
@@ -906,25 +927,22 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
     $state = $manager->loadVendorStateByUid($uid);
   }
 
-  $stage_order = \Drupal\myeventlane_core\Entity\OnboardingStateInterface::STAGE_ORDER;
   $state_idx = NULL;
   if ($state !== NULL) {
     $state_idx = array_search($state->getStage(), $stage_order, TRUE);
     $state_idx = $state_idx !== FALSE ? (int) $state_idx : 0;
   }
 
-  $journey_to_stage_idx = [0 => 0, 1 => 1, 2 => 2, 3 => 3];
   $steps = [];
   $completed_keys = [];
   foreach ($journey_ids as $i => $id) {
-    $mapped = $journey_to_stage_idx[$i] ?? $i;
     $is_current = ($i === $current_index);
     $is_complete = FALSE;
     if ($state !== NULL && $state->isCompleted()) {
       $is_complete = TRUE;
     }
     elseif ($state_idx !== NULL) {
-      $is_complete = $state_idx > $mapped;
+      $is_complete = $state_idx > $i;
     }
     else {
       $is_complete = $i < $current_index;
@@ -934,6 +952,8 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
       'present' => t('Profile'),
       'listen' => t('Payments'),
       'ask' => t('First event'),
+      'invite' => t('Boost'),
+      'complete' => t('Complete'),
       default => $id,
     };
     if ($is_complete) {
@@ -947,9 +967,10 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
     ];
   }
 
+  $total_steps = count($stage_order);
   $progress_label = t('Step @current of @total', [
     '@current' => (string) ($current_index + 1),
-    '@total' => '4',
+    '@total' => (string) $total_steps,
   ]);
 
   return [
@@ -977,7 +998,9 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
     ],
     'vendor_sidebar' => [
       'template' => 'includes/sidebar',
-      'variables' => [],
+      'variables' => [
+        'page' => [],
+      ],
     ],
     'myeventlane_vendor_console_page' => [
       'variables' => [

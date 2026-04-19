@@ -1,42 +1,37 @@
 {#
 /**
  * @file
- * Vendor onboarding profile form — guided flow inside vendor shell main column.
+ * Vendor onboarding profile form — shell main column only (no duplicate page wrappers).
  */
 #}
-{% set back_route = back_route ?? null %}
-<div class="mel-onboard-flow">
-  {% if journey_steps is defined and journey_steps %}
-    {% include '@myeventlane_vendor_theme/components/onboarding-journey-steps.html.twig' with { journey_steps: journey_steps } only %}
-  {% elseif onboarding_stages is defined and onboarding_stages %}
-    {% include '@myeventlane_vendor_theme/components/onboarding-progress.html.twig' with { stages: onboarding_stages } %}
-  {% else %}
-    <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
-      <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
-      <div class="mel-onboard-progress-steps">
-        {% for i in 1..total_steps %}
-          <div class="mel-onboard-progress-step {{ i <= step_number ? 'mel-onboard-progress-step--active' : '' }} {{ i == step_number ? 'mel-onboard-progress-step--current' : '' }}">
-            <span class="mel-onboard-progress-step-number">{{ i }}</span>
-          </div>
-        {% endfor %}
-      </div>
+{% if journey_steps is defined and journey_steps %}
+  {% include '@myeventlane_vendor_theme/components/onboarding-journey-steps.html.twig' with { journey_steps: journey_steps } only %}
+{% elseif onboarding_stages is defined and onboarding_stages %}
+  {% include '@myeventlane_vendor_theme/components/onboarding-progress.html.twig' with { stages: onboarding_stages } %}
+{% else %}
+  <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
+    <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
+    <div class="mel-onboard-progress-steps">
+      {% for i in 1..total_steps %}
+        <div class="mel-onboard-progress-step {{ i <= step_number ? 'mel-onboard-progress-step--active' : '' }} {{ i == step_number ? 'mel-onboard-progress-step--current' : '' }}">
+          <span class="mel-onboard-progress-step-number">{{ i }}</span>
+        </div>
+      {% endfor %}
     </div>
-  {% endif %}
-
-  {% if onboarding_progress_label %}
-    <p class="mel-onboard-progress-text">{{ onboarding_progress_label }}</p>
-  {% endif %}
-
-  <header class="mel-onboard-header">
-    <h1 class="mel-onboard-title">{{ step_title }}</h1>
-    {% if step_description %}
-      <p class="mel-onboard-description">{{ step_description }}</p>
-    {% endif %}
-  </header>
-
-  <div class="mel-onboard-card mel-onboard-card--main">
-    <form{{ attributes.addClass('mel-onboard-form-root') }}>
-      {{ children }}
-    </form>
   </div>
-</div>
+{% endif %}
+
+{% if onboarding_progress_label %}
+  <p class="mel-onboard-progress-text">{{ onboarding_progress_label }}</p>
+{% endif %}
+
+<header class="mel-onboard-header">
+  <h1 class="mel-onboard-title">{{ step_title }}</h1>
+  {% if step_description %}
+    <p class="mel-onboard-description">{{ step_description }}</p>
+  {% endif %}
+</header>
+
+<form{{ attributes }}>
+  {{ children }}
+</form>

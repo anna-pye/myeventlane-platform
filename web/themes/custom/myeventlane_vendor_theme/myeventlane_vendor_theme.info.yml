@@ -11,6 +11,7 @@ libraries:
 
 # Only define regions we actually use in our custom layout
 regions:
+  sidebar: 'Vendor shell navigation'
   vendor_header_left: 'Vendor Header Left'
   vendor_header_center: 'Vendor Header Center'
   vendor_header_right: 'Vendor Header Right'
