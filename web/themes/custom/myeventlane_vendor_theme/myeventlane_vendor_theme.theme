@@ -471,6 +471,10 @@ function myeventlane_vendor_theme_preprocess_html(array &$variables): void {
   if (in_array($route_name, _myeventlane_vendor_theme_event_builder_layout_routes(), TRUE)) {
     $variables['attributes']['class'][] = 'mel-page--event-wizard';
   }
+
+  if (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard')) {
+    $variables['attributes']['class'][] = 'mel-page--vendor-onboard';
+  }
 }
 
 /**
@@ -2068,29 +2072,29 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
   $store = _myeventlane_vendor_theme_get_store_for_account($current_user);
   $uid = (int) $current_user->id();
 
-  // 1) Stripe payouts disabled → error
+  // 1) Stripe payouts disabled (account exists but onboarding incomplete) → action CTA
   $payouts_enabled = TRUE;
   if ($store && $store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()) {
     $payouts_enabled = (bool) $store->get('field_stripe_payouts_enabled')->value;
   }
-  if (!$payouts_enabled) {
-    return [
-      'type' => 'error',
-      'message' => t('Payouts are disabled for your Stripe account. Enable them in Stripe to receive funds.'),
-      'cta' => ['label' => t('View Payouts'), 'url' => '/vendor/payouts'],
-    ];
-  }
-
-  // 2) No Stripe account ID → warning
   $account_id = '';
   if ($store && $store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
     $account_id = trim((string) $store->get('field_stripe_account_id')->value);
   }
+  if ($account_id !== '' && !$payouts_enabled) {
+    return [
+      'type' => 'warning',
+      'message' => t('Finish setting up Stripe so payouts can reach your bank.'),
+      'cta' => ['label' => t('Resume Stripe setup'), 'url' => '/vendor/stripe/connect'],
+    ];
+  }
+
+  // 2) No Stripe account ID → connect
   if ($account_id === '') {
     return [
       'type' => 'warning',
-      'message' => t('Connect your Stripe account to receive payouts.'),
-      'cta' => ['label' => t('Connect Stripe'), 'url' => '/vendor/payouts'],
+      'message' => t('Connect Stripe to receive payments.'),
+      'cta' => ['label' => t('Connect Stripe'), 'url' => '/vendor/stripe/connect'],
     ];
   }
 

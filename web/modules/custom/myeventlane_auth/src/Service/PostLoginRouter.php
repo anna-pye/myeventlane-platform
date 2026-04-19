@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_auth\Service;
 
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -25,7 +24,6 @@ final class PostLoginRouter {
     private readonly OnboardingManager $onboardingManager,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
     private readonly IdentityIntentResolver $identityIntentResolver,
-    private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerChannelInterface $logger,
     private readonly RouteHelper $routeHelper,
   ) {}
@@ -74,31 +72,12 @@ final class PostLoginRouter {
 
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     if ($vendor_ids === []) {
-      if ($this->onboardingManager->customerHasCompletedOrders($uid)
-        && $this->moduleHandler->moduleExists('myeventlane_account')) {
-        return $this->safeUrlFromRoute(
-          'myeventlane_account.dashboard',
-          [],
-          $uid,
-          $intent,
-          PostLoginDecision::NO_VENDOR_COMPLETED_ORDERS_CUSTOMER_DASHBOARD,
-        );
-      }
-      if ($this->moduleHandler->moduleExists('myeventlane_dashboard')) {
-        return $this->safeUrlFromRoute(
-          'myeventlane_dashboard.customer',
-          [],
-          $uid,
-          $intent,
-          PostLoginDecision::NO_VENDOR_EVENTS_LISTING,
-        );
-      }
       return $this->safeUrlFromRoute(
-        'entity.user.canonical',
-        ['user' => $uid],
+        'myeventlane_vendor.onboard.profile',
+        [],
         $uid,
         $intent,
-        PostLoginDecision::NO_VENDOR_USER_CANONICAL_FALLBACK,
+        PostLoginDecision::NO_VENDOR_ONBOARD_PROFILE,
       );
     }
 

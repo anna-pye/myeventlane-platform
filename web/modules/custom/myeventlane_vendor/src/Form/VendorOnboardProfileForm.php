@@ -98,8 +98,27 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
 
+    $next_route = 'myeventlane_vendor.onboard.stripe';
+    $state = $this->onboardingManager->loadVendorStateByUid((int) $this->currentUser->id());
+    if ($state !== NULL) {
+      $nr = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
+      if (is_string($nr) && $nr !== '') {
+        $next_route = $nr;
+      }
+    }
+    $continue_label = $this->t('Continue');
+    if (str_contains($next_route, 'stripe')) {
+      $continue_label = $this->t('Continue to payments');
+    }
+    elseif (str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
+      $continue_label = $this->t('Continue to event setup');
+    }
+
     $form['step_content'] = [
       '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-onboard-card'],
+      ],
     ];
     $form['step_content']['name'] = [
       '#type' => 'textfield',
@@ -111,12 +130,16 @@ final class VendorOnboardProfileForm extends FormBase {
       '#maxlength' => 255,
     ];
     $form['step_content']['name']['#attributes']['placeholder'] = $this->t('Enter your organiser name');
+
     $form['step_content']['actions'] = [
       '#type' => 'actions',
+      '#attributes' => [
+        'class' => ['mel-onboard-footer'],
+      ],
     ];
     $form['step_content']['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Continue'),
+      '#value' => $continue_label,
       '#button_type' => 'primary',
     ];
 

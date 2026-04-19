@@ -28,6 +28,11 @@ final class PostLoginDecision {
 
   public const NO_VENDOR_USER_CANONICAL_FALLBACK = 'no_vendor_user_canonical_fallback';
 
+  /**
+   * No vendor membership: start organiser profile onboarding (not customer dashboard).
+   */
+  public const NO_VENDOR_ONBOARD_PROFILE = 'no_vendor_onboard_profile';
+
   public const VENDOR_ONBOARDING_INCOMPLETE = 'vendor_onboarding_incomplete';
 
   public const VENDOR_COMPLETE_DASHBOARD = 'vendor_complete_dashboard';

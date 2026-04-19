@@ -1,13 +1,7 @@
 {#
 /**
  * @file
- * Theme override for vendor onboarding step pages.
- *
- * Uses onboarding-progress component with STAGE_ORDER-based stages.
- *
- * Available: form (the element with #step_number, #step_title, etc., and
- * optionally form.form_build_id, form.form_token, form.form_id, form.step_content).
- * - onboarding_stages: From preprocess (Stripe + Terms locked).
+ * Vendor onboarding step — aligned with Event Studio shell (left-aligned main, max width).
  */
 #}
 {% set step_number = form['#step_number'] ?? 1 %}
@@ -26,13 +20,12 @@
 {% elseif step_number == 6 %}
   {% set back_route = 'myeventlane_vendor.onboard.boost' %}
 {% endif %}
-<div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
-  <div class="mel-container mel-container--onboard">
 
+<div class="mel-vendor-workspace mel-onboard-wrapper mel-onboard-wrapper--vendor">
+  <main class="mel-vendor-main mel-vendor-main--onboard">
     {% if onboarding_stages is defined and onboarding_stages %}
       {% include '@myeventlane_vendor_theme/components/onboarding-progress.html.twig' with { stages: onboarding_stages } %}
     {% else %}
-      {# Fallback if preprocess did not run #}
       <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
         <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
         <div class="mel-onboard-progress-steps">
@@ -45,15 +38,13 @@
       </div>
     {% endif %}
 
-    {# Step header #}
-    <div class="mel-onboard-header">
+    <header class="mel-onboard-header">
       <h1 class="mel-onboard-title">{{ step_title }}</h1>
       {% if step_description %}
         <p class="mel-onboard-description">{{ step_description }}</p>
       {% endif %}
-    </div>
+    </header>
 
-    {# Step content - render form children in context (form_build_id, form_token, form_id, step_content) or #content for controllers #}
     <div class="mel-onboard-content">
       {% if form.form_build_id is defined %}{{ form.form_build_id }}{% endif %}
       {% if form.form_token is defined %}{{ form.form_token }}{% endif %}
@@ -61,7 +52,6 @@
       {{ form.step_content|default(form['#content']) }}
     </div>
 
-    {# Navigation (if needed) #}
     {% if back_route %}
       <div class="mel-onboard-nav">
         <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">
@@ -69,6 +59,5 @@
         </a>
       </div>
     {% endif %}
-
-  </div>
+  </main>
 </div>

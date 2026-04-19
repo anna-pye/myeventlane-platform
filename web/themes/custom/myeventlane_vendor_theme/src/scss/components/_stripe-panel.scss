@@ -55,6 +55,32 @@
       background: rgba(107, 114, 128, 0.1);
       color: #6b7280;
     }
+
+    &--needs_connect {
+      background: rgba(107, 114, 128, 0.1);
+      color: #6b7280;
+    }
+
+    &--needs_completion {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+    }
+
+    &--payouts_ready {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+    }
+  }
+
+  &__lead {
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--mel-color-text-secondary);
+
+    &--success {
+      color: #047857;
+    }
   }
 
   &__status-dot {

@@ -80,14 +80,15 @@ final class VendorOnboardStripeController extends ControllerBase {
       );
     }
 
-    // Check if Stripe is already connected.
-    // charges_enabled is sufficient for event creation (same as assertStripeConnected).
-    // Payouts can be disabled initially; user can fix in Stripe dashboard.
+    // Stripe UI phases: not connected | connected incomplete | payouts enabled.
     $isConnected = FALSE;
+    $payoutsEnabled = FALSE;
+    if ($store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()) {
+      $payoutsEnabled = (bool) $store->get('field_stripe_payouts_enabled')->value;
+    }
     if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
       $accountId = $store->get('field_stripe_account_id')->value;
       if (!empty($accountId)) {
-        // Prefer store fields (set by callback) to avoid unnecessary API calls.
         if ($store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
           $isConnected = (bool) $store->get('field_stripe_charges_enabled')->value;
         }
@@ -95,12 +96,23 @@ final class VendorOnboardStripeController extends ControllerBase {
           try {
             $status = $this->stripeService->getAccountStatus($accountId);
             $isConnected = $status['charges_enabled'];
+            if (!$payoutsEnabled) {
+              $payoutsEnabled = $status['payouts_enabled'];
+            }
           }
           catch (\Exception $e) {
             // API failed; rely on store fields if set.
           }
         }
       }
+    }
+
+    $stripe_phase = 'needs_connect';
+    if ($payoutsEnabled) {
+      $stripe_phase = 'payouts_ready';
+    }
+    elseif ($isConnected || ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty())) {
+      $stripe_phase = 'needs_completion';
     }
 
     // Non-blocking: load/refresh onboarding state; advance when Stripe already connected.
@@ -125,23 +137,50 @@ final class VendorOnboardStripeController extends ControllerBase {
       ],
     ];
 
-    if ($isConnected) {
+    $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+      'query' => [
+        'destination' => '/vendor/onboard/stripe',
+        't' => (string) time(),
+      ],
+      'absolute' => TRUE,
+    ]);
+
+    if ($stripe_phase === 'payouts_ready') {
       $content['status'] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-alert', 'mel-alert-success'],
+          'class' => ['mel-stripe-phase', 'mel-stripe-phase--success'],
         ],
         'message' => [
-          '#markup' => '<p><strong>' . $this->t('Stripe is already connected!') . '</strong> ' . $this->t('You can accept payments for your events.') . '</p>',
+          '#markup' => '<p><strong>' . $this->t('Payouts enabled') . '</strong> ' . $this->t('Your Stripe account can receive funds from ticket sales.') . '</p>',
         ],
       ];
 
       $content['continue'] = [
         '#type' => 'link',
-        '#title' => $this->t('Continue to create your first event'),
+        '#title' => $this->t('Continue to event setup'),
         '#url' => Url::fromRoute('myeventlane_vendor.onboard.first_event'),
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
+        ],
+      ];
+    }
+    elseif ($stripe_phase === 'needs_completion') {
+      $content['status'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-stripe-phase', 'mel-stripe-phase--action'],
+        ],
+        'message' => [
+          '#markup' => '<p><strong>' . $this->t('Finish setting up Stripe') . '</strong> ' . $this->t('Complete the remaining steps in Stripe to enable payouts.') . '</p>',
+        ],
+      ];
+      $content['resume'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Resume Stripe setup'),
+        '#url' => $connectUrl,
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
         ],
       ];
     }
@@ -152,7 +191,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           'class' => ['mel-onboard-stripe-intro'],
         ],
         'text' => [
-          '#markup' => '<p>' . $this->t('To accept payments for your events, you need to connect a Stripe account. Stripe is a secure payment processor used by millions of businesses worldwide.') . '</p>',
+          '#markup' => '<p>' . $this->t('Connect Stripe to receive payments. Stripe is a secure payment processor used by millions of businesses.') . '</p>',
         ],
       ];
 
@@ -172,38 +211,12 @@ final class VendorOnboardStripeController extends ControllerBase {
         ],
       ];
 
-      $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-        'query' => [
-          'destination' => '/vendor/onboard/stripe',
-          't' => (string) time(),
-        ],
-        'absolute' => TRUE,
-      ]);
       $content['connect'] = [
         '#type' => 'link',
-        '#title' => $this->t('Connect Stripe account'),
+        '#title' => $this->t('Connect Stripe to receive payments'),
         '#url' => $connectUrl,
         '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
-        ],
-      ];
-
-      $content['skip'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Skip for now'),
-        '#url' => Url::fromRoute('myeventlane_vendor.onboard.first_event'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn-secondary'],
-        ],
-      ];
-
-      $content['skip_note'] = [
-        '#type' => 'container',
-        '#attributes' => [
-          'class' => ['mel-onboard-stripe-skip-note'],
-        ],
-        'text' => [
-          '#markup' => '<p class="mel-text-muted">' . $this->t('You can connect Stripe later from your dashboard. Note: You\'ll need Stripe to accept paid ticket sales.') . '</p>',
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
         ],
       ];
     }

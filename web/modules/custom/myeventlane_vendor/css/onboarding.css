@@ -1,36 +1,71 @@
 /**
  * @file
- * Vendor onboarding styles.
- *
- * Mobile-first, accessible, aligned with MyEventLane design system.
+ * Vendor onboarding — MEL design tokens (CSS) + workspace layout.
  */
 
-/* ==========================================================================
-   Onboarding Wrapper
-   ========================================================================== */
-.mel-onboard-wrapper {
-  min-height: 100vh;
-  padding: 2rem 1rem 4rem;
-  background: #faf7fb;
+:root {
+  --mel-onboard-bg: #f7f8fa;
+  --mel-onboard-surface: #ffffff;
+  --mel-onboard-border: #e6e6e6;
+  --mel-onboard-text: #1a1a2e;
+  --mel-onboard-muted: #6b7280;
+  --mel-onboard-coral: #ff8a8a;
+  --mel-onboard-radius: 14px;
+  --mel-onboard-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --mel-onboard-space-sm: 8px;
+  --mel-onboard-space-md: 16px;
+  --mel-onboard-space-lg: 24px;
+  --mel-onboard-space-xl: 32px;
+  --mel-onboard-space-2xl: 48px;
+  --mel-onboard-max: 720px;
 }
 
-@media (min-width: 768px) {
-  .mel-onboard-wrapper {
-    padding: 3rem 2rem 5rem;
+/* Vendor shell: constrain onboarding main column (sidebar is existing shell aside). */
+body.mel-page--vendor-onboard .mel-vendor-shell__content {
+  max-width: var(--mel-onboard-max);
+  margin-inline: 0;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  body.mel-page--vendor-onboard .mel-vendor-shell__content {
+    max-width: none;
+    padding-inline: var(--mel-onboard-space-md);
   }
 }
 
-.mel-container--onboard {
-  max-width: 42rem;
-  margin: 0 auto;
+.mel-vendor-workspace {
+  min-height: 100%;
+  background: var(--mel-onboard-bg);
 }
 
-/* ==========================================================================
-   Progress Indicator
-   ========================================================================== */
+.mel-vendor-main--onboard {
+  max-width: var(--mel-onboard-max);
+  padding: var(--mel-onboard-space-lg) var(--mel-onboard-space-md) var(--mel-onboard-space-2xl);
+  margin-inline: 0;
+}
+
+@media (min-width: 768px) {
+  .mel-vendor-main--onboard {
+    padding: var(--mel-onboard-space-xl) var(--mel-onboard-space-lg) var(--mel-onboard-space-2xl);
+  }
+}
+
+.mel-onboard-wrapper {
+  min-height: 100%;
+  padding: 0;
+  background: transparent;
+}
+
+.mel-container--onboard {
+  max-width: var(--mel-onboard-max);
+  margin: 0;
+  width: 100%;
+}
+
 .mel-onboard-progress {
   position: relative;
-  margin-bottom: 3rem;
+  margin-bottom: var(--mel-onboard-space-xl);
 }
 
 .mel-onboard-progress-bar {
@@ -38,7 +73,7 @@
   top: 1.25rem;
   left: 0;
   height: 3px;
-  background: #ff6f61;
+  background: var(--mel-onboard-coral);
   border-radius: 2px;
   transition: width 0.3s ease;
   z-index: 1;
@@ -66,12 +101,12 @@
 .mel-onboard-progress-step-number {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--mel-onboard-muted);
 }
 
 .mel-onboard-progress-step--active {
-  background: #ff6f61;
-  border-color: #ff6f61;
+  background: var(--mel-onboard-coral);
+  border-color: var(--mel-onboard-coral);
 }
 
 .mel-onboard-progress-step--active .mel-onboard-progress-step-number {
@@ -79,15 +114,12 @@
 }
 
 .mel-onboard-progress-step--current {
-  border-color: #ff6f61;
-  box-shadow: 0 0 0 4px rgba(255, 111, 97, 0.15);
+  border-color: var(--mel-onboard-coral);
+  box-shadow: 0 0 0 4px rgba(255, 138, 138, 0.2);
 }
 
-/* ==========================================================================
-   Onboarding Progress Component (STAGE_ORDER, Stripe + Terms locked)
-   ========================================================================== */
 .mel-onboarding-progress {
-  margin-bottom: 3rem;
+  margin-bottom: var(--mel-onboard-space-xl);
 }
 
 .mel-onboarding-progress__list {
@@ -113,12 +145,12 @@
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--mel-onboard-muted);
   transition: color 0.2s, background 0.2s;
 }
 
 .mel-onboarding-progress__link:hover {
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
   background: rgba(0, 0, 0, 0.04);
 }
 
@@ -139,12 +171,12 @@
 }
 
 .mel-onboarding-progress__item--current .mel-onboarding-progress__link {
-  color: #ff6f61;
-  background: rgba(255, 111, 97, 0.1);
+  color: var(--mel-onboard-coral);
+  background: rgba(255, 138, 138, 0.12);
 }
 
 .mel-onboarding-progress__item--current .mel-onboarding-progress__marker {
-  background: #ff6f61;
+  background: var(--mel-onboard-coral);
   color: white;
 }
 
@@ -159,19 +191,16 @@
   background: #d1d5db;
 }
 
-/* ==========================================================================
-   Step Header
-   ========================================================================== */
 .mel-onboard-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
+  text-align: left;
+  margin-bottom: var(--mel-onboard-space-xl);
 }
 
 .mel-onboard-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #1a1a2e;
-  margin: 0 0 1rem;
+  color: var(--mel-onboard-text);
+  margin: 0 0 var(--mel-onboard-space-md);
   line-height: 1.2;
 }
 
@@ -183,7 +212,7 @@
 
 .mel-onboard-description {
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--mel-onboard-muted);
   line-height: 1.6;
   margin: 0;
 }
@@ -194,38 +223,55 @@
   }
 }
 
-/* ==========================================================================
-   Step Content
-   ========================================================================== */
 .mel-onboard-content {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
-@media (min-width: 768px) {
-  .mel-onboard-content {
-    padding: 3rem;
-  }
+.mel-onboard-card {
+  background: var(--mel-onboard-surface);
+  border: 1px solid var(--mel-onboard-border);
+  border-radius: var(--mel-onboard-radius);
+  box-shadow: var(--mel-onboard-shadow);
+  padding: var(--mel-onboard-space-xl);
 }
 
-/* Account step */
+.mel-onboard-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--mel-onboard-space-md);
+  margin-top: var(--mel-onboard-space-lg);
+  padding: var(--mel-onboard-space-md) 0 0;
+  background: linear-gradient(to top, var(--mel-onboard-bg) 70%, transparent);
+  border-top: 1px solid var(--mel-onboard-border);
+}
+
+.mel-onboard-footer .form-actions {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .mel-onboard-account {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  text-align: center;
+  text-align: left;
 }
 
 @media (min-width: 640px) {
   .mel-onboard-account {
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
 
-/* Profile form */
 .mel-onboard-profile-form {
   max-width: 100%;
 }
@@ -238,7 +284,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
 }
 
 .mel-onboard-profile-form input[type="text"],
@@ -255,11 +301,10 @@
 .mel-onboard-profile-form input:focus,
 .mel-onboard-profile-form textarea:focus {
   outline: none;
-  border-color: #ff6f61;
-  box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.1);
+  border-color: var(--mel-onboard-coral);
+  box-shadow: 0 0 0 3px rgba(255, 138, 138, 0.15);
 }
 
-/* Stripe step */
 .mel-onboard-stripe-intro {
   margin-bottom: 1.5rem;
 }
@@ -291,12 +336,24 @@
   font-weight: 600;
 }
 
-.mel-onboard-stripe-skip-note {
-  margin-top: 1rem;
-  text-align: center;
+.mel-stripe-phase {
+  padding: var(--mel-onboard-space-lg);
+  border-radius: var(--mel-onboard-radius);
+  margin-bottom: var(--mel-onboard-space-lg);
 }
 
-/* First event step */
+.mel-stripe-phase--success {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: var(--mel-onboard-text);
+}
+
+.mel-stripe-phase--action {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: var(--mel-onboard-text);
+}
+
 .mel-onboard-first-event-intro {
   margin-bottom: 1.5rem;
 }
@@ -311,7 +368,7 @@
 .mel-onboard-first-event-tips h3 {
   margin: 0 0 1rem;
   font-size: 1.125rem;
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
 }
 
 .mel-onboard-first-event-tips ul {
@@ -330,16 +387,10 @@
   content: "•";
   position: absolute;
   left: 0;
-  color: #ff6f61;
+  color: var(--mel-onboard-coral);
   font-weight: 600;
 }
 
-.mel-onboard-first-event-skip-note {
-  margin-top: 1rem;
-  text-align: center;
-}
-
-/* Complete step */
 .mel-onboard-complete-success {
   text-align: center;
   margin-bottom: 2rem;
@@ -362,7 +413,7 @@
 .mel-onboard-complete-success h2 {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
   margin: 0 0 1rem;
 }
 
@@ -374,7 +425,7 @@
 .mel-onboard-complete-features h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
   margin: 0 0 1rem;
 }
 
@@ -412,17 +463,11 @@
   }
 }
 
-/* ==========================================================================
-   Navigation
-   ========================================================================== */
 .mel-onboard-nav {
-  margin-top: 2rem;
-  text-align: center;
+  margin-top: var(--mel-onboard-space-xl);
+  text-align: left;
 }
 
-/* ==========================================================================
-   Alerts
-   ========================================================================== */
 .mel-alert {
   padding: 1rem 1.5rem;
   border-radius: 8px;
@@ -432,38 +477,19 @@
 .mel-alert-success {
   background: #e8f5e9;
   border: 1px solid #4caf50;
-  color: #1a1a2e;
+  color: var(--mel-onboard-text);
 }
 
 .mel-alert-success p {
   margin: 0;
 }
 
-/* ==========================================================================
-   Buttons
-   ========================================================================== */
 .mel-btn-lg {
   padding: 0.875rem 2rem;
   font-size: 1.125rem;
 }
 
-/* ==========================================================================
-   Text Utilities
-   ========================================================================== */
 .mel-text-muted {
-  color: #6b7280;
+  color: var(--mel-onboard-muted);
   font-size: 0.875rem;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

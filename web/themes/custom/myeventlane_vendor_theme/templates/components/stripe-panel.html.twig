@@ -1,100 +1,61 @@
 {#
 /**
  * @file
- * Stripe Connect status panel component.
+ * Stripe Connect status — phase-driven (store fields + dashboard controller).
  *
- * Variables:
- * - stripe: Stripe status object with:
- *   - connected: Boolean
- *   - status: 'connected' | 'pending' | 'not_connected'
- *   - status_label: Human readable status
- *   - account_id: Stripe account ID
- *   - next_payout_date: Next payout date
- *   - total_paid_out: Total amount paid out
- *   - pending_balance: Pending balance
- *   - stripe_dashboard_url: URL to Stripe dashboard
- *   - connect_url: URL to connect Stripe
+ * - stripe.stripe_phase: needs_connect | needs_completion | payouts_ready
+ * - stripe.connect_url / stripe.resume_url: primary CTAs
  */
 #}
-<div class="mel-stripe-panel mel-stripe-panel--{{ stripe.status }}">
+{% set phase = stripe.stripe_phase|default(stripe.connected ? 'needs_completion' : 'needs_connect') %}
+
+<div class="mel-stripe-panel mel-stripe-panel--{{ phase }}" data-stripe-phase="{{ phase }}">
   <div class="mel-stripe-panel__header">
-    <div class="mel-stripe-panel__icon">
+    <div class="mel-stripe-panel__icon" aria-hidden="true">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
       </svg>
     </div>
-    <div class="mel-stripe-panel__title">{{ 'Stripe Payouts'|t }}</div>
-    <div class="mel-stripe-panel__status mel-stripe-panel__status--{{ stripe.status }}">
+    <div class="mel-stripe-panel__title">{{ 'Stripe'|t }}</div>
+    <div class="mel-stripe-panel__status mel-stripe-panel__status--{{ phase }}">
       <span class="mel-stripe-panel__status-dot"></span>
-      {{ stripe.status_label }}
+      {% if phase == 'payouts_ready' %}
+        {{ 'Payouts enabled'|t }}
+      {% elseif phase == 'needs_completion' %}
+        {{ 'Action required'|t }}
+      {% else %}
+        {{ 'Not connected'|t }}
+      {% endif %}
     </div>
   </div>
 
   <div class="mel-stripe-panel__body">
-    {% if stripe.connected %}
-      <div class="mel-stripe-panel__metrics">
-        <div class="mel-stripe-panel__metric">
-          <span class="mel-stripe-panel__metric-label">{{ 'Total Paid Out'|t }}</span>
-          <span class="mel-stripe-panel__metric-value">${{ stripe.total_paid_out|number_format(0) }}</span>
-        </div>
-        <div class="mel-stripe-panel__metric">
-          <span class="mel-stripe-panel__metric-label">{{ 'Pending'|t }}</span>
-          <span class="mel-stripe-panel__metric-value">${{ stripe.pending_balance|number_format(0) }}</span>
-        </div>
-        {% if stripe.next_payout_date %}
-          <div class="mel-stripe-panel__metric">
-            <span class="mel-stripe-panel__metric-label">{{ 'Next Payout'|t }}</span>
-            <span class="mel-stripe-panel__metric-value">{{ stripe.next_payout_date }}</span>
-          </div>
-        {% endif %}
-      </div>
-
+    {% if phase == 'payouts_ready' %}
+      <p class="mel-stripe-panel__lead mel-stripe-panel__lead--success">{{ 'Payouts enabled — funds from ticket sales can reach your bank.'|t }}</p>
       {% if stripe.account_id %}
         <div class="mel-stripe-panel__account">
-          <span class="mel-stripe-panel__account-label">{{ 'Account ID'|t }}</span>
+          <span class="mel-stripe-panel__account-label">{{ 'Account'|t }}</span>
           <code class="mel-stripe-panel__account-id">{{ stripe.account_id }}</code>
         </div>
       {% endif %}
-
       <div class="mel-stripe-panel__actions">
         {% if stripe.stripe_dashboard_url %}
-          <a href="{{ stripe.stripe_dashboard_url }}" target="_blank" rel="noopener" class="mel-btn mel-btn--secondary mel-btn--sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-            {{ 'Open Stripe Dashboard'|t }}
-          </a>
+          <a href="{{ stripe.stripe_dashboard_url }}" target="_blank" rel="noopener" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Open Stripe Dashboard'|t }}</a>
         {% endif %}
-        <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-btn mel-btn--secondary mel-btn--sm">
-          {{ 'View Payout History'|t }}
-        </a>
+        <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'View payout history'|t }}</a>
       </div>
+
+    {% elseif phase == 'needs_completion' %}
+      <p class="mel-stripe-panel__lead">{{ 'Finish setting up Stripe so payouts can reach your bank.'|t }}</p>
+      <div class="mel-stripe-panel__actions">
+        <a href="{{ stripe.resume_url|default(stripe.connect_url)|default(path('myeventlane_vendor.stripe_connect')) }}" class="mel-btn mel-btn--primary">{{ 'Resume Stripe setup'|t }}</a>
+      </div>
+
     {% else %}
-      <div class="mel-stripe-panel__empty">
-        <p>{{ 'Connect your Stripe account to receive payouts for ticket sales.'|t }}</p>
-        <a href="{{ stripe.connect_url }}" class="mel-btn mel-btn--cta">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-          </svg>
-          {{ 'Connect with Stripe'|t }}
-        </a>
+      <p class="mel-stripe-panel__lead">{{ 'Connect Stripe to receive payments from ticket sales and donations.'|t }}</p>
+      <div class="mel-stripe-panel__actions">
+        <a href="{{ stripe.connect_url|default(path('myeventlane_vendor.stripe_connect')) }}" class="mel-btn mel-btn--primary">{{ 'Connect Stripe'|t }}</a>
       </div>
     {% endif %}
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

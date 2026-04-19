@@ -293,14 +293,13 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     // Chart data for JavaScript.
     $chartData = $this->buildChartData($userId, $userEvents);
 
-    // Format stripe status message for template.
+    // Format stripe status message for template (phase-driven copy in stripe-panel).
     $stripeStatusFormatted = $stripeStatus;
-    if (!$stripeStatus['connected']) {
-      $stripeStatusFormatted['status_message'] = $this->t('Connect your Stripe account to receive payments from ticket sales and donations.');
-    }
-    else {
-      $stripeStatusFormatted['status_message'] = $this->t('Your Stripe account is connected and ready to receive payments.');
-    }
+    $stripeStatusFormatted['status_message'] = match ($stripeStatus['stripe_phase'] ?? 'needs_connect') {
+      'payouts_ready' => $this->t('Payouts are enabled — you can receive funds from ticket sales.'),
+      'needs_completion' => $this->t('Finish setting up your Stripe account to enable payouts.'),
+      default => $this->t('Connect Stripe to receive payments from ticket sales and donations.'),
+    };
 
     // STAGE A2: KPI strip. Resolve store from vendor; call VendorKpiService; omit if no store.
     $vendorKpis = NULL;
@@ -1613,7 +1612,24 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'pending_balance' => 0,
       'stripe_dashboard_url' => NULL,
       'connect_url' => '/vendor/stripe/connect',
+      'charges_enabled' => FALSE,
+      'payouts_enabled' => FALSE,
+      'is_onboarding_complete' => FALSE,
+      'stripe_phase' => 'needs_connect',
+      'resume_url' => '/vendor/stripe/connect',
     ];
+
+    try {
+      $status['connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => ['destination' => '/vendor/dashboard'],
+      ])->toString();
+      $status['resume_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => ['destination' => '/vendor/onboard/stripe'],
+      ])->toString();
+    }
+    catch (\Throwable) {
+      // Route optional in some builds.
+    }
 
     try {
       $store = NULL;
@@ -1637,10 +1653,34 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         if (!$connected && $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
           $connected = (bool) $store->get('field_stripe_charges_enabled')->value;
         }
+        $charges_enabled = $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()
+          ? (bool) $store->get('field_stripe_charges_enabled')->value
+          : FALSE;
+        $payouts_enabled = $store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()
+          ? (bool) $store->get('field_stripe_payouts_enabled')->value
+          : FALSE;
+
+        $status['charges_enabled'] = $charges_enabled;
+        $status['payouts_enabled'] = $payouts_enabled;
+
         if ($connected) {
           $status['connected'] = TRUE;
           $status['status'] = 'connected';
           $status['status_label'] = 'Connected';
+        }
+
+        if ($payouts_enabled) {
+          $status['stripe_phase'] = 'payouts_ready';
+          $status['is_onboarding_complete'] = TRUE;
+          $status['connected'] = TRUE;
+          $status['status'] = 'connected';
+          $status['status_label'] = (string) $this->t('Payouts enabled');
+        }
+        elseif ($status['account_id']) {
+          $status['stripe_phase'] = 'needs_completion';
+          $status['status'] = 'pending';
+          $status['status_label'] = (string) $this->t('Action required');
+          $status['is_onboarding_complete'] = FALSE;
         }
       }
     }
@@ -1723,12 +1763,18 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     // Check Stripe status.
     $stripeStatus = $this->getStripeConnectStatus($userId, $vendor);
-    if (!$stripeStatus['connected']) {
+    if (($stripeStatus['stripe_phase'] ?? '') !== 'payouts_ready') {
+      $is_finish = ($stripeStatus['stripe_phase'] ?? '') === 'needs_completion';
+      $stripe_url = $is_finish
+        ? ($stripeStatus['resume_url'] ?? $stripeStatus['connect_url'] ?? '/vendor/stripe/connect')
+        : ($stripeStatus['connect_url'] ?? '/vendor/stripe/connect');
       $notifications[] = [
         'type' => 'warning',
         'icon' => 'credit-card',
-        'message' => t('Connect Stripe to receive payouts'),
-        'url' => '/vendor/payouts',
+        'message' => $is_finish
+          ? t('Finish Stripe setup to enable payouts')
+          : t('Connect Stripe to receive payments'),
+        'url' => $stripe_url,
       ];
     }
 
@@ -2103,13 +2149,23 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   private function buildDashboardAlerts(array $stripe, array $eventNodes): array {
     $alerts = [];
 
-    if (empty($stripe['connected'])) {
+    $stripe_phase = $stripe['stripe_phase'] ?? (empty($stripe['connected']) ? 'needs_connect' : 'needs_completion');
+    if ($stripe_phase !== 'payouts_ready') {
+      $is_finish = $stripe_phase === 'needs_completion';
       $alerts[] = [
-        'type' => 'warning',
-        'title' => (string) $this->t('Connect Stripe to receive payouts'),
-        'message' => (string) $this->t('Finish Stripe connection so ticket sales can pay out automatically.'),
-        'url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
-        'link_label' => (string) $this->t('Open payouts'),
+        'type' => $is_finish ? 'warning' : 'warning',
+        'title' => $is_finish
+          ? (string) $this->t('Finish setting up Stripe')
+          : (string) $this->t('Connect Stripe to receive payments'),
+        'message' => $is_finish
+          ? (string) $this->t('Complete your Stripe account so payouts can reach your bank.')
+          : (string) $this->t('Connect Stripe so ticket sales can pay out automatically.'),
+        'url' => $is_finish
+          ? ($stripe['resume_url'] ?? $stripe['connect_url'] ?? $this->safeRouteUrl('myeventlane_vendor.stripe_connect'))
+          : ($stripe['connect_url'] ?? $this->safeRouteUrl('myeventlane_vendor.stripe_connect')),
+        'link_label' => $is_finish
+          ? (string) $this->t('Resume Stripe setup')
+          : (string) $this->t('Connect Stripe'),
       ];
     }
 
