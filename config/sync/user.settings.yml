@@ -2,7 +2,7 @@ _core:
   default_config_hash: Y-Xpk050V3opj3WiFb4oUbVT9S7fDA1XLpigO-qVMVQ
 langcode: en
 anonymous: Anonymous
-verify_mail: false
+verify_mail: true
 notify:
   cancel_confirm: true
   password_reset: true
