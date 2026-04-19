@@ -15,6 +15,7 @@ use Drupal\user\UserInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber;
 use Drupal\myeventlane_auth\Service\IdentityIntentResolver;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -112,23 +113,37 @@ function myeventlane_auth_route_is_password_reset_flow(?string $route_name): boo
 }
 
 /**
+ * Whether query or POST parameters indicate core password reset / one-time login handoff.
+ *
+ * Aligns with myeventlane_auth_destination_is_user_reset_path() used by the login
+ * form alter when stripping reset destinations from GET and POST.
+ */
+function myeventlane_auth_parameter_bag_indicates_password_reset_flow(ParameterBag $bag): bool {
+  if ($bag->has('pass-reset-token')) {
+    return TRUE;
+  }
+  $destination = $bag->get('destination');
+  return is_string($destination)
+    && $destination !== ''
+    && myeventlane_auth_destination_is_user_reset_path($destination);
+}
+
+/**
  * Whether the request is part of core password reset (route, token, or destination).
  *
  * Covers the post-login step: /user/{uid}/edit?pass-reset-token=… where the route
  * is no longer user.reset.* but MEL must not run post-login routing.
+ *
+ * Inspects both the query string and the POST body (e.g. user login form submit)
+ * so MEL cannot stage a hub redirect when a reset destination only appears in POST.
  */
 function myeventlane_auth_is_password_reset_flow(Request $request): bool {
   $route_name = \Drupal::routeMatch()->getRouteName();
   if (myeventlane_auth_route_is_password_reset_flow($route_name)) {
     return TRUE;
   }
-  if ($request->query->has('pass-reset-token')) {
-    return TRUE;
-  }
-  $destination = $request->query->get('destination');
-  if (is_string($destination) && $destination !== '') {
-    $lower = strtolower(rawurldecode($destination));
-    if (str_contains($lower, 'pass-reset-token')) {
+  foreach ([$request->query, $request->request] as $bag) {
+    if (myeventlane_auth_parameter_bag_indicates_password_reset_flow($bag)) {
       return TRUE;
     }
   }
