@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Vendor onboarding step (module fallback when vendor theme override absent).
+ * Vendor onboarding step — fallback when vendor theme override is absent.
  */
 #}
 {% set step_number = form['#step_number'] ?? 1 %}
@@ -21,8 +21,12 @@
   {% set back_route = 'myeventlane_vendor.onboard.boost' %}
 {% endif %}
 
-<div class="mel-vendor-workspace mel-onboard-wrapper mel-onboard-wrapper--vendor">
-  <main class="mel-vendor-main mel-vendor-main--onboard">
+<div class="mel-onboard-flow">
+  {% if journey_steps is defined and journey_steps %}
+    {% include '@myeventlane_vendor/components/onboarding-journey-steps.html.twig' with { journey_steps: journey_steps } only %}
+  {% elseif onboarding_stages is defined and onboarding_stages %}
+    {% include '@myeventlane_vendor_theme/components/onboarding-progress.html.twig' with { stages: onboarding_stages } %}
+  {% else %}
     <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
       <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
       <div class="mel-onboard-progress-steps">
@@ -33,27 +37,46 @@
         {% endfor %}
       </div>
     </div>
+  {% endif %}
 
-    <header class="mel-onboard-header">
-      <h1 class="mel-onboard-title">{{ step_title }}</h1>
-      {% if step_description %}
-        <p class="mel-onboard-description">{{ step_description }}</p>
+  {% if onboarding_progress_label %}
+    <p class="mel-onboard-progress-text">{{ onboarding_progress_label }}</p>
+  {% endif %}
+
+  {% if stripe_state %}
+    <div class="mel-stripe-onboard-summary" role="status">
+      {% if stripe_state.payouts_enabled %}
+        <p class="mel-stripe-onboard-summary__line mel-stripe-onboard-summary__line--ok">{{ 'Payouts enabled'|t }} <span aria-hidden="true">✅</span></p>
+      {% elseif stripe_state.is_connected %}
+        <p class="mel-stripe-onboard-summary__line">{{ 'Continue setting up payments in Stripe to enable payouts.'|t }}</p>
+      {% else %}
+        <p class="mel-stripe-onboard-summary__line">{{ 'Connect Stripe to accept ticket payments.'|t }}</p>
       {% endif %}
-    </header>
-
-    <div class="mel-onboard-content">
-      {% if form.form_build_id is defined %}{{ form.form_build_id }}{% endif %}
-      {% if form.form_token is defined %}{{ form.form_token }}{% endif %}
-      {% if form.form_id is defined %}{{ form.form_id }}{% endif %}
-      {{ form.step_content|default(form['#content']) }}
     </div>
+  {% endif %}
 
-    {% if back_route %}
-      <div class="mel-onboard-nav">
-        <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">
-          {{ 'Back'|t }}
-        </a>
-      </div>
+  <header class="mel-onboard-header">
+    <h1 class="mel-onboard-title">{{ step_title }}</h1>
+    {% if step_description %}
+      <p class="mel-onboard-description">{{ step_description }}</p>
     {% endif %}
-  </main>
+  </header>
+
+  <div class="mel-onboard-card mel-onboard-card--main">
+    {% if form.form_build_id is defined %}{{ form.form_build_id }}{% endif %}
+    {% if form.form_token is defined %}{{ form.form_token }}{% endif %}
+    {% if form.form_id is defined %}{{ form.form_id }}{% endif %}
+    {{ form.step_content|default(form['#content']) }}
+  </div>
+
+  {% if onboard_footer %}
+    <div class="mel-onboard-footer mel-onboard-footer--sticky mel-onboard-footer--split">
+      <a href="{{ onboard_footer.back_url }}" class="mel-btn mel-btn--secondary mel-btn-secondary mel-onboard-footer__back">{{ 'Back'|t }}</a>
+      <a href="{{ onboard_footer.continue_url }}" class="mel-btn mel-btn--primary mel-onboard-footer__continue">{{ onboard_footer.continue_label }}</a>
+    </div>
+  {% elseif back_route %}
+    <div class="mel-onboard-footer mel-onboard-footer--sticky mel-onboard-footer--split">
+      <a href="{{ path(back_route) }}" class="mel-btn mel-btn--secondary mel-btn-secondary mel-onboard-footer__back">{{ 'Back'|t }}</a>
+    </div>
+  {% endif %}
 </div>

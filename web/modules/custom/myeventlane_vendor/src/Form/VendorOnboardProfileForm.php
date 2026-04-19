@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
@@ -93,7 +94,7 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['#step_number'] = 2;
     $form['#total_steps'] = 7;
     $form['#step_title'] = $this->t('Set up your organiser profile');
-    $form['#step_description'] = $this->t('Tell people about your organisation. This information will appear on your public organiser page.');
+    $form['#step_description'] = $this->t('This helps people discover and trust your events.');
     $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
@@ -117,7 +118,7 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['step_content'] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['mel-onboard-card'],
+        'class' => ['mel-onboard-step-fields'],
       ],
     ];
     $form['step_content']['name'] = [
@@ -130,17 +131,30 @@ final class VendorOnboardProfileForm extends FormBase {
       '#maxlength' => 255,
     ];
     $form['step_content']['name']['#attributes']['placeholder'] = $this->t('Enter your organiser name');
+    $form['step_content']['name']['#attributes']['autofocus'] = 'autofocus';
 
     $form['step_content']['actions'] = [
       '#type' => 'actions',
       '#attributes' => [
-        'class' => ['mel-onboard-footer'],
+        'class' => ['mel-onboard-footer', 'mel-onboard-footer--split'],
+      ],
+    ];
+    $form['step_content']['actions']['back'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Back'),
+      '#url' => Url::fromRoute('myeventlane_vendor.onboard.account'),
+      '#weight' => -10,
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--secondary', 'mel-btn-secondary', 'mel-onboard-footer__back'],
       ],
     ];
     $form['step_content']['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $continue_label,
       '#button_type' => 'primary',
+      '#attributes' => [
+        'class' => ['mel-btn', 'mel-btn--primary', 'mel-onboard-footer__continue'],
+      ],
     ];
 
     return $form;

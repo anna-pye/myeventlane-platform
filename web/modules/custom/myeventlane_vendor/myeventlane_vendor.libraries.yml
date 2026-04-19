@@ -26,8 +26,11 @@ onboarding:
   css:
     component:
       css/onboarding.css: {}
+  js:
+    js/vendor-onboard.js: {}
   dependencies:
     - core/drupal
+    - core/once
     - myeventlane_vendor_theme/global-styling
 
 bulk_actions:

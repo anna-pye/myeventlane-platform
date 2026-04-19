@@ -1,0 +1,44 @@
+/**
+ * @file
+ * Vendor onboarding shell — sidebar + main column alignment (guided flow).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/breakpoints' as *;
+
+// Onboarding uses the existing mel-vendor-shell grid; this styles the main column + inner rail.
+body.mel-page--vendor-onboard {
+  .mel-vendor-shell {
+    min-height: 100vh;
+    background: $ml-vendor-bg;
+  }
+
+  .mel-vendor-shell__content.mel-vendor-content {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding-left: $spacing-4;
+    padding-right: $spacing-4;
+
+    @include respond-to(md) {
+      padding-left: $spacing-6;
+      padding-right: $spacing-8;
+    }
+  }
+
+  .mel-vendor-inner {
+    width: 100%;
+    max-width: 45rem; // 720px — guided column beside sidebar
+    padding-top: $spacing-6;
+    padding-bottom: $spacing-12;
+  }
+
+  .mel-vendor-content .mel-container {
+    margin: 0;
+    max-width: none;
+  }
+}
