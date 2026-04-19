@@ -36,6 +36,7 @@ services:
       - '@myeventlane_auth.identity_intent_resolver'
       - '@logger.channel.myeventlane_auth'
       - '@myeventlane_core.route_helper'
+      - '@user.data'
 
   myeventlane_auth.customer_identity_bridge:
     class: Drupal\myeventlane_auth\Service\CustomerIdentityBridge
