@@ -25,6 +25,12 @@ final class IdentityIntentResolver {
   public const INTENT_CREATE_EVENT = 'create_event';
 
   /**
+   * user.data name: intent to apply on first login when verify_mail prevented
+   * immediate registration redirect (see myeventlane_auth_user_register_form_post_save_redirect).
+   */
+  public const USER_DATA_PENDING_MEL_INTENT = 'pending_mel_intent';
+
+  /**
    * @var list<string>
    */
   private const KNOWN = [

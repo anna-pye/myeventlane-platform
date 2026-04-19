@@ -3,8 +3,8 @@
  * @file
  * Shared vendor shell layout for MyEventLane.
  *
- * Uses Drupal regions: page.sidebar (shell nav), page.content (main).
- * Same main column path for dashboard, onboarding, and console routes.
+ * Shell navigation is always the sidebar partial (same markup as dashboard).
+ * Main column: page.content.
  */
 #}
 {{ attach_library('myeventlane_vendor_theme/footer-internal') }}
@@ -15,7 +15,7 @@
 
 <div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
   <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar mel-vendor-sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
-    {{ page.sidebar }}
+    {% include '@myeventlane_vendor_theme/includes/sidebar.html.twig' with { page: page } %}
   </aside>
 
   <div class="mel-vendor-shell__main">

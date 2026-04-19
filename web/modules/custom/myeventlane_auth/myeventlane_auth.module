@@ -339,11 +339,10 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
  *
  * Destination policy remains exclusively in PostLoginRouter (MelPostLoginController).
  *
- * Drupal core only calls user_login_finalize() during registration when
- * user.settings:verify_mail is FALSE (see RegisterForm::save()). The repo default in
- * config/sync is verify_mail: false so create-event signup can redirect here in the
- * same request. Production may override with $config in settings.php using
- * MEL_REQUIRE_VERIFY_MAIL=1 if email verification is required (no immediate login).
+ * When user.settings:verify_mail is TRUE, RegisterForm::save() does not call
+ * user_login_finalize(); the user is not authenticated in this request. In that
+ * case we store pending_mel_intent in user.data for the new account; hook_user_login()
+ * and PostLoginRouter merge it on first login (see IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT).
  */
 function myeventlane_auth_user_register_form_post_save_redirect(array &$form, FormStateInterface $form_state): void {
   if ($form_state->get('is_vendor_registration')) {
@@ -364,6 +363,32 @@ function myeventlane_auth_user_register_form_post_save_redirect(array &$form, Fo
   }
 
   if (!\Drupal::currentUser()->isAuthenticated()) {
+    $uid = (int) $form_state->getValue('uid');
+    if ($uid <= 0) {
+      $account = $form_state->get('user');
+      if ($account instanceof UserInterface) {
+        $uid = (int) $account->id();
+      }
+    }
+    if ($uid > 0) {
+      /** @var \Drupal\user\UserDataInterface $user_data */
+      $user_data = \Drupal::service('user.data');
+      $user_data->set(
+        'myeventlane_auth',
+        $uid,
+        IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+        IdentityIntentResolver::INTENT_CREATE_EVENT,
+      );
+      \Drupal::logger('myeventlane_auth')->notice(
+        'MEL auth handoff: stored pending_mel_intent create_event uid=@uid (verify_mail; login deferred)',
+        ['@uid' => (string) $uid],
+      );
+    }
+    else {
+      \Drupal::logger('myeventlane_auth')->warning(
+        'MEL auth handoff: create_event registration could not resolve uid for pending_mel_intent.',
+      );
+    }
     return;
   }
 
@@ -537,6 +562,21 @@ function myeventlane_auth_user_login(UserInterface $account): void {
 
   $intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
 
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  if ($resolver->normalizeIntent($intent) === IdentityIntentResolver::INTENT_BROWSE) {
+    /** @var \Drupal\user\UserDataInterface $user_data */
+    $user_data = \Drupal::service('user.data');
+    $pending = $user_data->get(
+      'myeventlane_auth',
+      (int) $account->id(),
+      IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+    );
+    if ($pending === IdentityIntentResolver::INTENT_CREATE_EVENT) {
+      $intent = IdentityIntentResolver::INTENT_CREATE_EVENT;
+    }
+  }
+
   $internal = myeventlane_auth_destination_to_internal_path($request, $raw_dest);
   if ($internal === NULL || myeventlane_auth_should_skip_mel_hub_wrap($internal)) {
     $session->save();
@@ -547,6 +587,15 @@ function myeventlane_auth_user_login(UserInterface $account): void {
     'destination' => $internal,
     'intent' => $intent,
   ]);
+  if ($resolver->normalizeIntent($intent) === IdentityIntentResolver::INTENT_CREATE_EVENT) {
+    /** @var \Drupal\user\UserDataInterface $user_data */
+    $user_data = \Drupal::service('user.data');
+    $user_data->delete(
+      'myeventlane_auth',
+      (int) $account->id(),
+      IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+    );
+  }
   $session->save();
 }
 

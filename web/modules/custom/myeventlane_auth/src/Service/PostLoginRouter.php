@@ -11,6 +11,7 @@ use Drupal\myeventlane_auth\PostLoginDecision;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_core\Service\RouteHelper;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\user\UserDataInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -26,6 +27,7 @@ final class PostLoginRouter {
     private readonly IdentityIntentResolver $identityIntentResolver,
     private readonly LoggerChannelInterface $logger,
     private readonly RouteHelper $routeHelper,
+    private readonly UserDataInterface $userData,
   ) {}
 
   /**
@@ -58,6 +60,10 @@ final class PostLoginRouter {
         $intent,
         PostLoginDecision::FALLBACK_FRONT_INVALID_ACCOUNT,
       );
+    }
+
+    if ($intent === IdentityIntentResolver::INTENT_BROWSE) {
+      $intent = $this->applyPendingCreateEventIntentFromUserData($uid, $intent);
     }
 
     if ($intent === IdentityIntentResolver::INTENT_CREATE_EVENT) {
@@ -103,6 +109,30 @@ final class PostLoginRouter {
       $intent,
       PostLoginDecision::VENDOR_COMPLETE_DASHBOARD,
     );
+  }
+
+  /**
+   * Applies create_event from registration when verify_mail deferred login (user.data).
+   */
+  private function applyPendingCreateEventIntentFromUserData(int $uid, string $intent): string {
+    $pending = $this->userData->get(
+      'myeventlane_auth',
+      $uid,
+      IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+    );
+    if ($pending !== IdentityIntentResolver::INTENT_CREATE_EVENT) {
+      return $intent;
+    }
+    $this->userData->delete(
+      'myeventlane_auth',
+      $uid,
+      IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+    );
+    $this->logger->notice(
+      'PostLoginRouter: consumed pending_mel_intent create_event uid=@uid',
+      ['@uid' => (string) $uid],
+    );
+    return IdentityIntentResolver::INTENT_CREATE_EVENT;
   }
 
   /**

@@ -15,7 +15,6 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
@@ -304,26 +303,13 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
 
   // Determine active section from route.
   $route_name = $route_match->getRouteName();
+  $is_vendor_onboard = is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard');
   $variables['page']['active_section'] = _myeventlane_vendor_theme_get_active_section($route_name);
   $variables['page']['vendor_shell_nav_items'] = _myeventlane_vendor_theme_build_vendor_shell_nav_items(
     $variables['page']['active_section'],
     $route_name,
     $route_match
   );
-
-  // Sidebar region: shell navigation is not a Twig include — render via page.sidebar
-  // so the page template uses standard Drupal regions (blocks may extend this later).
-  $sidebar_region = $variables['page']['sidebar'] ?? [];
-  $sidebar_empty = $sidebar_region === [] || $sidebar_region === NULL
-    || (is_array($sidebar_region) && Element::children($sidebar_region) === []);
-  if ($sidebar_empty) {
-    $page_for_shell = $variables['page'];
-    unset($page_for_shell['sidebar']);
-    $variables['page']['sidebar'] = [
-      '#theme' => 'vendor_sidebar',
-      'page' => $page_for_shell,
-    ];
-  }
 
   // Legacy step-wizard sidebar: staff/support only (vendors are redirected to Event Studio).
   $variables['page']['wizard_steps'] = [];
@@ -675,15 +661,15 @@ function myeventlane_vendor_theme_theme_suggestions_page_alter(array &$suggestio
   // Add page suggestions based on route.
   $route_name = \Drupal::routeMatch()->getRouteName();
 
+  if (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor')) {
+    $suggestions[] = 'page__vendor';
+  }
+
   if (in_array($route_name, _myeventlane_vendor_theme_event_builder_layout_routes(), TRUE)) {
     $suggestions[] = 'page__vendor__event_wizard';
   }
   elseif ($route_name === 'myeventlane_vendor.dashboard') {
     $suggestions[] = 'page__vendor__dashboard';
-  }
-  elseif (is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard')) {
-    // Single shell template for all organiser onboarding routes (same as dashboard/events).
-    $suggestions[] = 'page__vendor';
   }
   elseif (str_starts_with($route_name ?? '', 'myeventlane_vendor.')) {
     $route_parts = explode('.', $route_name);
