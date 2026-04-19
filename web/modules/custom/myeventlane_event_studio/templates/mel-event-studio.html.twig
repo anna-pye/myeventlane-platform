@@ -396,6 +396,20 @@
                 <h2 class="mel-section__title" id="mel-publish-heading">{{ 'Publish'|t }}</h2>
                 <p class="mel-section__hint">{{ 'When you are ready, mark the event live. You can return here anytime.'|t }}</p>
               </header>
+              {% if mel_publish_blocked %}
+                <div class="mel-publish-warning" role="region" aria-label="{{ 'Organiser setup required'|t }}">
+                  <h3 class="mel-publish-warning__title">{{ 'Before you publish your event'|t }}</h3>
+                  <p class="mel-publish-warning__lead">{{ 'To publish, you’ll need to complete your organiser setup.'|t }}</p>
+                  <ul class="mel-publish-warning__list">
+                    <li>{{ 'Add organiser profile'|t }}</li>
+                    <li>{{ 'Connect payments'|t }}</li>
+                    <li>{{ 'Confirm event details'|t }}</li>
+                  </ul>
+                  <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
+                    {{ 'Complete setup'|t }}
+                  </a>
+                </div>
+              {% endif %}
               {{ element.mel.status }}
             </section>
 

@@ -10,10 +10,12 @@ declare(strict_types=1);
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\user\UserInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber;
 use Drupal\myeventlane_auth\Service\IdentityIntentResolver;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -62,6 +64,9 @@ function myeventlane_auth_resolve_mel_intent_for_login_request(Request $request)
     if (!is_string($dest) || $dest === '') {
       continue;
     }
+    if (myeventlane_auth_destination_is_user_reset_path($dest)) {
+      continue;
+    }
     $from_dest = myeventlane_auth_resolve_intent_from_destination_value($dest, $request);
     if ($from_dest !== '') {
       return $from_dest;
@@ -72,6 +77,23 @@ function myeventlane_auth_resolve_mel_intent_for_login_request(Request $request)
 }
 
 /**
+ * Copies mel_intent, intent, and destination from the request query for auth links.
+ *
+ * Used so Gin Login’s login ↔ register links keep the same query as the page
+ * (e.g. create-event handoff). Does not duplicate intent resolution.
+ */
+function myeventlane_auth_auth_preservation_query_from_request(Request $request): array {
+  $query = [];
+  foreach (['mel_intent', 'intent', 'destination'] as $key) {
+    $v = $request->query->get($key);
+    if (is_string($v) && $v !== '') {
+      $query[$key] = $v;
+    }
+  }
+  return $query;
+}
+
+/**
  * Whether an internal path is the create-event route or a subpath (not a false prefix).
  *
  * Matches /create-event and /create-event/…; does not match /create-event-copy,
@@ -79,6 +101,81 @@ function myeventlane_auth_resolve_mel_intent_for_login_request(Request $request)
  */
 function myeventlane_auth_path_implies_create_event_route(string $path_only): bool {
   return $path_only === '/create-event' || str_starts_with($path_only, '/create-event/');
+}
+
+/**
+ * Whether the route is part of Drupal core password reset / one-time login flow.
+ *
+ * Matches user.reset, user.reset.login, user.reset.form, and any future user.reset.*.
+ */
+function myeventlane_auth_route_is_password_reset_flow(?string $route_name): bool {
+  return is_string($route_name) && str_starts_with($route_name, 'user.reset');
+}
+
+/**
+ * Whether query or POST parameters indicate core password reset / one-time login handoff.
+ *
+ * Aligns with myeventlane_auth_destination_is_user_reset_path() used by the login
+ * form alter when stripping reset destinations from GET and POST.
+ */
+function myeventlane_auth_parameter_bag_indicates_password_reset_flow(ParameterBag $bag): bool {
+  if ($bag->has('pass-reset-token')) {
+    return TRUE;
+  }
+  $destination = $bag->get('destination');
+  return is_string($destination)
+    && $destination !== ''
+    && myeventlane_auth_destination_is_user_reset_path($destination);
+}
+
+/**
+ * Whether the request is part of core password reset (route, token, or destination).
+ *
+ * Covers the post-login step: /user/{uid}/edit?pass-reset-token=… where the route
+ * is no longer user.reset.* but MEL must not run post-login routing.
+ *
+ * Inspects both the query string and the POST body (e.g. user login form submit)
+ * so MEL cannot stage a hub redirect when a reset destination only appears in POST.
+ */
+function myeventlane_auth_is_password_reset_flow(Request $request): bool {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (myeventlane_auth_route_is_password_reset_flow($route_name)) {
+    return TRUE;
+  }
+  foreach ([$request->query, $request->request] as $bag) {
+    if (myeventlane_auth_parameter_bag_indicates_password_reset_flow($bag)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Whether a destination value points at password reset (must not drive mel_intent).
+ */
+function myeventlane_auth_destination_is_user_reset_path(string $dest): bool {
+  $dest = trim(urldecode($dest));
+  if ($dest === '') {
+    return FALSE;
+  }
+  $lower = strtolower($dest);
+  // One-time login handoff: /user/{uid}/edit?pass-reset-token=… (must not post-login redirect).
+  if (str_contains($lower, 'pass-reset-token')) {
+    return TRUE;
+  }
+  $path_part = $dest;
+  if (preg_match('#^https?://#i', $dest)) {
+    $parsed = parse_url($dest);
+    if ($parsed === FALSE) {
+      return FALSE;
+    }
+    $path_part = $parsed['path'] ?? '';
+  }
+  elseif (str_contains($dest, '?')) {
+    $parts = explode('?', $dest, 2);
+    $path_part = $parts[0];
+  }
+  return str_contains($path_part, '/user/reset');
 }
 
 /**
@@ -94,6 +191,10 @@ function myeventlane_auth_resolve_intent_from_destination_value(string $dest, Re
 
   $dest = trim(urldecode($dest));
   if ($dest === '') {
+    return '';
+  }
+
+  if (myeventlane_auth_destination_is_user_reset_path($dest)) {
     return '';
   }
 
@@ -177,6 +278,110 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
       $form[$key]['#access'] = FALSE;
     }
   }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'user.register') {
+    return;
+  }
+
+  $request = \Drupal::request();
+
+  // Gin Login: "Log in" link defaults to user.login with no query — preserve handoff.
+  if (isset($form['more-links']['login_link']['#url'])) {
+    $preserve_login = myeventlane_auth_auth_preservation_query_from_request($request);
+    if ($preserve_login !== []) {
+      $form['more-links']['login_link']['#url'] = Url::fromRoute('user.login', [], ['query' => $preserve_login]);
+      $existing_ctx = $form['#cache']['contexts'] ?? [];
+      $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing_ctx, [
+        'url.query_args:destination',
+        'url.query_args:mel_intent',
+        'url.query_args:intent',
+      ])));
+    }
+  }
+
+  if (!myeventlane_auth_register_page_is_create_event_flow($request)) {
+    return;
+  }
+
+  $resolved_for_log = myeventlane_auth_resolve_mel_intent_for_login_request($request);
+  $dest_for_log = $request->query->get('destination');
+  \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: register GET create-event context resolved_intent=@intent destination=@dest', [
+    '@intent' => $resolved_for_log,
+    '@dest' => is_string($dest_for_log) ? $dest_for_log : '',
+  ]);
+
+  $raw_intent = $resolved_for_log;
+  if ($raw_intent === '') {
+    $raw_intent = IdentityIntentResolver::INTENT_CREATE_EVENT;
+  }
+
+  $form['mel_intent'] = [
+    '#type' => 'hidden',
+    '#value' => $raw_intent,
+  ];
+
+  \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: register form mel_intent hidden added value=@v', [
+    '@v' => $raw_intent,
+  ]);
+
+  $existing_cache = $form['#cache']['contexts'] ?? [];
+  $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing_cache, [
+    'url.query_args:destination',
+    'url.query_args:mel_intent',
+    'url.query_args:intent',
+  ])));
+
+  $form['actions']['submit']['#submit'][] = 'myeventlane_auth_user_register_form_post_save_redirect';
+}
+
+/**
+ * Submit handler: after self-registration, route create_event intent through MEL post-login.
+ *
+ * Destination policy remains exclusively in PostLoginRouter (MelPostLoginController).
+ *
+ * Drupal core only calls user_login_finalize() during registration when
+ * user.settings:verify_mail is FALSE (see RegisterForm::save()). The repo default in
+ * config/sync is verify_mail: false so create-event signup can redirect here in the
+ * same request. Production may override with $config in settings.php using
+ * MEL_REQUIRE_VERIFY_MAIL=1 if email verification is required (no immediate login).
+ */
+function myeventlane_auth_user_register_form_post_save_redirect(array &$form, FormStateInterface $form_state): void {
+  if ($form_state->get('is_vendor_registration')) {
+    return;
+  }
+  if ($form_state->getValue('administer_users')) {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  $raw = $form_state->getValue('mel_intent');
+  if (!is_string($raw) || $raw === '') {
+    $raw = myeventlane_auth_resolve_mel_intent_for_login_request(\Drupal::request());
+  }
+  if ($resolver->normalizeIntent($raw) !== IdentityIntentResolver::INTENT_CREATE_EVENT) {
+    return;
+  }
+
+  if (!\Drupal::currentUser()->isAuthenticated()) {
+    return;
+  }
+
+  $redirect_options = [
+    'query' => [
+      'mel_intent' => IdentityIntentResolver::INTENT_CREATE_EVENT,
+    ],
+  ];
+  $form_state->setRedirect('myeventlane_auth.post_login', [], $redirect_options);
+
+  $target_preview = Url::fromRoute('myeventlane_auth.post_login', [], $redirect_options)->toString();
+  \Drupal::logger('myeventlane_auth')->info(
+    'MEL auth handoff: registration post-save redirect uid=@uid target=@target',
+    [
+      '@uid' => (string) \Drupal::currentUser()->id(),
+      '@target' => $target_preview,
+    ],
+  );
 }
 
 /**
@@ -189,6 +394,42 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
  */
 function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   $request = \Drupal::request();
+  $route_name = \Drupal::routeMatch()->getRouteName();
+
+  // Do not alter the login form when the request is part of core password reset.
+  if (myeventlane_auth_route_is_password_reset_flow($route_name)) {
+    return;
+  }
+
+  $destination = $request->query->get('destination');
+  if (
+    is_string($destination) &&
+    $destination !== '' &&
+    myeventlane_auth_destination_is_user_reset_path($destination)
+  ) {
+    if ($route_name === 'user.login') {
+      $request->query->remove('destination');
+      if (isset($form['destination'])) {
+        unset($form['destination']);
+      }
+      \Drupal::logger('myeventlane_auth')->notice('Reset destination stripped on login route only.');
+    }
+  }
+
+  if ($route_name === 'user.login') {
+    $post_destination = $request->request->get('destination');
+    if (
+      is_string($post_destination) &&
+      $post_destination !== '' &&
+      myeventlane_auth_destination_is_user_reset_path($post_destination)
+    ) {
+      $request->request->remove('destination');
+      if (isset($form['destination'])) {
+        unset($form['destination']);
+      }
+    }
+  }
+
   $raw_intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
 
   if ($raw_intent !== '') {
@@ -197,6 +438,23 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
       '#value' => $raw_intent,
       '#weight' => -50,
     ];
+  }
+
+  // Gin Login: "Create new account" defaults to user.register with no query — preserve handoff.
+  if (isset($form['more-links']['register_button']['#url'])) {
+    $preserve_register = myeventlane_auth_auth_preservation_query_from_request($request);
+    if ($preserve_register !== []) {
+      $form['more-links']['register_button']['#url'] = Url::fromRoute('user.register', [], ['query' => $preserve_register]);
+      $existing_login_cache = $form['#cache']['contexts'] ?? [];
+      $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing_login_cache, [
+        'url.query_args:destination',
+        'url.query_args:mel_intent',
+        'url.query_args:intent',
+      ])));
+      \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: login register link preserved query @q', [
+        '@q' => json_encode($preserve_register, JSON_UNESCAPED_SLASHES),
+      ]);
+    }
   }
 
   /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
@@ -250,14 +508,20 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
  * Stages destination + intent for post-login hub redirect (session commit safe).
  */
 function myeventlane_auth_user_login(UserInterface $account): void {
+  $request = \Drupal::request();
+  if (myeventlane_auth_is_password_reset_flow($request)) {
+    \Drupal::logger('myeventlane_auth')->notice('Skipping MEL post-login routing for password reset flow.');
+    return;
+  }
+
   \Drupal::logger('myeventlane_auth')->notice('Audit: login success uid=@uid.', [
     '@uid' => (string) $account->id(),
   ]);
 
-  $request = \Drupal::request();
   if (!$request->hasSession()) {
     return;
   }
+
   $session = $request->getSession();
 
   $raw_dest = NULL;

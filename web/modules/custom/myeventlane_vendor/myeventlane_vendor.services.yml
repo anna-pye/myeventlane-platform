@@ -57,6 +57,17 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_vendor.event_studio_onboarding_gate:
+    class: Drupal\myeventlane_vendor\EventSubscriber\EventStudioVendorOnboardingGateSubscriber
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@myeventlane_onboarding.manager'
+      - '@current_route_match'
+      - '@logger.channel.myeventlane_vendor'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_vendor.manage_event_navigation:
     class: Drupal\myeventlane_vendor\Service\ManageEventNavigation
 

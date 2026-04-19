@@ -48,6 +48,10 @@ final class PostAuthRedirectResolver {
     }
     $intent = $this->intentResolver->normalizeIntent($intent_raw);
     $path = $this->sanitizeInternalPath($destination_raw);
+    if ($this->isUserResetInternalPath($path)) {
+      $this->logger->notice('PostAuthRedirectResolver: hub destination stripped (user/reset)');
+      $path = '/';
+    }
     $query = [];
     if ($path !== '/' && $path !== '') {
       $query['destination'] = $path;
@@ -82,6 +86,10 @@ final class PostAuthRedirectResolver {
 
     $intent = $this->intentResolver->normalizeIntent($intent_raw);
     $path = $this->sanitizeInternalPath($destination_raw);
+    if ($this->isUserResetInternalPath($path)) {
+      $this->logger->notice('PostAuthRedirectResolver: resolveRedirectUrl destination stripped (user/reset)');
+      $path = '/';
+    }
 
     if ($intent === IdentityIntentResolver::INTENT_CREATE_EVENT) {
       $path = '/create-event';
@@ -112,6 +120,13 @@ final class PostAuthRedirectResolver {
     }
 
     return $this->urlGenerator->generateFromRoute('<front>', [], ['absolute' => TRUE]);
+  }
+
+  /**
+   * Password reset routes must never be used as post-login or hub destinations.
+   */
+  private function isUserResetInternalPath(string $path): bool {
+    return $path !== '/' && str_starts_with($path, '/user/reset');
   }
 
   /**

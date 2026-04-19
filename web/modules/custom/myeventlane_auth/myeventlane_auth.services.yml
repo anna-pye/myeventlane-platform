@@ -34,7 +34,6 @@ services:
       - '@myeventlane_onboarding.manager'
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@myeventlane_auth.identity_intent_resolver'
-      - '@module_handler'
       - '@logger.channel.myeventlane_auth'
       - '@myeventlane_core.route_helper'
 

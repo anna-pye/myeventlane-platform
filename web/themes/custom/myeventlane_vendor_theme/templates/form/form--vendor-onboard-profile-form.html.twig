@@ -1,30 +1,15 @@
 {#
 /**
  * @file
- * Theme override for vendor onboarding profile form.
- *
- * Uses default form rendering (children) so form_build_id, form_token, form_id
- * and field name attributes render correctly. Wraps in onboarding layout.
- *
- * Available variables:
- * - attributes: Form HTML attributes.
- * - children: Pre-rendered form children (form_build_id, form_token, form_id,
- *   step_content).
- * - step_number: Current step (from preprocess).
- * - total_steps: Total steps (from preprocess).
- * - step_title: Step title (from preprocess).
- * - step_description: Step description (from preprocess).
- * - back_route: Route for Back link (from preprocess).
+ * Vendor onboarding profile form — workspace shell + card + sticky actions.
  */
 #}
 {% set back_route = back_route ?? null %}
-<div class="mel-onboard-wrapper mel-onboard-wrapper--vendor">
-  <div class="mel-container mel-container--onboard">
-
+<div class="mel-vendor-workspace mel-onboard-wrapper mel-onboard-wrapper--vendor">
+  <main class="mel-vendor-main mel-vendor-main--onboard">
     {% if onboarding_stages is defined and onboarding_stages %}
       {% include '@myeventlane_vendor_theme/components/onboarding-progress.html.twig' with { stages: onboarding_stages } %}
     {% else %}
-      {# Fallback if preprocess did not run #}
       <div class="mel-onboard-progress" role="progressbar" aria-valuenow="{{ step_number }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}" aria-label="{{ 'Onboarding progress'|t }}">
         <div class="mel-onboard-progress-bar" style="width: {{ (step_number / total_steps * 100)|round }}%"></div>
         <div class="mel-onboard-progress-steps">
@@ -37,22 +22,17 @@
       </div>
     {% endif %}
 
-    {# Step header #}
-    <div class="mel-onboard-header">
+    <header class="mel-onboard-header">
       <h1 class="mel-onboard-title">{{ step_title }}</h1>
       {% if step_description %}
         <p class="mel-onboard-description">{{ step_description }}</p>
       {% endif %}
-    </div>
+    </header>
 
-    {# Form - children are pre-rendered with correct name/value attributes #}
-    <div class="mel-onboard-content">
-      <form{{ attributes }}>
-        {{ children }}
-      </form>
-    </div>
+    <form{{ attributes.addClass('mel-onboard-form-root') }}>
+      {{ children }}
+    </form>
 
-    {# Navigation #}
     {% if back_route %}
       <div class="mel-onboard-nav">
         <a href="{{ path(back_route) }}" class="mel-btn mel-btn-ghost">
@@ -60,6 +40,5 @@
         </a>
       </div>
     {% endif %}
-
-  </div>
+  </main>
 </div>
