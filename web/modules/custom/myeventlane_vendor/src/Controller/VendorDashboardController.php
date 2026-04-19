@@ -2153,7 +2153,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     if ($stripe_phase !== 'payouts_ready') {
       $is_finish = $stripe_phase === 'needs_completion';
       $alerts[] = [
-        'type' => $is_finish ? 'warning' : 'warning',
+        'type' => $is_finish ? 'warning' : 'info',
         'title' => $is_finish
           ? (string) $this->t('Finish setting up Stripe')
           : (string) $this->t('Connect Stripe to receive payments'),
