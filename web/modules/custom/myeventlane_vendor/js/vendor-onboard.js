@@ -1,6 +1,6 @@
 /**
  * @file
- * Vendor onboarding: focus first field, gate primary submit on HTML5 validity.
+ * Vendor onboarding: focus first field (HTML5 validity gating disabled — see onboard_debug).
  */
 (function (Drupal, once) {
   'use strict';
@@ -14,19 +14,6 @@
         if (focusable) {
           focusable.focus({ preventScroll: true });
         }
-      });
-
-      once('mel-onboard-validity', '.mel-page--vendor-onboard .mel-onboard-form-root', context).forEach((form) => {
-        const submit = form.querySelector('input[type="submit"].form-submit, button[type="submit"]');
-        if (!submit) {
-          return;
-        }
-        const sync = () => {
-          submit.disabled = !form.checkValidity();
-        };
-        form.addEventListener('input', sync);
-        form.addEventListener('change', sync);
-        sync();
       });
     },
   };

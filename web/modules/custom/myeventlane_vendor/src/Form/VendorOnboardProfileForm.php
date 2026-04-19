@@ -97,7 +97,10 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['#step_description'] = $this->t('This helps people discover and trust your events.');
     $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
     $form['#attributes']['class'][] = 'mel-onboard-form';
+    $form['#attributes']['class'][] = 'mel-onboard-form-root';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
+    $form['#attributes']['class'][] = 'mel-onboard-card';
+    $form['#attributes']['class'][] = 'mel-onboard-card--main';
 
     $next_route = 'myeventlane_vendor.onboard.stripe';
     $state = $this->onboardingManager->loadVendorStateByUid((int) $this->currentUser->id());
@@ -174,6 +177,9 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->getLogger('onboard_debug')->notice('VendorOnboardProfileForm submit triggered for uid @uid.', [
+      '@uid' => (string) $this->currentUser->id(),
+    ]);
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
     if (!$vendor instanceof Vendor) {
@@ -227,6 +233,9 @@ final class VendorOnboardProfileForm extends FormBase {
       $state->save();
     }
     $this->onboardingManager->advanceStage($state, 'listen');
+    $this->getLogger('onboard_debug')->notice('STEP COMPLETE: profile step advanced to listen for uid @uid.', [
+      '@uid' => (string) $uid,
+    ]);
 
     $next = $this->onboardingManager->getNextAction($state);
     $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_vendor.onboard.stripe';

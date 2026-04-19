@@ -2,18 +2,20 @@
 /**
  * @file
  * Shared vendor shell layout for MyEventLane.
+ *
+ * Uses Drupal regions: page.sidebar (shell nav), page.content (main).
+ * Same main column path for dashboard, onboarding, and console routes.
  */
 #}
 {{ attach_library('myeventlane_vendor_theme/footer-internal') }}
 
-{% set sidebar = include('@myeventlane_vendor_theme/includes/sidebar.html.twig', { page: page }, with_context = false) %}
 {% set is_dashboard_route = page.active_section|default('') == 'dashboard' %}
 {# Hidden overlay must not block clicks. #}
 <div class="mel-sidebar-overlay" data-sidebar-overlay style="pointer-events:none;"></div>
 
 <div class="mel-vendor-shell{% if page.wizard_sidebar_active %} mel-vendor-shell--wizard-sidebar{% endif %}">
-  <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
-    {{ sidebar|raw }}
+  <aside id="mel-vendor-sidebar" class="mel-vendor-shell__sidebar mel-vendor-sidebar" role="navigation" aria-label="{{ 'Vendor navigation'|t }}" data-sidebar>
+    {{ page.sidebar }}
   </aside>
 
   <div class="mel-vendor-shell__main">
@@ -62,42 +64,33 @@
       } only %}
     {% endif %}
 
-    <main class="mel-vendor-shell__content{% if page.vendor_onboard_inner %} mel-vendor-content{% endif %}" role="main">
-      {% if page.vendor_onboard_inner %}
-        <div class="mel-vendor-inner">
-          {% if page.highlighted %}
-            {{ page.highlighted }}
-          {% endif %}
-          {{ page.content }}
+    <main class="mel-vendor-shell__content mel-vendor-main" role="main">
+      {% if page.highlighted %}
+        {{ page.highlighted }}
+      {% endif %}
+
+      {% if page.sidebar_help %}
+        <div class="mel-shell-layout mel-shell-layout--with-utility">
+          <div class="mel-shell-layout__main">
+            {% if is_dashboard_route %}
+              <section class="mel-dashboard-page">
+                {{ page.content }}
+              </section>
+            {% else %}
+              {{ page.content }}
+            {% endif %}
+          </div>
+          <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
+            {{ page.sidebar_help }}
+          </aside>
         </div>
       {% else %}
-        {% if page.highlighted %}
-          {{ page.highlighted }}
-        {% endif %}
-
-        {% if page.sidebar_help %}
-          <div class="mel-shell-layout mel-shell-layout--with-utility">
-            <div class="mel-shell-layout__main">
-              {% if is_dashboard_route %}
-                <section class="mel-dashboard-page">
-                  {{ page.content }}
-                </section>
-              {% else %}
-                {{ page.content }}
-              {% endif %}
-            </div>
-            <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
-              {{ page.sidebar_help }}
-            </aside>
-          </div>
-        {% else %}
-          {% if is_dashboard_route %}
-            <section class="mel-dashboard-page">
-              {{ page.content }}
-            </section>
-          {% else %}
+        {% if is_dashboard_route %}
+          <section class="mel-dashboard-page">
             {{ page.content }}
-          {% endif %}
+          </section>
+        {% else %}
+          {{ page.content }}
         {% endif %}
       {% endif %}
     </main>

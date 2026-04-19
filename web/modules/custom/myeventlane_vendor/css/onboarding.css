@@ -20,15 +20,13 @@
   --mel-onboard-max: 720px;
 }
 
-/* Vendor shell: main column is full width; inner rail (.mel-vendor-inner) constrains copy beside sidebar. */
-body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-content {
-  max-width: none;
-  margin-inline: 0;
-  width: 100%;
+/* Vendor shell main: width/padding aligned with theme .mel-vendor-main (onboard body class). */
+body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-main {
+  box-sizing: border-box;
 }
 
 @media (max-width: 767px) {
-  body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-content {
+  body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-main {
     padding-inline: var(--mel-onboard-space-md);
   }
 }
@@ -72,8 +70,7 @@ body.mel-page--vendor-onboard .mel-vendor .mel-vendor-workspace.mel-onboard-wrap
   width: 100%;
 }
 
-.mel-vendor-content .mel-container,
-.mel-vendor-inner .mel-container {
+.mel-vendor-main .mel-container {
   margin: 0;
   max-width: none;
 }

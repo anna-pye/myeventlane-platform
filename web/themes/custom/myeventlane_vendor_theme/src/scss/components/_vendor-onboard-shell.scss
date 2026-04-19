@@ -1,26 +1,28 @@
 /**
  * @file
- * Vendor onboarding shell — sidebar + main column alignment (guided flow).
+ * Vendor onboarding shell — main column rail beside sidebar (same shell as dashboard).
  */
 
 @use '../tokens/colors' as *;
 @use '../tokens/spacing' as *;
 @use '../tokens/breakpoints' as *;
 
-// Onboarding uses the existing mel-vendor-shell grid; this styles the main column + inner rail.
 body.mel-page--vendor-onboard {
   .mel-vendor-shell {
     min-height: 100vh;
     background: $ml-vendor-bg;
   }
 
-  .mel-vendor-shell__content.mel-vendor-content {
+  .mel-vendor-shell__content.mel-vendor-main {
     display: flex;
+    flex-direction: column;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
-    max-width: none;
+    max-width: 45rem; // guided column — matches former .mel-vendor-inner
     margin: 0;
+    padding-top: $spacing-6;
+    padding-bottom: $spacing-12;
     padding-left: $spacing-4;
     padding-right: $spacing-4;
 
@@ -30,14 +32,7 @@ body.mel-page--vendor-onboard {
     }
   }
 
-  .mel-vendor-inner {
-    width: 100%;
-    max-width: 45rem; // 720px — guided column beside sidebar
-    padding-top: $spacing-6;
-    padding-bottom: $spacing-12;
-  }
-
-  .mel-vendor-content .mel-container {
+  .mel-vendor-main .mel-container {
     margin: 0;
     max-width: none;
   }
