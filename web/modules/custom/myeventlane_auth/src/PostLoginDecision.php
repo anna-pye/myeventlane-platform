@@ -22,12 +22,6 @@ final class PostLoginDecision {
    */
   public const PASSWORD_RESET_CONTINUE_USER_EDIT = 'password_reset_continue_user_edit';
 
-  public const NO_VENDOR_COMPLETED_ORDERS_CUSTOMER_DASHBOARD = 'no_vendor_completed_orders_customer_dashboard';
-
-  public const NO_VENDOR_EVENTS_LISTING = 'no_vendor_events_listing';
-
-  public const NO_VENDOR_USER_CANONICAL_FALLBACK = 'no_vendor_user_canonical_fallback';
-
   /**
    * No vendor membership: start organiser profile onboarding (not customer dashboard).
    */
