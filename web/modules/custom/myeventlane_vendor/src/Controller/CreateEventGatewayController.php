@@ -124,6 +124,15 @@ class CreateEventGatewayController extends ControllerBase {
       }
       $this->onboardingManager->recordCreateEventGatewayMilestone($state, 'event_started');
 
+      $account = $current_user->getAccount();
+      if ($account instanceof UserInterface) {
+        $this->onboardingManager->ensureVendorAccess($account);
+        $this->getLogger('myeventlane_vendor')->notice(
+          'ensureVendorAccess executed uid=@uid (create-event gateway, no vendor entity yet)',
+          ['@uid' => (string) $uid],
+        );
+      }
+
       $this->getLogger('myeventlane_vendor')->notice(
         'Create-event gateway: no vendor → redirecting to onboarding profile uid=@uid',
         ['@uid' => (string) $uid],
