@@ -65,6 +65,7 @@
   @include meta.load-css('components/mel-top-boost-opportunity');
   @include meta.load-css('components/onboarding-panel');
   @include meta.load-css('components/onboarding-flow');
+  @include meta.load-css('components/vendor-onboard-shell');
   @include meta.load-css('components/auth');
   @include meta.load-css('components/vendor-order-view');
   @include meta.load-css('components/boost-metrics');

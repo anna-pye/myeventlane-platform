@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Compact 4-step journey strip (module fallback; mirrors vendor theme).
+ */
+#}
+{% if journey_steps %}
+  <div class="mel-onboard-steps" role="list" aria-label="{{ 'Onboarding steps'|t }}">
+    {% for step in journey_steps %}
+      <span role="listitem" class="mel-step{% if step.is_current %} mel-step--active{% endif %}{% if step.is_complete %} mel-step--complete{% endif %}">
+        {{ step.label }}
+      </span>
+      {% if not loop.last %}
+        <span class="mel-onboard-steps__sep" aria-hidden="true">→</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}

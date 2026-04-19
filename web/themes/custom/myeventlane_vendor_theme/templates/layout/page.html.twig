@@ -62,33 +62,42 @@
       } only %}
     {% endif %}
 
-    <main class="mel-vendor-shell__content" role="main">
-      {% if page.highlighted %}
-        {{ page.highlighted }}
-      {% endif %}
-
-      {% if page.sidebar_help %}
-        <div class="mel-shell-layout mel-shell-layout--with-utility">
-          <div class="mel-shell-layout__main">
-            {% if is_dashboard_route %}
-              <section class="mel-dashboard-page">
-                {{ page.content }}
-              </section>
-            {% else %}
-              {{ page.content }}
-            {% endif %}
-          </div>
-          <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
-            {{ page.sidebar_help }}
-          </aside>
+    <main class="mel-vendor-shell__content{% if page.vendor_onboard_inner %} mel-vendor-content{% endif %}" role="main">
+      {% if page.vendor_onboard_inner %}
+        <div class="mel-vendor-inner">
+          {% if page.highlighted %}
+            {{ page.highlighted }}
+          {% endif %}
+          {{ page.content }}
         </div>
       {% else %}
-        {% if is_dashboard_route %}
-          <section class="mel-dashboard-page">
-            {{ page.content }}
-          </section>
+        {% if page.highlighted %}
+          {{ page.highlighted }}
+        {% endif %}
+
+        {% if page.sidebar_help %}
+          <div class="mel-shell-layout mel-shell-layout--with-utility">
+            <div class="mel-shell-layout__main">
+              {% if is_dashboard_route %}
+                <section class="mel-dashboard-page">
+                  {{ page.content }}
+                </section>
+              {% else %}
+                {{ page.content }}
+              {% endif %}
+            </div>
+            <aside class="mel-shell-layout__utility-rail" data-help-sidebar>
+              {{ page.sidebar_help }}
+            </aside>
+          </div>
         {% else %}
-          {{ page.content }}
+          {% if is_dashboard_route %}
+            <section class="mel-dashboard-page">
+              {{ page.content }}
+            </section>
+          {% else %}
+            {{ page.content }}
+          {% endif %}
         {% endif %}
       {% endif %}
     </main>

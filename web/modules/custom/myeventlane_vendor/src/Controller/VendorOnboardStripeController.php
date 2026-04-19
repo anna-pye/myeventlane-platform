@@ -83,12 +83,13 @@ final class VendorOnboardStripeController extends ControllerBase {
     // Stripe UI phases: not connected | connected incomplete | payouts enabled.
     $isConnected = FALSE;
     $payoutsEnabled = FALSE;
+    $accountId = '';
     if ($store->hasField('field_stripe_payouts_enabled') && !$store->get('field_stripe_payouts_enabled')->isEmpty()) {
       $payoutsEnabled = (bool) $store->get('field_stripe_payouts_enabled')->value;
     }
     if ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty()) {
-      $accountId = $store->get('field_stripe_account_id')->value;
-      if (!empty($accountId)) {
+      $accountId = trim((string) $store->get('field_stripe_account_id')->value);
+      if ($accountId !== '') {
         if ($store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()) {
           $isConnected = (bool) $store->get('field_stripe_charges_enabled')->value;
         }
@@ -111,9 +112,15 @@ final class VendorOnboardStripeController extends ControllerBase {
     if ($payoutsEnabled) {
       $stripe_phase = 'payouts_ready';
     }
-    elseif ($isConnected || ($store->hasField('field_stripe_account_id') && !$store->get('field_stripe_account_id')->isEmpty())) {
+    elseif ($isConnected || $accountId !== '') {
       $stripe_phase = 'needs_completion';
     }
+
+    $stripe_state = [
+      'is_connected' => $accountId !== '',
+      'payouts_enabled' => $payoutsEnabled,
+      'is_onboarding_complete' => $payoutsEnabled,
+    ];
 
     // Non-blocking: load/refresh onboarding state; advance when Stripe already connected.
     try {
@@ -145,25 +152,26 @@ final class VendorOnboardStripeController extends ControllerBase {
       'absolute' => TRUE,
     ]);
 
+    $back_url = Url::fromRoute('myeventlane_vendor.onboard.profile')->toString();
+
+    $onboard_footer = [
+      'back_url' => $back_url,
+      'continue_url' => $connectUrl->toString(),
+      'continue_label' => $this->t('Connect Stripe'),
+    ];
+
     if ($stripe_phase === 'payouts_ready') {
-      $content['status'] = [
+      $content['done'] = [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-stripe-phase', 'mel-stripe-phase--success'],
+          'class' => ['mel-stripe-onboard-card-copy'],
         ],
         'message' => [
-          '#markup' => '<p><strong>' . $this->t('Payouts enabled') . '</strong> ' . $this->t('Your Stripe account can receive funds from ticket sales.') . '</p>',
+          '#markup' => '<p>' . $this->t('Your Stripe account can receive funds from ticket sales.') . '</p>',
         ],
       ];
-
-      $content['continue'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Continue to event setup'),
-        '#url' => Url::fromRoute('myeventlane_vendor.onboard.first_event'),
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
-        ],
-      ];
+      $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_vendor.onboard.first_event')->toString();
+      $onboard_footer['continue_label'] = $this->t('Continue to event setup');
     }
     elseif ($stripe_phase === 'needs_completion') {
       $content['status'] = [
@@ -175,14 +183,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           '#markup' => '<p><strong>' . $this->t('Finish setting up Stripe') . '</strong> ' . $this->t('Complete the remaining steps in Stripe to enable payouts.') . '</p>',
         ],
       ];
-      $content['resume'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Resume Stripe setup'),
-        '#url' => $connectUrl,
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
-        ],
-      ];
+      $onboard_footer['continue_label'] = $this->t('Continue setting up payments');
     }
     else {
       $content['intro'] = [
@@ -210,15 +211,6 @@ final class VendorOnboardStripeController extends ControllerBase {
           ],
         ],
       ];
-
-      $content['connect'] = [
-        '#type' => 'link',
-        '#title' => $this->t('Connect Stripe to receive payments'),
-        '#url' => $connectUrl,
-        '#attributes' => [
-          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn-lg'],
-        ],
-      ];
     }
 
     return [
@@ -228,6 +220,8 @@ final class VendorOnboardStripeController extends ControllerBase {
       '#step_title' => $this->t('Set up payments'),
       '#step_description' => $this->t('Connect your Stripe account to accept payments for your events. This process takes about 5 minutes.'),
       '#content' => $content,
+      '#stripe_state' => $stripe_state,
+      '#onboard_footer' => $onboard_footer,
       '#attached' => [
         'library' => ['myeventlane_vendor/onboarding'],
       ],

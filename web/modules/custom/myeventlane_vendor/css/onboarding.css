@@ -20,18 +20,26 @@
   --mel-onboard-max: 720px;
 }
 
-/* Vendor shell: constrain onboarding main column (sidebar is existing shell aside). */
-body.mel-page--vendor-onboard .mel-vendor-shell__content {
-  max-width: var(--mel-onboard-max);
+/* Vendor shell: main column is full width; inner rail (.mel-vendor-inner) constrains copy beside sidebar. */
+body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-content {
+  max-width: none;
   margin-inline: 0;
   width: 100%;
 }
 
 @media (max-width: 767px) {
-  body.mel-page--vendor-onboard .mel-vendor-shell__content {
-    max-width: none;
+  body.mel-page--vendor-onboard .mel-vendor-shell__content.mel-vendor-content {
     padding-inline: var(--mel-onboard-space-md);
   }
+}
+
+body.mel-page--vendor-onboard .mel-vendor .mel-vendor-workspace.mel-onboard-wrapper {
+  display: block;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  background: transparent;
+  grid-template-columns: unset;
 }
 
 .mel-vendor-workspace {
@@ -40,8 +48,9 @@ body.mel-page--vendor-onboard .mel-vendor-shell__content {
 }
 
 .mel-vendor-main--onboard {
-  max-width: var(--mel-onboard-max);
-  padding: var(--mel-onboard-space-lg) var(--mel-onboard-space-md) var(--mel-onboard-space-2xl);
+  max-width: none;
+  width: 100%;
+  padding: var(--mel-onboard-space-lg) 0 var(--mel-onboard-space-2xl);
   margin-inline: 0;
 }
 
@@ -61,6 +70,67 @@ body.mel-page--vendor-onboard .mel-vendor-shell__content {
   max-width: var(--mel-onboard-max);
   margin: 0;
   width: 100%;
+}
+
+.mel-vendor-content .mel-container,
+.mel-vendor-inner .mel-container {
+  margin: 0;
+  max-width: none;
+}
+
+.mel-onboard-flow {
+  width: 100%;
+}
+
+.mel-onboard-progress-text {
+  margin: 0 0 var(--mel-onboard-space-md);
+  font-size: 0.9375rem;
+  color: var(--mel-onboard-muted);
+}
+
+.mel-onboard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.mel-onboard-steps__sep {
+  color: #bbb;
+  user-select: none;
+}
+
+.mel-step {
+  color: #888;
+}
+
+.mel-step--active {
+  color: var(--mel-onboard-coral);
+  font-weight: 600;
+}
+
+.mel-step--complete {
+  color: #16a34a;
+}
+
+.mel-stripe-onboard-summary {
+  margin-bottom: var(--mel-onboard-space-md);
+  padding: var(--mel-onboard-space-md);
+  border-radius: var(--mel-onboard-radius);
+  background: #f9fafb;
+  border: 1px solid var(--mel-onboard-border);
+}
+
+.mel-stripe-onboard-summary__line {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--mel-onboard-text);
+}
+
+.mel-stripe-onboard-summary__line--ok {
+  font-weight: 600;
 }
 
 .mel-onboard-progress {
@@ -234,8 +304,13 @@ body.mel-page--vendor-onboard .mel-vendor-shell__content {
   background: var(--mel-onboard-surface);
   border: 1px solid var(--mel-onboard-border);
   border-radius: var(--mel-onboard-radius);
-  box-shadow: var(--mel-onboard-shadow);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   padding: var(--mel-onboard-space-xl);
+  margin-top: var(--mel-onboard-space-lg);
+}
+
+.mel-onboard-card--main {
+  margin-top: var(--mel-onboard-space-md);
 }
 
 .mel-onboard-footer {
@@ -247,9 +322,21 @@ body.mel-page--vendor-onboard .mel-vendor-shell__content {
   align-items: center;
   gap: var(--mel-onboard-space-md);
   margin-top: var(--mel-onboard-space-lg);
-  padding: var(--mel-onboard-space-md) 0 0;
-  background: linear-gradient(to top, var(--mel-onboard-bg) 70%, transparent);
-  border-top: 1px solid var(--mel-onboard-border);
+  padding: 12px 0 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+}
+
+.mel-onboard-footer--split {
+  justify-content: space-between;
+}
+
+.mel-onboard-footer--sticky {
+  position: sticky;
+  bottom: 0;
+  padding: 12px;
+  margin-top: var(--mel-onboard-space-lg);
+  border-radius: 0 0 var(--mel-onboard-radius) var(--mel-onboard-radius);
 }
 
 .mel-onboard-footer .form-actions {
