@@ -577,3 +577,49 @@ body.mel-page--vendor-onboard .mel-vendor .mel-vendor-workspace.mel-onboard-wrap
   color: var(--mel-onboard-muted);
   font-size: 0.875rem;
 }
+
+/* Terms step — MEL personality (legal checkboxes unchanged). */
+.mel-onboard-terms-hero {
+  max-width: var(--mel-onboard-max);
+  margin: 0 auto var(--mel-onboard-space-xl);
+  padding: var(--mel-onboard-space-xl) var(--mel-onboard-space-lg);
+  background: var(--mel-onboard-surface);
+  border-radius: var(--mel-onboard-radius);
+  box-shadow: var(--mel-onboard-shadow);
+  border: 1px solid var(--mel-onboard-border);
+}
+
+.mel-onboard-terms-hero__headline {
+  margin: 0 0 var(--mel-onboard-space-md);
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mel-onboard-text);
+  line-height: 1.25;
+}
+
+.mel-onboard-terms-hero__lead {
+  margin: 0 0 var(--mel-onboard-space-md);
+  font-size: 1rem;
+  color: var(--mel-onboard-muted);
+  line-height: 1.5;
+}
+
+.mel-onboard-terms-hero__bullets {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--mel-onboard-text);
+  line-height: 1.6;
+}
+
+.mel-onboard-footer--triple {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-onboard-space-md);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mel-onboard-footer--triple .mel-onboard-footer__skip {
+  margin-inline-end: auto;
+}

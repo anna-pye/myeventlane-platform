@@ -228,7 +228,17 @@ final class OnboardingManager {
     $lock_name = 'myeventlane_onboarding_vendor_uid_' . (string) $uid;
     $acquired = $this->lock->acquire($lock_name, 30.0);
     if (!$acquired) {
-      $this->logger()->warning('Onboarding vendor state lock not acquired uid=@uid; reloading state.', ['@uid' => (string) $uid]);
+      $this->lock->wait($lock_name, 30);
+      $acquired = $this->lock->acquire($lock_name, 30.0);
+    }
+    if (!$acquired) {
+      $this->logger()->warning('Onboarding vendor state lock not acquired uid=@uid after wait; reloading state.', ['@uid' => (string) $uid]);
+      $existing = $this->loadVendorStateByUid($uid);
+      if ($existing !== NULL) {
+        return $existing;
+      }
+      $this->logger()->error('Onboarding vendor state could not be created: lock unavailable uid=@uid', ['@uid' => (string) $uid]);
+      throw new \RuntimeException('Could not acquire lock to create vendor onboarding state.');
     }
     try {
       $existing = $this->loadVendorStateByUid($uid);
@@ -249,9 +259,7 @@ final class OnboardingManager {
       return $state;
     }
     finally {
-      if ($acquired) {
-        $this->lock->release($lock_name);
-      }
+      $this->lock->release($lock_name);
     }
   }
 
@@ -506,6 +514,23 @@ final class OnboardingManager {
   }
 
   /**
+   * Whether vendor onboarding is far enough along to use Event Studio / create events.
+   *
+   * Stripe (stage listen) is optional and must not block entry. Users who have
+   * finished the organiser profile advance to ask (or beyond); probe/present
+   * mean account/profile work is still required.
+   */
+  public function isVendorEventStudioUnlocked(OnboardingStateInterface $state): bool {
+    if ($state->getTrack() !== OnboardingStateInterface::TRACK_VENDOR) {
+      return FALSE;
+    }
+    if ($state->isCompleted()) {
+      return TRUE;
+    }
+    return !in_array($state->getStage(), ['probe', 'present'], TRUE);
+  }
+
+  /**
    * Whether the user has at least one completed Commerce order (lightweight count).
    *
    * Used for customer UX signals (e.g. post-login hub) without loading orders.
@@ -659,8 +684,9 @@ final class OnboardingManager {
       $map = [
         'probe' => ['route_name' => 'myeventlane_vendor.onboard.account', 'title' => 'Create account'],
         'present' => ['route_name' => 'myeventlane_vendor.onboard.profile', 'title' => 'Set up profile'],
-        'listen' => ['route_name' => 'myeventlane_vendor.onboard.stripe', 'title' => 'Set up payments'],
-        'ask' => ['route_name' => 'myeventlane_vendor.onboard.first_event', 'title' => 'Create first event'],
+        // Payments are optional; progression continues in Event Studio after profile.
+        'listen' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
+        'ask' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
         'invite' => ['route_name' => 'myeventlane_vendor.onboard.boost', 'title' => 'Promote with Boost'],
         'complete' => ['route_name' => NULL, 'title' => ''],
       ];

@@ -164,7 +164,7 @@ class CreateEventGatewayController extends ControllerBase {
       $state = $this->onboardingManager->loadOrCreateVendor($account, $vendor);
     }
 
-    $is_complete = $state->getStage() === 'complete' && $state->isCompleted();
+    $is_complete = $this->onboardingManager->isVendorEventStudioUnlocked($state);
 
     if (!$is_complete) {
       if ($draft_nid !== NULL) {

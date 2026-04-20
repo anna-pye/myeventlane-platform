@@ -56,9 +56,35 @@ final class VendorTermsForm extends FormBase {
 
     $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
 
+    $form['hero'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-onboard-terms-hero']],
+    ];
+    $form['hero']['headline'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'h1',
+      '#value' => $this->t('Welcome to hosting on MyEventLane 🎉'),
+      '#attributes' => ['class' => ['mel-onboard-terms-hero__headline']],
+    ];
+    $form['hero']['lead'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => $this->t('Before you start, just a couple of quick things:'),
+      '#attributes' => ['class' => ['mel-onboard-terms-hero__lead']],
+    ];
+    $form['hero']['bullets'] = [
+      '#theme' => 'item_list',
+      '#items' => [
+        $this->t('Be respectful'),
+        $this->t('Follow local laws'),
+        $this->t('Keep your community safe'),
+      ],
+      '#attributes' => ['class' => ['mel-onboard-terms-hero__bullets']],
+    ];
+
     $form['legal'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Agreements'),
+      '#title' => $this->t('Legal agreements'),
       '#attributes' => ['class' => ['mel-vendor-terms']],
     ];
     $form['legal']['vendor_terms_agreed'] = [
@@ -83,8 +109,9 @@ final class VendorTermsForm extends FormBase {
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Accept and continue'),
+      '#value' => $this->t('Agree & Continue'),
       '#button_type' => 'primary',
+      '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
     ];
 
     return $form;

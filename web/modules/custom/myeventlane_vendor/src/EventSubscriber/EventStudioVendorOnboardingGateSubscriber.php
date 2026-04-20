@@ -78,11 +78,10 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     }
 
     $state = $this->onboardingManager->loadVendorStateByUid($uid);
-    $is_complete = $state !== NULL
-      && $state->getStage() === 'complete'
-      && $state->isCompleted();
+    $is_unlocked = $state !== NULL
+      && $this->onboardingManager->isVendorEventStudioUnlocked($state);
 
-    if (!$is_complete) {
+    if (!$is_unlocked) {
       $this->redirectToGateway($event, $uid, 'onboarding_incomplete');
     }
   }

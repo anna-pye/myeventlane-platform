@@ -35,6 +35,13 @@
       </div>
     </div>
 
+    {% if mel_show_first_event_banner %}
+      <div class="mel-es-first-event-banner" role="status">
+        <p class="mel-es-first-event-banner__title">{{ '✨ You’re creating your first event'|t }}</p>
+        <p class="mel-es-first-event-banner__sub">{{ 'You can add payments later.'|t }}</p>
+      </div>
+    {% endif %}
+
     {# TOP ZONE — preview anchor for section nav #}
     <div class="mel-studio-top" id="mel-studio-preview-panel">
       <div class="mel-studio-top__preview">
@@ -397,18 +404,27 @@
                 <p class="mel-section__hint">{{ 'When you are ready, mark the event live. You can return here anytime.'|t }}</p>
               </header>
               {% if mel_publish_blocked %}
-                <div class="mel-publish-warning" role="region" aria-label="{{ 'Organiser setup required'|t }}">
-                  <h3 class="mel-publish-warning__title">{{ 'Before you publish your event'|t }}</h3>
-                  <p class="mel-publish-warning__lead">{{ 'To publish, you’ll need to complete your organiser setup.'|t }}</p>
-                  <ul class="mel-publish-warning__list">
-                    <li>{{ 'Add organiser profile'|t }}</li>
-                    <li>{{ 'Connect payments'|t }}</li>
-                    <li>{{ 'Confirm event details'|t }}</li>
-                  </ul>
-                  <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
-                    {{ 'Complete setup'|t }}
-                  </a>
-                </div>
+                {% if mel_publish_stripe_gate %}
+                  <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Connect payments to publish'|t }}">
+                    <h3 class="mel-publish-warning__title">{{ 'Almost ready to go live 🚀'|t }}</h3>
+                    <p class="mel-publish-warning__lead">{{ 'To sell tickets, you’ll need to connect payments.'|t }}</p>
+                    <a href="{{ path('myeventlane_vendor.onboard.stripe') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
+                      {{ 'Connect payments'|t }}
+                    </a>
+                  </div>
+                {% else %}
+                  <div class="mel-publish-warning" role="region" aria-label="{{ 'Organiser setup required'|t }}">
+                    <h3 class="mel-publish-warning__title">{{ 'Before you publish your event'|t }}</h3>
+                    <p class="mel-publish-warning__lead">{{ 'To publish, you’ll need to complete your organiser setup.'|t }}</p>
+                    <ul class="mel-publish-warning__list">
+                      <li>{{ 'Add organiser profile'|t }}</li>
+                      <li>{{ 'Confirm event details'|t }}</li>
+                    </ul>
+                    <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
+                      {{ 'Complete setup'|t }}
+                    </a>
+                  </div>
+                {% endif %}
               {% endif %}
               {{ element.mel.status }}
             </section>

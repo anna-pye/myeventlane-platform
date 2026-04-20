@@ -11,6 +11,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_core\Service\OptionalServiceResolver;
 use Drupal\myeventlane_event_studio\DTO\MelEventData;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
@@ -54,6 +55,7 @@ final class VendorThemePagePreprocess {
     TranslationInterface $stringTranslation,
     private readonly EntityIdNormalizer $entityIdNormalizer,
     private readonly ?EventRepository $eventRepository,
+    private readonly OnboardingManager $onboardingManager,
   ) {
     $this->setStringTranslation($stringTranslation);
   }
@@ -175,7 +177,12 @@ final class VendorThemePagePreprocess {
 
     $route_name = $this->routeMatch->getRouteName();
     $variables['page']['active_section'] = $this->getActiveSection($route_name);
-    $variables['page']['vendor_shell_nav_items'] = $this->buildVendorShellNavItems($variables['page']['active_section'], $route_name);
+    if ($this->isOnboardingShellRoute($route_name)) {
+      $variables['page']['vendor_shell_nav_items'] = $this->buildOnboardingShellNavItems($route_name);
+    }
+    else {
+      $variables['page']['vendor_shell_nav_items'] = $this->buildVendorShellNavItems($variables['page']['active_section'], $route_name);
+    }
     $variables['page']['shell_page_title'] = $this->getShellPageTitle($route_name);
     $variables['page']['shell_page_subtitle'] = $this->getShellPageSubtitle($route_name);
     $variables['page']['shell_primary_action'] = $this->getShellPrimaryAction();
@@ -412,6 +419,98 @@ final class VendorThemePagePreprocess {
       $item['url'] = $url;
       $item['is_disabled'] = $is_disabled;
       $item['is_active'] = $active_section === $item['key'];
+      $built[] = $item;
+    }
+
+    return $built;
+  }
+
+  /**
+   * Whether the vendor shell should show onboarding-only navigation.
+   */
+  private function isOnboardingShellRoute(?string $route_name): bool {
+    if ($route_name === NULL || $route_name === '') {
+      return FALSE;
+    }
+    if (str_starts_with($route_name, 'myeventlane_vendor.onboard')) {
+      return TRUE;
+    }
+    if ($route_name === 'myeventlane_legal.vendor_terms') {
+      return TRUE;
+    }
+    if ($route_name === 'myeventlane_event_studio.create' && $this->currentUser->isAuthenticated()) {
+      $request = $this->requestStack->getCurrentRequest();
+      if ($request && (string) $request->query->get('mel_first_event') === '1') {
+        return TRUE;
+      }
+      $uid = (int) $this->currentUser->id();
+      if ($uid > 0) {
+        $state = $this->onboardingManager->loadVendorStateByUid($uid);
+        // First-event creation step only (not every "incomplete" onboarding visit).
+        if ($state !== NULL && $state->getStage() === 'ask' && !$state->isCompleted()) {
+          return TRUE;
+        }
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Linear onboarding nav: Terms → Profile → Event Studio → Payments → Wrap-up.
+   *
+   * Does not replace dashboard nav when not on onboarding routes.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Same shape as buildVendorShellNavItems().
+   */
+  private function buildOnboardingShellNavItems(?string $route_name): array {
+    $items = [
+      [
+        'key' => 'onboard_terms',
+        'label' => $this->t('Terms'),
+        'icon' => 'settings',
+        'route' => 'myeventlane_legal.vendor_terms',
+      ],
+      [
+        'key' => 'onboard_profile',
+        'label' => $this->t('Profile'),
+        'icon' => 'settings',
+        'route' => 'myeventlane_vendor.onboard.profile',
+      ],
+      [
+        'key' => 'onboard_event',
+        'label' => $this->t('Create event'),
+        'icon' => 'events',
+        'route' => 'myeventlane_event_studio.create',
+      ],
+      [
+        'key' => 'onboard_payments',
+        'label' => $this->t('Payments'),
+        'icon' => 'payouts',
+        'route' => 'myeventlane_vendor.onboard.stripe',
+      ],
+      [
+        'key' => 'onboard_publish',
+        'label' => $this->t('Publish'),
+        'icon' => 'events',
+        'route' => 'myeventlane_vendor.onboard.complete',
+      ],
+    ];
+
+    $built = [];
+    foreach ($items as $item) {
+      $url = NULL;
+      $is_disabled = FALSE;
+      try {
+        $url = Url::fromRoute((string) $item['route'])->toString();
+      }
+      catch (\Throwable) {
+        $is_disabled = TRUE;
+      }
+      $item['url'] = $url;
+      $item['is_disabled'] = $is_disabled;
+      $item['is_active'] = $route_name === $item['route'];
+      $item['children'] = [];
       $built[] = $item;
     }
 

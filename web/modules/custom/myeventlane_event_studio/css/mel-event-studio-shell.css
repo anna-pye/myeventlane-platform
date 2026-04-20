@@ -538,3 +538,33 @@
 .mel-event-studio .mel-publish-warning__cta {
   display: inline-flex;
 }
+
+.mel-event-studio .mel-publish-warning--stripe {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+}
+
+/* First-event onboarding banner (post–profile entry) */
+.mel-event-studio .mel-es-first-event-banner {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.12) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+}
+
+.mel-event-studio .mel-es-first-event-banner__title {
+  margin: 0 0 4px;
+  font-family: 'Nunito', system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mel-event-studio .mel-es-first-event-banner__sub {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #64748b;
+  line-height: 1.45;
+}

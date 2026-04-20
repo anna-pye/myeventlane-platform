@@ -128,18 +128,6 @@ final class VendorOnboardStripeController extends ControllerBase {
     ];
 
     $uid = (int) $currentUser->id();
-    if ($uid === 1) {
-      $this->getLogger('myeventlane_vendor')->notice('[MEL_STRIPE_VERIFY] uid=@uid vendor_id=@vid store_id=@sid stripe_account=@acct charges_enabled=@ch payouts=@po onboarding_complete_shown=@oc phase=@ph', [
-        '@uid' => (string) $uid,
-        '@vid' => (string) $vendor->id(),
-        '@sid' => (string) $store->id(),
-        '@acct' => $accountId !== '' ? $accountId : '(empty)',
-        '@ch' => $isConnected ? '1' : '0',
-        '@po' => $payoutsEnabled ? '1' : '0',
-        '@oc' => !empty($stripe_state['is_onboarding_complete']) ? '1' : '0',
-        '@ph' => $stripe_phase,
-      ]);
-    }
 
     // Non-blocking: load/refresh onboarding state; advance when Stripe already connected.
     try {
@@ -172,17 +160,18 @@ final class VendorOnboardStripeController extends ControllerBase {
     ]);
 
     $back_url = Url::fromRoute('myeventlane_vendor.onboard.profile')->toString();
+    $skip_url = Url::fromRoute('myeventlane_event_studio.create')->toString();
 
     $onboard_footer = [
       'back_url' => $back_url,
       'continue_url' => $connectUrl->toString(),
       'continue_label' => $this->t('Connect Stripe'),
+      'skip_url' => $skip_url,
+      'skip_label' => $this->t('Skip for now'),
     ];
 
     if ($stripe_phase === 'payouts_ready') {
-      $done_text = $payoutsEnabled
-        ? $this->t('Your Stripe account can receive funds from ticket sales.')
-        : $this->t('Stripe is connected. You can accept payments for your events.');
+      $done_text = $this->t('✅ You\'re ready to accept payments');
       $content['done'] = [
         '#type' => 'container',
         '#attributes' => [
@@ -192,8 +181,9 @@ final class VendorOnboardStripeController extends ControllerBase {
           '#markup' => '<p>' . $done_text . '</p>',
         ],
       ];
-      $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_vendor.onboard.first_event')->toString();
-      $onboard_footer['continue_label'] = $this->t('Continue to event setup');
+      $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
+      $onboard_footer['continue_label'] = $this->t('Continue to Event Studio');
+      unset($onboard_footer['skip_url'], $onboard_footer['skip_label']);
     }
     elseif ($stripe_phase === 'needs_completion') {
       $content['status'] = [
@@ -214,7 +204,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           'class' => ['mel-onboard-stripe-intro'],
         ],
         'text' => [
-          '#markup' => '<p>' . $this->t('Connect Stripe to receive payments. Stripe is a secure payment processor used by millions of businesses.') . '</p>',
+          '#markup' => '<p>' . $this->t('💸 Want to sell tickets? Connect Stripe to get paid directly.') . '</p>',
         ],
       ];
 
@@ -239,8 +229,8 @@ final class VendorOnboardStripeController extends ControllerBase {
       '#theme' => 'vendor_onboard_step',
       '#step_number' => 3,
       '#total_steps' => 7,
-      '#step_title' => $this->t('Set up payments'),
-      '#step_description' => $this->t('Connect your Stripe account to accept payments for your events. This process takes about 5 minutes.'),
+      '#step_title' => $this->t('Payments (optional)'),
+      '#step_description' => $this->t('Connect Stripe when you want to sell tickets — or skip and add it later.'),
       '#content' => $content,
       '#stripe_state' => $stripe_state,
       '#onboard_footer' => $onboard_footer,

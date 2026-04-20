@@ -5,6 +5,8 @@ services:
       - '@current_user'
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@myeventlane_onboarding.manager'
+      - '@entity_type.manager'
+      - '@request_stack'
 
   myeventlane_event_studio.vendor_legacy_wizard_redirect_subscriber:
     class: Drupal\myeventlane_event_studio\EventSubscriber\VendorLegacyWizardRedirectSubscriber
