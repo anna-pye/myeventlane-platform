@@ -80,7 +80,9 @@ final class VendorOnboardStripeController extends ControllerBase {
       );
     }
 
-    // Stripe UI phases: not connected | connected incomplete | payouts enabled.
+    // Stripe UI phases: not connected | Connect account incomplete (no charges yet) | ready to sell.
+    // charges_enabled is sufficient for event creation (same as assertStripeConnected). Payouts can lag
+    // or remain pending without blocking onboarding — do not treat payouts_enabled as the only "done" signal.
     $isConnected = FALSE;
     $payoutsEnabled = FALSE;
     $accountId = '';
@@ -108,23 +110,40 @@ final class VendorOnboardStripeController extends ControllerBase {
       }
     }
 
+    // Ready for onboarding: charges enabled OR payouts enabled (either implies seller path is usable).
+    $stripe_ready_for_onboarding = $payoutsEnabled || $isConnected;
     $stripe_phase = 'needs_connect';
-    if ($payoutsEnabled) {
+    if ($stripe_ready_for_onboarding) {
       $stripe_phase = 'payouts_ready';
     }
-    elseif ($isConnected || $accountId !== '') {
+    elseif ($accountId !== '') {
       $stripe_phase = 'needs_completion';
     }
 
     $stripe_state = [
       'is_connected' => $accountId !== '',
       'payouts_enabled' => $payoutsEnabled,
-      'is_onboarding_complete' => $payoutsEnabled,
+      // Step complete when charges are on (matches advanceStage + pre-regression UX), not only payouts.
+      'is_onboarding_complete' => $isConnected,
     ];
+
+    $uid = (int) $currentUser->id();
+    if ($uid === 1) {
+      $this->getLogger('myeventlane_vendor')->notice('[MEL_STRIPE_VERIFY] uid=@uid vendor_id=@vid store_id=@sid stripe_account=@acct charges_enabled=@ch payouts=@po onboarding_complete_shown=@oc phase=@ph', [
+        '@uid' => (string) $uid,
+        '@vid' => (string) $vendor->id(),
+        '@sid' => (string) $store->id(),
+        '@acct' => $accountId !== '' ? $accountId : '(empty)',
+        '@ch' => $isConnected ? '1' : '0',
+        '@po' => $payoutsEnabled ? '1' : '0',
+        '@oc' => !empty($stripe_state['is_onboarding_complete']) ? '1' : '0',
+        '@ph' => $stripe_phase,
+      ]);
+    }
 
     // Non-blocking: load/refresh onboarding state; advance when Stripe already connected.
     try {
-      $user = $this->entityTypeManager()->getStorage('user')->load((int) $currentUser->id());
+      $user = $this->entityTypeManager()->getStorage('user')->load($uid);
       if ($user instanceof \Drupal\user\UserInterface && $vendor->id()) {
         $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
         $this->onboardingManager->refreshFlags($state);
@@ -161,13 +180,16 @@ final class VendorOnboardStripeController extends ControllerBase {
     ];
 
     if ($stripe_phase === 'payouts_ready') {
+      $done_text = $payoutsEnabled
+        ? $this->t('Your Stripe account can receive funds from ticket sales.')
+        : $this->t('Stripe is connected. You can accept payments for your events.');
       $content['done'] = [
         '#type' => 'container',
         '#attributes' => [
           'class' => ['mel-stripe-onboard-card-copy'],
         ],
         'message' => [
-          '#markup' => '<p>' . $this->t('Your Stripe account can receive funds from ticket sales.') . '</p>',
+          '#markup' => '<p>' . $done_text . '</p>',
         ],
       ];
       $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_vendor.onboard.first_event')->toString();
@@ -271,6 +293,9 @@ final class VendorOnboardStripeController extends ControllerBase {
   /**
    * Gets the vendor entity for the current user.
    *
+   * Prefers owning vendor (uid), then membership (field_vendor_users), matching
+   * OnboardingManager::ensureVendorExists and vendor theme onboarding stages.
+   *
    * @return \Drupal\myeventlane_vendor\Entity\Vendor|null
    *   The vendor entity, or NULL if not found.
    */
@@ -283,16 +308,26 @@ final class VendorOnboardStripeController extends ControllerBase {
     }
 
     $vendorStorage = $this->entityTypeManager()->getStorage('myeventlane_vendor');
-    $query = $vendorStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->range(0, 1);
-    $group = $query->orConditionGroup()
-      ->condition('uid', $userId)
-      ->condition('field_vendor_users', $userId);
-    $vendorIds = $query->condition($group)->execute();
 
-    if (!empty($vendorIds)) {
-      $vendor = $vendorStorage->load(reset($vendorIds));
+    $owner_ids = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $userId)
+      ->range(0, 1)
+      ->execute();
+    if (!empty($owner_ids)) {
+      $vendor = $vendorStorage->load(reset($owner_ids));
+      if ($vendor instanceof Vendor) {
+        return $vendor;
+      }
+    }
+
+    $member_ids = $vendorStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('field_vendor_users', $userId)
+      ->range(0, 1)
+      ->execute();
+    if (!empty($member_ids)) {
+      $vendor = $vendorStorage->load(reset($member_ids));
       if ($vendor instanceof Vendor) {
         return $vendor;
       }
