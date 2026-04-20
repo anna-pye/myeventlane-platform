@@ -52,6 +52,14 @@ final class LegalGatekeeper {
       return;
     }
 
+    $request = \Drupal::request();
+    $path = $request->getPathInfo();
+    // Do not redirect to terms or block flows while user is on organiser onboarding paths
+    // (/vendor/onboard/terms, profile, etc.); terms are collected in that funnel.
+    if (str_contains($path, '/vendor/onboard')) {
+      return;
+    }
+
     $vendor = $this->getCurrentVendorOrNull();
     if (!$vendor) {
       return;

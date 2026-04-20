@@ -15,9 +15,8 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -747,8 +746,8 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
     $suggestions[] = 'form__node_event_form__vendor';
   }
 
-  if ($form_id === 'vendor_onboard_profile_form') {
-    $suggestions[] = 'form__vendor_onboard_profile_form';
+  if ($form_id === 'organiser_onboard_profile_form') {
+    $suggestions[] = 'form__organiser_onboard_profile_form';
   }
 
   if ($form_id === 'myeventlane_vendor_events_bulk_actions_form') {
@@ -757,20 +756,11 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
 }
 
 /**
- * Implements hook_preprocess_HOOK() for form__vendor_onboard_profile_form.
+ * Implements hook_preprocess_HOOK() for form__organiser_onboard_profile_form.
  *
  * Passes step metadata from the form element for the onboarding layout.
  */
-function myeventlane_vendor_theme_preprocess_form__vendor_onboard_profile_form(array &$variables): void {
-  // form--vendor-onboard-profile-form.html.twig expects {{ form }}; core only
-  // provides children + attributes. Build the same output as core form.html.twig.
-  $attributes = $variables['attributes'] ?? [];
-  if (!($attributes instanceof Attribute)) {
-    $attributes = new Attribute(is_array($attributes) ? $attributes : []);
-  }
-  $children = $variables['children'] ?? '';
-  $variables['form'] = Markup::create('<form' . $attributes . '>' . $children . '</form>');
-
+function myeventlane_vendor_theme_preprocess_form__organiser_onboard_profile_form(array &$variables): void {
   $element = $variables['element'];
   $variables['step_number'] = $element['#step_number'] ?? 2;
   $variables['total_steps'] = $element['#total_steps'] ?? 7;
@@ -822,16 +812,16 @@ function myeventlane_vendor_theme_preprocess_vendor_onboard_step(array &$variabl
  * Uses STAGE_ORDER, OnboardingManager, LegalGatekeeper. Applies Stripe + Terms
  * locking for steps after listen.
  *
- * @param string $current_route
- *   The effective current route (branding maps to stripe).
+ * @param string|\Drupal\myeventlane_core\Entity\OnboardingStateInterface $route_or_state
+ *   Effective onboarding route, or a vendor onboarding state (e.g. Event Studio preprocess).
  *
  * @return array<int, array{key: string, label: string, url: string, is_complete: bool, is_current: bool, is_locked: bool}>
  *   Stages for the progress component.
  */
-function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route): array {
-  $stage_order = \Drupal\myeventlane_core\Entity\OnboardingStateInterface::STAGE_ORDER;
-  // Visual order: create the event before optional payments (canonical stage keys unchanged).
-  $display_order = ['probe', 'present', 'ask', 'listen', 'invite', 'complete'];
+function _myeventlane_vendor_theme_build_onboarding_stages(string|OnboardingStateInterface $route_or_state): array {
+  $stage_order = OnboardingStateInterface::STAGE_ORDER;
+  // Event-first checklist: Profile → Create event → Payments → Publish.
+  $display_order = ['present', 'ask', 'listen', 'complete'];
   $route_to_stage = [
     'myeventlane_legal.vendor_terms' => 'probe',
     'myeventlane_vendor.onboard.account' => 'probe',
@@ -839,99 +829,123 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
     'myeventlane_vendor.onboard.stripe' => 'listen',
     'myeventlane_vendor.onboard.first_event' => 'ask',
     'myeventlane_event_studio.create' => 'ask',
+    'myeventlane_event_studio.edit' => 'ask',
     'myeventlane_vendor.onboard.boost' => 'invite',
     'myeventlane_vendor.onboard.complete' => 'complete',
   ];
   $stage_labels = [
-    'probe' => t('Get started'),
     'present' => t('Profile'),
-    'listen' => t('Payments'),
     'ask' => t('Create event'),
-    'invite' => t('Boost'),
-    'complete' => t('Complete'),
+    'listen' => t('Payments'),
+    'complete' => t('Publish'),
   ];
   $stage_routes = [
-    'probe' => 'myeventlane_vendor.onboard.account',
     'present' => 'myeventlane_vendor.onboard.profile',
-    'listen' => 'myeventlane_vendor.onboard.stripe',
     'ask' => 'myeventlane_event_studio.create',
-    'invite' => 'myeventlane_vendor.onboard.boost',
+    'listen' => 'myeventlane_vendor.onboard.stripe',
     'complete' => 'myeventlane_vendor.onboard.complete',
   ];
 
-  $current_stage = $route_to_stage[$current_route] ?? 'probe';
+  $canonical_stage = 'probe';
+  $state = NULL;
+
+  if ($route_or_state instanceof OnboardingStateInterface) {
+    $state = $route_or_state;
+    $canonical_stage = $state->getStage();
+  }
+  else {
+    $current_route = $route_or_state;
+    $canonical_stage = $route_to_stage[$current_route] ?? 'probe';
+
+    $current_user = \Drupal::currentUser();
+    if ($current_user->isAuthenticated()) {
+      $onboarding_manager = \Drupal::service('myeventlane_onboarding.manager');
+      $uid = (int) $current_user->id();
+      $state = $onboarding_manager->loadVendorStateByUid($uid);
+      $etm = \Drupal::entityTypeManager();
+      if ($etm->hasDefinition('myeventlane_vendor')) {
+        $vendor_storage = $etm->getStorage('myeventlane_vendor');
+        $vendor = NULL;
+        $owner_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('uid', $uid)->range(0, 1)->execute();
+        if (!empty($owner_ids)) {
+          $vendor = $vendor_storage->load(reset($owner_ids));
+        }
+        if (!$vendor) {
+          $user_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('field_vendor_users', $uid)->range(0, 1)->execute();
+          if (!empty($user_ids)) {
+            $vendor = $vendor_storage->load(reset($user_ids));
+          }
+        }
+        if ($state && $vendor instanceof \Drupal\myeventlane_vendor\Entity\Vendor) {
+          $user = $etm->getStorage('user')->load($uid);
+          if ($user instanceof \Drupal\user\UserInterface) {
+            $state = $onboarding_manager->loadOrCreateVendor($user, $vendor);
+            $onboarding_manager->refreshFlags($state);
+          }
+        }
+      }
+    }
+  }
+
   $present_index = array_search('present', $stage_order, TRUE);
   $present_index = $present_index !== FALSE ? $present_index : 1;
 
   $terms_accepted = FALSE;
-  $state = NULL;
-
-  $current_user = \Drupal::currentUser();
-  $vendor = NULL;
-  if ($current_user->isAuthenticated()) {
-    $onboarding_manager = \Drupal::service('myeventlane_onboarding.manager');
-    $legal_gatekeeper = \Drupal::service('myeventlane_legal.gatekeeper');
-    $uid = (int) $current_user->id();
-    $state = $onboarding_manager->loadVendorStateByUid($uid);
-    $etm = \Drupal::entityTypeManager();
-    if ($etm->hasDefinition('myeventlane_vendor')) {
-      $vendor_storage = $etm->getStorage('myeventlane_vendor');
-      $vendor = NULL;
-      $owner_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('uid', $uid)->range(0, 1)->execute();
-      if (!empty($owner_ids)) {
-        $vendor = $vendor_storage->load(reset($owner_ids));
-      }
-      if (!$vendor) {
-        $user_ids = $vendor_storage->getQuery()->accessCheck(FALSE)->condition('field_vendor_users', $uid)->range(0, 1)->execute();
-        if (!empty($user_ids)) {
-          $vendor = $vendor_storage->load(reset($user_ids));
-        }
-      }
-    }
-    if ($state && $vendor instanceof \Drupal\myeventlane_vendor\Entity\Vendor) {
-      $user = $etm->getStorage('user')->load($uid);
-      if ($user instanceof \Drupal\user\UserInterface) {
-        $state = $onboarding_manager->loadOrCreateVendor($user, $vendor);
-        $onboarding_manager->refreshFlags($state);
-      }
-    }
-    $terms_accepted = $legal_gatekeeper->hasVendorAcceptedTerms();
+  if (\Drupal::currentUser()->isAuthenticated() && \Drupal::hasService('myeventlane_legal.gatekeeper')) {
+    $terms_accepted = \Drupal::service('myeventlane_legal.gatekeeper')->hasVendorAcceptedTerms();
   }
 
   $flags = $state ? $state->getFlags() : [];
 
-  $stages = [];
-  $current_stage_index = array_search($current_stage, $stage_order, TRUE);
-  $current_stage_index = $current_stage_index !== FALSE ? $current_stage_index : 0;
+  $checklist_current = match ($canonical_stage) {
+    'probe' => 'present',
+    'present' => 'present',
+    'listen' => 'listen',
+    'ask' => 'ask',
+    'invite' => 'complete',
+    'complete' => 'complete',
+    default => 'present',
+  };
 
-  foreach ($display_order as $index => $key) {
-    $stage_current = ($key === $current_stage);
+  $state_idx = ($state !== NULL) ? array_search($state->getStage(), $stage_order, TRUE) : FALSE;
+  $idx_present = array_search('present', $stage_order, TRUE);
+  $idx_ask = array_search('ask', $stage_order, TRUE);
+  $idx_listen = array_search('listen', $stage_order, TRUE);
+  $idx_complete = array_search('complete', $stage_order, TRUE);
+
+  $stages = [];
+  foreach ($display_order as $key) {
     $stage_complete = FALSE;
     if ($state) {
       if ($state->isCompleted()) {
         $stage_complete = TRUE;
       }
-      else {
-        // Canonical STAGE_ORDER has listen before ask; display_order swaps them for UX.
-        // Do not mark Payments (listen) complete just because stage is ask — optional Stripe.
-        $state_stage_index = array_search($state->getStage(), $stage_order, TRUE);
-        $key_stage_index = array_search($key, $stage_order, TRUE);
+      elseif ($state_idx !== FALSE) {
         if ($key === 'listen') {
           $stage_complete = !empty($flags['stripe_connected']);
         }
-        elseif ($key === 'ask') {
-          $ask_index = array_search('ask', $stage_order, TRUE);
-          $stage_complete = ($state_stage_index !== FALSE && $ask_index !== FALSE && $state_stage_index > $ask_index);
+        elseif ($key === 'present') {
+          $stage_complete = $idx_present !== FALSE && $state_idx > $idx_present;
         }
-        else {
-          $stage_complete = ($state_stage_index !== FALSE && $key_stage_index !== FALSE && $key_stage_index < $state_stage_index);
+        elseif ($key === 'ask') {
+          $stage_complete = $idx_ask !== FALSE && $state_idx > $idx_ask;
+        }
+        elseif ($key === 'complete') {
+          $stage_complete = $idx_complete !== FALSE && $state_idx >= $idx_complete;
         }
       }
     }
-    // Payments are optional: do not lock later steps when Stripe is missing.
+
     $stripe_locked = FALSE;
-    $key_stage_index_for_terms = array_search($key, $stage_order, TRUE);
-    $terms_locked = ($key_stage_index_for_terms !== FALSE && $key_stage_index_for_terms > $present_index) && !$terms_accepted;
+    $row_stage = match ($key) {
+      'present' => 'present',
+      'ask' => 'ask',
+      'listen' => 'listen',
+      'complete' => 'complete',
+      default => 'present',
+    };
+    $row_idx = array_search($row_stage, $stage_order, TRUE);
+    $terms_locked = ($row_idx !== FALSE && $row_idx > $present_index) && !$terms_accepted;
     $is_locked = $stripe_locked || $terms_locked;
 
     $url = '';
@@ -949,7 +963,7 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
       'label' => $stage_labels[$key] ?? $key,
       'url' => $url,
       'is_complete' => $stage_complete,
-      'is_current' => $stage_current,
+      'is_current' => ($key === $checklist_current),
       'is_locked' => $is_locked,
     ];
   }
@@ -977,13 +991,26 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
     'myeventlane_vendor.onboard.stripe' => 'listen',
     'myeventlane_vendor.onboard.first_event' => 'ask',
     'myeventlane_event_studio.create' => 'ask',
+    'myeventlane_event_studio.edit' => 'ask',
     'myeventlane_vendor.onboard.boost' => 'invite',
     'myeventlane_vendor.onboard.complete' => 'complete',
   ];
   $stage = $route_to_stage[$route] ?? 'probe';
   $stage_order = \Drupal\myeventlane_core\Entity\OnboardingStateInterface::STAGE_ORDER;
-  $display_order = ['probe', 'present', 'ask', 'listen', 'invite', 'complete'];
-  $current_index = array_search($stage, $display_order, TRUE);
+  $display_order = ['present', 'ask', 'listen', 'complete'];
+  $current_index = array_search(
+    match ($stage) {
+      'probe' => 'present',
+      'present' => 'present',
+      'listen' => 'listen',
+      'ask' => 'ask',
+      'invite' => 'complete',
+      'complete' => 'complete',
+      default => 'present',
+    },
+    $display_order,
+    TRUE
+  );
   $current_index = $current_index !== FALSE ? (int) $current_index : 0;
 
   $journey_ids = $display_order;
@@ -1021,6 +1048,10 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
         $ask_index = array_search('ask', $stage_order, TRUE);
         $is_complete = ($ask_index !== FALSE && $state_idx > $ask_index);
       }
+      elseif ($id === 'complete') {
+        $complete_index = array_search('complete', $stage_order, TRUE);
+        $is_complete = $complete_index !== FALSE && $state_idx >= $complete_index;
+      }
       else {
         $is_complete = $state_idx > $key_stage_index;
       }
@@ -1029,12 +1060,10 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
       $is_complete = $i < $current_index;
     }
     $label = match ($id) {
-      'probe' => t('Get started'),
       'present' => t('Profile'),
       'listen' => t('Payments'),
       'ask' => t('Create event'),
-      'invite' => t('Boost'),
-      'complete' => t('Complete'),
+      'complete' => t('Publish'),
       default => $id,
     };
     if ($is_complete) {

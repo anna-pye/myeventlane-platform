@@ -76,7 +76,7 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId(): string {
-    return 'vendor_onboard_profile_form';
+    return 'organiser_onboard_profile_form';
   }
 
   /**
@@ -91,15 +91,13 @@ final class VendorOnboardProfileForm extends FormBase {
     $vendor = $this->onboardingManager->ensureVendorExists($account);
     $form_state->set('vendor', $vendor);
 
-    // Nested step_content/* elements; required so getValue(['step_content', 'name']) matches input.
-    $form['#tree'] = TRUE;
-
-    // Step metadata for form--vendor-onboard-profile-form.html.twig preprocess.
+    // #tree only on step_content so form_id / form_build_id / form_token stay at root
+    // and Form API submit processing is reliable (root #tree breaks POST rebuild).
+    // Step metadata for form--organiser-onboard-profile-form.html.twig preprocess.
     $form['#step_number'] = 2;
     $form['#total_steps'] = 7;
-    $form['#step_title'] = $this->t('Let’s set up your organiser profile 👋');
+    $form['#step_title'] = $this->t('Let’s get your organiser set up 👋');
     $form['#step_description'] = $this->t('This helps people trust your events.');
-    $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-form-root';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
@@ -107,6 +105,7 @@ final class VendorOnboardProfileForm extends FormBase {
 
     $form['step_content'] = [
       '#type' => 'container',
+      '#tree' => TRUE,
       '#attributes' => [
         'class' => ['mel-onboard-step-fields'],
       ],
@@ -141,9 +140,8 @@ final class VendorOnboardProfileForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Continue'),
+      '#value' => 'Continue',
       '#button_type' => 'primary',
-      '#submit' => ['::submitForm'],
     ];
 
     return $form;
@@ -163,7 +161,7 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->getLogger('myeventlane_vendor')->error('SUBMIT HIT HARD DEBUG');
+    $this->getLogger('myeventlane_vendor')->error('SUBMIT HIT CONFIRMED');
 
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
@@ -230,18 +228,14 @@ final class VendorOnboardProfileForm extends FormBase {
       $this->onboardingManager->advanceStage($state, 'ask');
     }
 
-    $next = $this->onboardingManager->getNextAction($state);
-    $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_event_studio.create';
-
     $this->messenger()->addStatus($this->t('Saved. Next: create your event in Event Studio.'));
-    $form_state->setRedirect($next_route, [], [
-      'query' => ['mel_first_event' => '1'],
+    $form_state->setRedirect('myeventlane_event_studio.create', [], [
+      'query' => ['mel_first_event' => 1],
     ]);
 
     $this->getLogger('myeventlane_vendor')->notice(
-      'VendorOnboardProfileForm submitForm completed: redirect=@route uid=@uid vendor_id=@vid',
+      'VendorOnboardProfileForm submitForm completed: redirect=myeventlane_event_studio.create uid=@uid vendor_id=@vid',
       [
-        '@route' => $next_route,
         '@uid' => (string) $uid,
         '@vid' => (string) $vendor->id(),
       ],
