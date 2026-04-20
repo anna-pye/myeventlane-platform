@@ -1,21 +1,18 @@
 /**
  * @file
- * Temporary onboarding debug listeners (profile step) — remove when stable.
+ * Vendor onboarding: focus organiser name on profile step.
  */
 (function (Drupal, once) {
   'use strict';
 
-  Drupal.behaviors.vendorOnboardDebug = {
+  Drupal.behaviors.vendorOnboard = {
     attach: function (context) {
-      once('vendor-onboard-debug-form', 'form.mel-onboard-form', context).forEach(function (form) {
-        form.addEventListener('submit', function () {
-          console.log('FORM SUBMIT EVENT FIRED');
-        });
-      });
-      once('vendor-onboard-debug-submit', 'form.mel-onboard-form #edit-submit', context).forEach(function (el) {
-        el.addEventListener('click', function () {
-          console.log('CLICK WORKING');
-        });
+      once(
+        'vendor-onboard-focus-name',
+        'form.mel-onboard-form input[name="step_content[name]"]',
+        context,
+      ).forEach(function (input) {
+        input.focus();
       });
     },
   };
