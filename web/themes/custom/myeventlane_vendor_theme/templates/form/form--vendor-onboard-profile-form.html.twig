@@ -1,36 +1,35 @@
 {#
 /**
  * @file
- * Vendor onboarding profile form — Event Studio mel-es-workspace layout (sidebar + main).
+ * Vendor onboarding profile form — Event Studio layout.
  *
- * Same outer pattern as mel-event-studio.html.twig (mel-event-studio + mel-es-workspace).
- * Single root form; no nested forms.
+ * Drupal Form API provides attributes + children only (no "form" variable).
+ * Root MUST be a single <form{{ attributes }}> like core form.html.twig —
+ * {{ children }} is every child of the root form (fields + hidden + actions).
  */
 #}
-<div class="mel-event-studio mel-event-studio--onboard mel-onboard-es" data-mel-onboard-es="1">
-  <div class="mel-es-workspace">
-    <aside class="mel-es-workspace__sidebar" aria-label="{{ 'Onboarding steps'|t }}">
-      {% if onboarding_stages is defined and onboarding_stages %}
-        {% include '@myeventlane_vendor_theme/components/mel-onboard-studio-nav.html.twig' with { stages: onboarding_stages } only %}
-      {% endif %}
-    </aside>
-    <main class="mel-es-workspace__main">
-      {% if onboarding_progress_label %}
-        <p class="mel-onboard-progress-text mel-es-onboard__progress-label">{{ onboarding_progress_label }}</p>
-      {% endif %}
-
-      <header class="mel-onboard-header">
-        <h1 class="mel-onboard-title">{{ step_title }}</h1>
-        {% if step_description %}
-          <p class="mel-onboard-description">{{ step_description }}</p>
+<form{{ attributes }}>
+  <div class="mel-event-studio mel-event-studio--onboard mel-onboard-es">
+    <div class="mel-es-workspace">
+      <aside class="mel-es-workspace__sidebar">
+        {% if onboarding_stages is defined %}
+          {% include '@myeventlane_vendor_theme/components/mel-onboard-studio-nav.html.twig' with { stages: onboarding_stages } only %}
         {% endif %}
-      </header>
-
-      <div class="mel-es-card mel-onboard-es-form-card">
-        <form{{ attributes }}>
+      </aside>
+      <main class="mel-es-workspace__main">
+        {% if onboarding_progress_label %}
+          <p class="mel-onboard-progress-text">{{ onboarding_progress_label }}</p>
+        {% endif %}
+        <header class="mel-onboard-header">
+          <h1>{{ step_title }}</h1>
+          {% if step_description %}
+            <p>{{ step_description }}</p>
+          {% endif %}
+        </header>
+        <div class="mel-es-card mel-onboard-es-form-card">
           {{ children }}
-        </form>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   </div>
-</div>
+</form>
