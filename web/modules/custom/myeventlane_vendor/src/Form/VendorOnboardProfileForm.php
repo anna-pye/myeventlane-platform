@@ -91,17 +91,20 @@ final class VendorOnboardProfileForm extends FormBase {
     $vendor = $this->onboardingManager->ensureVendorExists($account);
     $form_state->set('vendor', $vendor);
 
+    // Nested step_content/* elements; required so getValue(['step_content', 'name']) matches input.
+    $form['#tree'] = TRUE;
+
     // Step metadata for form--vendor-onboard-profile-form.html.twig preprocess.
     $form['#step_number'] = 2;
     $form['#total_steps'] = 7;
-    $form['#step_title'] = $this->t('Set up your organiser profile');
-    $form['#step_description'] = $this->t('This helps people discover and trust your events.');
+    $form['#step_title'] = $this->t('Let’s set up your organiser profile 👋');
+    $form['#step_description'] = $this->t('This helps people trust your events.');
     $form['#attached']['library'][] = 'myeventlane_vendor/onboarding';
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-form-root';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
 
-    $next_route = 'myeventlane_vendor.onboard.first_event';
+    $next_route = 'myeventlane_event_studio.create';
     $state = $this->onboardingManager->loadVendorStateByUid((int) $this->currentUser->id());
     if ($state !== NULL) {
       $nr = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
@@ -110,8 +113,8 @@ final class VendorOnboardProfileForm extends FormBase {
       }
     }
     $continue_label = $this->t('Continue');
-    if (str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
-      $continue_label = $this->t('Continue to event setup');
+    if (str_contains($next_route, 'event_studio') || str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
+      $continue_label = $this->t('Continue to create your event');
     }
     elseif (str_contains($next_route, 'stripe')) {
       $continue_label = $this->t('Continue to payments');
@@ -176,6 +179,11 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->getLogger('onboard_debug')->notice(
+      'VALUES: <pre>@v</pre>',
+      ['@v' => print_r($form_state->getValues(), TRUE)]
+    );
+
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
     if (!$vendor instanceof Vendor) {
@@ -242,10 +250,12 @@ final class VendorOnboardProfileForm extends FormBase {
     }
 
     $next = $this->onboardingManager->getNextAction($state);
-    $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_vendor.onboard.first_event';
+    $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_event_studio.create';
 
-    $this->messenger()->addStatus($this->t('Saved. Next: create your first event.'));
-    $form_state->setRedirect($next_route);
+    $this->messenger()->addStatus($this->t('Saved. Next: create your event in Event Studio.'));
+    $form_state->setRedirect($next_route, [], [
+      'query' => ['mel_first_event' => '1'],
+    ]);
 
     $this->getLogger('myeventlane_vendor')->notice(
       'VendorOnboardProfileForm submitForm completed: redirect=@route uid=@uid vendor_id=@vid',

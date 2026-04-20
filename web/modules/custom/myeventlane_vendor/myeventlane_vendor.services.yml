@@ -44,6 +44,7 @@ services:
       - '@string_translation'
       - '@myeventlane_core.entity_id_normalizer'
       - '@?myeventlane_event_studio.repository'
+      - '@myeventlane_onboarding.manager'
 
   myeventlane_vendor.vendor_console_page_preprocess:
     class: Drupal\myeventlane_vendor\Hook\VendorConsolePagePreprocess
