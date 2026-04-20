@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
@@ -760,6 +762,15 @@ function myeventlane_vendor_theme_theme_suggestions_form_alter(array &$suggestio
  * Passes step metadata from the form element for the onboarding layout.
  */
 function myeventlane_vendor_theme_preprocess_form__vendor_onboard_profile_form(array &$variables): void {
+  // form--vendor-onboard-profile-form.html.twig expects {{ form }}; core only
+  // provides children + attributes. Build the same output as core form.html.twig.
+  $attributes = $variables['attributes'] ?? [];
+  if (!($attributes instanceof Attribute)) {
+    $attributes = new Attribute(is_array($attributes) ? $attributes : []);
+  }
+  $children = $variables['children'] ?? '';
+  $variables['form'] = Markup::create('<form' . $attributes . '>' . $children . '</form>');
+
   $element = $variables['element'];
   $variables['step_number'] = $element['#step_number'] ?? 2;
   $variables['total_steps'] = $element['#total_steps'] ?? 7;

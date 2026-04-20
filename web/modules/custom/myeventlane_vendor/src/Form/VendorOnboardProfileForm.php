@@ -103,22 +103,7 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-form-root';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
-
-    $next_route = 'myeventlane_event_studio.create';
-    $state = $this->onboardingManager->loadVendorStateByUid((int) $this->currentUser->id());
-    if ($state !== NULL) {
-      $nr = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
-      if (is_string($nr) && $nr !== '') {
-        $next_route = $nr;
-      }
-    }
-    $continue_label = $this->t('Continue');
-    if (str_contains($next_route, 'event_studio') || str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
-      $continue_label = $this->t('Continue to create your event');
-    }
-    elseif (str_contains($next_route, 'stripe')) {
-      $continue_label = $this->t('Continue to payments');
-    }
+    $form['#attributes']['novalidate'] = 'novalidate';
 
     $form['step_content'] = [
       '#type' => 'container',
@@ -153,13 +138,12 @@ final class VendorOnboardProfileForm extends FormBase {
         'class' => ['mel-btn', 'mel-btn--secondary', 'mel-btn-secondary', 'mel-onboard-footer__back'],
       ],
     ];
-    $form['step_content']['actions']['submit'] = [
+
+    $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $continue_label,
+      '#value' => $this->t('Continue'),
       '#button_type' => 'primary',
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--primary', 'mel-onboard-footer__continue'],
-      ],
+      '#submit' => ['::submitForm'],
     ];
 
     return $form;
@@ -179,6 +163,8 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->getLogger('myeventlane_vendor')->error('SUBMIT HIT HARD DEBUG');
+
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
     if (!$vendor instanceof Vendor) {
@@ -202,7 +188,7 @@ final class VendorOnboardProfileForm extends FormBase {
 
     if ($vendor->hasField('field_vendor_users')) {
       $current_users = $vendor->get('field_vendor_users')->getValue();
-      $user_ids = array_column($current_users, 'target_id');
+      $user_ids = array_map(static fn ($id): int => (int) $id, array_column($current_users, 'target_id'));
       $uid = (int) $this->currentUser->id();
       if ($uid > 0 && !in_array($uid, $user_ids, TRUE)) {
         $vendor->get('field_vendor_users')->appendItem(['target_id' => $uid]);
