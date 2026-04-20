@@ -9,6 +9,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
@@ -99,10 +100,8 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['#attributes']['class'][] = 'mel-onboard-form';
     $form['#attributes']['class'][] = 'mel-onboard-form-root';
     $form['#attributes']['class'][] = 'mel-onboard-profile-form';
-    $form['#attributes']['class'][] = 'mel-onboard-card';
-    $form['#attributes']['class'][] = 'mel-onboard-card--main';
 
-    $next_route = 'myeventlane_vendor.onboard.stripe';
+    $next_route = 'myeventlane_vendor.onboard.first_event';
     $state = $this->onboardingManager->loadVendorStateByUid((int) $this->currentUser->id());
     if ($state !== NULL) {
       $nr = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
@@ -111,11 +110,11 @@ final class VendorOnboardProfileForm extends FormBase {
       }
     }
     $continue_label = $this->t('Continue');
-    if (str_contains($next_route, 'stripe')) {
-      $continue_label = $this->t('Continue to payments');
-    }
-    elseif (str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
+    if (str_contains($next_route, 'first_event') || str_contains($next_route, 'first-event')) {
       $continue_label = $this->t('Continue to event setup');
+    }
+    elseif (str_contains($next_route, 'stripe')) {
+      $continue_label = $this->t('Continue to payments');
     }
 
     $form['step_content'] = [
@@ -167,9 +166,9 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    $name = trim((string) ($form_state->getValue('name') ?? ''));
+    $name = trim((string) ($form_state->getValue(['step_content', 'name']) ?? ''));
     if ($name === '') {
-      $form_state->setErrorByName('name', $this->t('Organiser name is required.'));
+      $form_state->setError($form['step_content']['name'], $this->t('Organiser name is required.'));
     }
   }
 
@@ -177,16 +176,13 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->getLogger('onboard_debug')->notice('VendorOnboardProfileForm submit triggered for uid @uid.', [
-      '@uid' => (string) $this->currentUser->id(),
-    ]);
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
     if (!$vendor instanceof Vendor) {
       return;
     }
 
-    $name = trim((string) ($form_state->getValue('name') ?? ''));
+    $name = trim((string) ($form_state->getValue(['step_content', 'name']) ?? ''));
     $vendor->setName($name);
 
     try {
@@ -217,12 +213,16 @@ final class VendorOnboardProfileForm extends FormBase {
       return;
     }
 
-    $account = $this->currentUser->getAccount();
-
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
     if (!$user instanceof UserInterface) {
       return;
     }
+
+    $this->onboardingManager->ensureVendorAccess($user);
+    $this->getLogger('myeventlane_vendor')->notice(
+      'ensureVendorAccess executed during profile submit uid=@uid',
+      ['@uid' => (string) $uid],
+    );
 
     $state = $this->onboardingManager->loadVendorStateByUid($uid);
     if ($state === NULL) {
@@ -232,22 +232,29 @@ final class VendorOnboardProfileForm extends FormBase {
       $state->setVendorId((int) $vendor->id());
       $state->save();
     }
-    $this->onboardingManager->advanceStage($state, 'listen');
-    $this->getLogger('onboard_debug')->notice('STEP COMPLETE: profile step advanced to listen for uid @uid.', [
-      '@uid' => (string) $uid,
-    ]);
+
+    // Move to "first event" stage (ask); Stripe (listen) stays skippable and reachable from nav later.
+    $order = OnboardingStateInterface::STAGE_ORDER;
+    $current_idx = array_search($state->getStage(), $order, TRUE);
+    $ask_idx = array_search('ask', $order, TRUE);
+    if ($current_idx !== FALSE && $ask_idx !== FALSE && $current_idx < $ask_idx) {
+      $this->onboardingManager->advanceStage($state, 'ask');
+    }
 
     $next = $this->onboardingManager->getNextAction($state);
-    $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_vendor.onboard.stripe';
+    $next_route = !empty($next['route_name']) ? $next['route_name'] : 'myeventlane_vendor.onboard.first_event';
 
-    $this->getLogger('myeventlane_vendor')->info('onboard step2 submit ok uid=@uid vendor_id=@vid next_route=@route', [
-      '@uid' => $uid,
-      '@vid' => $vendor->id(),
-      '@route' => $next_route,
-    ]);
-
-    $this->messenger()->addStatus($this->t('Saved. Next: Connect payouts.'));
+    $this->messenger()->addStatus($this->t('Saved. Next: create your first event.'));
     $form_state->setRedirect($next_route);
+
+    $this->getLogger('myeventlane_vendor')->notice(
+      'VendorOnboardProfileForm submitForm completed: redirect=@route uid=@uid vendor_id=@vid',
+      [
+        '@route' => $next_route,
+        '@uid' => (string) $uid,
+        '@vid' => (string) $vendor->id(),
+      ],
+    );
   }
 
 }

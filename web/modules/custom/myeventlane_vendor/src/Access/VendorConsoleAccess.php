@@ -31,19 +31,38 @@ final class VendorConsoleAccess {
   ];
 
   /**
+   * Cache contexts for onboarding path override (path + role; avoid stale forbid).
+   *
+   * @var array<string>
+   */
+  private const ONBOARDING_CACHE_CONTEXTS = [
+    'url.path',
+    'user.roles',
+  ];
+
+  /**
    * Checks access for vendor console routes.
    */
   public static function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
-    $request = \Drupal::requestStack()->getCurrentRequest();
-    $host = $request?->getHost() ?? '';
+    $request = \Drupal::request();
     $path = $request?->getPathInfo() ?? '';
+    $host = $request?->getHost() ?? '';
 
-    $route_name = $route_match->getRouteName();
-
-    // Allow onboarding routes always.
-    if ($route_name === 'myeventlane_vendor.onboard' || str_starts_with((string) $route_name, 'myeventlane_vendor.onboard.')) {
-      self::logDecision($account, $host, $path, 'allowed_onboarding');
-      return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
+    // Path-based onboarding bypass: must run before any vendor permission logic.
+    // Route name alone is unreliable (subrequests, delegates, altered routes).
+    if (str_starts_with($path, '/vendor/onboard')) {
+      if ($account->isAnonymous()) {
+        self::logDecision($account, $host, $path, 'forbidden_anonymous');
+        return AccessResult::forbidden()->addCacheContexts(self::ONBOARDING_CACHE_CONTEXTS);
+      }
+      \Drupal::logger('mel_vendor_access_debug')->notice(
+        'Onboarding access override hit path=@path uid=@uid',
+        [
+          '@path' => $path,
+          '@uid' => (string) $account->id(),
+        ]
+      );
+      return AccessResult::allowed()->addCacheContexts(self::ONBOARDING_CACHE_CONTEXTS);
     }
 
     // Block anonymous.

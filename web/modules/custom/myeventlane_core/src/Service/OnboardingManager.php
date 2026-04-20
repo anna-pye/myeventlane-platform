@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -51,6 +52,13 @@ final class OnboardingManager {
   private ?TimeInterface $time;
 
   /**
+   * Lock backend (serialises vendor-track state creation per uid).
+   *
+   * @var \Drupal\Core\Lock\LockBackendInterface
+   */
+  private LockBackendInterface $lock;
+
+  /**
    * Whether we have already logged duplicate state this request.
    *
    * @var array<string, true>
@@ -63,6 +71,7 @@ final class OnboardingManager {
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     LoggerChannelFactoryInterface $logger_factory,
+    LockBackendInterface $lock,
     ?AccountProxyInterface $current_user = NULL,
     ?TimeInterface $time = NULL,
   ) {
@@ -70,6 +79,7 @@ final class OnboardingManager {
     $this->loggerFactory = $logger_factory;
     $this->currentUser = $current_user;
     $this->time = $time;
+    $this->lock = $lock;
   }
 
   /**
@@ -122,23 +132,33 @@ final class OnboardingManager {
    *   The newest state, or NULL if none exists.
    */
   public function loadLatestStateForVendor(int $vendor_id): ?OnboardingStateInterface {
+    if ($vendor_id <= 0) {
+      return NULL;
+    }
+
     $storage = $this->getStorage();
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('vendor_id', $vendor_id)
       ->condition('track', OnboardingStateInterface::TRACK_VENDOR)
-      ->sort('id', 'DESC')
       ->execute();
     if (empty($ids)) {
       return NULL;
     }
-    $count = count($ids);
-    if ($count > 1) {
-      $this->logDuplicateOnce('vendor', (string) $vendor_id);
+
+    $entities = $storage->loadMultiple($ids);
+    $sorted = $this->sortVendorTrackStatesNewestFirst($entities);
+    $canonical = $sorted[0] ?? NULL;
+    if (!$canonical instanceof OnboardingStateInterface) {
+      return NULL;
     }
-    $newest_id = reset($ids);
-    $state = $storage->load($newest_id);
-    return $state instanceof OnboardingStateInterface ? $state : NULL;
+
+    if (count($sorted) > 1) {
+      $this->logDuplicateOnce('vendor', (string) $vendor_id);
+      $this->deleteOlderVendorTrackStatesAfterCanonical($canonical, array_slice($sorted, 1), 'vendor', (string) $vendor_id);
+    }
+
+    return $canonical;
   }
 
   /**
@@ -162,21 +182,25 @@ final class OnboardingManager {
       ->accessCheck(FALSE)
       ->condition('uid', $uid)
       ->condition('track', OnboardingStateInterface::TRACK_VENDOR)
-      ->sort('created', 'DESC')
       ->execute();
 
     if (empty($ids)) {
       return NULL;
     }
 
-    $count = count($ids);
-    if ($count > 1) {
-      $this->logDuplicateOnce('vendor_uid', (string) $uid);
+    $entities = $storage->loadMultiple($ids);
+    $sorted = $this->sortVendorTrackStatesNewestFirst($entities);
+    $canonical = $sorted[0] ?? NULL;
+    if (!$canonical instanceof OnboardingStateInterface) {
+      return NULL;
     }
 
-    $newest_id = reset($ids);
-    $state = $storage->load($newest_id);
-    return $state instanceof OnboardingStateInterface ? $state : NULL;
+    if (count($sorted) > 1) {
+      $this->logDuplicateOnce('vendor_uid', (string) $uid);
+      $this->deleteOlderVendorTrackStatesAfterCanonical($canonical, array_slice($sorted, 1), 'vendor_uid', (string) $uid);
+    }
+
+    return $canonical;
   }
 
   /**
@@ -201,17 +225,34 @@ final class OnboardingManager {
       return $existing;
     }
 
-    $storage = $this->getStorage();
-    $state = $storage->create([
-      'uid' => $uid,
-      'track' => OnboardingStateInterface::TRACK_VENDOR,
-      'stage' => 'probe',
-      'completed' => FALSE,
-    ]);
-    $state->setOwnerId($uid);
-    $state->setFlags([]);
-    $state->save();
-    return $state;
+    $lock_name = 'myeventlane_onboarding_vendor_uid_' . (string) $uid;
+    $acquired = $this->lock->acquire($lock_name, 30.0);
+    if (!$acquired) {
+      $this->logger()->warning('Onboarding vendor state lock not acquired uid=@uid; reloading state.', ['@uid' => (string) $uid]);
+    }
+    try {
+      $existing = $this->loadVendorStateByUid($uid);
+      if ($existing !== NULL) {
+        return $existing;
+      }
+
+      $storage = $this->getStorage();
+      $state = $storage->create([
+        'uid' => $uid,
+        'track' => OnboardingStateInterface::TRACK_VENDOR,
+        'stage' => 'probe',
+        'completed' => FALSE,
+      ]);
+      $state->setOwnerId($uid);
+      $state->setFlags([]);
+      $state->save();
+      return $state;
+    }
+    finally {
+      if ($acquired) {
+        $this->lock->release($lock_name);
+      }
+    }
   }
 
   /**
@@ -626,6 +667,65 @@ final class OnboardingManager {
       return $map[$stage] ?? ['route_name' => NULL, 'title' => ''];
     }
     return ['route_name' => NULL, 'title' => ''];
+  }
+
+  /**
+   * Sorts vendor-track states by created (newest first), then id.
+   *
+   * @param array<int|string, mixed> $entities
+   *   Result of entity storage loadMultiple().
+   *
+   * @return list<\Drupal\myeventlane_core\Entity\OnboardingStateInterface>
+   */
+  private function sortVendorTrackStatesNewestFirst(array $entities): array {
+    $list = [];
+    foreach ($entities as $entity) {
+      if ($entity instanceof OnboardingStateInterface) {
+        $list[] = $entity;
+      }
+    }
+    usort($list, function (OnboardingStateInterface $a, OnboardingStateInterface $b) {
+      $ca = (int) ($a->get('created')->value ?? 0);
+      $cb = (int) ($b->get('created')->value ?? 0);
+      if ($ca !== $cb) {
+        return $cb <=> $ca;
+      }
+      return (int) $b->id() <=> (int) $a->id();
+    });
+    return $list;
+  }
+
+  /**
+   * Deletes duplicate vendor-track states, keeping the canonical row.
+   *
+   * @param list<\Drupal\myeventlane_core\Entity\OnboardingStateInterface> $older
+   *   Older states to remove (must not include $canonical).
+   */
+  private function deleteOlderVendorTrackStatesAfterCanonical(OnboardingStateInterface $canonical, array $older, string $log_track, string $log_key): void {
+    foreach ($older as $state) {
+      if (!$state instanceof OnboardingStateInterface) {
+        continue;
+      }
+      if ((int) $state->id() === (int) $canonical->id()) {
+        continue;
+      }
+      $id = (int) $state->id();
+      try {
+        $state->delete();
+        $this->logger()->warning('Removed duplicate vendor-track onboarding state id=@id (@track @key); kept=@keep.', [
+          '@id' => (string) $id,
+          '@track' => $log_track,
+          '@key' => $log_key,
+          '@keep' => (string) $canonical->id(),
+        ]);
+      }
+      catch (\Throwable $e) {
+        $this->logger()->error('Failed deleting duplicate onboarding state id=@id: @message', [
+          '@id' => (string) $id,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
   }
 
   /**
