@@ -887,6 +887,8 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
     $terms_accepted = $legal_gatekeeper->hasVendorAcceptedTerms();
   }
 
+  $flags = $state ? $state->getFlags() : [];
+
   $stages = [];
   $current_stage_index = array_search($current_stage, $stage_order, TRUE);
   $current_stage_index = $current_stage_index !== FALSE ? $current_stage_index : 0;
@@ -899,9 +901,20 @@ function _myeventlane_vendor_theme_build_onboarding_stages(string $current_route
         $stage_complete = TRUE;
       }
       else {
+        // Canonical STAGE_ORDER has listen before ask; display_order swaps them for UX.
+        // Do not mark Payments (listen) complete just because stage is ask — optional Stripe.
         $state_stage_index = array_search($state->getStage(), $stage_order, TRUE);
         $key_stage_index = array_search($key, $stage_order, TRUE);
-        $stage_complete = ($state_stage_index !== FALSE && $key_stage_index !== FALSE && $key_stage_index < $state_stage_index);
+        if ($key === 'listen') {
+          $stage_complete = !empty($flags['stripe_connected']);
+        }
+        elseif ($key === 'ask') {
+          $ask_index = array_search('ask', $stage_order, TRUE);
+          $stage_complete = ($state_stage_index !== FALSE && $ask_index !== FALSE && $state_stage_index > $ask_index);
+        }
+        else {
+          $stage_complete = ($state_stage_index !== FALSE && $key_stage_index !== FALSE && $key_stage_index < $state_stage_index);
+        }
       }
     }
     // Payments are optional: do not lock later steps when Stripe is missing.
@@ -977,6 +990,8 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
     $state_idx = $state_idx !== FALSE ? (int) $state_idx : 0;
   }
 
+  $journey_flags = ($state !== NULL) ? $state->getFlags() : [];
+
   $steps = [];
   $completed_keys = [];
   foreach ($journey_ids as $i => $id) {
@@ -987,7 +1002,17 @@ function _myeventlane_vendor_theme_onboarding_journey_meta(?string $effective_ro
       $is_complete = TRUE;
     }
     elseif ($state_idx !== NULL && $key_stage_index !== FALSE) {
-      $is_complete = $state_idx > $key_stage_index;
+      // Match _myeventlane_vendor_theme_build_onboarding_stages(): listen is optional; ask vs listen order in UI.
+      if ($id === 'listen') {
+        $is_complete = !empty($journey_flags['stripe_connected']);
+      }
+      elseif ($id === 'ask') {
+        $ask_index = array_search('ask', $stage_order, TRUE);
+        $is_complete = ($ask_index !== FALSE && $state_idx > $ask_index);
+      }
+      else {
+        $is_complete = $state_idx > $key_stage_index;
+      }
     }
     else {
       $is_complete = $i < $current_index;
