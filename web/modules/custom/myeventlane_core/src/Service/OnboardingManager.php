@@ -514,20 +514,13 @@ final class OnboardingManager {
   }
 
   /**
-   * Whether vendor onboarding is far enough along to use Event Studio / create events.
+   * Whether vendor onboarding allows Event Studio / create routes.
    *
-   * Stripe (stage listen) is optional and must not block entry. Users who have
-   * finished the organiser profile advance to ask (or beyond); probe/present
-   * mean account/profile work is still required.
+   * Action-first flow: any vendor-track state unlocks Event Studio. Progressive
+   * requirements (profile, terms, paid+Stripe) gate publish in Event Studio, not entry.
    */
   public function isVendorEventStudioUnlocked(OnboardingStateInterface $state): bool {
-    if ($state->getTrack() !== OnboardingStateInterface::TRACK_VENDOR) {
-      return FALSE;
-    }
-    if ($state->isCompleted()) {
-      return TRUE;
-    }
-    return !in_array($state->getStage(), ['probe', 'present'], TRUE);
+    return $state->getTrack() === OnboardingStateInterface::TRACK_VENDOR;
   }
 
   /**

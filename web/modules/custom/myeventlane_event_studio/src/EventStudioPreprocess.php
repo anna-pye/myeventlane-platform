@@ -38,6 +38,8 @@ final class EventStudioPreprocess {
     $variables['mel_publish_stripe_gate'] = FALSE;
     $variables['mel_stripe_connected'] = FALSE;
     $variables['mel_show_first_event_banner'] = FALSE;
+    $variables['show_onboarding_sidebar'] = FALSE;
+    $variables['onboarding_stages'] = [];
 
     $uid = (int) $this->currentUser->id();
     $vendor_ids = $uid > 0 ? $this->userVendorMembershipQuery->getVendorIdsForUser($uid) : [];
@@ -63,6 +65,11 @@ final class EventStudioPreprocess {
 
     $variables['mel_stripe_connected'] = $stripe_connected;
 
+    if ($state !== NULL && !$state->isCompleted() && \function_exists('_myeventlane_vendor_theme_build_onboarding_stages')) {
+      $variables['onboarding_stages'] = _myeventlane_vendor_theme_build_onboarding_stages($state);
+      $variables['show_onboarding_sidebar'] = TRUE;
+    }
+
     $mode = (string) ($variables['mode'] ?? '');
     $request = $this->requestStack->getCurrentRequest();
     $first_flag = $request && (string) $request->query->get('mel_first_event') === '1';
@@ -76,12 +83,13 @@ final class EventStudioPreprocess {
     $node = $element['#mel_studio_node'] ?? NULL;
 
     if ($node instanceof NodeInterface && $node->bundle() === 'event' && $vendor_ids !== []) {
+      $flags = $state !== NULL ? $state->getFlags() : [];
       $event_type = '';
       if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
         $event_type = (string) $node->get('field_event_type')->value;
       }
       $is_paid = in_array($event_type, ['paid', 'both'], TRUE);
-      if ($is_paid && !$stripe_connected) {
+      if ($is_paid && empty($flags['stripe_connected'])) {
         $variables['mel_publish_blocked'] = TRUE;
         $variables['mel_publish_stripe_gate'] = TRUE;
       }

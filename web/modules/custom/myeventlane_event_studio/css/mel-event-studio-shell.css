@@ -20,6 +20,12 @@
   box-sizing: border-box;
 }
 
+/* Progressive onboarding nav + step nav: second sidebar is slightly narrower. */
+.mel-event-studio .mel-es-workspace--has-onboarding .mel-es-workspace__sidebar--onboarding {
+  flex: 0 0 200px;
+  width: 200px;
+}
+
 .mel-event-studio .mel-es-workspace__sidebar {
   display: flex;
   flex-direction: column;

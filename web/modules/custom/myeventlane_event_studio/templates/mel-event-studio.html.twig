@@ -124,7 +124,12 @@
     </div>
 
     {# Two-column shell: dedicated BEM block (mel-es-workspace) avoids legacy .mel-studio-layout grid rules in vendor-workspace.css. #}
-    <div class="mel-es-workspace">
+    <div class="mel-es-workspace{% if show_onboarding_sidebar %} mel-es-workspace--has-onboarding{% endif %}">
+      {% if show_onboarding_sidebar %}
+        <aside class="mel-es-workspace__sidebar mel-es-workspace__sidebar--onboarding" aria-label="{{ 'Organiser setup'|t }}">
+          {% include '@myeventlane_vendor_theme/components/mel-onboard-studio-nav.html.twig' with { stages: onboarding_stages } %}
+        </aside>
+      {% endif %}
       <aside class="mel-es-workspace__sidebar" aria-label="{{ 'Event steps'|t }}">
         {% include '@myeventlane_event_studio/mel-event-studio-nav.html.twig' %}
       </aside>

@@ -126,22 +126,23 @@ class CreateEventGatewayController extends ControllerBase {
 
       $account = $current_user->getAccount();
       if ($account instanceof UserInterface) {
+        $this->onboardingManager->ensureVendorExists($account);
         $this->onboardingManager->ensureVendorAccess($account);
         $this->getLogger('myeventlane_vendor')->notice(
-          'ensureVendorAccess executed uid=@uid (create-event gateway, no vendor entity yet)',
+          'ensureVendorExists + ensureVendorAccess uid=@uid (create-event gateway → Event Studio)',
           ['@uid' => (string) $uid],
         );
       }
 
       $this->getLogger('myeventlane_vendor')->notice(
-        'Create-event gateway: no vendor → redirecting to onboarding profile uid=@uid',
+        'Create-event gateway: bootstrapped vendor, redirecting to Event Studio create uid=@uid',
         ['@uid' => (string) $uid],
       );
 
-      $onboard_url = Url::fromRoute('myeventlane_vendor.onboard.profile', [], [
-        'query' => ['destination' => '/create-event'],
+      $create_url = Url::fromRoute('myeventlane_event_studio.create', [], [
+        'query' => ['mel_first_event' => '1'],
       ]);
-      return new RedirectResponse($onboard_url->toString());
+      return new RedirectResponse($create_url->toString());
     }
 
     $state = $this->onboardingManager->loadVendorStateByUid($uid);

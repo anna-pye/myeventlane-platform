@@ -1,0 +1,20 @@
+<div class="mel-event-studio mel-event-studio--onboard mel-onboard-es">
+  <div class="mel-es-workspace">
+
+    <aside class="mel-es-workspace__sidebar">
+      {% if onboarding_stages is defined and onboarding_stages %}
+        {% include '@myeventlane_vendor_theme/components/mel-onboard-studio-nav.html.twig' with { stages: onboarding_stages } only %}
+      {% endif %}
+    </aside>
+
+    <main class="mel-es-workspace__main">
+
+      <div class="mel-es-card mel-onboard-es-form-card">
+        <form{{ attributes }}>
+          {{ children }}
+        </form>
+      </div>
+
+    </main>
+  </div>
+</div>
