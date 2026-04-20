@@ -1676,6 +1676,14 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           $status['status'] = 'connected';
           $status['status_label'] = (string) $this->t('Payouts enabled');
         }
+        elseif ($connected) {
+          // Charges enabled: same seller-ready signal as assertStripeConnected; do not require payouts.
+          $status['stripe_phase'] = 'payouts_ready';
+          $status['is_onboarding_complete'] = TRUE;
+          $status['connected'] = TRUE;
+          $status['status'] = 'connected';
+          $status['status_label'] = (string) $this->t('Connected');
+        }
         elseif ($status['account_id']) {
           $status['stripe_phase'] = 'needs_completion';
           $status['status'] = 'pending';

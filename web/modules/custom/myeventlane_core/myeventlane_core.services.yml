@@ -240,5 +240,6 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@logger.factory'
+      - '@lock'
       - '@current_user'
       - '@datetime.time'
