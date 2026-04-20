@@ -27,9 +27,20 @@ final class AdminConsoleAccess {
    * Access for routes requiring "access myeventlane platform control centre".
    */
   public static function access(AccountInterface $account): AccessResult {
-    $request = \Drupal::requestStack()->getCurrentRequest();
-    $host = $request?->getHost() ?? '';
-    $path = $request?->getPathInfo() ?? '';
+    $request = \Drupal::request();
+    $path = $request->getPathInfo();
+
+    // Allow organiser onboarding routes to bypass platform-control-centre gate
+    // (same path can be evaluated during subrequests / cross-domain checks).
+    if (str_contains($path, '/vendor/onboard')) {
+      return $account->isAuthenticated()
+        ? AccessResult::allowed()->addCacheContexts(['url.path', 'user.roles'])
+        : AccessResult::forbidden();
+    }
+
+    $stackRequest = \Drupal::requestStack()->getCurrentRequest();
+    $host = $stackRequest?->getHost() ?? '';
+    $path = $stackRequest?->getPathInfo() ?? '';
 
     if ($account->isAnonymous()) {
       self::logDecision($account, $host, $path, 'forbidden_anonymous');
