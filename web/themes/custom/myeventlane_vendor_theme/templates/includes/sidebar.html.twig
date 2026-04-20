@@ -14,24 +14,15 @@
   {% endif %}
 
   <div class="mel-sidebar__brand">
-    <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
+    <a href="{{ page.vendor_shell_brand_url|default(path('myeventlane_vendor.console.dashboard')) }}" class="mel-sidebar__logo" aria-label="{{ 'Vendor dashboard'|t }}">
       <span class="mel-sidebar__logo-mark">M</span>
       <span class="mel-sidebar__logo-text">MyEventLane</span>
     </a>
   </div>
 
-  {% set nav_items = page.vendor_shell_nav_items|default([
-    { key: 'dashboard', label: 'Dashboard'|t, icon: 'dashboard', url: path('myeventlane_vendor.console.dashboard'), is_active: page.active_section|default('dashboard') == 'dashboard', is_disabled: false },
-    { key: 'notifications', label: 'Notifications'|t, icon: 'notifications', url: page.vendor_notification_inbox_url|default(null), is_active: page.active_section|default('dashboard') == 'notifications', is_disabled: page.vendor_notification_inbox_url|default(null) is empty },
-    { key: 'events', label: 'Events'|t, icon: 'events', url: path('myeventlane_vendor.console.events'), is_active: page.active_section|default('dashboard') == 'events', is_disabled: false },
-    { key: 'orders', label: 'Orders'|t, icon: 'orders', url: null, is_active: page.active_section|default('dashboard') == 'orders', is_disabled: true },
-    { key: 'attendees', label: 'Attendees'|t, icon: 'attendees', url: path('myeventlane_checkout_flow.vendor_attendees'), is_active: page.active_section|default('dashboard') == 'attendees', is_disabled: false },
-    { key: 'audience', label: 'Audience'|t, icon: 'audience', url: path('myeventlane_vendor.console.audience'), is_active: page.active_section|default('dashboard') == 'audience', is_disabled: false },
-    { key: 'payouts', label: 'Payouts'|t, icon: 'payouts', url: path('myeventlane_vendor.console.payouts'), is_active: page.active_section|default('dashboard') == 'payouts', is_disabled: false },
-    { key: 'growth', label: 'Growth'|t, icon: 'growth', url: path('myeventlane_vendor.console.boost'), is_active: page.active_section|default('dashboard') == 'growth', is_disabled: false },
-    { key: 'settings', label: 'Settings'|t, icon: 'settings', url: path('myeventlane_vendor.console.settings'), is_active: page.active_section|default('dashboard') == 'settings', is_disabled: false },
-    { key: 'help', label: 'Help'|t, icon: 'help', url: path('myeventlane_help_centre.home'), is_active: page.active_section|default('dashboard') == 'help', is_disabled: false }
-  ]) %}
+  {# Nav items MUST come from myeventlane_vendor_theme_preprocess_page — never use |default(hardcoded):
+     Twig's default() treats [] as empty and would replace PHP-built onboarding-safe nav. #}
+  {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
 
   <ul class="mel-sidebar__nav" role="list">
     {% for item in nav_items %}

@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Onboarding step navigation — same structure/BEM as mel-event-studio-nav.html.twig
+ *
+ * Variables:
+ * - stages: from _myeventlane_vendor_theme_build_onboarding_stages() — key, label, url,
+ *   is_complete, is_current, is_locked
+ */
+#}
+<nav class="mel-es-nav mel-sidebar-nav mel-event-studio-nav mel-studio-nav mel-wizard-nav mel-onboard-studio-nav" id="mel-onboard-wizard-nav" aria-label="{{ 'Organiser setup'|t }}">
+  <p class="mel-event-studio-nav__label">{{ 'Steps'|t }}</p>
+  <ul class="mel-sidebar-nav__list">
+    {% for stage in stages %}
+      <li>
+        {% if stage.url and not stage.is_locked %}
+          <a href="{{ stage.url }}" class="mel-nav-item mel-nav-link mel-event-studio-nav__item{% if stage.is_current %} is-active active{% endif %}{% if stage.is_complete %} mel-event-studio-nav__item--complete{% endif %}" data-onboard-stage="{{ stage.key }}"{% if stage.is_current %} aria-current="page"{% endif %}>{{ stage.label }}</a>
+        {% else %}
+          <span class="mel-nav-item mel-nav-link mel-event-studio-nav__item mel-event-studio-nav__item--locked{% if stage.is_current %} is-active active{% endif %}"{% if stage.is_locked %} aria-disabled="true"{% endif %}>{{ stage.label }}{% if stage.is_locked %} <span class="visually-hidden">({{ 'Locked'|t }})</span>{% endif %}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</nav>

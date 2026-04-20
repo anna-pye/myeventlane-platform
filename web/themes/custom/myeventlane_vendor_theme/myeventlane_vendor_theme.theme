@@ -19,6 +19,53 @@ use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
 /**
+ * Whether the current route is organiser onboarding (restricted shell nav).
+ */
+function _myeventlane_vendor_theme_is_vendor_onboard_route(?string $route_name): bool {
+  return is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard');
+}
+
+/**
+ * Whether the current user may access a named route (Drupal access manager).
+ */
+function _myeventlane_vendor_theme_named_route_accessible(string $route_name, array $parameters = []): bool {
+  try {
+    return \Drupal::accessManager()
+      ->checkNamedRoute($route_name, $parameters, \Drupal::currentUser(), TRUE)
+      ->isAllowed();
+  }
+  catch (\Exception $e) {
+    return FALSE;
+  }
+}
+
+/**
+ * Home URL for sidebar brand (dashboard if allowed, else onboarding profile, else front).
+ */
+function _myeventlane_vendor_theme_vendor_brand_home_url(): string {
+  if (_myeventlane_vendor_theme_named_route_accessible('myeventlane_vendor.console.dashboard', [])) {
+    try {
+      return Url::fromRoute('myeventlane_vendor.console.dashboard')->toString();
+    }
+    catch (\Exception $e) {
+    }
+  }
+  if (_myeventlane_vendor_theme_named_route_accessible('myeventlane_vendor.onboard.profile', [])) {
+    try {
+      return Url::fromRoute('myeventlane_vendor.onboard.profile')->toString();
+    }
+    catch (\Exception $e) {
+    }
+  }
+  try {
+    return Url::fromRoute('<front>')->toString();
+  }
+  catch (\Exception $e) {
+    return '/';
+  }
+}
+
+/**
  * Implements hook_page_attachments_alter().
  *
  * Themes do not implement hook_page_attachments(); this alter strips accidental
@@ -291,9 +338,10 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     ]);
   }
 
-  // Safe inbox URL for sidebar fallbacks (avoid Twig path() when module/routes absent).
+  // Safe inbox URL for sidebar fallbacks (omit when user cannot access the route).
   $variables['page']['vendor_notification_inbox_url'] = NULL;
-  if (\Drupal::moduleHandler()->moduleExists('myeventlane_notifications')) {
+  if (\Drupal::moduleHandler()->moduleExists('myeventlane_notifications')
+    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_notifications.inbox', [])) {
     try {
       $variables['page']['vendor_notification_inbox_url'] = \Drupal\Core\Url::fromRoute('myeventlane_notifications.inbox')->toString();
     }
@@ -310,6 +358,12 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $route_name,
     $route_match
   );
+  $variables['page']['vendor_shell_brand_url'] = _myeventlane_vendor_theme_vendor_brand_home_url();
+
+  // Event Studio shell CSS (mel-es-workspace) for organiser onboarding — reuse module CSS, no wizard JS.
+  if ($is_vendor_onboard) {
+    $variables['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_shell_only';
+  }
 
   // Legacy step-wizard sidebar: staff/support only (vendors are redirected to Event Studio).
   $variables['page']['wizard_steps'] = [];
@@ -1710,19 +1764,75 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
 }
 
 /**
- * Builds sidebar navigation with Dashboard wizard submenu links.
- *
- * @param string $active_section
- *   The active top-level section key.
- * @param string|null $route_name
- *   The current route name.
- * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
- *   The current route match.
+ * Onboarding-safe shell nav: core destinations only; each requires route access.
  *
  * @return array<int, array<string, mixed>>
  *   Sidebar items for vendor shell.
  */
-function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
+function _myeventlane_vendor_theme_build_onboarding_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
+  $wizard_children = _myeventlane_vendor_theme_build_event_wizard_submenu($route_name, $route_match);
+  $candidates = [
+    [
+      'key' => 'dashboard',
+      'label' => t('Dashboard'),
+      'icon' => 'dashboard',
+      'route' => 'myeventlane_vendor.console.dashboard',
+    ],
+    [
+      'key' => 'events',
+      'label' => t('Events'),
+      'icon' => 'events',
+      'route' => 'myeventlane_vendor.console.events',
+      'children' => $wizard_children,
+    ],
+    [
+      'key' => 'payouts',
+      'label' => t('Payouts'),
+      'icon' => 'payouts',
+      'route' => 'myeventlane_vendor.console.payouts',
+    ],
+    [
+      'key' => 'settings',
+      'label' => t('Settings'),
+      'icon' => 'settings',
+      'route' => 'myeventlane_vendor.console.settings',
+    ],
+    [
+      'key' => 'help',
+      'label' => t('Help'),
+      'icon' => 'help',
+      'route' => 'myeventlane_help_centre.home',
+      'path_fallback' => '/help',
+    ],
+  ];
+  $built = [];
+  foreach ($candidates as $item) {
+    $route = (string) $item['route'];
+    if (!_myeventlane_vendor_theme_named_route_accessible($route, [])) {
+      continue;
+    }
+    $url = _myeventlane_vendor_theme_safe_route_url($route);
+    if ($url === NULL && !empty($item['path_fallback'])) {
+      $url = (string) $item['path_fallback'];
+    }
+    if ($url === NULL) {
+      continue;
+    }
+    $item['url'] = $url;
+    $item['is_disabled'] = FALSE;
+    $item['is_active'] = ($active_section === $item['key']);
+    $built[] = $item;
+  }
+  return $built;
+}
+
+/**
+ * Full vendor console shell nav; omits items the account cannot access.
+ *
+ * @return array<int, array<string, mixed>>
+ *   Sidebar items for vendor shell.
+ */
+function _myeventlane_vendor_theme_build_full_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
   $wizard_children = _myeventlane_vendor_theme_build_event_wizard_submenu($route_name, $route_match);
   $items = [
     [
@@ -1797,9 +1907,6 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
 
   $built = [];
   foreach ($items as $item) {
-    $url = NULL;
-    $is_disabled = FALSE;
-
     if ($item['key'] === 'refund_requests') {
       if (!\Drupal::moduleHandler()->moduleExists('myeventlane_refunds')) {
         continue;
@@ -1809,6 +1916,9 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       }
       $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
       if ($event_id === NULL) {
+        continue;
+      }
+      if (!_myeventlane_vendor_theme_named_route_accessible('myeventlane_refunds.vendor_refund_requests', ['node' => $event_id])) {
         continue;
       }
       $url = _myeventlane_vendor_theme_safe_route_url('myeventlane_refunds.vendor_refund_requests', ['node' => $event_id]);
@@ -1822,7 +1932,18 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       continue;
     }
 
+    if ($item['key'] === 'orders') {
+      $item['url'] = NULL;
+      $item['is_disabled'] = TRUE;
+      $item['is_active'] = ($active_section === $item['key']);
+      $built[] = $item;
+      continue;
+    }
+
     if (!empty($item['route'])) {
+      if (!_myeventlane_vendor_theme_named_route_accessible((string) $item['route'], [])) {
+        continue;
+      }
       $url = _myeventlane_vendor_theme_safe_route_url((string) $item['route']);
       if ($url === NULL && !empty($item['path_fallback'])) {
         $url = (string) $item['path_fallback'];
@@ -1830,7 +1951,7 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
       $is_disabled = $url === NULL;
     }
     else {
-      $is_disabled = TRUE;
+      continue;
     }
     $item['url'] = $url;
     $item['is_disabled'] = $is_disabled;
@@ -1839,6 +1960,26 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
   }
 
   return $built;
+}
+
+/**
+ * Builds sidebar navigation with Dashboard wizard submenu links.
+ *
+ * @param string $active_section
+ *   The active top-level section key.
+ * @param string|null $route_name
+ *   The current route name.
+ * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+ *   The current route match.
+ *
+ * @return array<int, array<string, mixed>>
+ *   Sidebar items for vendor shell.
+ */
+function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_section, ?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
+  if (_myeventlane_vendor_theme_is_vendor_onboard_route($route_name)) {
+    return _myeventlane_vendor_theme_build_onboarding_shell_nav_items($active_section, $route_name, $route_match);
+  }
+  return _myeventlane_vendor_theme_build_full_vendor_shell_nav_items($active_section, $route_name, $route_match);
 }
 
 /**
@@ -1855,6 +1996,10 @@ function _myeventlane_vendor_theme_build_vendor_shell_nav_items(string $active_s
 function _myeventlane_vendor_theme_build_event_wizard_submenu(?string $route_name, \Drupal\Core\Routing\RouteMatchInterface $route_match): array {
   $event_id = _myeventlane_vendor_theme_resolve_event_id($route_match);
   if ($event_id === NULL) {
+    return [];
+  }
+
+  if (!_myeventlane_vendor_theme_named_route_accessible('myeventlane_event_studio.edit', ['node' => $event_id])) {
     return [];
   }
 

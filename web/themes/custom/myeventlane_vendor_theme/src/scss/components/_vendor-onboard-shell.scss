@@ -13,13 +13,14 @@ body.mel-page--vendor-onboard {
     background: $ml-vendor-bg;
   }
 
+  // Full-width main column: inner layout uses Event Studio .mel-es-workspace (sidebar + 720px main).
   .mel-vendor-shell__content.mel-vendor-main {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: stretch;
     width: 100%;
-    max-width: 45rem; // guided column — matches former .mel-vendor-inner
+    max-width: none;
     margin: 0;
     padding-top: $spacing-6;
     padding-bottom: $spacing-12;

@@ -11,3 +11,12 @@ mel_event_studio:
     - core/drupal
     - core/once
     - myeventlane_location/address_autocomplete
+
+# Reuse Event Studio layout shell (sidebar + main) without wizard JS — onboarding, etc.
+mel_event_studio_shell_only:
+  css:
+    theme:
+      css/mel-event-studio-nav.css: {}
+      css/mel-event-studio-shell.css: { weight: 200 }
+  dependencies:
+    - core/drupal
