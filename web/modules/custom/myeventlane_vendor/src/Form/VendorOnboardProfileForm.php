@@ -179,11 +179,6 @@ final class VendorOnboardProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->getLogger('onboard_debug')->notice(
-      'VALUES: <pre>@v</pre>',
-      ['@v' => print_r($form_state->getValues(), TRUE)]
-    );
-
     /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
     $vendor = $form_state->get('vendor');
     if (!$vendor instanceof Vendor) {
