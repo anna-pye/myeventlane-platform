@@ -176,15 +176,9 @@ final class StripeConnectController extends ControllerBase {
       throw new AccessDeniedHttpException('You must be logged in to connect Stripe.');
     }
 
-    $request = \Drupal::request();
-    $destination = $request->query->get('destination');
-
     $store = $this->getStoreForConnect();
     if (!$store) {
       $this->messenger()->addError($this->t('No store found for your account. Please contact support.'));
-      if ($destination) {
-        return new RedirectResponse($destination);
-      }
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
     }
 
@@ -216,9 +210,6 @@ final class StripeConnectController extends ControllerBase {
 
         if ($status['charges_enabled']) {
           $this->messenger()->addStatus($this->t('Stripe is already connected.'));
-          if ($destination) {
-            return new RedirectResponse($destination);
-          }
           return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
         }
       }
@@ -270,35 +261,39 @@ final class StripeConnectController extends ControllerBase {
 
       [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($destStr);
       $accountLink = $this->stripeService->createAccountLink($accountId, $returnUrl, $refreshUrl);
-      if (empty($accountLink->url) || !str_starts_with($accountLink->url, 'https://connect.stripe.com')) {
-        $this->getLogger('myeventlane_vendor')->error('Invalid Stripe account link URL: @url', [
-          '@url' => $accountLink->url ?? '',
+      if ($accountLink === NULL || (is_object($accountLink) && empty($accountLink->url))) {
+        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: no account link returned for uid=@uid', [
+          '@uid' => (string) $this->currentUser()->id(),
         ]);
-        throw new \RuntimeException('Invalid Stripe account link: ' . ($accountLink->url ?? ''));
+        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
       }
-      \Drupal::logger('mel_debug')->notice('Stripe URL: @url', [
-        '@url' => $accountLink->url,
+      $url = $accountLink->url;
+      if (!is_string($url) || $url === '') {
+        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: empty account link url for uid=@uid', [
+          '@uid' => (string) $this->currentUser()->id(),
+        ]);
+        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
+      }
+      if (!str_starts_with($url, 'https://connect.stripe.com')) {
+        throw new \RuntimeException('Invalid Stripe URL: ' . $url);
+      }
+      \Drupal::logger('mel_debug')->notice('Stripe redirecting to: @url', [
+        '@url' => $url,
       ]);
 
-      // Off-site: SecuredRedirectResponse::setTargetUrl() only allows external
-      // URLs that TrustedRedirectResponse marks as trusted; setTrustedTargetUrl()
-      // registers the final URL after any normalization.
-      $response = new TrustedRedirectResponse($accountLink->url);
-      $response->setTrustedTargetUrl($accountLink->url);
+      $response = new TrustedRedirectResponse($url);
+      $response->setTrustedTargetUrl($url);
       $this->applyOffsiteStripeRedirectHeaders($response);
       return $response;
     }
     catch (\Exception $e) {
-      if ($e instanceof \RuntimeException && str_contains($e->getMessage(), 'Invalid Stripe account link')) {
+      if ($e instanceof \RuntimeException) {
         throw $e;
       }
       $this->getLogger('myeventlane_vendor')->error('Stripe Connect onboarding failed: @message', [
         '@message' => $e->getMessage(),
       ]);
       $this->messenger()->addError($this->t('Failed to start Stripe onboarding. Please try again or contact support.'));
-      if (!empty($destination) && is_string($destination)) {
-        return new RedirectResponse($destination);
-      }
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
     }
   }
