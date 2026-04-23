@@ -98,13 +98,12 @@ myeventlane_vendor.organisers:
 
 # Stripe Connect onboarding.
 myeventlane_vendor.stripe_connect:
-  path: '/vendor/stripe/connect'
+  path: '/stripe/connect'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::connect'
     _title: 'Connect Stripe'
   requirements:
-    _permission: 'access content'
-    _user_is_logged_in: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
     _maintenance_access: FALSE
 
@@ -120,9 +119,32 @@ myeventlane_vendor.stripe_callback:
   options:
     _maintenance_access: FALSE
 
+# Onboarding-friendly URLs for Stripe AccountLink return_url and refresh_url (register in Stripe Dashboard).
+myeventlane_vendor.stripe_onboard_return:
+  path: '/vendor/onboard/stripe-return'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::callback'
+    _title: 'Stripe Connect return'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
+myeventlane_vendor.stripe_onboard_refresh:
+  path: '/vendor/onboard/stripe-refresh'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::connect'
+    _title: 'Connect Stripe'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    _maintenance_access: FALSE
+
 # Stripe dashboard login link.
 myeventlane_vendor.stripe_manage:
-  path: '/vendor/stripe/manage'
+  path: '/stripe/manage'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::manage'
     _title: 'Manage Stripe'

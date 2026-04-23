@@ -125,9 +125,7 @@
           <div class="mel-alert__description">
             {{ 'Connect your Stripe account to receive payouts for ticket sales.'|t }}
           </div>
-          <a href="{{ path('myeventlane_vendor.stripe_connect') }}" class="mel-btn mel-btn--cta mel-btn--sm">
-            {{ 'Connect Stripe'|t }}
-          </a>
+          <a href="{{ path('myeventlane_vendor.stripe_connect', {}, {query: {destination: app.request.getPathInfo()}}) }}" class="mel-btn mel-btn--cta mel-btn--sm mel-button mel-button--primary mel-button--stripe">{{ 'Connect Stripe'|t }}</a>
         </div>
       </div>
     {% endif %}
