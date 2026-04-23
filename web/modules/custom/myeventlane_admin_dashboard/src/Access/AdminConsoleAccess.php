@@ -10,7 +10,8 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Access check for Platform Control Centre routes that must not depend on host.
  *
- * Mirrors vendor console gating: authenticated users with the PCC permission only.
+ * Only applies to paths under /admin. For other request paths, returns neutral
+ * so the check does not deny /create-event, /vendor, or unrelated routes.
  */
 final class AdminConsoleAccess {
 
@@ -27,32 +28,28 @@ final class AdminConsoleAccess {
    * Access for routes requiring "access myeventlane platform control centre".
    */
   public static function access(AccountInterface $account): AccessResult {
-    $request = \Drupal::request();
-    $path = $request->getPathInfo();
+    $stackRequest = \Drupal::requestStack()->getCurrentRequest();
+    $path = $stackRequest?->getPathInfo() ?: '/';
 
-    // Allow organiser onboarding routes to bypass platform-control-centre gate
-    // (same path can be evaluated during subrequests / cross-domain checks).
-    if (str_contains($path, '/vendor/onboard')) {
-      return $account->isAuthenticated()
-        ? AccessResult::allowed()->addCacheContexts(['url.path', 'user.roles'])
-        : AccessResult::forbidden();
+    if (!str_starts_with($path, '/admin')) {
+      \Drupal::logger('mel_admin_access_debug')->notice('Skipped admin access (non-admin path) path=@path', [
+        '@path' => $path,
+      ]);
+      return AccessResult::neutral('Non-admin request path: admin access check not applicable.')
+        ->addCacheContexts(['url.path', 'user.permissions', 'user.roles']);
     }
 
-    $stackRequest = \Drupal::requestStack()->getCurrentRequest();
-    $host = $stackRequest?->getHost() ?? '';
-    $path = $stackRequest?->getPathInfo() ?? '';
-
     if ($account->isAnonymous()) {
-      self::logDecision($account, $host, $path, 'forbidden_anonymous');
+      self::logDecision($account, $stackRequest?->getHost() ?? '', $path, 'forbidden_anonymous');
       return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
     if ($account->hasPermission('access myeventlane platform control centre')) {
-      self::logDecision($account, $host, $path, 'allowed');
+      self::logDecision($account, $stackRequest?->getHost() ?? '', $path, 'allowed');
       return AccessResult::allowed()->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
-    self::logDecision($account, $host, $path, 'forbidden_no_permission');
+    self::logDecision($account, $stackRequest?->getHost() ?? '', $path, 'forbidden_no_permission');
     return AccessResult::forbidden()->addCacheContexts(self::CACHE_CONTEXTS);
   }
 

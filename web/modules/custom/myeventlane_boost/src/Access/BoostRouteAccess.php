@@ -58,10 +58,13 @@ final class BoostRouteAccess {
    *   container builds.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\myeventlane_vendor\Access\VendorConsoleAccess $vendorConsoleAccess
+   *   The VendorConsole access service.
    */
   public function __construct(
     StripeChecker|EntityTypeManagerInterface $stripeChecker,
     LoggerInterface $logger,
+    private readonly VendorConsoleAccess $vendorConsoleAccess,
   ) {
     $this->logger = $logger;
     $this->stripeChecker = $stripeChecker instanceof StripeChecker
@@ -159,7 +162,7 @@ final class BoostRouteAccess {
    * Access for /vendor/events/{event}/boost — vendor console + team + boost rules.
    */
   public function accessVendorWorkspace(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
-    $vendorAccess = VendorConsoleAccess::access($route_match, $account);
+    $vendorAccess = $this->vendorConsoleAccess->access($route_match, $account);
     if (!$vendorAccess->isAllowed()) {
       return $vendorAccess;
     }

@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_vendor\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\Core\Entity\EntityStorageException;
@@ -30,6 +31,11 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   private LoggerChannelFactoryInterface $loggerFactory;
 
   /**
+   * The onboarding state manager.
+   */
+  private OnboardingManager $onboardingManager;
+
+  /**
    * Track vendors being processed to prevent recursion.
    *
    * @var array
@@ -47,9 +53,11 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     LoggerChannelFactoryInterface $logger_factory,
+    OnboardingManager $onboarding_manager,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->loggerFactory = $logger_factory;
+    $this->onboardingManager = $onboarding_manager;
   }
 
   /**
@@ -83,6 +91,17 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     $logger = $this->loggerFactory->get('myeventlane_vendor');
 
     $logger->notice('Vendor insert hook fired for vendor @id', ['@id' => $vendor->id()]);
+
+    $owner = $vendor->getOwner();
+    if ($owner !== NULL) {
+      $state = $this->onboardingManager->loadVendorStateByUid((int) $owner->id());
+      if ($state !== NULL && !$this->onboardingManager->isCompleted($state)) {
+        $logger->notice('Store creation skipped (onboarding incomplete) vendor=@id', [
+          '@id' => (string) $vendor->id(),
+        ]);
+        return;
+      }
+    }
 
     // Prevent recursion if we're already processing this vendor.
     if (isset(self::$processing[$vendor->id()])) {

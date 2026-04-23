@@ -154,7 +154,7 @@ final class OnboardingManager {
     }
 
     if (count($sorted) > 1) {
-      $this->logDuplicateOnce('vendor', (string) $vendor_id);
+      $this->logDuplicateOnce('vendor', (string) $vendor_id, count($sorted));
       $this->deleteOlderVendorTrackStatesAfterCanonical($canonical, array_slice($sorted, 1), 'vendor', (string) $vendor_id);
     }
 
@@ -196,7 +196,7 @@ final class OnboardingManager {
     }
 
     if (count($sorted) > 1) {
-      $this->logDuplicateOnce('vendor_uid', (string) $uid);
+      $this->logDuplicateOnce('vendor_uid', (string) $uid, count($sorted));
       $this->deleteOlderVendorTrackStatesAfterCanonical($canonical, array_slice($sorted, 1), 'vendor_uid', (string) $uid);
     }
 
@@ -222,6 +222,9 @@ final class OnboardingManager {
 
     $existing = $this->loadVendorStateByUid($uid);
     if ($existing !== NULL) {
+      $this->logger()->notice('Using existing onboarding state uid=@uid', [
+        '@uid' => (string) $uid,
+      ]);
       return $existing;
     }
 
@@ -235,6 +238,9 @@ final class OnboardingManager {
       $this->logger()->warning('Onboarding vendor state lock not acquired uid=@uid after wait; reloading state.', ['@uid' => (string) $uid]);
       $existing = $this->loadVendorStateByUid($uid);
       if ($existing !== NULL) {
+        $this->logger()->notice('Using existing onboarding state uid=@uid', [
+          '@uid' => (string) $uid,
+        ]);
         return $existing;
       }
       $this->logger()->error('Onboarding vendor state could not be created: lock unavailable uid=@uid', ['@uid' => (string) $uid]);
@@ -243,8 +249,15 @@ final class OnboardingManager {
     try {
       $existing = $this->loadVendorStateByUid($uid);
       if ($existing !== NULL) {
+        $this->logger()->notice('Using existing onboarding state uid=@uid', [
+          '@uid' => (string) $uid,
+        ]);
         return $existing;
       }
+
+      $this->logger()->notice('Creating onboarding state uid=@uid', [
+        '@uid' => (string) $uid,
+      ]);
 
       $storage = $this->getStorage();
       $state = $storage->create([
@@ -264,17 +277,41 @@ final class OnboardingManager {
   }
 
   /**
-   * Loads or creates vendor onboarding state (idempotent).
+   * Loads or creates vendor onboarding state (idempotent, one row per user).
    *
-   * If a state already exists for vendor_id, returns it. Otherwise creates one.
+   * Merges into the existing uid-based vendor state when one already exists
+   * (e.g. from createVendorStateForUid) to avoid creating a second state row
+   * when a Vendor entity is linked later. Otherwise reuses the row for
+   * vendor_id or creates one if neither exists.
    */
   public function loadOrCreateVendor(UserInterface $user, Vendor $vendor): OnboardingStateInterface {
     $storage = $this->getStorage();
     $vid = (int) $vendor->id();
     $uid = (int) $user->id();
-    $existing = $this->loadLatestStateForVendor($vid);
-    if ($existing !== NULL) {
-      return $existing;
+
+    $by_uid = $this->loadVendorStateByUid($uid);
+    if ($by_uid !== NULL) {
+      if ((int) ($by_uid->getVendorId() ?? 0) !== $vid) {
+        $by_uid->setVendorId($vid);
+      }
+      $store_id = NULL;
+      if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store !== NULL) {
+          $store_id = (int) $store->id();
+        }
+      }
+      if ($store_id) {
+        $by_uid->setStoreId($store_id);
+      }
+      $by_uid->setFlags(array_merge($by_uid->getFlags(), $this->computeVendorFlags($vendor)));
+      $by_uid->save();
+      return $by_uid;
+    }
+
+    $by_vendor = $this->loadLatestStateForVendor($vid);
+    if ($by_vendor !== NULL) {
+      return $by_vendor;
     }
     $store_id = NULL;
     if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
@@ -283,6 +320,9 @@ final class OnboardingManager {
         $store_id = (int) $store->id();
       }
     }
+    $this->logger()->notice('Creating onboarding state uid=@uid', [
+      '@uid' => (string) $uid,
+    ]);
     $state = $storage->create([
       'uid' => $uid,
       'track' => OnboardingStateInterface::TRACK_VENDOR,
@@ -305,8 +345,9 @@ final class OnboardingManager {
    * If a vendor already exists (by uid or field_vendor_users), returns it.
    * Otherwise creates, saves, and returns a new vendor.
    *
-   * Used at onboarding entry to bootstrap vendor state before Step 2+ run,
-   * so VendorContext and access gates can safely assume vendor existence.
+   * For new organiser flows, prefer creating the vendor at onboarding
+   * completion (VendorOnboardCompleteController) or gateway recovery, not
+   * during the pre-completion profile step.
    *
    * Does NOT assume Store, Stripe, or events exist.
    *
@@ -353,6 +394,28 @@ final class OnboardingManager {
     ]);
     $vendor->save();
     return $vendor;
+  }
+
+  /**
+   * Copies legal audit fields from onboarding state flags onto the vendor entity.
+   *
+   * Aligns with VendorOnboardCompleteController; caller must $vendor->save().
+   * Does not add new fields: only sets values when the key exists in $flags
+   * and the corresponding field is present.
+   */
+  public function applyVendorLegalFieldsFromStateFlags(Vendor $vendor, array $flags): void {
+    if (!empty($flags['vendor_terms_version']) && $vendor->hasField('field_vendor_terms_version')) {
+      $vendor->set('field_vendor_terms_version', (string) $flags['vendor_terms_version']);
+    }
+    if (isset($flags['vendor_terms_accepted_at']) && (int) $flags['vendor_terms_accepted_at'] > 0 && $vendor->hasField('field_vendor_terms_accepted_at')) {
+      $vendor->set('field_vendor_terms_accepted_at', (int) $flags['vendor_terms_accepted_at']);
+    }
+    if (!empty($flags['vendor_terms_accepted_ip']) && $vendor->hasField('field_vendor_terms_accepted_ip')) {
+      $vendor->set('field_vendor_terms_accepted_ip', (string) $flags['vendor_terms_accepted_ip']);
+    }
+    if (!empty($flags['vendor_terms_accepted_ua']) && $vendor->hasField('field_vendor_terms_accepted_ua')) {
+      $vendor->set('field_vendor_terms_accepted_ua', (string) $flags['vendor_terms_accepted_ua']);
+    }
   }
 
   /**
@@ -677,9 +740,9 @@ final class OnboardingManager {
       $map = [
         'probe' => ['route_name' => 'myeventlane_vendor.onboard.account', 'title' => 'Create account'],
         'present' => ['route_name' => 'myeventlane_vendor.onboard.profile', 'title' => 'Set up profile'],
-        // Payments are optional; progression continues in Event Studio after profile.
-        'listen' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
-        'ask' => ['route_name' => 'myeventlane_event_studio.create', 'title' => 'Create your event'],
+        // Next step is the create-event gateway; Event Studio is only after onboarding is complete.
+        'listen' => ['route_name' => 'myeventlane_vendor.create_event_gateway', 'title' => 'Create your event'],
+        'ask' => ['route_name' => 'myeventlane_vendor.create_event_gateway', 'title' => 'Create your event'],
         'invite' => ['route_name' => 'myeventlane_vendor.onboard.boost', 'title' => 'Promote with Boost'],
         'complete' => ['route_name' => NULL, 'title' => ''],
       ];
@@ -759,14 +822,23 @@ final class OnboardingManager {
   /**
    * Logs duplicate state once per (track, key) per request.
    */
-  private function logDuplicateOnce(string $track, string $key): void {
+  private function logDuplicateOnce(string $track, string $key, int $count = 0): void {
     $k = $track . ':' . $key;
     if (!isset(self::$duplicateLogged[$k])) {
       self::$duplicateLogged[$k] = TRUE;
-      $this->logger()->info('Multiple onboarding states for @track @key; using newest.', [
-        '@track' => $track,
-        '@key' => $key,
-      ]);
+      if ($count > 1) {
+        $this->logger()->warning('Duplicate onboarding states detected — FIX REQUIRED. count=@count track=@track key=@key; using newest.', [
+          '@count' => (string) $count,
+          '@track' => $track,
+          '@key' => $key,
+        ]);
+      }
+      else {
+        $this->logger()->info('Multiple onboarding states for @track @key; using newest.', [
+          '@track' => $track,
+          '@key' => $key,
+        ]);
+      }
     }
   }
 

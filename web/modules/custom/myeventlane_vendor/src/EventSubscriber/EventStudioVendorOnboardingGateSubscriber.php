@@ -44,6 +44,14 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     if (!$event->isMainRequest()) {
       return;
     }
+    if ($event->hasResponse()) {
+      return;
+    }
+
+    $path = $event->getRequest()->getPathInfo() ?: '/';
+    if (!($path === '/vendor' || str_starts_with($path, '/vendor/'))) {
+      return;
+    }
 
     $route_name = $this->routeMatch->getRouteName();
     if ($route_name === NULL) {
@@ -73,33 +81,41 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
 
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     if ($vendor_ids === []) {
-      $this->redirectToGateway($event, $uid, 'no_vendor');
+      $this->redirectToOnboardProfile($event, $uid, 'no_vendor_event_studio_fallback');
       return;
     }
 
     $state = $this->onboardingManager->loadVendorStateByUid($uid);
-    $is_unlocked = $state === NULL
-      || $this->onboardingManager->isVendorEventStudioUnlocked($state);
-
-    if (!$is_unlocked) {
-      $this->redirectToGateway($event, $uid, 'onboarding_incomplete');
+    if ($state === NULL) {
+      $this->redirectToOnboardProfile($event, $uid, 'no_onboarding_state');
+      return;
+    }
+    if (!$this->onboardingManager->isCompleted($state)) {
+      $this->redirectToOnboardProfile($event, $uid, 'onboarding_incomplete');
     }
   }
 
   /**
-   * Sends the user to the create-event gateway with a destination back.
+   * Fallback when no vendor membership is visible (e.g. non-vendor domain);
+   * primary handling is VendorPathMembershipGuardSubscriber.
    */
-  private function redirectToGateway(RequestEvent $event, int $uid, string $reason): void {
+  private function redirectToOnboardProfile(RequestEvent $event, int $uid, string $reason): void {
     $request = $event->getRequest();
-    $destination = $request->getRequestUri();
+    $path = $request->getPathInfo();
+    $query = $request->query->all();
+    unset($query['destination']);
+    $destination = $path;
+    if ($query !== []) {
+      $destination .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
 
     try {
-      $url = Url::fromRoute('myeventlane_vendor.create_event_gateway', [], [
+      $url = Url::fromRoute('myeventlane_vendor.onboard.profile', [], [
         'query' => ['destination' => $destination],
       ])->toString();
     }
     catch (\Throwable $e) {
-      $this->logger->error('EventStudioVendorOnboardingGate: gateway URL failed uid=@uid reason=@reason @message', [
+      $this->logger->error('EventStudioVendorOnboardingGate: onboard profile URL failed uid=@uid reason=@reason @message', [
         '@uid' => (string) $uid,
         '@reason' => $reason,
         '@message' => $e->getMessage(),
@@ -107,7 +123,10 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
       return;
     }
 
-    $this->logger->notice('EventStudioVendorOnboardingGate: redirect uid=@uid reason=@reason', [
+    $this->logger->notice('Redirected to onboarding uid=@uid', [
+      '@uid' => (string) $uid,
+    ]);
+    $this->logger->notice('EventStudioVendorOnboardingGate: redirect uid=@uid reason=@reason target_route=myeventlane_vendor.onboard.profile', [
       '@uid' => (string) $uid,
       '@reason' => $reason,
     ]);

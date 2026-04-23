@@ -271,6 +271,7 @@ abstract class EventStudioBaseForm extends FormBase {
    * Saves merged mel via EventStudioSaveService and redirects to the next route.
    */
   public function submitContinue(array &$form, FormStateInterface $form_state): void {
+    \Drupal::logger('mel_debug')->notice('SUBMIT HIT: EventStudioBaseForm::submitContinue');
     $result = $this->persistWizardMel($form_state, $this->isDraftWizardSave());
     if ($result === NULL) {
       return;

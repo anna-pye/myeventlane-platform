@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * User account form: password set via one-time reset (pass-reset-token).
+ * Wraps core field groups; FAPI order unchanged — layout only.
+ */
+#}
+<form{{ attributes }}>
+  {{ element.form_build_id }}
+  {{ element.form_token }}
+  {{ element.form_id }}
+  <div class="mel-auth-card mel-auth-card--reset">
+
+    <h1 class="mel-auth-title">
+      {{ '✨ Set your password'|t }}
+    </h1>
+
+    <p class="mel-auth-subtitle">
+      {{ "You’re one step away from creating your event."|t }}
+    </p>
+
+    <div class="mel-auth-form">
+      {{ element|without('actions', 'form_id', 'form_token', 'form_build_id') }}
+    </div>
+
+    <div class="mel-auth-actions">
+      {{ element.actions }}
+    </div>
+
+  </div>
+</form>
