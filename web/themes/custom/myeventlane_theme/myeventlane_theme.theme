@@ -497,6 +497,12 @@ function myeventlane_theme_theme_suggestions_form_alter(array &$suggestions, arr
   if (is_string($form_id) && $form_id !== '') {
     $suggestions[] = 'form__' . $form_id;
   }
+  if ($form_id === 'user_form') {
+    $token = \Drupal::request()->query->get('pass-reset-token');
+    if (is_string($token) && $token !== '') {
+      $suggestions[] = 'form__user_profile_form';
+    }
+  }
 }
 
 /**
@@ -2684,6 +2690,10 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
   if ($form_id === 'user_form') {
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-form--user-edit';
+    $pass_reset = \Drupal::request()->query->get('pass-reset-token');
+    if (is_string($pass_reset) && $pass_reset !== '') {
+      $form['#attached']['library'][] = 'myeventlane_theme/auth_pages';
+    }
   }
 
   // Vendor entity forms.

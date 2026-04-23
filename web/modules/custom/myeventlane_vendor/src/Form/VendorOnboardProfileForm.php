@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
-use Drupal\myeventlane_vendor\Entity\Vendor;
-use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
-use Drupal\user\UserInterface;
+use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Dedicated onboarding Step 2 form: organiser profile (name only).
  *
- * Replaces the Vendor entity edit form at /vendor/onboard/profile.
- * Uses default form rendering (no custom #theme) so form_build_id, form_token,
- * form_id and field name attributes render correctly.
+ * Organiser name and legal acceptance are stored in onboarding state `flags`
+ * (aligned with myeventlane_legal VendorTermsForm). The gateway skips
+ * LegalGatekeeper when those flags record terms. Store creation (if any) is
+ * unchanged.
  */
 final class VendorOnboardProfileForm extends FormBase {
 
@@ -31,33 +30,33 @@ final class VendorOnboardProfileForm extends FormBase {
   private readonly OnboardingManager $onboardingManager;
 
   /**
-   * The entity type manager.
-   */
-  private readonly EntityTypeManagerInterface $entityTypeManager;
-
-  /**
    * The current user.
    */
   private readonly AccountProxyInterface $currentUser;
 
   /**
-   * The vendor store subscriber (ensures store exists for new vendors).
+   * The request time.
    */
-  private readonly VendorStoreSubscriber $vendorStoreSubscriber;
+  private readonly TimeInterface $time;
+
+  /**
+   * Legal policy versions and URLs.
+   */
+  private readonly LegalSettingsService $legalSettings;
 
   /**
    * Constructs the form.
    */
   public function __construct(
     OnboardingManager $onboarding_manager,
-    EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
-    VendorStoreSubscriber $vendor_store_subscriber,
+    TimeInterface $time,
+    LegalSettingsService $legal_settings,
   ) {
     $this->onboardingManager = $onboarding_manager;
-    $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
-    $this->vendorStoreSubscriber = $vendor_store_subscriber;
+    $this->time = $time;
+    $this->legalSettings = $legal_settings;
   }
 
   /**
@@ -66,9 +65,9 @@ final class VendorOnboardProfileForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_onboarding.manager'),
-      $container->get('entity_type.manager'),
       $container->get('current_user'),
-      $container->get('myeventlane_vendor.vendor_store_subscriber'),
+      $container->get('datetime.time'),
+      $container->get('myeventlane_legal.settings'),
     );
   }
 
@@ -87,10 +86,14 @@ final class VendorOnboardProfileForm extends FormBase {
       return $form;
     }
 
-    $account = $this->currentUser->getAccount();
-    $vendor = $this->onboardingManager->ensureVendorExists($account);
-    $form_state->set('vendor', $vendor);
-
+    $uid = (int) $this->currentUser->id();
+    $state = $this->onboardingManager->createVendorStateForUid($uid);
+    $flags = $state->getFlags();
+    $flags = is_array($flags) ? $flags : [];
+    $name_default = isset($flags['organiser_name']) ? (string) $flags['organiser_name'] : '';
+    if ($name_default === '') {
+      $name_default = (string) $this->currentUser->getAccount()->getDisplayName();
+    }
     // #tree only on step_content so form_id / form_build_id / form_token stay at root
     // and Form API submit processing is reliable (root #tree breaks POST rebuild).
     // Step metadata for form--organiser-onboard-profile-form.html.twig preprocess.
@@ -116,7 +119,7 @@ final class VendorOnboardProfileForm extends FormBase {
       '#description' => $this->t('The public name for your organisation (e.g., "Sydney Music Festival").'),
       '#description_display' => 'after',
       '#required' => TRUE,
-      '#default_value' => $vendor->getName(),
+      '#default_value' => $name_default,
       '#maxlength' => 255,
     ];
     $form['step_content']['name']['#attributes']['placeholder'] = $this->t('Enter your organiser name');
@@ -138,6 +141,13 @@ final class VendorOnboardProfileForm extends FormBase {
       ],
     ];
 
+    $form['terms_accepted'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('I agree to the Vendor Terms of Service'),
+      '#default_value' => !empty($flags['terms_accepted']) || (!empty($flags['vendor_terms_accepted_at']) && (int) $flags['vendor_terms_accepted_at'] > 0),
+      '#required' => TRUE,
+    ];
+
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => 'Continue',
@@ -155,90 +165,139 @@ final class VendorOnboardProfileForm extends FormBase {
     if ($name === '') {
       $form_state->setError($form['step_content']['name'], $this->t('Organiser name is required.'));
     }
+    if (!(bool) $form_state->getValue('terms_accepted')) {
+      $form_state->setError($form['terms_accepted'], $this->t('You must agree to the Vendor Terms of Service.'));
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->getLogger('myeventlane_vendor')->error('SUBMIT HIT CONFIRMED');
-
-    /** @var \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor */
-    $vendor = $form_state->get('vendor');
-    if (!$vendor instanceof Vendor) {
+    $name = trim((string) ($form_state->getValue(['step_content', 'name']) ?? ''));
+    if ($name === '') {
       return;
     }
-
-    $name = trim((string) ($form_state->getValue(['step_content', 'name']) ?? ''));
-    $vendor->setName($name);
-
-    try {
-      if ($vendor->hasField('field_vendor_store') && $vendor->get('field_vendor_store')->isEmpty()) {
-        $this->vendorStoreSubscriber->onVendorInsertFromHook($vendor);
-      }
-    }
-    catch (\Throwable $e) {
-      $this->getLogger('myeventlane_vendor')->error('onboarding step2: failed ensuring store for vendor @vid: @m', [
-        '@vid' => $vendor->id() ?: '0',
-        '@m' => $e->getMessage(),
-      ]);
-    }
-
-    if ($vendor->hasField('field_vendor_users')) {
-      $current_users = $vendor->get('field_vendor_users')->getValue();
-      $user_ids = array_map(static fn ($id): int => (int) $id, array_column($current_users, 'target_id'));
-      $uid = (int) $this->currentUser->id();
-      if ($uid > 0 && !in_array($uid, $user_ids, TRUE)) {
-        $vendor->get('field_vendor_users')->appendItem(['target_id' => $uid]);
-      }
-    }
-
-    $vendor->save();
 
     $uid = (int) $this->currentUser->id();
     if ($uid <= 0) {
       return;
     }
 
-    $user = $this->entityTypeManager->getStorage('user')->load($uid);
-    if (!$user instanceof UserInterface) {
-      return;
+    $state = $this->onboardingManager->createVendorStateForUid($uid);
+    $values = $form_state->getValues();
+
+    $flags = $state->getFlags();
+    $flags = is_array($flags) ? $flags : [];
+
+    $flags['organiser_name'] = $name;
+
+    // Save checkbox value from the posted form (root-level key, not under #tree).
+    $flags['terms_accepted'] = !empty($values['terms_accepted']);
+
+    if ($flags['terms_accepted']) {
+      $flags['vendor_terms_accepted_at'] = (int) $this->time->getRequestTime();
+      $flags['vendor_terms_version'] = $this->legalSettings->getVendorTermsVersion();
+      if ($this->legalSettings->storeVendorIpUa()) {
+        $request = $this->getRequest();
+        if ($request !== NULL) {
+          $flags['vendor_terms_accepted_ip'] = $request->getClientIp();
+          $flags['vendor_terms_accepted_ua'] = (string) $request->headers->get('User-Agent', '');
+        }
+      }
     }
 
-    $this->onboardingManager->ensureVendorAccess($user);
+    $state->setFlags($flags);
+    $state->save();
+
     $this->getLogger('myeventlane_vendor')->notice(
-      'ensureVendorAccess executed during profile submit uid=@uid',
-      ['@uid' => (string) $uid],
+      'MEL: terms checkbox saved uid=@uid value=@value',
+      [
+        '@uid' => (string) $this->currentUser->id(),
+        '@value' => $flags['terms_accepted'] ? '1' : '0',
+      ],
     );
 
-    $state = $this->onboardingManager->loadVendorStateByUid($uid);
-    if ($state === NULL) {
-      $state = $this->onboardingManager->createVendorStateForUid($uid);
+    $account = $this->currentUser;
+    $vendor = $this->onboardingManager->ensureVendorExists($account);
+    $this->getLogger('myeventlane_vendor')->notice('Vendor created during onboarding uid=@uid vendor_id=@vid', [
+      '@uid' => (string) $uid,
+      '@vid' => (string) $vendor->id(),
+    ]);
+    $vendor->setName($name);
+    if (!empty($flags['vendor_terms_accepted_at'])) {
+      $this->onboardingManager->applyVendorLegalFieldsFromStateFlags($vendor, $flags);
+      $this->getLogger('myeventlane_vendor')->notice(
+        'MEL: vendor terms synced to vendor entity uid=@uid vendor=@vid',
+        [
+          '@uid' => (string) $this->currentUser->id(),
+          '@vid' => (string) $vendor->id(),
+        ],
+      );
     }
-    if ($state->getVendorId() !== (int) $vendor->id()) {
+    $vendor->save();
+    $this->onboardingManager->ensureVendorAccess($account);
+    if ((int) ($state->getVendorId() ?? 0) !== (int) $vendor->id()) {
       $state->setVendorId((int) $vendor->id());
       $state->save();
     }
 
-    // Move to "first event" stage (ask); Stripe (listen) stays skippable and reachable from nav later.
-    $order = OnboardingStateInterface::STAGE_ORDER;
-    $current_idx = array_search($state->getStage(), $order, TRUE);
-    $ask_idx = array_search('ask', $order, TRUE);
-    if ($current_idx !== FALSE && $ask_idx !== FALSE && $current_idx < $ask_idx) {
-      $this->onboardingManager->advanceStage($state, 'ask');
+    // Mark onboarding complete (profile + terms) once vendor is linked. Must run
+    // after setVendorId: myeventlane_onboarding_state preSave requires vendor_id
+    // when stage/complete is final (see OnboardingState::preSave()).
+    if (!empty($flags['terms_accepted']) && $name !== '' && (int) ($state->getVendorId() ?? 0) > 0) {
+      $state->setStage('complete');
+      $state->setCompleted(TRUE);
+      $state->save();
+      $this->getLogger('myeventlane_vendor')->notice(
+        'MEL: onboarding marked complete from profile uid=@uid',
+        ['@uid' => (string) $this->currentUser->id()],
+      );
+    }
+    else {
+      $order = OnboardingStateInterface::STAGE_ORDER;
+      $current_idx = array_search($state->getStage(), $order, TRUE);
+      $ask_idx = array_search('ask', $order, TRUE);
+      if ($current_idx !== FALSE && $ask_idx !== FALSE && $current_idx < $ask_idx) {
+        $this->onboardingManager->advanceStage($state, 'ask');
+      }
     }
 
-    $this->messenger()->addStatus($this->t('Saved. Next: create your event in Event Studio.'));
-    $form_state->setRedirect('myeventlane_event_studio.create', [], [
-      'query' => ['mel_first_event' => 1],
-    ]);
+    $state = $this->onboardingManager->loadVendorStateByUid($uid);
+    if ($state === NULL) {
+      $form_state->setRedirect('myeventlane_vendor.onboard.profile');
+      return;
+    }
 
+    $this->messenger()->addStatus($this->t('Saved. Continue to the next organiser step.'));
+
+    $request = $this->getRequest();
+    if ($request !== NULL) {
+      $dest_raw = $request->query->get('destination');
+      if (is_string($dest_raw) && trim($dest_raw) !== '') {
+        $destination = trim($dest_raw);
+        try {
+          $form_state->setRedirectUrl(Url::fromUserInput($destination));
+        }
+        catch (\InvalidArgumentException) {
+          $form_state->setRedirect('myeventlane_vendor.create_event_gateway', [], [
+            'query' => ['mel_first_event' => '1'],
+          ]);
+        }
+        $this->getLogger('myeventlane_vendor')->notice(
+          'VendorOnboardProfileForm: post-submit redirect destination uid=@uid',
+          ['@uid' => (string) $uid],
+        );
+        return;
+      }
+    }
+
+    $form_state->setRedirect('myeventlane_vendor.create_event_gateway', [], [
+      'query' => ['mel_first_event' => '1'],
+    ]);
     $this->getLogger('myeventlane_vendor')->notice(
-      'VendorOnboardProfileForm submitForm completed: redirect=myeventlane_event_studio.create uid=@uid vendor_id=@vid',
-      [
-        '@uid' => (string) $uid,
-        '@vid' => (string) $vendor->id(),
-      ],
+      'VendorOnboardProfileForm: post-submit redirect to create-event gateway uid=@uid',
+      ['@uid' => (string) $uid],
     );
   }
 

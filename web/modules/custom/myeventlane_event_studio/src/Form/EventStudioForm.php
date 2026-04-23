@@ -1122,55 +1122,70 @@ final class EventStudioForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    parent::validateForm($form, $form_state);
-    $this->ensureInjectedServices();
-    $event = $form_state->get('studio_node');
-    if ($event instanceof NodeInterface && $event->hasField('field_event_type')) {
-      $mel = $form_state->getValue('mel');
-      $event_type = is_array($mel) ? (string) ($mel['field_event_type'] ?? '') : '';
-      if ($event_type === '') {
-        $event_type = (string) ($event->get('field_event_type')->value ?? '');
-      }
-      if (in_array($event_type, ['paid', 'both'], TRUE)) {
-        if (!$this->ticketTypeManager->hasVendorStore($event)) {
-          $this->logger->warning('Event Studio: tickets validation blocked — no vendor store for event @nid', [
-            '@nid' => (string) $event->id(),
-          ]);
-          $form_state->setErrorByName('mel][field_event_type', $this->t('This event does not have a valid vendor store. Complete organiser setup and ensure your vendor account has a store assigned before selling paid tickets.'));
+    \Drupal::logger('mel_debug')->notice('VALIDATION RUN: EventStudioForm::validateForm');
+    try {
+      parent::validateForm($form, $form_state);
+      $this->ensureInjectedServices();
+      $event = $form_state->get('studio_node');
+      if ($event instanceof NodeInterface && $event->hasField('field_event_type')) {
+        $mel = $form_state->getValue('mel');
+        $event_type = is_array($mel) ? (string) ($mel['field_event_type'] ?? '') : '';
+        if ($event_type === '') {
+          $event_type = (string) ($event->get('field_event_type')->value ?? '');
+        }
+        if (in_array($event_type, ['paid', 'both'], TRUE)) {
+          if (!$this->ticketTypeManager->hasVendorStore($event)) {
+            $this->logger->warning('Event Studio: tickets validation blocked — no vendor store for event @nid', [
+              '@nid' => (string) $event->id(),
+            ]);
+            $form_state->setErrorByName('mel][field_event_type', $this->t('This event does not have a valid vendor store. Complete organiser setup and ensure your vendor account has a store assigned before selling paid tickets.'));
+          }
         }
       }
-    }
 
-    $mel = $form_state->getValue('mel');
-    if (!is_array($mel) || !isset($mel['event_highlights']) || !is_array($mel['event_highlights'])) {
-      return;
-    }
-    $raw = '';
-    if (isset($mel['event_highlights']['items_state'])) {
-      $raw = (string) $mel['event_highlights']['items_state'];
-    }
-    $decoded = [];
-    if ($raw !== '') {
-      try {
-        $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
-      }
-      catch (\JsonException) {
-        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Highlights data could not be read. Please refresh and try again.'));
+      $mel = $form_state->getValue('mel');
+      if (!is_array($mel) || !isset($mel['event_highlights']) || !is_array($mel['event_highlights'])) {
         return;
       }
-    }
-    if (!is_array($decoded)) {
+      $raw = '';
+      if (isset($mel['event_highlights']['items_state'])) {
+        $raw = (string) $mel['event_highlights']['items_state'];
+      }
       $decoded = [];
-    }
+      if ($raw !== '') {
+        try {
+          $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+        }
+        catch (\JsonException) {
+          $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Highlights data could not be read. Please refresh and try again.'));
+          return;
+        }
+      }
+      if (!is_array($decoded)) {
+        $decoded = [];
+      }
 
-    $this->ensureInjectedServices();
-    $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
-    if ($analysis['icon_without_text']) {
-      $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
-      return;
+      $this->ensureInjectedServices();
+      $analysis = $this->eventHighlightHelper->analyzeDecodedHighlights($decoded);
+      if ($analysis['icon_without_text']) {
+        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('Each highlight with an icon needs highlight text.'));
+        return;
+      }
+      if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
+        $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
+      }
     }
-    if ($analysis['persistable_count'] > EventHighlightHelper::HIGHLIGHT_LIMIT) {
-      $form_state->setErrorByName('mel][event_highlights][items_state', $this->t('You can add at most 6 highlights.'));
+    finally {
+      if ($form_state->hasAnyErrors()) {
+        \Drupal::logger('mel_debug')->notice('VALIDATION FAILED');
+      }
+      $errors = $form_state->getErrors();
+      if ($errors !== []) {
+        \Drupal::logger('mel_debug')->notice('VALIDATION FAILED: @c field error(s) on form_state', ['@c' => (string) count($errors)]);
+      }
+      else {
+        \Drupal::logger('mel_debug')->notice('VALIDATION: no form_state errors at end of EventStudioForm::validateForm');
+      }
     }
   }
 
@@ -1178,6 +1193,7 @@ final class EventStudioForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    \Drupal::logger('mel_debug')->notice('SUBMIT HIT: EventStudioForm::submitForm');
     $this->ensureInjectedServices();
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     $existing = NULL;
@@ -1194,6 +1210,9 @@ final class EventStudioForm extends FormBase {
     $payload = $this->melPayloadService->buildFromFormState($form_state, $this->entityTypeManager);
     $result = $this->saveService->save($payload, $existing, $this->currentUser, FALSE);
     if ($result['errors'] !== []) {
+      \Drupal::logger('mel_debug')->notice('EventStudioForm::submitForm: save service returned @c error(s); no redirect', [
+        '@c' => (string) count($result['errors']),
+      ]);
       foreach ($result['errors'] as $msg) {
         $this->messenger()->addError($msg);
       }
@@ -1209,6 +1228,12 @@ final class EventStudioForm extends FormBase {
       catch (\Throwable) {
         $form_state->setRedirectUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()]));
       }
+      \Drupal::logger('mel_debug')->notice('EventStudioForm::submitForm: success, redirect set for node @nid', [
+        '@nid' => (string) $node->id(),
+      ]);
+    }
+    else {
+      \Drupal::logger('mel_debug')->notice('EventStudioForm::submitForm: no errors from save but result node missing; no redirect');
     }
   }
 
@@ -1216,6 +1241,7 @@ final class EventStudioForm extends FormBase {
    * Ticket builder AJAX actions (EventTicketsBuilder); preserves fresh node in form state.
    */
   public function handleAction(array &$form, FormStateInterface $form_state): void {
+    \Drupal::logger('mel_debug')->notice('SUBMIT HIT: EventStudioForm::handleAction (ticket builder / AJAX path)');
     $this->ensureInjectedServices();
     $event = $form_state->get('studio_node');
     if (!$event instanceof NodeInterface) {

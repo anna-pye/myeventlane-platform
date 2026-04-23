@@ -160,7 +160,7 @@ final class VendorOnboardStripeController extends ControllerBase {
     ]);
 
     $back_url = Url::fromRoute('myeventlane_vendor.onboard.profile')->toString();
-    $skip_url = Url::fromRoute('myeventlane_event_studio.create')->toString();
+    $skip_url = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
 
     $onboard_footer = [
       'back_url' => $back_url,
@@ -181,8 +181,8 @@ final class VendorOnboardStripeController extends ControllerBase {
           '#markup' => '<p>' . $done_text . '</p>',
         ],
       ];
-      $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_event_studio.create')->toString();
-      $onboard_footer['continue_label'] = $this->t('Continue to Event Studio');
+      $onboard_footer['continue_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+      $onboard_footer['continue_label'] = $this->t('Continue to create your event');
       unset($onboard_footer['skip_url'], $onboard_footer['skip_label']);
     }
     elseif ($stripe_phase === 'needs_completion') {

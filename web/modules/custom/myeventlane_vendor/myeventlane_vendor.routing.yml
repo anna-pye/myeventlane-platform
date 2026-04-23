@@ -127,7 +127,7 @@ myeventlane_vendor.stripe_manage:
     _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::manage'
     _title: 'Manage Stripe'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
     _maintenance_access: FALSE
 
@@ -275,7 +275,7 @@ myeventlane_vendor.console.dashboard:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard:dashboard'
     _title: 'Vendor dashboard'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.studio:
   path: '/vendor/studio'
@@ -283,7 +283,7 @@ myeventlane_vendor.console.studio:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::studio'
     _title: 'Event Editor'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
     _theme: myeventlane_vendor_theme
 
@@ -293,7 +293,7 @@ myeventlane_vendor.console.event_editor:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::eventEditor'
     _title: 'Event Editor'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     _theme: myeventlane_vendor_theme
@@ -308,7 +308,7 @@ myeventlane_vendor.studio_event_schema:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioSchemaController::eventSchema'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   methods: [GET]
 
 myeventlane_vendor.console.studio.event_data:
@@ -316,7 +316,7 @@ myeventlane_vendor.console.studio.event_data:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::eventData'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -331,7 +331,7 @@ myeventlane_vendor.studio_event_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveEvent'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -346,7 +346,7 @@ myeventlane_vendor.console.studio.event_overview_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveOverview'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -361,7 +361,7 @@ myeventlane_vendor.console.studio.event_tickets_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveTickets'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -376,7 +376,7 @@ myeventlane_vendor.console.studio.event_attendees_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveAttendees'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -391,7 +391,7 @@ myeventlane_vendor.console.studio.event_promotion_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::savePromotion'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -406,7 +406,7 @@ myeventlane_vendor.console.studio.event_settings_save:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::saveSettings'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -421,7 +421,7 @@ myeventlane_vendor.console.studio.event_publish:
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::publishEvent'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -437,7 +437,7 @@ myeventlane_vendor.console.studio.submit_review:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioController::submitReview'
     _title: 'Submit Event for Review'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -453,7 +453,7 @@ myeventlane_vendor.console.boost_vendor_export:
     _controller: 'myeventlane_vendor.controller.boost_vendor_export:export'
     _title: 'Export Boost performance'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.events:
   path: '/vendor/events'
@@ -461,7 +461,7 @@ myeventlane_vendor.console.events:
     _controller: 'myeventlane_vendor.controller.vendor_events:list'
     _title: 'Events'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.events_add:
   path: '/vendor/events/add'
@@ -469,7 +469,7 @@ myeventlane_vendor.console.events_add:
     _controller: 'myeventlane_vendor.controller.vendor_event_create:buildForm'
     _title: 'Create event'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.event_workspace:
   path: '/vendor/events/{event}'
@@ -477,7 +477,7 @@ myeventlane_vendor.console.event_workspace:
     _controller: 'myeventlane_vendor.controller.event_workspace:workspace'
     _title: 'Event workspace'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -492,7 +492,7 @@ myeventlane_vendor.console.event_overview:
     _controller: 'myeventlane_vendor.controller.vendor_event_overview:overview'
     _title: 'Event overview'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -507,7 +507,7 @@ myeventlane_vendor.console.boost_event_export:
     _controller: 'myeventlane_vendor.controller.boost_event_export:export'
     _title: 'Export Boost performance'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -522,7 +522,7 @@ myeventlane_vendor.console.event_orders:
     _controller: 'myeventlane_vendor.controller.vendor_event_orders:orders'
     _title: 'Event orders'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -537,7 +537,7 @@ myeventlane_vendor.console.event_order_view:
     _controller: 'myeventlane_vendor.controller.vendor_event_order_view:view'
     _title: 'Order detail'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
     order: '\d+'
   options:
@@ -570,7 +570,7 @@ myeventlane_vendor.console.event_rsvps:
     _controller: 'myeventlane_vendor.controller.vendor_event_rsvps:rsvps'
     _title: 'Event RSVPs'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -587,7 +587,7 @@ myeventlane_vendor.console.event_analytics:
   requirements:
     _permission: 'use pro financial analytics'
     _myeventlane_pro_access: 'TRUE'
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -602,7 +602,7 @@ myeventlane_vendor.console.event_settings:
     _controller: 'myeventlane_vendor.controller.vendor_event_settings:settings'
     _title: 'Event settings'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -617,7 +617,7 @@ myeventlane_vendor.console.event_unpublish:
     _form: '\Drupal\myeventlane_vendor\Form\EventUnpublishForm'
     _title: 'Unpublish event'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -632,7 +632,7 @@ myeventlane_vendor.console.event_attendees:
     _controller: 'myeventlane_vendor.controller.vendor_event_attendees:attendees'
     _title: 'Event attendees'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -681,7 +681,7 @@ myeventlane_vendor.console.event_publish:
     _controller: 'myeventlane_vendor.controller.event_workspace:publish'
     _title: 'Publish'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -696,7 +696,7 @@ myeventlane_vendor.console.payouts:
     _controller: 'myeventlane_vendor.controller.vendor_payouts:payouts'
     _title: 'Payouts'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.boost:
   path: '/vendor/boost'
@@ -704,7 +704,7 @@ myeventlane_vendor.console.boost:
     _controller: 'myeventlane_vendor.controller.vendor_boost:boost'
     _title: 'Boost'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.audience:
   path: '/vendor/audience'
@@ -712,7 +712,7 @@ myeventlane_vendor.console.audience:
     _controller: 'myeventlane_vendor.controller.vendor_audience:audience'
     _title: 'Audience'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.messaging_brand:
   path: '/vendor/dashboard/messaging/brand'
@@ -720,7 +720,7 @@ myeventlane_vendor.console.messaging_brand:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard_messaging_brand:brand'
     _title: 'Messaging brand'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.console.settings:
   path: '/vendor/settings'
@@ -728,7 +728,7 @@ myeventlane_vendor.console.settings:
     _controller: 'myeventlane_vendor.controller.vendor_settings:settings'
     _title: 'Vendor settings'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_vendor.manage_event.design:
   path: '/vendor/event/{event}/design'

@@ -21,6 +21,13 @@ services:
     parent: logger.channel_base
     arguments: ['mel_debug']
 
+  myeventlane_vendor.access.vendor_console:
+    class: Drupal\myeventlane_vendor\Access\VendorConsoleAccess
+    arguments:
+      - '@myeventlane_onboarding.manager'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_vendor'
+
   myeventlane_vendor.current_vendor_resolver:
     class: Drupal\myeventlane_vendor\Service\CurrentVendorResolver
     arguments:
@@ -54,7 +61,10 @@ services:
 
   myeventlane_vendor.vendor_store_subscriber:
     class: Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber
-    arguments: ['@entity_type.manager', '@logger.factory']
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@myeventlane_onboarding.manager'
     tags:
       - { name: event_subscriber }
 
@@ -65,6 +75,17 @@ services:
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@myeventlane_onboarding.manager'
       - '@current_route_match'
+      - '@logger.channel.myeventlane_vendor'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_vendor.path_membership_guard:
+    class: Drupal\myeventlane_vendor\EventSubscriber\VendorPathMembershipGuardSubscriber
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.user_vendor_membership_query'
+      - '@myeventlane_core.domain_detector'
+      - '@config.factory'
       - '@logger.channel.myeventlane_vendor'
     tags:
       - { name: event_subscriber }

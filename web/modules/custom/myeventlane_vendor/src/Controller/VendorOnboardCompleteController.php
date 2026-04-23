@@ -6,8 +6,10 @@ namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -38,8 +40,9 @@ final class VendorOnboardCompleteController extends ControllerBase {
   /**
    * Step 6: Onboarding complete - celebration page or redirect.
    *
-   * With ?auto=1: redirects to Event Studio create.
-   * Otherwise: renders celebration page with CTA to create first event.
+   * Onboarding is marked complete before the Vendor entity is created so that
+   * the store subscriber allows Commerce store creation. Organiser name and
+   * legal acceptance stored on the onboarding state are copied to the vendor.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
    *   Redirect or render array.
@@ -60,26 +63,24 @@ final class VendorOnboardCompleteController extends ControllerBase {
       );
     }
 
-    $state = $this->onboardingManager->loadVendorStateByUid($uid);
-    if ($state === NULL) {
-      $state = $this->onboardingManager->createVendorStateForUid($uid);
-    }
+    $state = $this->onboardingManager->createVendorStateForUid($uid);
+
+    $state->setStage('complete');
+    $state->setCompleted(TRUE);
+    $state->save();
 
     $vendor = $this->getCurrentUserVendor();
     if (!$vendor) {
       $vendor = $this->onboardingManager->ensureVendorExists($currentUser->getAccount());
     }
 
-    // Ensure completion invariant: vendor_id must exist for completed state.
-    if ($state->getVendorId() !== (int) $vendor->id()) {
-      $state->setVendorId((int) $vendor->id());
-    }
-    $state->setStage('complete');
-    $state->setCompleted(TRUE);
-    $state->save();
+    $this->applyVendorDataFromStateFlags($vendor, $state);
 
-    // Grant vendor role (idempotent) at completion only.
     $this->onboardingManager->ensureVendorAccess($currentUser->getAccount());
+    $user = $this->entityTypeManager()->getStorage('user')->load($uid);
+    if ($user instanceof UserInterface) {
+      $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+    }
 
     $request = $this->requestStack->getCurrentRequest();
     $auto_redirect = $request && (string) $request->query->get('auto') === '1';
@@ -101,10 +102,20 @@ final class VendorOnboardCompleteController extends ControllerBase {
   }
 
   /**
+   * Copies organiser and legal data from state flags onto the vendor entity.
+   */
+  private function applyVendorDataFromStateFlags(Vendor $vendor, OnboardingStateInterface $state): void {
+    $raw = $state->getFlags();
+    $flags = is_array($raw) ? $raw : [];
+    if (!empty($flags['organiser_name'])) {
+      $vendor->setName((string) $flags['organiser_name']);
+    }
+    $this->onboardingManager->applyVendorLegalFieldsFromStateFlags($vendor, $flags);
+    $vendor->save();
+  }
+
+  /**
    * Gets the vendor entity for the current user.
-   *
-   * @return \Drupal\myeventlane_vendor\Entity\Vendor|null
-   *   The vendor entity, or NULL if not found.
    */
   private function getCurrentUserVendor(): ?Vendor {
     $currentUser = $this->currentUser();

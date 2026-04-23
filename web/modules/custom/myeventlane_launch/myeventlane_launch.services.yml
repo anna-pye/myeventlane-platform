@@ -96,5 +96,7 @@ services:
       - '@myeventlane_launch.checkout_guard'
       - '@myeventlane_launch.monitoring'
       - '@logger.channel.myeventlane_launch'
+      - '@current_user'
+      - '@myeventlane_vendor.user_vendor_membership_query'
     tags:
       - { name: event_subscriber }

@@ -111,6 +111,7 @@ permissions:
   - 'update paragraph content event_highlight'
   - 'use editorial transition create_new_draft'
   - 'use editorial transition publish'
+  - 'use editorial transition send_back_to_draft'
   - 'use text format basic_html'
   - 'use vendor ai assistant'
   - 'view any profile'

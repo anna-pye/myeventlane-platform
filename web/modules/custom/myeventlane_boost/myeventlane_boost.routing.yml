@@ -35,7 +35,7 @@ myeventlane_boost.vendor_boost_wizard:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::wizard'
     _title: 'Boost wizard'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -51,7 +51,7 @@ myeventlane_boost.wizard.step1:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step1'
     _title: 'Choose Boost Placement'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -67,7 +67,7 @@ myeventlane_boost.wizard.step2:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step2'
     _title: 'Choose Boost Budget'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -83,7 +83,7 @@ myeventlane_boost.wizard.step3:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step3'
     _title: 'Choose Boost Dates'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -99,7 +99,7 @@ myeventlane_boost.wizard.step4:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step4'
     _title: 'Preview & Confirm'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -115,7 +115,7 @@ myeventlane_boost.wizard.step5:
     _controller: '\Drupal\myeventlane_boost\Controller\WizardController::step5'
     _title: 'Pay for Boost'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:

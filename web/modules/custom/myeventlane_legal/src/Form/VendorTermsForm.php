@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_legal\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
-use Drupal\Component\Datetime\TimeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Vendor terms acceptance form.
@@ -26,6 +29,7 @@ final class VendorTermsForm extends FormBase {
     private readonly AccountProxyInterface $currentUser,
     private readonly OnboardingManager $onboardingManager,
     private readonly TimeInterface $time,
+    private readonly LoggerChannelInterface $myeventlaneVendorLogger,
   ) {}
 
   /**
@@ -36,7 +40,8 @@ final class VendorTermsForm extends FormBase {
       $container->get('myeventlane_legal.settings'),
       $container->get('current_user'),
       $container->get('myeventlane_onboarding.manager'),
-      $container->get('datetime.time')
+      $container->get('datetime.time'),
+      $container->get('logger.factory')->get('myeventlane_vendor'),
     );
   }
 
@@ -51,6 +56,18 @@ final class VendorTermsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    if ((int) $this->currentUser->id() > 0) {
+      $vendor = $this->onboardingManager->ensureVendorExists($this->currentUser);
+      if ($vendor->hasField('field_vendor_terms_accepted_at') && !$vendor->get('field_vendor_terms_accepted_at')->isEmpty()) {
+        $url = Url::fromRoute('myeventlane_vendor.create_event_gateway', [], [
+          'absolute' => FALSE,
+        ]);
+        throw new EnforcedResponseException(
+          new RedirectResponse($url->toString(), 302),
+        );
+      }
+    }
+
     $vendorUrl = $this->legalSettings->getVendorTermsUrl();
     $privacyUrl = $this->legalSettings->getPrivacyUrl();
 
@@ -141,32 +158,34 @@ final class VendorTermsForm extends FormBase {
       return;
     }
 
-    $account = $this->currentUser->getAccount();
-    $vendor = $this->onboardingManager->ensureVendorExists($account);
-    if (!$vendor) {
-      return;
-    }
+    $state = $this->onboardingManager->createVendorStateForUid($uid);
 
     $timestamp = $this->time->getRequestTime();
-    if ($vendor->hasField('field_vendor_terms_version')) {
-      $vendor->set('field_vendor_terms_version', $this->legalSettings->getVendorTermsVersion());
-    }
-    if ($vendor->hasField('field_vendor_terms_accepted_at')) {
-      $vendor->set('field_vendor_terms_accepted_at', $timestamp);
-    }
+    $flags = $state->getFlags();
+    $flags = is_array($flags) ? $flags : [];
+    $flags['vendor_terms_version'] = $this->legalSettings->getVendorTermsVersion();
+    $flags['vendor_terms_accepted_at'] = (int) $timestamp;
     if ($this->legalSettings->storeVendorIpUa()) {
       $request = $this->getRequest();
       if ($request) {
-        if ($vendor->hasField('field_vendor_terms_accepted_ip')) {
-          $vendor->set('field_vendor_terms_accepted_ip', $request->getClientIp());
-        }
-        if ($vendor->hasField('field_vendor_terms_accepted_ua')) {
-          $vendor->set('field_vendor_terms_accepted_ua', $request->headers->get('User-Agent', ''));
-        }
+        $flags['vendor_terms_accepted_ip'] = $request->getClientIp();
+        $flags['vendor_terms_accepted_ua'] = (string) $request->headers->get('User-Agent', '');
       }
     }
+    $state->setFlags($flags);
+    $state->save();
 
+    $vendor = $this->onboardingManager->ensureVendorExists($this->currentUser);
+    $this->onboardingManager->applyVendorLegalFieldsFromStateFlags($vendor, $flags);
     $vendor->save();
+
+    $this->myeventlaneVendorLogger->notice(
+      'MEL: vendor terms synced to vendor entity (terms form) uid=@uid vendor=@vid',
+      [
+        '@uid' => (string) $this->currentUser->id(),
+        '@vid' => (string) $vendor->id(),
+      ],
+    );
 
     $this->messenger()->addStatus($this->t('Thank you. You can now create events.'));
     $form_state->setRedirectUrl(Url::fromRoute('myeventlane_vendor.create_event_gateway'));

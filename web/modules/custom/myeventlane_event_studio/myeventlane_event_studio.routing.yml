@@ -5,6 +5,7 @@ myeventlane_event_studio.create:
     _title: 'Create Event'
   requirements:
     _permission: 'access content'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_event_studio.edit:
   path: '/vendor/events/{node}/edit'

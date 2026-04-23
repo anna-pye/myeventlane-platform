@@ -124,7 +124,7 @@ myeventlane_venue.vendor_venues:
     _controller: '\Drupal\myeventlane_venue\Controller\VendorVenuesController::list'
     _title: 'Venues'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # Vendor add venue form.
 myeventlane_venue.vendor_venue_add:
@@ -133,7 +133,7 @@ myeventlane_venue.vendor_venue_add:
     _entity_form: 'myeventlane_venue.add'
     _title: 'Add venue'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # Vendor edit venue form.
 myeventlane_venue.vendor_venue_edit:
@@ -168,7 +168,7 @@ myeventlane_venue.quick_create:
     _form: '\Drupal\myeventlane_venue\Form\VenueQuickCreateForm'
     _title: 'Add venue'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # ==============================================================================
 # Share-by-link routes
@@ -212,7 +212,7 @@ myeventlane_venue.autocomplete:
   defaults:
     _controller: '\Drupal\myeventlane_venue\Controller\VenueAutocompleteController::autocomplete'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # Venue locations AJAX callback for Event Wizard.
 myeventlane_venue.locations_ajax:

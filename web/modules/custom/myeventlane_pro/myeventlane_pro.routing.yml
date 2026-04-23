@@ -105,7 +105,7 @@ myeventlane_vendor.message_attendees:
     _controller: '\Drupal\myeventlane_pro\Controller\MessageAttendeesController::message'
     _title: 'Message attendees'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     node: \d+
   options:
     parameters:

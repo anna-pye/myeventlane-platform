@@ -24,6 +24,7 @@ use Symfony\Component\Routing\Route;
  *
  * @group myeventlane_vendor
  */
+#[\Drupal\Tests\RunTestsInSeparateProcesses]
 final class VendorConsoleAccessKernelTest extends KernelTestBase {
 
   /**
@@ -46,6 +47,7 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('user_role');
+    $this->installEntitySchema('myeventlane_onboarding_state');
     $this->installSchema('user', ['users_data']);
     $this->installConfig(['user']);
   }
@@ -56,11 +58,11 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
    * @covers ::access
    */
   public function testAnonymousDenied(): void {
-    $this->pushDashboardRequest();
+    $this->pushPathRequest('/vendor/dashboard');
     $route_match = $this->dashboardRouteMatch();
     $anon = User::getAnonymousUser();
     $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($anon));
-    $result = VendorConsoleAccess::access($route_match, $anon);
+    $result = $this->access()->access($route_match, $anon);
     $this->assertTrue($result->isForbidden());
     $this->popRequest();
   }
@@ -71,10 +73,10 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
    * @covers ::access
    */
   public function testAuthenticatedBuyerWithoutConsolePermissionOrVendorRoleDenied(): void {
-    $this->pushDashboardRequest();
+    $this->pushPathRequest('/vendor/dashboard');
     $user = $this->createUserWithRoles(['authenticated']);
     $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
-    $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
+    $result = $this->access()->access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isForbidden());
     $this->popRequest();
   }
@@ -86,10 +88,10 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
    */
   public function testAuthenticatedUserWithVendorRoleOnlyAllowed(): void {
     $this->ensureVendorRoleExists();
-    $this->pushDashboardRequest();
+    $this->pushPathRequest('/vendor/dashboard');
     $user = $this->createUserWithRoles(['authenticated', MelVendorOrganiserRole::MACHINE_NAME]);
     $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
-    $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
+    $result = $this->access()->access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
   }
@@ -101,10 +103,10 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
    */
   public function testAuthenticatedUserWithAccessVendorConsolePermissionOnlyAllowed(): void {
     $this->ensureConsolePermissionRole();
-    $this->pushDashboardRequest();
+    $this->pushPathRequest('/vendor/dashboard');
     $user = $this->createUserWithRoles(['authenticated', 'console_perm_only']);
     $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
-    $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
+    $result = $this->access()->access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
   }
@@ -117,12 +119,41 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
   public function testAuthenticatedAdminPlusVendorRoleAllowed(): void {
     $this->ensureSiteAdminRole();
     $this->ensureVendorRoleExists();
-    $this->pushDashboardRequest();
+    $this->pushPathRequest('/vendor/dashboard');
     $user = $this->createUserWithRoles(['authenticated', 'site_admin', MelVendorOrganiserRole::MACHINE_NAME]);
     $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
-    $result = VendorConsoleAccess::access($this->dashboardRouteMatch(), $user);
+    $result = $this->access()->access($this->dashboardRouteMatch(), $user);
     $this->assertTrue($result->isAllowed());
     $this->popRequest();
+  }
+
+  /**
+   * Vendor role + non-completed onboarding: dashboard forbidden.
+   *
+   * @covers ::access
+   */
+  public function testAuthenticatedVendorWithIncompleteOnboardingConsoleForbidden(): void {
+    $this->ensureVendorRoleExists();
+    $user = $this->createUserWithRoles(['authenticated', MelVendorOrganiserRole::MACHINE_NAME]);
+    $onboarding = $this->container->get('myeventlane_onboarding.manager');
+    $onboarding->createVendorStateForUid((int) $user->id());
+
+    $this->pushPathRequest('/vendor/dashboard');
+    $this->assertTrue(
+      $this->access()->access($this->dashboardRouteMatch(), $user)->isForbidden()
+    );
+    $this->popRequest();
+
+    $this->pushPathRequest('/vendor/onboard/profile');
+    $profile_match = new RouteMatch('myeventlane_vendor.onboard.profile', [], new Route('/vendor/onboard/profile'));
+    $this->assertTrue(
+      $this->access()->access($profile_match, $user)->isAllowed()
+    );
+    $this->popRequest();
+  }
+
+  private function access(): VendorConsoleAccess {
+    return $this->container->get('myeventlane_vendor.access.vendor_console');
   }
 
   private function dashboardRouteMatch(): RouteMatch {
@@ -130,8 +161,8 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
     return new RouteMatch('myeventlane_vendor.console.dashboard', [], $route);
   }
 
-  private function pushDashboardRequest(): void {
-    $request = Request::create('/vendor/dashboard', 'GET', [], [], [], [
+  private function pushPathRequest(string $path): void {
+    $request = Request::create($path, 'GET', [], [], [], [
       'HTTP_HOST' => 'vendor.example.com',
     ]);
     \Drupal::requestStack()->push($request);

@@ -47,6 +47,15 @@ final class EventTicketsBuilder {
   ) {}
 
   /**
+   * Temporary trace: Event Studio ticket builder AJAX always rebuilds; see MEL- debug.
+   */
+  private function logFormRebuildContext(string $context): void {
+    $this->loggerFactory->get('mel_debug')->notice('FORM REBUILD TRIGGERED (@context)', [
+      '@context' => $context,
+    ]);
+  }
+
+  /**
    * Form value / #limit_validation_errors path under the root form.
    *
    * @return list<string|int>
@@ -495,6 +504,8 @@ final class EventTicketsBuilder {
   public function handleAction(array &$form, FormStateInterface $form_state, NodeInterface $event): void {
     if (!$this->canManageEvent($event)) {
       $this->messenger->addError($this->t('You do not have access to manage this event.'));
+      $this->logFormRebuildContext('EventTicketsBuilder::handleAction canManageEvent');
+      \Drupal::logger('mel_debug')->notice('FORM REBUILD TRIGGERED: EventTicketsBuilder::handleAction (canManageEvent)');
       $form_state->setRebuild();
       return;
     }
@@ -504,6 +515,8 @@ final class EventTicketsBuilder {
 
     if ($name === '') {
       $this->loggerFactory->get('myeventlane_vendor')->warning('Ticket builder action triggered without #name.');
+      $this->logFormRebuildContext('EventTicketsBuilder::handleAction empty #name');
+      \Drupal::logger('mel_debug')->notice('FORM REBUILD TRIGGERED: EventTicketsBuilder::handleAction (empty #name)');
       $form_state->setRebuild();
       return;
     }
@@ -540,6 +553,10 @@ final class EventTicketsBuilder {
     }
 
     // Full form rebuild so EventFormAlter can re-apply ticket-driven #access on ops fields.
+    $this->logFormRebuildContext('EventTicketsBuilder::handleAction after match');
+    \Drupal::logger('mel_debug')->notice('FORM REBUILD TRIGGERED: EventTicketsBuilder::handleAction (after action match, trigger=@t)', [
+      '@t' => $name,
+    ]);
     $form_state->setRebuild();
   }
 

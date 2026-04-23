@@ -7,7 +7,7 @@ myeventlane_event.wizard.basics:
     _form: '\Drupal\myeventlane_event\Form\EventWizardBasicsForm'
     _title: 'Event basics'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -22,7 +22,7 @@ myeventlane_event.wizard.when_where:
     _form: '\Drupal\myeventlane_event\Form\EventWizardWhenWhereForm'
     _title: 'When & Where'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -37,7 +37,7 @@ myeventlane_event.wizard.tickets:
     _form: '\Drupal\myeventlane_event\Form\EventWizardTicketsForm'
     _title: 'Tickets'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -52,7 +52,7 @@ myeventlane_event.wizard.details:
     _form: '\Drupal\myeventlane_event\Form\EventWizardDetailsForm'
     _title: 'Details'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -67,7 +67,7 @@ myeventlane_event.wizard.review:
     _form: '\Drupal\myeventlane_event\Form\EventWizardReviewForm'
     _title: 'Review & Publish'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -82,7 +82,7 @@ myeventlane_event.wizard.publish:
     _form: '\Drupal\myeventlane_event\Form\EventWizardPublishForm'
     _title: 'Publish event'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -97,7 +97,7 @@ myeventlane_event.wizard.success:
     _controller: '\Drupal\myeventlane_event\Controller\VendorEventWizardController::success'
     _title: 'Event published successfully'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
   options:
     parameters:
@@ -113,7 +113,7 @@ myeventlane_event.duplicate:
     _controller: '\Drupal\myeventlane_event\Controller\EventDuplicateController::duplicate'
     _title: 'Duplicate event'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     node: '\d+'
   options:
     parameters:

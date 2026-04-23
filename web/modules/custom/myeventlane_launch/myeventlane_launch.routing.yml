@@ -4,4 +4,4 @@ myeventlane_launch.vendor_finance:
     _controller: '\Drupal\myeventlane_launch\Controller\VendorFinanceController::finance'
     _title: 'Finance'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_launch\EventSubscriber;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard;
 use Drupal\myeventlane_launch\Service\MELMonitoringService;
 use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
 use Drupal\myeventlane_launch\Service\PlatformRateLimiter;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -24,6 +26,8 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
     private readonly CheckoutIdempotencyGuard $checkoutGuard,
     private readonly MELMonitoringService $monitoringService,
     private readonly LoggerInterface $logger,
+    private readonly ?AccountProxyInterface $currentUser = NULL,
+    private readonly ?UserVendorMembershipQuery $userVendorMembershipQuery = NULL,
   ) {}
 
   /**
@@ -40,6 +44,9 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
    */
   public function onRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
+      return;
+    }
+    if ($event->hasResponse()) {
       return;
     }
 
@@ -76,6 +83,9 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
     }
 
     if (in_array($routeName, ['myeventlane_event_studio.create', 'myeventlane_vendor.console.events_add'], TRUE)) {
+      if ($this->shouldSkipEventCreateRateLimit($routeName)) {
+        return;
+      }
       $this->rateLimiter->enforce(
         'myeventlane_launch.event_create',
         $this->rateLimiter->buildIdentifier($request, 'event_create'),
@@ -83,6 +93,32 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
         60
       );
     }
+  }
+
+  /**
+   * Skips the event-create cap when the user has no linked vendor (onboarding),
+   * so failed /vendor/* attempts do not block legitimate progress.
+   */
+  private function shouldSkipEventCreateRateLimit(string $routeName): bool {
+    if ($this->currentUser === NULL || $this->userVendorMembershipQuery === NULL) {
+      return FALSE;
+    }
+    if ($this->currentUser->isAnonymous()) {
+      return FALSE;
+    }
+    $uid = (int) $this->currentUser->id();
+    if ($uid <= 0) {
+      return FALSE;
+    }
+    $ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
+    if ($ids === []) {
+      $this->logger->notice('Launch event_create rate limit skipped: uid=@uid reason=no_vendor_membership route=@route', [
+        '@uid' => (string) $uid,
+        '@route' => $routeName,
+      ]);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**

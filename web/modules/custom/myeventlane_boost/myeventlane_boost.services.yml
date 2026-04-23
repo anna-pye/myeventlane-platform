@@ -58,6 +58,7 @@ services:
     arguments:
       - '@myeventlane_boost.stripe_checker'
       - '@logger.channel.myeventlane_boost'
+      - '@myeventlane_vendor.access.vendor_console'
 
   # Backward-compatible alias for existing route requirement IDs.
   myeventlane_boost.boost_route_access:

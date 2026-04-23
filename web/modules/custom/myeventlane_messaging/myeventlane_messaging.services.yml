@@ -9,6 +9,12 @@ services:
       - '@twig'
       - '@renderer'
 
+  myeventlane_messaging.mel_email_layout:
+    class: Drupal\myeventlane_messaging\Service\MelEmailLayoutService
+    arguments:
+      - '@renderer'
+      - '@logger.channel.myeventlane_messaging'
+
   myeventlane_messaging.message_storage:
     class: Drupal\myeventlane_messaging\Service\MessageStorage
     arguments:
