@@ -36,5 +36,5 @@ myeventlane_help_assistant.event_suggestions:
   defaults:
     _controller: '\Drupal\myeventlane_help_assistant\Controller\EventSuggestionController::suggest'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   methods: [POST]

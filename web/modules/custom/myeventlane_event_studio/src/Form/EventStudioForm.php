@@ -1176,6 +1176,9 @@ final class EventStudioForm extends FormBase {
       }
     }
     finally {
+      if ($form_state->hasAnyErrors()) {
+        \Drupal::logger('mel_debug')->notice('VALIDATION FAILED');
+      }
       $errors = $form_state->getErrors();
       if ($errors !== []) {
         \Drupal::logger('mel_debug')->notice('VALIDATION FAILED: @c field error(s) on form_state', ['@c' => (string) count($errors)]);

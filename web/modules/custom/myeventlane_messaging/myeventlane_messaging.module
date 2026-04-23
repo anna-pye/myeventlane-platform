@@ -51,8 +51,20 @@ function myeventlane_messaging_theme($existing, $type, $theme, $path) {
 
   return [
     'myeventlane_email' => [
-      'variables' => ['body' => '', 'context' => []],
-      'template' => 'myeventlane-email',
+      'variables' => [
+        'body' => '',
+        'context' => [],
+      ],
+      'template' => 'email/mel-email-base',
+      'path' => $tpl_path,
+    ],
+    'mel_email_base' => [
+      'variables' => [
+        'content' => '',
+        'preheader' => '',
+        'context' => [],
+      ],
+      'template' => 'email/mel-email-base',
       'path' => $tpl_path,
     ],
     'myeventlane_messaging_inline' => [
@@ -134,23 +146,82 @@ function myeventlane_messaging_email_branding_logo_url(): string {
 /**
  * Preprocess for myeventlane_email.
  *
- * Injects logo_path: vendor logo (context.logo_url) or theme logo fallback.
- * VendorBrandResolver provides logo_url in context when available.
+ * Maps the inner #body to #content and applies shared MEL email chrome.
  */
 function template_preprocess_myeventlane_email(array &$variables): void {
-  $variables['#attributes']['style'] = 'margin:0;padding:0;background:#fef5ec;';
+  $inner = $variables['body'] ?? '';
+  if (is_array($inner)) {
+    $inner = implode('', $inner);
+  }
+  $variables['content'] = (string) $inner;
+  _myeventlane_messaging_preprocess_mel_email_layout($variables);
+}
 
-  $context = $variables['context'] ?? [];
-  $variables['preheader'] = $context['preheader'] ?? '';
-  $variables['marketing'] = $context['marketing'] ?? [];
-  $vendor_logo = trim((string) ($context['logo_url'] ?? ''));
+/**
+ * Preprocess for mel_email_base.
+ */
+function template_preprocess_mel_email_base(array &$variables): void {
+  if (!array_key_exists('context', $variables) || !is_array($variables['context'])) {
+    $variables['context'] = [];
+  }
+  if (!array_key_exists('content', $variables)) {
+    $variables['content'] = '';
+  }
+  _myeventlane_messaging_preprocess_mel_email_layout($variables);
+}
 
-  if ($vendor_logo !== '' && !str_ends_with(strtolower($vendor_logo), '.svg')) {
-    $variables['logo_path'] = $vendor_logo;
-    return;
+/**
+ * Sets logo, accent, site_name, and footer for MEL base email templates.
+ *
+ * @param array $variables
+ *   Theme variables for myeventlane_email and mel_email_base; must include
+ *   a `context` key for merged brand data.
+ */
+function _myeventlane_messaging_preprocess_mel_email_layout(array &$variables): void {
+  if (!is_array($variables['context'] ?? NULL)) {
+    $variables['context'] = [];
+  }
+  $context = &$variables['context'];
+
+  if (isset($variables['#cache']) && is_array($variables['#cache'])) {
+    $variables['#cache']['contexts'] = $variables['#cache']['contexts'] ?? [];
+    if (!in_array('url', $variables['#cache']['contexts'], TRUE)) {
+      $variables['#cache']['contexts'][] = 'url';
+    }
   }
 
-  $variables['logo_path'] = myeventlane_messaging_email_branding_logo_url();
+  if (!array_key_exists('preheader', $variables)) {
+    $variables['preheader'] = '';
+  }
+  if (is_string($context['preheader'] ?? NULL) && (string) $context['preheader'] !== '' && (string) $variables['preheader'] === '') {
+    $variables['preheader'] = (string) $context['preheader'];
+  }
+  if (!is_string($variables['preheader'])) {
+    $variables['preheader'] = '';
+  }
+
+  $variables['accent_color'] = (string) ($context['accent_color'] ?? $variables['accent_color'] ?? '#f26d5b');
+  $context['accent_color'] = $variables['accent_color'];
+
+  $from = trim((string) ($context['from_name'] ?? ''));
+  if ($from === '' && is_string($context['brand_name'] ?? NULL)) {
+    $from = trim((string) $context['brand_name']);
+  }
+  if ($from === '' && is_string($context['vendor_name'] ?? NULL)) {
+    $from = trim((string) $context['vendor_name']);
+  }
+  $variables['site_name'] = $from !== '' ? $from : (string) ($context['from_name'] ?? 'MyEventLane');
+  if ($variables['site_name'] === '') {
+    $variables['site_name'] = 'MyEventLane';
+  }
+
+  $vendor_logo = trim((string) ($context['logo_url'] ?? ''));
+  if ($vendor_logo !== '' && !str_ends_with(strtolower($vendor_logo), '.svg')) {
+    $variables['logo_path'] = $vendor_logo;
+  }
+  else {
+    $variables['logo_path'] = myeventlane_messaging_email_branding_logo_url();
+  }
 }
 
 /**
@@ -237,11 +308,12 @@ function myeventlane_messaging_mail($key, &$message, $params) {
  * 6. Fallback to MEL defaults
  */
 function myeventlane_messaging_mail_alter(array &$message): void {
-  // Skip if brand already applied (via MessagingManager path).
-  if (!empty($message['params']['mel_brand_applied'])) {
-    return;
+  if (!isset($message['params']) || !is_array($message['params'])) {
+    $message['params'] = [];
   }
 
+  // Brand resolution (skip when the messaging queue path already set headers).
+  if (empty($message['params']['mel_brand_applied'])) {
   // Build context from available params.
   $params = $message['params'] ?? [];
   $context = [];
@@ -327,4 +399,16 @@ function myeventlane_messaging_mail_alter(array &$message): void {
 
   // Mark as applied to prevent double-processing.
   $message['params']['mel_brand_applied'] = TRUE;
+  }
+
+  // HTML shell: myeventlane_messaging is weighted later in core.extension
+  // (see config) so this runs after e.g. myeventlane_pro_mail_alter footers.
+  if (\Drupal::hasService('myeventlane_messaging.mel_email_layout')) {
+    try {
+      \Drupal::service('myeventlane_messaging.mel_email_layout')->applyLayoutToMessage($message);
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_messaging')->error('MEL email layout: @m', ['@m' => $e->getMessage()]);
+    }
+  }
 }

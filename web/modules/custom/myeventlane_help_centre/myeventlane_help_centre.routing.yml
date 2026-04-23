@@ -3,7 +3,7 @@ myeventlane_help_centre.help_action:
   defaults:
     _controller: '\Drupal\myeventlane_help_centre\Controller\HelpActionController::run'
   requirements:
-    _custom_access: '\Drupal\myeventlane_vendor\Access\VendorConsoleAccess::access'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     action: '[a-z0-9_]+'
   methods: [POST]
 
