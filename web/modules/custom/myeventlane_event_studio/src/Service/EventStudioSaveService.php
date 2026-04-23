@@ -44,8 +44,6 @@ final class EventStudioSaveService {
    * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
    */
   public function save(array $payload, ?NodeInterface $node, AccountInterface $account, bool $draft = FALSE): array {
-    // Watchdog channel mel_debug (no extra constructor arg — avoids / matches 5-arg service definitions).
-    \Drupal::logger('mel_debug')->notice('EVENT SAVE CALLED: EventStudioSaveService::save');
     $storage = $this->entityTypeManager->getStorage('node');
     if ($node === NULL) {
       $node = $storage->create([

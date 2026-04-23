@@ -268,25 +268,9 @@ abstract class EventStudioBaseForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {}
 
   /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('VALIDATION RUN: EventStudioBaseForm::validateForm (@id)', [
-      '@id' => $this->getFormId(),
-    ]);
-    parent::validateForm($form, $form_state);
-    if ($form_state->hasAnyErrors()) {
-      \Drupal::logger('mel_debug')->notice('VALIDATION FAILED: EventStudioBaseForm::validateForm (hasAnyErrors) form @id', [
-        '@id' => $this->getFormId(),
-      ]);
-    }
-  }
-
-  /**
    * Saves merged mel via EventStudioSaveService and redirects to the next route.
    */
   public function submitContinue(array &$form, FormStateInterface $form_state): void {
-    \Drupal::logger('mel_debug')->notice('SUBMIT HIT: EventStudioBaseForm::submitContinue');
     $result = $this->persistWizardMel($form_state, $this->isDraftWizardSave());
     if ($result === NULL) {
       return;

@@ -92,6 +92,7 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     }
     if (!$this->onboardingManager->isCompleted($state)) {
       $this->redirectToOnboardProfile($event, $uid, 'onboarding_incomplete');
+      return;
     }
   }
 
