@@ -47,6 +47,9 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
     if (!$event->isMainRequest() || \PHP_SAPI === 'cli') {
       return;
     }
+    if ($event->hasResponse()) {
+      return;
+    }
 
     $request = $event->getRequest();
     if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
@@ -64,7 +67,10 @@ final class VendorConsoleGateRedirectSubscriber implements EventSubscriberInterf
       return;
     }
 
-    $path = $request->getPathInfo();
+    $path = $request->getPathInfo() ?: '/';
+    if (str_starts_with($path, '/vendor/stripe') || str_starts_with($path, '/stripe/')) {
+      return;
+    }
     if (!$this->isVendorConsolePath($path)) {
       return;
     }

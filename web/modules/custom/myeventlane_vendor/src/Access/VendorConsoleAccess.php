@@ -15,10 +15,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Access check for vendor console routes.
  *
- * Only applies to paths under the /vendor URL namespace (i.e. /vendor or
- * /vendor/…). For any other request path, this check returns neutral so
- * /create-event, /user, /my-account, and similar routes are not subject to
- * organiser gating.
+ * Applies to paths under the /vendor namespace (/vendor, /vendor/…), and
+ * to vendor Stripe UI routes at /stripe/… (vendor host) which are not
+ * under the /vendor/ prefix. For any other request path, this check returns
+ * neutral so /create-event, /user, /my-account, and similar routes are not
+ * subject to organiser gating.
  *
  * Allows users with the "access vendor console" permission or the "vendor"
  * organiser role (config: user.role.vendor). The role check matches the gate
@@ -126,7 +127,13 @@ final class VendorConsoleAccess {
    * TRUE for the vendor console path tree only (excludes e.g. /vendors public).
    */
   private function isVendorPathNamespace(string $path): bool {
-    return $path === '/vendor' || str_starts_with($path, '/vendor/');
+    if ($path === '/vendor' || str_starts_with($path, '/vendor/')) {
+      return TRUE;
+    }
+    if (str_starts_with($path, '/stripe/')) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
   /**
@@ -137,6 +144,9 @@ final class VendorConsoleAccess {
       return TRUE;
     }
     if ($path === '/vendor/stripe' || str_starts_with($path, '/vendor/stripe/')) {
+      return TRUE;
+    }
+    if (str_starts_with($path, '/stripe/')) {
       return TRUE;
     }
     return FALSE;

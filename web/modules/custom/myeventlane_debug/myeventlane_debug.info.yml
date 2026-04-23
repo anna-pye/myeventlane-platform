@@ -1,0 +1,5 @@
+name: 'MyEventLane Debug'
+type: module
+description: 'Response tracing and diagnostics for MEL. Disable in production when not in use.'
+package: 'MyEventLane'
+core_version_requirement: ^11

@@ -1,0 +1,5 @@
+services:
+  myeventlane_debug.response_debug:
+    class: Drupal\myeventlane_debug\EventSubscriber\ResponseDebugSubscriber
+    tags:
+      - { name: event_subscriber }
