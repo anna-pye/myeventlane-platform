@@ -50,6 +50,11 @@ final class LaunchRequestProtectionSubscriber implements EventSubscriberInterfac
       return;
     }
 
+    $path = $event->getRequest()->getPathInfo() ?: '/';
+    if (str_starts_with($path, '/vendor/stripe') || str_starts_with($path, '/stripe/')) {
+      return;
+    }
+
     $request = $event->getRequest();
     if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
       return;
