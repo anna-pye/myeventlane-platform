@@ -7,7 +7,6 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
-use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -85,9 +84,9 @@ class CreateEventGatewayController extends ControllerBase {
    *   else login with destination back to /create-event
    * - No vendor entity → redirect to vendor profile onboarding (destination
    *   /create-event); draft without vendor is logged, not sent to event edit
-   * - Vendor + incomplete onboarding → step routing / complete-setup page
-   * - Vendor + complete onboarding + terms → resume draft edit if any, else
-   *   Event Studio create
+   * - Vendor + incomplete onboarding → non-blocking: messenger guidance, then
+   *   same terms and Event Studio / draft path as for complete onboarding
+   * - Vendor + terms → resume draft edit if any, else Event Studio create
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
    *   Redirect or render array.
@@ -106,7 +105,6 @@ class CreateEventGatewayController extends ControllerBase {
       return new RedirectResponse($login_url->toString());
     }
 
-    $request = $this->requestStack->getCurrentRequest();
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     $has_vendor = $vendor_ids !== [];
     $draft_nid = $this->findLatestUserDraftEventNid($uid);
@@ -118,31 +116,24 @@ class CreateEventGatewayController extends ControllerBase {
           ['@nid' => (string) $draft_nid, '@uid' => (string) $uid],
         );
       }
-      $state = $this->onboardingManager->loadVendorStateByUid($uid);
-      if ($state === NULL) {
-        $state = $this->onboardingManager->createVendorStateForUid($uid);
-      }
+      $state = $this->onboardingManager->createVendorStateForUid($uid);
       $this->onboardingManager->recordCreateEventGatewayMilestone($state, 'event_started');
 
-      $account = $current_user->getAccount();
-      if ($account instanceof UserInterface) {
-        $this->onboardingManager->ensureVendorExists($account);
-        $this->onboardingManager->ensureVendorAccess($account);
+      if ($this->onboardingManager->isCompleted($state) && $current_user->getAccount() instanceof UserInterface) {
+        $this->onboardingManager->ensureVendorExists($current_user->getAccount());
+        $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
+        $has_vendor = $vendor_ids !== [];
+      }
+      if (!$has_vendor) {
+        $onboard_url = Url::fromRoute('myeventlane_vendor.onboard.profile', [], [
+          'query' => ['destination' => '/create-event'],
+        ]);
         $this->getLogger('myeventlane_vendor')->notice(
-          'ensureVendorExists + ensureVendorAccess uid=@uid (create-event gateway → Event Studio)',
+          'Create-event gateway: no vendor, redirecting to organiser profile uid=@uid',
           ['@uid' => (string) $uid],
         );
+        return new RedirectResponse($onboard_url->toString());
       }
-
-      $this->getLogger('myeventlane_vendor')->notice(
-        'Create-event gateway: bootstrapped vendor, redirecting to Event Studio create uid=@uid',
-        ['@uid' => (string) $uid],
-      );
-
-      $create_url = Url::fromRoute('myeventlane_event_studio.create', [], [
-        'query' => ['mel_first_event' => '1'],
-      ]);
-      return new RedirectResponse($create_url->toString());
     }
 
     $state = $this->onboardingManager->loadVendorStateByUid($uid);
@@ -165,28 +156,16 @@ class CreateEventGatewayController extends ControllerBase {
       $state = $this->onboardingManager->loadOrCreateVendor($account, $vendor);
     }
 
-    $is_complete = $this->onboardingManager->isVendorEventStudioUnlocked($state);
+    $is_complete = $this->onboardingManager->isCompleted($state);
 
     if (!$is_complete) {
-      if ($draft_nid !== NULL) {
-        $this->getLogger('myeventlane_vendor')->warning(
-          'Create-event gateway: draft node @nid exists for uid=@uid but vendor onboarding incomplete; skipping event edit redirect.',
-          ['@nid' => (string) $draft_nid, '@uid' => (string) $uid],
-        );
-      }
-      $auto_redirect = $request && (string) $request->query->get('auto') === '1';
-
-      $next_route = $this->onboardingManager->getNextVendorOnboardRouteForAuthenticated($state);
-      $next_route = $next_route ?: 'myeventlane_vendor.onboard.profile';
-
-      if ($auto_redirect) {
-        $redirect_url = $next_route === 'myeventlane_vendor.onboard.stripe'
-          ? Url::fromRoute('myeventlane_vendor.stripe_connect', [], ['query' => ['destination' => '/create-event']])
-          : Url::fromRoute($next_route);
-        return new RedirectResponse($redirect_url->toString());
-      }
-
-      return $this->buildCompleteSetupPage($state, $next_route);
+      $this->getLogger('myeventlane_vendor')->notice(
+        'MEL: onboarding incomplete but allowing event creation uid=@uid',
+        ['@uid' => (string) $uid],
+      );
+      $this->messenger()->addWarning(
+        $this->t('Finish your organiser setup to unlock full features.'),
+      );
     }
 
     $vendor = NULL;
@@ -245,7 +224,12 @@ class CreateEventGatewayController extends ControllerBase {
       return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $draft_nid])->toString());
     }
 
-    $create_url = Url::fromRoute('myeventlane_event_studio.create');
+    $options = [];
+    $http_request = $this->requestStack->getCurrentRequest();
+    if ($http_request !== NULL && (string) $http_request->query->get('mel_first_event') === '1') {
+      $options['query'] = ['mel_first_event' => '1'];
+    }
+    $create_url = Url::fromRoute('myeventlane_event_studio.create', [], $options);
     return new RedirectResponse($create_url->toString());
   }
 
@@ -275,60 +259,6 @@ class CreateEventGatewayController extends ControllerBase {
       $this->getLogger('myeventlane_vendor')->warning('Create-event gateway draft lookup failed: @m', ['@m' => $e->getMessage()]);
       return NULL;
     }
-  }
-
-  /**
-   * Builds the "Complete your organiser setup" explanatory page.
-   *
-   * @param \Drupal\myeventlane_core\Entity\OnboardingStateInterface $state
-   *   The vendor onboarding state.
-   * @param string $next_route
-   *   Route for the next onboarding step.
-   *
-   * @return array
-   *   Render array.
-   */
-  private function buildCompleteSetupPage(OnboardingStateInterface $state, string $next_route): array {
-    $this->onboardingManager->recordCreateEventGatewayMilestone($state, 'vendor_incomplete');
-
-    $stage_labels = [
-      'probe' => $this->t('Get started'),
-      'present' => $this->t('Profile'),
-      'listen' => $this->t('Payments'),
-      'ask' => $this->t('First event'),
-      'invite' => $this->t('Boost'),
-      'complete' => $this->t('Complete'),
-    ];
-    $stage_order = OnboardingStateInterface::STAGE_ORDER;
-    $current_idx = array_search($state->getStage(), $stage_order, TRUE);
-    $current_idx = $current_idx !== FALSE ? $current_idx : 0;
-
-    $incomplete_stages = [];
-    foreach (array_slice($stage_order, $current_idx, NULL, TRUE) as $stage) {
-      if ($stage !== 'complete') {
-        $incomplete_stages[] = (string) ($stage_labels[$stage] ?? $stage);
-      }
-    }
-
-    $next_url = $next_route === 'myeventlane_vendor.onboard.stripe'
-      ? Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-          'query' => ['destination' => '/create-event'],
-        ])->toString()
-      : Url::fromRoute($next_route)->toString();
-
-    return [
-      '#theme' => 'create_event_gateway_complete_setup',
-      '#attached' => [
-        'library' => ['myeventlane_vendor/onboarding'],
-      ],
-      '#title' => $this->t('Complete your organiser setup')->render(),
-      '#incomplete_stages' => $incomplete_stages,
-      '#next_route' => $next_route,
-      '#next_url' => $next_url,
-      '#auto_url' => Url::fromRoute('myeventlane_vendor.create_event_gateway', [], [
-        'query' => ['auto' => '1'],
-      ])->toString(),
-    ];
   }
 
   /**

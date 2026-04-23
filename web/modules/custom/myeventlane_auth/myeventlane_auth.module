@@ -94,6 +94,29 @@ function myeventlane_auth_auth_preservation_query_from_request(Request $request)
 }
 
 /**
+ * Build query for login↔register links when carrying auth handoff.
+ *
+ * Starts with a raw copy of the request query (see
+ * myeventlane_auth_auth_preservation_query_from_request()).
+ * When the resolved MEL intent is create_event, adds a canonical
+ * top-level mel_intent + /create-event destination so the register and post-login
+ * request stack always sees the same values IdentityIntentResolver reads from the
+ * query, even when the login URL used a nested /mel/auth/continue destination.
+ */
+function myeventlane_auth_auth_entry_preserved_query(Request $request): array {
+  $query = myeventlane_auth_auth_preservation_query_from_request($request);
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  $raw = myeventlane_auth_resolve_mel_intent_for_login_request($request);
+  if ($resolver->normalizeIntent($raw) !== IdentityIntentResolver::INTENT_CREATE_EVENT) {
+    return $query;
+  }
+  $query['mel_intent'] = IdentityIntentResolver::INTENT_CREATE_EVENT;
+  $query['destination'] = '/create-event';
+  return $query;
+}
+
+/**
  * Whether an internal path is the create-event route or a subpath (not a false prefix).
  *
  * Matches /create-event and /create-event/…; does not match /create-event-copy,
@@ -287,7 +310,7 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
 
   // Gin Login: "Log in" link defaults to user.login with no query — preserve handoff.
   if (isset($form['more-links']['login_link']['#url'])) {
-    $preserve_login = myeventlane_auth_auth_preservation_query_from_request($request);
+    $preserve_login = myeventlane_auth_auth_entry_preserved_query($request);
     if ($preserve_login !== []) {
       $form['more-links']['login_link']['#url'] = Url::fromRoute('user.login', [], ['query' => $preserve_login]);
       $existing_ctx = $form['#cache']['contexts'] ?? [];
@@ -305,6 +328,7 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
 
   $resolved_for_log = myeventlane_auth_resolve_mel_intent_for_login_request($request);
   $dest_for_log = $request->query->get('destination');
+  // Temporary: remove after create-event signup→/mel/post-login handoff is verified in logs.
   \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: register GET create-event context resolved_intent=@intent destination=@dest', [
     '@intent' => $resolved_for_log,
     '@dest' => is_string($dest_for_log) ? $dest_for_log : '',
@@ -320,6 +344,7 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
     '#value' => $raw_intent,
   ];
 
+  // Temporary: remove after create-event signup→/mel/post-login handoff is verified in logs.
   \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: register form mel_intent hidden added value=@v', [
     '@v' => $raw_intent,
   ]);
@@ -335,9 +360,10 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
 }
 
 /**
- * Submit handler: after self-registration, route create_event intent through MEL post-login.
+ * Submit handler: after self-registration with create_event intent, send the user
+ * to organiser profile onboarding; destination is /create-event for after completion.
  *
- * Destination policy remains exclusively in PostLoginRouter (MelPostLoginController).
+ * verify_mail: pending intent is stored; first real login is still handled by PostLoginRouter.
  *
  * When user.settings:verify_mail is TRUE, RegisterForm::save() does not call
  * user_login_finalize(); the user is not authenticated in this request. In that
@@ -392,19 +418,55 @@ function myeventlane_auth_user_register_form_post_save_redirect(array &$form, Fo
     return;
   }
 
-  $redirect_options = [
+  $form_state->setRedirect('myeventlane_vendor.onboard.profile', [], [
     'query' => [
-      'mel_intent' => IdentityIntentResolver::INTENT_CREATE_EVENT,
+      'destination' => '/create-event',
     ],
-  ];
-  $form_state->setRedirect('myeventlane_auth.post_login', [], $redirect_options);
+  ]);
 
-  $target_preview = Url::fromRoute('myeventlane_auth.post_login', [], $redirect_options)->toString();
+  $target_preview = Url::fromRoute('myeventlane_vendor.onboard.profile', [], [
+    'query' => [
+      'destination' => '/create-event',
+    ],
+  ])->toString();
+  // Temporary: remove after create-event signup→/mel/post-login handoff is verified in logs.
   \Drupal::logger('myeventlane_auth')->info(
     'MEL auth handoff: registration post-save redirect uid=@uid target=@target',
     [
       '@uid' => (string) \Drupal::currentUser()->id(),
       '@target' => $target_preview,
+    ],
+  );
+}
+
+/**
+ * Implements hook_form_user_form_alter().
+ *
+ * One-time password reset: after successful submit, continue into MEL create flow.
+ */
+function myeventlane_auth_form_user_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  if ($form_id !== 'user_form') {
+    return;
+  }
+  if ($form_state->get('user_pass_reset')) {
+    $form['actions']['submit']['#submit'][] = 'myeventlane_auth_reset_redirect_submit';
+  }
+}
+
+/**
+ * Submit after user one-time password set: hand off to create-event gateway.
+ */
+function myeventlane_auth_reset_redirect_submit(array &$form, FormStateInterface $form_state): void {
+  if (!$form_state->get('user_pass_reset')) {
+    return;
+  }
+  $form_state->setRedirect(
+    'myeventlane_vendor.create_event_gateway',
+    [],
+    [
+      'query' => [
+        'mel_intent' => IdentityIntentResolver::INTENT_CREATE_EVENT,
+      ],
     ],
   );
 }
@@ -467,7 +529,7 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
 
   // Gin Login: "Create new account" defaults to user.register with no query — preserve handoff.
   if (isset($form['more-links']['register_button']['#url'])) {
-    $preserve_register = myeventlane_auth_auth_preservation_query_from_request($request);
+    $preserve_register = myeventlane_auth_auth_entry_preserved_query($request);
     if ($preserve_register !== []) {
       $form['more-links']['register_button']['#url'] = Url::fromRoute('user.register', [], ['query' => $preserve_register]);
       $existing_login_cache = $form['#cache']['contexts'] ?? [];
@@ -476,7 +538,10 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
         'url.query_args:mel_intent',
         'url.query_args:intent',
       ])));
-      \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: login register link preserved query @q', [
+      $register_href = $form['more-links']['register_button']['#url']->toString();
+      // Temporary: remove after create-event→register→post-login is verified in logs.
+      \Drupal::logger('myeventlane_auth')->info('MEL auth handoff: login register link @href (query @q)', [
+        '@href' => $register_href,
         '@q' => json_encode($preserve_register, JSON_UNESCAPED_SLASHES),
       ]);
     }
