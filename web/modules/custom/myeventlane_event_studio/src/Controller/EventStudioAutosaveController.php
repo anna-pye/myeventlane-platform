@@ -8,7 +8,6 @@ use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
@@ -29,7 +28,6 @@ final class EventStudioAutosaveController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PrivateTempStoreFactory $privateTempStoreFactory,
-    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -39,11 +37,6 @@ final class EventStudioAutosaveController {
 
     $account = $this->currentUser;
     $params = $request->request->all();
-
-    // TEMP mel_debug: remove after verifying autosave mel_autosave_ts + stale compare.
-    $this->loggerFactory->get('mel_debug')->notice('TS: @ts', [
-      '@ts' => (string) ($request->request->get('mel_autosave_ts') ?? ''),
-    ]);
 
     $storage = $this->entityTypeManager->getStorage('node');
     $node = NULL;
@@ -63,11 +56,6 @@ final class EventStudioAutosaveController {
       $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
       $stored_ts = $store->get('node.' . $node->id());
       if ($stored_ts !== NULL && is_numeric($stored_ts) && $incoming_autosave_ts < (float) $stored_ts) {
-        // TEMP mel_debug: remove after verifying stale detection.
-        $this->loggerFactory->get('mel_debug')->notice('COMPARE incoming=@in stored=@st', [
-          '@in' => (string) $incoming_autosave_ts,
-          '@st' => (string) $stored_ts,
-        ]);
         return new JsonResponse([
           'ok' => FALSE,
           'latest_ts' => (float) $stored_ts,
@@ -107,15 +95,6 @@ final class EventStudioAutosaveController {
     if ($saved_node !== NULL && $incoming_autosave_ts !== NULL) {
       $store = $this->privateTempStoreFactory->get('myeventlane_event_studio_autosave');
       $store->set('node.' . $saved_node->id(), (float) $incoming_autosave_ts);
-      // TEMP mel_debug: remove after verifying tempstore write path.
-      $this->loggerFactory->get('mel_debug')->notice('SET TS nid=@nid ts=@ts', [
-        '@nid' => (string) $saved_node->id(),
-        '@ts' => (string) $incoming_autosave_ts,
-      ]);
-    }
-    elseif ($incoming_autosave_ts !== NULL) {
-      // TEMP mel_debug: should not happen when errors are empty; indicates save() returned no node.
-      $this->loggerFactory->get('mel_debug')->notice('SKIP SET: no saved node in result while TS present');
     }
 
     return new JsonResponse([

@@ -151,6 +151,75 @@
   margin-top: 0;
 }
 
+// Public-parity CTA + status (event_ui) on vendor list rows
+.mel-vendor-row-ui {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  text-align: right;
+}
+
+.mel-vendor-row-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid #e0e7f1;
+  background: #f8f9fd;
+  color: #1f2937;
+}
+
+.mel-vendor-row-cta--primary {
+  background: var(--mel-coral, #f26d5b);
+  border-color: #f4a99a;
+  color: #fff;
+}
+
+// Secondary: waitlist, view details (not coral).
+.mel-vendor-row-cta--secondary {
+  background: #ede6f5;
+  border-color: #cec4e0;
+  color: #3d3258;
+  font-weight: 700;
+}
+
+.mel-vendor-row-cta--disabled,
+.mel-vendor-row-cta.is-sold-out {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+  font-weight: 600;
+}
+
+.mel-vendor-row-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: #fff;
+}
+
+.mel-vendor-row-pill--highlight {
+  background: #ffefd9;
+  border-color: #f0c896;
+}
+
+.mel-vendor-row-pill--warning {
+  background: #fde8e3;
+  border-color: #edb5a8;
+}
+
 .mel-event-navigator {
   padding: 24px;
   border-right: 1px solid #e9edf3;

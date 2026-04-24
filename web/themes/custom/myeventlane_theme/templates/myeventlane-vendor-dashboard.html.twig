@@ -106,17 +106,33 @@
                     <span>${{ row.revenue|default(0)|number_format(2) }}</span>
                   </div>
                 </div>
-                <div class="mel-event-status">
-                  {% if row.event_mode == 'rsvp' %}
-                    {{ 'RSVP'|t }}
-                  {% elseif row.event_mode == 'paid' %}
-                    {{ 'Tickets'|t }}
-                  {% elseif row.event_mode == 'external' %}
-                    {{ 'External'|t }}
-                  {% elseif row.event_mode == 'both' %}
-                    {{ 'Both'|t }}
+                <div class="mel-event-status mel-vendor-row-ui">
+                  {% if row.event_ui is defined and row.event_ui is iterable
+                    and (
+                      (row.event_ui.show_cta|default(true) and (row.event_ui.cta_label|default('')|striptags|length > 0))
+                      or (row.event_ui.status_label|default('')|striptags|length > 0)
+                    )
+                  %}
+                    {% if (row.event_ui.cta_label|default('')|striptags|length > 0) %}
+                    <span class="mel-vendor-row-cta mel-vendor-row-cta--{{ row.event_ui.cta_type|default('secondary')|e('html_attr') }}{% if row.event_ui.is_sold_out|default(false) %} is-sold-out{% endif %}">
+                      {{ row.event_ui.cta_label }}
+                    </span>
+                    {% endif %}
+                    {% if (row.event_ui.status_label|default(''))|striptags|length > 0 %}
+                      <span class="mel-vendor-row-pill mel-vendor-row-pill--{{ row.event_ui.status_type|default('muted')|e('html_attr') }}">{{ row.event_ui.status_label }}</span>
+                    {% endif %}
                   {% else %}
-                    {{ row.event_mode|default('Draft'|t)|capitalize }}
+                    {% if row.event_mode == 'rsvp' %}
+                      {{ 'RSVP'|t }}
+                    {% elseif row.event_mode == 'paid' %}
+                      {{ 'Tickets'|t }}
+                    {% elseif row.event_mode == 'external' %}
+                      {{ 'External'|t }}
+                    {% elseif row.event_mode == 'both' %}
+                      {{ 'Both'|t }}
+                    {% else %}
+                      {{ row.event_mode|default('Draft'|t)|capitalize }}
+                    {% endif %}
                   {% endif %}
                 </div>
               </a>

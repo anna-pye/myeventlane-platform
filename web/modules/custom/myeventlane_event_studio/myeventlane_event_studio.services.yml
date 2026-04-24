@@ -93,6 +93,5 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_event_studio.highlight_helper'
       - '@tempstore.private'
-      - '@logger.factory'
     tags:
       - { name: controller.service_arguments }
