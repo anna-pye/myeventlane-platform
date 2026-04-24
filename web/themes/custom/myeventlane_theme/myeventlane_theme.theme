@@ -431,7 +431,7 @@ function myeventlane_theme_preprocess_commerce_checkout_pane(array &$variables):
  */
 function myeventlane_theme_preprocess_region__header(array &$variables): void {
   $current_user = \Drupal::currentUser();
-  $variables['is_vendor'] = $current_user->hasPermission('access vendor console');
+  $variables['is_vendor'] = $current_user->hasPermission('access vendor dashboard');
 }
 
 /**
@@ -877,7 +877,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
   }
   $variables['mel_footer_categories'] = $categories;
-  $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor console');
+  $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
   
   // Check if vendor settings route exists for header menu.
   $route_exists = FALSE;
