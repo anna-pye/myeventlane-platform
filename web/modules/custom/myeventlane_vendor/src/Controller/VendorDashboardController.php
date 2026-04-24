@@ -621,7 +621,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
    * Shell-level dashboard entrypoint for /dashboard and /vendor.
    */
   public function entrypointRedirect(): RedirectResponse {
-    if ($this->currentUser->hasPermission('access vendor console')) {
+    if ($this->currentUser->hasPermission('access vendor dashboard')) {
       $target = Url::fromRoute('myeventlane_vendor.console.dashboard')->toString();
       return new RedirectResponse($target, 302);
     }
