@@ -38,8 +38,12 @@ final class EventSuggestionService {
    * Backward-compatible flat suggestion list (top 3, formatted for JSON).
    *
    * @param array<string, mixed> $values
+   *   Live wizard values.
+   * @param \Drupal\node\NodeInterface|null $event
+   *   Event node, or null.
    *
    * @return list<array<string, mixed>>
+   *   Suggestion DTOs for JSON as before the extraction.
    */
   public function getSuggestions(array $values, ?NodeInterface $event): array {
     return $this->buildWizardInsights($values, $event)['suggestions'];

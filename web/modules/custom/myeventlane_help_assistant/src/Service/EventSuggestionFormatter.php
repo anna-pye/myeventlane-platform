@@ -78,6 +78,9 @@ final class EventSuggestionFormatter {
     ];
   }
 
+  /**
+   * Maps a numeric quality score to a machine-readable band.
+   */
   private function mapScoreBand(int $score): string {
     if ($score >= 90) {
       return 'ready_to_shine';
@@ -91,6 +94,9 @@ final class EventSuggestionFormatter {
     return 'needs_attention';
   }
 
+  /**
+   * Maps a quality score to the UI label (translated).
+   */
   private function mapScoreLabel(int $score): string {
     if ($score >= 90) {
       return (string) $this->t('Ready to shine');
@@ -104,6 +110,9 @@ final class EventSuggestionFormatter {
     return (string) $this->t('Needs attention');
   }
 
+  /**
+   * Maps a quality score to the help paragraph under the label.
+   */
   private function buildScoreSummaryText(int $score): string {
     if ($score >= 90) {
       return (string) $this->t('Your event is looking great. Everything’s in place for a strong launch.');
@@ -118,9 +127,13 @@ final class EventSuggestionFormatter {
   }
 
   /**
+   * Normalises an internal row for JSON (ids, type, group, action shape).
+   *
    * @param array<string, mixed> $row
+   *   Internal engine row.
    *
    * @return array<string, mixed>
+   *   API row as previously returned by the monolith.
    */
   public function formatSuggestionForApi(array $row): array {
     $id = (string) ($row['id'] ?? '');
@@ -152,7 +165,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Picks a display title for a known suggestion id.
    */
   private function titleForSuggestionId(string $id): string {
     return match ($id) {
@@ -178,7 +191,10 @@ final class EventSuggestionFormatter {
   }
 
   /**
+   * Assembles a single engine row (title, optional normalised action).
+   *
    * @return array{id: string, type: string, group: string, priority: int, message: string, title?: string, action?: array<string, string>}
+   *   Internal row prior to formatSuggestionForApi.
    */
   public function row(string $id, string $type, string $group, int $priority, string $message, ?array $action): array {
     $row = [
@@ -199,9 +215,13 @@ final class EventSuggestionFormatter {
   }
 
   /**
+   * Restricts and copies action data for the client API.
+   *
    * @param array<string, mixed> $action
+   *   Raw action array from a rule.
    *
    * @return array<string, string>|null
+   *   Normalised type/label/urls or null to omit.
    */
   public function normalizeActionForApi(array $action): ?array {
     $type = (string) ($action['type'] ?? '');
@@ -235,7 +255,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Builds a link action to a Help Centre article, when configured.
    */
   public function helpActionLink(string $key, string $label): ?array {
     $url = $this->helpPath($key);
@@ -250,7 +270,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Shorthand for the create-ticket modal action in the event studio.
    */
   public function modalCreateTicketAction(string $label): array {
     return [
@@ -261,7 +281,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Event Studio link for the ticketing section, with help fallback.
    */
   public function wizardTicketsAction(NodeInterface $event, string $label): ?array {
     try {
@@ -279,7 +299,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Event Studio link for when/where fields, with help fallback.
    */
   public function wizardWhenWhereAction(NodeInterface $event, string $label): ?array {
     try {
@@ -297,7 +317,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Event Studio link for description and detail fields, with help fallback.
    */
   public function wizardDetailsAction(NodeInterface $event, string $label): ?array {
     try {
@@ -315,7 +335,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Node edit form link for image/category basics, with help fallback.
    */
   public function wizardBasicsAction(NodeInterface $event, string $label): ?array {
     try {
@@ -333,7 +353,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Link to the vendor boost wizard, or null if the route is missing.
    */
   public function boostWizardAction(NodeInterface $event): ?array {
     try {
@@ -351,7 +371,7 @@ final class EventSuggestionFormatter {
   }
 
   /**
-   *
+   * Resolves a Help Centre URL for a help_centre key, or null.
    */
   private function helpPath(string $key): ?string {
     if (!function_exists('myeventlane_help_centre_get_link')) {

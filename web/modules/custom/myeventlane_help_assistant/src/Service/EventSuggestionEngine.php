@@ -333,7 +333,7 @@ final class EventSuggestionEngine {
   }
 
   /**
-   * 0-100 event quality score from the same heuristics as before extraction.
+   * Numeric 0-100 event quality score from the same heuristics as before extraction.
    *
    * @param array<string, mixed> $values
    *   Live wizard values.
