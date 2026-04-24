@@ -1111,12 +1111,14 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       catch (\Throwable) {
         $eventNode = NULL;
       }
-      $eventDomainState = [
-        'has_product' => $eventNode ? $this->eventDomainStateResolver->hasProductTarget($eventNode) : FALSE,
-        'is_boosted' => $eventNode ? $this->eventDomainStateResolver->isEventBoosted($eventNode) : FALSE,
-        'rsvp_state' => $eventNode ? $this->eventDomainStateResolver->effectiveRsvpCapacityState([], $eventNode) : 'unset',
-        'capacity' => $eventNode ? $this->eventDomainStateResolver->effectiveVenueCapacity([], $eventNode) : 0,
-      ];
+      $eventDomainState = $eventNode instanceof NodeInterface
+        ? $this->eventDomainStateResolver->getEventDomainState($eventNode)
+        : [
+          'has_product' => FALSE,
+          'is_boosted' => FALSE,
+          'rsvp_state' => 'unset',
+          'capacity' => 0,
+        ];
       $eventImageUrl = $dto->image_url;
 
       $startDate = $dto->start_timestamp > 0 ? date('M j, Y', $dto->start_timestamp) : '';
