@@ -53,11 +53,11 @@
 {% endif %}
 {% set mel_gcal_href = '' %}
 {% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
-  {% set mel_cal_start = node.field_event_start.value|date('Ymd\\THis') %}
+  {% set mel_cal_start = node.field_event_start.value|date('Ymd\THis') %}
   {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
-    {% set mel_cal_end = node.field_event_end.value|date('Ymd\\THis') %}
+    {% set mel_cal_end = node.field_event_end.value|date('Ymd\THis') %}
   {% else %}
-    {% set mel_cal_end = node.field_event_start.value|date_modify('+2 hours')|date('Ymd\\THis') %}
+    {% set mel_cal_end = node.field_event_start.value|date_modify('+2 hours')|date('Ymd\THis') %}
   {% endif %}
   {% set mel_canon = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
   {% set mel_gcal_href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' ~ (label|url_encode) ~ '&dates=' ~ mel_cal_start ~ '/' ~ mel_cal_end ~ '&details=' ~ (mel_canon|url_encode) %}
