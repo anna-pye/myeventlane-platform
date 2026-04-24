@@ -224,6 +224,12 @@ services:
       - '@cache_tags.invalidator'
       - '@logger.factory'
 
+  myeventlane_core.event_state_resolver:
+    class: Drupal\myeventlane_core\Service\EventStateResolver
+    arguments:
+      - '@logger.channel.myeventlane_core'
+      - '@?myeventlane_boost.manager'
+
   myeventlane_core.ticket_label_resolver:
     class: Drupal\myeventlane_core\Service\TicketLabelResolver
 
