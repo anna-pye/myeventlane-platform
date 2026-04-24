@@ -283,6 +283,7 @@ final class EventSuggestionEngine {
       );
     }
     elseif ($hasRsvpLeg && $event && $confirmationsOn && $event->isPublished()) {
+      // @todo Standardise event route parameters to {node} across modules and remove legacy {event} handling.
       try {
         $ics = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => $event->id()], ['absolute' => FALSE])->toString();
         $out[] = $this->formatter->row(
