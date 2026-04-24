@@ -291,6 +291,10 @@ myeventlane_vendor.shell.vendor_root:
   requirements:
     _access: 'TRUE'
 
+# Access to this route: require "access vendor dashboard" in addition to other
+# VendorConsoleAccess rules. We cannot add _permission here without breaking
+# the "administer nodes" bypass, which is enforced before the dashboard
+# permission gate inside VendorConsoleAccess.
 myeventlane_vendor.console.dashboard:
   path: '/vendor/dashboard'
   defaults:

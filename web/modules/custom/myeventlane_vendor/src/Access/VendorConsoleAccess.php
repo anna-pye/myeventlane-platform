@@ -26,6 +26,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * subscriber so organiser accounts are not denied when permission resolution
  * lags role assignment.
  *
+ * The vendor dashboard route (myeventlane_vendor.console.dashboard) requires
+ * the "access vendor dashboard" permission (after onboarding) so menu links
+ * and direct URLs stay aligned with the same check.
+ *
  * In addition, vendor-track onboarding with completed = FALSE is restricted
  * to onboarding and Stripe connect paths, plus Event Studio under
  * /vendor/events/* and (when this access check applies) selected routes so
@@ -118,6 +122,17 @@ final class VendorConsoleAccess {
       return AccessResult::forbidden()
         ->addCacheContexts(self::CACHE_CONTEXTS)
         ->addCacheableDependency($state);
+    }
+
+    if ($route_match->getRouteName() === 'myeventlane_vendor.console.dashboard') {
+      if (!$account->hasPermission('access vendor dashboard')) {
+        $this->logDecision($account, $path, 'forbidden_no_vendor_dashboard');
+        return AccessResult::forbidden()
+          ->addCacheContexts(self::CACHE_CONTEXTS);
+      }
+      $this->logDecision($account, $path, 'allowed_vendor_dashboard');
+      return AccessResult::allowed()
+        ->addCacheContexts(self::CACHE_CONTEXTS);
     }
 
     if (VendorConsoleTrust::accountIsTrustedForVendorConsole($account)) {

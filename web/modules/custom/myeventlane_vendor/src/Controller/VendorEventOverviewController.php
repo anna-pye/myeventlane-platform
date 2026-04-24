@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
 use Drupal\myeventlane_boost\Service\BoostHelpContent;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
@@ -33,6 +34,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     private readonly MetricsAggregator $metricsAggregator,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly EventCtaResolver $ctaResolver,
+    private readonly EventStateResolver $eventDomainStateResolver,
     private readonly BoostHelpContent $boostHelpContent,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly ?ProActiveResolver $proActiveResolver = NULL,
@@ -189,6 +191,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       '#show_support_card' => $mission['show_support_card'],
       '#pro_upgrade_url' => $pro_upgrade_url,
       '#refund_analytics' => $refundAnalytics,
+      '#event_domain_state' => $mission['event_domain_state'],
       '#cache' => [
         'tags' => $event->getCacheTags(),
         'contexts' => $event->getCacheContexts(),
@@ -598,6 +601,12 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       'boost_card' => $boost_card,
       'support_card' => $support_card,
       'show_support_card' => $show_support_card,
+      'event_domain_state' => [
+        'has_product' => $this->eventDomainStateResolver->hasProductTarget($event),
+        'is_boosted' => $this->eventDomainStateResolver->isEventBoosted($event),
+        'rsvp_state' => $this->eventDomainStateResolver->effectiveRsvpCapacityState([], $event),
+        'capacity' => $this->eventDomainStateResolver->effectiveVenueCapacity([], $event),
+      ],
     ];
   }
 

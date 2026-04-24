@@ -13,3 +13,25 @@ myeventlane_vendor.admin_link:
   route_name: myeventlane_vendor.settings
   parent: myeventlane_core.config
   weight: 25
+
+# User account menu (source of truth: route access on each link).
+myeventlane_vendor.menu_account.dashboard:
+  title: 'Dashboard'
+  route_name: myeventlane_vendor.console.dashboard
+  menu_name: account
+  weight: -50
+myeventlane_vendor.menu_account.events:
+  title: 'My events'
+  route_name: myeventlane_vendor.console.events
+  menu_name: account
+  weight: -49
+myeventlane_vendor.menu_account.create_event:
+  title: 'Create event'
+  route_name: myeventlane_vendor.console.events_add
+  menu_name: account
+  weight: -48
+myeventlane_vendor.menu_account.settings:
+  title: 'Settings'
+  route_name: myeventlane_vendor.console.settings
+  menu_name: account
+  weight: -47

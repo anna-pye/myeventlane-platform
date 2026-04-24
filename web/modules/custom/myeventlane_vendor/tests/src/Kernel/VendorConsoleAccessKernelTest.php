@@ -97,17 +97,35 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
   }
 
   /**
-   * access vendor console permission only → allowed.
+   * access vendor console but not "access vendor dashboard" → dashboard forbidden.
    *
    * @covers ::access
    */
-  public function testAuthenticatedUserWithAccessVendorConsolePermissionOnlyAllowed(): void {
+  public function testConsolePermissionWithoutDashboardPermissionOnDashboardDenied(): void {
     $this->ensureConsolePermissionRole();
     $this->pushPathRequest('/vendor/dashboard');
     $user = $this->createUserWithRoles(['authenticated', 'console_perm_only']);
     $this->assertTrue(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
-    $result = $this->access()->access($this->dashboardRouteMatch(), $user);
-    $this->assertTrue($result->isAllowed());
+    $this->assertFalse($user->hasPermission('access vendor dashboard'));
+    $this->assertTrue(
+      $this->access()->access($this->dashboardRouteMatch(), $user)->isForbidden()
+    );
+    $this->popRequest();
+  }
+
+  /**
+   * "access vendor dashboard" only (no trust) → allowed on /vendor/dashboard.
+   *
+   * @covers ::access
+   */
+  public function testAuthenticatedUserWithAccessVendorDashboardPermissionOnlyAllowedOnDashboard(): void {
+    $this->ensureDashboardPermissionRole();
+    $this->pushPathRequest('/vendor/dashboard');
+    $user = $this->createUserWithRoles(['authenticated', 'dashboard_perm_only']);
+    $this->assertFalse(VendorConsoleTrust::accountIsTrustedForVendorConsole($user));
+    $this->assertTrue(
+      $this->access()->access($this->dashboardRouteMatch(), $user)->isAllowed()
+    );
     $this->popRequest();
   }
 
@@ -189,14 +207,24 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
   }
 
   private function ensureVendorRoleExists(): void {
-    if (Role::load(MelVendorOrganiserRole::MACHINE_NAME)) {
+    $id = MelVendorOrganiserRole::MACHINE_NAME;
+    $role = Role::load($id);
+    if ($role) {
+      if (!$role->hasPermission('access vendor dashboard')) {
+        $role->grantPermission('access vendor dashboard');
+        $role->save();
+      }
       return;
     }
     $role = Role::create([
-      'id' => MelVendorOrganiserRole::MACHINE_NAME,
+      'id' => $id,
       'label' => 'Vendor',
     ]);
     $role->save();
+    user_role_grant_permissions($id, [
+      'access vendor console',
+      'access vendor dashboard',
+    ]);
   }
 
   private function ensureConsolePermissionRole(): void {
@@ -209,6 +237,18 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
     ]);
     $role->save();
     user_role_grant_permissions('console_perm_only', ['access vendor console']);
+  }
+
+  private function ensureDashboardPermissionRole(): void {
+    if (Role::load('dashboard_perm_only')) {
+      return;
+    }
+    $role = Role::create([
+      'id' => 'dashboard_perm_only',
+      'label' => 'Dashboard perm only',
+    ]);
+    $role->save();
+    user_role_grant_permissions('dashboard_perm_only', ['access vendor dashboard']);
   }
 
   private function ensureSiteAdminRole(): void {

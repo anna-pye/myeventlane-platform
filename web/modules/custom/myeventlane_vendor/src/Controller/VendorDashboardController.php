@@ -15,6 +15,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_ai\Service\AiUsageTracker;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
+use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\State\StateInterface;
@@ -99,6 +100,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected EventStateResolverInterface $eventStateResolver;
 
   /**
+   * Domain event state: product, RSVP/capacity, boost/promo (myeventlane_core).
+   */
+  protected EventStateResolver $eventDomainStateResolver;
+
+  /**
    * AI usage tracker (optional, for vendor AI panel).
    */
   protected ?AiUsageTracker $aiUsageTracker;
@@ -170,6 +176,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     ?EventCapacityServiceInterface $capacity_service,
     OnboardingManager $onboarding_manager,
     EventStateResolverInterface $event_state_resolver,
+    EventStateResolver $event_domain_state_resolver,
     StateInterface $state,
     LoggerInterface $mel_debug_logger,
     ?AiUsageTracker $ai_usage_tracker = NULL,
@@ -194,6 +201,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $this->capacityService = $capacity_service;
     $this->onboardingManager = $onboarding_manager;
     $this->eventStateResolver = $event_state_resolver;
+    $this->eventDomainStateResolver = $event_domain_state_resolver;
     $this->state = $state;
     $this->melDebugLogger = $mel_debug_logger;
     $this->aiUsageTracker = $ai_usage_tracker;
@@ -226,6 +234,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_capacity.service') ? $container->get('myeventlane_capacity.service') : NULL,
       $container->get('myeventlane_onboarding.manager'),
       $container->get('myeventlane_event_state.resolver'),
+      $container->get('myeventlane_core.event_state_resolver'),
       $container->get('state'),
       $container->get('logger.channel.mel_debug'),
       $container->has('myeventlane_ai.usage_tracker') ? $container->get('myeventlane_ai.usage_tracker') : NULL,
@@ -1092,6 +1101,22 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
 
       $eventId = $dto->id;
+      $eventNode = NULL;
+      try {
+        $loaded = $this->entityTypeManager->getStorage('node')->load($eventId);
+        if ($loaded instanceof NodeInterface) {
+          $eventNode = $loaded;
+        }
+      }
+      catch (\Throwable) {
+        $eventNode = NULL;
+      }
+      $eventDomainState = [
+        'has_product' => $eventNode ? $this->eventDomainStateResolver->hasProductTarget($eventNode) : FALSE,
+        'is_boosted' => $eventNode ? $this->eventDomainStateResolver->isEventBoosted($eventNode) : FALSE,
+        'rsvp_state' => $eventNode ? $this->eventDomainStateResolver->effectiveRsvpCapacityState([], $eventNode) : 'unset',
+        'capacity' => $eventNode ? $this->eventDomainStateResolver->effectiveVenueCapacity([], $eventNode) : 0,
+      ];
       $eventImageUrl = $dto->image_url;
 
       $startDate = $dto->start_timestamp > 0 ? date('M j, Y', $dto->start_timestamp) : '';
@@ -1230,7 +1255,6 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if ($this->boostPerformance !== NULL) {
         $boostPerformancePayload = [];
         try {
-          $eventNode = $this->entityTypeManager->getStorage('node')->load($eventId);
           if ($eventNode instanceof NodeInterface) {
             $boostPerformancePayload = $this->boostPerformance->getPerformanceForEvent($eventNode);
           }
@@ -1276,6 +1300,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'export_csv_url' => $exportCsvUrl,
         'waitlist' => $waitlistAnalytics,
         'rsvp' => $stats,
+        'event_domain_state' => $eventDomainState,
         'boost' => $boost,
         'boost_wizard_url' => $boostWizardUrl,
         'view_url' => Url::fromRoute('entity.node.canonical', ['node' => $eventId])->toString(),

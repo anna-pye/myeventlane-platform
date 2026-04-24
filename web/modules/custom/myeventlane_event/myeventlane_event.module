@@ -840,12 +840,32 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   $variables['event_cta'] = $ctaResolver->getResolvedCta($node);
   $variables['mel_is_bookable'] = $ctaResolver->isBookable($node);
 
+  $domainStateResolver = \Drupal::hasService('myeventlane_core.event_state_resolver')
+    ? \Drupal::service('myeventlane_core.event_state_resolver')
+    : NULL;
+  if ($domainStateResolver) {
+    $variables['mel_event_state_snapshot'] = [
+      'has_product' => $domainStateResolver->hasProductTarget($node),
+      'is_boosted' => $domainStateResolver->isEventBoosted($node),
+      'rsvp_state' => $domainStateResolver->effectiveRsvpCapacityState([], $node),
+      'capacity' => $domainStateResolver->effectiveVenueCapacity([], $node),
+    ];
+  }
+  else {
+    $variables['mel_event_state_snapshot'] = [
+      'has_product' => FALSE,
+      'is_boosted' => FALSE,
+      'rsvp_state' => 'unset',
+      'capacity' => 0,
+    ];
+  }
+
   $salesStart = $stateResolver->getSalesStart($node);
   $variables['mel_sales_start_formatted'] = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
 
   // Lowest enabled ticket price for "Tickets from $X" (paid) or "Free" (RSVP).
   $variables['mel_tickets_from'] = NULL;
-  if ($node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+  if ($domainStateResolver?->hasProductTarget($node)) {
     $product = $node->get('field_product_target')->entity;
     if ($product && $product->getEntityTypeId() === 'commerce_product') {
       $variations = $product->getVariations();
