@@ -83,11 +83,6 @@ services:
       - '@config.factory'
       - '@myeventlane_core.stripe'
 
-  myeventlane_admin_dashboard.reports_controller:
-    class: Drupal\myeventlane_admin_dashboard\Controller\ReportsController
-    arguments:
-      - '@myeventlane_reporting.admin_reports'
-
   myeventlane_admin_dashboard.payout_batch_workflow:
     class: Drupal\myeventlane_admin_dashboard\Service\PayoutBatchWorkflowService
     arguments:

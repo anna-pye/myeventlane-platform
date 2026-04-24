@@ -1660,12 +1660,15 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_console_page(arr
     'myeventlane_vendor.console.event_overview',
     'myeventlane_vendor.console.event_analytics',
     'myeventlane_vendor.console.event_rsvps',
-    'myeventlane_vendor.console.event_attendees',
+    'myeventlane_event_attendees.vendor_list',
   ];
   if (!in_array($route_name, $routes_with_meta, TRUE)) {
     return;
   }
   $event = \Drupal::routeMatch()->getParameter('event');
+  if (!$event instanceof NodeInterface) {
+    $event = \Drupal::routeMatch()->getParameter('node');
+  }
   if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
     return;
   }
@@ -1805,7 +1808,7 @@ function _myeventlane_vendor_theme_get_active_section(?string $route_name): stri
     'myeventlane_refunds.vendor_refund_request_approve' => 'refund_requests',
     'myeventlane_refunds.vendor_refund_request_reject' => 'refund_requests',
     'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
-    'myeventlane_vendor.console.event_attendees' => 'attendees',
+    'myeventlane_event_attendees.vendor_list' => 'attendees',
     'myeventlane_vendor.console.event_rsvps' => 'attendees',
     'myeventlane_vendor.console.payouts' => 'payouts',
     'myeventlane_vendor.console.boost' => 'growth',

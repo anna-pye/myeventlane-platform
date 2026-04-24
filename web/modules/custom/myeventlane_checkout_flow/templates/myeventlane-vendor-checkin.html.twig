@@ -45,7 +45,7 @@
 
   {# Search Box #}
   <div class="mel-section mel-mt-6">
-    <form method="get" action="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event.id()}) }}" class="mel-search-form">
+    <form method="get" action="{{ url('myeventlane_checkin.page', {'node': event.id()}) }}" class="mel-search-form">
       <div class="mel-search-box">
         <input type="text"
                name="search"
@@ -54,7 +54,7 @@
                class="mel-input mel-input-search">
         <button type="submit" class="mel-btn mel-btn-primary">Search</button>
         {% if search %}
-          <a href="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event.id()}) }}"
+          <a href="{{ url('myeventlane_checkin.page', {'node': event.id()}) }}"
              class="mel-btn mel-btn-secondary">
             Clear
           </a>

@@ -287,6 +287,7 @@ services:
       - '@myeventlane_event_attendees.manager'
       - '@myeventlane_vendor.service.event_tabs'
       - '@myeventlane_event_attendees.vendor_presentation'
+      - '@module_handler'
       - '@?myeventlane_growth.tracking'
     tags:
       - { name: controller.service_arguments }

@@ -305,7 +305,7 @@ final class VendorThemePagePreprocess {
       'myeventlane_vendor.console.event_order_view' => 'orders',
       'myeventlane_vendor.console.event_orders' => 'orders',
       'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
-      'myeventlane_vendor.console.event_attendees' => 'attendees',
+      'myeventlane_event_attendees.vendor_list' => 'attendees',
       'myeventlane_vendor.console.event_rsvps' => 'attendees',
       'myeventlane_vendor.console.payouts' => 'payouts',
       'myeventlane_vendor.console.boost' => 'growth',

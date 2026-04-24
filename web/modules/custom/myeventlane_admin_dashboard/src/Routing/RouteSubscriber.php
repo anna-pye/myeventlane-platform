@@ -10,16 +10,10 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * Alters routes to resolve path conflict with myeventlane_reporting.
- *
- * Moves myeventlane_reporting.admin.overview to /admin/myeventlane/reports/dashboard
- * so myeventlane_admin_dashboard.reports can use /admin/myeventlane/reports.
+ * Alters admin routes: PCC shell alignment; reporting is owned by myeventlane_reporting.
  */
 final class RouteSubscriber extends RouteSubscriberBase {
 
-  /**
-   * {@inheritdoc}
-   */
   public static function getSubscribedEvents(): array {
     $events = [];
     $events[RoutingEvents::ALTER] = ['onAlterRoutes', -20];
@@ -27,7 +21,7 @@ final class RouteSubscriber extends RouteSubscriberBase {
   }
 
   /**
-   * Reporting routes that should allow PCC users (not only "view admin reports").
+   * Reporting admin routes: PCC access + local tasks under the Control Centre.
    *
    * @var array<string>
    */
@@ -42,10 +36,9 @@ final class RouteSubscriber extends RouteSubscriberBase {
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection): void {
-    $route = $collection->get('myeventlane_reporting.admin.overview');
-    if ($route !== NULL) {
-      $route->setPath('/admin/myeventlane/reports/dashboard');
-      $route->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
+    $overview = $collection->get('myeventlane_reporting.admin.overview');
+    if ($overview !== NULL) {
+      $overview->setOption('_menu_base_route', 'myeventlane_admin_dashboard.platform_control');
     }
     foreach (['myeventlane_reporting.admin.vendors', 'myeventlane_reporting.admin.events', 'myeventlane_reporting.admin.finance'] as $name) {
       $r = $collection->get($name);
@@ -74,14 +67,10 @@ final class RouteSubscriber extends RouteSubscriberBase {
       }
     }
 
-    // Own the orders path via myeventlane_admin_dashboard.orders; drop the Views page route
-    // so local tasks and menu links never depend on view.vendor_orders.admin_orders existing.
     if ($collection->get('view.vendor_orders.admin_orders') !== NULL) {
       $collection->remove('view.vendor_orders.admin_orders');
     }
 
-    // If the module route is missing (stale router rebuild, partial deploy), register it here
-    // so PCC tabs and menu links that reference myeventlane_admin_dashboard.orders do not 500.
     if ($collection->get('myeventlane_admin_dashboard.orders') === NULL) {
       $ordersRoute = new Route(
         '/admin/myeventlane/orders',

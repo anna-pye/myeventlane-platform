@@ -59,8 +59,8 @@ final class MessageAttendeesController extends VendorConsoleBaseController {
 
     $form = $this->formBuilder->getForm(MessageAttendeesForm::class, $node);
 
-    $attendeesUrl = Url::fromRoute('myeventlane_vendor.console.event_attendees', [
-      'event' => $node->id(),
+    $attendeesUrl = Url::fromRoute('myeventlane_event_attendees.vendor_list', [
+      'node' => $node->id(),
     ])->toString();
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [

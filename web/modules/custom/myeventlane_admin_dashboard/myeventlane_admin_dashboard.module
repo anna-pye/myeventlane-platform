@@ -28,7 +28,6 @@ function _myeventlane_admin_dashboard_is_pcc_route(?string $route_name): bool {
     'myeventlane_admin_dashboard.vendors',
     'myeventlane_admin_dashboard.orders',
     'myeventlane_admin_dashboard.payouts',
-    'myeventlane_admin_dashboard.reports',
     'myeventlane_admin_dashboard.payout_batches',
     'myeventlane_admin_dashboard.payout_batch_view',
     'entity.escalation.collection',
@@ -378,7 +377,7 @@ function myeventlane_admin_dashboard_toolbar(): array {
   if ($account->hasPermission('view myeventlane reports')) {
     $links['create_report'] = [
       'title' => t('Reports'),
-      'url' => Url::fromRoute('myeventlane_admin_dashboard.reports'),
+      'url' => Url::fromRoute('myeventlane_reporting.admin.overview'),
       'attributes' => ['title' => t('View platform reports')],
     ];
   }

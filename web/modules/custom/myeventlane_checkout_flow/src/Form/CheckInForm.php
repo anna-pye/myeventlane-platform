@@ -120,8 +120,7 @@ final class CheckInForm extends FormBase {
         : $this->t('Check-in undone.')
     );
 
-    // Redirect back to check-in page.
-    $form_state->setRedirect('myeventlane_checkout_flow.vendor_checkin', ['node' => $event->id()]);
+    $form_state->setRedirect('myeventlane_checkin.page', ['node' => $event->id()]);
   }
 
 }

@@ -16,9 +16,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Admin sidebar contextual navigation for Platform Control Centre.
  *
- * Uses the route access system so links match actual page access (including PCC
- * + reporting alignment from PlatformControlReportingAccess).
- *
  * @Block(
  *   id = "mel_admin_sidebar_nav",
  *   admin_label = @Translation("MEL Admin Sidebar Navigation"),
@@ -27,11 +24,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
-  /**
-   * Nav items: route_name => label (untranslated key for t()).
-   *
-   * @var array<string, string>
-   */
   private const NAV_ITEMS = [
     'myeventlane_admin_dashboard.platform_control' => 'Overview',
     'myeventlane_admin_dashboard.vendors' => 'Vendors',
@@ -39,15 +31,19 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     'myeventlane_reporting.admin.events' => 'Events',
     'myeventlane_reporting.admin.finance' => 'Finance',
     'myeventlane_admin_dashboard.payouts' => 'Payouts',
-    'myeventlane_admin_dashboard.reports' => 'Reports',
+    'myeventlane_reporting.admin.overview' => 'Reports',
     'entity.escalation.collection' => 'Escalations',
     'myeventlane_support_console.dashboard' => 'Support',
     'myeventlane_admin_dashboard.platform_studio' => 'Platform',
   ];
 
-  /**
-   * Constructs the block.
-   */
+  private const REPORTING_OVERVIEW_ROUTES = [
+    'myeventlane_reporting.admin.overview',
+    'myeventlane_reporting.admin.vendors',
+    'myeventlane_reporting.admin.events',
+    'myeventlane_reporting.admin.finance',
+  ];
+
   public function __construct(
     array $configuration,
     $plugin_id,
@@ -59,9 +55,6 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration,
@@ -73,12 +66,10 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     );
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function build(): array {
     $currentRoute = (string) $this->routeMatch->getRouteName();
     $links = [];
+    $reportingContext = in_array($currentRoute, self::REPORTING_OVERVIEW_ROUTES, TRUE);
 
     foreach (self::NAV_ITEMS as $route => $label) {
       $access = $this->accessManager->checkNamedRoute($route, [], $this->currentUser, TRUE);
@@ -91,10 +82,12 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
       catch (\Exception $e) {
         continue;
       }
+      $isActive = ($route === $currentRoute)
+        || ($route === 'myeventlane_reporting.admin.overview' && $reportingContext);
       $links[] = [
         'label' => $this->t($label),
         'url' => $url->toString(),
-        'active' => ($route === $currentRoute),
+        'active' => $isActive,
       ];
     }
 
@@ -112,9 +105,6 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     ];
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function getCacheContexts(): array {
     return Cache::mergeContexts(parent::getCacheContexts(), [
       'user.permissions',
@@ -122,9 +112,6 @@ final class MelAdminSidebarNavBlock extends BlockBase implements ContainerFactor
     ]);
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function getCacheTags(): array {
     return Cache::mergeTags(parent::getCacheTags(), [
       'config:myeventlane_admin_dashboard.settings',

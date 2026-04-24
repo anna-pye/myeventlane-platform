@@ -42,9 +42,17 @@ services:
     calls:
       - [setStringTranslation, ['@string_translation']]
 
-  myeventlane_help_assistant.event_suggestions:
-    class: Drupal\myeventlane_help_assistant\Service\EventSuggestionService
+  myeventlane_help_assistant.event_suggestion_formatter:
+    class: Drupal\myeventlane_help_assistant\Service\EventSuggestionFormatter
     arguments:
+      - '@logger.channel.myeventlane_help_assistant'
+    calls:
+      - [setStringTranslation, ['@string_translation']]
+
+  myeventlane_help_assistant.event_suggestion_engine:
+    class: Drupal\myeventlane_help_assistant\Service\EventSuggestionEngine
+    arguments:
+      - '@myeventlane_help_assistant.event_suggestion_formatter'
       - '@myeventlane_help_assistant.retriever'
       - '@myeventlane_ai.manager'
       - '@config.factory'
@@ -54,3 +62,9 @@ services:
       - '@?myeventlane_event_attendees.manager'
     calls:
       - [setStringTranslation, ['@string_translation']]
+
+  myeventlane_help_assistant.event_suggestions:
+    class: Drupal\myeventlane_help_assistant\Service\EventSuggestionService
+    arguments:
+      - '@myeventlane_help_assistant.event_suggestion_engine'
+      - '@myeventlane_help_assistant.event_suggestion_formatter'

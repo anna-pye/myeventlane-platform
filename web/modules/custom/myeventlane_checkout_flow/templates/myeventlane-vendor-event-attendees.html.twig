@@ -77,7 +77,7 @@
     <div class="mel-section-header">
       <h2 class="mel-section-title">Attendees ({{ attendees|length }})</h2>
       <div class="mel-section-actions">
-        <a href="{{ url('myeventlane_checkout_flow.vendor_checkin', {'node': event.id()}) }}"
+        <a href="{{ url('myeventlane_checkin.page', {'node': event.id()}) }}"
            class="mel-btn mel-btn-primary">
           ✓ Check In
         </a>

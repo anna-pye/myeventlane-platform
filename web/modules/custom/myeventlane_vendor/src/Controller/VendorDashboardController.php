@@ -1257,7 +1257,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'end_timestamp' => $endTimestamp,
         'is_ended' => $isEnded,
         'percent_sold' => $percentSold,
-        'attendees_url' => Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $eventId])->toString(),
+        'attendees_url' => Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $eventId])->toString(),
         'duplicate_url' => Url::fromRoute('myeventlane_event.duplicate', ['node' => $eventId])->toString(),
         'status' => $status,
         'status_label' => $statusLabel,

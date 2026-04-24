@@ -429,7 +429,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
     $quick_actions[] = [
       'title' => (string) $this->t('View attendees'),
       'description' => (string) $this->t('Browse RSVPs, tickets and guest details'),
-      'url' => Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $event_id])->toString(),
+      'url' => Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $event_id])->toString(),
       'icon' => '→',
     ];
     $analytics_url = $this->safeRouteUrl('myeventlane_vendor.console.event_analytics', ['event' => $event_id]);

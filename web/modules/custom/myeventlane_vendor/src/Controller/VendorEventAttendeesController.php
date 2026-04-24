@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -20,9 +21,6 @@ use Drupal\node\NodeInterface;
  */
 final class VendorEventAttendeesController extends VendorConsoleBaseController {
 
-  /**
-   * Constructs the controller.
-   */
   public function __construct(
     DomainDetector $domain_detector,
     AccountProxyInterface $current_user,
@@ -30,31 +28,28 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly VendorAttendeePresentationService $vendorPresentation,
+    private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ?GrowthTrackingService $growthTracking = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
 
-  /**
-   * Displays attendees for an event.
-   */
-  public function attendees(NodeInterface $event): array {
-    $this->assertEventOwnership($event);
+  public function attendees(NodeInterface $node): array {
+    $this->assertEventOwnership($node);
     if ($this->growthTracking) {
       $this->growthTracking->recordConversionForPrefixes(
         (int) $this->currentUser->id(),
-        (int) $event->id(),
+        (int) $node->id(),
         'attendee_review',
         ['retention_'],
         [],
       );
     }
-    $tabs = $this->eventTabsService->getTabs($event, 'attendees');
+    $tabs = $this->eventTabsService->getTabs($node, 'attendees');
 
-    $attendees = $this->attendanceManager->getAttendeesForEvent((int) $event->id());
-    $availability = $this->attendanceManager->getAvailability($event);
+    $attendees = $this->attendanceManager->getAttendeesForEvent((int) $node->id());
+    $availability = $this->attendanceManager->getAvailability($node);
 
-    // Group attendees by source.
     $grouped = [
       'ticket' => [],
       'rsvp' => [],
@@ -73,13 +68,12 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
       }
     }
 
-    // Build attendee rows for the table (one row per attendee, all info on one line).
     $rows = [];
     $pairTotal = 0;
     foreach ($attendees as $attendee) {
       $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
       $pairTotal += count($vm['custom_answers']);
-      $orderLink = $this->buildOrderLinkForAttendee($attendee, $event);
+      $orderLink = $this->buildOrderLinkForAttendee($attendee, $node);
 
       $rows[] = [
         'name' => $vm['full_name'],
@@ -96,22 +90,31 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
         'ticket_code' => $vm['ticket_code'],
       ];
     }
-    $this->vendorPresentation->logVendorParityBatch('vendor_attendees_list', (int) $event->id(), count($rows), $pairTotal);
+    $this->vendorPresentation->logVendorParityBatch('vendor_attendees_list', (int) $node->id(), count($rows), $pairTotal);
 
-    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $event->id()])->toString();
+    $public_event_url = Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString();
+
+    $checkin_url = '#';
+    if ($this->moduleHandler->moduleExists('myeventlane_checkin')) {
+      try {
+        $checkin_url = Url::fromRoute('myeventlane_checkin.page', ['node' => $node->id()])->toString();
+      }
+      catch (\Throwable $e) {
+      }
+    }
 
     return $this->buildVendorPage('mel_event_workspace', [
-      'event' => $event,
+      'event' => $node,
       'tabs' => $tabs,
       'actions' => [
         [
-          'label' => (string) $this->t('Check-in'),
-          'url' => Url::fromRoute('myeventlane_rsvp.checkin_list', ['event' => $event->id()])->toString(),
+          'label' => $this->t('Check-in'),
+          'url' => $checkin_url,
           'class' => 'mel-btn--primary',
         ],
         [
-          'label' => (string) $this->t('Export CSV'),
-          'url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $event->id()])->toString(),
+          'label' => $this->t('Export CSV'),
+          'url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()])->toString(),
           'class' => 'mel-btn--secondary',
         ],
       ],
@@ -119,10 +122,10 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
       'sidebar' => NULL,
       'content' => [
         '#theme' => 'myeventlane_vendor_event_attendees',
-        '#event' => $event,
+        '#event' => $node,
         '#attendees' => $rows,
         '#tabs' => $tabs,
-        '#is_tickets_enabled' => $this->eventTabsService->isTicketsEnabled($event),
+        '#is_tickets_enabled' => $this->eventTabsService->isTicketsEnabled($node),
         '#public_event_url' => $public_event_url,
         '#summary' => [
           'total' => count($attendees),
@@ -137,17 +140,6 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     ]);
   }
 
-  /**
-   * Builds a link to the order for a ticket-source attendee.
-   *
-   * @param \Drupal\myeventlane_event_attendees\Entity\EventAttendee $attendee
-   *   The event attendee.
-   * @param \Drupal\node\NodeInterface $event
-   *   The event node.
-   *
-   * @return array{url: string, label: string}|null
-   *   URL and label for the order link, or NULL if no order.
-   */
   private function buildOrderLinkForAttendee(EventAttendee $attendee, NodeInterface $event): ?array {
     if ($attendee->getSource() !== 'ticket') {
       return NULL;

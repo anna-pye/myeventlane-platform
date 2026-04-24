@@ -83,18 +83,6 @@ myeventlane_admin_dashboard.payouts:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control
 
-# Reports tab (delegates to myeventlane_reporting).
-myeventlane_admin_dashboard.reports:
-  path: '/admin/myeventlane/reports'
-  defaults:
-    _controller: 'myeventlane_admin_dashboard.reports_controller:overview'
-    _title: 'Reports'
-  requirements:
-    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\PlatformControlReportingAccess::accessPlatformReportsTab'
-  options:
-    _admin_route: TRUE
-    _menu_base_route: myeventlane_admin_dashboard.platform_control
-
 # Financial CSV export.
 myeventlane_admin_dashboard.financial_export:
   path: '/admin/myeventlane/export/financial'
