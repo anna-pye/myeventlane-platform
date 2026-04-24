@@ -100,7 +100,7 @@ final class EventSerializer {
       ? $event->get('field_event_type')->value
       : NULL;
 
-    $has_product = $this->eventDomainStateResolver->hasProductTarget($event);
+    $has_product = $this->eventDomainStateResolver->getEventDomainState($event)['has_product'];
     $has_external_url = $event->hasField('field_external_url') && !$event->get('field_external_url')->isEmpty();
 
     $cta_mode = 'none';

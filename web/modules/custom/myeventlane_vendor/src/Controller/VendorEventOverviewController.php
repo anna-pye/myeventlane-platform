@@ -601,12 +601,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
       'boost_card' => $boost_card,
       'support_card' => $support_card,
       'show_support_card' => $show_support_card,
-      'event_domain_state' => [
-        'has_product' => $this->eventDomainStateResolver->hasProductTarget($event),
-        'is_boosted' => $this->eventDomainStateResolver->isEventBoosted($event),
-        'rsvp_state' => $this->eventDomainStateResolver->effectiveRsvpCapacityState([], $event),
-        'capacity' => $this->eventDomainStateResolver->effectiveVenueCapacity([], $event),
-      ],
+      'event_domain_state' => $this->eventDomainStateResolver->getEventDomainState($event),
     ];
   }
 
