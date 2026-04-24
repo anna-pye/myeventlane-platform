@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Tags;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Element\EntityAutocomplete;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
@@ -28,6 +29,7 @@ final class EventStudioAutosaveController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PrivateTempStoreFactory $privateTempStoreFactory,
+    private readonly LoggerChannelFactoryInterface $loggerFactory,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -75,6 +77,9 @@ final class EventStudioAutosaveController {
         $decoded_event_highlights = $this->decodeEventHighlightsFromMel($mel['event_highlights']);
       }
       catch (\InvalidArgumentException $e) {
+        $this->loggerFactory->get('myeventlane_event_studio')->warning('Autosave event highlights rejected: @message', [
+          '@message' => $e->getMessage(),
+        ]);
         return new JsonResponse([
           'ok' => FALSE,
           'errors' => [$e->getMessage()],
