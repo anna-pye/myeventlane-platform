@@ -14,7 +14,12 @@ myeventlane_vendor.admin_link:
   parent: myeventlane_core.config
   weight: 25
 
-# User account menu (source of truth: route access on each link).
+# User account menu. Visibility matches route access: SystemMenuBlock uses
+# menu.default_tree_manipulators:checkAccess, which calls
+# AccessManager::checkNamedRoute() (same as visiting the URL). Vendor gating
+# for those routes is implemented in myeventlane_vendor.access.vendor_console
+# using the *target* route’s path, so it stays correct for menu/cross-URL
+# access checks, not just the current browser path.
 myeventlane_vendor.menu_account.dashboard:
   title: 'Dashboard'
   route_name: myeventlane_vendor.console.dashboard

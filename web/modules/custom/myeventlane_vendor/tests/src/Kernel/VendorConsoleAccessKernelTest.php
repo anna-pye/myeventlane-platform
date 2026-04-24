@@ -163,10 +163,42 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
     $this->popRequest();
 
     $this->pushPathRequest('/vendor/onboard/profile');
-    $profile_match = new RouteMatch('myeventlane_vendor.onboard.profile', [], new Route('/vendor/onboard/profile'));
+    $profile_match = new RouteMatch('myeventlane_vendor.onboard.profile', new Route('/vendor/onboard/profile'), []);
     $this->assertTrue(
       $this->access()->access($profile_match, $user)->isAllowed()
     );
+    $this->popRequest();
+  }
+
+  /**
+   * When the current request is not a vendor path, access must still be decided
+   * for the *target* route. Menu links run AccessManager::checkNamedRoute() while
+   * the user may be on /, /user, or any public path; we must not early-neutral.
+   *
+   * @covers ::access
+   */
+  public function testDashboardAllowedForVendorUserWhenRequestPathIsPublic(): void {
+    $this->ensureVendorRoleExists();
+    $this->pushPathRequest('/node/1');
+    $user = $this->createUserWithRoles(['authenticated', MelVendorOrganiserRole::MACHINE_NAME]);
+    $this->assertTrue(
+      $this->access()->access($this->dashboardRouteMatch(), $user)->isAllowed()
+    );
+    $this->popRequest();
+  }
+
+  /**
+   * Anonymous: dashboard target while browsing a public path must be forbidden
+   * (forbidden, not neutral), matching menu and page access.
+   *
+   * @covers ::access
+   */
+  public function testAnonymousTargetDashboardForbiddenNotNeutralWhenRequestPathIsPublic(): void {
+    $this->pushPathRequest('/node/1');
+    $anon = User::getAnonymousUser();
+    $result = $this->access()->access($this->dashboardRouteMatch(), $anon);
+    $this->assertTrue($result->isForbidden());
+    $this->assertFalse($result->isNeutral());
     $this->popRequest();
   }
 
@@ -176,7 +208,7 @@ final class VendorConsoleAccessKernelTest extends KernelTestBase {
 
   private function dashboardRouteMatch(): RouteMatch {
     $route = new Route('/vendor/dashboard');
-    return new RouteMatch('myeventlane_vendor.console.dashboard', [], $route);
+    return new RouteMatch('myeventlane_vendor.console.dashboard', $route, []);
   }
 
   private function pushPathRequest(string $path): void {

@@ -11,15 +11,22 @@ use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_core\VendorConsoleTrust;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Route as SymfonyRoute;
 
 /**
  * Access check for vendor console routes.
  *
- * Applies to paths under the /vendor namespace (/vendor, /vendor/…), and
- * to vendor Stripe UI routes at /stripe/… (vendor host) which are not
- * under the /vendor/ prefix. For any other request path, this check returns
- * neutral so /create-event, /user, /my-account, and similar routes are not
- * subject to organiser gating.
+ * Decisions on namespace, Stripe allow-list, and onboarding are based on the
+ * path of the route under access check (the access target), not the browser's
+ * current request path. That way AccessManager::checkNamedRoute() — used when
+ * building menu trees — agrees with a normal page request to the same path.
+ * Otherwise a menu link to /vendor/… could be treated as a non-vendor "skip"
+ * while the user is viewing /user, /, etc.
+ *
+ * Routes whose path is not in the vendor console namespace return neutral so
+ * /create-event, /user, /api/…, and similar routes that attach this check are
+ * not subject to organiser gating here (those route paths are not /vendor/…
+ * and keep the early neutral return).
  *
  * Allows users with the "access vendor console" permission or the "vendor"
  * organiser role (config: user.role.vendor). The role check matches the gate
@@ -34,10 +41,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * to onboarding and Stripe connect paths, plus Event Studio under
  * /vendor/events/* and (when this access check applies) selected routes so
  * organiser flows are not dead-locked before completion.
- *
- * Note: this checker returns neutral for non-/vendor request paths, so
- * /create-event is not gated here; the create-event allow branch still applies
- * to any future route that attaches this check with a /create-event path.
  */
 final class VendorConsoleAccess {
 
@@ -62,7 +65,7 @@ final class VendorConsoleAccess {
    * Checks access for vendor console routes.
    */
   public function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
-    $path = $this->getPathForRequest();
+    $path = $this->getPathForAccessTarget($route_match);
     if (str_starts_with($path, '/stripe/')) {
       $this->logger->notice('MEL: forcing allow for Stripe route uid=@uid', [
         '@uid' => (string) $account->id(),
@@ -172,6 +175,21 @@ final class VendorConsoleAccess {
       return TRUE;
     }
     return FALSE;
+  }
+
+  /**
+   * Returns the path of the route being access-checked.
+   */
+  private function getPathForAccessTarget(RouteMatchInterface $route_match): string {
+    $route = $route_match->getRouteObject();
+    if ($route instanceof SymfonyRoute) {
+      $pattern = (string) $route->getPath();
+      if ($pattern !== '' && $pattern[0] !== '/') {
+        $pattern = '/' . $pattern;
+      }
+      return $pattern === '' ? '/' : $pattern;
+    }
+    return $this->getPathForRequest();
   }
 
   private function getPathForRequest(): string {
