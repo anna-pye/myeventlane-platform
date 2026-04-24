@@ -36,6 +36,15 @@ final class EventStudioSaveService {
   ) {}
 
   /**
+   * Logs when autosave rejects MEL `event_highlights` input.
+   */
+  public function logRejectedAutosaveEventHighlights(\InvalidArgumentException $e): void {
+    $this->logger->warning('Autosave event highlights rejected: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+
+  /**
    * @param array<string, mixed> $payload
    *   Normalised values from form or request.
    * @param \Drupal\node\NodeInterface|null $node
