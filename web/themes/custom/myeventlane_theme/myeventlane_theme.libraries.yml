@@ -25,6 +25,7 @@ skeleton:
     src/js/skeleton.js: {}
   dependencies:
     - core/drupal
+    - core/once
 
 myeventlane-global:
   css:

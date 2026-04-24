@@ -744,12 +744,16 @@
     transform: none;
   }
 
+  // Match or exceed :hover image-zoom specificity so scale() does not win here.
+  .mel-event-card:hover .mel-event-card__image img,
+  .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element,
   .mel-event-card__image img,
   .mel-event-card__image .mel-event-card__image-element {
     transition: none;
     transform: none;
   }
 
+  .mel-event-card--featured:hover .mel-event-card__image .mel-event-card__image-element,
   .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element {
     transition: none;
     transform: none;
@@ -775,7 +779,7 @@
 }
 
 // ---------------------------------------------------------------------------
-// Event listing grid skeletons (replaced on DOMContentLoaded — see skeleton.js)
+// Event listing grid skeletons (replaced on Drupal.behaviors — see skeleton.js)
 // ---------------------------------------------------------------------------
 
 .mel-skeleton {
@@ -876,14 +880,23 @@
   flex-shrink: 0;
 }
 
-// Optional: add `.skeleton-hidden` when fading out the skeleton layer (e.g. future script).
+// Step 7 — smooth handoff: grid + skeleton (see src/js/skeleton.js).
+// Skeleton layer fade (skeleton.js adds `.skeleton-hidden` on reveal).
 .mel-event-skeleton {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
+.skeleton-hidden,
 .mel-event-skeleton.skeleton-hidden {
   opacity: 0;
+  transition: opacity 0.25s ease;
   pointer-events: none;
+}
+
+// Event grid: hidden until `data-loaded="true"`, then opacity transition in from skeleton.js.
+.mel-event-grid {
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 // Hide real grid until script reveals it (avoids double skeleton + cards on first paint).
@@ -891,13 +904,8 @@
   display: none;
 }
 
-@keyframes mel-skeleton-fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .mel-event-grid[data-loaded="true"] {
-  animation: mel-skeleton-fadein 0.2s ease;
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -911,8 +919,12 @@
     transition: none;
   }
 
+  .mel-event-grid {
+    transition: none;
+  }
+
   .mel-event-grid[data-loaded="true"] {
-    animation: none;
+    opacity: 1;
   }
 }
 
