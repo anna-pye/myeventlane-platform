@@ -1648,18 +1648,29 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $ec_sched = $variables['event_cta'] ?? [];
         $variables['card_status_secondary'] = trim((string) ($ec_sched['label'] ?? ''));
       }
-      $ec = $variables['event_cta'] ?? [];
-      $cta_label = trim((string) ($ec['label'] ?? ''));
-      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-        $cta_label = (string) t('View details');
+      $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : NULL;
+      if ($event_ui !== NULL && $event_ui !== []) {
+        if (empty($event_ui['show_cta'])) {
+          $variables['card_cta_label'] = '';
+        }
+        else {
+          $variables['card_cta_label'] = trim((string) ($event_ui['cta_label'] ?? ''));
+        }
       }
-      elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
-        $cta_label = (string) t('View details');
+      else {
+        $ec = $variables['event_cta'] ?? [];
+        $cta_label = trim((string) ($ec['label'] ?? ''));
+        if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
+          $cta_label = (string) t('View details');
+        }
+        elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
+          $cta_label = (string) t('View details');
+        }
+        elseif ($cta_label === '') {
+          $cta_label = (string) t('View details');
+        }
+        $variables['card_cta_label'] = $cta_label;
       }
-      elseif ($cta_label === '') {
-        $cta_label = (string) t('View details');
-      }
-      $variables['card_cta_label'] = $cta_label;
 
       $badge_for_modifier = $variables['mel_card_badge_text'];
       $variables['card_status_modifier'] = match (TRUE) {
@@ -1673,9 +1684,15 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         default => 'default',
       };
 
-      $variables['is_promoted'] = $eventDomainStateResolver
-        ? $eventDomainStateResolver->isEventBoosted($node)
-        : ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
+      $domain_state_for_badge = $variables['event_domain_state'] ?? NULL;
+      if (is_array($domain_state_for_badge) && !empty($domain_state_for_badge['is_boosted'])) {
+        $variables['is_promoted'] = TRUE;
+      }
+      else {
+        $variables['is_promoted'] = $eventDomainStateResolver
+          ? $eventDomainStateResolver->isEventBoosted($node)
+          : ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
+      }
 
       // Poster cards: compact overlay pill (Free / Tickets / $$).
       $variables['mel_poster_price_pill'] = NULL;
@@ -1775,6 +1792,21 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       // Add taxonomy term cache tag if category exists
       if ($category_term ?? NULL) {
         $variables['#cache']['tags'][] = 'taxonomy_term:' . $category_term->id();
+      }
+    }
+
+    if ($view_mode === 'full' && $node?->bundle() === 'event') {
+      $variables['mel_event_selling_fast'] = FALSE;
+      if (\Drupal::hasService('myeventlane_capacity.service')) {
+        $capacity = \Drupal::service('myeventlane_capacity.service');
+        $total_cap = $capacity->getCapacityTotal($node);
+        $remaining = $capacity->getRemaining($node);
+        if ($total_cap !== NULL && $remaining !== NULL && $remaining > 0) {
+          $threshold = max(3, (int) floor($total_cap * 0.15));
+          if ($remaining <= $threshold) {
+            $variables['mel_event_selling_fast'] = TRUE;
+          }
+        }
       }
     }
   }
