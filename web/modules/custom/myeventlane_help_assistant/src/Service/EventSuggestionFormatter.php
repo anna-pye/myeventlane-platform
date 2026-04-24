@@ -21,7 +21,10 @@ final class EventSuggestionFormatter {
   ) {}
 
   /**
+   * Clamps, labels, and summarises a quality score for the wizard payload.
+   *
    * @return array{score: int, score_label: string, score_summary: string, score_band: string}
+   *   Presentation fields for groups/suggestions.
    */
   public function formatScorePresentation(int $score): array {
     $score = max(0, min(100, $score));
@@ -36,10 +39,15 @@ final class EventSuggestionFormatter {
   }
 
   /**
+   * Builds the full response array for the wizard panel and JSON consumers.
+   *
    * @param array{score: int, score_label: string, score_summary: string, score_band: string} $scoreData
+   *   Clamped, labelled score output from formatScorePresentation().
    * @param list<array<string, mixed>> $top
+   *   Engine row arrays after dedupe, sort, optional AI, and cap.
    *
    * @return array<string, mixed>
+   *   Same keys and nesting as the legacy EventSuggestionService::buildWizardInsights.
    */
   public function buildFullWizardPayload(array $scoreData, array $top): array {
     $groups = [
@@ -143,6 +151,9 @@ final class EventSuggestionFormatter {
     return $out;
   }
 
+  /**
+   *
+   */
   private function titleForSuggestionId(string $id): string {
     return match ($id) {
       'ticket_paragraphs_missing' => (string) $this->t('Add your ticket types'),
@@ -223,6 +234,9 @@ final class EventSuggestionFormatter {
     return ['type' => 'auto_fix', 'label' => $label, 'callback' => $callback];
   }
 
+  /**
+   *
+   */
   public function helpActionLink(string $key, string $label): ?array {
     $url = $this->helpPath($key);
     if ($url === NULL) {
@@ -235,6 +249,9 @@ final class EventSuggestionFormatter {
     ];
   }
 
+  /**
+   *
+   */
   public function modalCreateTicketAction(string $label): array {
     return [
       'type' => 'modal',
@@ -243,6 +260,9 @@ final class EventSuggestionFormatter {
     ];
   }
 
+  /**
+   *
+   */
   public function wizardTicketsAction(NodeInterface $event, string $label): ?array {
     try {
       $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
@@ -258,6 +278,9 @@ final class EventSuggestionFormatter {
     }
   }
 
+  /**
+   *
+   */
   public function wizardWhenWhereAction(NodeInterface $event, string $label): ?array {
     try {
       $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
@@ -273,6 +296,9 @@ final class EventSuggestionFormatter {
     }
   }
 
+  /**
+   *
+   */
   public function wizardDetailsAction(NodeInterface $event, string $label): ?array {
     try {
       $url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()])->toString();
@@ -288,6 +314,9 @@ final class EventSuggestionFormatter {
     }
   }
 
+  /**
+   *
+   */
   public function wizardBasicsAction(NodeInterface $event, string $label): ?array {
     try {
       $url = Url::fromRoute('entity.node.edit_form', ['node' => $event->id()])->toString();
@@ -303,6 +332,9 @@ final class EventSuggestionFormatter {
     }
   }
 
+  /**
+   *
+   */
   public function boostWizardAction(NodeInterface $event): ?array {
     try {
       $url = Url::fromRoute('myeventlane_boost.vendor_boost_wizard', ['event' => $event->id()])->toString();
@@ -318,6 +350,9 @@ final class EventSuggestionFormatter {
     }
   }
 
+  /**
+   *
+   */
   private function helpPath(string $key): ?string {
     if (!function_exists('myeventlane_help_centre_get_link')) {
       return NULL;

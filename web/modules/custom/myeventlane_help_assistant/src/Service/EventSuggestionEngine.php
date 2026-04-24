@@ -43,14 +43,15 @@ final class EventSuggestionEngine {
   ) {}
 
   /**
-   * Caps and sorts rule + AI rows for presentation (unformatted for API).
+   * Caps and sorts rule + AI rows (pre-API, internal row shape).
    *
    * @param array<string, mixed> $values
-   *   Live wizard values (field_event_type, body, field_capacity, ticket_prices, …).
+   *   Live wizard values (field_event_type, body, field_capacity, ticket_prices, ...).
    * @param \Drupal\node\NodeInterface|null $event
-   *   Event node when loaded with access check.
+   *   Event node from access-checked load, or null.
    *
    * @return list<array<string, mixed>>
+   *   Suggestion row arrays, at most self::MAX_SUGGESTIONS items.
    */
   public function buildPreparedTopRows(array $values, ?NodeInterface $event): array {
     $candidates = $this->collectRuleCandidates($values, $event);
@@ -69,9 +70,15 @@ final class EventSuggestionEngine {
   }
 
   /**
+   * Gathers MEL rules for the current wizard + node snapshot.
+   *
    * @param array<string, mixed> $values
+   *   Live wizard form values.
+   * @param \Drupal\node\NodeInterface|null $event
+   *   Event being edited (access-checked) or null.
    *
    * @return list<array<string, mixed>>
+   *   Suggestion row arrays, unsorted, possible duplicate ids.
    */
   private function collectRuleCandidates(array $values, ?NodeInterface $event): array {
     $out = [];
@@ -326,7 +333,15 @@ final class EventSuggestionEngine {
   }
 
   /**
+   * 0-100 event quality score from the same heuristics as before extraction.
    *
+   * @param array<string, mixed> $values
+   *   Live wizard values.
+   * @param \Drupal\node\NodeInterface|null $event
+   *   Event node for persisted fields, or null.
+   *
+   * @return int
+   *   Clamped score 0-100.
    */
   public function computeScoreValue(array $values, ?NodeInterface $event): int {
     $score = 100;
