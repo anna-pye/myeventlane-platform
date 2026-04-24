@@ -1234,6 +1234,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'show_support_card' => FALSE,
         'pro_upgrade_url' => NULL,
         'refund_analytics' => NULL,
+        'event_domain_state' => [],
       ],
       'template' => 'event/mel-event-overview-page',
     ],

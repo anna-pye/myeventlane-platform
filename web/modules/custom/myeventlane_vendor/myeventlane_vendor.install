@@ -910,6 +910,31 @@ function myeventlane_vendor_update_10018(): string {
 }
 
 /**
+ * Ensure access vendor dashboard is on vendor and staff roles (idempotent).
+ */
+function myeventlane_vendor_update_10019(): string {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+  $permission = 'access vendor dashboard';
+  foreach (['vendor', 'staff'] as $role_id) {
+    $role = $role_storage->load($role_id);
+    if ($role === NULL) {
+      \Drupal::logger('myeventlane_vendor')->notice('MEL: access vendor dashboard: role not found, grant skipped (@role).', [
+        '@role' => $role_id,
+      ]);
+      continue;
+    }
+    if ($role->isAdmin()) {
+      continue;
+    }
+    if (!$role->hasPermission($permission)) {
+      $role->grantPermission($permission);
+      $role->save();
+    }
+  }
+  return 'Access vendor dashboard is granted to vendor and staff when those roles exist. Administrator is unchanged (is_admin / all perms at runtime).';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

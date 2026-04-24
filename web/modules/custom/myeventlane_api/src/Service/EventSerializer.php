@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_api\Service;
 
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\node\NodeInterface;
@@ -19,6 +20,7 @@ final class EventSerializer {
    */
   public function __construct(
     private readonly EventStateResolverInterface $eventStateResolver,
+    private readonly EventStateResolver $eventDomainStateResolver,
     private readonly EventMetricsServiceInterface $eventMetricsService,
   ) {}
 
@@ -98,7 +100,7 @@ final class EventSerializer {
       ? $event->get('field_event_type')->value
       : NULL;
 
-    $has_product = $event->hasField('field_product_target') && !$event->get('field_product_target')->isEmpty();
+    $has_product = $this->eventDomainStateResolver->getEventDomainState($event)['has_product'];
     $has_external_url = $event->hasField('field_external_url') && !$event->get('field_external_url')->isEmpty();
 
     $cta_mode = 'none';

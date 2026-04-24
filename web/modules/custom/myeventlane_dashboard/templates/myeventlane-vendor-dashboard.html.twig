@@ -286,17 +286,33 @@
               </div>
             </div>
 
-            <div class="mel-event-status">
-              {% if event.event_mode == 'rsvp' %}
-                {{ 'RSVP'|t }}
-              {% elseif event.event_mode == 'paid' %}
-                {{ 'Tickets'|t }}
-              {% elseif event.event_mode == 'external' %}
-                {{ 'External'|t }}
-              {% elseif event.event_mode == 'both' %}
-                {{ 'Both'|t }}
+            <div class="mel-event-status mel-vendor-row-ui">
+              {% if event.event_ui is defined and event.event_ui is iterable
+                and (
+                  (event.event_ui.show_cta|default(true) and (event.event_ui.cta_label|default('')|striptags|length > 0))
+                  or (event.event_ui.status_label|default('')|striptags|length > 0)
+                )
+              %}
+                {% if (event.event_ui.cta_label|default('')|striptags|length > 0) %}
+                <span class="mel-vendor-row-cta mel-vendor-row-cta--{{ event.event_ui.cta_type|default('secondary')|e('html_attr') }}{% if event.event_ui.is_sold_out|default(false) %} is-sold-out{% endif %}">
+                  {{ event.event_ui.cta_label }}
+                </span>
+                {% endif %}
+                {% if (event.event_ui.status_label|default(''))|striptags|length > 0 %}
+                  <span class="mel-vendor-row-pill mel-vendor-row-pill--{{ event.event_ui.status_type|default('muted')|e('html_attr') }}">{{ event.event_ui.status_label }}</span>
+                {% endif %}
               {% else %}
-                {{ event.event_mode|default('Draft'|t)|capitalize }}
+                {% if event.event_mode == 'rsvp' %}
+                  {{ 'RSVP'|t }}
+                {% elseif event.event_mode == 'paid' %}
+                  {{ 'Tickets'|t }}
+                {% elseif event.event_mode == 'external' %}
+                  {{ 'External'|t }}
+                {% elseif event.event_mode == 'both' %}
+                  {{ 'Both'|t }}
+                {% else %}
+                  {{ event.event_mode|default('Draft'|t)|capitalize }}
+                {% endif %}
               {% endif %}
             </div>
           </a>

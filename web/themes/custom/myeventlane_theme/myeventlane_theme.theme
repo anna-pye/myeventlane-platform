@@ -189,7 +189,7 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
     $organiser_block = $block_manager->createInstance('myeventlane_organiser_context', []);
     if ($organiser_block->access(\Drupal::currentUser())) {
       $build = $organiser_block->build();
-      if (\Drupal::currentUser()->hasPermission('access vendor console') && !empty($build)) {
+      if (\Drupal::currentUser()->hasPermission('access vendor dashboard') && !empty($build)) {
         $variables['organiser_context'] = [];
       }
       else {
@@ -261,56 +261,6 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
 }
 
 /**
- * Implements hook_preprocess_menu__account().
- *
- * Injects organiser links (Dashboard, My events, Create event, Settings) into
- * the account dropdown when the user has access to the vendor console.
- */
-function myeventlane_theme_preprocess_menu__account(array &$variables): void {
-  if (!\Drupal::currentUser()->hasPermission('access vendor console')) {
-    return;
-  }
-
-  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_vendor')) {
-    return;
-  }
-
-  $organiser_links = [
-    ['title' => t('Dashboard'), 'route' => 'myeventlane_vendor.console.dashboard'],
-    ['title' => t('My events'), 'route' => 'myeventlane_vendor.console.events'],
-    ['title' => t('Create event'), 'route' => 'myeventlane_vendor.console.create_event'],
-    ['title' => t('Settings'), 'route' => 'myeventlane_vendor.console.settings'],
-  ];
-
-  $injected = [];
-  foreach ($organiser_links as $link) {
-    try {
-      $url = Url::fromRoute($link['route']);
-      if ($url->access()) {
-        $injected[] = [
-          'title' => $link['title'],
-          'url' => $url,
-          'attributes' => new Attribute(['class' => ['mel-account-menu-item']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
-      }
-    }
-    catch (\Exception $e) {
-      // Route may not exist.
-    }
-  }
-
-  if (!empty($injected) && !empty($variables['items'])) {
-    $items = $variables['items'];
-    $first = array_shift($items);
-    $variables['items'] = array_merge([$first], $injected, $items);
-  }
-}
-
-/**
  * Implements hook_preprocess_menu__main().
  *
  * Transforms the "Vendors" menu item into a dropdown with child links.
@@ -321,9 +271,8 @@ function myeventlane_theme_preprocess_menu__main(array &$variables): void {
     return;
   }
 
-  // Check if current user is a vendor (has access to vendor console).
   $current_user = \Drupal::currentUser();
-  $is_vendor = $current_user->hasPermission('access vendor console');
+  $is_vendor = $current_user->hasPermission('access vendor dashboard');
 
   // Find and transform the Vendors menu item.
   foreach ($variables['items'] as $key => &$item) {
@@ -482,7 +431,7 @@ function myeventlane_theme_preprocess_commerce_checkout_pane(array &$variables):
  */
 function myeventlane_theme_preprocess_region__header(array &$variables): void {
   $current_user = \Drupal::currentUser();
-  $variables['is_vendor'] = $current_user->hasPermission('access vendor console');
+  $variables['is_vendor'] = $current_user->hasPermission('access vendor dashboard');
 }
 
 /**
@@ -928,7 +877,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     }
   }
   $variables['mel_footer_categories'] = $categories;
-  $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor console');
+  $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
   
   // Check if vendor settings route exists for header menu.
   $route_exists = FALSE;
@@ -1530,6 +1479,9 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
 
   // Check if this is an event node.
   if ($node && $node->bundle() === 'event') {
+    $eventDomainStateResolver = \Drupal::hasService('myeventlane_core.event_state_resolver')
+      ? \Drupal::service('myeventlane_core.event_state_resolver')
+      : NULL;
     // For form view mode, suggest the form template
     if ($view_mode === 'form' || (isset($variables['form']) && $variables['form'])) {
       $variables['attributes']['class'][] = 'mel-node-form';
@@ -1696,18 +1648,29 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $ec_sched = $variables['event_cta'] ?? [];
         $variables['card_status_secondary'] = trim((string) ($ec_sched['label'] ?? ''));
       }
-      $ec = $variables['event_cta'] ?? [];
-      $cta_label = trim((string) ($ec['label'] ?? ''));
-      if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
-        $cta_label = (string) t('View details');
+      $event_ui = is_array($variables['event_ui'] ?? NULL) ? $variables['event_ui'] : NULL;
+      if ($event_ui !== NULL && $event_ui !== []) {
+        if (empty($event_ui['show_cta'])) {
+          $variables['card_cta_label'] = '';
+        }
+        else {
+          $variables['card_cta_label'] = trim((string) ($event_ui['cta_label'] ?? ''));
+        }
       }
-      elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
-        $cta_label = (string) t('View details');
+      else {
+        $ec = $variables['event_cta'] ?? [];
+        $cta_label = trim((string) ($ec['label'] ?? ''));
+        if ($state === 'scheduled' && $cta_type === EventCtaResolver::CTA_PAID) {
+          $cta_label = (string) t('View details');
+        }
+        elseif (in_array($state, ['cancelled', 'ended'], TRUE)) {
+          $cta_label = (string) t('View details');
+        }
+        elseif ($cta_label === '') {
+          $cta_label = (string) t('View details');
+        }
+        $variables['card_cta_label'] = $cta_label;
       }
-      elseif ($cta_label === '') {
-        $cta_label = (string) t('View details');
-      }
-      $variables['card_cta_label'] = $cta_label;
 
       $badge_for_modifier = $variables['mel_card_badge_text'];
       $variables['card_status_modifier'] = match (TRUE) {
@@ -1721,7 +1684,15 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         default => 'default',
       };
 
-      $variables['is_promoted'] = $node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value;
+      $domain_state_for_badge = $variables['event_domain_state'] ?? NULL;
+      if (is_array($domain_state_for_badge) && !empty($domain_state_for_badge['is_boosted'])) {
+        $variables['is_promoted'] = TRUE;
+      }
+      else {
+        $variables['is_promoted'] = $eventDomainStateResolver
+          ? $eventDomainStateResolver->isEventBoosted($node)
+          : ($node->hasField('field_promoted') && !$node->get('field_promoted')->isEmpty() && (bool) $node->get('field_promoted')->value);
+      }
 
       // Poster cards: compact overlay pill (Free / Tickets / $$).
       $variables['mel_poster_price_pill'] = NULL;
@@ -1821,6 +1792,21 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       // Add taxonomy term cache tag if category exists
       if ($category_term ?? NULL) {
         $variables['#cache']['tags'][] = 'taxonomy_term:' . $category_term->id();
+      }
+    }
+
+    if ($view_mode === 'full' && $node?->bundle() === 'event') {
+      $variables['mel_event_selling_fast'] = FALSE;
+      if (\Drupal::hasService('myeventlane_capacity.service')) {
+        $capacity = \Drupal::service('myeventlane_capacity.service');
+        $total_cap = $capacity->getCapacityTotal($node);
+        $remaining = $capacity->getRemaining($node);
+        if ($total_cap !== NULL && $remaining !== NULL && $remaining > 0) {
+          $threshold = max(3, (int) floor($total_cap * 0.15));
+          if ($remaining <= $threshold) {
+            $variables['mel_event_selling_fast'] = TRUE;
+          }
+        }
       }
     }
   }
@@ -1932,8 +1918,11 @@ function _myeventlane_theme_get_event_badge_text(\Drupal\node\NodeInterface $nod
   }
 
   // Check if product exists and get price
+  $domain = \Drupal::hasService('myeventlane_core.event_state_resolver')
+    ? \Drupal::service('myeventlane_core.event_state_resolver')
+    : NULL;
   $product = NULL;
-  if ($node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+  if ($domain?->hasProductTarget($node)) {
     $product = $node->get('field_product_target')->entity;
   }
 

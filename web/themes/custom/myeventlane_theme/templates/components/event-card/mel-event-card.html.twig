@@ -5,6 +5,8 @@
  *
  * Node listings: preprocess supplies card_* (myeventlane_theme_preprocess_node).
  * Views field rows: pass title, url, image, date_full, location, category, ticket_type, etc.
+ * Image pill badges use `event_ui` (see myeventlane_event_finalize_event_ui in myeventlane_event).
+ * @see myeventlane_event.module — myeventlane_event_preprocess_node() (event_ui for all view modes).
  */
 #}
 {% set variant = variant|default('standard') %}
@@ -19,15 +21,29 @@
 {% set _status_primary = card_status_primary|default('') %}
 {% set _status_secondary = card_status_secondary|default('') %}
 {% set _status_mod = card_status_modifier|default('default') %}
+{# Sold-out is communicated by top badge + CTA; avoid duplicate "Sold out" in body. #}
+{% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) and (_status_mod|default('') == 'sold-out') %}
+  {% set _status_primary = '' %}
+  {% set _status_secondary = '' %}
+{% endif %}
 
-{% set _cta = card_cta_label|default('') %}
-{% if _cta == '' %}
-  {% if _type == 'rsvp' %}
-    {% set _cta = 'RSVP free'|t %}
-  {% elseif _type == 'external' %}
-    {% set _cta = 'View details'|t %}
-  {% else %}
-    {% set _cta = 'Buy tickets'|t %}
+{% if event_ui is defined and (event_ui.show_cta|default(true)) is same as(false) %}
+  {% set _cta = '' %}
+  {% set _mel_cta_semantic = 'hidden' %}
+{% else %}
+  {% set _mel_cta_semantic = event_ui is defined ? event_ui.cta_type|default('primary') : 'primary' %}
+  {% set _cta = card_cta_label|default('') %}
+  {% if _cta == '' and event_ui is defined and (event_ui.cta_label|default(''))|trim|length > 0 %}
+    {% set _cta = event_ui.cta_label %}
+  {% endif %}
+  {% if _cta == '' %}
+    {% if _type == 'rsvp' %}
+      {% set _cta = 'RSVP free'|t %}
+    {% elseif _type == 'external' %}
+      {% set _cta = 'View details'|t %}
+    {% else %}
+      {% set _cta = 'Buy tickets'|t %}
+    {% endif %}
   {% endif %}
 {% endif %}
 
@@ -42,12 +58,19 @@
 {% endif %}
 {% set category_class = category_slug is defined and category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
 
-{# One image-area badge: category first, else Featured when promoted. #}
+{% set _state_badge_type = 'highlight' %}
+{# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
 {% set _image_badge_label = null %}
-{% if _category and _category.label %}
+{% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+  {% set _image_badge_label = 'Sold out'|t %}
+  {% set _state_badge_type = 'warning' %}
+{% elseif event_ui is defined and event_ui.image_badge_label|default('')|trim|length > 0 %}
+  {% set _image_badge_label = event_ui.image_badge_label %}
+  {% set _st = event_ui.image_badge_type|default('apricot') %}
+  {% set _state_badge_type = _st == 'highlight' ? 'apricot' : _st %}
+{% elseif _category and _category.label %}
   {% set _image_badge_label = _category.label %}
-{% elseif is_promoted %}
-  {% set _image_badge_label = 'Featured'|t %}
+  {% set _state_badge_type = 'category' %}
 {% endif %}
 
 {% if variant == 'featured_hero' %}
@@ -65,7 +88,7 @@
         {% endif %}
         <div class="mel-event-hero-card__overlay" aria-hidden="true"></div>
         {% if _image_badge_label %}
-          <span class="mel-event-hero-card__badge mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
+          <span class="mel-event-hero-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
             <span class="mel-pill__label">{{ _image_badge_label }}</span>
           </span>
         {% endif %}
@@ -88,7 +111,9 @@
           <p class="mel-event-hero-card__status-note">{{ _status_secondary }}</p>
         {% endif %}
 
-        <span class="mel-btn mel-btn--cta mel-event-hero-card__cta-chip" aria-hidden="true">{{ _cta }}</span>
+        {% if _mel_cta_semantic|default('primary') != 'hidden' and _cta|trim|length > 0 %}
+        <span class="mel-btn mel-btn--cta mel-event-hero-card__cta-chip{% if _mel_cta_semantic == 'primary' %} mel-event-hero-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-hero-card__cta-chip--disabled{% else %} mel-event-hero-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
+        {% endif %}
       </div>
     </a>
   </article>
@@ -126,7 +151,7 @@
       {% endif %}
 
       {% if _image_badge_label %}
-        <span class="mel-event-card__image-badge mel-pill mel-pill--category mel-pill--on-image {{ category_class }}" aria-hidden="true">
+        <span class="mel-event-card__image-badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}{% if _state_badge_type == 'category' %} {{ category_class }}{% endif %}" aria-hidden="true">
           <span class="mel-pill__label">{{ _image_badge_label }}</span>
         </span>
       {% endif %}
@@ -158,14 +183,19 @@
         </div>
       {% endif %}
 
-      <div class="mel-event-card__cta-row">
-        <span class="mel-event-card__cta-chip" aria-hidden="true">{{ _cta }}</span>
-      </div>
+      {% if _mel_cta_semantic|default('primary') != 'hidden' %}
+        <div class="mel-event-card__cta-row">
+          <span class="mel-event-card__cta-chip{% if _mel_cta_semantic == 'primary' %} mel-event-card__cta-chip--coral{% elseif _mel_cta_semantic == 'disabled' %} mel-event-card__cta-chip--disabled{% else %} mel-event-card__cta-chip--lavender{% endif %}" aria-hidden="true">{{ _cta }}</span>
+        </div>
+      {% endif %}
 
-      {% if _low_stock or _attendance %}
-        <div class="mel-event-card__tertiary">
+      {% if (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0)) or _low_stock or _attendance %}
+        <div class="mel-event-card__tertiary mel-event-card__tertiary--context">
+          {% if event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) %}
+            <p class="mel-event-card__capacity-hint" role="status">{{ event_ui.capacity_hint }}</p>
+          {% endif %}
           {% if _low_stock %}
-            <span class="mel-event-card__urgency">{{ 'Selling fast'|t }}</span>
+            <p class="mel-event-card__urgency" role="status">{{ 'Selling fast'|t }}</p>
           {% endif %}
           {% if _attendance %}
             <span class="mel-event-card__social">{{ '@count going'|t({'@count': _attendance}) }}</span>

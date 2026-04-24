@@ -120,6 +120,31 @@
   max-width: calc(100% - 24px);
 }
 
+// Outrank .mel-pill--on-image / .mel-pill (listing + hero) without !important.
+.mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--highlight,
+.mel-event-hero-card .mel-pill--on-image.mel-event-card__state-pill--highlight {
+  background: color-mix(in srgb, #f5c98d 45%, #fff 55%);
+  color: mel.$mel-ds-color-text;
+  border: 1px solid color-mix(in srgb, #e8a85c 30%, transparent);
+  border-radius: 16px;
+}
+
+.mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--warning,
+.mel-event-hero-card .mel-pill--on-image.mel-event-card__state-pill--warning {
+  background: color-mix(in srgb, #f0a090 32%, #fff 68%);
+  color: color-mix(in srgb, #8a3224 85%, #000 15%);
+  border: 1px solid color-mix(in srgb, #e08a7a 35%, transparent);
+  border-radius: 16px;
+}
+
+.mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--apricot,
+.mel-event-hero-card .mel-pill--on-image.mel-event-card__state-pill--apricot {
+  background: color-mix(in srgb, #f4d4a8 50%, #fff 50%);
+  color: mel.$mel-ds-color-text;
+  border: 1px solid color-mix(in srgb, #e8a85c 32%, transparent);
+  border-radius: 16px;
+}
+
 .mel-event-card__overlay {
   position: absolute;
   inset: 0;
@@ -272,6 +297,27 @@
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
 }
 
+// event_ui: semantic CTA (coral primary, lavender secondary, muted sold)
+.mel-event-card__cta-chip--coral {
+  background: var(--mel-coral, #f26d5b);
+  border: 1px solid color-mix(in srgb, #f26d5b 45%, #fff 55%);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+.mel-event-card__cta-chip--lavender {
+  background: color-mix(in srgb, #b8a5d6 30%, #fff 70%);
+  border: 1px solid color-mix(in srgb, #8b7ab8 25%, transparent);
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-event-card__cta-chip--disabled {
+  background: color-mix(in srgb, mel.$mel-ds-color-muted 20%, #fff 80%);
+  color: color-mix(in srgb, mel.$mel-ds-color-text 60%, #fff 40%);
+  border: 1px solid color-mix(in srgb, mel.$mel-ds-color-text 8%, transparent);
+  box-shadow: none;
+}
+
 .mel-event-card__tertiary {
   margin-top: 10px;
   padding-top: 8px;
@@ -284,7 +330,23 @@
 .mel-event-card__urgency {
   font-size: 13px;
   font-weight: 600;
-  color: #e74c3c;
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-event-card__capacity-hint,
+.mel-event-card__tertiary--context .mel-event-card__urgency {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: color-mix(in srgb, mel.$mel-ds-color-text 72%, #fff 28%);
+  margin: 4px 0 0;
+}
+
+.mel-event-card__tertiary--context {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .mel-event-card__social {
@@ -599,6 +661,25 @@
   color: mel.$mel-ds-color-text;
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+// Outrank .mel-btn--cta (gradient) on the hero CTA span (see mel-event-card.html.twig).
+.mel-event-hero-card .mel-btn.mel-event-hero-card__cta-chip--coral {
+  background: var(--mel-coral, #f26d5b);
+  color: #fff;
+  border-color: color-mix(in srgb, #fff 35%, #f26d5b 65%);
+}
+
+.mel-event-hero-card .mel-btn.mel-event-hero-card__cta-chip--lavender {
+  background: color-mix(in srgb, #b8a5d6 32%, #fff 68%);
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-event-hero-card .mel-btn.mel-event-hero-card__cta-chip--disabled {
+  background: rgba(255, 255, 255, 0.5);
+  color: color-mix(in srgb, mel.$mel-ds-color-text 55%, #fff 45%);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 @media (hover: hover) and (pointer: fine) {

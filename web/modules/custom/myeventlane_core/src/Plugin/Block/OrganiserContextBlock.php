@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Organiser context block for site header.
  *
- * A) If user has organiser role: show organiser tools menu.
+ * A) If user can access the vendor dashboard: show organiser tools menu.
  * B) Else if viewing event/organiser page: show "Hosted by {Name}".
  *
  * @Block(
@@ -71,11 +71,11 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
     }
 
     $cache_metadata = new CacheableMetadata();
-    $cache_metadata->addCacheContexts(['user.roles', 'route']);
+    $cache_metadata->addCacheContexts(['user.roles', 'user.permissions', 'route']);
     $cache_tags = [];
 
-    // A) User has organiser role (access vendor console).
-    if ($this->currentUser->hasPermission('access vendor console')) {
+    // A) Logged-in organiser tools: same gate as /vendor/dashboard (see VendorConsoleAccess).
+    if ($this->currentUser->hasPermission('access vendor dashboard')) {
       $vendor = $this->getVendorForUser((int) $this->currentUser->id());
       if ($vendor) {
         $cache_tags[] = 'myeventlane_vendor:' . $vendor->id();
@@ -100,7 +100,7 @@ final class OrganiserContextBlock extends BlockBase implements ContainerFactoryP
       }
     }
 
-    $build['#cache']['contexts'] = ['user.roles', 'route'];
+    $build['#cache']['contexts'] = ['user.roles', 'user.permissions', 'route'];
     $build['#cache']['tags'] = array_unique($cache_tags);
 
     return $build;

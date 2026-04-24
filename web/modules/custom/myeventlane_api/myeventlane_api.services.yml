@@ -14,6 +14,7 @@ services:
     class: Drupal\myeventlane_api\Service\EventSerializer
     arguments:
       - '@myeventlane_event_state.resolver'
+      - '@myeventlane_core.event_state_resolver'
       - '@myeventlane_metrics.service'
 
   myeventlane_api.audit_logger:

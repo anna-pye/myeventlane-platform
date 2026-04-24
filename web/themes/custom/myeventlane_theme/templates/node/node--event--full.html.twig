@@ -12,9 +12,15 @@
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
 {# Google Maps in Event Information card uses iframe embed (no API key). JS map library only if needed elsewhere. #}
+{% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
+{% set mel_cta_type_ui = event_ui is defined ? (event_ui.cta_type|default('primary')) : 'primary' %}
 
-{# Promoted / Boosted flag (data already managed by Boost system). #}
-{% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
+{# Promoted / featured: event_domain_state.is_boosted (canonical) then field fallback. #}
+{% if event_domain_state is defined and event_domain_state is iterable and (event_domain_state['is_boosted']|default(false) == true or event_domain_state['is_boosted']|default(0) == 1) %}
+  {% set is_promoted = true %}
+{% else %}
+  {% set is_promoted = node.hasField('field_promoted') and (node.field_promoted.value|default('0') == '1') %}
+{% endif %}
 {# Registration status chip: cta_type + labels aligned with EventCtaResolver and public event cards. #}
 {% set mel_mode_chip = '' %}
 {% if cta_type is defined and cta_type == 'paid' %}
@@ -25,6 +31,40 @@
   {% set mel_mode_chip = 'External ticketing'|t %}
 {% endif %}
 {% set mel_cta_is_external = cta_type is defined and cta_type == 'external' %}
+
+{% set mel_eds = (event_domain_state is defined and event_domain_state is iterable) ? event_domain_state : {} %}
+{% set mel_eds_cap = mel_eds['capacity']|default(0) %}
+{% set mel_eds_rsvp = mel_eds['rsvp_state']|default('unset') %}
+{% set mel_eds_has_product = (mel_eds['has_product']|default(0) == 1) or (mel_eds['has_product']|default(false) is same as(true)) %}
+{% set mel_cta_urgency = '' %}
+{% if (event_ui is not defined) or (not (event_ui.is_sold_out|default(false) == true)) %}
+  {% if mel_eds_rsvp is same as('limited') and mel_eds_cap > 0 and mel_eds_cap < 10 %}
+    {% set mel_cta_urgency = 'Only @c spots left'|t({ '@c': mel_eds_cap }) %}
+  {% elseif mel_eds_rsvp is same as('limited') and mel_eds_cap > 0 and mel_eds_cap < 20 %}
+    {% set mel_cta_urgency = 'Limited spots remaining'|t %}
+  {% endif %}
+{% endif %}
+{% if mel_eds_has_product and mel_tickets_from is defined and (mel_tickets_from|striptags|length > 0) %}
+  {% set mel_context_above = mel_tickets_from %}
+{% elseif (not mel_eds_has_product) and cta_type is defined and cta_type is same as('rsvp') %}
+  {% set mel_context_above = 'Free RSVP'|t %}
+{% else %}
+  {% set mel_context_above = '' %}
+{% endif %}
+{% set mel_gcal_href = '' %}
+{% if node.hasField('field_event_start') and not node.field_event_start.isEmpty %}
+  {% set mel_cal_start = node.field_event_start.value|date('Ymd\THis') %}
+  {% if node.hasField('field_event_end') and not node.field_event_end.isEmpty and node.field_event_end.value %}
+    {% set mel_cal_end = node.field_event_end.value|date('Ymd\THis') %}
+  {% else %}
+    {% set mel_cal_end = node.field_event_start.value|date_modify('+2 hours')|date('Ymd\THis') %}
+  {% endif %}
+  {% set mel_canon = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
+  {% set mel_gcal_href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' ~ (label|url_encode) ~ '&dates=' ~ mel_cal_start ~ '/' ~ mel_cal_end ~ '&details=' ~ (mel_canon|url_encode) %}
+{% endif %}
+{% set mel_trust_checkout = (cta_type is not defined) or (not (cta_type is same as('external'))) %}
+{% set mel_show_booking_cta = (event_ui is not defined) or (event_ui.show_cta|default(true)) %}
+{% set mel_cta_is_soldout_ui = event_ui is defined and (event_ui.is_sold_out|default(false) is same as(true)) %}
 
 <article{{ attributes.addClass('mel-event', 'mel-event--v2') }}>
   <div class="mel-container">
@@ -38,7 +78,13 @@
         {% endif %}
       </div>
       <div class="mel-event-hero__overlay" aria-hidden="true"></div>
-      {% if mel_category_label %}
+      {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
+        <div class="mel-event-hero__chip">
+          <span class="mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--warning" aria-hidden="true">
+            <span class="mel-pill__label">{{ 'Sold out'|t }}</span>
+          </span>
+        </div>
+      {% elseif mel_category_label %}
         <div class="mel-event-hero__chip">
           <span class="mel-pill mel-pill--category mel-pill--on-image mel-pill--cat-{{ mel_category_slug|default('default') }}" aria-hidden="true">
             <span class="mel-pill__label">{{ mel_category_label }}</span>
@@ -57,8 +103,10 @@
         {% if hero_venue %}
           <p class="mel-event-hero__venue">{{ hero_venue }}</p>
         {% endif %}
-        {% if hero_status %}
-          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ hero_status_modifier|default('default') }}">{{ hero_status }}</p>
+        {% if (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) or hero_status %}
+          {% set _hero_status_mod = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? 'sold-out' : (hero_status_modifier|default('default')) %}
+          {% set _hero_status_text = (event_ui is defined and (event_ui.is_sold_out|default(false) == true)) ? (event_ui.status_label|default('')|striptags|length > 0 ? event_ui.status_label : ('Sold out'|t)) : hero_status %}
+          <p class="mel-event-hero__status mel-event-card__status mel-event-card__status--{{ _hero_status_mod }}">{{ _hero_status_text }}</p>
         {% endif %}
       </div>
     </section>
@@ -66,11 +114,11 @@
     {# Meta row + CTA #}
     <section class="mel-event-meta-bar" aria-label="{{ 'Event summary'|t }}">
       <div class="mel-event-meta-bar__items">
-        {% if is_promoted and not (mel_category_label is defined and mel_category_label) %}
+        {% if (not (event_ui is defined and (event_ui.is_sold_out|default(false) == true))) and (not (mel_category_label is defined and mel_category_label)) and ((event_ui is defined and (event_ui.status_type|default('') == 'highlight')) or is_promoted) %}
           <div class="mel-event-meta">
-            <span class="mel-featured-badge mel-featured-badge--inline" role="note" aria-label="{{ 'Featured event'|t }}">
+            <span class="mel-featured-badge mel-featured-badge--inline" role="note" aria-label="{{ 'Featured'|t }}">
               <span class="mel-featured-badge__icon" aria-hidden="true">✨</span>
-              <span class="mel-featured-badge__text">{{ 'Featured event'|t }}</span>
+              <span class="mel-featured-badge__text">{% if event_ui is defined and (event_ui.status_label|default('')|striptags|length > 0) and (not (event_ui.is_sold_out|default(false) == true)) %}{{ event_ui.status_label }}{% else %}{{ 'Featured'|t }}{% endif %}</span>
             </span>
           </div>
         {% endif %}
@@ -141,17 +189,71 @@
         {% endif %}
       </div>
 
-      <div class="mel-event-meta-bar__cta">
-        {% if event_cta and event_cta.label %}
-          {% if event_cta.url %}
-            <a class="mel-btn mel-btn--cta mel-btn--pill" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ event_cta.label }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
+      <div class="mel-event-meta-bar__cta mel-event-meta-bar__cta--stacked">
+        {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
+          {% if mel_cta_is_soldout_ui %}
+            <div class="mel-event-cta-soldout" role="group" aria-label="{{ 'Registration'|t }}">
+              <p class="mel-event-cta-soldout__headline" aria-label="{{ 'Sold out'|t }}">{{ 'SOLD OUT'|t }}</p>
+              {% if event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+                <a class="mel-btn mel-btn--cta mel-btn--pill mel-btn--lavender-cta mel-btn--waitlist" href="{{ event_cta.url }}">{{ mel_cta_text }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
+                <p class="mel-event-cta-soldout__sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
+              {% else %}
+                <p class="mel-event-cta-soldout__muted" role="status">{{ mel_cta_text }}</p>
+              {% endif %}
+            </div>
+            <ul class="mel-event-meta-bar__trust" aria-label="{{ 'Trust'|t }}">
+              {% if mel_trust_checkout %}
+                <li class="mel-event-meta-bar__trust-item">{{ 'Secure checkout'|t }}</li>
+                <li class="mel-event-meta-bar__trust-sep" aria-hidden="true">·</li>
+              {% endif %}
+              <li class="mel-event-meta-bar__trust-item">{{ 'Instant confirmation'|t }}</li>
+              <li class="mel-event-meta-bar__trust-sep" aria-hidden="true">·</li>
+              <li class="mel-event-meta-bar__trust-item">
+                {% if mel_gcal_href|length > 0 %}
+                  <a class="mel-event-meta-bar__trust-link" href="{{ mel_gcal_href }}">{{ 'Add to calendar'|t }}</a>
+                {% else %}
+                  {{ 'Add to calendar'|t }}
+                {% endif %}
+              </li>
+            </ul>
           {% else %}
-            <button class="mel-btn mel-btn--cta mel-btn--pill" type="button" disabled aria-disabled="true">
-              {{ event_cta.label }}
-            </button>
-          {% endif %}
-          {% if event_cta.helper %}
-            <p class="mel-event-meta-bar__cta-helper" aria-live="polite">{{ event_cta.helper }}</p>
+            {% if mel_context_above|default('')|striptags|length > 0 and (mel_cta_type_ui is same as('primary')) %}
+              <p class="mel-event-meta-bar__cta-eyebrow" aria-label="{{ 'Pricing'|t }}">{{ mel_context_above }}</p>
+            {% endif %}
+            {% if event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+              <a class="mel-btn mel-btn--cta mel-btn--pill mel-btn--cta-semantic-{{ mel_cta_type_ui|e('html_attr') }}{% if mel_cta_type_ui is same as('primary') %} mel-btn--coral-cta{% else %} mel-btn--lavender-cta{% endif %}" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ mel_cta_text }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
+            {% else %}
+              <button class="mel-btn mel-btn--cta mel-btn--pill{% if mel_cta_type_ui is same as('disabled') %} mel-btn--state-soldout{% else %} mel-btn--lavender-cta mel-btn--cta-locked{% endif %}" type="button" disabled="disabled" aria-disabled="true">{{ mel_cta_text }}</button>
+            {% endif %}
+            <div class="mel-event-meta-bar__cta-below" role="status">
+              {% if (mel_cta_urgency|default('')|striptags|length > 0) %}
+                <p class="mel-event-meta-bar__urgency" aria-live="polite">{{ mel_cta_urgency }}</p>
+              {% endif %}
+              {% if cta_type is defined and cta_type is same as('paid') and event_cta and event_cta.helper|default('')|striptags|length > 0 %}
+                <p class="mel-event-meta-bar__cta-helper" aria-live="polite">{{ event_cta.helper }}</p>
+              {% endif %}
+              {% if (event_ui is defined) and (event_ui.capacity_hint|default('')|striptags|length > 0) and (mel_cta_urgency|default('')|striptags|length == 0) %}
+                <p class="mel-event-meta-bar__capacity-hint">{{ event_ui.capacity_hint }}</p>
+              {% endif %}
+              {% if mel_event_selling_fast|default(false) %}
+                <p class="mel-event-meta-bar__selling-fast">{{ 'Selling fast'|t }}</p>
+              {% endif %}
+            </div>
+            <ul class="mel-event-meta-bar__trust" aria-label="{{ 'Trust'|t }}">
+              {% if mel_trust_checkout %}
+                <li class="mel-event-meta-bar__trust-item">{{ 'Secure checkout'|t }}</li>
+                <li class="mel-event-meta-bar__trust-sep" aria-hidden="true">·</li>
+              {% endif %}
+              <li class="mel-event-meta-bar__trust-item">{{ 'Instant confirmation'|t }}</li>
+              <li class="mel-event-meta-bar__trust-sep" aria-hidden="true">·</li>
+              <li class="mel-event-meta-bar__trust-item">
+                {% if mel_gcal_href|length > 0 %}
+                  <a class="mel-event-meta-bar__trust-link" href="{{ mel_gcal_href }}">{{ 'Add to calendar'|t }}</a>
+                {% else %}
+                  {{ 'Add to calendar'|t }}
+                {% endif %}
+              </li>
+            </ul>
           {% endif %}
         {% endif %}
       </div>
@@ -470,17 +572,7 @@
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
         <div class="mel-card mel-card--surface mel-card--sticky">
           <div class="mel-card__header">
-            <h2 class="mel-card__title">
-              {% if cta_type is defined and cta_type == 'rsvp' %}
-                {{ 'RSVP free'|t }}
-              {% elseif cta_type is defined and cta_type == 'paid' %}
-                {{ 'Buy tickets'|t }}
-              {% elseif cta_type is defined and cta_type == 'external' %}
-                {{ 'View details'|t }}
-              {% else %}
-                {{ 'View details'|t }}
-              {% endif %}
-            </h2>
+            <h2 class="mel-card__title">{% if mel_cta_text|striptags|length > 0 %}{{ mel_cta_text }}{% else %}{% if cta_type is defined and cta_type == 'rsvp' %}{{ 'RSVP free'|t }}{% elseif cta_type is defined and cta_type == 'paid' %}{{ 'Buy tickets'|t }}{% else %}{{ 'View details'|t }}{% endif %}{% endif %}</h2>
           </div>
           <div class="mel-card__body">
             {% if mel_tickets_from is defined and mel_tickets_from %}
@@ -592,14 +684,50 @@
     </div>
   </div>
 
-  {# Mobile sticky CTA #}
-  {% if event_cta and event_cta.label %}
+  {# Mobile sticky CTA: same messaging as meta bar; thumb-friendly full-width bottom bar. #}
+  {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
     <div class="mel-mobile-cta" role="region" aria-label="{{ 'Ticket actions'|t }}">
-      {% if event_cta.url %}
-        <a class="mel-mobile-cta__button" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ event_cta.label }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
-      {% else %}
-        <button class="mel-mobile-cta__button" type="button" disabled aria-disabled="true">{{ event_cta.label }}</button>
-      {% endif %}
+      <div class="mel-mobile-cta__inner">
+        {% if mel_cta_is_soldout_ui %}
+          <p class="mel-mobile-cta__soldout-head" aria-label="{{ 'Sold out'|t }}">{{ 'SOLD OUT'|t }}</p>
+        {% endif %}
+        {% if (not mel_cta_is_soldout_ui) and (mel_context_above|default('')|striptags|length > 0) and (mel_cta_type_ui is same as('primary')) %}
+          <p class="mel-mobile-cta__eyebrow">{{ mel_context_above }}</p>
+        {% endif %}
+        {% if not mel_cta_is_soldout_ui and (mel_cta_urgency|default('')|striptags|length > 0) %}
+          <p class="mel-mobile-cta__urgency" aria-live="polite">{{ mel_cta_urgency }}</p>
+        {% endif %}
+        {% if mel_cta_is_soldout_ui %}
+          {% if event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+            <a class="mel-mobile-cta__button mel-mobile-cta__button--lavender mel-btn--waitlist" href="{{ event_cta.url }}">{{ mel_cta_text }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
+            <p class="mel-mobile-cta__waitlist-sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
+          {% else %}
+            <p class="mel-mobile-cta__waitlist-sub mel-mobile-cta__waitlist-sub--muted" role="status">{{ mel_cta_text }}</p>
+          {% endif %}
+        {% else %}
+          {% if event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+            <a class="mel-mobile-cta__button mel-mobile-cta__button--{{ mel_cta_type_ui|e('html_attr') }}{% if mel_cta_type_ui is same as('primary') %} mel-mobile-cta__button--coral{% else %} mel-mobile-cta__button--lavender{% endif %}" href="{{ event_cta.url }}"{% if mel_cta_is_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ mel_cta_text }}{% if mel_cta_is_external %}<span class="visually-hidden"> {{ '(opens in a new tab)'|t }}</span>{% endif %}</a>
+          {% else %}
+            <button class="mel-mobile-cta__button{% if mel_cta_type_ui is same as('disabled') %} mel-mobile-cta__button--soldout{% else %} mel-mobile-cta__button--lavender mel-mobile-cta__button--locked{% endif %}" type="button" disabled="disabled" aria-disabled="true">{{ mel_cta_text }}</button>
+          {% endif %}
+          {% if cta_type is defined and cta_type is same as('paid') and event_cta and event_cta.helper|default('')|striptags|length > 0 %}
+            <p class="mel-mobile-cta__helper" aria-live="polite">{{ event_cta.helper }}</p>
+          {% endif %}
+        {% endif %}
+        <p class="mel-mobile-cta__trust" aria-label="{{ 'Trust'|t }}">
+          {% if mel_trust_checkout %}
+            <span class="mel-mobile-cta__trust-t">{{ 'Secure checkout'|t }}</span>
+            <span class="mel-mobile-cta__trust-d" aria-hidden="true">·</span>
+          {% endif %}
+          <span class="mel-mobile-cta__trust-t">{{ 'Instant confirmation'|t }}</span>
+          <span class="mel-mobile-cta__trust-d" aria-hidden="true">·</span>
+          {% if mel_gcal_href|length > 0 %}
+            <a class="mel-mobile-cta__trust-link" href="{{ mel_gcal_href }}">{{ 'Add to calendar'|t }}</a>
+          {% else %}
+            <span class="mel-mobile-cta__trust-t">{{ 'Add to calendar'|t }}</span>
+          {% endif %}
+        </p>
+      </div>
     </div>
   {% endif %}
 </article>

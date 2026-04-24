@@ -38,6 +38,13 @@ final class EventCtaResolver {
   public const CTA_NONE = 'none';
 
   /**
+   * Value of getResolvedCta() `type` when the CTA row is the sold-out / waitlist band.
+   *
+   * (Distinct from cta_type: paid/rsvp/external; this is the row semantic for Twig/event_ui.)
+   */
+  public const CTA_SOLD_OUT = 'sold_out';
+
+  /**
    * Constructs EventCtaResolver.
    *
    * @param \Drupal\myeventlane_event\Service\EventModeManager $modeManager
@@ -87,7 +94,7 @@ final class EventCtaResolver {
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
-   * @return array{cta_type: string, label: string, url: string|null, disabled: bool, helper: string|null}
+   * @return array{cta_type: string, type: string|null, label: string, url: string|null, disabled: bool, helper: string|null, remaining: int|null}
    *   Single CTA structure. Twig uses this only; no logic in templates.
    */
   public function getResolvedCta(NodeInterface $event): array {
@@ -96,6 +103,7 @@ final class EventCtaResolver {
 
     $base = [
       'cta_type' => $ctaType,
+      'type' => NULL,
       'label' => '',
       'url' => NULL,
       'disabled' => TRUE,
@@ -109,6 +117,7 @@ final class EventCtaResolver {
     }
 
     if ($state === 'sold_out') {
+      $base['type'] = self::CTA_SOLD_OUT;
       if ($ctaType === self::CTA_RSVP) {
         $avail = $this->modeManager->getRsvpAvailability($event);
         if (isset($avail['spots_remaining']) && $avail['spots_remaining'] === 0) {
@@ -180,6 +189,7 @@ final class EventCtaResolver {
         }
       }
       elseif (isset($avail['spots_remaining']) && $avail['spots_remaining'] === 0) {
+        $base['type'] = self::CTA_SOLD_OUT;
         $base['label'] = (string) \t('Join waitlist');
         $base['url'] = Url::fromRoute('myeventlane_event_attendees.waitlist_signup', ['node' => $event->id()])->toString();
         $base['disabled'] = FALSE;

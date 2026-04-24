@@ -242,6 +242,30 @@ final class EventStateResolver {
   }
 
   /**
+   * Returns the canonical event domain state snapshot for templates and UIs.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return array{
+   *   has_product: bool,
+   *   is_boosted: bool,
+   *   rsvp_state: string,
+   *   capacity: int
+   * }
+   *   Normalised state from field-based resolver methods. Capacity uses venue
+   *   field only (same as effectiveVenueCapacity with no wizard values).
+   */
+  public function getEventDomainState(NodeInterface $event): array {
+    return [
+      'has_product' => $this->hasProductTarget($event),
+      'is_boosted' => $this->isEventBoosted($event),
+      'rsvp_state' => $this->effectiveRsvpCapacityState([], $event),
+      'capacity' => $this->effectiveVenueCapacity([], $event),
+    ];
+  }
+
+  /**
    * Maps a string to a known event type, or returns empty.
    */
   private function normalizeEventType(string $raw): string {

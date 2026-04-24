@@ -840,12 +840,29 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   $variables['event_cta'] = $ctaResolver->getResolvedCta($node);
   $variables['mel_is_bookable'] = $ctaResolver->isBookable($node);
 
+  $domainStateResolver = \Drupal::hasService('myeventlane_core.event_state_resolver')
+    ? \Drupal::service('myeventlane_core.event_state_resolver')
+    : NULL;
+  if ($domainStateResolver) {
+    $domain_state = $domainStateResolver->getEventDomainState($node);
+  }
+  else {
+    $domain_state = [
+      'has_product' => FALSE,
+      'is_boosted' => FALSE,
+      'rsvp_state' => 'unset',
+      'capacity' => 0,
+    ];
+  }
+  $variables['event_domain_state'] = $domain_state;
+  $variables['mel_event_state_snapshot'] = $domain_state;
+
   $salesStart = $stateResolver->getSalesStart($node);
   $variables['mel_sales_start_formatted'] = $salesStart ? date('F j, Y g:ia', $salesStart) : NULL;
 
   // Lowest enabled ticket price for "Tickets from $X" (paid) or "Free" (RSVP).
   $variables['mel_tickets_from'] = NULL;
-  if ($node->hasField('field_product_target') && !$node->get('field_product_target')->isEmpty()) {
+  if (!empty($variables['mel_event_state_snapshot']['has_product'])) {
     $product = $node->get('field_product_target')->entity;
     if ($product && $product->getEntityTypeId() === 'commerce_product') {
       $variations = $product->getVariations();
@@ -881,6 +898,189 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   if ($variables['cta_type'] === EventCtaResolver::CTA_EXTERNAL) {
     $variables['mel_tickets_from'] = NULL;
   }
+
+  $view_mode = (string) ($variables['view_mode'] ?? 'default');
+  $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
+  // Semantic CTA and badges: always set for the event bundle (all view modes: full,
+  // teaser, event_card, etc.); do not scope to a single view mode here.
+  $variables['event_ui'] = myeventlane_event_finalize_event_ui(
+    $node,
+    $variables['event_domain_state'] ?? $domain_state,
+    (string) $variables['cta_type'],
+    (string) $variables['mel_event_state'],
+    $event_cta,
+    $view_mode
+  );
+}
+
+/**
+ * Enriches vendor dashboard rows with event_domain_state and event_ui (public parity).
+ *
+ * @param array $variables
+ *   Theme render variables; updates upcoming_events rows in place.
+ */
+function myeventlane_event_enrich_vendor_dashboard_event_rows(array &$variables): void {
+  $upcoming = $variables['upcoming_events'] ?? NULL;
+  if (!is_array($upcoming) || $upcoming === []) {
+    return;
+  }
+  if (!\Drupal::hasService('myeventlane_event.cta_resolver') || !\Drupal::hasService('myeventlane_event_state.resolver') || !\Drupal::hasService('myeventlane_core.event_state_resolver')) {
+    return;
+  }
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  $ctaResolver = \Drupal::service('myeventlane_event.cta_resolver');
+  $stateResolver = \Drupal::service('myeventlane_event_state.resolver');
+  $domainStateResolver = \Drupal::service('myeventlane_core.event_state_resolver');
+
+  foreach ($upcoming as $key => $row) {
+    if (!is_array($row) || empty($row['id'])) {
+      continue;
+    }
+    $node = $node_storage->load((int) $row['id']);
+    if (!$node instanceof NodeInterface) {
+      continue;
+    }
+    $domain = $row['event_domain_state'] ?? $domainStateResolver->getEventDomainState($node);
+    if (!is_array($domain) || $domain === []) {
+      $domain = [
+        'has_product' => FALSE,
+        'is_boosted' => FALSE,
+        'rsvp_state' => 'unset',
+        'capacity' => 0,
+      ];
+    }
+    $ct = (string) $ctaResolver->getCtaType($node);
+    $mels = (string) $stateResolver->resolveState($node);
+    $ec = $ctaResolver->getResolvedCta($node);
+    $upcoming[$key] = is_array($row) ? $row : [];
+    $upcoming[$key]['event_domain_state'] = $domain;
+    $upcoming[$key]['event_ui'] = myeventlane_event_finalize_event_ui($node, $domain, $ct, $mels, is_array($ec) ? $ec : [], 'event_card');
+  }
+  $variables['upcoming_events'] = $upcoming;
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for myeventlane_vendor_dashboard.
+ */
+function myeventlane_event_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
+  myeventlane_event_enrich_vendor_dashboard_event_rows($variables);
+}
+
+/**
+ * Map event_domain_state + CTA to semantic UI (Twig: labels and types only).
+ */
+function myeventlane_event_finalize_event_ui(
+  NodeInterface $node,
+  array $domain,
+  string $ctaType,
+  string $melState,
+  array $eventCta,
+  string $viewMode = 'default',
+): array {
+  $defaults = static function () {
+    return [
+      'cta_label' => (string) t('View details'),
+      'cta_type' => 'secondary',
+      'status_label' => NULL,
+      'status_type' => 'muted',
+      'is_sold_out' => FALSE,
+      'show_cta' => TRUE,
+      'capacity_hint' => NULL,
+      'image_badge_label' => NULL,
+      'image_badge_type' => NULL,
+    ];
+  };
+
+  $hasProduct = !empty($domain['has_product']);
+  $isBoosted = !empty($domain['is_boosted']);
+  $rsvpState = (string) ($domain['rsvp_state'] ?? 'unset');
+  $capacity = (int) ($domain['capacity'] ?? 0);
+  $ecLabel = trim((string) ($eventCta['label'] ?? ''));
+  $isCardContext = in_array($viewMode, myeventlane_event_get_event_card_view_modes(), TRUE);
+  $isSoldOut = (($eventCta['type'] ?? NULL) === EventCtaResolver::CTA_SOLD_OUT);
+
+  $showCta = $ctaType !== EventCtaResolver::CTA_NONE
+    && $melState !== 'draft';
+  if (!$showCta) {
+    $out = $defaults();
+    $out['show_cta'] = FALSE;
+    $out['cta_label'] = '';
+    $out['cta_type'] = 'disabled';
+    if ($isBoosted) {
+      $out['status_label'] = (string) t('Featured');
+      $out['status_type'] = 'highlight';
+      $out['image_badge_label'] = (string) t('Featured');
+      $out['image_badge_type'] = 'apricot';
+    }
+    return $out;
+  }
+
+  $out = $defaults();
+  if ($isSoldOut) {
+    $out['is_sold_out'] = TRUE;
+    $out['status_label'] = (string) t('Sold out');
+    $out['status_type'] = 'warning';
+    $out['image_badge_label'] = (string) t('Sold out');
+    $out['image_badge_type'] = 'warning';
+    $out['cta_label'] = (string) ($eventCta['label'] ?? '');
+    $out['cta_type'] = 'secondary';
+  }
+  elseif (in_array($melState, ['ended', 'cancelled'], TRUE)) {
+    $out['cta_label'] = (string) t('View details');
+    $out['cta_type'] = 'secondary';
+  }
+  elseif ($isCardContext && $melState === 'scheduled' && $ctaType === EventCtaResolver::CTA_PAID) {
+    $out['cta_label'] = (string) t('View details');
+    $out['cta_type'] = 'secondary';
+  }
+  elseif ($melState === 'scheduled' && $ctaType === EventCtaResolver::CTA_PAID) {
+    $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('View details');
+    $out['cta_type'] = 'secondary';
+  }
+  elseif ($ctaType === EventCtaResolver::CTA_EXTERNAL) {
+    $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('View details');
+    $out['cta_type'] = empty($eventCta['disabled'] ?? FALSE) && !empty($eventCta['url']) ? 'secondary' : 'disabled';
+  }
+  elseif ($hasProduct) {
+    $out['cta_label'] = (string) t('Buy tickets');
+    $out['cta_type'] = 'primary';
+  }
+  else {
+    $out['cta_label'] = (string) t('RSVP free');
+    $out['cta_type'] = 'primary';
+  }
+
+  if (!$isSoldOut && $rsvpState === 'limited' && $capacity > 0 && $capacity < 20) {
+    $out['capacity_hint'] = (string) t('Limited spots remaining');
+  }
+  if (
+    $out['is_sold_out'] === FALSE
+    && $isBoosted
+    && ($out['image_badge_label'] ?? NULL) === NULL
+  ) {
+    $out['status_label'] = (string) t('Featured');
+    $out['status_type'] = 'highlight';
+    $out['image_badge_label'] = (string) t('Featured');
+    $out['image_badge_type'] = 'apricot';
+  }
+  return $out;
+}
+
+/**
+ * View modes that use the event card CTA phrasing.
+ *
+ * @return list<string>
+ */
+function myeventlane_event_get_event_card_view_modes(): array {
+  return [
+    'card',
+    'event_card',
+    'teaser',
+    'teaser_featured',
+    'event_card_poster',
+    'event_card_compact',
+    'event_home_card',
+  ];
 }
 
 /**
