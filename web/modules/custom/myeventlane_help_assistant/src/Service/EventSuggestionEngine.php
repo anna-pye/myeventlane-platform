@@ -24,7 +24,7 @@ final class EventSuggestionEngine {
 
   private const MAX_SUGGESTIONS = 3;
 
-  /** Priority tier: lower runs first when selecting top 3. */
+  // Lower number sorts earlier when capping the top 3.
   private const P_CRITICAL = 1;
 
   private const P_REVENUE = 2;
@@ -325,6 +325,9 @@ final class EventSuggestionEngine {
     return $out;
   }
 
+  /**
+   *
+   */
   public function computeScoreValue(array $values, ?NodeInterface $event): int {
     $score = 100;
     $eventType = $this->effectiveEventType($values, $event);
@@ -557,7 +560,7 @@ final class EventSuggestionEngine {
 
   /**
    * @param list<float> $savedPrices
-   * @param list<mixed>  $livePrices
+   * @param list<mixed> $livePrices
    *
    * @return array{min: ?float, max: ?float}
    */
@@ -581,6 +584,9 @@ final class EventSuggestionEngine {
     return ['min' => $min, 'max' => $max];
   }
 
+  /**
+   *
+   */
   private function hasProductTarget(?NodeInterface $event): bool {
     if (!$event || !$event->hasField('field_product_target')) {
       return FALSE;
@@ -649,6 +655,9 @@ final class EventSuggestionEngine {
     return $this->combinedDescription($body, $intro);
   }
 
+  /**
+   *
+   */
   private function isEventBoosted(NodeInterface $event): bool {
     if ($this->boostManager && method_exists($this->boostManager, 'isBoosted')) {
       try {
@@ -664,11 +673,17 @@ final class EventSuggestionEngine {
     return FALSE;
   }
 
+  /**
+   *
+   */
   private function normalizeEventType(string $raw): string {
     $raw = mb_strtolower(trim($raw));
     return in_array($raw, ['rsvp', 'paid', 'both', 'external'], TRUE) ? $raw : '';
   }
 
+  /**
+   *
+   */
   private function normalizeCapacityState(mixed $venueCapacityOrRaw): string {
     if ($venueCapacityOrRaw === NULL || $venueCapacityOrRaw === '') {
       return 'unset';
@@ -690,6 +705,9 @@ final class EventSuggestionEngine {
     return 'unset';
   }
 
+  /**
+   *
+   */
   private function combinedDescription(string $body, string $intro): string {
     $text = trim(preg_replace('/\s+/', ' ', strip_tags($body . ' ' . $intro)) ?? '');
     return $text;
@@ -697,7 +715,7 @@ final class EventSuggestionEngine {
 
   /**
    * @param list<array<string, mixed>> $current
-   * @param array<string, mixed>       $values
+   * @param array<string, mixed> $values
    *
    * @return list<array<string, mixed>>
    */
