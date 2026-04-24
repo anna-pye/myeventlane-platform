@@ -151,6 +151,10 @@ git pull
 git push
 ```
 
+## Staging deploy (MyEventLane)
+
+Pushes to **`main`** run the **Deploy Staging** workflow. For feature branches, when to merge, and how to read a failed deploy log, see **[STAGING_DEPLOY_GIT.md](./STAGING_DEPLOY_GIT.md)**.
+
 ## Safety Reminders
 
 ✅ **Always run `./pre-commit-check.sh` before committing**
