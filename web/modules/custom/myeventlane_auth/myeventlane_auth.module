@@ -7,6 +7,7 @@ declare(strict_types=1);
  * MyEventLane SSO (OAuth2-style) for cross-subdomain authentication.
  */
 
+use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -442,22 +443,61 @@ function myeventlane_auth_user_register_form_post_save_redirect(array &$form, Fo
 /**
  * Implements hook_form_user_form_alter().
  *
- * One-time password reset: after successful submit, continue into MEL create flow.
+ * One-time password reset: optional handoff to the create-event gateway when MEL
+ * intent is create_event (request, hidden field, or pending user data).
  */
 function myeventlane_auth_form_user_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
   if ($form_id !== 'user_form') {
     return;
   }
   if ($form_state->get('user_pass_reset')) {
+    $raw_intent = myeventlane_auth_resolve_mel_intent_for_login_request(\Drupal::request());
+    if (is_string($raw_intent) && $raw_intent !== '') {
+      $form['mel_intent'] = [
+        '#type' => 'hidden',
+        '#value' => $raw_intent,
+        '#weight' => -20,
+      ];
+    }
     $form['actions']['submit']['#submit'][] = 'myeventlane_auth_reset_redirect_submit';
   }
 }
 
 /**
- * Submit after user one-time password set: hand off to create-event gateway.
+ * Submit after user one-time password set: hand off to create-event gateway when intended.
  */
 function myeventlane_auth_reset_redirect_submit(array &$form, FormStateInterface $form_state): void {
   if (!$form_state->get('user_pass_reset')) {
+    return;
+  }
+  $raw = $form_state->getValue('mel_intent');
+  if (!is_string($raw) || $raw === '') {
+    $raw = myeventlane_auth_resolve_mel_intent_for_login_request(\Drupal::request());
+  }
+  if (!is_string($raw) || $raw === '') {
+    $form_object = $form_state->getFormObject();
+    if ($form_object instanceof EntityFormInterface) {
+      $entity = $form_object->getEntity();
+      if ($entity instanceof UserInterface) {
+        /** @var \Drupal\user\UserDataInterface $user_data */
+        $user_data = \Drupal::service('user.data');
+        $pending = $user_data->get(
+          'myeventlane_auth',
+          (int) $entity->id(),
+          IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT,
+        );
+        if (is_string($pending) && $pending !== '') {
+          $raw = $pending;
+        }
+      }
+    }
+  }
+  if (!is_string($raw)) {
+    $raw = '';
+  }
+  /** @var \Drupal\myeventlane_auth\Service\IdentityIntentResolver $resolver */
+  $resolver = \Drupal::service('myeventlane_auth.identity_intent_resolver');
+  if ($resolver->normalizeIntent($raw) !== IdentityIntentResolver::INTENT_CREATE_EVENT) {
     return;
   }
   $form_state->setRedirect(

@@ -9,6 +9,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Request;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\node\NodeInterface;
@@ -222,7 +223,14 @@ abstract class VendorConsoleBaseController {
     }
 
     $vendor = $this->getCurrentVendorOrNull();
-    $stripeConnectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect');
+    $http_request = \Drupal::request();
+    $destination = $http_request instanceof Request
+      && $http_request->getPathInfo() !== ''
+      ? (string) $http_request->getPathInfo()
+      : '/create-event';
+    $stripeConnectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+      'query' => ['destination' => $destination],
+    ]);
 
     if (!$vendor || !$vendor->hasField('field_vendor_store') || $vendor->get('field_vendor_store')->isEmpty()) {
       $this->getMessenger()->addError($this->t('You must connect your Stripe account before setting up events.'));

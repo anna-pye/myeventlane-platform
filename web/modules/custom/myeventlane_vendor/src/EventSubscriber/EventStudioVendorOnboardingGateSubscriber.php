@@ -49,6 +49,9 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     }
 
     $path = $event->getRequest()->getPathInfo() ?: '/';
+    if (str_starts_with($path, '/vendor/stripe') || str_starts_with($path, '/stripe/')) {
+      return;
+    }
     if (!($path === '/vendor' || str_starts_with($path, '/vendor/'))) {
       return;
     }
@@ -92,6 +95,7 @@ final class EventStudioVendorOnboardingGateSubscriber implements EventSubscriber
     }
     if (!$this->onboardingManager->isCompleted($state)) {
       $this->redirectToOnboardProfile($event, $uid, 'onboarding_incomplete');
+      return;
     }
   }
 

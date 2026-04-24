@@ -21,6 +21,14 @@ hide_admin_sidebar:
   dependencies:
     - core/drupal
 
+stripe_connect_cta:
+  version: 1.x
+  js:
+    js/stripe-connect-cta.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 onboarding:
   version: 1.x
   css:

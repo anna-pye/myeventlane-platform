@@ -308,6 +308,14 @@ function myeventlane_vendor_page_attachments_alter(array &$attachments): void {
     $attachments['#attached']['library'][] =
       'myeventlane_vendor/hide_admin_sidebar';
   }
+
+  if ($route && (
+    str_starts_with((string) $route, 'myeventlane_vendor.') ||
+    str_starts_with((string) $route, 'myeventlane_event_studio.') ||
+    str_starts_with((string) $route, 'myeventlane_dashboard.')
+  )) {
+    $attachments['#attached']['library'][] = 'myeventlane_vendor/stripe_connect_cta';
+  }
 }
 
 /**

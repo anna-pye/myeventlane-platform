@@ -65,6 +65,15 @@ final class EventStudioPreprocess {
 
     $variables['mel_stripe_connected'] = $stripe_connected;
 
+    $path = '/create-event';
+    $httpRequest = $this->requestStack->getCurrentRequest();
+    if ($httpRequest !== NULL && $httpRequest->getPathInfo() !== '') {
+      $path = (string) $httpRequest->getPathInfo();
+    }
+    $variables['mel_stripe_connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+      'query' => ['destination' => $path],
+    ])->toString();
+
     if ($state !== NULL && !$state->isCompleted() && \function_exists('_myeventlane_vendor_theme_build_onboarding_stages')) {
       $variables['onboarding_stages'] = _myeventlane_vendor_theme_build_onboarding_stages($state);
       $variables['show_onboarding_sidebar'] = TRUE;

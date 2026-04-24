@@ -9,6 +9,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -25,6 +26,7 @@ final class VendorOnboardCompleteController extends ControllerBase {
   public function __construct(
     private readonly OnboardingManager $onboardingManager,
     private readonly RequestStack $requestStack,
+    private readonly VendorStoreSubscriber $vendorStoreSubscriber,
   ) {}
 
   /**
@@ -34,15 +36,18 @@ final class VendorOnboardCompleteController extends ControllerBase {
     return new static(
       $container->get('myeventlane_onboarding.manager'),
       $container->get('request_stack'),
+      $container->get('myeventlane_vendor.vendor_store_subscriber'),
     );
   }
 
   /**
    * Step 6: Onboarding complete - celebration page or redirect.
    *
-   * Onboarding is marked complete before the Vendor entity is created so that
-   * the store subscriber allows Commerce store creation. Organiser name and
-   * legal acceptance stored on the onboarding state are copied to the vendor.
+   * The Vendor is created and linked to onboarding (vendor_id on state) first.
+   * Only then is the state marked complete (required by OnboardingState::preSave()).
+   * A follow-up call syncs the default Commerce store, matching the behaviour of
+   * a vendor insert with onboarding already complete. Organiser name and legal
+   * acceptance in state flags are copied to the vendor.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
    *   Redirect or render array.
@@ -63,14 +68,13 @@ final class VendorOnboardCompleteController extends ControllerBase {
       );
     }
 
-    $state = $this->onboardingManager->createVendorStateForUid($uid);
-
-    $state->setStage('complete');
-    $state->setCompleted(TRUE);
-    $state->save();
+    $state = $this->onboardingManager->loadVendorStateByUid($uid);
+    if ($state === NULL) {
+      $state = $this->onboardingManager->createVendorStateForUid($uid);
+    }
 
     $vendor = $this->getCurrentUserVendor();
-    if (!$vendor) {
+    if ($vendor === NULL) {
       $vendor = $this->onboardingManager->ensureVendorExists($currentUser->getAccount());
     }
 
@@ -78,9 +82,23 @@ final class VendorOnboardCompleteController extends ControllerBase {
 
     $this->onboardingManager->ensureVendorAccess($currentUser->getAccount());
     $user = $this->entityTypeManager()->getStorage('user')->load($uid);
-    if ($user instanceof UserInterface) {
-      $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+    if (!($user instanceof UserInterface)) {
+      $this->getLogger('myeventlane_vendor')->error(
+        'Vendor onboard complete: user not loadable uid=@uid',
+        ['@uid' => (string) $uid],
+      );
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_vendor.onboard.account')->toString()
+      );
     }
+
+    $state = $this->onboardingManager->loadOrCreateVendor($user, $vendor);
+
+    $state->setStage('complete');
+    $state->setCompleted(TRUE);
+    $state->save();
+
+    $this->vendorStoreSubscriber->onVendorInsertFromHook($vendor);
 
     $request = $this->requestStack->getCurrentRequest();
     $auto_redirect = $request && (string) $request->query->get('auto') === '1';

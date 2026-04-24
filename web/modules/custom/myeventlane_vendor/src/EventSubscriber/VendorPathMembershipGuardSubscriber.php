@@ -51,6 +51,9 @@ final class VendorPathMembershipGuardSubscriber implements EventSubscriberInterf
     if (!($path === '/vendor' || str_starts_with($path, '/vendor/'))) {
       return;
     }
+    if (str_starts_with($path, '/vendor/stripe') || str_starts_with($path, '/stripe/')) {
+      return;
+    }
     if (MelKernelAuthRouteSilencer::shouldBypassAuthAccountRoutes($request)) {
       return;
     }

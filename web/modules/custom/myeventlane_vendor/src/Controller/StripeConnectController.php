@@ -104,6 +104,26 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
+   * Builds absolute return and refresh URLs for Stripe AccountLink.
+   *
+   * return_url: Stripe redirects here after onboarding. refresh_url: Stripe uses
+   * if the link expires. Both always carry the same `destination` query
+   * parameter (may be empty) for callback/refresh continuity.
+   */
+  private function buildAccountLinkUrls(string $destination = ''): array {
+    $returnUrl = Url::fromRoute('myeventlane_vendor.stripe_onboard_return', [], [
+      'absolute' => TRUE,
+      'query' => ['destination' => $destination],
+    ])->toString();
+    $refreshUrl = Url::fromRoute('myeventlane_vendor.stripe_onboard_refresh', [], [
+      'absolute' => TRUE,
+      'query' => ['destination' => $destination],
+    ])->toString();
+
+    return [$returnUrl, $refreshUrl];
+  }
+
+  /**
    * Gets the vendor entity for the current user.
    *
    * @return \Drupal\myeventlane_vendor\Entity\Vendor|null
@@ -135,26 +155,30 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
+   * Disables edge caching of off-site Stripe redirect responses.
+   */
+  private function applyOffsiteStripeRedirectHeaders(TrustedRedirectResponse $response): TrustedRedirectResponse {
+    $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    return $response;
+  }
+
+  /**
    * Starts Stripe Connect onboarding.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   Redirect to Stripe onboarding or dashboard.
    */
   public function connect(): RedirectResponse {
+    \Drupal::logger('mel_debug')->notice('STRIPE CONNECT HIT');
     $currentUser = $this->currentUser();
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in to connect Stripe.');
     }
 
-    $request = \Drupal::request();
-    $destination = $request->query->get('destination');
-
     $store = $this->getStoreForConnect();
     if (!$store) {
       $this->messenger()->addError($this->t('No store found for your account. Please contact support.'));
-      if ($destination) {
-        return new RedirectResponse($destination);
-      }
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
     }
 
@@ -173,7 +197,8 @@ final class StripeConnectController extends ControllerBase {
           $store->set('field_stripe_status', $status['status']);
         }
         if ($store->hasField('field_stripe_connected')) {
-          $store->set('field_stripe_connected', $status['status'] === 'complete');
+          // Aligned with assertStripeConnected: seller-ready when charges are on.
+          $store->set('field_stripe_connected', (bool) $status['charges_enabled']);
         }
         if ($store->hasField('field_stripe_charges_enabled')) {
           $store->set('field_stripe_charges_enabled', $status['charges_enabled']);
@@ -185,9 +210,6 @@ final class StripeConnectController extends ControllerBase {
 
         if ($status['charges_enabled']) {
           $this->messenger()->addStatus($this->t('Stripe is already connected.'));
-          if ($destination) {
-            return new RedirectResponse($destination);
-          }
           return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
         }
       }
@@ -231,47 +253,47 @@ final class StripeConnectController extends ControllerBase {
         }
       }
 
-      // Create AccountLink for onboarding.
-      $request = \Drupal::request();
-      $destination = $request->query->get('destination');
+      // Create AccountLink: return + refresh are absolute, with optional
+      // ?destination=… so the callback can redirect to /create-event, onboard, etc.
+      $reqQuery = \Drupal::request();
+      $destination = $reqQuery->query->get('destination');
+      $destStr = is_string($destination) ? $destination : '';
 
-      // Determine return URL based on destination.
-      // Use current request's scheme and host to ensure correct domain.
-      $request = \Drupal::request();
-      $baseUrl = $request->getSchemeAndHttpHost();
-
-      if ($destination && strpos($destination, '/vendor/onboard') !== FALSE) {
-        // If coming from onboarding, return to onboarding stripe step.
-        $callbackUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', [], [
-          'query' => ['destination' => $destination],
-        ]);
-        $returnUrl = $baseUrl . $callbackUrl->toString();
-      }
-      else {
-        // Default: return to callback which redirects to dashboard.
-        $callbackUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', []);
-        $returnUrl = $baseUrl . $callbackUrl->toString();
-      }
-
-      $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-        'query' => $destination ? ['destination' => $destination] : [],
-      ]);
-      $refreshUrl = $baseUrl . $connectUrl->toString();
-
+      [$returnUrl, $refreshUrl] = $this->buildAccountLinkUrls($destStr);
       $accountLink = $this->stripeService->createAccountLink($accountId, $returnUrl, $refreshUrl);
+      if ($accountLink === NULL || (is_object($accountLink) && empty($accountLink->url))) {
+        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: no account link returned for uid=@uid', [
+          '@uid' => (string) $this->currentUser()->id(),
+        ]);
+        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
+      }
+      $url = $accountLink->url;
+      if (!is_string($url) || $url === '') {
+        $this->getLogger('myeventlane_vendor')->error('Stripe connect failed: empty account link url for uid=@uid', [
+          '@uid' => (string) $this->currentUser()->id(),
+        ]);
+        throw new \RuntimeException('Stripe onboarding could not be started. Account link missing.');
+      }
+      if (!str_starts_with($url, 'https://connect.stripe.com')) {
+        throw new \RuntimeException('Invalid Stripe URL: ' . $url);
+      }
+      \Drupal::logger('mel_debug')->notice('Stripe redirecting to: @url', [
+        '@url' => $url,
+      ]);
 
-      // Redirect to Stripe onboarding.
-      // External URL requires TrustedRedirectResponse.
-      return new TrustedRedirectResponse($accountLink->url);
+      $response = new TrustedRedirectResponse($url);
+      $response->setTrustedTargetUrl($url);
+      $this->applyOffsiteStripeRedirectHeaders($response);
+      return $response;
     }
     catch (\Exception $e) {
+      if ($e instanceof \RuntimeException) {
+        throw $e;
+      }
       $this->getLogger('myeventlane_vendor')->error('Stripe Connect onboarding failed: @message', [
         '@message' => $e->getMessage(),
       ]);
       $this->messenger()->addError($this->t('Failed to start Stripe onboarding. Please try again or contact support.'));
-      if (!empty($destination) && str_contains((string) $destination, '/vendor/onboard')) {
-        return new RedirectResponse($destination);
-      }
       return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
     }
   }
@@ -286,6 +308,7 @@ final class StripeConnectController extends ControllerBase {
    *   Redirect to vendor dashboard.
    */
   public function callback(Request $request): RedirectResponse {
+    \Drupal::logger('mel_debug')->notice('STRIPE CALLBACK HIT');
     $currentUser = $this->currentUser();
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in.');
@@ -320,7 +343,7 @@ final class StripeConnectController extends ControllerBase {
         $store->set('field_stripe_status', $status['status']);
       }
       if ($store->hasField('field_stripe_connected')) {
-        $store->set('field_stripe_connected', $status['status'] === 'complete');
+        $store->set('field_stripe_connected', (bool) $status['charges_enabled']);
       }
       if ($store->hasField('field_stripe_charges_enabled')) {
         $store->set('field_stripe_charges_enabled', $status['charges_enabled']);
@@ -329,6 +352,13 @@ final class StripeConnectController extends ControllerBase {
         $store->set('field_stripe_payouts_enabled', $status['payouts_enabled']);
       }
       $store->save();
+      \Drupal::logger('mel_debug')->notice('STRIPE CALLBACK: store saved; field_stripe_connected=@c charges_enabled=@ch payouts=@p', [
+        '@c' => $store->hasField('field_stripe_connected') && !$store->get('field_stripe_connected')->isEmpty()
+          ? (string) (int) (bool) $store->get('field_stripe_connected')->value
+          : 'n/a',
+        '@ch' => (string) (int) (bool) ($status['charges_enabled'] ?? FALSE),
+        '@p' => (string) (int) (bool) ($status['payouts_enabled'] ?? FALSE),
+      ]);
 
       // Also update vendor entity if it exists.
       $vendor = $this->getCurrentUserVendor();
@@ -338,6 +368,9 @@ final class StripeConnectController extends ControllerBase {
         }
         if ($vendor->hasField('field_stripe_status')) {
           $vendor->set('field_stripe_status', $status['status']);
+        }
+        if ($vendor->hasField('field_stripe_connected')) {
+          $vendor->set('field_stripe_connected', (bool) $status['charges_enabled']);
         }
         $vendor->save();
       }
@@ -457,9 +490,10 @@ final class StripeConnectController extends ControllerBase {
         '@account_id' => $accountId,
       ]);
 
-      // Redirect to Stripe dashboard.
-      // External URL requires TrustedRedirectResponse.
-      return new TrustedRedirectResponse($loginLink->url);
+      $response = new TrustedRedirectResponse($loginLink->url);
+      $response->setTrustedTargetUrl($loginLink->url);
+      $this->applyOffsiteStripeRedirectHeaders($response);
+      return $response;
     }
     catch (\Exception $e) {
       // Unexpected failures during API calls - log as ERROR.

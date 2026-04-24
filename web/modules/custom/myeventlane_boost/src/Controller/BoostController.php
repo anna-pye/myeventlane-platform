@@ -325,6 +325,9 @@ final class BoostController extends ControllerBase {
     $connectLink['#attributes']['class'][] = 'button';
     $connectLink['#attributes']['class'][] = 'button--primary';
     $connectLink['#attributes']['class'][] = 'boost-connect-stripe';
+    $connectLink['#attributes']['class'][] = 'mel-button';
+    $connectLink['#attributes']['class'][] = 'mel-button--primary';
+    $connectLink['#attributes']['class'][] = 'mel-button--stripe';
 
     return [
       '#type' => 'container',

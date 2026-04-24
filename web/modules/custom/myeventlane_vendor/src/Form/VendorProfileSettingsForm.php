@@ -778,9 +778,15 @@ class VendorProfileSettingsForm extends FormBase {
           $form['payment']['store']['stripe_section']['connect'] = [
             '#type' => 'link',
             '#title' => $this->t('Connect Stripe Account'),
-            '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect'),
+            '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+              'query' => [
+                'destination' => $this->getRequest()->getPathInfo() !== '' && $this->getRequest()->getPathInfo() !== '/'
+                  ? (string) $this->getRequest()->getPathInfo()
+                  : '/vendor/settings',
+              ],
+            ]),
             '#attributes' => [
-              'class' => ['button', 'button--primary'],
+              'class' => ['button', 'button--primary', 'mel-button', 'mel-button--primary', 'mel-button--stripe'],
             ],
           ];
         }

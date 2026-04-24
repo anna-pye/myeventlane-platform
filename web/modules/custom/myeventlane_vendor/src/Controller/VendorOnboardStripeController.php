@@ -153,7 +153,7 @@ final class VendorOnboardStripeController extends ControllerBase {
 
     $connectUrl = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
       'query' => [
-        'destination' => '/vendor/onboard/stripe',
+        'destination' => '/create-event',
         't' => (string) time(),
       ],
       'absolute' => TRUE,

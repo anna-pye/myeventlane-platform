@@ -2411,7 +2411,7 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
     return [
       'type' => 'warning',
       'message' => t('Finish setting up Stripe so payouts can reach your bank.'),
-      'cta' => ['label' => t('Resume Stripe setup'), 'url' => '/vendor/stripe/connect'],
+      'cta' => ['label' => t('Resume Stripe setup'), 'url' => '/stripe/connect'],
     ];
   }
 
@@ -2420,7 +2420,7 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
     return [
       'type' => 'warning',
       'message' => t('Connect Stripe to receive payments.'),
-      'cta' => ['label' => t('Connect Stripe'), 'url' => '/vendor/stripe/connect'],
+      'cta' => ['label' => t('Connect Stripe'), 'url' => '/stripe/connect'],
     ];
   }
 
