@@ -25,28 +25,31 @@
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+  animation: fade-in-up 0.3s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .mel-event-card:hover {
-    transform: translateY(-4px);
-    box-shadow: mel.$mel-ds-shadow-hover;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .mel-event-card:hover:focus-within {
+    box-shadow:
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 0 0 3px rgba(110, 126, 242, 0.25);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .mel-event-card {
-    transition: none;
-  }
+.mel-event-card:focus-within {
+  box-shadow:
+    mel.$mel-ds-shadow-soft,
+    0 0 0 3px rgba(110, 126, 242, 0.25);
+}
 
-  .mel-event-card:hover {
-    transform: none;
-  }
-
-  .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element {
-    transition: none;
-    transform: none;
-  }
+.mel-event-card:active,
+.mel-event-card:has(.mel-event-card__link:active) {
+  transform: scale(0.98);
 }
 
 .mel-event-card__link {
@@ -56,6 +59,7 @@
   min-height: 100%;
   color: inherit;
   text-decoration: none;
+  touch-action: manipulation;
 }
 
 .mel-event-card__link:hover,
@@ -95,6 +99,17 @@
   display: block;
 }
 
+.mel-event-card__image img {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-event-card:hover .mel-event-card__image img,
+  .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
+    transform: scale(1.03);
+  }
+}
+
 .mel-event-card__image .mel-pill--category,
 .mel-event-card__image .mel-pill--on-image {
   transform: none;
@@ -112,12 +127,25 @@
   text-overflow: ellipsis;
 }
 
-.mel-event-card__image-badge {
+.mel-event-card__image-badge,
+.mel-event-card__badge {
   position: absolute;
   top: 12px;
   left: 12px;
   z-index: 3;
   max-width: calc(100% - 24px);
+  opacity: 0.9;
+}
+
+.mel-event-card__image-badge {
+  transition: opacity 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mel-event-card:hover .mel-event-card__image-badge,
+  .mel-event-card:hover .mel-event-card__badge {
+    opacity: 1;
+  }
 }
 
 // Outrank .mel-pill--on-image / .mel-pill (listing + hero) without !important.
@@ -381,7 +409,7 @@
     display: block;
     position: relative;
     z-index: 0;
-    transition: transform 0.4s ease;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .mel-event-card__body,
@@ -498,16 +526,6 @@
 @media (hover: hover) and (pointer: fine) {
   .mel-featured-carousel .mel-event-card:hover {
     transform: translateY(-6px) scale(1.01);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-featured-carousel .mel-event-card {
-    transition: none;
-  }
-
-  .mel-featured-carousel .mel-event-card:hover {
-    transform: none;
   }
 }
 
@@ -708,6 +726,51 @@
 
   .mel-featured-hero__slide .mel-event-hero-card:hover .mel-event-hero-card__image img {
     transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-card,
+  .mel-featured-carousel .mel-event-card {
+    transition: none;
+    transform: none;
+    animation: none;
+  }
+
+  .mel-event-card:hover,
+  .mel-featured-carousel .mel-event-card:hover,
+  .mel-event-card:active,
+  .mel-event-card:has(.mel-event-card__link:active) {
+    transform: none;
+  }
+
+  .mel-event-card__image img,
+  .mel-event-card__image .mel-event-card__image-element {
+    transition: none;
+    transform: none;
+  }
+
+  .mel-event-card--featured .mel-event-card__image .mel-event-card__image-element {
+    transition: none;
+    transform: none;
+  }
+
+  .mel-event-card__image-badge,
+  .mel-event-card__badge {
+    transition: none;
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
