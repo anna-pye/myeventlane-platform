@@ -779,7 +779,7 @@
 // ---------------------------------------------------------------------------
 
 .mel-skeleton {
-  background: linear-gradient(90deg, #f6f6f6 20%, #eeeeee 50%, #f6f6f6 80%);
+  background: linear-gradient(90deg, #f6f6f6 20%, #eee 50%, #f6f6f6 80%);
   background-size: 400% 100%;
   animation: mel-skeleton-loading 1.4s ease-in-out infinite;
   border-radius: 12px;
@@ -914,5 +914,41 @@
   .mel-event-grid[data-loaded="true"] {
     animation: none;
   }
+}
+
+// Save / interested (Flag module link on listing cards; top-right overlay on article).
+.mel-event-card__save {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+
+.mel-event-card__save .flag a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
+  text-decoration: none;
+  color: color-mix(in srgb, mel.$mel-ds-color-text 85%, transparent);
+}
+
+.mel-event-card__save .flag a:hover,
+.mel-event-card__save .flag a:focus-visible {
+  transform: scale(1.1);
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-event-card__save .flag.action-unflag a,
+.mel-event-card__save .flag a.is-active {
+  background: #f26d5b;
+  color: #fff;
 }
 

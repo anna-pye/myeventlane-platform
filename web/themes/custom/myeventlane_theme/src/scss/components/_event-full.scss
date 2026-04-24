@@ -63,6 +63,42 @@
   }
 }
 
+// Flag “Save” control (event full meta bar, above primary CTA).
+.mel-event-save {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.mel-event--v2 .mel-event-save .flag a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  width: auto;
+  border-radius: 999px;
+  background: colors.$mel-color-surface;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: color-mix(in srgb, colors.$mel-color-text 88%, #fff 12%);
+  font-weight: typography.$mel-font-bold;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.mel-event--v2 .mel-event-save .flag a:hover,
+.mel-event--v2 .mel-event-save .flag a:focus-visible {
+  transform: scale(1.04);
+  color: colors.$mel-color-text;
+}
+
+.mel-event--v2 .mel-event-save .flag.action-unflag a,
+.mel-event--v2 .mel-event-save .flag a.is-active {
+  background: #f26d5b;
+  color: #fff;
+}
+
 .mel-event-meta-bar__cta-eyebrow {
   margin: 0;
   width: 100%;

@@ -48,11 +48,23 @@ final class AccountLinksService {
       }
     }
 
+    $savedEventsUrl = '/my-saved-events';
+    try {
+      $savedEventsUrl = Url::fromRoute('view.mel_saved_events.page_1')->toString();
+    }
+    catch (\Throwable) {
+    }
+
     return [
       [
         'title' => $this->t('Dashboard'),
         'url' => Url::fromRoute('myeventlane_account.dashboard')->toString(),
         'active' => $active === 'dashboard',
+      ],
+      [
+        'title' => $this->t('Saved events'),
+        'url' => $savedEventsUrl,
+        'active' => FALSE,
       ],
       [
         'title' => $this->t('Profile & Settings'),

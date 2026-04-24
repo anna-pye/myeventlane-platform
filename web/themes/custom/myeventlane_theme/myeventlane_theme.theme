@@ -1470,6 +1470,42 @@ function _myeventlane_theme_vite_manifest(): ?array {
   $manifest = json_decode($json, TRUE);
   return $cached = is_array($manifest) ? $manifest : NULL;
 }
+
+/**
+ * Build render array for the event_save flag link (AJAX) for an event node.
+ *
+ * Uses Flag's flag.link_builder lazy builder (not twig_tweak::drupal_entity,
+ * which only renders config/view of entities, not the flag action link).
+ */
+function _myeventlane_theme_event_event_save_flag_link($node): ?array {
+  if (!is_object($node) || !method_exists($node, 'bundle') || $node->bundle() !== 'event' || !\Drupal::moduleHandler()->moduleExists('flag') || !\Drupal::hasService('flag.link_builder') || !\Drupal::hasService('flag')) {
+    return NULL;
+  }
+  /** @var \Drupal\flag\FlagService $flagService */
+  $flagService = \Drupal::service('flag');
+  $flag = $flagService->getFlagById('event_save');
+  if (!$flag) {
+    return NULL;
+  }
+  if (!in_array('event', $flag->getBundles(), TRUE) && !empty($flag->getBundles())) {
+    return NULL;
+  }
+  $nid = (int) $node->id();
+  $build = [
+    '#lazy_builder' => [
+      'flag.link_builder:build',
+      [
+        'node',
+        (string) $nid,
+        'event_save',
+        'default',
+      ],
+    ],
+    '#create_placeholder' => FALSE,
+  ];
+  return $build;
+}
+
 /**
  * Implements hook_preprocess_node().
  *
@@ -1787,6 +1823,15 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $variables['#cache']['tags'][] = sprintf('event_metrics:%d', (int) $node->id());
       }
 
+      $event_flag = _myeventlane_theme_event_event_save_flag_link($node);
+      $variables['event_flag_event_save'] = $event_flag;
+      if ($event_flag) {
+        if (!isset($variables['#cache']['contexts'])) {
+          $variables['#cache']['contexts'] = [];
+        }
+        $variables['#cache']['contexts'][] = 'user';
+      }
+
       // Add cache contexts/tags
       if (!isset($variables['#cache']['contexts'])) {
         $variables['#cache']['contexts'] = [];
@@ -1813,6 +1858,14 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
             $variables['mel_event_selling_fast'] = TRUE;
           }
         }
+      }
+      $event_flag = _myeventlane_theme_event_event_save_flag_link($node);
+      $variables['event_flag_event_save'] = $event_flag;
+      if ($event_flag) {
+        if (!isset($variables['#cache']['contexts'])) {
+          $variables['#cache']['contexts'] = [];
+        }
+        $variables['#cache']['contexts'][] = 'user';
       }
     }
   }

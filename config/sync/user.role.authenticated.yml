@@ -10,6 +10,7 @@ dependencies:
     - commerce_product
     - contact
     - file
+    - flag
     - klaro
     - media
     - myeventlane_checkin
@@ -46,6 +47,7 @@ permissions:
   - 'create rsvp_donation commerce_order'
   - 'delete own files'
   - 'delete own social auth profile'
+  - 'flag event_save'
   - 'manage own commerce_payment_method'
   - 'post comments'
   - request_refunds
@@ -53,6 +55,7 @@ permissions:
   - 'search content'
   - 'skip comment approval'
   - 'toggle check-in status'
+  - 'unflag event_save'
   - 'update own customer profile'
   - 'update platform_donation commerce_order'
   - 'update rsvp_donation commerce_order'

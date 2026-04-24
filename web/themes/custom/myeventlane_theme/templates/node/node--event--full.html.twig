@@ -190,6 +190,11 @@
       </div>
 
       <div class="mel-event-meta-bar__cta mel-event-meta-bar__cta--stacked">
+        {% if event_flag_event_save %}
+        <div class="mel-event-save" role="group" aria-label="{{ 'Save event'|t }}">
+          {{ event_flag_event_save }}
+        </div>
+        {% endif %}
         {% if mel_show_booking_cta and (mel_cta_text|striptags|length > 0) %}
           {% if mel_cta_is_soldout_ui %}
             <div class="mel-event-cta-soldout" role="group" aria-label="{{ 'Registration'|t }}">
