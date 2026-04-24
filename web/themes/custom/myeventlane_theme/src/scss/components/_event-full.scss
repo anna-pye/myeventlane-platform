@@ -17,6 +17,13 @@
 
 .mel-event--v2 {
   padding: space-tokens.mel-space(4) 0 space-tokens.mel-space(6);
+
+  // Sticky mobile CTA clears content; reserve space (thumb zone + copy above button).
+  &:has(> .mel-mobile-cta) {
+    @include breakpoints.mel-break(lg, max) {
+      padding-bottom: calc(#{space-tokens.mel-space(6)} + 8.5rem + env(safe-area-inset-bottom, 0));
+    }
+  }
 }
 
 // Spacing between featured-style hero and meta bar (hero chrome = .mel-event-hero-card via @extend in _event-card.scss).
@@ -49,6 +56,11 @@
   align-items: flex-end;
   gap: 10px;
   min-width: 0;
+
+  @include breakpoints.mel-break(md, max) {
+    align-items: stretch;
+    text-align: center;
+  }
 }
 
 .mel-event-meta-bar__cta-eyebrow {
@@ -58,6 +70,10 @@
   font-size: typography.mel-font-size(base);
   font-weight: typography.$mel-font-bold;
   color: colors.$mel-color-text;
+
+  @include breakpoints.mel-break(md, max) {
+    text-align: center;
+  }
 }
 
 .mel-event-meta-bar__cta-below {
@@ -67,6 +83,128 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+
+  @include breakpoints.mel-break(md, max) {
+    text-align: center;
+    align-items: center;
+  }
+}
+
+// Domain-driven urgency (small, secondary; seats left / limited).
+.mel-event-meta-bar__urgency {
+  margin: 0;
+  max-width: 20rem;
+  text-align: inherit;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  line-height: 1.35;
+  color: color-mix(in srgb, colors.$mel-color-text 72%, #fff 28%);
+}
+
+// Sold out + waitlist (replaces primary coral CTA in sold-out state).
+.mel-event-cta-soldout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+
+  @include breakpoints.mel-break(md, max) {
+    align-items: stretch;
+  }
+}
+
+.mel-event-cta-soldout__headline {
+  margin: 0;
+  width: 100%;
+  text-align: right;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-extrabold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, colors.$mel-color-text 78%, #fff 22%);
+
+  @include breakpoints.mel-break(md, max) {
+    text-align: center;
+  }
+}
+
+.mel-event-cta-soldout__sub {
+  margin: 0;
+  text-align: right;
+  max-width: 20rem;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.4;
+
+  @include breakpoints.mel-break(md, max) {
+    text-align: center;
+    max-width: none;
+  }
+}
+
+.mel-event-cta-soldout__muted {
+  margin: 0;
+  text-align: right;
+  font-size: typography.mel-font-size(base);
+  color: colors.$mel-color-text-muted;
+
+  @include breakpoints.mel-break(md, max) {
+    text-align: center;
+  }
+}
+
+// Subtle trust line (below urgency / CTA; muted grey, not marketing-heavy).
+.mel-event-meta-bar__trust {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.2rem 0.35rem;
+  margin: 0;
+  padding: 4px 0 0;
+  max-width: 100%;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: colors.$mel-color-text-muted;
+
+  @include breakpoints.mel-break(md, max) {
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.mel-event-meta-bar__trust-item,
+.mel-event-meta-bar__trust-sep,
+.mel-event-meta-bar__trust-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.mel-event-meta-bar__trust-sep {
+  user-select: none;
+  color: color-mix(in srgb, colors.$mel-color-text-muted 50%, #fff 50%);
+}
+
+.mel-event-meta-bar__trust-link {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, colors.$mel-color-text-muted 50%, #fff 50%);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: colors.$mel-color-text;
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+    border-radius: 2px;
+  }
 }
 
 .mel-event-meta-bar__selling-fast {
@@ -114,6 +252,14 @@
     background: color-mix(in srgb, #b8a5d6 22%, #fff 78%);
     color: color-mix(in srgb, colors.$mel-color-text 78%, #fff 22%);
     border: 1px solid color-mix(in srgb, #8b7ab8 14%, transparent);
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-btn--cta,
+    .mel-btn--waitlist {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }
 
@@ -407,7 +553,7 @@
   right: 0;
   bottom: 0;
   padding:
-    space-tokens.mel-space(3)
+    space-tokens.mel-space(2)
     space-tokens.mel-space(3)
     calc(#{space-tokens.mel-space(3)} + env(safe-area-inset-bottom));
   background: rgba(250, 247, 251, 0.85);
@@ -418,6 +564,93 @@
 
   @include breakpoints.mel-break(lg) {
     display: none;
+  }
+}
+
+.mel-mobile-cta__inner {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.mel-mobile-cta__eyebrow {
+  margin: 0;
+  text-align: center;
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-bold;
+  color: colors.$mel-color-text;
+}
+
+.mel-mobile-cta__urgency {
+  margin: 0;
+  text-align: center;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  line-height: 1.35;
+  color: color-mix(in srgb, colors.$mel-color-text 72%, #fff 28%);
+}
+
+.mel-mobile-cta__soldout-head {
+  margin: 0 0 0.1rem;
+  text-align: center;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-extrabold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, colors.$mel-color-text 78%, #fff 22%);
+}
+
+.mel-mobile-cta__helper {
+  margin: 0;
+  text-align: center;
+  font-size: typography.mel-font-size(sm);
+  color: color-mix(in srgb, colors.$mel-color-text 72%, #fff 28%);
+}
+
+.mel-mobile-cta__waitlist-sub {
+  margin: 0;
+  text-align: center;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+  line-height: 1.35;
+}
+
+.mel-mobile-cta__waitlist-sub--muted {
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-mobile-cta__trust {
+  margin: 0.1rem 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: colors.$mel-color-text-muted;
+}
+
+.mel-mobile-cta__trust-t,
+.mel-mobile-cta__trust-d,
+.mel-mobile-cta__trust-link {
+  display: inline;
+  color: inherit;
+  font: inherit;
+}
+
+.mel-mobile-cta__trust-link {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, colors.$mel-color-text-muted 50%, #fff 50%);
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: colors.$mel-color-text;
+    }
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+    border-radius: 2px;
   }
 }
 
