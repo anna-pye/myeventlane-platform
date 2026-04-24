@@ -210,7 +210,7 @@ final class PlatformControlCentreController extends ControllerBase {
     }
 
     $payouts_url = Url::fromRoute('myeventlane_admin_dashboard.payouts')->toString();
-    $reports_url = Url::fromRoute('myeventlane_admin_dashboard.reports')->toString();
+    $reports_url = Url::fromRoute('myeventlane_reporting.admin.overview')->toString();
 
     return [
       '#type' => 'container',

@@ -9,6 +9,7 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_schema:myeventlane_schema
   - myeventlane_capacity:myeventlane_capacity
+  - myeventlane_vendor:myeventlane_vendor
   - drupal:node
   - drupal:user
   - drupal:views

@@ -626,21 +626,6 @@ myeventlane_vendor.console.event_unpublish:
         bundle:
           - event
 
-myeventlane_vendor.console.event_attendees:
-  path: '/vendor/events/{event}/attendees'
-  defaults:
-    _controller: 'myeventlane_vendor.controller.vendor_event_attendees:attendees'
-    _title: 'Event attendees'
-  requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    event: '\d+'
-  options:
-    parameters:
-      event:
-        type: entity:node
-        bundle:
-          - event
-
 myeventlane_vendor.console.event_promotion:
   path: '/vendor/events/{event}/promotion'
   defaults:

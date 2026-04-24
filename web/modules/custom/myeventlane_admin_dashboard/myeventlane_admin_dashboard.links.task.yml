@@ -34,7 +34,7 @@ myeventlane_admin_dashboard.payouts_tab:
   base_route: myeventlane_admin_dashboard.platform_control
 
 myeventlane_admin_dashboard.reports_tab:
-  route_name: myeventlane_admin_dashboard.reports
+  route_name: myeventlane_reporting.admin.overview
   title: 'Reports'
   base_route: myeventlane_admin_dashboard.platform_control
 
