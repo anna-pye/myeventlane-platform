@@ -87,7 +87,7 @@
               </td>
               <td>
                 {% if attendee.event_id %}
-                  <a href="{{ path('myeventlane_vendor.console.event_attendees', { event: attendee.event_id }) }}">{{ attendee.event }}</a>
+                  <a href="{{ path('myeventlane_event_attendees.vendor_list', { node: attendee.event_id }) }}">{{ attendee.event }}</a>
                 {% else %}
                   {{ attendee.event|default('—') }}
                 {% endif %}

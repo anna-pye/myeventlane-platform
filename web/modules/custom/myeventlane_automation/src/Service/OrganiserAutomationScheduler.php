@@ -245,7 +245,7 @@ final class OrganiserAutomationScheduler {
     $attendeesUrl = NULL;
     $duplicateUrl = NULL;
     try {
-      $attendeesUrl = Url::fromRoute('myeventlane_vendor.console.event_attendees', ['event' => $eventId], ['absolute' => TRUE])->toString();
+      $attendeesUrl = Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $eventId], ['absolute' => TRUE])->toString();
     }
     catch (\Throwable) {
       // Route may not exist.

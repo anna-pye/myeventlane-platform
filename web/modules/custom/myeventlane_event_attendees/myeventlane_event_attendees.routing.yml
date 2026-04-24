@@ -23,12 +23,28 @@ myeventlane_event_attendees.view:
       event_attendee:
         type: entity:event_attendee
 
-# Vendor: list all attendees for an event.
+# Vendor: event attendees (canonical path; render delegated to myeventlane_vendor).
 myeventlane_event_attendees.vendor_list:
-  path: '/vendor/event/{node}/attendees'
+  path: '/vendor/events/{node}/attendees'
   defaults:
-    _controller: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::list'
-    _title_callback: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::listTitle'
+    _controller: 'myeventlane_vendor.controller.vendor_event_attendees:attendees'
+    _title: 'Event attendees'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+# Vendor: export attendees as CSV.
+myeventlane_event_attendees.vendor_export:
+  path: '/vendor/events/{node}/attendees/export'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::export'
+    _title: 'Export Attendees'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::access'
     node: '\d+'
@@ -37,12 +53,24 @@ myeventlane_event_attendees.vendor_list:
       node:
         type: entity:node
 
-# Vendor: export attendees as CSV.
-myeventlane_event_attendees.vendor_export:
+# Legacy: singular /vendor/event/... → 301 to canonical.
+myeventlane_event_attendees.legacy_vendor_event_attendees_path:
+  path: '/vendor/event/{node}/attendees'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\LegacyVendorEventAttendeePathController::redirectListToCanonical'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+
+# Legacy: singular export path → 301 to canonical.
+myeventlane_event_attendees.legacy_vendor_event_attendees_export_path:
   path: '/vendor/event/{node}/attendees/export'
   defaults:
-    _controller: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::export'
-    _title: 'Export Attendees'
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\LegacyVendorEventAttendeePathController::redirectExportToCanonical'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::access'
     node: '\d+'
