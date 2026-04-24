@@ -58,7 +58,7 @@ services:
       - '@config.factory'
       - '@current_user'
       - '@logger.channel.myeventlane_help_assistant'
-      - '@?myeventlane_boost.manager'
+      - '@myeventlane_core.event_state_resolver'
       - '@?myeventlane_event_attendees.manager'
     calls:
       - [setStringTranslation, ['@string_translation']]

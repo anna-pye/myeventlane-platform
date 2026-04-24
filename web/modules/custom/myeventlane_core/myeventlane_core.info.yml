@@ -7,5 +7,6 @@ lifecycle: stable
 
 dependencies:
   - commerce_cart
+  - mel_ticket:mel_ticket
   - flag:flag
   - drupal:system

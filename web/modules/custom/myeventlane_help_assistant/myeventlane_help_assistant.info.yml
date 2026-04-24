@@ -4,6 +4,7 @@ description: 'Grounded AI assistant for MyEventLane Help Centre content.'
 package: MyEventLane
 core_version_requirement: ^11
 dependencies:
+  - myeventlane_core:myeventlane_core
   - mel_ticket:mel_ticket
   - drupal:block
   - drupal:node

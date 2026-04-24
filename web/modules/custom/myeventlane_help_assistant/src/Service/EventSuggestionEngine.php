@@ -11,7 +11,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_ai\Service\AiManager;
 use Drupal\myeventlane_ai\Value\PromptDefinition;
-use Drupal\mel_ticket\Entity\TicketType;
+use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -38,7 +38,7 @@ final class EventSuggestionEngine {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
-    private readonly mixed $boostManager = NULL,
+    private readonly EventStateResolver $eventStateResolver,
     private readonly mixed $attendanceManager = NULL,
   ) {}
 
@@ -83,18 +83,18 @@ final class EventSuggestionEngine {
   private function collectRuleCandidates(array $values, ?NodeInterface $event): array {
     $out = [];
 
-    $eventType = $this->effectiveEventType($values, $event);
-    $venueCapacity = $this->effectiveVenueCapacity($values, $event);
-    $rsvpCapacityState = $this->effectiveRsvpCapacityState($values, $event);
+    $eventType = $this->eventStateResolver->effectiveEventType($values, $event);
+    $venueCapacity = $this->eventStateResolver->effectiveVenueCapacity($values, $event);
+    $rsvpCapacityState = $this->eventStateResolver->effectiveRsvpCapacityState($values, $event);
 
-    $ticketIntel = $this->analyzeTicketParagraphs($event);
+    $ticketIntel = $this->eventStateResolver->analyzeTicketParagraphs($event);
     $livePrices = isset($values['ticket_prices']) && is_array($values['ticket_prices'])
       ? $values['ticket_prices'] : [];
-    $priceStats = $this->mergePriceStats($ticketIntel['prices'], $livePrices);
+    $priceStats = $this->eventStateResolver->mergePriceStats($ticketIntel['prices'], $livePrices);
 
     $hasPaidLeg = in_array($eventType, ['paid', 'both'], TRUE);
     $hasRsvpLeg = in_array($eventType, ['rsvp', 'both'], TRUE);
-    $hasProduct = $this->hasProductTarget($event);
+    $hasProduct = $this->eventStateResolver->hasProductTarget($event);
 
     // 0. Product linked but no ticket type paragraphs (MEL stores types on the event).
     if ($hasPaidLeg && $event && $hasProduct && $ticketIntel['paragraph_count'] === 0) {
@@ -250,7 +250,7 @@ final class EventSuggestionEngine {
     }
 
     // 13. Boost (paid/both, not currently boosted).
-    if ($hasPaidLeg && $event && !$this->isEventBoosted($event)) {
+    if ($hasPaidLeg && $event && !$this->eventStateResolver->isEventBoosted($event)) {
       $action = $this->formatter->boostWizardAction($event);
       $out[] = $this->formatter->row(
         'boost_visibility',
@@ -345,16 +345,16 @@ final class EventSuggestionEngine {
    */
   public function computeScoreValue(array $values, ?NodeInterface $event): int {
     $score = 100;
-    $eventType = $this->effectiveEventType($values, $event);
-    $venueCapacity = $this->effectiveVenueCapacity($values, $event);
-    $rsvpCapacityState = $this->effectiveRsvpCapacityState($values, $event);
-    $ticketIntel = $this->analyzeTicketParagraphs($event);
+    $eventType = $this->eventStateResolver->effectiveEventType($values, $event);
+    $venueCapacity = $this->eventStateResolver->effectiveVenueCapacity($values, $event);
+    $rsvpCapacityState = $this->eventStateResolver->effectiveRsvpCapacityState($values, $event);
+    $ticketIntel = $this->eventStateResolver->analyzeTicketParagraphs($event);
     $livePrices = isset($values['ticket_prices']) && is_array($values['ticket_prices'])
       ? $values['ticket_prices'] : [];
-    $priceStats = $this->mergePriceStats($ticketIntel['prices'], $livePrices);
+    $priceStats = $this->eventStateResolver->mergePriceStats($ticketIntel['prices'], $livePrices);
     $hasPaidLeg = in_array($eventType, ['paid', 'both'], TRUE);
     $hasRsvpLeg = in_array($eventType, ['rsvp', 'both'], TRUE);
-    $hasProduct = $this->hasProductTarget($event);
+    $hasProduct = $this->eventStateResolver->hasProductTarget($event);
 
     $title = $this->effectiveTitle($values, $event);
     if ($title === '') {
@@ -418,7 +418,7 @@ final class EventSuggestionEngine {
       $score -= 10;
     }
 
-    if ($hasPaidLeg && $event && !$this->isEventBoosted($event)) {
+    if ($hasPaidLeg && $event && !$this->eventStateResolver->isEventBoosted($event)) {
       $score -= 2;
     }
 
@@ -523,139 +523,6 @@ final class EventSuggestionEngine {
   }
 
   /**
-   * @return array{paragraph_count: int, has_finite_quantities: bool, has_unlimited_paragraph: bool, total_finite_qty: int, prices: list<float>}
-   */
-  private function analyzeTicketParagraphs(?NodeInterface $event): array {
-    $defaults = [
-      'paragraph_count' => 0,
-      'has_finite_quantities' => FALSE,
-      'has_unlimited_paragraph' => FALSE,
-      'total_finite_qty' => 0,
-      'prices' => [],
-    ];
-    if (!$event || !$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
-      return $defaults;
-    }
-    $count = 0;
-    $hasFinite = FALSE;
-    $hasUnlimited = FALSE;
-    $totalFinite = 0;
-    $prices = [];
-    foreach ($event->get('field_ticket_types')->referencedEntities() as $ticket) {
-      if (!$ticket instanceof TicketType) {
-        continue;
-      }
-      $count++;
-      if ($ticket->get('capacity')->isEmpty()) {
-        $hasUnlimited = TRUE;
-      }
-      else {
-        $n = (int) ($ticket->get('capacity')->value ?? 0);
-        if ($n > 0) {
-          $hasFinite = TRUE;
-          $totalFinite += $n;
-        }
-        else {
-          $hasUnlimited = TRUE;
-        }
-      }
-      $price = $ticket->toPriceValue();
-      if ($price) {
-        $prices[] = (float) $price->getNumber();
-      }
-    }
-    return [
-      'paragraph_count' => $count,
-      'has_finite_quantities' => $hasFinite,
-      'has_unlimited_paragraph' => $hasUnlimited,
-      'total_finite_qty' => $totalFinite,
-      'prices' => $prices,
-    ];
-  }
-
-  /**
-   * @param list<float> $savedPrices
-   * @param list<mixed> $livePrices
-   *
-   * @return array{min: ?float, max: ?float}
-   */
-  private function mergePriceStats(array $savedPrices, array $livePrices): array {
-    $nums = $savedPrices;
-    foreach ($livePrices as $p) {
-      if (is_numeric($p)) {
-        $nums[] = (float) $p;
-      }
-    }
-    $min = NULL;
-    $max = NULL;
-    foreach ($nums as $n) {
-      if ($min === NULL || $n < $min) {
-        $min = $n;
-      }
-      if ($max === NULL || $n > $max) {
-        $max = $n;
-      }
-    }
-    return ['min' => $min, 'max' => $max];
-  }
-
-  /**
-   *
-   */
-  private function hasProductTarget(?NodeInterface $event): bool {
-    if (!$event || !$event->hasField('field_product_target')) {
-      return FALSE;
-    }
-    return !$event->get('field_product_target')->isEmpty();
-  }
-
-  /**
-   * @param array<string, mixed> $values
-   */
-  private function effectiveEventType(array $values, ?NodeInterface $event): string {
-    $raw = (string) ($values['field_event_type'] ?? '');
-    if ($raw !== '') {
-      return $this->normalizeEventType($raw);
-    }
-    if ($event && $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
-      return $this->normalizeEventType((string) $event->get('field_event_type')->value);
-    }
-    return '';
-  }
-
-  /**
-   * @param array<string, mixed> $values
-   */
-  private function effectiveVenueCapacity(array $values, ?NodeInterface $event): int {
-    $raw = $values['field_capacity'] ?? NULL;
-    if ($raw !== NULL && $raw !== '') {
-      if (is_numeric($raw)) {
-        return max(0, (int) $raw);
-      }
-    }
-    if ($event && $event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()) {
-      return max(0, (int) $event->get('field_capacity')->value);
-    }
-    return 0;
-  }
-
-  /**
-   * RSVP / event capacity field: unset vs unlimited (0) vs limited (>0).
-   *
-   * @param array<string, mixed> $values
-   */
-  private function effectiveRsvpCapacityState(array $values, ?NodeInterface $event): string {
-    $raw = $values['field_capacity'] ?? NULL;
-    if ($raw !== NULL && $raw !== '') {
-      return $this->normalizeCapacityState($raw);
-    }
-    if ($event && $event->hasField('field_capacity') && !$event->get('field_capacity')->isEmpty()) {
-      return $this->normalizeCapacityState($event->get('field_capacity')->value);
-    }
-    return 'unset';
-  }
-
-  /**
    * @param array<string, mixed> $values
    */
   private function effectiveDescription(array $values, ?NodeInterface $event): string {
@@ -668,56 +535,6 @@ final class EventSuggestionEngine {
       $intro = (string) ($event->get('field_event_intro')->value ?? '');
     }
     return $this->combinedDescription($body, $intro);
-  }
-
-  /**
-   *
-   */
-  private function isEventBoosted(NodeInterface $event): bool {
-    if ($this->boostManager && method_exists($this->boostManager, 'isBoosted')) {
-      try {
-        return (bool) $this->boostManager->isBoosted($event);
-      }
-      catch (\Throwable $e) {
-        $this->logger->notice('Boost status check failed: @m', ['@m' => $e->getMessage()]);
-      }
-    }
-    if ($event->hasField('field_promoted') && !$event->get('field_promoted')->isEmpty()) {
-      return (bool) $event->get('field_promoted')->value;
-    }
-    return FALSE;
-  }
-
-  /**
-   *
-   */
-  private function normalizeEventType(string $raw): string {
-    $raw = mb_strtolower(trim($raw));
-    return in_array($raw, ['rsvp', 'paid', 'both', 'external'], TRUE) ? $raw : '';
-  }
-
-  /**
-   *
-   */
-  private function normalizeCapacityState(mixed $venueCapacityOrRaw): string {
-    if ($venueCapacityOrRaw === NULL || $venueCapacityOrRaw === '') {
-      return 'unset';
-    }
-    if (is_int($venueCapacityOrRaw) || is_float($venueCapacityOrRaw)) {
-      $n = (int) $venueCapacityOrRaw;
-      return $n > 0 ? 'limited' : 'unlimited';
-    }
-    if (is_string($venueCapacityOrRaw)) {
-      $trim = trim($venueCapacityOrRaw);
-      if ($trim === '') {
-        return 'unset';
-      }
-      if (is_numeric($trim)) {
-        $n = (int) $trim;
-        return $n > 0 ? 'limited' : 'unlimited';
-      }
-    }
-    return 'unset';
   }
 
   /**
