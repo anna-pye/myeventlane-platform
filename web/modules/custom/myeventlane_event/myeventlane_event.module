@@ -997,15 +997,7 @@ function myeventlane_event_finalize_event_ui(
   $capacity = (int) ($domain['capacity'] ?? 0);
   $ecLabel = trim((string) ($eventCta['label'] ?? ''));
   $isCardContext = in_array($viewMode, myeventlane_event_get_event_card_view_modes(), TRUE);
-  $isWaitlist = $melState === 'sold_out'
-    && $ctaType === EventCtaResolver::CTA_RSVP
-    && !empty($eventCta['url'])
-    && empty($eventCta['disabled']);
-
-  $isSoldOut =
-    ($rsvpState === 'closed')
-    || ($rsvpState === 'limited' && $capacity === 0)
-    || ($melState === 'sold_out');
+  $isSoldOut = (($eventCta['type'] ?? NULL) === EventCtaResolver::CTA_SOLD_OUT);
 
   $showCta = $ctaType !== EventCtaResolver::CTA_NONE
     && $melState !== 'draft';
@@ -1030,15 +1022,8 @@ function myeventlane_event_finalize_event_ui(
     $out['status_type'] = 'warning';
     $out['image_badge_label'] = (string) t('Sold out');
     $out['image_badge_type'] = 'warning';
-    if ($isWaitlist) {
-      // Waitlist: sold-out badge + copy; CTA is secondary and remains clickable.
-      $out['cta_label'] = $ecLabel !== '' ? (string) $eventCta['label'] : (string) t('Join waitlist');
-      $out['cta_type'] = 'secondary';
-    }
-    else {
-      $out['cta_label'] = (string) t('Sold out');
-      $out['cta_type'] = 'disabled';
-    }
+    $out['cta_label'] = (string) ($eventCta['label'] ?? '');
+    $out['cta_type'] = 'secondary';
   }
   elseif (in_array($melState, ['ended', 'cancelled'], TRUE)) {
     $out['cta_label'] = (string) t('View details');
@@ -1065,7 +1050,7 @@ function myeventlane_event_finalize_event_ui(
     $out['cta_type'] = 'primary';
   }
 
-  if (!$isWaitlist && $out['is_sold_out'] === FALSE && $rsvpState === 'limited' && $capacity > 0 && $capacity < 20) {
+  if (!$isSoldOut && $rsvpState === 'limited' && $capacity > 0 && $capacity < 20) {
     $out['capacity_hint'] = (string) t('Limited spots remaining');
   }
   if (
