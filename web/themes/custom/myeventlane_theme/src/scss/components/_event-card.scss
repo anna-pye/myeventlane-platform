@@ -25,13 +25,26 @@
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+  animation: fade-in-up 0.3s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .mel-event-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   }
+
+  .mel-event-card:hover:focus-within {
+    box-shadow:
+      0 8px 20px rgba(0, 0, 0, 0.08),
+      0 0 0 3px rgba(110, 126, 242, 0.25);
+  }
+}
+
+.mel-event-card:focus-within {
+  box-shadow:
+    mel.$mel-ds-shadow-soft,
+    0 0 0 3px rgba(110, 126, 242, 0.25);
 }
 
 .mel-event-card:active,
@@ -86,9 +99,8 @@
   display: block;
 }
 
-.mel-event-card__image img,
-.mel-event-card__image .mel-event-card__image-element {
-  transition: transform 0.3s ease;
+.mel-event-card__image img {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -123,6 +135,9 @@
   z-index: 3;
   max-width: calc(100% - 24px);
   opacity: 0.9;
+}
+
+.mel-event-card__image-badge {
   transition: opacity 0.2s ease;
 }
 
@@ -394,7 +409,7 @@
     display: block;
     position: relative;
     z-index: 0;
-    transition: transform 0.4s ease;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .mel-event-card__body,
@@ -719,6 +734,7 @@
   .mel-featured-carousel .mel-event-card {
     transition: none;
     transform: none;
+    animation: none;
   }
 
   .mel-event-card:hover,
@@ -743,6 +759,18 @@
   .mel-event-card__badge {
     transition: none;
     opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
