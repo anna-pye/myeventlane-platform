@@ -901,6 +901,8 @@ function myeventlane_event_preprocess_node(array &$variables): void {
 
   $view_mode = (string) ($variables['view_mode'] ?? 'default');
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
+  // Semantic CTA and badges: always set for the event bundle (all view modes: full,
+  // teaser, event_card, etc.); do not scope to a single view mode here.
   $variables['event_ui'] = myeventlane_event_finalize_event_ui(
     $node,
     $variables['event_domain_state'] ?? $domain_state,

@@ -5,6 +5,8 @@
  *
  * Node listings: preprocess supplies card_* (myeventlane_theme_preprocess_node).
  * Views field rows: pass title, url, image, date_full, location, category, ticket_type, etc.
+ * Image pill badges use `event_ui` (see myeventlane_event_finalize_event_ui in myeventlane_event).
+ * @see myeventlane_event.module — myeventlane_event_preprocess_node() (event_ui for all view modes).
  */
 #}
 {% set variant = variant|default('standard') %}
@@ -57,7 +59,7 @@
 {% set category_class = category_slug is defined and category_slug ? ('mel-pill--cat-' ~ category_slug) : '' %}
 
 {% set _state_badge_type = 'highlight' %}
-{# Priority: sold out > event_ui image badge (e.g. featured) > category > is_promoted. #}
+{# Image pill: event_ui only — is_sold_out > image_badge (boost/Featured from myeventlane_event_finalize_event_ui) > category. #}
 {% set _image_badge_label = null %}
 {% if event_ui is defined and (event_ui.is_sold_out|default(false) == true) %}
   {% set _image_badge_label = 'Sold out'|t %}
@@ -69,9 +71,6 @@
 {% elseif _category and _category.label %}
   {% set _image_badge_label = _category.label %}
   {% set _state_badge_type = 'category' %}
-{% elseif is_promoted %}
-  {% set _image_badge_label = 'Featured'|t %}
-  {% set _state_badge_type = 'highlight' %}
 {% endif %}
 
 {% if variant == 'featured_hero' %}
