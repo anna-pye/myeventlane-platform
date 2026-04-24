@@ -774,3 +774,85 @@
   }
 }
 
+// ---------------------------------------------------------------------------
+// Event listing grid skeletons (replaced on DOMContentLoaded — see skeleton.js)
+// ---------------------------------------------------------------------------
+
+.mel-skeleton {
+  background: linear-gradient(90deg, #f4f4f4 25%, #ececec 37%, #f4f4f4 63%);
+  background-size: 400% 100%;
+  animation: mel-skeleton-loading 1.2s ease infinite;
+  border-radius: 12px;
+}
+
+@keyframes mel-skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.mel-skeleton--image {
+  height: 140px;
+  width: 100%;
+  margin: 0 0 12px;
+  border-radius: mel.$mel-ds-radius-md mel.$mel-ds-radius-md 0 0;
+  flex-shrink: 0;
+}
+
+.mel-skeleton--title,
+.mel-skeleton--meta,
+.mel-skeleton--button {
+  max-width: calc(100% - 32px);
+  margin-left: 16px;
+  margin-right: 16px;
+}
+
+.mel-event-card--skeleton {
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  animation: none;
+}
+
+.mel-skeleton--title {
+  height: 16px;
+  width: 70%;
+  margin-bottom: 8px;
+}
+
+.mel-skeleton--meta {
+  height: 12px;
+  width: 50%;
+  margin-bottom: 12px;
+}
+
+.mel-skeleton--button {
+  height: 36px;
+  width: 120px;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+// Hide real grid until script reveals it (avoids double skeleton + cards on first paint).
+.mel-event-grid[data-loaded="false"] {
+  display: none;
+}
+
+@keyframes mel-skeleton-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mel-event-grid[data-loaded="true"] {
+  animation: mel-skeleton-fadein 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-skeleton {
+    animation: none;
+  }
+
+  .mel-event-grid[data-loaded="true"] {
+    animation: none;
+  }
+}
+

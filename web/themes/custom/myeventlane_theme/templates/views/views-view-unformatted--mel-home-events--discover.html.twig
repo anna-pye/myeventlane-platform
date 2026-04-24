@@ -5,7 +5,8 @@
  */
 #}
 {% if rows %}
-  <div class="mel-grid mel-grid--events" role="list" aria-label="{{ 'Discover events'|t }}">
+  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+  <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false" role="list" aria-label="{{ 'Discover events'|t }}">
     {% for row in rows %}
       <div role="listitem">{{ row.content }}</div>
     {% endfor %}

@@ -11,6 +11,12 @@
   </head>
   <body{{ attributes }}>
     <a href="#main-content" class="visually-hidden focusable">Skip to main content</a>
+    <noscript>
+      <style>
+        .mel-event-skeleton[data-skeleton] { display: none !important; }
+        .mel-event-grid[data-loaded="false"] { display: grid !important; }
+      </style>
+    </noscript>
     {{ page_top }}
     {{ page }}
     {{ page_bottom }}

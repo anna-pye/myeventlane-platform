@@ -12,7 +12,8 @@
 
 {% if mel_is_event_view %}
   {% if rows %}
-    <div class="mel-grid mel-grid--events">
+    {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+    <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false">
       {% for row in rows %}
         {{- row.content -}}
       {% endfor %}

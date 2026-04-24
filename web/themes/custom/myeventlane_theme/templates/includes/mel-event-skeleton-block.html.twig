@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Placeholder skeleton grid for event listings. Placed as previous sibling
+ * to `.mel-event-grid` (see skeleton.js).
+ */
+#}
+<div class="mel-event-skeleton mel-grid mel-grid--events" data-skeleton aria-hidden="true">
+  {% for i in 1..6 %}
+    <div class="mel-event-card mel-event-card--skeleton">
+      <div class="mel-skeleton mel-skeleton--image"></div>
+      <div class="mel-skeleton mel-skeleton--title"></div>
+      <div class="mel-skeleton mel-skeleton--meta"></div>
+      <div class="mel-skeleton mel-skeleton--button"></div>
+    </div>
+  {% endfor %}
+</div>

@@ -261,6 +261,12 @@ function myeventlane_theme_preprocess_site_header(array &$variables): void {
 }
 
 /**
+ * Implements hook_preprocess_menu__account().
+ */
+function myeventlane_theme_preprocess_menu__account(array &$variables): void {
+}
+
+/**
  * Implements hook_preprocess_menu__main().
  *
  * Transforms the "Vendors" menu item into a dropdown with child links.

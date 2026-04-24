@@ -13,7 +13,8 @@
 #}
 
 {% if rows %}
-  <div class="mel-grid mel-grid--events" aria-label="{{ 'Recommended events'|t }}">
+  {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+  <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false" aria-label="{{ 'Recommended events'|t }}">
     {% for row in rows %}
       {{- row.content -}}
     {% endfor %}
