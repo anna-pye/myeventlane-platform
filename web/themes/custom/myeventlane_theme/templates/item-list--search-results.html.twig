@@ -13,7 +13,8 @@
   {% endif %}
 
   {% if items %}
-    <div class="mel-grid mel-grid--events">
+    {% include '@myeventlane_theme/includes/mel-event-skeleton-block.html.twig' %}
+    <div class="mel-event-grid mel-grid mel-grid--events" data-loaded="false">
       {% for item in items %}
         {{ item.value }}
       {% endfor %}
