@@ -23,14 +23,16 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class EventStudioAutosaveController {
 
-  public function __construct(
-    private readonly EventStudioSaveService $saveService,
-    private readonly AccountProxyInterface $currentUser,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly EventHighlightHelper $eventHighlightHelper,
-    private readonly PrivateTempStoreFactory $privateTempStoreFactory,
-    private readonly LoggerChannelFactoryInterface $loggerFactory,
-  ) {}
+  public static function create(ContainerInterface $container) {
+  return new static(
+    $container->get('entity_type.manager'),
+    $container->get('current_user'),
+    $container->get('request_stack'),
+    $container->get('logger.factory'),
+    $container->get('datetime.time'),
+    $container->get('your.new_service') // <-- MUST exist
+    );
+  }
 
   public function handle(Request $request): JsonResponse {
     if (!$request->isMethod('POST')) {

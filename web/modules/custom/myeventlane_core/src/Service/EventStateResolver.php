@@ -9,17 +9,23 @@ use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Resolves event, ticket, RSVP capacity, and boost state (pure logic).
+ * Provides canonical event state resolution for MyEventLane.
+ *
+ * This service centralises reading and normalising ticket and product
+ * presence, RSVP capacity state, venue and capacity numbers, and boost or
+ * promotion state from the event node (and wizard values where applicable).
+ * Feature code should use this service rather than reimplementing the same
+ * field checks in multiple places.
  */
 final class EventStateResolver {
 
   /**
-   * Constructs an EventStateResolver.
+   * Constructs the resolver.
    *
    * @param \Psr\Log\LoggerInterface $logger
-   *   Logger for boost status failures.
+   *   The logger, typically the myeventlane_core channel, for API failures.
    * @param mixed $boostManager
-   *   Optional boost manager service, if available.
+   *   Optional MyEventLane boost manager. When missing, use field only.
    */
   public function __construct(
     private readonly LoggerInterface $logger,
@@ -27,13 +33,13 @@ final class EventStateResolver {
   ) {}
 
   /**
-   * Analyses ticket type paragraphs on the event node.
+   * Aggregates per-type capacity and price data from the event ticket field.
    *
    * @param \Drupal\node\NodeInterface|null $event
    *   The event node, or null.
    *
    * @return array
-   *   Keys: paragraph_count, has_finite_quantities, has_unlimited_paragraph,
+   *   paragraph_count, has_finite_quantities, has_unlimited_paragraph,
    *   total_finite_qty, prices.
    */
   public function analyzeTicketParagraphs(?NodeInterface $event): array {
@@ -44,7 +50,11 @@ final class EventStateResolver {
       'total_finite_qty' => 0,
       'prices' => [],
     ];
-    if (!$event || !$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+    if (
+      !$event
+      || !$event->hasField('field_ticket_types')
+      || $event->get('field_ticket_types')->isEmpty()
+    ) {
       return $defaults;
     }
     $count = 0;
@@ -85,15 +95,15 @@ final class EventStateResolver {
   }
 
   /**
-   * Merges saved and live price lists into min/max stats.
+   * Merges saved ticket prices and live form prices into a min and max.
    *
    * @param list<float> $savedPrices
-   *   Prices from stored ticket types.
+   *   Prices from stored ticket type entities.
    * @param list<mixed> $livePrices
-   *   Live wizard price values.
+   *   In-progress wizard price values.
    *
    * @return array
-   *   With keys 'min' and 'max' (float or null each).
+   *   Array with 'min' and 'max' keys, each a float or null.
    */
   public function mergePriceStats(array $savedPrices, array $livePrices): array {
     $nums = $savedPrices;
@@ -116,13 +126,13 @@ final class EventStateResolver {
   }
 
   /**
-   * Whether the event has a commerce product target reference.
+   * Returns whether the event references a product target.
    *
    * @param \Drupal\node\NodeInterface|null $event
    *   The event node, or null.
    *
    * @return bool
-   *   TRUE if field_product_target is non-empty.
+   *   TRUE if field_product_target is present and non-empty.
    */
   public function hasProductTarget(?NodeInterface $event): bool {
     if (!$event || !$event->hasField('field_product_target')) {
@@ -132,15 +142,15 @@ final class EventStateResolver {
   }
 
   /**
-   * Effective event type from wizard values or the saved node.
+   * Returns the normalised event type (wizard or saved node value).
    *
    * @param array<string, mixed> $values
-   *   Live wizard values.
+   *   Wizard or inline values (e.g. field_event_type).
    * @param \Drupal\node\NodeInterface|null $event
    *   The event node, or null.
    *
    * @return string
-   *   Normalised type: rsvp, paid, both, external, or empty string.
+   *   A known type: rsvp, paid, both, external, or an empty string.
    */
   public function effectiveEventType(array $values, ?NodeInterface $event): string {
     $raw = (string) ($values['field_event_type'] ?? '');
@@ -154,15 +164,15 @@ final class EventStateResolver {
   }
 
   /**
-   * Effective numeric venue/capacity from wizard or node field_capacity.
+   * Returns a non-negative venue or capacity value from the wizard or node.
    *
    * @param array<string, mixed> $values
-   *   Live wizard values.
+   *   Wizard values including field_capacity.
    * @param \Drupal\node\NodeInterface|null $event
    *   The event node, or null.
    *
    * @return int
-   *   Non-negative capacity, or 0.
+   *   Parsed capacity, or 0.
    */
   public function effectiveVenueCapacity(array $values, ?NodeInterface $event): int {
     $raw = $values['field_capacity'] ?? NULL;
@@ -178,10 +188,10 @@ final class EventStateResolver {
   }
 
   /**
-   * RSVP / event capacity field: unset vs unlimited (0) vs limited (>0).
+   * Returns RSVP or overall capacity as unset, unlimited, or limited.
    *
    * @param array<string, mixed> $values
-   *   Live wizard values.
+   *   Wizard values including field_capacity.
    * @param \Drupal\node\NodeInterface|null $event
    *   The event node, or null.
    *
@@ -200,7 +210,10 @@ final class EventStateResolver {
   }
 
   /**
-   * Whether the event is currently boosted (service or field_promoted).
+   * Whether the event is boosted via the service or the promotion field.
+   *
+   * If the optional boost service is missing, the field is used. If present,
+   * the service is tried first; on exception, the field is used.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -209,12 +222,17 @@ final class EventStateResolver {
    *   TRUE if boosted.
    */
   public function isEventBoosted(NodeInterface $event): bool {
-    if ($this->boostManager && method_exists($this->boostManager, 'isBoosted')) {
-      try {
-        return (bool) $this->boostManager->isBoosted($event);
-      }
-      catch (\Throwable $e) {
-        $this->logger->notice('Boost status check failed: @m', ['@m' => $e->getMessage()]);
+    if ($this->boostManager) {
+      if (method_exists($this->boostManager, 'isBoosted')) {
+        try {
+          return (bool) $this->boostManager->isBoosted($event);
+        }
+        catch (\Throwable $e) {
+          $this->logger->warning(
+            'Event boost check failed while resolving event state: @message',
+            ['@message' => $e->getMessage()]
+          );
+        }
       }
     }
     if ($event->hasField('field_promoted') && !$event->get('field_promoted')->isEmpty()) {
@@ -224,13 +242,7 @@ final class EventStateResolver {
   }
 
   /**
-   * Normalises raw event type string to known vocabulary.
-   *
-   * @param string $raw
-   *   Raw value from form or field.
-   *
-   * @return string
-   *   Normalised type or empty.
+   * Maps a string to a known event type, or returns empty.
    */
   private function normalizeEventType(string $raw): string {
     $raw = mb_strtolower(trim($raw));
@@ -238,13 +250,7 @@ final class EventStateResolver {
   }
 
   /**
-   * Maps capacity field value to unset, unlimited, or limited.
-   *
-   * @param mixed $venueCapacityOrRaw
-   *   Field value.
-   *
-   * @return string
-   *   One of: unset, unlimited, limited.
+   * Interprets capacity field data as unset, unlimited, or limited.
    */
   private function normalizeCapacityState(mixed $venueCapacityOrRaw): string {
     if ($venueCapacityOrRaw === NULL || $venueCapacityOrRaw === '') {
