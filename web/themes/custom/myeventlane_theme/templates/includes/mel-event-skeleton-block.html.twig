@@ -7,8 +7,12 @@
 #}
 <div class="mel-event-skeleton mel-grid mel-grid--events" data-skeleton aria-hidden="true">
   {% for i in 1..6 %}
-    <div class="mel-event-card mel-event-card--skeleton">
-      <div class="mel-skeleton mel-skeleton--image"></div>
+    <div class="mel-event-card mel-event-card--skeleton" style="--i: {{ loop.index0 }}">
+      <div class="mel-skeleton__figure">
+        <div class="mel-skeleton mel-skeleton--image"></div>
+        <div class="mel-skeleton mel-skeleton--date"></div>
+      </div>
+      <div class="mel-skeleton mel-skeleton--pill"></div>
       <div class="mel-skeleton mel-skeleton--title"></div>
       <div class="mel-skeleton mel-skeleton--meta"></div>
       <div class="mel-skeleton mel-skeleton--button"></div>

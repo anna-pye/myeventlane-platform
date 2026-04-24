@@ -779,10 +779,15 @@
 // ---------------------------------------------------------------------------
 
 .mel-skeleton {
-  background: linear-gradient(90deg, #f4f4f4 25%, #ececec 37%, #f4f4f4 63%);
+  background: linear-gradient(90deg, #f6f6f6 20%, #eeeeee 50%, #f6f6f6 80%);
   background-size: 400% 100%;
-  animation: mel-skeleton-loading 1.2s ease infinite;
+  animation: mel-skeleton-loading 1.4s ease-in-out infinite;
   border-radius: 12px;
+}
+
+// Staggered shimmer: --i on `.mel-event-card--skeleton` (see mel-event-skeleton-block.html.twig)
+.mel-event-card--skeleton .mel-skeleton {
+  animation-delay: calc(var(--i, 0) * 0.05s);
 }
 
 @keyframes mel-skeleton-loading {
@@ -790,17 +795,51 @@
   100% { background-position: 0 50%; }
 }
 
-.mel-skeleton--image {
-  height: 140px;
+.mel-skeleton__figure {
+  position: relative;
   width: 100%;
   margin: 0 0 12px;
-  border-radius: mel.$mel-ds-radius-md mel.$mel-ds-radius-md 0 0;
+  flex-shrink: 0;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.mel-skeleton--image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin: 0;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
+}
+
+// Top-left “date” tile (aligns with badge position on real cards)
+.mel-skeleton--date {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 8px;
+  width: 40px;
+  height: 48px;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+// Category / tag pill under image
+.mel-skeleton--pill {
+  max-width: calc(100% - 32px);
+  width: 80px;
+  height: 20px;
+  margin-left: 16px;
+  margin-right: 16px;
+  margin-bottom: 8px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 
 .mel-skeleton--title,
-.mel-skeleton--meta,
-.mel-skeleton--button {
+.mel-skeleton--meta {
   max-width: calc(100% - 32px);
   margin-left: 16px;
   margin-right: 16px;
@@ -809,6 +848,7 @@
 .mel-event-card--skeleton {
   display: flex;
   flex-direction: column;
+  position: relative;
   pointer-events: none;
   animation: none;
 }
@@ -825,11 +865,25 @@
   margin-bottom: 12px;
 }
 
+// Full-bleed pill-shaped CTA bar in the padded area (chip-like)
 .mel-skeleton--button {
-  height: 36px;
-  width: 120px;
-  margin-top: 0;
-  margin-bottom: 16px;
+  align-self: stretch;
+  width: auto;
+  max-width: none;
+  height: 40px;
+  margin: 0 16px 16px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+// Optional: add `.skeleton-hidden` when fading out the skeleton layer (e.g. future script).
+.mel-event-skeleton {
+  transition: opacity 0.2s ease;
+}
+
+.mel-event-skeleton.skeleton-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 // Hide real grid until script reveals it (avoids double skeleton + cards on first paint).
@@ -847,8 +901,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mel-skeleton {
+  .mel-skeleton,
+  .mel-event-card--skeleton .mel-skeleton {
     animation: none;
+    animation-delay: 0s;
+  }
+
+  .mel-event-skeleton {
+    transition: none;
   }
 
   .mel-event-grid[data-loaded="true"] {
