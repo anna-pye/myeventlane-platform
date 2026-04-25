@@ -119,3 +119,11 @@ myeventlane_core.organiser_login_switch:
     _title: 'Switch account'
   requirements:
     _user_is_logged_in: 'TRUE'
+
+# Category discovery chip listing fragment (AJAX; reuses upcoming_events displays).
+myeventlane_core.event_filter:
+  path: '/mel/filter-events'
+  defaults:
+    _controller: 'myeventlane_core.event_filter_controller:filter'
+  requirements:
+    _permission: 'access content'

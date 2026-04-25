@@ -1436,3 +1436,23 @@ function _myeventlane_event_format_price_simple(string $number, string $currency
   }
   return $formatted_number . ' ' . $currency_code;
 }
+
+/**
+ * Implements hook_preprocess_views_view() for default discovery chip.
+ */
+function myeventlane_event_preprocess_views_view(array &$variables): void {
+  if (($variables['view'] ?? NULL)?->id() !== 'upcoming_events') {
+    return;
+  }
+  if (($variables['view']?->current_display ?? '') !== 'page_category') {
+    return;
+  }
+  /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $service */
+  $service = \Drupal::service('myeventlane_core.event_recommendation');
+  $context = NULL;
+  $node = \Drupal::routeMatch()->getParameter('node');
+  if ($node instanceof NodeInterface && $node->bundle() === 'event') {
+    $context = $node;
+  }
+  $variables['default_chip'] = $service->getDefaultChip($context);
+}

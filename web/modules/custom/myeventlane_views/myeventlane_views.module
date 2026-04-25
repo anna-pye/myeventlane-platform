@@ -52,9 +52,35 @@ function myeventlane_views_views_post_execute(ViewExecutable $view): void {
  * - Ensures null field values are converted to empty strings.
  */
 function myeventlane_views_views_pre_render(ViewExecutable $view): void {
+  $request = \Drupal::request();
+  if ($request->attributes->get('mel_chip_trending') && $view->id() === 'upcoming_events' && !empty($view->result)) {
+    /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save */
+    $save = \Drupal::service('myeventlane_core.event_save_count');
+    usort($view->result, function ($a, $b) use ($save) {
+      $id_a = isset($a->_entity) ? (int) $a->_entity->id() : 0;
+      $id_b = isset($b->_entity) ? (int) $b->_entity->id() : 0;
+      $s_a = $id_a > 0 ? $save->getSaveCount($id_a) : 0;
+      $s_b = $id_b > 0 ? $save->getSaveCount($id_b) : 0;
+      if ($s_a !== $s_b) {
+        return $s_b <=> $s_a;
+      }
+      $promo_a = 0;
+      $promo_b = 0;
+      if (isset($a->_entity) && $a->_entity->hasField('field_promoted') && !$a->_entity->get('field_promoted')->isEmpty()) {
+        $promo_a = (int) $a->_entity->get('field_promoted')->value;
+      }
+      if (isset($b->_entity) && $b->_entity->hasField('field_promoted') && !$b->_entity->get('field_promoted')->isEmpty()) {
+        $promo_b = (int) $b->_entity->get('field_promoted')->value;
+      }
+      if ($promo_a !== $promo_b) {
+        return $promo_b - $promo_a;
+      }
+      return 0;
+    });
+  }
   // Sort upcoming_events and mel_home_events: featured first, preserve
   // start-date order within ties (same as public discovery).
-  if (in_array($view->id(), ['upcoming_events', 'mel_home_events'], TRUE) && !empty($view->result)) {
+  elseif (in_array($view->id(), ['upcoming_events', 'mel_home_events'], TRUE) && !empty($view->result)) {
     usort($view->result, function ($a, $b) {
       $promo_a = 0;
       $promo_b = 0;

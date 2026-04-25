@@ -1,42 +1,76 @@
 {#
 /**
  * @file
- * upcoming_events — page_category: discovery copy + scrollable chips + grid.
+ * upcoming_events — page_category: discovery copy + chip bar + grid.
  */
 #}
-{{ attach_library('myeventlane_theme/mel-events-discovery') }}
-
-{% if term %}
-  <p class="mel-category-discovery__lede">
-    {{ "Find something you'll love"|t }}
-  </p>
-  <p class="mel-discovery-subtitle">
-    {{ 'Events picked for you in @name'|t({'@name': term.label}) }}
-  </p>
-
-  <div class="mel-filter-chip-row" role="navigation" aria-label="{{ 'Discover events'|t }}">
-    <a
-      href="{{ path('view.upcoming_events.page_category', { 'arg_0': term.id }) }}"
-      class="mel-filter-chip mel-filter-chip--active"
-    >{{ 'All'|t }}</a>
-    <a href="{{ path('view.upcoming_events.page_today') }}" class="mel-filter-chip">{{ '🔥 Happening now'|t }}</a>
-    <a href="{{ path('view.upcoming_events.page_this_weekend') }}" class="mel-filter-chip">{{ '🎉 This weekend'|t }}</a>
-    <a href="{{ path('view.upcoming_events.page_free') }}" class="mel-filter-chip">{{ '💸 Free events'|t }}</a>
-    <a href="{{ path('<front>') }}" class="mel-filter-chip">{{ '💖 Trending'|t }}</a>
-  </div>
+{% if not mel_chip_listing_fragment|default(false) %}
+  {{ attach_library('myeventlane_theme/mel-events-discovery') }}
+  {{ attach_library('myeventlane_theme/mel-chips') }}
 {% endif %}
 
-{% if view.result %}
-  {{ rows }}
-{% else %}
-  <div class="mel-empty-state mel-empty-state--listing">
-    <div class="mel-empty-state__image">
-      <img src="{{ base_path }}{{ directory }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
+{% if mel_chip_listing_fragment|default(false) %}
+  <div data-mel-filter-results>
+    <div class="view-content" data-mel-chip-listing>
+    {% if view.result %}
+      {{ rows }}
+    {% else %}
+      {{ empty }}
+    {% endif %}
     </div>
-    <h3 class="mel-empty-state__title">{{ 'No events in this category'|t }}</h3>
-    <p class="mel-empty-state__text">{{ 'Check back soon for new events, or browse other categories.'|t }}</p>
-    <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
+    {{ pager }}
+  </div>
+{% else %}
+  {% if term %}
+    <p class="mel-category-discovery__lede">
+      {{ "Find something you'll love"|t }}
+    </p>
+    <p class="mel-discovery-subtitle">
+      {{ 'Events picked for you in @name'|t({'@name': term.label}) }}
+    </p>
+
+    <div
+      class="mel-chip-bar"
+      data-chip-bar
+      data-category-tid="{{ term.id }}"
+    >
+      {% set chips = {
+        'all': 'All',
+        'now': '🔥 Happening now',
+        'weekend': '🎉 This weekend',
+        'free': '💸 Free events',
+        'trending': '💖 Trending'
+      } %}
+
+      {% for key, label in chips %}
+        <button
+          type="button"
+          class="mel-chip{{ key == (default_chip|default('all')) ? ' is-active' }}"
+          data-chip="{{ key }}"
+        >
+          {{ label|t }}
+        </button>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div data-mel-filter-results>
+  {% if view.result %}
+    <div class="view-content" data-mel-chip-listing>
+    {{ rows }}
+    </div>
+  {% else %}
+    <div class="view-content" data-mel-chip-listing>
+    <div class="mel-empty-state mel-empty-state--listing">
+      <div class="mel-empty-state__image">
+        <img src="{{ base_path }}{{ directory }}/images/mel/empty/mel-empty-events.png" alt="" role="presentation" width="240" height="240" loading="lazy" onerror="this.style.display='none'">
+      </div>
+      <h3 class="mel-empty-state__title">{{ 'No events in this category'|t }}</h3>
+      <p class="mel-empty-state__text">{{ 'Check back soon for new events, or browse other categories.'|t }}</p>
+      <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn-accent">{{ 'Browse all events'|t }}</a>
+    </div>
+    </div>
+  {% endif %}
+  {{ pager }}
   </div>
 {% endif %}
-
-{{ pager }}
