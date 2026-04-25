@@ -95,6 +95,9 @@
       </div>
 
       <div class="mel-event-hero-card__content">
+        {% if recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
+          <p class="mel-card-reason mel-card-reason--{{ recommendation_context.type|default('')|e('html_attr') }}">{{ recommendation_context.label }}</p>
+        {% endif %}
         <h2 class="mel-event-hero-card__title">{{ _title }}</h2>
 
         {% if _time %}
@@ -163,6 +166,11 @@
     </div>
 
     <div class="mel-event-card__body mel-event-card__content">
+      {% if recommendation_context is defined and recommendation_context.label|default('')|trim|length > 0 %}
+        <div class="mel-card-reason mel-card-reason--{{ recommendation_context.type|default('')|e('html_attr') }}">
+          {{ recommendation_context.label }}
+        </div>
+      {% endif %}
       <h3 class="mel-event-card__title">{{ _title }}</h3>
 
       {% if _time %}

@@ -222,6 +222,31 @@
   min-width: 0;
 }
 
+// Recommendation / discovery reason (EventRecommendationService).
+.mel-card-reason {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  line-height: 1.2;
+  color: mel.$mel-ds-color-muted;
+}
+
+.mel-card-reason--trending {
+  color: #F26D5B;
+}
+
+.mel-card-reason--category {
+  color: #6E7EF2;
+}
+
+.mel-card-reason--soon {
+  color: #F5C04C;
+}
+
+.mel-card-reason--weekend {
+  color: #2eb88a;
+}
+
 .mel-event-card__title {
   font-size: 18px;
   font-weight: 700;
