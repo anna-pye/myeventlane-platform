@@ -13,6 +13,7 @@ use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_event_studio\Service\EventHighlightHelper;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\node\NodeInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -28,6 +29,7 @@ final class EventStudioAutosaveController {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EventHighlightHelper $eventHighlightHelper,
     private readonly PrivateTempStoreFactory $privateTempStoreFactory,
+    private readonly LoggerInterface $logger,
   ) {}
 
   public function handle(Request $request): JsonResponse {
@@ -75,7 +77,9 @@ final class EventStudioAutosaveController {
         $decoded_event_highlights = $this->decodeEventHighlightsFromMel($mel['event_highlights']);
       }
       catch (\InvalidArgumentException $e) {
-        $this->saveService->logRejectedAutosaveEventHighlights($e);
+        $this->logger->warning('Autosave event highlights rejected: @message', [
+          '@message' => $e->getMessage(),
+        ]);
         return new JsonResponse([
           'ok' => FALSE,
           'errors' => [$e->getMessage()],
