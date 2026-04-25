@@ -301,8 +301,6 @@ final class EventRecommendationService {
       if ($this->eventStateResolver->isEventBoosted($event)) {
         $score += 15;
       }
-      $click_score = $this->getClickScore((int) $event->id());
-      $score += min($click_score * 5, 50);
 
       $current = $node;
       if ($this->sharesCategory($event, $current)) {
@@ -342,7 +340,7 @@ final class EventRecommendationService {
           $score += 25;
         }
       }
-      $score = max(1, min($score, 100));
+      $score = max(1, min($score, 200));
 
       $context = $this->getRecommendationContext(
         $event,
@@ -449,13 +447,6 @@ final class EventRecommendationService {
     $factor = exp(-0.08 * ($days_until - 7));
 
     return max(1, (int) round($score * $factor));
-  }
-
-  /**
-   * Click proxy: reuses the same stored engagement metric as list views.
-   */
-  private function getClickScore(int $nid): int {
-    return $this->getViewerCountCached($nid);
   }
 
   private function getPrimaryCategory(NodeInterface $event): ?int {

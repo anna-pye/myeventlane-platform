@@ -1501,7 +1501,9 @@ function _myeventlane_theme_event_event_save_flag_link($node): ?array {
         'default',
       ],
     ],
-    '#create_placeholder' => FALSE,
+    // Keep placeholder rendering enabled so Flag builds per-request state/tokens
+    // safely instead of risking cached stale action links.
+    '#create_placeholder' => TRUE,
   ];
   return $build;
 }
@@ -2181,9 +2183,12 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
     $variables['directory'] = base_path() . $theme_path;
   }
 
-  if ($view->id() === 'upcoming_events' && $view->current_display === 'page_category') {
+  if (
+    $view->id() === 'upcoming_events'
+    && in_array($view->current_display, ['page_category', 'page_today', 'page_this_weekend', 'page_free'], TRUE)
+  ) {
     $args = $view->args ?? [];
-    if (!empty($args[0])) {
+    if ($view->current_display === 'page_category' && !empty($args[0])) {
       $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($args[0]);
       if ($term instanceof TermInterface) {
         $variables['mel_browse_category_name'] = $term->label();
