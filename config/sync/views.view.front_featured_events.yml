@@ -157,7 +157,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
