@@ -124,9 +124,6 @@ module:
   myeventlane_help_shared: 0
   myeventlane_launch: 0
   myeventlane_location: 0
-  # Later than most feature modules (e.g. pro) so hook_mail_alter can apply
-  # the shared HTML email shell after Pro and other alters.
-  myeventlane_messaging: 20
   myeventlane_metrics: 0
   myeventlane_notifications: 0
   myeventlane_page_visuals: 0
@@ -193,6 +190,7 @@ module:
   pathauto: 1
   views: 10
   paragraphs: 11
+  myeventlane_messaging: 20
   myeventlane_legal: 100
   standard: 1000
 theme:

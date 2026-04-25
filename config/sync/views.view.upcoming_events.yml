@@ -6,8 +6,10 @@ dependencies:
     - core.entity_view_mode.node.teaser
     - field.storage.node.field_category
     - field.storage.node.field_event_end
+    - field.field.node.event.field_product_target
     - field.storage.node.field_event_state
     - field.storage.node.field_event_type
+    - field.storage.node.field_product_target
     - node.type.event
     - system.menu.main
     - taxonomy.vocabulary.accessibility
@@ -219,7 +221,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -566,7 +568,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -917,7 +919,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -1252,7 +1254,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -1676,7 +1678,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -1835,19 +1837,38 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_event_type:
-          id: field_event_type
-          table: node__field_event_type
-          field: field_event_type
+        field_product_target_target_id:
+          id: field_product_target_target_id
+          table: node__field_product_target
+          field: field_product_target_target_id
           relationship: none
           group_type: group
-          plugin_id: list_field
-          operator: or
+          admin_label: ''
+          entity_type: node
+          entity_field: field_product_target
+          plugin_id: numeric
+          operator: empty
           value:
-            rsvp: rsvp
-            both: both
+            min: ''
+            max: ''
+            value: ''
           group: 1
           exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            description: ''
+            use_operator: false
+            operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+            remember_roles:
+              authenticated: authenticated
+          is_grouped: false
         field_accessibility_target_id:
           id: field_accessibility_target_id
           table: node__field_accessibility
@@ -2042,7 +2063,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -2139,6 +2160,8 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
           plugin_id: datetime
           operator: between
           value:
@@ -2421,7 +2444,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
@@ -2518,6 +2541,8 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
           plugin_id: datetime
           operator: between
           value:
@@ -2844,7 +2869,7 @@ display:
           entity_type: node
           entity_field: field_event_state
           plugin_id: list_field
-          operator: 'not'
+          operator: not
           value:
             draft: draft
             cancelled: cancelled
