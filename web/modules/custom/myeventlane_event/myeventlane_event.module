@@ -7,6 +7,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormInterface;
@@ -900,6 +901,61 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   }
 
   $view_mode = (string) ($variables['view_mode'] ?? 'default');
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_save_count')) {
+    /** @var \Drupal\myeventlane_core\Service\EventSaveCountService $save_count_service */
+    $save_count_service = \Drupal::service('myeventlane_core.event_save_count');
+    $count = $save_count_service->getSaveCount((int) $node->id());
+    $variables['event_save_count_total'] = $count;
+    if ($count > 0) {
+      $variables['event_save_count'] = [
+        '#markup' => \Drupal::translation()->formatPlural(
+          $count,
+          '1 person saved this',
+          '@count people saved this',
+        ),
+        '#cache' => [
+          'contexts' => ['languages:language_interface'],
+          'tags' => Cache::mergeTags($node->getCacheTags(), ['flagging_list']),
+        ],
+      ];
+    }
+    else {
+      $variables['event_save_count'] = NULL;
+    }
+  }
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_viewer_count')) {
+    $variables['event_viewer_count_total'] = 0;
+    $variables['event_viewer_count'] = NULL;
+    try {
+      /** @var \Drupal\myeventlane_core\Service\EventViewerCountService $viewer_service */
+      $viewer_service = \Drupal::service('myeventlane_core.event_viewer_count');
+      $nid = (int) $node->id();
+      $viewer_service->recordView($nid);
+      $viewer_count = $viewer_service->getViewerCount($nid);
+      $variables['event_viewer_count_total'] = $viewer_count;
+      if ($viewer_count > 1) {
+        $variables['event_viewer_count'] = [
+          '#markup' => \Drupal::translation()->formatPlural(
+            $viewer_count,
+            '🔥 1 person viewing now',
+            '🔥 @count people viewing now',
+          ),
+          '#cache' => [
+            'contexts' => ['languages:language_interface'],
+            'tags' => [
+              'node:' . $node->id(),
+            ],
+            'max-age' => 60,
+          ],
+        ];
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_event')->error('Event viewer count: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
   // teaser, event_card, etc.); do not scope to a single view mode here.

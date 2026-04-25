@@ -8,7 +8,6 @@ dependencies:
     - commerce_order
     - commerce_product
     - contact
-    - flag
     - klaro
     - media
     - myeventlane_checkin
@@ -32,9 +31,7 @@ permissions:
   - 'access site-wide contact form'
   - 'create platform_donation commerce_order'
   - 'create rsvp_donation commerce_order'
-  - 'flag event_save'
   - 'search content'
-  - 'unflag event_save'
   - 'update platform_donation commerce_order'
   - 'update rsvp_donation commerce_order'
   - 'use klaro'
