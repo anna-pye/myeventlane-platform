@@ -15,6 +15,10 @@ services:
     class: Drupal\myeventlane_core\Service\EventInterestService
     arguments: ['@datetime.time']
 
+  myeventlane_core.event_recommendation:
+    class: Drupal\myeventlane_core\Service\EventRecommendationService
+    arguments: ['@entity_type.manager']
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 

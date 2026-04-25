@@ -406,6 +406,31 @@
           </section>
         {% endif %}
 
+        {% if mel_related_events is not empty %}
+          <div class="mel-return-block" aria-labelledby="mel-return-heading">
+            <div class="mel-return-header">
+              <h3 id="mel-return-heading">{{ 'What to do next'|t }}</h3>
+              <p>{{ 'More events like this in your area'|t }}</p>
+            </div>
+
+            {% set primary = mel_related_events|first %}
+            <div class="mel-return-primary">
+              <div class="mel-return-primary__label">{{ 'Recommended for you'|t }}</div>
+              {{ primary }}
+            </div>
+
+            <div class="mel-return-grid">
+              {% for event in mel_related_events|slice(1) %}
+                {{ event }}
+              {% endfor %}
+            </div>
+
+            <div class="mel-return-cta">
+              <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-link">{{ 'Browse all events'|t }} →</a>
+            </div>
+          </div>
+        {% endif %}
+
         <nav class="mel-event-support-zone mel-mt-5" aria-label="{{ 'Help and policies'|t }}">
           <ul class="mel-event-support-zone__list">
             <li><a class="mel-event-support-zone__link" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a></li>
@@ -472,29 +497,6 @@
 
         {# Note: We intentionally do NOT render field_ticket_types or field_attendee_questions on Event Full.
            These are configuration inputs, not attendee-facing content. #}
-
-        {# Same-category upcoming events: single drupal_view() (no drupal_view_result). #}
-        {% if node.hasField('field_category') and not node.field_category.isEmpty %}
-          {% set primary_category_tid = node.field_category.0.target_id %}
-          {% set primary_category_name = mel_category_label|default('')|trim %}
-          {% if primary_category_name is empty and node.field_category.0.entity %}
-            {% set primary_category_name = node.field_category.0.entity.label %}
-          {% endif %}
-          {% if primary_category_tid and primary_category_name %}
-            {% set related_events_markup %}
-              {{ drupal_view('upcoming_events', 'related_by_category', primary_category_tid, node.id()) }}
-            {% endset %}
-            {% if related_events_markup|trim %}
-              <section class="mel-event-related mel-mt-5" aria-labelledby="mel-event-related-heading">
-                <div class="mel-section-head">
-                  <h2 id="mel-event-related-heading" class="mel-section-head__title">{{ 'More in @category'|t({'@category': primary_category_name}) }}</h2>
-                  <a class="mel-link" href="{{ path('view.upcoming_events.page_category', {'arg_0': primary_category_tid}) }}">{{ 'View all'|t }}</a>
-                </div>
-                {{ related_events_markup }}
-              </section>
-            {% endif %}
-          {% endif %}
-        {% endif %}
       </div>
 
       <aside class="mel-event-layout__sidebar" aria-label="{{ 'Tickets and event information'|t }}">
@@ -644,6 +646,11 @@
                     <div id="mel-event-full-save" class="mel-event-save mel-booking-panel__save-flag" role="group" aria-label="{{ 'Save for later'|t }}">
                       {{ event_flag_event_save }}
                     </div>
+                    {% if event_save_count_total|default(0) > 5 %}
+                      <div class="mel-save-reinforcement">
+                        <small>{{ '💖 @count people saved this'|t({ '@count': event_save_count_total|default(0) }) }}</small>
+                      </div>
+                    {% endif %}
                     <div class="mel-booking-panel__save-text">
                       <strong>{{ 'Don’t miss this'|t }}</strong>
                       <p>{{ 'Save this event to come back later'|t }}</p>
