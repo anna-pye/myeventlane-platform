@@ -936,7 +936,7 @@
   gap: 16px;
 }
 
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .mel-grid--3col,
   .mel-grid--events.mel-grid--3col,
   .mel-grid.mel-grid--events.mel-grid--3col {
@@ -944,7 +944,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .mel-grid--3col,
   .mel-grid--events.mel-grid--3col,
   .mel-grid.mel-grid--events.mel-grid--3col {
@@ -1844,10 +1844,10 @@
 // Browse / category — filter chip links (scoped; not global link styles)
 // ---------------------------------------------------------------------------
 
-.mel-filter-chip,
-.mel-filter-chip a {
-  text-decoration: none !important;
-  border-bottom: none !important;
+.mel-event--v2 .mel-filter-chip,
+.mel-event--v2 .mel-filter-chip a {
+  text-decoration: none;
+  border-bottom: none;
 }
 
 .mel-filter-chip a:hover,
