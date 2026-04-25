@@ -1501,7 +1501,9 @@ function _myeventlane_theme_event_event_save_flag_link($node): ?array {
         'default',
       ],
     ],
-    '#create_placeholder' => FALSE,
+    // Keep placeholder rendering enabled so Flag builds per-request state/tokens
+    // safely instead of risking cached stale action links.
+    '#create_placeholder' => TRUE,
   ];
   return $build;
 }
