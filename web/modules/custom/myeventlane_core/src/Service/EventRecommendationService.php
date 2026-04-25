@@ -122,7 +122,8 @@ final class EventRecommendationService {
           ];
         }
 
-        if ($hours > 0 && $hours < 48) {
+        $weekday = (int) date('N', $start);
+        if ($hours > 0 && $hours < 48 && ($weekday === 6 || $weekday === 7)) {
           return [
             'type' => 'weekend',
             'label' => (string) $t->translate('This weekend'),
