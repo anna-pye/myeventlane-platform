@@ -24,8 +24,18 @@ final class EventViewerCountService {
    * Appends a view timestamp; keeps only the last 10 minutes of data.
    */
   public function recordView(int $nid): void {
+    $this->recordViewAndGetCount($nid);
+  }
+
+  /**
+   * Records this request and returns the in-window count in one state round-trip.
+   *
+   * Prefer this over recordView() + getViewerCount() in the same request to avoid
+   * redundant get/set cycles on the State entry.
+   */
+  public function recordViewAndGetCount(int $nid): int {
     if ($nid < 1) {
-      return;
+      return 0;
     }
     $now = $this->time->getRequestTime();
     $key = $this->key($nid);
@@ -33,6 +43,7 @@ final class EventViewerCountService {
     $views = is_array($raw) ? $this->prune($raw, $now) : [];
     $views[] = $now;
     $this->state->set($key, array_values($views));
+    return count($views);
   }
 
   /**
