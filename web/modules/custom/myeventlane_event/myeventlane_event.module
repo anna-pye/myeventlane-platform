@@ -1044,7 +1044,12 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     try {
       /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $recommendation */
       $recommendation = \Drupal::service('myeventlane_core.event_recommendation');
-      $related_rows = $recommendation->getRankedRelatedEvents($node, 3);
+      $referenceCategoryIds = NULL;
+      $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
+      if ($term instanceof TermInterface) {
+        $referenceCategoryIds = [(int) $term->id()];
+      }
+      $related_rows = $recommendation->getRankedRelatedEvents($node, 3, $referenceCategoryIds);
       if ($related_rows !== []) {
         $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
         $builds = [];
@@ -1061,6 +1066,29 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
         $variables['mel_related_events'] = $builds;
+        if (isset($variables['elements']['#cache'])) {
+          if (!is_array($variables['elements']['#cache'])) {
+            $variables['elements']['#cache'] = [];
+          }
+          $recommendation_contexts = $variables['elements']['#cache']['contexts'] ?? [];
+          if (!is_array($recommendation_contexts)) {
+            $recommendation_contexts = [];
+          }
+          $variables['elements']['#cache']['contexts'] = array_values(array_unique(array_merge(
+            $recommendation_contexts,
+            ['route.name'],
+          )));
+        }
+        elseif (isset($variables['#cache']) && is_array($variables['#cache'])) {
+          $recommendation_contexts = $variables['#cache']['contexts'] ?? [];
+          if (!is_array($recommendation_contexts)) {
+            $recommendation_contexts = [];
+          }
+          $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
+            $recommendation_contexts,
+            ['route.name'],
+          )));
+        }
         if ($append_tags !== []) {
           if (isset($variables['elements']['#cache'])) {
             $tags = (array) ($variables['elements']['#cache']['tags'] ?? []);
