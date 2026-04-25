@@ -268,7 +268,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (width <= 900px) {
   .mel-event__hero {
     height: 320px;
     border-radius: 0 0 24px 24px;

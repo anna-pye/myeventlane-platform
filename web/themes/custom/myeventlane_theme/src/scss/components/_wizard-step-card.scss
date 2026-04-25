@@ -123,7 +123,7 @@
     justify-content: center;
     padding: 32px 16px;
 
-    @media (max-width: 480px) {
+    @media (width <= 480px) {
       padding-top: 16px;
     }
   }
@@ -136,7 +136,7 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     padding: 32px;
 
-    @media (max-width: 768px) {
+    @media (width <= 768px) {
       padding: 24px 16px;
     }
 
@@ -325,7 +325,7 @@
       padding: 12px;
     }
 
-    @media (max-width: 480px) {
+    @media (width <= 480px) {
       .ck-editor__editable {
         min-height: 140px;
       }
@@ -423,7 +423,7 @@
       line-height: 1.5;
     }
 
-    @media (max-width: 480px) {
+    @media (width <= 480px) {
       select {
         font-size: 16px;
         padding: 12px;
@@ -478,7 +478,7 @@
       border-radius: 12px;
     }
 
-    @media (max-width: 480px) {
+    @media (width <= 480px) {
       textarea {
         min-height: 120px;
       }
@@ -559,7 +559,7 @@
   // -------------------------------------------------------------------------
   // PHASE V — Mobile density polish
   // -------------------------------------------------------------------------
-  @media (max-width: 480px) {
+  @media (width <= 480px) {
     .mel-wizard-frame {
       padding: 16px;
     }
@@ -627,7 +627,7 @@
   padding: 32px;
   text-align: center;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     padding: 24px 16px;
   }
 }
@@ -677,7 +677,7 @@
   line-height: 1.6;
 }
 
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .mel-event-wizard-success__actions {
     flex-direction: column;
     align-items: stretch;

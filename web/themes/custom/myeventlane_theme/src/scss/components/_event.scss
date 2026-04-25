@@ -19,7 +19,7 @@
   height: 420px;
   object-fit: cover;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     height: 300px;
   }
 }
@@ -31,7 +31,7 @@
   right: 48px;
   color: #fff;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     bottom: 32px;
     left: 24px;
     right: 24px;
@@ -45,7 +45,7 @@
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   line-height: 1.2;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     font-size: 1.75rem;
   }
 }
@@ -83,8 +83,8 @@
 
 .mel-event-sidebar__calendar-link {
   display: inline-block;
-  padding: 6px 10px !important;
-  font-size: 0.8125rem !important;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
   text-align: center;
   border-radius: 6px;
   background: #fff;
@@ -92,7 +92,7 @@
   color: #293241;
   text-decoration: none;
   font-weight: 500;
-  min-height: auto !important;
+  min-height: auto;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 
   &:hover {
@@ -145,7 +145,7 @@
   grid-template-columns: 1fr;
   gap: 1rem;
 
-  @media (min-width: 960px) {
+  @media (width >= 960px) {
     grid-template-columns: 1.45fr 0.75fr;
     gap: 1.25rem;
     align-items: start;
@@ -163,7 +163,7 @@
 .mel-sticky {
   position: static;
 
-  @media (min-width: 960px) {
+  @media (width >= 960px) {
     position: sticky;
     top: 92px;
   }

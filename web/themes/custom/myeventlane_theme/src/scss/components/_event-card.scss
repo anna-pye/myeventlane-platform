@@ -148,7 +148,7 @@
   }
 }
 
-// Outrank .mel-pill--on-image / .mel-pill (listing + hero) without !important.
+// Outrank .mel-pill--on-image / .mel-pill (listing + hero) without.
 .mel-event-card__image .mel-pill--on-image.mel-event-card__state-pill--highlight,
 .mel-event-hero-card .mel-pill--on-image.mel-event-card__state-pill--highlight {
   background: color-mix(in srgb, #f5c98d 45%, #fff 55%);

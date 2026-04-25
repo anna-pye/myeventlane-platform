@@ -154,7 +154,7 @@
   &--food-and-drink { background-color: #fbc6c6; color: #000; }
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .home-hero {
     flex-direction: row;
     justify-content: space-between;
@@ -196,7 +196,7 @@
   }
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .home-info {
     flex-direction: row;
     justify-content: space-between;

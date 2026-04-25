@@ -357,13 +357,13 @@
   font-size: 13px;
 }
 
-@media (max-width: 1440px) {
+@media (width <= 1440px) {
   .vendor-workspace {
     grid-template-columns: 220px 280px minmax(0, 1fr) 300px;
   }
 }
 
-@media (max-width: 1240px) {
+@media (width <= 1240px) {
   .vendor-workspace {
     grid-template-columns: 220px minmax(0, 1fr);
   }

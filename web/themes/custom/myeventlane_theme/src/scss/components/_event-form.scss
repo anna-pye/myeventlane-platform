@@ -110,8 +110,8 @@
       }
       
       .ui-autocomplete {
-        z-index: 10000 !important;
-        position: absolute !important;
+        z-index: 10000;
+        position: absolute;
         max-height: 300px;
         overflow-y: auto;
         background: #ffffff;
@@ -185,12 +185,12 @@
     .filter-help,
     .filter-guidelines,
     .filter-guidelines-item {
-      display: none !important;
+      display: none;
     }
   }
 
   .form-item--text-format-wrapper .filter-wrapper {
-    display: none !important;
+    display: none;
   }
 }
 
@@ -210,7 +210,7 @@
     
     // Only force-hide if explicitly marked (for fallback JS)
     &[data-force-hidden="true"] {
-      display: none !important;
+      display: none;
     }
     
     // Let conditional_fields handle visibility via inline styles
@@ -325,7 +325,7 @@
     .form-item-country-code,
     select[name*="country_code"],
     select[name*="[country_code]"] {
-      display: none !important;
+      display: none;
     }
 
     .myeventlane-location-address-search {
@@ -392,8 +392,8 @@
     z-index: 10;
     
     .ui-autocomplete {
-      z-index: 10000 !important;
-      position: absolute !important;
+      z-index: 10000;
+      position: absolute;
       max-height: 300px;
       overflow-y: auto;
       background: #ffffff;
@@ -412,7 +412,7 @@
 // Mobile
 // ---------------------------------------------------------------------------
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .mel-event-form-vendor {
     .mel-form-card {
       margin-left: calc(-1 * spacing.mel-space(3));

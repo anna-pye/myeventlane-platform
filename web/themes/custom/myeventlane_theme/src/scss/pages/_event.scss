@@ -8,7 +8,7 @@
   gap: 18px;
 }
 
-@media (min-width: 980px) {
+@media (width >= 980px) {
   .mel-event__hero-grid {
     grid-template-columns: 1.1fr .9fr .8fr;
     align-items: start;
@@ -160,7 +160,7 @@
   outline-offset: 3px;
 }
 
-@media (max-width: 899px) {
+@media (width <= 899px) {
   .mel-sticky-cta { display: block; }
   .mel-event__ticketbox { position: static; }
 }
@@ -171,6 +171,6 @@
   .mel-event__actions a.button,
   .mel-ticketbox,
   .mel-sticky-cta {
-    transition: none !important;
+    transition: none;
   }
 }

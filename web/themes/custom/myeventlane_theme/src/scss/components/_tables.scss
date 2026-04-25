@@ -387,7 +387,7 @@
 // Responsive: Card View on Mobile
 // ---------------------------------------------------------------------------
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .mel-table--responsive {
     thead {
       display: none;

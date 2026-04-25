@@ -37,12 +37,12 @@
   .mel-grid.mel-grid--events,
   .mel-grid.mel-grid--featured,
   .view-content {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 24px !important;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
 
     @include breakpoints.mel-break(md, max) {
-      grid-template-columns: 1fr !important;
+      grid-template-columns: 1fr;
     }
 
     // Limit to max 3 events

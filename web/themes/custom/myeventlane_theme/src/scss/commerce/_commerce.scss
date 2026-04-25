@@ -88,7 +88,7 @@
 /* Checkout: avoid dropdown overlapping panes; icon still links to /cart */
 body.mel-commerce-checkout .site-header__cart .mel-mini-cart,
 body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
-  display: none !important;
+  display: none;
 }
 
 .mel-mini-cart-header {
@@ -250,7 +250,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   .commerce-cart-block__contents,
   .cart-block__contents,
   [class*='cart-block__contents'] {
-    display: none !important;
+    display: none;
   }
 }
 
@@ -276,13 +276,13 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   /* Give checkout more room on large screens */
-  @media (min-width: 1200px) {
+  @media (width >= 1200px) {
     .region-content > * {
       max-width: 1320px;
     }
   }
 
-  @media (min-width: 1400px) {
+  @media (width >= 1400px) {
     .region-content > * {
       max-width: 1440px;
     }
@@ -780,7 +780,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     align-items: start;
   }
 
-  @media (min-width: 1400px) {
+  @media (width >= 1400px) {
     .mel-checkout__grid:not(.mel-checkout__grid--sidebar-flow),
     .mel-checkout__layout,
     .layout-checkout-form:not(.mel-checkout-complete-layout) {
@@ -804,7 +804,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     width: 380px;
   }
 
-  @media (min-width: 1400px) {
+  @media (width >= 1400px) {
     .mel-checkout__aside,
     .mel-checkout__summary,
     .mel-checkout__sidebar,

@@ -32,7 +32,7 @@
   padding: 32px;
   background: var(--mel-bg);
 
-  @media (max-width: 900px) {
+  @media (width <= 900px) {
     grid-template-columns: 1fr;
     padding: 16px;
   }
@@ -45,7 +45,7 @@
   gap: 32px;
   width: 100%;
 
-  @media (max-width: 900px) {
+  @media (width <= 900px) {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -64,7 +64,7 @@
   position: sticky;
   top: 24px;
 
-  @media (max-width: 900px) {
+  @media (width <= 900px) {
     display: none;
   }
 }
@@ -117,7 +117,7 @@
 .mel-event-form__mobile-steps {
   display: none;
 
-  @media (max-width: 900px) {
+  @media (width <= 900px) {
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -159,7 +159,7 @@
   padding: 0;
   animation: melFadeUp 0.25s ease-out;
 
-  @media (max-width: 600px) {
+  @media (width <= 600px) {
     border-radius: var(--mel-radius-md);
   }
 
@@ -180,7 +180,7 @@
   max-width: 1100px;
   margin: 0 auto;
 
-  @media (max-width: 900px) {
+  @media (width <= 900px) {
     grid-template-columns: 1fr;
     gap: 16px;
   }
@@ -201,7 +201,7 @@
   font-weight: 600;
   line-height: 1.2;
 
-  @media (max-width: 600px) {
+  @media (width <= 600px) {
     font-size: 1.4rem;
   }
 }
@@ -239,12 +239,12 @@
   gap: 12px;
   flex-wrap: wrap;
 
-  @media (max-width: 600px) {
+  @media (width <= 600px) {
     flex-direction: column-reverse;
   }
 
   &--sticky {
-    @media (max-width: 600px) {
+    @media (width <= 600px) {
       position: sticky;
       bottom: 0;
       background: var(--mel-card);

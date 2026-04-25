@@ -52,9 +52,9 @@
   }
 
   &__track {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 20px;
     width: 100%;
     overflow-x: auto;
@@ -72,12 +72,12 @@
   // Homepage unformatted uses __item; legacy carousel view uses __slide.
   &__slide,
   &__item {
-    flex: 0 0 min(320px, 88vw) !important;
+    flex: 0 0 min(320px, 88vw);
     min-width: 0;
     scroll-snap-align: start;
 
-    @media (min-width: 1024px) {
-      flex: 0 0 360px !important;
+    @media (width >= 1024px) {
+      flex: 0 0 360px;
     }
 
     // =========================================================================
@@ -85,18 +85,18 @@
     // =========================================================================
 
     .mel-event-card {
-      position: relative !important;
-      width: 100% !important;
-      min-height: 300px !important;
-      border-radius: 20px !important;
-      overflow: hidden !important;
+      position: relative;
+      width: 100%;
+      min-height: 300px;
+      border-radius: 20px;
+      overflow: hidden;
       box-shadow:
         0 4px 24px rgba(0, 0, 0, 0.08),
-        0 12px 48px rgba(0, 0, 0, 0.12) !important;
-      display: block !important;
+        0 12px 48px rgba(0, 0, 0, 0.12);
+      display: block;
 
       @include breakpoints.mel-break(md) {
-        min-height: 340px !important;
+        min-height: 340px;
       }
     }
 
@@ -104,25 +104,25 @@
     // Full-bleed image covering entire card
     // -------------------------------------------------------------------------
     .mel-event-card__image {
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      aspect-ratio: unset !important;
-      max-height: none !important;
-      z-index: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: unset;
+      max-height: none;
+      z-index: 0;
+      margin: 0;
+      padding: 0;
 
       img,
       .mel-event-card__image-element {
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-        filter: brightness(0.95) !important;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.95);
         transition: filter 0.4s ease, transform 0.4s ease;
       }
     }
@@ -130,13 +130,13 @@
     // Hover: brighten and subtle zoom
     .mel-event-card:hover .mel-event-card__image img,
     .mel-event-card:hover .mel-event-card__image .mel-event-card__image-element {
-      filter: brightness(1) !important;
+      filter: brightness(1);
       transform: scale(1.02);
     }
 
     // Hide sparkle badge
     .mel-featured-badge {
-      display: none !important;
+      display: none;
     }
 
     // Hide CTA / badge / editorial chrome (carousel uses glass overlay copy)
@@ -147,13 +147,13 @@
     .mel-event-card__overlay,
     .mel-event-card__tag,
     .mel-card-badge {
-      display: none !important;
+      display: none;
     }
 
     // Hide category / featured pill on image (copy lives in glass panel)
     .mel-event-card__category-pill,
     .mel-event-card__image-badge {
-      display: none !important;
+      display: none;
     }
 
     // =========================================================================
@@ -168,32 +168,32 @@
     // =========================================================================
 
     .mel-event-card__content {
-      position: absolute !important;
-      bottom: 0 !important;
-      left: 12px !important;
-      right: 12px !important;
-      z-index: 10 !important;
-      padding: 18px 24px !important;
-      margin: 0 0 12px 0 !important;
-      border-radius: 16px !important;
-      overflow: hidden !important;
+      position: absolute;
+      bottom: 0;
+      left: 12px;
+      right: 12px;
+      z-index: 10;
+      padding: 18px 24px;
+      margin: 0 0 12px 0;
+      border-radius: 16px;
+      overflow: hidden;
 
       // --- LIQUID GLASS REFRACTION ---
       // SVG filter for true refraction (Chrome/Edge) + CSS blur fallback
-      background: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(255, 255, 255, 0.12);
 
       // Fallback for Safari/Firefox: standard blur
-      backdrop-filter: blur(24px) saturate(180%) brightness(1.1) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.1) !important;
+      backdrop-filter: blur(24px) saturate(180%) brightness(1.1);
+      -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.1);
 
       // SVG filter override for Chromium (true refraction + blur)
       @supports (backdrop-filter: url(#a)) {
-        backdrop-filter: url(#mel-liquid-glass) saturate(180%) brightness(1.1) !important;
+        backdrop-filter: url(#mel-liquid-glass) saturate(180%) brightness(1.1);
       }
 
       // --- GLASS EDGE ---
       // Thin border all around with brighter top edge
-      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      border: 1px solid rgba(255, 255, 255, 0.25);
 
       // --- DEPTH + SPECULAR HIGHLIGHTS ---
       box-shadow:
@@ -233,11 +233,11 @@
     .mel-event-card__title {
       position: relative;
       z-index: 2;
-      font-size: 22px !important;
-      font-weight: 800 !important;
+      font-size: 22px;
+      font-weight: 800;
       line-height: 1.2;
-      margin: 0 0 10px 0 !important;
-      color: #000 !important;
+      margin: 0 0 10px 0;
+      color: #000;
       text-shadow:
         0 1px 4px rgba(255, 255, 255, 0.9),
         0 2px 8px rgba(255, 255, 255, 0.6);
@@ -247,13 +247,13 @@
     .mel-event-card__meta {
       position: relative;
       z-index: 2;
-      font-size: 14px !important;
-      font-weight: 600 !important;
-      color: #000 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 6px !important;
-      margin: 0 !important;
+      font-size: 14px;
+      font-weight: 600;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
       text-shadow:
         0 1px 4px rgba(255, 255, 255, 0.9),
         0 2px 8px rgba(255, 255, 255, 0.6);
@@ -265,26 +265,26 @@
     .mel-event-card__status-secondary {
       position: relative;
       z-index: 2;
-      font-size: 14px !important;
-      font-weight: 600 !important;
-      color: #000 !important;
-      margin: 0 0 6px 0 !important;
+      font-size: 14px;
+      font-weight: 600;
+      color: #000;
+      margin: 0 0 6px 0;
       text-shadow:
         0 1px 4px rgba(255, 255, 255, 0.9),
         0 2px 8px rgba(255, 255, 255, 0.6);
     }
 
     .mel-event-card__status-row {
-      margin-bottom: 8px !important;
+      margin-bottom: 8px;
     }
 
     .mel-event-card__status {
-      font-size: 14px !important;
-      font-weight: 700 !important;
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .mel-event-card__location-slot {
-      min-height: 0 !important;
+      min-height: 0;
     }
 
     // Featured label
@@ -295,7 +295,7 @@
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: rgba(0, 0, 0, 0.7) !important;
+      color: rgba(0, 0, 0, 0.7);
       margin-bottom: 8px;
       text-shadow:
         0 1px 4px rgba(255, 255, 255, 0.9),
@@ -310,8 +310,8 @@
     // =========================================================================
     .mel-event-card--light-bg .mel-event-card__content {
       // Darker tinted glass on light backgrounds for contrast
-      background: rgba(0, 0, 0, 0.15) !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
+      background: rgba(0, 0, 0, 0.15);
+      border-color: rgba(0, 0, 0, 0.1);
       box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.12),
         inset 0 1px 1px 0 rgba(255, 255, 255, 0.3),
@@ -319,14 +319,14 @@
     }
 
     .mel-event-card--light-bg .mel-event-card__title {
-      color: #000 !important;
+      color: #000;
       text-shadow:
         0 1px 3px rgba(255, 255, 255, 0.6);
       -webkit-text-stroke: 0;
     }
 
     .mel-event-card--light-bg .mel-event-card__meta {
-      color: #000 !important;
+      color: #000;
       text-shadow:
         0 1px 2px rgba(255, 255, 255, 0.5);
     }
@@ -335,13 +335,13 @@
     .mel-event-card--light-bg .mel-event-card__location,
     .mel-event-card--light-bg .mel-event-card__status-row,
     .mel-event-card--light-bg .mel-event-card__status-secondary {
-      color: #000 !important;
+      color: #000;
       text-shadow:
         0 1px 2px rgba(255, 255, 255, 0.5);
     }
 
     .mel-event-card--light-bg .mel-event-card__content .mel-event-card__title::before {
-      color: rgba(0, 0, 0, 0.7) !important;
+      color: rgba(0, 0, 0, 0.7);
       text-shadow:
         0 1px 2px rgba(255, 255, 255, 0.4);
     }

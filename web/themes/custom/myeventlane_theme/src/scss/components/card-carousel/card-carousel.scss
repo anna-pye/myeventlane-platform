@@ -45,7 +45,7 @@
     right: -16px;
   }
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     .swiper-button-prev,
     .swiper-button-next {
       display: none;

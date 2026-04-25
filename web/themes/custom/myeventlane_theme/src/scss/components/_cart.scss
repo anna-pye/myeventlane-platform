@@ -336,16 +336,16 @@
     min-height: auto;
     padding: spacing.mel-space(1) spacing.mel-space(2);
     margin: 0;
-    background: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: colors.$mel-color-primary !important;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: colors.$mel-color-primary;
     font-weight: typography.$mel-font-semibold;
     text-decoration: underline;
     text-underline-offset: 2px;
 
     &:hover {
-      color: colors.$mel-color-secondary !important;
+      color: colors.$mel-color-secondary;
     }
   }
 }
@@ -356,7 +356,7 @@
   .mel-commerce-cart .mel-cart .mel-cart-actions {
     .form-actions input.form-submit:not(.button--primary),
     .form-actions button:not(.button--primary) {
-      flex: 0 0 auto !important;
+      flex: 0 0 auto;
     }
   }
 }

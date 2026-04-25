@@ -13,7 +13,7 @@
   padding: 0 16px;
 }
 
-@media (min-width: 900px) {
+@media (width >= 900px) {
   .mel-container {
     max-width: var(--mel-max);
     padding: 0 24px;
@@ -24,7 +24,7 @@
   padding: 28px 0;
 }
 
-@media (min-width: 900px) {
+@media (width >= 900px) {
   .mel-section {
     padding: 44px 0;
   }
@@ -33,7 +33,7 @@
 .mel-section + .mel-section {
   padding-top: 16px;
 
-  @media (min-width: 900px) {
+  @media (width >= 900px) {
     padding-top: 20px;
   }
 }
