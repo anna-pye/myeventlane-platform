@@ -149,7 +149,7 @@
 }
 
 // Mobile: keep booking CTA in the thumb zone while the sidebar is in view.
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .mel-event--v2 .mel-card--sticky .mel-booking-panel__cta {
     position: sticky;
     bottom: 0;
@@ -189,6 +189,49 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Trust line rotator (one line visible; no duplicate static viewer / email rows)
+// ---------------------------------------------------------------------------
+
+.mel-trust-rotator {
+  min-height: 1.4rem;
+  position: relative;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #7c8791;
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-trust-rotator .mel-trust-item {
+  display: none;
+}
+
+.mel-trust-rotator .mel-trust-item.is-active {
+  display: block;
+}
+
+.mel-trust-item__text {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-trust-rotator[data-rotate] {
+    .mel-trust-item {
+      display: block;
+      position: static;
+    }
+
+    .mel-trust-item + .mel-trust-item {
+      margin-top: 0.4rem;
+    }
+  }
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__item {
@@ -250,6 +293,31 @@
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__item--viewer strong {
   color: #F26D5B;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--high,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--high strong {
+  color: #E5533D;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--urgent,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--urgent strong {
+  color: #F26D5B;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--social,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--social strong {
+  color: #6E7EF2;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--new,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item--interest.mel-booking-panel__item--new strong {
+  color: #2c3e50;
 }
 
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__capacity {
@@ -1017,15 +1085,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding:
-    space-tokens.mel-space(2)
-    space-tokens.mel-space(3)
-    calc(#{space-tokens.mel-space(3)} + env(safe-area-inset-bottom));
-  background: rgba(250, 247, 251, 0.85);
-  backdrop-filter: blur(12px);
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0));
+  background: #fff;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-  z-index: 50;
-  box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
 
   @include breakpoints.mel-break(lg) {
     display: none;
@@ -1177,6 +1241,42 @@
   color: color-mix(in srgb, colors.$mel-color-text 78%, #fff 22%);
   border-color: color-mix(in srgb, #8b7ab8 14%, transparent);
   cursor: not-allowed;
+}
+
+// Shared CTA partial: coral/lavender via .mel-btn--* (replaces --coral / --lavender modifiers on the link only).
+.mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn--coral-cta {
+  background: var(--mel-coral, #f26d5b);
+  color: colors.$mel-color-text-inverse;
+}
+
+.mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn--lavender-cta,
+.mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn--waitlist {
+  background: color-mix(in srgb, #b8a5d6 35%, #fff 65%);
+  color: colors.$mel-color-text;
+}
+
+// CTA press micro-feedback: wins over .mel-mobile-cta__button:active translateY.
+.mel-event--v2 .mel-booking-panel__cta .mel-btn,
+.mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn {
+  transition: transform 0.12s ease, box-shadow var(--mel-motion-fast) var(--mel-ease-out), background-color
+    var(--mel-motion-fast) var(--mel-ease-out);
+}
+
+.mel-event--v2 .mel-booking-panel__cta .mel-btn:active,
+.mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn:active {
+  transform: scale(0.97) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event--v2 .mel-booking-panel__cta .mel-btn,
+  .mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn {
+    transition: none;
+  }
+
+  .mel-event--v2 .mel-booking-panel__cta .mel-btn:active,
+  .mel-event--v2 .mel-mobile-cta a.mel-mobile-cta__button.mel-btn:active {
+    transform: none;
+  }
 }
 
 // ---------------------------------------------------------------------------
