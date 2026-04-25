@@ -81,7 +81,7 @@ display:
           entity_type: node
           entity_field: field_audience
           plugin_id: list_field
-          operator: in
+          operator: or
           value:
             public: public
           group: 1

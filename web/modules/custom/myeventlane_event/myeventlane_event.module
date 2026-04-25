@@ -854,7 +854,7 @@ function myeventlane_event_entity_view_alter(array &$build, EntityInterface $ent
     }
     $build['#cache']['contexts'] = array_values(array_unique(array_merge(
       $contexts,
-      ['route.name'],
+      ['route'],
     )));
   }
   catch (\Throwable $e) {
@@ -1076,7 +1076,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           }
           $variables['elements']['#cache']['contexts'] = array_values(array_unique(array_merge(
             $recommendation_contexts,
-            ['route.name'],
+            ['route'],
           )));
         }
         elseif (isset($variables['#cache']) && is_array($variables['#cache'])) {
@@ -1086,7 +1086,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           }
           $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
             $recommendation_contexts,
-            ['route.name'],
+            ['route'],
           )));
         }
         if ($append_tags !== []) {
@@ -1094,7 +1094,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
             $tags = (array) ($variables['elements']['#cache']['tags'] ?? []);
             $variables['elements']['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
           }
-          elseif (isset($variables['#cache'])) {
+          elseif (isset($variables['#cache']) && is_array($variables['#cache'])) {
             $tags = (array) ($variables['#cache']['tags'] ?? []);
             $variables['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
           }
