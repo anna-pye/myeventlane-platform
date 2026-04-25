@@ -182,16 +182,9 @@
       return;
     }
     const startId = 'start_filter';
-    const allReset = filter === 'all' || !filter;
-    if (allReset) {
-      clearStartRange(form, startId);
-      clearRsvpType(form);
-      clearTrending(form);
-    } else {
-      clearStartRange(form, startId);
-      clearRsvpType(form);
-      clearTrending(form);
-    }
+    clearStartRange(form, startId);
+    clearRsvpType(form);
+    clearTrending(form);
 
     const todayStart = startOfLocalDay(new Date());
     const nextDay = startOfNextLocalDay(todayStart);
