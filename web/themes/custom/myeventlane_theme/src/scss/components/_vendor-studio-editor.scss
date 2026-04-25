@@ -107,7 +107,7 @@
 
 }
 
-@media (max-width: 980px) {
+@media (width <= 980px) {
   .mel-studio-editor {
     width: 100vw;
     min-width: 0;

@@ -13,7 +13,7 @@
     background-position: 0 0, center;
 
     // Mobile-specific hero image when --mel-hero-bg-mobile is set.
-    @media (max-width: 767px) {
+    @media (width <= 767px) {
       background-image: linear-gradient(
           135deg,
           rgba(254, 245, 236, 0.5) 0%,

@@ -12,13 +12,13 @@ $mel-breakpoints: (
   $breakpoint: map.get($mel-breakpoints, $size);
   
   @if $direction == max {
-    // For max-width, subtract 1px to avoid overlap
-    $max-width: $breakpoint - 1px;
-    @media (max-width: $max-width) {
+    // Subtract 1px to avoid overlap.
+    $upper-bound: $breakpoint - 1px;
+    @media (width <= $upper-bound) {
       @content;
     }
   } @else {
-    @media (min-width: $breakpoint) {
+    @media (width >= $breakpoint) {
       @content;
     }
   }

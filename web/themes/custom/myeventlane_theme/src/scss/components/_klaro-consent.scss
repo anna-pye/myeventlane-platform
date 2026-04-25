@@ -46,7 +46,7 @@
 /* Modal body */
 .klaro .cookie-modal .cm-body,
 .klaro .cm-modal .cm-body {
-  background: #ffffff !important;
+  background: #ffffff;
   overflow-y: auto;
 }
 
@@ -82,8 +82,8 @@
 .klaro button.cm-btn,
 .klaro .cm-btn,
 .klaro a.cm-link {
-  border-radius: 999px !important;
-  padding: 0.7rem 1.05rem !important;
+  border-radius: 999px;
+  padding: 0.7rem 1.05rem;
   font-weight: 600;
   line-height: 1;
   min-height: 44px; /* touch target */
@@ -92,25 +92,25 @@
 /* Accept / primary */
 .klaro .cm-btn-success,
 .klaro .cm-btn.cm-btn-success {
-  background: rgba(108, 126, 242, 0.95) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  color: #{colors.$mel-color-text} !important;
+  background: rgba(108, 126, 242, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #{colors.$mel-color-text};
 }
 
 /* Decline / secondary */
 .klaro .cm-btn-decline,
 .klaro .cm-btn.cm-btn-decline {
-  background: rgba(255, 255, 255, 0.92) !important;
-  border: 1px solid rgba(0, 0, 0, 0.14) !important;
-  color: inherit !important;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  color: inherit;
 }
 
 /* Settings / info button */
 .klaro .cm-btn-info,
 .klaro .cm-btn.cm-btn-info {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid rgba(255, 255, 255, 0.9) !important;
-  color: #{colors.$mel-color-navy} !important;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  color: #{colors.$mel-color-navy};
 }
 
 /* Links */
@@ -141,7 +141,7 @@
 }
 
 /* Mobile layout */
-@media (max-width: 480px) {
+@media (width <= 480px) {
   .klaro .cookie-notice,
   .klaro .cookie-modal .cm-modal,
   .klaro .context-notice {

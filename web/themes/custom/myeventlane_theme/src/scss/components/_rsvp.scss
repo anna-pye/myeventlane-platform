@@ -667,7 +667,7 @@
   padding: spacing.mel-space(5);
   box-shadow: shadows.$mel-shadow-sm;
 
-  @media (min-width: 768px) {
+  @media (width >= 768px) {
     padding: 1rem;
   }
 }

@@ -27,7 +27,7 @@ $mel-auth-break-mobile: 900px;
   display: grid;
   grid-template-columns: 1fr 1fr;
 
-  @media (max-width: $mel-auth-break-mobile) {
+  @media (width <= $mel-auth-break-mobile) {
     grid-template-columns: 1fr;
   }
 
@@ -66,7 +66,7 @@ $mel-auth-break-mobile: 900px;
       margin-right: auto;
       padding: spacing.mel-space(3);
 
-      @media (max-width: $mel-auth-break-mobile) {
+      @media (width <= $mel-auth-break-mobile) {
         padding: spacing.mel-space(3) spacing.mel-space(2);
       }
     }
@@ -77,7 +77,7 @@ $mel-auth-break-mobile: 900px;
     position: relative;
     background: colors.$mel-color-bg;
 
-    @media (max-width: $mel-auth-break-mobile) {
+    @media (width <= $mel-auth-break-mobile) {
       display: none;
     }
 
@@ -119,13 +119,13 @@ $mel-auth-break-mobile: 900px;
     box-shadow: shadows.$mel-shadow-lg;
     padding: spacing.mel-space(6);
 
-    @media (max-width: $mel-auth-break-mobile) {
+    @media (width <= $mel-auth-break-mobile) {
       padding: spacing.mel-space(4) spacing.mel-space(3);
     }
   }
 
   // -------------------------------------------------------------------------
-  // MEL form styles nested under .user-form-page (no !important)
+  // MEL form styles nested under .user-form-page (no)
   // -------------------------------------------------------------------------
 
   .mel-auth-form-wrapper,
@@ -238,7 +238,7 @@ $mel-auth-break-mobile: 900px;
     gap: spacing.mel-space(3);
     align-items: center;
 
-    @media (max-width: $mel-auth-break-mobile) {
+    @media (width <= $mel-auth-break-mobile) {
       flex-direction: column;
       align-items: stretch;
     }
@@ -268,7 +268,7 @@ $mel-auth-break-mobile: 900px;
     background-color: colors.$mel-color-secondary;
     color: colors.$mel-color-on-primary;
 
-    @media (min-width: $mel-auth-break-mobile + 1px) {
+    @media (width >= $mel-auth-break-mobile + 1px) {
       width: auto;
       min-width: 12rem;
     }

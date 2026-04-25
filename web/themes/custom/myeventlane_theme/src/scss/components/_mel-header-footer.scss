@@ -28,7 +28,7 @@
     color: inherit;
   }
 
-  @media (min-width: 768px) {
+  @media (width >= 768px) {
     padding-inline: var(--mel-space-5);
   }
 }
@@ -60,7 +60,7 @@
     color: inherit;
   }
 
-  @media (min-width: 768px) {
+  @media (width >= 768px) {
     padding-inline: var(--mel-space-5);
   }
 }

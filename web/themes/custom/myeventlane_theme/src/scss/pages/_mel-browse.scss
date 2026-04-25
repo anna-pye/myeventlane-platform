@@ -101,7 +101,7 @@
   align-items: start;
   width: 100%;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     grid-template-columns: 1fr;
   }
 }
@@ -111,7 +111,7 @@
   top: 1rem;
   padding: mel.$mel-ds-space-md 0;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     display: none;
     position: static;
     padding: mel.$mel-ds-space-lg;
@@ -138,7 +138,7 @@
   margin-bottom: mel.$mel-ds-space-md;
   text-align: center;
 
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     display: inline-flex;
     justify-content: center;
   }

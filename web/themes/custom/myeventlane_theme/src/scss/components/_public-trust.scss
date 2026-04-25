@@ -38,7 +38,7 @@
   grid-template-columns: 1fr;
   gap: var(--space-md, 1rem);
 
-  @media (min-width: 40rem) {
+  @media (width >= 40rem) {
     grid-template-columns: repeat(2, 1fr);
   }
 }

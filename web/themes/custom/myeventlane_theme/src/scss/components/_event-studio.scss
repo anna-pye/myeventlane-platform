@@ -11,9 +11,9 @@ body.mel-event-studio-page {
   .region-content,
   .gin-content,
   .dialog-off-canvas-main-canvas {
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
     padding-left: 16px;
     padding-right: 16px;
     box-sizing: border-box;
@@ -22,7 +22,7 @@ body.mel-event-studio-page {
   .container,
   .container-lg,
   .container-md {
-    max-width: 100% !important;
+    max-width: 100%;
   }
 }
 
@@ -131,7 +131,7 @@ form.mel-event-studio-form {
   width: 100%;
 }
 
-@media (max-width: 600px) {
+@media (width <= 600px) {
   .mel-basic-title-with-ai {
     grid-template-columns: 1fr;
   }
@@ -141,7 +141,7 @@ form.mel-event-studio-form {
   padding-top: 1.75rem;
 }
 
-@media (max-width: 600px) {
+@media (width <= 600px) {
   .mel-basic-title-with-ai .mel-ai-autofill {
     padding-top: 0;
   }
@@ -219,7 +219,7 @@ form.mel-event-studio-form {
 }
 
 /* Mobile fallback */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .mel-studio-top {
     grid-template-columns: 1fr;
   }
@@ -407,7 +407,7 @@ form.mel-event-studio-form {
 }
 
 .mel-layout-grid {
-  grid-template-columns: 1fr !important;
+  grid-template-columns: 1fr;
 }
 
 /* Kill ALL width constraints (form wraps .mel-event-studio, not the other way around) */
@@ -416,8 +416,8 @@ form.mel-event-studio-form .mel-event-studio,
 .mel-studio-main-full,
 .mel-event-studio__form-full,
 .mel-studio-form-wrapper {
-  width: 100% !important;
-  max-width: 100% !important;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Ensure steps expand (wizard visibility still toggled inline by JS) */
@@ -434,7 +434,7 @@ form.mel-event-studio-form .mel-event-studio,
 
 /* Remove card-style narrowing */
 .mel-step > div {
-  max-width: none !important;
+  max-width: none;
 }
 
 /* Prevent flex/grid shrink */
@@ -504,7 +504,7 @@ form.mel-event-studio-form .mel-event-studio,
   gap: 12px;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .mel-form-grid {
     grid-template-columns: 1fr;
   }
@@ -580,7 +580,7 @@ form.mel-event-studio-form .mel-event-studio,
 }
 
 .mel-ai-diff-modal[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .mel-ai-diff-modal__overlay {
@@ -645,7 +645,7 @@ form.mel-event-studio-form .mel-event-studio,
   margin-top: 16px;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .mel-ai-diff {
     grid-template-columns: 1fr;
   }

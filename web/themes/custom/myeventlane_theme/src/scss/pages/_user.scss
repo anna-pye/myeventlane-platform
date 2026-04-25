@@ -416,7 +416,7 @@
 
 // Orange-forward styling for My Tickets page (#e67e22 = vivid orange)
 .mel-my-tickets .mel-page-title {
-  color: #e67e22 !important;
+  color: #e67e22;
 }
 
 .mel-my-tickets .mel-page-description {
@@ -425,7 +425,7 @@
 
 .mel-my-tickets .mel-section-title {
   color: colors.$mel-color-text;
-  border-bottom: 2px solid #e67e22 !important;
+  border-bottom: 2px solid #e67e22;
   padding-bottom: spacing.mel-space(2);
 }
 
@@ -452,7 +452,7 @@
 
 .mel-my-tickets .mel-event-title a,
 .mel-my-tickets .mel-link {
-  color: #e67e22 !important;
+  color: #e67e22;
   font-weight: typography.$mel-font-semibold;
   text-decoration: none;
 
@@ -478,7 +478,7 @@
 }
 
 .mel-my-tickets .mel-btn-primary {
-  background: #e67e22 !important;
+  background: #e67e22;
   color: #fff;
   border-radius: radii.$mel-radius-full;
   font-weight: typography.$mel-font-bold;
@@ -491,8 +491,8 @@
 
 .mel-my-tickets .mel-btn-secondary {
   background: transparent;
-  border: 2px solid #e67e22 !important;
-  color: #e67e22 !important;
+  border: 2px solid #e67e22;
+  color: #e67e22;
   border-radius: radii.$mel-radius-full;
   font-weight: typography.$mel-font-bold;
 
@@ -533,7 +533,7 @@
     display: inline-block;
     margin-right: spacing.mel-space(2);
     font-size: 0.7em;
-    color: #e67e22 !important;
+    color: #e67e22;
     transition: transform 0.2s ease;
   }
 
@@ -553,7 +553,7 @@
 }
 
 .mel-my-tickets .mel-empty-state .mel-btn-primary {
-  background: #e67e22 !important;
+  background: #e67e22;
   color: #fff;
   border-radius: radii.$mel-radius-full;
   font-weight: typography.$mel-font-bold;

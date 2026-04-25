@@ -347,7 +347,7 @@
 .mel-nav-toggle-checkbox:checked ~ .mel-region-header header .mel-nav-mobile-wrapper,
 header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
 .mel-nav-mobile-wrapper.is-open {
-  transform: translateX(0) !important; // Force it to work
+  transform: translateX(0); // Force it to work
 }
 
 .mel-nav-mobile-header {

@@ -7,7 +7,7 @@
   display: flex;
   gap: .5rem;
 
-  @media (max-width: 640px) {
+  @media (width <= 640px) {
     position: sticky;
     bottom: 0;
   }
