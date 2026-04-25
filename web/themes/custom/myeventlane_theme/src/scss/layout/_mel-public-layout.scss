@@ -122,6 +122,11 @@
   width: 100%;
 }
 
+// Single line under a rail (homepage framing; reuses .mel-section__link).
+.mel-section__content-footer {
+  margin-top: mel.$mel-ds-space-md;
+}
+
 // Hero lives in `{% block hero %}` above `<main>`; first home rail is inside `.mel-page--home`.
 .mel-main .mel-page--home > .mel-section:first-of-type {
   padding-top: 12px;
