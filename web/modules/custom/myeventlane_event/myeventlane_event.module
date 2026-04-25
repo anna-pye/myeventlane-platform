@@ -930,8 +930,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       /** @var \Drupal\myeventlane_core\Service\EventViewerCountService $viewer_service */
       $viewer_service = \Drupal::service('myeventlane_core.event_viewer_count');
       $nid = (int) $node->id();
-      $viewer_service->recordView($nid);
-      $viewer_count = $viewer_service->getViewerCount($nid);
+      $viewer_count = $viewer_service->recordViewAndGetCount($nid);
       $variables['event_viewer_count_total'] = $viewer_count;
       if ($viewer_count > 1) {
         $variables['event_viewer_count'] = [
@@ -955,6 +954,15 @@ function myeventlane_event_preprocess_node(array &$variables): void {
         '@message' => $e->getMessage(),
       ]);
     }
+  }
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_interest')) {
+    /** @var \Drupal\myeventlane_core\Service\EventInterestService $interest_service */
+    $interest_service = \Drupal::service('myeventlane_core.event_interest');
+    $variables['event_interest'] = $interest_service->getInterestState(
+      (int) ($variables['event_save_count_total'] ?? 0),
+      (int) ($variables['event_viewer_count_total'] ?? 0),
+      (int) $node->getCreatedTime()
+    );
   }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
@@ -1040,6 +1048,7 @@ function myeventlane_event_finalize_event_ui(
       'status_label' => NULL,
       'status_type' => 'muted',
       'is_sold_out' => FALSE,
+      'is_limited' => FALSE,
       'show_cta' => TRUE,
       'capacity_hint' => NULL,
       'image_badge_label' => NULL,
@@ -1067,6 +1076,17 @@ function myeventlane_event_finalize_event_ui(
       $out['status_type'] = 'highlight';
       $out['image_badge_label'] = (string) t('Featured');
       $out['image_badge_type'] = 'apricot';
+    }
+    if (!$isSoldOut && $rsvpState === 'limited') {
+      $out['is_limited'] = TRUE;
+    }
+    if (
+      !$isSoldOut
+      && $rsvpState === 'limited'
+      && $capacity > 0
+      && $capacity < 20
+    ) {
+      $out['capacity_hint'] = (string) t('Limited spots remaining');
     }
     return $out;
   }
@@ -1106,7 +1126,15 @@ function myeventlane_event_finalize_event_ui(
     $out['cta_type'] = 'primary';
   }
 
-  if (!$isSoldOut && $rsvpState === 'limited' && $capacity > 0 && $capacity < 20) {
+  if (!$isSoldOut && $rsvpState === 'limited') {
+    $out['is_limited'] = TRUE;
+  }
+  if (
+    !$isSoldOut
+    && $rsvpState === 'limited'
+    && $capacity > 0
+    && $capacity < 20
+  ) {
     $out['capacity_hint'] = (string) t('Limited spots remaining');
   }
   if (
