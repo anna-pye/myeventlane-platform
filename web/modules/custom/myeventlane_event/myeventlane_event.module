@@ -1138,6 +1138,14 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       }
     }
   }
+  if ($variables['mel_tonight_urgency_label'] !== NULL && isset($variables['elements']) && is_array($variables['elements'])) {
+    $variables['elements']['#cache']['max-age'] = 60;
+    $contexts = $variables['elements']['#cache']['contexts'] ?? [];
+    if (!in_array('timezone', $contexts, TRUE)) {
+      $contexts[] = 'timezone';
+    }
+    $variables['elements']['#cache']['contexts'] = $contexts;
+  }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
   // teaser, event_card, etc.); do not scope to a single view mode here.

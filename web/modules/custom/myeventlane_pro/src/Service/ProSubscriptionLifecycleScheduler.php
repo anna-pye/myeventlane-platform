@@ -249,12 +249,15 @@ final class ProSubscriptionLifecycleScheduler {
 
     $sent = 0;
     $storage = $this->entityTypeManager->getStorage('commerce_subscription');
-    $subscriptionIds = array_map(static fn(array $row): int => (int) $row['subscription_id'], $rows);
+    $subscriptionIds = array_values(array_filter(array_map(static function (object $row): int {
+      return isset($row->subscription_id) ? (int) $row->subscription_id : 0;
+    }, $rows)));
     /** @var \Drupal\commerce_recurring\Entity\SubscriptionInterface[] $subscriptions */
     $subscriptions = $storage->loadMultiple($subscriptionIds);
 
     foreach ($rows as $id => $row) {
-      $subscription = $subscriptions[(int) $row['subscription_id']] ?? NULL;
+      $subscriptionId = isset($row->subscription_id) ? (int) $row->subscription_id : 0;
+      $subscription = $subscriptions[$subscriptionId] ?? NULL;
       if (!$subscription instanceof SubscriptionInterface) {
         $this->markRenewalNotification((int) $id, self::STATUS_FAILED);
         continue;
@@ -312,12 +315,15 @@ final class ProSubscriptionLifecycleScheduler {
 
     $sent = 0;
     $storage = $this->entityTypeManager->getStorage('commerce_subscription');
-    $subscriptionIds = array_map(static fn(array $row): int => (int) $row['subscription_id'], $rows);
+    $subscriptionIds = array_values(array_filter(array_map(static function (object $row): int {
+      return isset($row->subscription_id) ? (int) $row->subscription_id : 0;
+    }, $rows)));
     /** @var \Drupal\commerce_recurring\Entity\SubscriptionInterface[] $subscriptions */
     $subscriptions = $storage->loadMultiple($subscriptionIds);
 
     foreach ($rows as $id => $row) {
-      $subscription = $subscriptions[(int) $row['subscription_id']] ?? NULL;
+      $subscriptionId = isset($row->subscription_id) ? (int) $row->subscription_id : 0;
+      $subscription = $subscriptions[$subscriptionId] ?? NULL;
       if (!$subscription instanceof SubscriptionInterface) {
         $this->markFailedSequence((int) $id, self::STATUS_FAILED);
         continue;
@@ -339,7 +345,8 @@ final class ProSubscriptionLifecycleScheduler {
         continue;
       }
 
-      $template = match ((int) $row['step']) {
+      $step = isset($row->step) ? (int) $row->step : -1;
+      $template = match ($step) {
         0 => 'pro_subscription_payment_failed_day_0',
         3 => 'pro_subscription_payment_failed_day_3',
         6 => 'pro_subscription_payment_failed_day_6',
@@ -354,7 +361,7 @@ final class ProSubscriptionLifecycleScheduler {
       $messageId = $this->messagingManager->queue($template, $recipient, [
         'first_name' => $this->resolveCustomerFirstName($subscription),
         'subscription_id' => (int) $subscription->id(),
-        'step' => (int) $row['step'],
+        'step' => $step,
       ]);
 
       if ($messageId === NULL) {
