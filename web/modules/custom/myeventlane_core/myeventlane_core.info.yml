@@ -10,3 +10,4 @@ dependencies:
   - mel_ticket:mel_ticket
   - flag:flag
   - drupal:system
+  - drupal:views

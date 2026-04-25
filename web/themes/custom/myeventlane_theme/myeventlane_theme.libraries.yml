@@ -84,6 +84,15 @@ mel-events-discovery:
     - myeventlane_theme/global-styling
     - core/drupal
 
+# Category discovery chip bar (AJAX, no full page reload).
+mel-chips:
+  js:
+    js/mel-chips.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings
+
 # Homepage discover — chips + Views exposed form submit (use_ajax on embed_discover).
 mel-filters:
   js:

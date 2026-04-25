@@ -87,6 +87,24 @@
   }
 }
 
+// Category discovery chip bar: premium accent + smooth interaction (MEL v2)
+.mel-chip-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(4);
+}
+
+.mel-chip-bar .mel-chip {
+  transition: all 0.2s ease;
+}
+
+.mel-chip-bar .mel-chip.is-active {
+  background: #f26d5b;
+  border-color: #f26d5b;
+  color: #fff;
+}
+
 // Primary accent
 .mel-chip--primary {
   background: colors.$mel-color-primary;

@@ -26,6 +26,12 @@ services:
       - '@string_translation'
       - '@current_route_match'
 
+  myeventlane_core.event_filter_controller:
+    class: Drupal\myeventlane_core\Controller\EventFilterController
+    arguments:
+      - '@renderer'
+      - '@logger.channel.myeventlane_core'
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 

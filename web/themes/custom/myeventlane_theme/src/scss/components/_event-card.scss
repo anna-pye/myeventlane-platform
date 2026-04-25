@@ -933,6 +933,16 @@
   opacity: 1;
 }
 
+// MEL category chip AJAX: instant feedback (matches discovery listing wrapper).
+.view [data-mel-filter-results] {
+  transition: opacity 0.2s ease;
+}
+
+.view [data-mel-filter-results].is-loading {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mel-skeleton,
   .mel-event-card--skeleton .mel-skeleton {

@@ -44,6 +44,38 @@ final class EventRecommendationService {
   }
 
   /**
+   * Suggests the default discovery chip (category listing / homepage context).
+   *
+   * Uses `field_event_type` (not Commerce ticket rows): `rsvp` maps to the “free” chip.
+   */
+  public function getDefaultChip(?NodeInterface $context = NULL): string {
+    $now = $this->time->getRequestTime();
+
+    if (!$context) {
+      return 'all';
+    }
+
+    $save_count = $this->eventSaveCount->getSaveCount((int) $context->id());
+    if ($save_count > 10) {
+      return 'trending';
+    }
+
+    if ($context->hasField('field_event_start') && !$context->get('field_event_start')->isEmpty()) {
+      $start = strtotime((string) $context->get('field_event_start')->value);
+      if ($start > $now && ($start - $now) < 21600) {
+        return 'now';
+      }
+    }
+
+    if ($context->hasField('field_event_type') && !$context->get('field_event_type')->isEmpty()
+      && (string) $context->get('field_event_type')->value === 'rsvp') {
+      return 'free';
+    }
+
+    return 'all';
+  }
+
+  /**
    * Explains why an event card is surfaced (home, list, event page, search).
    *
    * @param int|null $prefetchedSaveCount
