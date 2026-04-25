@@ -886,6 +886,14 @@
   pointer-events: none;
 }
 
+// Skeleton flow (skeleton.js): only grids with `data-loaded` opt in. Do not set opacity on
+// unqualified .mel-event-grid—search, popular block, and saved-event markup omit the attribute
+// and must stay visible; noscript never flips `data-loaded` to true, so a global opacity: 0
+// would leave those grids permanently invisible.
+.mel-event-grid:not([data-loaded]) {
+  opacity: 1;
+}
+
 // Hide real grid until script reveals it (avoids double skeleton + cards on first paint).
 .mel-event-grid[data-loaded="false"] {
   display: none;
@@ -916,39 +924,86 @@
   }
 }
 
-// Save / interested (Flag module link on listing cards; top-right overlay on article).
+// Save for later: heart-only (Flag “Save/Remove” hidden; see flag.html.twig: .flag.flag-{id} .action-flag|.action-unflag)
 .mel-event-card__save {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 3;
+  pointer-events: auto;
 }
 
 .mel-event-card__save .flag a {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
+  position: relative;
+  box-sizing: border-box;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.15s ease;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.08);
   text-decoration: none;
-  color: color-mix(in srgb, mel.$mel-ds-color-text 85%, transparent);
+  line-height: 0;
+  font-size: 0.001px;
+  color: transparent;
+  text-shadow: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+// Hollow heart: not yet saved
+.mel-event-card__save .flag a::before {
+  content: '\2661';
+  // ♡
+  position: static;
+  font-size: 18px;
+  line-height: 1;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #7C8791;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Filled heart: saved (flag shows action unflag, or link gets .is-active from AJAX)
+.mel-event-card__save .flag.action-unflag a::before,
+.mel-event-card__save .flag a.is-active::before {
+  content: '\2665';
+  // ♥
+  color: #F26D5B;
+}
+
+.mel-event-card__save .flag a.is-active,
+.mel-event-card__save .flag.action-unflag a {
+  color: transparent;
+  background: #fff;
 }
 
 .mel-event-card__save .flag a:hover,
 .mel-event-card__save .flag a:focus-visible {
   transform: scale(1.1);
-  color: mel.$mel-ds-color-text;
 }
 
-.mel-event-card__save .flag.action-unflag a,
-.mel-event-card__save .flag a.is-active {
-  background: #f26d5b;
-  color: #fff;
+.mel-event-card__save .flag a:active {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-card__save .flag a {
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .mel-event-card__save .flag a:hover,
+  .mel-event-card__save .flag a:focus-visible,
+  .mel-event-card__save .flag a:active {
+    transform: none;
+  }
 }
 

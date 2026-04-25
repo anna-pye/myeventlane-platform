@@ -133,7 +133,7 @@
 <article class="{{ card_classes|join(' ') }}">
 {% endif %}
   {% if event_flag_event_save and node is defined and node.id %}
-    <div class="mel-event-card__save" role="group" aria-label="{{ 'Save event'|t }}">
+    <div class="mel-event-card__save">
       {{ event_flag_event_save }}
     </div>
   {% endif %}
