@@ -1871,6 +1871,12 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'style' => 'primary',
       ],
       [
+        'label' => (string) $this->t('Saved events'),
+        'url' => $this->safeRouteUrl('view.mel_saved_events.page_1') ?? '/my-saved-events',
+        'icon' => 'calendar',
+        'style' => 'secondary',
+      ],
+      [
         'label' => 'Manage Payouts',
         'url' => '/vendor/payouts',
         'icon' => 'dollar',

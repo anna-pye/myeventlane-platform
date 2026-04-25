@@ -1,0 +1,31 @@
+uuid: 1817a488-92ba-4cee-a891-f1012d1e378c
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.event
+  module:
+    - flag
+id: event_save
+label: 'Save Event'
+bundles:
+  - event
+entity_type: node
+global: false
+flag_short: Save
+flag_long: 'Save this event to your list for later'
+flag_message: 'Event saved to your list'
+unflag_short: Remove
+unflag_long: 'Remove this event from your saved list'
+unflag_message: 'Removed from your saved list'
+unflag_denied_text: ''
+weight: 0
+flag_type: 'entity:node'
+link_type: ajax_link
+flagTypeConfig:
+  show_in_links: {  }
+  show_as_field: false
+  show_on_form: false
+  show_contextual_link: false
+  extra_permissions: {  }
+linkTypeConfig: {  }

@@ -1,4 +1,10 @@
 # User account menu links.
+myeventlane_core.my_saved_events:
+  title: 'Saved events'
+  description: 'Events you have saved to your list in MyEventLane.'
+  route_name: view.mel_saved_events.page_1
+  menu_name: account
+  weight: 5
 myeventlane_core.my_categories:
   title: 'My Categories'
   description: 'View categories you follow and new events'

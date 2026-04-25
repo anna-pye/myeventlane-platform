@@ -132,6 +132,11 @@
 {% else %}
 <article class="{{ card_classes|join(' ') }}">
 {% endif %}
+  {% if event_flag_event_save and node is defined and node.id %}
+    <div class="mel-event-card__save">
+      {{ event_flag_event_save }}
+    </div>
+  {% endif %}
   <a href="{{ _url }}" class="mel-event-card__link" aria-label="{{ _title ~ ' — ' ~ _cta }}">
     <div class="mel-event-card__image">
       {% if _img %}

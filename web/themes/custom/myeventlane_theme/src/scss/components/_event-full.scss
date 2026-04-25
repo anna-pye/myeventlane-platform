@@ -49,6 +49,203 @@
   }
 }
 
+// Sticky RSVP card: primary CTA, trust/urgency, save (moved from main flow — single decision surface).
+// Sidebar is full width when the layout stacks (single column).
+.mel-event--v2 .mel-event-layout__sidebar {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+// Sticky card: full booking flow (one price, one CTA, trust, save).
+.mel-event--v2 .mel-card--sticky .mel-booking-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__price {
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-navy;
+  line-height: 1.25;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__product {
+  min-width: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__chip {
+  display: block;
+  font-size: 13px;
+  color: #7c8791;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__cta {
+  width: 100%;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__cta .mel-btn {
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+// Primary CTA stack: left text; full-width pill, centered label.
+.mel-event--v2 .mel-card--sticky .mel-card__body .mel-event-sticky-cta--sidebar,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__cta .mel-event-sticky-cta,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__cta .mel-event-sticky-cta--sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+  box-sizing: border-box;
+}
+
+// Heart + text save row
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fcecef;
+  min-width: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-flag,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save .mel-event-save {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  max-width: none;
+  width: auto;
+  margin: 0;
+  align-self: center;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-text strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #24303a;
+  font-weight: typography.$mel-font-extrabold;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__save-text p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #7c8791;
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__rule {
+  border: 0;
+  border-top: 1px solid colors.$mel-color-border;
+  margin: 0;
+  width: 100%;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__trust {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #24303a;
+  font-weight: typography.$mel-font-extrabold;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item p {
+  font-size: 13px;
+  color: #7c8791;
+  margin: 2px 0 0;
+  line-height: 1.4;
+  font-weight: typography.$mel-font-medium;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__item-icon {
+  flex: 0 0 auto;
+  line-height: 1.25;
+  font-size: 1.125rem;
+  user-select: none;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__capacity {
+  margin: 0 0 2px;
+  color: #24303a;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: typography.$mel-font-bold;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: typography.$mel-font-extrabold;
+  line-height: 1.2;
+  color: colors.$mel-color-primary;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__action:hover,
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__action:focus-visible {
+  text-decoration: none;
+  color: color-mix(in srgb, colors.$mel-color-primary 90%, #000 10%);
+  outline: none;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__action:focus-visible {
+  box-shadow: 0 0 0 2px rgba(110, 126, 242, 0.4);
+  border-radius: 4px;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-booking-panel__subline {
+  margin: 0;
+  color: #7c8791;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.mel-event--v2 .mel-card--sticky .mel-event-sticky-cta--sidebar .mel-btn,
+.mel-event--v2 .mel-card--sticky .mel-event-sticky-cta .mel-btn {
+  width: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 // CTA: coral = primary (Buy/RSVP); lavender = secondary; sold-out = disabled only (no coral).
 .mel-event-meta-bar__cta--stacked {
   display: flex;
@@ -60,6 +257,107 @@
   @include breakpoints.mel-break(md, max) {
     align-items: stretch;
     text-align: center;
+  }
+}
+
+// Save for later: same heart control as cards; optional copy below the icon (not a CTA).
+.mel-event-save {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: flex-end;
+  gap: 4px;
+  max-width: 7rem;
+  width: 100%;
+}
+
+.mel-event--v2 .mel-event-save .mel-event-save-label {
+  margin: 0;
+  text-align: right;
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-medium;
+  line-height: 1.25;
+  color: color-mix(in srgb, colors.$mel-color-text 62%, #fff 38%);
+  pointer-events: none;
+  user-select: none;
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-event--v2 .mel-event-save,
+  .mel-event--v2 .mel-event-save .mel-event-save-label {
+    text-align: center;
+    align-self: center;
+    max-width: none;
+  }
+}
+
+// Heart chip (icon-only: hide Flag link copy); 44px minimum touch target (WCAG).
+.mel-event--v2 .mel-event-save .flag a {
+  position: relative;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.08);
+  text-decoration: none;
+  line-height: 0;
+  font-size: 0.001px;
+  color: transparent;
+  text-shadow: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mel-event--v2 .mel-event-save .flag a::before {
+  content: '\2661';
+  font-size: 20px;
+  line-height: 1;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #7C8791;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mel-event--v2 .mel-event-save .flag.action-unflag a::before,
+.mel-event--v2 .mel-event-save .flag a.is-active::before {
+  content: '\2665';
+  color: #F26D5B;
+}
+
+.mel-event--v2 .mel-event-save .flag a.is-active,
+.mel-event--v2 .mel-event-save .flag.action-unflag a {
+  color: transparent;
+  background: #fff;
+}
+
+.mel-event--v2 .mel-event-save .flag a:hover,
+.mel-event--v2 .mel-event-save .flag a:focus-visible {
+  transform: scale(1.1);
+}
+
+.mel-event--v2 .mel-event-save .flag a:active {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event--v2 .mel-event-save .flag a {
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .mel-event--v2 .mel-event-save .flag a:hover,
+  .mel-event--v2 .mel-event-save .flag a:focus-visible,
+  .mel-event--v2 .mel-event-save .flag a:active {
+    transform: none;
   }
 }
 
@@ -214,7 +512,9 @@
   color: colors.$mel-color-text-muted;
 }
 
-.mel-event--v2 .mel-event-meta-bar__cta {
+.mel-event--v2 .mel-event-meta-bar__cta,
+.mel-event--v2 .mel-card--sticky .mel-event-sticky-cta,
+.mel-event--v2 .mel-card--sticky .mel-event-sticky-cta--sidebar {
   .mel-btn--coral-cta {
     min-height: 44px;
     padding-left: 1.25rem;
@@ -260,6 +560,95 @@
       width: 100%;
       justify-content: center;
     }
+  }
+}
+
+// <=768: one decision column — CTA full width, left in sticky sidebar (overrides .mel-event-meta-bar__cta--stacked
+// defaults: align flex-end, md;max: text center).
+@media (width <= 768px) {
+  // Sidebar card: column + stretch so CTA and meta utilities align to the same left edge.
+  .mel-event--v2 .mel-card--sticky {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+  }
+
+  // Sticky CTA: align block to start; booking panel __cta uses flex gap, no extra top margin.
+  .mel-event--v2 .mel-card--sticky .mel-card__body .mel-event-sticky-cta,
+  .mel-event--v2 .mel-card--sticky .mel-card__body .mel-event-sticky-cta--sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    margin-top: 12px;
+  }
+
+  .mel-event--v2 .mel-card--sticky .mel-card__body .mel-booking-panel__cta .mel-event-sticky-cta,
+  .mel-event--v2 .mel-card--sticky .mel-card__body .mel-booking-panel__cta .mel-event-sticky-cta--sidebar {
+    margin-top: 0;
+  }
+
+  // If a bar CTA returns: only the meta row (not inside .mel-card--sticky).
+  .mel-event--v2 .mel-event-meta-bar .mel-event-meta-bar__cta,
+  .mel-event--v2 .mel-event-meta-bar .mel-event-meta-bar__cta--stacked {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .mel-event--v2 .mel-event-meta-bar__cta-eyebrow,
+  .mel-event--v2 .mel-card--sticky .mel-event-meta-bar__cta-eyebrow {
+    text-align: left;
+  }
+
+  .mel-event--v2 .mel-card--sticky .mel-card__body .mel-event-cta-soldout {
+    align-items: flex-start;
+  }
+
+  .mel-event--v2 .mel-card--sticky .mel-event-cta-soldout__headline,
+  .mel-event--v2 .mel-card--sticky .mel-event-cta-soldout__sub,
+  .mel-event--v2 .mel-card--sticky .mel-event-cta-soldout__muted {
+    text-align: left;
+  }
+
+  // Save row: left-anchored; vertical centering of heart + text.
+  .mel-event--v2 .mel-card--sticky .mel-booking-panel__save {
+    align-self: stretch;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .mel-event--v2 .mel-card--sticky .mel-booking-panel__save .mel-event-save {
+    align-items: center;
+    align-self: flex-start;
+  }
+
+  .mel-event--v2 .mel-card--sticky .mel-event-save .mel-event-save-label {
+    text-align: left;
+  }
+
+  .mel-event--v2 .mel-event-meta-bar__cta a.mel-btn,
+  .mel-event--v2 .mel-event-meta-bar__cta button.mel-btn,
+  .mel-event--v2 .mel-card--sticky .mel-event-sticky-cta a.mel-btn,
+  .mel-event--v2 .mel-card--sticky .mel-event-sticky-cta button.mel-btn,
+  .mel-event--v2 .mel-card--sticky .mel-event-sticky-cta--sidebar a.mel-btn,
+  .mel-event--v2 .mel-card--sticky .mel-event-sticky-cta--sidebar button.mel-btn {
+    display: inline-flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
   }
 }
 
@@ -343,6 +732,29 @@
   @include breakpoints.mel-break(lg) {
     grid-template-columns: minmax(0, 1fr) 360px;
     align-items: start;
+  }
+}
+
+// Mobile: visual order 1) event column content 2) RSVP / sticky sidebar 3) "More in …"
+// (DOM keeps main + sidebar; only Event Full has __sidebar — booking uses __side, unchanged.)
+// Uses display:contents on __main so .mel-event-related and aside can be flex-ordered.
+@media (width <= 768px) {
+  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) {
+    display: flex;
+    flex-direction: column;
+    gap: space-tokens.mel-space(5);
+  }
+
+  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__main {
+    display: contents;
+  }
+
+  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) > .mel-event-layout__sidebar {
+    order: 2;
+  }
+
+  .mel-event--v2 .mel-event-layout:has(> .mel-event-layout__sidebar) .mel-event-related {
+    order: 3;
   }
 }
 
