@@ -171,6 +171,9 @@
           {{ recommendation_context.label }}
         </div>
       {% endif %}
+      {% if mel_tonight_urgency_label|default('')|trim|length > 0 %}
+        <p class="mel-card-reason mel-card-reason--tonight" role="status">{{ mel_tonight_urgency_label }}</p>
+      {% endif %}
       <h3 class="mel-event-card__title">{{ _title }}</h3>
 
       {% if _time %}

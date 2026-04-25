@@ -413,15 +413,10 @@
               <p>{{ 'More events like this in your area'|t }}</p>
             </div>
 
-            {% set primary = mel_related_events|first %}
-            <div class="mel-return-primary">
-              <div class="mel-return-primary__label">{{ 'Recommended for you'|t }}</div>
-              {{ primary }}
-            </div>
-
-            <div class="mel-return-grid">
-              {% for event in mel_related_events|slice(1) %}
-                {{ event }}
+            {# .mel-event-grid is homepage-only (opacity:0 until skeleton.js sets data-loaded; omit here or cards stay invisible). #}
+            <div class="mel-grid mel-grid--events mel-grid--3col">
+              {% for item in mel_related_events %}
+                {{ item }}
               {% endfor %}
             </div>
 

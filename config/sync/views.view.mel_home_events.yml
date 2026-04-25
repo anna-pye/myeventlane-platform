@@ -4,7 +4,6 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
-    - core.entity_view_mode.node.event_card_compact
     - field.field.node.event.field_promoted
     - field.storage.node.field_event_end
     - field.storage.node.field_event_start
@@ -51,6 +50,19 @@ display:
         options: {  }
       empty: {  }
       sorts:
+        field_promoted_value:
+          id: field_promoted_value
+          table: node__field_promoted
+          field: field_promoted_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: boolean
+          order: DESC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
         field_event_start_value:
           id: field_event_start_value
           table: node__field_event_start
@@ -247,7 +259,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -554,7 +566,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''
@@ -691,17 +703,28 @@ display:
           offset: 0
           items_per_page: 6
       sorts:
-        created:
-          id: created
-          table: node_field_data
-          field: created
+        field_promoted_value:
+          id: field_promoted_value
+          table: node__field_promoted
+          field: field_promoted_value
           relationship: none
           group_type: group
           admin_label: ''
-          entity_type: node
-          entity_field: created
-          plugin_id: date
+          plugin_id: boolean
           order: DESC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: datetime
+          order: ASC
           expose:
             label: ''
             field_identifier: ''
@@ -911,7 +934,7 @@ display:
           plugin_id: datetime
           operator: between
           value:
-            min: 'today midnight'
+            min: now
             max: 'tomorrow midnight'
             type: offset
           group: 1
@@ -976,7 +999,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: event_card_compact
+          view_mode: teaser
       query:
         type: views_query
         options:
@@ -991,7 +1014,7 @@ display:
         row: false
         filters: false
       display_extenders: {  }
-      block_description: 'Tonight / today rail (teaser cards)'
+      block_description: "Tonight: near-term (start to tomorrow midnight) + not ended; teaser cards, aligned with Discover / Free & RSVP"
       block_category: MyEventLane
     cache_metadata:
       max-age: -1
@@ -1193,7 +1216,7 @@ display:
             max: ''
             value: now
             type: offset
-          group: 1
+          group: 2
           exposed: false
           expose:
             operator_id: ''

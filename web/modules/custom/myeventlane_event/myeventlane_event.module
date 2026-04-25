@@ -865,6 +865,20 @@ function myeventlane_event_entity_view_alter(array &$build, EntityInterface $ent
 }
 
 /**
+ * Implements hook_preprocess_views_view().
+ *
+ * @see myeventlane_event_preprocess_node
+ */
+function myeventlane_event_preprocess_views_view(array &$variables): void {
+  $active = &drupal_static('myeventlane_event_mel_home_tonight_rail_active', FALSE);
+  $active = FALSE;
+  $view = $variables['view'] ?? NULL;
+  if ($view && $view->id() === 'mel_home_events' && $view->current_display === 'tonight') {
+    $active = TRUE;
+  }
+}
+
+/**
  * Implements hook_preprocess_node().
  */
 function myeventlane_event_preprocess_node(array &$variables): void {
@@ -1105,6 +1119,51 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       \Drupal::logger('myeventlane_event')->error('Event recommendations: @message', [
         '@message' => $e->getMessage(),
       ]);
+    }
+  }
+  $variables['mel_tonight_urgency_label'] = NULL;
+  if ((bool) drupal_static('myeventlane_event_mel_home_tonight_rail_active', FALSE)
+    && $view_mode === 'teaser' && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()
+  ) {
+    $start_value = (string) $node->get('field_event_start')->value;
+    $start_raw = $start_value !== '' ? strtotime($start_value) : FALSE;
+    $start_ts = ($start_raw !== FALSE) ? (int) $start_raw : 0;
+    $now = (int) \Drupal::time()->getRequestTime();
+    $end_ts = NULL;
+    if ($node->hasField('field_event_end') && !$node->get('field_event_end')->isEmpty()) {
+      $end_value = (string) $node->get('field_event_end')->value;
+      if ($end_value !== '') {
+        $et = strtotime($end_value);
+        if ($et !== FALSE) {
+          $end_ts = (int) $et;
+        }
+      }
+    }
+    if ($start_ts > 0) {
+      if ($start_ts <= $now && ($end_ts === NULL || $end_ts > $now)) {
+        $variables['mel_tonight_urgency_label'] = t('Happening today');
+      }
+      elseif ($start_ts > $now) {
+        $variables['mel_tonight_urgency_label'] = t('Starts soon');
+      }
+    }
+    if ($variables['mel_tonight_urgency_label'] !== NULL) {
+      if (isset($variables['elements']['#cache']) && is_array($variables['elements']['#cache'])) {
+        $c =& $variables['elements']['#cache'];
+        $c['contexts'] = array_values(array_unique(array_merge(
+          (array) ($c['contexts'] ?? []),
+          ['timezone'],
+        )));
+        $c['max-age'] = 60;
+      }
+      if (isset($variables['#cache']) && is_array($variables['#cache'])) {
+        $c2 =& $variables['#cache'];
+        $c2['contexts'] = array_values(array_unique(array_merge(
+          (array) ($c2['contexts'] ?? []),
+          ['timezone'],
+        )));
+        $c2['max-age'] = 60;
+      }
     }
   }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];

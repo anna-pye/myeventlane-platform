@@ -926,59 +926,54 @@
   color: #6e7ef2;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-primary {
-  margin-bottom: 20px;
-  animation: mel-fade-in 0.4s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-event--v2 .mel-event-layout__main .mel-return-primary {
-    animation: none;
-  }
-}
-
-@keyframes mel-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.mel-event--v2 .mel-event-layout__main .mel-return-primary__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6e7ef2;
-  margin-bottom: 6px;
-}
-
-.mel-event--v2 .mel-event-layout__main .mel-return-primary .mel-event-card {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-  transform: scale(1.02);
-}
-
-.mel-event--v2 .mel-event-layout__main .mel-return-grid {
+// Related events: fixed 3/2/1 columns; `.mel-grid--3col` beats `.mel-grid--events` auto-fit when both apply.
+.mel-grid--3col,
+.mel-grid--events.mel-grid--3col,
+.mel-grid.mel-grid--events.mel-grid--3col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-grid > * {
-  min-width: 0;
+@media (max-width: 1024px) {
+  .mel-grid--3col,
+  .mel-grid--events.mel-grid--3col,
+  .mel-grid.mel-grid--events.mel-grid--3col {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-grid .mel-event-card {
+@media (max-width: 640px) {
+  .mel-grid--3col,
+  .mel-grid--events.mel-grid--3col,
+  .mel-grid.mel-grid--events.mel-grid--3col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mel-grid--3col .mel-event-card,
+.mel-grid--events.mel-grid--3col .mel-event-card,
+.mel-grid.mel-grid--events.mel-grid--3col .mel-event-card {
   width: 100%;
-  opacity: 0.92;
-  transition: opacity 0.2s ease;
+  height: 100%;
 }
 
-.mel-event--v2 .mel-event-layout__main .mel-return-grid .mel-event-card:hover {
-  opacity: 1;
+// Image wrapper: aspect; img fills and covers (avoids height drift in grid).
+.mel-grid--3col .mel-event-card__image,
+.mel-grid--events.mel-grid--3col .mel-event-card__image,
+.mel-grid.mel-grid--events.mel-grid--3col .mel-event-card__image {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  position: relative;
+}
+
+.mel-grid--3col .mel-event-card__image .mel-event-card__image-element,
+.mel-grid--events.mel-grid--3col .mel-event-card__image .mel-event-card__image-element,
+.mel-grid.mel-grid--events.mel-grid--3col .mel-event-card__image .mel-event-card__image-element {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .mel-save-reinforcement {

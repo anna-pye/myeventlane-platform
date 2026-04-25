@@ -56,7 +56,7 @@
         section_class: 'mel-section--discover',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
-        title: 'Discover events'|t,
+        title: 'Find something you’ll love'|t,
         subtitle: 'Browse what’s happening near you.'|t,
         link_url: path('view.upcoming_events.page_events'),
         link_text: 'See all'|t,
@@ -66,15 +66,21 @@
     {% endif %}
 
     {% if mel_home_tonight_markup|trim %}
+      {% set mel_home_tonight_section_content %}
+        <div class="mel-section__discover-view">
+          {{ mel_home_tonight_markup }}
+        </div>
+        <div class="mel-section__content-footer">
+          <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-section__link">{{ 'See all upcoming events →'|t }}</a>
+        </div>
+      {% endset %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--time mel-section--tonight-urgent',
         section_width_class: 'mel-section--wide',
         container_class: 'mel-container mel-container--wide',
-        title: 'On tonight'|t,
-        subtitle: 'Starting today — don\'t miss out.'|t,
-        link_url: path('view.upcoming_events.page_today'),
-        link_text: 'See tonight\'s events'|t,
-        content: mel_home_tonight_markup
+        title: 'Going out tonight?'|t,
+        subtitle: 'These events are happening soon — don’t miss out.'|t,
+        content: mel_home_tonight_section_content
       } %}
     {% endif %}
 
