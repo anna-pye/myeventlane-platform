@@ -95,7 +95,7 @@ final class MelEventNoEndUpcoming extends FilterPluginBase {
    * {@inheritdoc}
    */
   public function adminSummary(): string {
-    return $this->t('Empty end date and start >= now');
+    return (string) $this->t('Empty end date and start >= now');
   }
 
 }
