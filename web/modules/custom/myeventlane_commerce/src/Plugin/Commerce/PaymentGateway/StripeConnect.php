@@ -43,7 +43,7 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): StripePaymentElement {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->stripeConnectPayment = $container->get('myeventlane_commerce.stripe_connect_payment');
     return $instance;
