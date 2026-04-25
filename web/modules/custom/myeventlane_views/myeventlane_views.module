@@ -52,8 +52,9 @@ function myeventlane_views_views_post_execute(ViewExecutable $view): void {
  * - Ensures null field values are converted to empty strings.
  */
 function myeventlane_views_views_pre_render(ViewExecutable $view): void {
-  // Sort upcoming_events: featured first, preserve existing order within groups.
-  if ($view->id() === 'upcoming_events' && !empty($view->result)) {
+  // Sort upcoming_events and mel_home_events: featured first, preserve
+  // start-date order within ties (same as public discovery).
+  if (in_array($view->id(), ['upcoming_events', 'mel_home_events'], TRUE) && !empty($view->result)) {
     usort($view->result, function ($a, $b) {
       $promo_a = 0;
       $promo_b = 0;
