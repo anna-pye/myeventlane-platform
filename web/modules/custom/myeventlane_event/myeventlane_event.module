@@ -1094,7 +1094,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
             $tags = (array) ($variables['elements']['#cache']['tags'] ?? []);
             $variables['elements']['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
           }
-          elseif (isset($variables['#cache'])) {
+          elseif (isset($variables['#cache']) && is_array($variables['#cache'])) {
             $tags = (array) ($variables['#cache']['tags'] ?? []);
             $variables['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
           }
