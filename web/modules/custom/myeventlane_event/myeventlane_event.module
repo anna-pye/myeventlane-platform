@@ -969,7 +969,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     try {
       /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $recommendation */
       $recommendation = \Drupal::service('myeventlane_core.event_recommendation');
-      $related_nodes = $recommendation->getRelatedEvents($node, 3);
+      $related_nodes = $recommendation->getRankedRelatedEvents($node, 3);
       if ($related_nodes !== []) {
         $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
         $builds = [];
