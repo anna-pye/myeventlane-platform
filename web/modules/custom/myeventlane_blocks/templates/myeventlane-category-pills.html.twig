@@ -12,7 +12,7 @@
 {% for c in categories %}
   {% set pill_mod = c.pill_color|default(c.slug)|default(c.label|lower|replace({' ': '-', '&': 'and', '+': ''}))|trim|lower|default('default') %}
   <a
-    href="{{ c.url|default(path('view.upcoming_events.page_events', {}, {'query': {'category': c.tid}})) }}"
+    href="{{ c.url|default(path('view.upcoming_events.page_category', {'arg_0': c.tid})) }}"
     class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}"
     aria-label="{{ 'View events in'|t }} {{ c.label }}"
   >

@@ -84,6 +84,16 @@ mel-events-discovery:
     - myeventlane_theme/global-styling
     - core/drupal
 
+# Homepage discover — chips + Views exposed form submit (use_ajax on embed_discover).
+mel-filters:
+  js:
+    js/mel-filters.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings
+    - views/views.ajax
+
 # Event page (Poster Card layout).
 # NOTE: This theme uses Vite to compile SCSS into dist/main.css. The event-page
 # styling lives in src/scss/components/_event-page.scss and is bundled via

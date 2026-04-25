@@ -12,7 +12,6 @@ dependencies:
     - field.storage.node.field_product_target
     - node.type.event
     - system.menu.main
-    - taxonomy.vocabulary.accessibility
     - taxonomy.vocabulary.categories
   module:
     - content_moderation
@@ -380,38 +379,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -727,38 +694,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: false
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -1078,38 +1013,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
       filter_groups:
         operator: AND
         groups:
@@ -1475,38 +1378,6 @@ display:
             reduce: false
           is_grouped: false
           reduce_duplicates: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -1869,38 +1740,6 @@ display:
             remember_roles:
               authenticated: authenticated
           is_grouped: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -2250,38 +2089,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -2631,38 +2438,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: true
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
         field_category_target_id:
           id: field_category_target_id
           table: node__field_category
@@ -3028,38 +2803,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_accessibility_target_id:
-          id: field_accessibility_target_id
-          table: node__field_accessibility
-          field: field_accessibility_target_id
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_accessibility
-          plugin_id: taxonomy_index_tid
-          value: {  }
-          group: 1
-          exposed: false
-          expose:
-            operator_id: ''
-            label: 'Accessibility features'
-            description: 'Filter events by accessibility features available'
-            use_operator: false
-            operator: ''
-            identifier: accessibility
-            required: false
-            remember: false
-            multiple: true
-            remember_roles:
-              anonymous: anonymous
-              authenticated: authenticated
-          is_grouped: false
-          vid: accessibility
-          type: select
-          hierarchy: false
-          limit: true
-          error_message: true
       filter_groups:
         operator: AND
         groups:

@@ -1,0 +1,11 @@
+uuid: a7b04ec6-4a4d-4fde-9bcf-46cc80949158
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.teaser_tonight
+label: 'Teaser tonight'
+description: null
+targetEntityType: node
+cache: true

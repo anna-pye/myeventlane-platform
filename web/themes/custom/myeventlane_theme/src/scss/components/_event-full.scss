@@ -4,6 +4,7 @@
 // Event page styled as an expanded homepage card with glass layers, soft gradients, and restrained motion.
 // Design direction: SLEEK (not playful) — calm, intentional, refined.
 
+@use 'sass:color';
 @use '../tokens/colors';
 @use '../tokens/typography';
 @use '../tokens/spacing' as space-tokens;
@@ -1836,5 +1837,108 @@
       outline-offset: 2px;
       border-radius: radii.$mel-radius-sm;
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Browse / category — filter chip links (scoped; not global link styles)
+// ---------------------------------------------------------------------------
+
+.mel-filter-chip,
+.mel-filter-chip a {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.mel-filter-chip a:hover,
+.mel-filter-chip a:focus,
+.mel-filter-chip a:focus-visible {
+  text-decoration: none;
+}
+
+// Horizontal row: date scope + category discovery (mobile scroll)
+.mel-filter-chip-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  margin: 0 0 12px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+a.mel-filter-chip,
+button.mel-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  color: #293241;
+  background: #f4f4f4;
+  border: 0;
+  box-shadow: none;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  appearance: none;
+
+  &:hover {
+    text-decoration: none;
+    background: #ececec;
+    transform: translateY(-1px);
+  }
+
+  &:focus,
+  &:focus-visible {
+    text-decoration: none;
+    outline: 2px solid rgba(242, 109, 91, 0.5);
+    outline-offset: 2px;
+  }
+
+  .mel-icon {
+    font-size: 12px;
+    line-height: 1;
+  }
+}
+
+a.mel-filter-chip--active,
+button.mel-filter-chip--active {
+  background: #f26d5b;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(242, 109, 91, 0.2);
+
+  &:hover {
+    background: color.adjust(#f26d5b, $lightness: -4%);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+}
+
+a.mel-filter-chip--reset,
+button.mel-filter-chip--reset {
+  border: 1px dashed rgba(41, 50, 65, 0.35);
+  background: rgba(255, 255, 255, 0.9);
+
+  &:hover {
+    border-color: rgba(242, 109, 91, 0.55);
   }
 }

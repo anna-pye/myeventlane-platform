@@ -854,27 +854,13 @@ function myeventlane_event_entity_view_alter(array &$build, EntityInterface $ent
     }
     $build['#cache']['contexts'] = array_values(array_unique(array_merge(
       $contexts,
-      ['route'],
+      ['route.name', 'url.path'],
     )));
   }
   catch (\Throwable $e) {
     \Drupal::logger('myeventlane_event')->error('Event recommendation context: @message', [
       '@message' => $e->getMessage(),
     ]);
-  }
-}
-
-/**
- * Implements hook_preprocess_views_view().
- *
- * @see myeventlane_event_preprocess_node
- */
-function myeventlane_event_preprocess_views_view(array &$variables): void {
-  $active = &drupal_static('myeventlane_event_mel_home_tonight_rail_active', FALSE);
-  $active = FALSE;
-  $view = $variables['view'] ?? NULL;
-  if ($view && $view->id() === 'mel_home_events' && $view->current_display === 'tonight') {
-    $active = TRUE;
   }
 }
 
@@ -1090,7 +1076,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           }
           $variables['elements']['#cache']['contexts'] = array_values(array_unique(array_merge(
             $recommendation_contexts,
-            ['route'],
+            ['route.name', 'url.path'],
           )));
         }
         elseif (isset($variables['#cache']) && is_array($variables['#cache'])) {
@@ -1100,7 +1086,7 @@ function myeventlane_event_preprocess_node(array &$variables): void {
           }
           $variables['#cache']['contexts'] = array_values(array_unique(array_merge(
             $recommendation_contexts,
-            ['route'],
+            ['route.name', 'url.path'],
           )));
         }
         if ($append_tags !== []) {
@@ -1121,9 +1107,13 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       ]);
     }
   }
+  // Urgency line on the home Tonight rail only: dedicated view mode keeps a
+  // separate node render array from generic teasers (avoids static flags and
+  // render-cache mix-ups).
   $variables['mel_tonight_urgency_label'] = NULL;
-  if ((bool) drupal_static('myeventlane_event_mel_home_tonight_rail_active', FALSE)
-    && $view_mode === 'teaser' && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()
+  if (
+    $view_mode === 'teaser_tonight'
+    && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()
   ) {
     $start_value = (string) $node->get('field_event_start')->value;
     $start_raw = $start_value !== '' ? strtotime($start_value) : FALSE;
@@ -1145,24 +1135,6 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       }
       elseif ($start_ts > $now) {
         $variables['mel_tonight_urgency_label'] = t('Starts soon');
-      }
-    }
-    if ($variables['mel_tonight_urgency_label'] !== NULL) {
-      if (isset($variables['elements']['#cache']) && is_array($variables['elements']['#cache'])) {
-        $c =& $variables['elements']['#cache'];
-        $c['contexts'] = array_values(array_unique(array_merge(
-          (array) ($c['contexts'] ?? []),
-          ['timezone'],
-        )));
-        $c['max-age'] = 60;
-      }
-      if (isset($variables['#cache']) && is_array($variables['#cache'])) {
-        $c2 =& $variables['#cache'];
-        $c2['contexts'] = array_values(array_unique(array_merge(
-          (array) ($c2['contexts'] ?? []),
-          ['timezone'],
-        )));
-        $c2['max-age'] = 60;
       }
     }
   }
@@ -1362,6 +1334,7 @@ function myeventlane_event_get_event_card_view_modes(): array {
     'card',
     'event_card',
     'teaser',
+    'teaser_tonight',
     'teaser_featured',
     'event_card_poster',
     'event_card_compact',

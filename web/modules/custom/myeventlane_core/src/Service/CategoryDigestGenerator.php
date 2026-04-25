@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\flag\FlagServiceInterface;
 use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\taxonomy\TermInterface;
 use Drupal\user\UserInterface;
 
@@ -27,6 +29,7 @@ final class CategoryDigestGenerator {
     private readonly RendererInterface $renderer,
     private readonly FlagServiceInterface $flagService,
     private readonly BoostManager $boostManager,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -74,18 +77,19 @@ final class CategoryDigestGenerator {
     }
 
     // Find new events in followed categories from the last week.
-    $now = \Drupal::time()->getRequestTime();
+    $now = (int) $this->time->getRequestTime();
     $weekAgo = $now - (7 * 24 * 60 * 60);
 
-    $eventIds = $this->entityTypeManager
+    $digestQuery = $this->entityTypeManager
       ->getStorage('node')
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', 'event')
       ->condition('status', 1)
       ->condition('field_category', $followedCategoryIds, 'IN')
-      ->condition('created', $weekAgo, '>=')
-      ->condition('field_event_start', $now, '>=')
+      ->condition('created', $weekAgo, '>=');
+    UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($digestQuery, $now);
+    $eventIds = $digestQuery
       ->sort('field_promoted', 'DESC')
       ->sort('field_event_start', 'ASC')
       ->range(0, 50)

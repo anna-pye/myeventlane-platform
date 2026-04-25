@@ -2,73 +2,7 @@
 @use '../tokens/radii';
 @use '../tokens/colors';
 
-// Date scope pills (/events vs /events/today vs …)
-.mel-events-date-filters {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: spacing.mel-space(2);
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: spacing.mel-space(2) 0 spacing.mel-space(3);
-  margin: 0 0 spacing.mel-space(2);
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-
-  @media (max-width: 767px) {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-  }
-}
-
-.mel-events-date-filters__pill {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 spacing.mel-space(4);
-  border-radius: radii.$mel-radius-full;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-decoration: none;
-  white-space: nowrap;
-  color: colors.$mel-color-text;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-
-  &:hover {
-    border-color: rgba(108, 126, 242, 0.35);
-    background: #fff;
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: colors.$mel-focus-ring;
-  }
-
-  &.is-active {
-    background: rgba(108, 126, 242, 0.16);
-    border-color: rgba(108, 126, 242, 0.45);
-    color: var(--mel-navy, #293241);
-  }
-
-  &--reset {
-    border-style: dashed;
-
-    &:hover {
-      border-color: rgba(242, 109, 91, 0.55);
-    }
-  }
-}
+// Date scope "When" row: layout + scroll live on .mel-filter-chip-row (see _event-full.scss).
 
 // Views exposed: category + accessibility
 .mel-events-exposed {

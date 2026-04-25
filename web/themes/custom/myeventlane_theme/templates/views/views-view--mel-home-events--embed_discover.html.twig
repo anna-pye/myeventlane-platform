@@ -1,9 +1,36 @@
 {#
 /**
  * @file
- * Discover embed — rows only (empty handled by section trim in page template).
+ * Discover embed: hidden Views exposed (AJAX) + chip bar + result grid.
  */
 #}
-{% if rows %}
-  {{ rows }}
-{% endif %}
+{{ attach_library('myeventlane_theme/mel-filters') }}
+{{ attach_library('myeventlane_theme/mel-events-discovery') }}
+
+<div class="mel-home-discover js-mel-home-discover" data-mel-view-name="mel_home_events" data-mel-view-display="embed_discover">
+  <div class="visually-hidden">
+    {{ exposed }}
+  </div>
+
+  <div class="mel-filter-chip-row" role="group" aria-label="{{ 'Filter discover events'|t }}">
+    <button type="button" class="mel-filter-chip mel-filter-chip--active" data-filter="all" aria-pressed="true">
+      {{ 'All'|t }}
+    </button>
+    <button type="button" class="mel-filter-chip" data-filter="now" aria-pressed="false">
+      {{ '🔥 Happening now'|t }}
+    </button>
+    <button type="button" class="mel-filter-chip" data-filter="weekend" aria-pressed="false">
+      {{ '🎉 This weekend'|t }}
+    </button>
+    <button type="button" class="mel-filter-chip" data-filter="free" aria-pressed="false">
+      {{ '💸 Free events'|t }}
+    </button>
+    <button type="button" class="mel-filter-chip" data-filter="trending" aria-pressed="false">
+      {{ '💖 Trending'|t }}
+    </button>
+  </div>
+
+  {% if rows -%}
+    {{ rows }}
+  {% endif %}
+</div>

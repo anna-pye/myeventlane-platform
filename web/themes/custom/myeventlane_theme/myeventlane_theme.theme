@@ -1573,7 +1573,9 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         if ($category_term instanceof \Drupal\taxonomy\Entity\Term) {
           $category_slug = _myeventlane_theme_get_category_slug($category_term);
           $category_label = $category_term->label();
-          $category_url = $category_term->toUrl()->toString();
+          $category_url = Url::fromRoute('view.upcoming_events.page_category', [
+            'arg_0' => (string) $category_term->id(),
+          ])->toString();
         }
       }
     }
@@ -1621,6 +1623,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
       'card',
       'event_card',
       'teaser',
+      'teaser_tonight',
       'teaser_featured',
       'event_card_poster',
       'event_card_compact',
@@ -1634,6 +1637,7 @@ function myeventlane_theme_preprocess_node(array &$variables): void {
         $style_storage = \Drupal::entityTypeManager()->getStorage('image_style');
         $styled_modes = [
           'teaser',
+          'teaser_tonight',
           'event_card',
           'teaser_featured',
           'event_card_compact',
@@ -2183,6 +2187,7 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
       $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($args[0]);
       if ($term instanceof TermInterface) {
         $variables['mel_browse_category_name'] = $term->label();
+        $variables['term'] = $term;
       }
     }
   }

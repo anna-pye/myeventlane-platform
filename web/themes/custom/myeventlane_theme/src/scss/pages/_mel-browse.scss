@@ -168,7 +168,7 @@
   margin-bottom: mel.$mel-ds-space-lg;
 
   .mel-events-date-filters {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding-left: 0;
     padding-right: 0;
   }
@@ -244,5 +244,22 @@
   line-height: 1.5;
   color: mel.$mel-ds-color-muted;
   max-width: 40rem;
+}
+
+// Category view — discovery lede (replaces "Browse in …" + result count)
+.mel-category-discovery__lede {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: mel.$mel-ds-color-text;
+}
+
+.mel-discovery-subtitle {
+  margin: 0 0 16px;
+  font-size: mel.$mel-ds-font-body;
+  line-height: 1.45;
+  color: mel.$mel-ds-color-muted;
+  max-width: 42rem;
 }
 

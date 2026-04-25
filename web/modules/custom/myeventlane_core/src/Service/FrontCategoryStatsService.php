@@ -111,8 +111,8 @@ final class FrontCategoryStatsService {
         'label' => $term->label(),
         'count' => $count,
         'color' => $this->colors->getColorForLabel($term->label(), $i),
-        'url' => Url::fromRoute('view.upcoming_events.page_events', [], [
-          'query' => ['category' => (string) $term->id()],
+        'url' => Url::fromRoute('view.upcoming_events.page_category', [
+          'arg_0' => (string) $term->id(),
         ])->toString(),
       ];
     }

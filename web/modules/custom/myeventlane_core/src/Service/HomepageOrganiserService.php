@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\node\NodeInterface;
 
 /**
@@ -31,6 +33,11 @@ class HomepageOrganiserService {
   protected CacheBackendInterface $cache;
 
   /**
+   * Request time (aligned with event list queries).
+   */
+  protected TimeInterface $time;
+
+  /**
    * Cache key for organiser spotlight.
    */
   protected const CACHE_KEY = 'homepage_organiser_spotlight';
@@ -47,13 +54,17 @@ class HomepageOrganiserService {
    *   The entity type manager.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache backend.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     CacheBackendInterface $cache,
+    TimeInterface $time,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->cache = $cache;
+    $this->time = $time;
   }
 
   /**
@@ -112,11 +123,12 @@ class HomepageOrganiserService {
     try {
       // Load all published events.
       $node_storage = $this->entityTypeManager->getStorage('node');
+      $request_time = (int) $this->time->getRequestTime();
       $query = $node_storage->getQuery()
         ->accessCheck(TRUE)
         ->condition('type', 'event')
-        ->condition('status', 1)
-        ->condition('field_event_start', time(), '>=');
+        ->condition('status', 1);
+      UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, $request_time);
 
       $event_ids = $query->execute();
       if (empty($event_ids)) {

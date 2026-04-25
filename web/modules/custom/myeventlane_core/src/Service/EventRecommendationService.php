@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_core\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\node\NodeInterface;
 
 /**
@@ -37,6 +39,7 @@ final class EventRecommendationService {
     private readonly EventViewerCountService $eventViewerCount,
     private readonly EventStateResolver $eventStateResolver,
     private readonly TranslationInterface $stringTranslation,
+    private readonly RouteMatchInterface $routeMatch,
   ) {
   }
 
@@ -51,8 +54,15 @@ final class EventRecommendationService {
    *   unioned with $current’s categories when both are present for the
    *   “same category” check.
    *
-   * @return array{type: 'category'|'trending'|'soon'|'weekend'|null, label: string|null}
-   *   All keys always present. label is a translated string for display, or null.
+   * @return array{
+   *   type: 'category'|'trending'|'soon'|'weekend'|null,
+   *   label: string|null,
+   *   category_id: int|null,
+   *   is_weekend: bool,
+   *   is_tonight: bool,
+   *   route_name: string
+   * }
+   *   type/label are for display; other keys are request + card signals.
    */
   public function getRecommendationContext(
     NodeInterface $event,
@@ -60,10 +70,14 @@ final class EventRecommendationService {
     ?int $prefetchedSaveCount = NULL,
     ?array $referenceCategoryIds = NULL,
   ): array {
-    $context = [
-      'type' => NULL,
-      'label' => NULL,
-    ];
+    $signals = $this->getContextSignals($event);
+    $context = array_merge(
+      [
+        'type' => NULL,
+        'label' => NULL,
+      ],
+      $signals
+    );
 
     $t = $this->stringTranslation;
 
@@ -116,23 +130,35 @@ final class EventRecommendationService {
         $hours = ($start - $now) / 3600.0;
 
         if ($hours > 0 && $hours < 6) {
-          return [
-            'type' => 'soon',
-            'label' => (string) $t->translate('Starting soon'),
-          ];
+          $context['type'] = 'soon';
+          $context['label'] = (string) $t->translate('Starting soon');
+          return $context;
         }
 
         $weekday = (int) date('N', $start);
         if ($hours > 0 && $hours < 48 && ($weekday === 6 || $weekday === 7)) {
-          return [
-            'type' => 'weekend',
-            'label' => (string) $t->translate('This weekend'),
-          ];
+          $context['type'] = 'weekend';
+          $context['label'] = (string) $t->translate('This weekend');
+          return $context;
         }
       }
     }
 
     return $context;
+  }
+
+  /**
+   * Request + card context signals (no storage; used with cache contexts).
+   *
+   * @return array{category_id: int|null, is_weekend: bool, is_tonight: bool, route_name: string}
+   */
+  private function getContextSignals(NodeInterface $event): array {
+    return [
+      'category_id' => $this->getPrimaryCategory($event),
+      'is_weekend' => $this->isWeekend(),
+      'is_tonight' => $this->isTonight($event),
+      'route_name' => (string) ($this->routeMatch->getRouteName() ?? ''),
+    ];
   }
 
   /**
@@ -166,7 +192,6 @@ final class EventRecommendationService {
 
     $category_ids = array_values(array_unique($category_ids));
     $now = $this->time->getRequestTime();
-    $now_datetime = date('Y-m-d\TH:i:s', $now);
     $excluded_states = [
       'draft',
       'cancelled',
@@ -180,10 +205,7 @@ final class EventRecommendationService {
       ->condition('nid', (int) $node->id(), '<>')
       ->condition('field_event_state', $excluded_states, 'NOT IN');
 
-    $or = $query->orConditionGroup();
-    $or->condition('field_event_start', $now_datetime, '>=');
-    $or->condition('field_event_end', $now_datetime, '>=');
-    $query->condition($or);
+    UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($query, $now);
 
     $query
       ->condition('field_category', $category_ids, 'IN')
@@ -210,19 +232,15 @@ final class EventRecommendationService {
   }
 
   /**
-   * Same pool as getRelatedEvents(), then re-ordered by a lightweight global score.
+   * Same pool as getRelatedEvents(), re-ordered by deterministic global score.
    *
-   * After base capping, applies a single time-weight (event start) for urgency + decay.
-   * Deterministic: equal scores use newer created time first, then lower nid.
-   *
-   * When $referenceCategoryIds is non-empty (category page / category context), the
-   * top-ranked list is returned unchanged. Otherwise a soft per-primary-category cap
-   * (max 2) is applied after scoring, with fallback fill from the full ranked list.
+   * Behaviour: score → sort (desc) → per-category round-robin → first $limit.
+   * Tie-break: higher score first, then newer created, then lower nid.
    *
    * @param array<int>|null $referenceCategoryIds
-   *   If non-empty, skips soft balancing (pure score order for category context).
+   *   Used for getRecommendationContext() labels; ranking uses route + same logic.
    *
-   * @return array<int, array{node: \Drupal\node\NodeInterface, context: array{type: 'category'|'trending'|'soon'|'weekend'|null, label: string|null}}>
+   * @return array<int, array{node: \Drupal\node\NodeInterface, context: array<string, mixed>}>
    */
   public function getRankedRelatedEvents(
     NodeInterface $node,
@@ -240,6 +258,10 @@ final class EventRecommendationService {
     $scored = [];
     foreach ($events as $event) {
       $score = 0;
+      $age = $this->time->getRequestTime() - (int) $event->getCreatedTime();
+      if ($age < 86400 * 7) {
+        $score += 20;
+      }
       $save_count = $this->getSaveCountCached((int) $event->id());
       $score += min($save_count * 2, 40);
       $viewer_count = $this->getViewerCountCached((int) $event->id());
@@ -247,7 +269,32 @@ final class EventRecommendationService {
       if ($this->eventStateResolver->isEventBoosted($event)) {
         $score += 15;
       }
-      $score = max(0, min($score, 100));
+      $click_score = $this->getClickScore((int) $event->id());
+      $score += min($click_score * 5, 50);
+
+      $current = $node;
+      if ($this->sharesCategory($event, $current)) {
+        $score += 20;
+      }
+      if ($this->isTonight($event)) {
+        $score += 25;
+      }
+      if ($this->isWeekendEvent($event)) {
+        $score += 15;
+      }
+      if ($this->routeMatch->getRouteName() === 'view.upcoming_events.page_category') {
+        $score += 10;
+      }
+
+      $intent_weight = 1;
+      if ($this->sharesCategory($event, $current)) {
+        $intent_weight = 3;
+      }
+      elseif ($this->isTonight($event)) {
+        $intent_weight = 2;
+      }
+      $score += $intent_weight * 10;
+
       $event_start = 0;
       if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
         $start_ts = strtotime((string) $event->get('field_event_start')->value);
@@ -255,20 +302,35 @@ final class EventRecommendationService {
           $event_start = (int) $start_ts;
         }
       }
-      $score = $this->applyTimeWeight($score, $event_start);
-      $score = max(1, min($score, 200));
+
+      $score = $this->applyTimeDecay($score, $event_start);
+      if ($event_start > 0) {
+        $hours_until_start = ($event_start - $this->time->getRequestTime()) / 3600.0;
+        if ($hours_until_start > 0 && $hours_until_start <= 24) {
+          $score += 25;
+        }
+      }
+      $score = max(1, min($score, 100));
+
       $context = $this->getRecommendationContext(
         $event,
         $node,
         $save_count,
         $referenceCategoryIds
       );
+
+      $primary_category = 0;
+      if ($event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {
+        $primary_category = (int) $event->get('field_category')->first()->target_id;
+      }
       $scored[] = [
         'event' => $event,
         'score' => $score,
         'context' => $context,
+        'category_id' => $primary_category,
       ];
     }
+
     usort(
       $scored,
       static function (array $a, array $b): int {
@@ -288,52 +350,26 @@ final class EventRecommendationService {
       },
     );
 
-    $is_category_context = $referenceCategoryIds !== NULL && $referenceCategoryIds !== [];
-    if ($is_category_context) {
-      $selected = array_slice($scored, 0, $limit);
+    $grouped = [];
+    foreach ($scored as $item) {
+      $cat = $item['category_id'] ?? 0;
+      $grouped[$cat][] = $item;
     }
-    else {
-      $balanced = [];
-      $category_counts = [];
-      foreach ($scored as $item) {
-        $event = $item['event'];
-        $category_ids = [];
-        if ($event->hasField('field_category')) {
-          $category_ids = array_map(
-            'intval',
-            array_column($event->get('field_category')->getValue(), 'target_id')
-          );
-        }
-        $primary_category = $category_ids[0] ?? 'none';
-        $count = $category_counts[$primary_category] ?? 0;
-        if ($count >= 2) {
-          continue;
-        }
-        $balanced[] = $item;
-        $category_counts[$primary_category] = $count + 1;
+    $balanced = [];
+    while (!empty($grouped) && count($balanced) < $limit) {
+      foreach ($grouped as $cat => &$items) {
         if (count($balanced) >= $limit) {
-          break;
+          break 2;
+        }
+        if (!empty($items)) {
+          $balanced[] = array_shift($items);
+        }
+        if (empty($items)) {
+          unset($grouped[$cat]);
         }
       }
-      if (count($balanced) < $limit) {
-        $seen_nids = [];
-        foreach ($balanced as $b) {
-          $seen_nids[(int) $b['event']->id()] = TRUE;
-        }
-        foreach ($scored as $item) {
-          if (count($balanced) >= $limit) {
-            break;
-          }
-          $nid = (int) $item['event']->id();
-          if (isset($seen_nids[$nid])) {
-            continue;
-          }
-          $balanced[] = $item;
-          $seen_nids[$nid] = TRUE;
-        }
-      }
-      $selected = $balanced;
     }
+    $selected = $balanced;
 
     $out = [];
     foreach ($selected as $row) {
@@ -367,35 +403,86 @@ final class EventRecommendationService {
   }
 
   /**
-   * Single time model: soon / near / far multipliers, then distance decay (all from start).
-   *
-   * Ongoing or past (non-positive hours-until) return 0; final score floor applies after.
+   * Dampens score for events that start more than 7 days away; never below 1.
    */
-  private function applyTimeWeight(int $score, int $eventStart): int {
-    if ($eventStart < 1) {
-      return 0;
+  private function applyTimeDecay(int $score, int $eventStartTimestamp): int {
+    if ($eventStartTimestamp < 1) {
+      return max(1, $score);
     }
     $now = $this->time->getRequestTime();
-    $seconds_until = $eventStart - $now;
-    $hours_until = $seconds_until / 3600.0;
+    $days_until = ($eventStartTimestamp - $now) / 86400.0;
+    if ($days_until <= 7) {
+      return max(1, $score);
+    }
+    $factor = exp(-0.08 * ($days_until - 7));
 
-    if ($hours_until <= 0) {
-      return 0;
+    return max(1, (int) round($score * $factor));
+  }
+
+  /**
+   * Click proxy: reuses the same stored engagement metric as list views.
+   */
+  private function getClickScore(int $nid): int {
+    return $this->getViewerCountCached($nid);
+  }
+
+  private function getPrimaryCategory(NodeInterface $event): ?int {
+    if ($event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {
+      $id = (int) $event->get('field_category')->first()->target_id;
+      return $id > 0 ? $id : NULL;
     }
-    if ($hours_until <= 6) {
-      return (int) ($score * 2.5);
+    return NULL;
+  }
+
+  private function isWeekend(): bool {
+    $n = (int) date('N', (int) $this->time->getRequestTime());
+
+    return in_array($n, [5, 6, 7], TRUE);
+  }
+
+  private function isTonight(NodeInterface $event): bool {
+    if (!$event->hasField('field_event_start') || $event->get('field_event_start')->isEmpty()) {
+      return FALSE;
     }
-    if ($hours_until <= 24) {
-      return (int) ($score * 1.8);
+    $start = strtotime($event->get('field_event_start')->value ?? '');
+    if ($start === FALSE) {
+      return FALSE;
     }
-    if ($hours_until <= 48) {
-      return (int) ($score * 1.3);
+    $now = (int) $this->time->getRequestTime();
+
+    return $start > $now && ($start - $now) <= 86400;
+  }
+
+  private function isWeekendEvent(NodeInterface $event): bool {
+    if (!$event->hasField('field_event_start') || $event->get('field_event_start')->isEmpty()) {
+      return FALSE;
+    }
+    $start = strtotime($event->get('field_event_start')->value ?? '');
+    if ($start === FALSE) {
+      return FALSE;
     }
 
-    $days_until = $hours_until / 24.0;
-    $decay_factor = exp(-0.03 * $days_until);
+    return in_array((int) date('N', $start), [5, 6, 7], TRUE);
+  }
 
-    return (int) round($score * $decay_factor);
+  private function getCategoryIds(NodeInterface $node): array {
+    if (!$node->hasField('field_category') || $node->get('field_category')->isEmpty()) {
+      return [];
+    }
+    $ids = array_map(
+      'intval',
+      array_column($node->get('field_category')->getValue(), 'target_id')
+    );
+
+    return array_values(array_unique(array_filter($ids, static fn (int $i): bool => $i > 0)));
+  }
+
+  private function sharesCategory(NodeInterface $event, ?NodeInterface $current): bool {
+    if ($current === NULL) {
+      return FALSE;
+    }
+
+    return array_intersect($this->getCategoryIds($event), $this->getCategoryIds($current)) !== [];
   }
 
   private function getSaveCountCached(int $nid): int {
