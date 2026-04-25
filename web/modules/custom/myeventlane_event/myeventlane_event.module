@@ -964,6 +964,39 @@ function myeventlane_event_preprocess_node(array &$variables): void {
       (int) $node->getCreatedTime()
     );
   }
+  $variables['mel_related_events'] = NULL;
+  if ($view_mode === 'full' && \Drupal::hasService('myeventlane_core.event_recommendation')) {
+    try {
+      /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $recommendation */
+      $recommendation = \Drupal::service('myeventlane_core.event_recommendation');
+      $related_nodes = $recommendation->getRelatedEvents($node, 3);
+      if ($related_nodes !== []) {
+        $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
+        $builds = [];
+        $append_tags = [];
+        foreach ($related_nodes as $related) {
+          $builds[] = $view_builder->view($related, 'event_card');
+          $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
+        }
+        $variables['mel_related_events'] = $builds;
+        if ($append_tags !== []) {
+          if (isset($variables['elements']['#cache'])) {
+            $tags = (array) ($variables['elements']['#cache']['tags'] ?? []);
+            $variables['elements']['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
+          }
+          elseif (isset($variables['#cache'])) {
+            $tags = (array) ($variables['#cache']['tags'] ?? []);
+            $variables['#cache']['tags'] = Cache::mergeTags($tags, $append_tags);
+          }
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_event')->error('Event recommendations: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
   $event_cta = is_array($variables['event_cta'] ?? NULL) ? $variables['event_cta'] : [];
   // Semantic CTA and badges: always set for the event bundle (all view modes: full,
   // teaser, event_card, etc.); do not scope to a single view mode here.
