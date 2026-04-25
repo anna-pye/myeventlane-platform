@@ -11,6 +11,10 @@ services:
     class: Drupal\myeventlane_core\Service\EventViewerCountService
     arguments: ['@state', '@datetime.time']
 
+  myeventlane_core.event_interest:
+    class: Drupal\myeventlane_core\Service\EventInterestService
+    arguments: ['@datetime.time']
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 

@@ -116,6 +116,8 @@ myeventlane_event_full:
     - core/once
     - myeventlane_location/event_map
     - myeventlane_theme/global-styling
+  js:
+    js/event-full-trust-rotator.js: { attributes: { defer: true } }
 
 # Commerce pages: toast-style add-to-cart messages (attached via page_attachments).
 mel_toasts:
