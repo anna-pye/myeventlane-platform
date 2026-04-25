@@ -609,6 +609,13 @@
                       </div>
                     </div>
                   {% endif %}
+                  {% if event_viewer_count_total|default(0) > 1 and event_viewer_count is not empty %}
+                    <div class="mel-booking-panel__item mel-booking-panel__item--viewer">
+                      <div>
+                        <strong>{{ event_viewer_count }}</strong>
+                      </div>
+                    </div>
+                  {% endif %}
                 </div>
                 {% if event_flag_event_save %}
                   <hr class="mel-booking-panel__rule" role="separator" />

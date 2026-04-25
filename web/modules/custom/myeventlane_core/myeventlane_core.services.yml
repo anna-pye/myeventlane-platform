@@ -7,6 +7,10 @@ services:
     class: Drupal\myeventlane_core\Service\EventSaveCountService
     arguments: ['@entity_type.manager']
 
+  myeventlane_core.event_viewer_count:
+    class: Drupal\myeventlane_core\Service\EventViewerCountService
+    arguments: ['@state', '@datetime.time']
+
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
 
