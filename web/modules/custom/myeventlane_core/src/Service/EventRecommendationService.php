@@ -48,7 +48,8 @@ final class EventRecommendationService {
    *   a second read; otherwise a single cached read is used per request.
    * @param array<int>|null $referenceCategoryIds
    *   Category term IDs (e.g. the taxonomy term of the current category page);
-   *   only used for the “same category” case when $current is NULL.
+   *   unioned with $current’s categories when both are present for the
+   *   “same category” check.
    *
    * @return array{type: 'category'|'trending'|'soon'|'weekend'|null, label: string|null}
    *   All keys always present. label is a translated string for display, or null.
@@ -66,15 +67,26 @@ final class EventRecommendationService {
 
     $t = $this->stringTranslation;
 
-    $reference_for_category = NULL;
+    $from_current = NULL;
     if ($current && $current->hasField('field_category') && !$current->get('field_category')->isEmpty()) {
-      $reference_for_category = array_map(
+      $from_current = array_map(
         'intval',
         array_column($current->get('field_category')->getValue(), 'target_id')
       );
     }
-    elseif ($referenceCategoryIds !== NULL && $referenceCategoryIds !== []) {
-      $reference_for_category = array_values(array_unique(array_map('intval', $referenceCategoryIds)));
+    $from_page = NULL;
+    if ($referenceCategoryIds !== NULL && $referenceCategoryIds !== []) {
+      $from_page = array_values(array_unique(array_map('intval', $referenceCategoryIds)));
+    }
+    $reference_for_category = NULL;
+    if ($from_current !== NULL && $from_page !== NULL) {
+      $reference_for_category = array_values(array_unique([...$from_current, ...$from_page]));
+    }
+    elseif ($from_current !== NULL) {
+      $reference_for_category = $from_current;
+    }
+    elseif ($from_page !== NULL) {
+      $reference_for_category = $from_page;
     }
 
     if ($reference_for_category !== NULL && $event->hasField('field_category') && !$event->get('field_category')->isEmpty()) {
@@ -248,7 +260,7 @@ final class EventRecommendationService {
         $event,
         $node,
         $save_count,
-        NULL
+        $referenceCategoryIds
       );
       $scored[] = [
         'event' => $event,
