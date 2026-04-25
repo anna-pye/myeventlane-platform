@@ -24,6 +24,7 @@ services:
       - '@myeventlane_core.event_viewer_count'
       - '@myeventlane_core.event_state_resolver'
       - '@string_translation'
+      - '@current_route_match'
 
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver
@@ -67,6 +68,7 @@ services:
       - '@renderer'
       - '@flag'
       - '@myeventlane_boost.manager'
+      - '@datetime.time'
 
   myeventlane_core.category_digest_cron:
     class: Drupal\myeventlane_core\Service\CategoryDigestCron
@@ -227,6 +229,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@cache.data'
+      - '@datetime.time'
 
   myeventlane_core.staging_security_subscriber:
     class: Drupal\myeventlane_core\EventSubscriber\StagingSecuritySubscriber

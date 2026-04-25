@@ -112,7 +112,10 @@ final class SearchAutocompleteController extends ControllerBase {
     $query->setFulltextFields(self::EVENT_FULLTEXT_FIELDS);
     $query->keys($keys);
     $query->addCondition('type', 'event');
-    $query->addCondition('field_event_start', $now, '>=');
+    $or = $query->createConditionGroup('OR');
+    $or->addCondition('field_event_start', $now, '>=');
+    $or->addCondition('field_event_end', $now, '>=');
+    $query->addConditionGroup($or);
     $query->range(0, 5);
     $rs = $query->execute();
 
@@ -149,7 +152,10 @@ final class SearchAutocompleteController extends ControllerBase {
     $query->setFulltextFields(self::VENUE_FULLTEXT_FIELDS);
     $query->keys($keys);
     $query->addCondition('type', 'event');
-    $query->addCondition('field_event_start', $now, '>=');
+    $or = $query->createConditionGroup('OR');
+    $or->addCondition('field_event_start', $now, '>=');
+    $or->addCondition('field_event_end', $now, '>=');
+    $query->addConditionGroup($or);
     $query->range(0, 20);
     $rs = $query->execute();
 

@@ -9,6 +9,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\flag\FlagServiceInterface;
 use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
 use Drupal\taxonomy\TermInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -87,15 +88,16 @@ final class MyCategoriesController extends ControllerBase {
 
     foreach ($followedCategories as $category) {
       // Find events in this category created in the last week.
-      $eventIds = $this->entityTypeManager()
+      $categoryQuery = $this->entityTypeManager()
         ->getStorage('node')
         ->getQuery()
         ->accessCheck(TRUE)
         ->condition('type', 'event')
         ->condition('status', 1)
         ->condition('field_category', $category->id())
-        ->condition('created', $weekAgo, '>=')
-        ->condition('field_event_start', $now, '>=')
+        ->condition('created', $weekAgo, '>=');
+      UpcomingEventEntityQueryHelper::addStartOrEndInFutureOrOngoing($categoryQuery, (int) $now);
+      $eventIds = $categoryQuery
         ->sort('field_promoted', 'DESC')
         ->sort('field_event_start', 'ASC')
         ->range(0, 10)

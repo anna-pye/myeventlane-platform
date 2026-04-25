@@ -1,29 +1,30 @@
 {#
 /**
  * @file
- * upcoming_events — page_category: intro + date pills + exposed + grid + pager.
+ * upcoming_events — page_category: discovery copy + scrollable chips + grid.
  */
 #}
 {{ attach_library('myeventlane_theme/mel-events-discovery') }}
 
-{% if mel_browse_category_name %}
-  <p class="mel-category-browse__intro">
-    {{ 'Browse events in @name.'|t({'@name': mel_browse_category_name}) }}
+{% if term %}
+  <p class="mel-category-discovery__lede">
+    {{ "Find something you'll love"|t }}
   </p>
-{% endif %}
-
-{% if mel_browse_result_count is defined %}
-  <p class="mel-browse-results-count mel-browse-results-count--category" role="status">
-    {{ '@count events'|t({'@count': mel_browse_result_count}) }}
+  <p class="mel-discovery-subtitle">
+    {{ 'Events picked for you in @name'|t({'@name': term.label}) }}
   </p>
+
+  <div class="mel-filter-chip-row" role="navigation" aria-label="{{ 'Discover events'|t }}">
+    <a
+      href="{{ path('view.upcoming_events.page_category', { 'arg_0': term.id }) }}"
+      class="mel-filter-chip mel-filter-chip--active"
+    >{{ 'All'|t }}</a>
+    <a href="{{ path('view.upcoming_events.page_today') }}" class="mel-filter-chip">{{ '🔥 Happening now'|t }}</a>
+    <a href="{{ path('view.upcoming_events.page_this_weekend') }}" class="mel-filter-chip">{{ '🎉 This weekend'|t }}</a>
+    <a href="{{ path('view.upcoming_events.page_free') }}" class="mel-filter-chip">{{ '💸 Free events'|t }}</a>
+    <a href="{{ path('<front>') }}" class="mel-filter-chip">{{ '💖 Trending'|t }}</a>
+  </div>
 {% endif %}
-
-{% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with {
-  display_id: view.current_display,
-  mel_browse_active_filters: mel_browse_active_filters|default(false),
-} %}
-
-{{ exposed }}
 
 {% if view.result %}
   {{ rows }}

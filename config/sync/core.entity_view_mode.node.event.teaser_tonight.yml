@@ -1,0 +1,11 @@
+uuid: 7f1e9c2a-4b3d-4e1f-9a2c-8d7e6f5a4b3c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.event.teaser_tonight
+label: 'Teaser (Tonight rail)'
+description: 'Same as teaser; used for the home Tonight block so night-only card labels have a separate render cache from generic teasers.'
+targetEntityType: node
+cache: true

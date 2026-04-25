@@ -52,7 +52,7 @@
       <nav class="mel-category-pills" aria-label="{{ 'Event categories'|t }}">
         {% for c in categories %}
           <a
-            href="{{ path('view.upcoming_events.page_events', {}, {'query': {'category': c.tid}}) }}"
+            href="{{ path('view.upcoming_events.page_category', {'arg_0': c.tid}) }}"
             class="mel-pill mel-pill--cat-{{ c.slug|default('default') }}"
           >
             {{ c.label }}

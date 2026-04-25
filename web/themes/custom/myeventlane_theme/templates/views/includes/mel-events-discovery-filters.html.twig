@@ -9,27 +9,27 @@
 #}
 {% set d = display_id|default('') %}
 {% set mel_show_filter_reset = mel_browse_active_filters|default(false) %}
-<nav class="mel-events-date-filters" aria-label="{{ 'When'|t }}">
+<nav class="mel-filter-chip-row mel-events-date-filters" aria-label="{{ 'When'|t }}">
   <a
     href="{{ path('view.upcoming_events.page_events') }}"
-    class="mel-events-date-filters__pill{% if d == 'page_events' %} is-active{% endif %}"
+    class="mel-filter-chip{% if d == 'page_events' %} mel-filter-chip--active{% endif %}"
   >{{ 'All upcoming'|t }}</a>
   <a
     href="{{ path('view.upcoming_events.page_today') }}"
-    class="mel-events-date-filters__pill{% if d == 'page_today' %} is-active{% endif %}"
+    class="mel-filter-chip{% if d == 'page_today' %} mel-filter-chip--active{% endif %}"
   >{{ 'Today'|t }}</a>
   <a
     href="{{ path('view.upcoming_events.page_this_weekend') }}"
-    class="mel-events-date-filters__pill{% if d == 'page_this_weekend' %} is-active{% endif %}"
+    class="mel-filter-chip{% if d == 'page_this_weekend' %} mel-filter-chip--active{% endif %}"
   >{{ 'This weekend'|t }}</a>
   <a
     href="{{ path('view.upcoming_events.page_free') }}"
-    class="mel-events-date-filters__pill{% if d == 'page_free' %} is-active{% endif %}"
+    class="mel-filter-chip{% if d == 'page_free' %} mel-filter-chip--active{% endif %}"
   >{{ 'Free & RSVP'|t }}</a>
   {% if mel_show_filter_reset and d == 'page_events' %}
     <a
       href="{{ path('view.upcoming_events.page_events') }}"
-      class="mel-events-date-filters__pill mel-events-date-filters__pill--reset"
+      class="mel-filter-chip mel-filter-chip--reset"
     >{{ 'Reset filters'|t }}</a>
   {% endif %}
 </nav>

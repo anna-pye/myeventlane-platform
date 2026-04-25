@@ -148,7 +148,7 @@ final class TrendingCategoriesBlock extends BlockBase implements ContainerFactor
         'link' => [
           '#type' => 'link',
           '#title' => $label,
-          '#url' => Url::fromRoute('entity.taxonomy_term.canonical', ['taxonomy_term' => $tid]),
+          '#url' => Url::fromRoute('view.upcoming_events.page_category', ['arg_0' => (string) $tid]),
           '#attributes' => [
             'class' => ['mel-trending-category-pill__link'],
           ],
