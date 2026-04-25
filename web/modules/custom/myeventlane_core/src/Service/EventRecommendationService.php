@@ -153,6 +153,7 @@ final class EventRecommendationService {
 
     $category_ids = array_values(array_unique($category_ids));
     $now = $this->time->getRequestTime();
+    $now_datetime = date('Y-m-d\TH:i:s', $now);
     $excluded_states = [
       'draft',
       'cancelled',
@@ -167,8 +168,8 @@ final class EventRecommendationService {
       ->condition('field_event_state', $excluded_states, 'NOT IN');
 
     $or = $query->orConditionGroup();
-    $or->condition('field_event_start', $now, '>=');
-    $or->condition('field_event_end', $now, '>=');
+    $or->condition('field_event_start', $now_datetime, '>=');
+    $or->condition('field_event_end', $now_datetime, '>=');
     $query->condition($or);
 
     $query
@@ -201,9 +202,20 @@ final class EventRecommendationService {
    * After base capping, applies a single time-weight (event start) for urgency + decay.
    * Deterministic: equal scores use newer created time first, then lower nid.
    *
+   * When $referenceCategoryIds is non-empty (category page / category context), the
+   * top-ranked list is returned unchanged. Otherwise a soft per-primary-category cap
+   * (max 2) is applied after scoring, with fallback fill from the full ranked list.
+   *
+   * @param array<int>|null $referenceCategoryIds
+   *   If non-empty, skips soft balancing (pure score order for category context).
+   *
    * @return array<int, array{node: \Drupal\node\NodeInterface, context: array{type: 'category'|'trending'|'soon'|'weekend'|null, label: string|null}}>
    */
-  public function getRankedRelatedEvents(NodeInterface $node, int $limit = 3): array {
+  public function getRankedRelatedEvents(
+    NodeInterface $node,
+    int $limit = 3,
+    ?array $referenceCategoryIds = NULL,
+  ): array {
     if ($limit < 1) {
       return [];
     }
@@ -262,9 +274,56 @@ final class EventRecommendationService {
         return (int) $aEvent->id() <=> (int) $bEvent->id();
       },
     );
-    $top = array_slice($scored, 0, $limit);
+
+    $is_category_context = $referenceCategoryIds !== NULL && $referenceCategoryIds !== [];
+    if ($is_category_context) {
+      $selected = array_slice($scored, 0, $limit);
+    }
+    else {
+      $balanced = [];
+      $category_counts = [];
+      foreach ($scored as $item) {
+        $event = $item['event'];
+        $category_ids = [];
+        if ($event->hasField('field_category')) {
+          $category_ids = array_map(
+            'intval',
+            array_column($event->get('field_category')->getValue(), 'target_id')
+          );
+        }
+        $primary_category = $category_ids[0] ?? 'none';
+        $count = $category_counts[$primary_category] ?? 0;
+        if ($count >= 2) {
+          continue;
+        }
+        $balanced[] = $item;
+        $category_counts[$primary_category] = $count + 1;
+        if (count($balanced) >= $limit) {
+          break;
+        }
+      }
+      if (count($balanced) < $limit) {
+        $seen_nids = [];
+        foreach ($balanced as $b) {
+          $seen_nids[(int) $b['event']->id()] = TRUE;
+        }
+        foreach ($scored as $item) {
+          if (count($balanced) >= $limit) {
+            break;
+          }
+          $nid = (int) $item['event']->id();
+          if (isset($seen_nids[$nid])) {
+            continue;
+          }
+          $balanced[] = $item;
+          $seen_nids[$nid] = TRUE;
+        }
+      }
+      $selected = $balanced;
+    }
+
     $out = [];
-    foreach ($top as $row) {
+    foreach ($selected as $row) {
       $out[] = [
         'node' => $row['event'],
         'context' => $row['context'],
