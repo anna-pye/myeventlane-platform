@@ -23,6 +23,7 @@ services:
       - '@myeventlane_core.event_save_count'
       - '@myeventlane_core.event_viewer_count'
       - '@myeventlane_core.event_state_resolver'
+      - '@string_translation'
 
   myeventlane_core.optional_service_resolver:
     class: Drupal\myeventlane_core\Service\OptionalServiceResolver

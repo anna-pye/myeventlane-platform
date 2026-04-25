@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormInterface;
@@ -802,6 +803,68 @@ function myeventlane_event_entity_presave(EntityInterface $entity): void {
 }
 
 /**
+ * Implements hook_entity_view_alter().
+ *
+ * Attaches recommendation reason labels to all event “card” view builds (search,
+ * Views, blocks, event page) without per-call Twig or duplicate flagging queries
+ * (service caches per request).
+ */
+function myeventlane_event_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display): void {
+  if (!\Drupal::hasService('myeventlane_core.event_recommendation')) {
+    return;
+  }
+  if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
+    return;
+  }
+  if (!in_array($display->getMode(), myeventlane_event_get_event_card_view_modes(), TRUE)) {
+    return;
+  }
+  if (array_key_exists('#recommendation_context', $build)) {
+    return;
+  }
+  $routeContextEvent = NULL;
+  $route = \Drupal::routeMatch();
+  $route_node = $route->getParameter('node');
+  if ($route_node instanceof NodeInterface && $route_node->bundle() === 'event' && (int) $route_node->id() !== (int) $entity->id()) {
+    $routeContextEvent = $route_node;
+  }
+  $referenceCategoryIds = NULL;
+  $term = $route->getParameter('taxonomy_term');
+  if ($term instanceof TermInterface) {
+    $referenceCategoryIds = [(int) $term->id()];
+  }
+  try {
+    /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $recommendation */
+    $recommendation = \Drupal::service('myeventlane_core.event_recommendation');
+    $recommendation->attachListCardContextToBuild(
+      $build,
+      $entity,
+      $routeContextEvent,
+      $referenceCategoryIds
+    );
+    if (!isset($build['#cache'])) {
+      $build['#cache'] = [];
+    }
+    if (!is_array($build['#cache'])) {
+      $build['#cache'] = [];
+    }
+    $contexts = $build['#cache']['contexts'] ?? [];
+    if (!is_array($contexts)) {
+      $contexts = [];
+    }
+    $build['#cache']['contexts'] = array_values(array_unique(array_merge(
+      $contexts,
+      ['route.name'],
+    )));
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_event')->error('Event recommendation context: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+  }
+}
+
+/**
  * Implements hook_preprocess_node().
  */
 function myeventlane_event_preprocess_node(array &$variables): void {
@@ -813,6 +876,18 @@ function myeventlane_event_preprocess_node(array &$variables): void {
   if ($node->bundle() !== 'event') {
     return;
   }
+
+  $elements = is_array($variables['elements'] ?? NULL) ? $variables['elements'] : [];
+  $recommendation_context = $elements['#recommendation_context'] ?? NULL;
+  $variables['recommendation_context'] = is_array($recommendation_context)
+    ? $recommendation_context + [
+      'type' => NULL,
+      'label' => NULL,
+    ]
+    : [
+      'type' => NULL,
+      'label' => NULL,
+    ];
 
   // Categories metadata for theming (name + color).
   $categories = [];
@@ -969,12 +1044,19 @@ function myeventlane_event_preprocess_node(array &$variables): void {
     try {
       /** @var \Drupal\myeventlane_core\Service\EventRecommendationService $recommendation */
       $recommendation = \Drupal::service('myeventlane_core.event_recommendation');
-      $related_nodes = $recommendation->getRankedRelatedEvents($node, 3);
-      if ($related_nodes !== []) {
+      $related_rows = $recommendation->getRankedRelatedEvents($node, 3);
+      if ($related_rows !== []) {
         $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
         $builds = [];
         $append_tags = [];
-        foreach ($related_nodes as $related) {
+        foreach ($related_rows as $row) {
+          if (!is_array($row) || !isset($row['node'], $row['context'])) {
+            continue;
+          }
+          $related = $row['node'];
+          if (!$related instanceof NodeInterface) {
+            continue;
+          }
           $builds[] = $view_builder->view($related, 'event_card');
           $append_tags = Cache::mergeTags($append_tags, $related->getCacheTags());
         }
