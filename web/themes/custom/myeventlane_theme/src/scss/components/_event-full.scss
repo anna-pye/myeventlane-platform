@@ -234,6 +234,47 @@
   }
 }
 
+// ---------------------------------------------------------------------------
+// Decision prompts (max 2 items; complements trust rotator, no duplicate copy)
+// ---------------------------------------------------------------------------
+.mel-decision-prompts {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E9E3DE;
+}
+
+.mel-decision-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.mel-decision-item:hover {
+  transform: translateY(-1px);
+}
+
+.mel-decision-item strong {
+  font-size: 13px;
+  color: #24303A;
+}
+
+.mel-decision-item p {
+  font-size: 12px;
+  color: #7C8791;
+  margin: 0;
+}
+
+.mel-decision-item--urgent strong {
+  color: #F26D5B;
+}
+
+.mel-decision-prompts .mel-icon {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
 .mel-event--v2 .mel-card--sticky .mel-booking-panel__item {
   display: flex;
   gap: 12px;

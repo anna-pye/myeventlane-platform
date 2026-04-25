@@ -531,6 +531,14 @@
                 {% endif %}
 
                 <div class="mel-booking-panel__trust" role="group" aria-label="{{ 'Booking details'|t }}">
+                  {% set _mel_trust_capacity_highlight = event_ui is defined
+                    and (mel_cta_urgency|default('')|striptags|length == 0)
+                    and (not mel_event_selling_fast|default(false))
+                    and (not (event_ui.is_sold_out|default(false) is same as(true)))
+                    and (
+                      (event_ui.is_limited|default(false))
+                      or (event_ui.capacity_hint|default('')|striptags|length > 0)
+                    ) %}
                   <div class="mel-trust-rotator" data-rotate aria-live="polite" aria-atomic="true">
                     <div class="mel-trust-item is-active" data-trust-item>
                       {% if event_viewer_count is not empty %}
@@ -546,14 +554,48 @@
                       <span class="mel-trust-item__text">✉️ {{ 'Instant confirmation'|t }} — {% if mel_trust_checkout %}{{ 'You’ll receive confirmation by email'|t }}{% else %}{{ 'You’ll get a confirmation email'|t }}{% endif %}</span>
                     </div>
                   </div>
-                  {% if event_ui is defined
-                    and (mel_cta_urgency|default('')|striptags|length == 0)
-                    and (not mel_event_selling_fast|default(false))
-                    and (not (event_ui.is_sold_out|default(false) is same as(true)))
-                    and (
-                      (event_ui.is_limited|default(false))
-                      or (event_ui.capacity_hint|default('')|striptags|length > 0)
-                    ) %}
+                  {% set _show_mel_decision_prompts = (not logged_in)
+                    or (event_ui is defined and (event_ui.is_free|default(false) == true))
+                    or (event_ui is defined and (event_ui.capacity_hint|default('')|striptags|length > 0) and (not _mel_trust_capacity_highlight)) %}
+                  {% if _show_mel_decision_prompts %}
+                    {% set _decision_count = 0 %}
+                    <div class="mel-decision-prompts">
+                      {% if _decision_count < 2 and (not logged_in) %}
+                        {% set _decision_count = _decision_count + 1 %}
+                        <div class="mel-decision-item">
+                          <span class="mel-icon">👤</span>
+                          <div>
+                            <strong>{{ 'First time here?'|t }}</strong>
+                            <p>{{ 'Book in seconds — no account needed'|t }}</p>
+                          </div>
+                        </div>
+                      {% endif %}
+                      {% if _decision_count < 2 and event_ui is defined and (event_ui.is_free|default(false) == true) %}
+                        {% set _decision_count = _decision_count + 1 %}
+                        <div class="mel-decision-item">
+                          <span class="mel-icon">🎟</span>
+                          <div>
+                            <strong>{{ 'Free event'|t }}</strong>
+                            <p>{{ 'No payment required'|t }}</p>
+                          </div>
+                        </div>
+                      {% endif %}
+                      {% if _decision_count < 2
+                        and event_ui is defined
+                        and (event_ui.capacity_hint|default('')|striptags|length > 0)
+                        and (not _mel_trust_capacity_highlight) %}
+                        {% set _decision_count = _decision_count + 1 %}
+                        <div class="mel-decision-item mel-decision-item--urgent">
+                          <span class="mel-icon">⚡</span>
+                          <div>
+                            <strong>{{ event_ui.capacity_hint }}</strong>
+                            <p>{{ "Don't miss out"|t }}</p>
+                          </div>
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                  {% if _mel_trust_capacity_highlight %}
                     <div class="mel-booking-panel__item mel-booking-panel__item--highlight">
                       <span class="mel-icon" aria-hidden="true">⚡</span>
                       <div>
@@ -711,7 +753,7 @@
           <p class="mel-mobile-cta__eyebrow">{{ mel_context_above }}</p>
         {% endif %}
         {% include '@myeventlane_theme/node/partial--event-full-booking-cta.html.twig' with { 'mel_cta_slot': 'mobile' } %}
-        {% if mel_cta_is_soldout_ui and logged_in and event_cta and (event_cta.url|default('')|striptags|length > 0) %}
+        {% if mel_cta_is_soldout_ui and event_cta and (event_cta.url|default('')|striptags|length > 0) %}
           <p class="mel-mobile-cta__waitlist-sub" role="note">{{ 'Be the first notified if spots open'|t }}</p>
         {% endif %}
       </div>
